@@ -1,0 +1,320 @@
+name: Reusable Docker Build & Push
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        description: 'Dockerfile name (without Dockerfile. prefix)'
+        required: true
+        type: string
+      image-name:
+        description: 'Docker image name'
+        required: true
+        type: string
+      image-tag:
+        description: 'Docker image tag'
+        required: false
+        type: string
+        default: 'latest'
+      platforms:
+        description: 'Target platforms for build'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      push:
+        description: 'Whether to push the image'
+        required: false
+        type: boolean
+        default: false
+      registry:
+        description: 'Docker registry'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      build-args:
+        description: 'Build arguments (JSON object)'
+        required: false
+        type: string
+        default: '{}'
+      labels:
+        description: 'Image labels (JSON object)'
+        required: false
+        type: string
+        default: '{}'
+      cache-enabled:
+        description: 'Whether to use build cache'
+        required: false
+        type: boolean
+        default: true
+      upload-artifacts:
+        description: 'Whether to upload image as artifact'
+        required: false
+        type: boolean
+        default: false
+      run-security-scan:
+        description: 'Whether to run security scanning'
+        required: false
+        type: boolean
+        default: false
+      run-tests:
+        description: 'Whether to run container tests'
+        required: false
+        type: boolean
+        default: false
+      needs-binaries:
+        description: 'Whether this build needs pre-built binaries'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      REGISTRY_USERNAME:
+        description: 'Registry username'
+        required: false
+      REGISTRY_PASSWORD:
+        description: 'Registry password'
+        required: false
+      DOCKER_HUB_USERNAME:
+        description: 'Docker Hub username'
+        required: false
+      DOCKER_HUB_TOKEN:
+        description: 'Docker Hub token'
+        required: false
+    outputs:
+      image-digest:
+        description: 'Built image digest'
+        value: ${{ jobs.build.outputs.digest }}
+      image-tags:
+        description: 'Built image tags'
+        value: ${{ jobs.build.outputs.tags }}
+      image-size:
+        description: 'Built image size'
+        value: ${{ jobs.build.outputs.size }}
+
+jobs:
+  build:
+    name: Build ${{ inputs.dockerfile }} (${{ inputs.platforms }})
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+      size: ${{ steps.inspect.outputs.size }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Bun and dependencies
+        if: inputs.needs-binaries
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: 'latest'
+          cache-key-suffix: -docker-${{ inputs.dockerfile }}
+
+      - name: Build binaries
+        if: inputs.needs-binaries
+        run: |
+          echo "🔨 Building binaries for Docker image..."
+          bun run scripts/build-binaries.ts
+
+      - name: Download binaries artifact
+        if: inputs.needs-binaries && !steps.build-binaries.outcome
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: binaries
+          path: dist/
+        continue-on-error: true
+
+      - name: Set up QEMU
+        if: contains(inputs.platforms, 'arm')
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+
+      - name: Log in to GitHub Container Registry
+        if: inputs.push && inputs.registry == 'ghcr.io'
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: inputs.push && inputs.registry == 'docker.io' && secrets.DOCKER_HUB_USERNAME
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        with:
+          images: ${{ inputs.registry }}/${{ inputs.image-name }}
+          tags: |
+            type=raw,value=${{ inputs.image-tag }}
+            type=raw,value=${{ inputs.image-tag }}-${{ inputs.dockerfile }}
+            type=sha,format=short,suffix=-${{ inputs.dockerfile }}
+          labels: |
+            org.opencontainers.image.title=Promptliano
+            org.opencontainers.image.description=AI-powered prompt management platform
+            org.opencontainers.image.vendor=Promptliano
+            org.opencontainers.image.dockerfile=Dockerfile.${{ inputs.dockerfile }}
+            ${{ inputs.labels }}
+
+      - name: Parse build args
+        id: build-args
+        run: |
+          # Convert JSON build args to Docker format
+          BUILD_ARGS_JSON='${{ inputs.build-args }}'
+          if [ "$BUILD_ARGS_JSON" != "{}" ]; then
+            echo "build-args<<EOF" >> $GITHUB_OUTPUT
+            echo "$BUILD_ARGS_JSON" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "build-args=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        with:
+          context: .
+          file: Dockerfile.${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.build-args.outputs.build-args }}
+          cache-from: ${{ inputs.cache-enabled && 'type=gha' || '' }}
+          cache-to: ${{ inputs.cache-enabled && 'type=gha,mode=max' || '' }}
+          outputs: ${{ inputs.upload-artifacts && format('type=docker,dest=/tmp/{0}.tar', inputs.dockerfile) || '' }}
+
+      - name: Inspect image
+        id: inspect
+        if: inputs.push
+        run: |
+          # Get image size information
+          IMAGE_REF="${{ inputs.registry }}/${{ inputs.image-name }}:${{ inputs.image-tag }}-${{ inputs.dockerfile }}"
+          
+          # Try to get image size from manifest
+          if docker manifest inspect "$IMAGE_REF" > /dev/null 2>&1; then
+            # For multi-arch manifests, sum up all architecture sizes
+            MANIFEST=$(docker manifest inspect "$IMAGE_REF")
+            if echo "$MANIFEST" | jq -e '.manifests' > /dev/null 2>&1; then
+              # Multi-arch manifest - sum sizes
+              SIZE=$(echo "$MANIFEST" | jq '.manifests | map(.size) | add')
+            else
+              # Single-arch manifest - get config size 
+              SIZE=$(echo "$MANIFEST" | jq '.config.size // 0')
+            fi
+            echo "size=${SIZE}" >> $GITHUB_OUTPUT
+          else
+            echo "size=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload image artifact
+        if: inputs.upload-artifacts
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: docker-${{ inputs.dockerfile }}-${{ github.run_number }}
+          artifact-path: /tmp/${{ inputs.dockerfile }}.tar
+          upload-condition: on-success
+          retention-days: 1  # Very short for Docker image artifacts
+          max-size-mb: 500  # Docker images can be large
+          compress: false  # Docker images are already layered/compressed
+          include-git-info: false
+
+      - name: Run security scan
+        if: inputs.run-security-scan && inputs.push
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b9c860cd7 # v0.24.0
+        with:
+          image-ref: ${{ inputs.registry }}/${{ inputs.image-name }}:${{ inputs.image-tag }}-${{ inputs.dockerfile }}
+          format: 'sarif'
+          output: 'trivy-results-${{ inputs.dockerfile }}.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Upload security scan results
+        if: inputs.run-security-scan && inputs.push
+        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        with:
+          sarif_file: 'trivy-results-${{ inputs.dockerfile }}.sarif'
+          category: 'trivy-${{ inputs.dockerfile }}'
+        continue-on-error: true
+
+      - name: Test container
+        if: inputs.run-tests && inputs.push
+        run: |
+          echo "🧪 Testing container functionality..."
+          
+          IMAGE_REF="${{ inputs.registry }}/${{ inputs.image-name }}:${{ inputs.image-tag }}-${{ inputs.dockerfile }}"
+          
+          # Start container in background
+          docker run -d \
+            --name test-container-${{ inputs.dockerfile }} \
+            -p 3147:3147 \
+            -e DATABASE_PATH=/tmp/test.db \
+            -e NODE_ENV=production \
+            "$IMAGE_REF"
+          
+          # Wait for startup
+          sleep 10
+          
+          # Check if container is running
+          if docker ps | grep -q "test-container-${{ inputs.dockerfile }}"; then
+            echo "✅ Container started successfully"
+            
+            # Test health endpoint
+            if curl -f http://localhost:3147/api/health; then
+              echo "✅ Health check passed"
+            else
+              echo "❌ Health check failed"
+              docker logs "test-container-${{ inputs.dockerfile }}"
+              exit 1
+            fi
+          else
+            echo "❌ Container failed to start"
+            docker logs "test-container-${{ inputs.dockerfile }}"
+            exit 1
+          fi
+          
+          # Cleanup
+          docker stop "test-container-${{ inputs.dockerfile }}"
+          docker rm "test-container-${{ inputs.dockerfile }}"
+
+      - name: Generate build summary
+        if: always()
+        run: |
+          echo "## 🐳 Docker Build Summary: ${{ inputs.dockerfile }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Dockerfile**: \`Dockerfile.${{ inputs.dockerfile }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms**: \`${{ inputs.platforms }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry**: \`${{ inputs.registry }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags**: \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.push }}" = "true" ]; then
+            echo "**Pushed**: ✅ Yes" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.inspect.outputs.size }}" != "unknown" ]; then
+              echo "**Size**: ${{ steps.inspect.outputs.size }} bytes" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "**Pushed**: ❌ No (build only)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ inputs.run-security-scan }}" = "true" ]; then
+            echo "**Security Scan**: Completed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ inputs.run-tests }}" = "true" ]; then
+            echo "**Container Tests**: Executed" >> $GITHUB_STEP_SUMMARY
+          fi

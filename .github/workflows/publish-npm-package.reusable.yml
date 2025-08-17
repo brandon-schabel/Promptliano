@@ -90,29 +90,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
-        with:
-          bun-version: ${{ inputs.bun-version }}
-
-      - name: Setup Node.js
+      - name: Setup Node.js for npm registry
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: ${{ inputs.node-version }}
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Cache dependencies
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      - name: Setup Bun and dependencies  
+        uses: ./.github/actions/setup-bun
         with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          bun-version: ${{ inputs.bun-version }}
+          working-directory: ${{ inputs.package-path }}
+          cache-key-suffix: -publish-${{ inputs.package-name }}
 
       - name: Extract version from tag
         if: github.event_name != 'pull_request'

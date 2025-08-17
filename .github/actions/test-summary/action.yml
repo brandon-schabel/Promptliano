@@ -1,0 +1,162 @@
+name: 'Test Results Summary'
+description: 'Generate comprehensive test result summaries for GitHub'
+author: 'Promptliano Team'
+
+inputs:
+  test-name:
+    description: 'Name of the test suite'
+    required: true
+  test-status:
+    description: 'Test status (success, failure, skipped)'
+    required: true
+  typecheck-status:
+    description: 'Typecheck status (success, failure, skipped)'
+    required: false
+    default: 'skipped'
+  build-status:
+    description: 'Build status (success, failure, skipped)'
+    required: false
+    default: 'skipped'
+  lint-status:
+    description: 'Lint status (success, failure, skipped)'
+    required: false
+    default: 'skipped'
+  coverage-generated:
+    description: 'Whether coverage was generated'
+    required: false
+    default: 'false'
+  working-directory:
+    description: 'Working directory path'
+    required: false
+    default: '.'
+  duration:
+    description: 'Test duration in seconds'
+    required: false
+    default: ''
+  additional-info:
+    description: 'Additional information to include'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate test summary
+      shell: bash
+      run: |
+        echo "## 🧪 ${{ inputs.test-name }} Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall status
+        OVERALL_STATUS="success"
+        if [ "${{ inputs.test-status }}" = "failure" ] || [ "${{ inputs.typecheck-status }}" = "failure" ] || [ "${{ inputs.build-status }}" = "failure" ]; then
+          OVERALL_STATUS="failure"
+        fi
+        
+        if [ "$OVERALL_STATUS" = "success" ]; then
+          echo "### ✅ Overall Result: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Overall Result: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Components" >> $GITHUB_STEP_SUMMARY
+        
+        # Type checking results
+        case "${{ inputs.typecheck-status }}" in
+          "success")
+            echo "- ✅ **Type Checking**: Passed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "failure")
+            echo "- ❌ **Type Checking**: Failed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          *)
+            echo "- ⏭️ **Type Checking**: Skipped" >> $GITHUB_STEP_SUMMARY
+            ;;
+        esac
+        
+        # Test results
+        case "${{ inputs.test-status }}" in
+          "success")
+            echo "- ✅ **Unit Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "failure")
+            echo "- ❌ **Unit Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          *)
+            echo "- ⏭️ **Unit Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
+            ;;
+        esac
+        
+        # Build results
+        case "${{ inputs.build-status }}" in
+          "success")
+            echo "- ✅ **Build**: Successful" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "failure")
+            echo "- ❌ **Build**: Failed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          *)
+            echo "- ⏭️ **Build**: Skipped" >> $GITHUB_STEP_SUMMARY
+            ;;
+        esac
+        
+        # Lint results
+        case "${{ inputs.lint-status }}" in
+          "success")
+            echo "- ✅ **Linting**: Passed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "failure")
+            echo "- ❌ **Linting**: Failed" >> $GITHUB_STEP_SUMMARY
+            ;;
+          *)
+            echo "- ⏭️ **Linting**: Skipped" >> $GITHUB_STEP_SUMMARY
+            ;;
+        esac
+        
+        # Coverage info
+        if [ "${{ inputs.coverage-generated }}" = "true" ]; then
+          echo "- 📊 **Coverage**: Generated" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Additional metadata
+        echo "### Details" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package Path**: \`${{ inputs.working-directory }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ inputs.duration }}" ]; then
+          echo "- **Duration**: ${{ inputs.duration }}s" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ inputs.additional-info }}" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Additional Information" >> $GITHUB_STEP_SUMMARY
+          echo "${{ inputs.additional-info }}" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Set job status annotation
+      shell: bash
+      run: |
+        if [ "${{ inputs.test-status }}" = "failure" ]; then
+          echo "::error title=${{ inputs.test-name }} Tests::Unit tests failed for ${{ inputs.test-name }}"
+        fi
+        
+        if [ "${{ inputs.typecheck-status }}" = "failure" ]; then
+          echo "::error title=${{ inputs.test-name }} TypeCheck::Type checking failed for ${{ inputs.test-name }}"
+        fi
+        
+        if [ "${{ inputs.build-status }}" = "failure" ]; then
+          echo "::error title=${{ inputs.test-name }} Build::Build failed for ${{ inputs.test-name }}"
+        fi
+        
+        if [ "${{ inputs.lint-status }}" = "failure" ]; then
+          echo "::warning title=${{ inputs.test-name }} Lint::Linting issues found in ${{ inputs.test-name }}"
+        fi
+        
+        # Success notices
+        if [ "${{ inputs.test-status }}" = "success" ]; then
+          echo "::notice title=${{ inputs.test-name }} Tests::All tests passed for ${{ inputs.test-name }}"
+        fi

@@ -1,0 +1,143 @@
+name: 'Install Dependencies'
+description: 'Install dependencies with smart caching for specific packages'
+author: 'Promptliano Team'
+
+inputs:
+  working-directory:
+    description: 'Working directory for operations'
+    required: false
+    default: '.'
+  package-manager:
+    description: 'Package manager to use (bun, npm, yarn)'
+    required: false
+    default: 'bun'
+  install-command:
+    description: 'Custom install command (overrides package-manager)'
+    required: false
+    default: ''
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+  verify-installation:
+    description: 'Whether to verify the installation'
+    required: false
+    default: 'true'
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+  dependency-count:
+    description: 'Number of dependencies installed'
+    value: ${{ steps.verify.outputs.dependency-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect package manager and lockfile
+      id: detect
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        # Detect package manager if not specified with custom command
+        if [ -n "${{ inputs.install-command }}" ]; then
+          echo "manager=custom" >> $GITHUB_OUTPUT
+          echo "command=${{ inputs.install-command }}" >> $GITHUB_OUTPUT
+        elif [ "${{ inputs.package-manager }}" = "bun" ] || [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+          echo "manager=bun" >> $GITHUB_OUTPUT
+          if [ -f "bun.lockb" ]; then
+            echo "lockfile=bun.lockb" >> $GITHUB_OUTPUT
+            echo "command=bun install --frozen-lockfile" >> $GITHUB_OUTPUT
+          elif [ -f "bun.lock" ]; then
+            echo "lockfile=bun.lock" >> $GITHUB_OUTPUT
+            echo "command=bun install --frozen-lockfile" >> $GITHUB_OUTPUT
+          else
+            echo "lockfile=none" >> $GITHUB_OUTPUT
+            echo "command=bun install" >> $GITHUB_OUTPUT
+          fi
+        elif [ -f "package-lock.json" ]; then
+          echo "manager=npm" >> $GITHUB_OUTPUT
+          echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+          echo "command=npm ci" >> $GITHUB_OUTPUT
+        elif [ -f "yarn.lock" ]; then
+          echo "manager=yarn" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+          echo "command=yarn install --frozen-lockfile" >> $GITHUB_OUTPUT
+        else
+          echo "manager=${{ inputs.package-manager }}" >> $GITHUB_OUTPUT
+          echo "lockfile=none" >> $GITHUB_OUTPUT
+          echo "command=${{ inputs.package-manager }} install" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get lockfile hash
+      id: lockfile-hash
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        LOCKFILE="${{ steps.detect.outputs.lockfile }}"
+        if [ "$LOCKFILE" != "none" ] && [ -f "$LOCKFILE" ]; then
+          LOCKFILE_HASH=$(sha256sum "$LOCKFILE" | cut -d' ' -f1)
+          echo "hash=$LOCKFILE_HASH" >> $GITHUB_OUTPUT
+        else
+          echo "hash=no-lockfile" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      with:
+        path: |
+          ~/.bun/install/cache
+          ~/.npm
+          ~/.yarn/cache
+          node_modules
+          packages/*/node_modules
+          **/node_modules
+        key: ${{ runner.os }}-deps-${{ steps.detect.outputs.manager }}-${{ steps.lockfile-hash.outputs.hash }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-deps-${{ steps.detect.outputs.manager }}-${{ steps.lockfile-hash.outputs.hash }}
+          ${{ runner.os }}-deps-${{ steps.detect.outputs.manager }}-
+          ${{ runner.os }}-deps-
+
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        echo "Installing dependencies with ${{ steps.detect.outputs.manager }}..."
+        echo "Command: ${{ steps.detect.outputs.command }}"
+        ${{ steps.detect.outputs.command }}
+
+    - name: Verify installation
+      id: verify
+      if: inputs.verify-installation == 'true'
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        echo "Verifying dependency installation..."
+        
+        # Check if node_modules exists and has content
+        if [ -d "node_modules" ] && [ "$(ls -A node_modules)" ]; then
+          DEPENDENCY_COUNT=$(ls node_modules | wc -l)
+          echo "✅ Dependencies installed successfully"
+          echo "📦 Dependency count: $DEPENDENCY_COUNT"
+          echo "dependency-count=$DEPENDENCY_COUNT" >> $GITHUB_OUTPUT
+          
+          # Check workspace setup for monorepos
+          if [ -f "package.json" ] && grep -q '"workspaces"' package.json; then
+            echo "🏗️ Monorepo detected - checking workspace dependencies..."
+            if [ -d "packages" ]; then
+              WORKSPACE_COUNT=$(find packages -name "node_modules" -type d | wc -l)
+              echo "📋 Workspace packages with dependencies: $WORKSPACE_COUNT"
+            fi
+          fi
+        elif [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
+          # Cache hit but no node_modules - might be an issue
+          echo "⚠️ Cache hit but no dependencies found - cache might be corrupted"
+          echo "dependency-count=0" >> $GITHUB_OUTPUT
+        else
+          echo "❌ No dependencies found in node_modules"
+          echo "dependency-count=0" >> $GITHUB_OUTPUT
+          exit 1
+        fi

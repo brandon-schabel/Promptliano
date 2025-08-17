@@ -41,6 +41,26 @@ import { ClaudeCommandsClient } from './clients/claude-commands-client'
 import { SystemClient } from './clients/system-client'
 
 import type { ApiConfig } from './base-client'
+import { PromptlianoError } from './base-client'
+
+/**
+ * Creates a proxy that throws descriptive errors when accessing deprecated services
+ */
+function createNotImplementedProxy(serviceName: string, suggestion?: string): unknown {
+  return new Proxy({}, {
+    get() {
+      const message = suggestion 
+        ? `Service '${serviceName}' has been migrated. ${suggestion}`
+        : `Service '${serviceName}' is not yet modularized. Use individual client imports for full functionality.`
+      
+      throw new PromptlianoError(
+        message,
+        undefined,
+        'NOT_IMPLEMENTED'
+      )
+    }
+  })
+}
 
 /**
  * Main Promptliano API client that composes all individual service clients
@@ -69,10 +89,30 @@ export class PromptlianoClient {
   public readonly system: SystemClient
 
   // Backwards compatibility aliases - not yet implemented
-  public readonly agentFiles: any
-  public readonly mcpInstallation: any
-  public readonly mcpProjectConfig: any
-  public readonly mcpGlobalConfig: any
+  /**
+   * @deprecated This service is not yet modularized.
+   * Use individual client imports for full functionality.
+   * Will throw an error if accessed.
+   */
+  public readonly agentFiles: unknown
+  
+  /**
+   * @deprecated This service has been migrated to the mcp client.
+   * Use this.mcp instead.
+   */
+  public readonly mcpInstallation: unknown
+  
+  /**
+   * @deprecated This service has been migrated to the mcp client.
+   * Use this.mcp instead.
+   */
+  public readonly mcpProjectConfig: unknown
+  
+  /**
+   * @deprecated This service has been migrated to the mcp client.
+   * Use this.mcp instead.
+   */
+  public readonly mcpGlobalConfig: unknown
 
   constructor(config: ApiConfig) {
     // Initialize the main service clients
@@ -94,14 +134,13 @@ export class PromptlianoClient {
     this.commands = new ClaudeCommandsClient(config)
     this.system = new SystemClient(config)
 
-    // For backwards compatibility, map MCP sub-services
-    this.mcpInstallation = this.mcp
-    this.mcpProjectConfig = this.mcp
-    this.mcpGlobalConfig = this.mcp
-
+    // For backwards compatibility, create error-throwing proxies for deprecated services
+    this.mcpInstallation = createNotImplementedProxy('mcpInstallation', 'Use this.mcp instead.')
+    this.mcpProjectConfig = createNotImplementedProxy('mcpProjectConfig', 'Use this.mcp instead.')
+    this.mcpGlobalConfig = createNotImplementedProxy('mcpGlobalConfig', 'Use this.mcp instead.')
+    
     // Placeholder implementations for services not yet modularized
-    // These would need to be implemented as separate client modules
-    this.agentFiles = null
+    this.agentFiles = createNotImplementedProxy('agentFiles')
 
     // Log a warning about incomplete modularization
     if (typeof console !== 'undefined') {

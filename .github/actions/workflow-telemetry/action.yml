@@ -1,0 +1,167 @@
+name: 'Workflow Telemetry'
+description: 'Standardized error handling and telemetry collection for workflows'
+author: 'Promptliano Team'
+
+inputs:
+  step-name:
+    description: 'Name of the step being executed'
+    required: true
+  step-type:
+    description: 'Type of step (test, build, lint, deploy, etc.)'
+    required: true
+  workflow-name:
+    description: 'Name of the workflow'
+    required: true
+  package-name:
+    description: 'Package name (if applicable)'
+    required: false
+    default: ''
+  critical:
+    description: 'Whether this step is critical (should fail the workflow)'
+    required: false
+    default: 'true'
+  timeout-seconds:
+    description: 'Timeout for the step in seconds'
+    required: false
+    default: '300'
+
+outputs:
+  start-time:
+    description: 'Step start timestamp'
+    value: ${{ steps.telemetry.outputs.start-time }}
+  end-time:
+    description: 'Step end timestamp'
+    value: ${{ steps.telemetry.outputs.end-time }}
+  duration:
+    description: 'Step duration in seconds'
+    value: ${{ steps.telemetry.outputs.duration }}
+  status:
+    description: 'Step status (success, failure, timeout)'
+    value: ${{ steps.telemetry.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Initialize telemetry
+      id: telemetry
+      shell: bash
+      run: |
+        START_TIME=$(date +%s)
+        START_ISO=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        echo "start-time=$START_TIME" >> $GITHUB_OUTPUT
+        echo "start-iso=$START_ISO" >> $GITHUB_OUTPUT
+        
+        echo "📊 Starting telemetry for: ${{ inputs.step-name }}"
+        echo "  - Type: ${{ inputs.step-type }}"
+        echo "  - Workflow: ${{ inputs.workflow-name }}"
+        echo "  - Package: ${{ inputs.package-name || 'N/A' }}"
+        echo "  - Critical: ${{ inputs.critical }}"
+        echo "  - Timeout: ${{ inputs.timeout-seconds }}s"
+        echo "  - Started: $START_ISO"
+        
+        # Store telemetry data
+        mkdir -p /tmp/workflow-telemetry
+        cat > /tmp/workflow-telemetry/${{ inputs.step-name }}.json << EOF
+        {
+          "stepName": "${{ inputs.step-name }}",
+          "stepType": "${{ inputs.step-type }}",
+          "workflowName": "${{ inputs.workflow-name }}",
+          "packageName": "${{ inputs.package-name }}",
+          "critical": ${{ inputs.critical }},
+          "timeout": ${{ inputs.timeout-seconds }},
+          "startTime": $START_TIME,
+          "startIso": "$START_ISO",
+          "runId": "${{ github.run_id }}",
+          "runNumber": "${{ github.run_number }}",
+          "actor": "${{ github.actor }}",
+          "event": "${{ github.event_name }}",
+          "ref": "${{ github.ref }}",
+          "sha": "${{ github.sha }}"
+        }
+        EOF
+
+    - name: Finalize telemetry
+      if: always()
+      shell: bash
+      run: |
+        END_TIME=$(date +%s)
+        END_ISO=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        START_TIME=${{ steps.telemetry.outputs.start-time }}
+        DURATION=$((END_TIME - START_TIME))
+        
+        echo "end-time=$END_TIME" >> $GITHUB_OUTPUT
+        echo "duration=$DURATION" >> $GITHUB_OUTPUT
+        echo "end-iso=$END_ISO" >> $GITHUB_OUTPUT
+        
+        # Determine status
+        if [ "${{ job.status }}" = "success" ]; then
+          STATUS="success"
+          ICON="✅"
+        elif [ "${{ job.status }}" = "failure" ]; then
+          STATUS="failure"
+          ICON="❌"
+        elif [ "${{ job.status }}" = "cancelled" ]; then
+          STATUS="cancelled"
+          ICON="⏹️"
+        else
+          STATUS="unknown"
+          ICON="❓"
+        fi
+        
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        
+        echo "$ICON Telemetry completed for: ${{ inputs.step-name }}"
+        echo "  - Status: $STATUS"
+        echo "  - Duration: ${DURATION}s"
+        echo "  - Ended: $END_ISO"
+        
+        # Update telemetry data
+        if [ -f "/tmp/workflow-telemetry/${{ inputs.step-name }}.json" ]; then
+          cat > /tmp/workflow-telemetry/${{ inputs.step-name }}.json << EOF
+        {
+          "stepName": "${{ inputs.step-name }}",
+          "stepType": "${{ inputs.step-type }}",
+          "workflowName": "${{ inputs.workflow-name }}",
+          "packageName": "${{ inputs.package-name }}",
+          "critical": ${{ inputs.critical }},
+          "timeout": ${{ inputs.timeout-seconds }},
+          "startTime": $START_TIME,
+          "startIso": "${{ steps.telemetry.outputs.start-iso }}",
+          "endTime": $END_TIME,
+          "endIso": "$END_ISO",
+          "duration": $DURATION,
+          "status": "$STATUS",
+          "runId": "${{ github.run_id }}",
+          "runNumber": "${{ github.run_number }}",
+          "actor": "${{ github.actor }}",
+          "event": "${{ github.event_name }}",
+          "ref": "${{ github.ref }}",
+          "sha": "${{ github.sha }}"
+        }
+        EOF
+        fi
+        
+        # Create summary entry
+        echo "## 📊 Step Telemetry: ${{ inputs.step-name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Status | $ICON $STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| Duration | ${DURATION}s |" >> $GITHUB_STEP_SUMMARY
+        echo "| Type | ${{ inputs.step-type }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Critical | ${{ inputs.critical }} |" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ inputs.package-name }}" ]; then
+          echo "| Package | ${{ inputs.package-name }} |" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "| Started | ${{ steps.telemetry.outputs.start-iso }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Ended | $END_ISO |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload telemetry data
+      if: always()
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      with:
+        name: workflow-telemetry-${{ inputs.workflow-name }}-${{ github.run_number }}
+        path: /tmp/workflow-telemetry/
+        retention-days: 30
+      continue-on-error: true

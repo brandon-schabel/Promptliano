@@ -3,6 +3,7 @@
 # ⚠️ STOP - AGENT CHECKPOINT ⚠️
 
 Before ANY code changes:
+
 1. ✅ Did you load the specialized agent? (NO EXCEPTIONS)
 2. ✅ Did you check the agent matrix for the right specialist?
 3. ✅ Are you using promptliano-planning-architect for planning?
@@ -10,6 +11,7 @@ Before ANY code changes:
 If ANY answer is NO → STOP and load the correct agent first.
 
 **HOW TO LOAD AN AGENT:**
+
 ```python
 Task(
   subagent_type: "<agent-name-from-matrix>",
@@ -17,6 +19,7 @@ Task(
   prompt: "Implementation details"
 )
 ```
+
 Then continue ONLY after agent is loaded.
 
 ## 🎯 AGENT QUICK REFERENCE (USE THIS FIRST)
@@ -38,6 +41,7 @@ Then continue ONLY after agent is loaded.
 ## ❌ CIRCUIT BREAKERS - These trigger IMMEDIATE STOP
 
 If you catch yourself doing ANY of these, STOP:
+
 - Writing code without `Task(subagent_type: ...)` already executed
 - Implementing directly after reading a file
 - Skipping planning for "simple" changes
@@ -48,6 +52,7 @@ If you catch yourself doing ANY of these, STOP:
 ## 🚦 DEVELOPMENT GATES (MUST PASS IN ORDER)
 
 ### GATE 1: Planning (CANNOT PROCEED WITHOUT)
+
 ```
 ✓ promptliano-planning-architect loaded
 ✓ Tickets created with agent assignments
@@ -55,6 +60,7 @@ If you catch yourself doing ANY of these, STOP:
 ```
 
 ### GATE 2: Implementation (CANNOT START WITHOUT)
+
 ```
 ✓ Specialized agent loaded for THIS task
 ✓ Agent matches the task domain
@@ -62,6 +68,7 @@ If you catch yourself doing ANY of these, STOP:
 ```
 
 ### GATE 3: Review (CANNOT COMPLETE WITHOUT)
+
 ```
 ✓ staff-engineer-code-reviewer loaded
 ✓ Review completed
@@ -115,6 +122,7 @@ Task(
 ```
 
 ## 📌 AGENT SYSTEM STATUS
+
 **Version:** 2.0 (Mandatory Enforcement)
 **Updated:** 2025-08-15
 **Compliance:** REQUIRED - Non-negotiable
@@ -126,7 +134,8 @@ All code must go through specialized agents or it will be rejected.
 
 **EVERY** line of code you write MUST be written through a specialized agent.
 
-**How:** 
+**How:**
+
 1. Find the right agent in the matrix
 2. Load it with `Task(subagent_type: "agent-name", ...)`
 3. ONLY THEN write code
@@ -138,6 +147,7 @@ If you're not sure which agent → use `promptliano-planning-architect`
 ## ✅ BEFORE EVERY COMMIT - THE RITUAL
 
 Say out loud (or type):
+
 1. "I loaded the specialized agent for this task"
 2. "The agent I used was: [name]"
 3. "I ran the code reviewer agent"
@@ -165,7 +175,8 @@ Do ALL planning, code & searching, through Promptliano MCP. With Promptliano you
 
 1. Overview → 2) **Plan with Agents** → 3) Queue → 4) **Process with Agents** → 5) **Review with Agents** → 6) Complete
 
-### Enforcement Rules:
+### Enforcement Rules
+
 - **NEVER skip planning step** - Even for "simple" tasks
 - **EVERY task needs an agent** - No direct implementation allowed
 - **Agent assignments are non-negotiable** - Follow the specialization matrix
@@ -173,12 +184,12 @@ Do ALL planning, code & searching, through Promptliano MCP. With Promptliano you
 
 So whenever you are given a new feature or bug, you'll use the promptliano overview MCP to gain a "bird eye view" of the project. If you are creating the tickets and tasks yourself, then follow this.
 
-### Detailed Workflow Steps:
+### Detailed Workflow Steps
 
 1. **Overview Tool** - Always start here to understand project context
 2. **Use search tools** - Semantic search and AI search to find relevant files
 3. **MANDATORY Agent Planning** - Create tickets/tasks with REQUIRED agent assignments:
-   - **Every task MUST specify a recommended agent** 
+   - **Every task MUST specify a recommended agent**
    - **Agent assignment is NOT optional** - Choose from the specialized agent matrix
    - **Include detailed context**: suggested prompts, files, and agent rationale
    - **Mandatory code review task**: Use `staff-engineer-code-reviewer` for all implementations
@@ -190,7 +201,7 @@ So whenever you are given a new feature or bug, you'll use the promptliano overv
    - **NO direct implementation without agent** - This is strictly forbidden
 7. **Completion Verification** - Mark tasks complete and verify queue removal
 
-### Agent Assignment Rules (NON-NEGOTIABLE):
+### Agent Assignment Rules (NON-NEGOTIABLE)
 
 - **Planning work** → `promptliano-planning-architect` (ALWAYS)
 - **Schema design** → `zod-schema-architect` (ALWAYS)
@@ -208,6 +219,7 @@ So whenever you are given a new feature or bug, you'll use the promptliano overv
 - **API testing** → `api-test-automation-expert` (ALWAYS)
 - **Documentation** → `markdown-docs-writer` (ALWAYS)
 - **CI/CD** → `github-actions-workflow-architect` (ALWAYS)
+- **Shell scripts** → `bun-shell-scripting-expert` (ALWAYS)
 
 ## Complete Agent Specialization Matrix
 
@@ -229,6 +241,7 @@ So whenever you are given a new feature or bug, you'll use the promptliano overv
 | **promptliano-ui-architect**        | opus  | ALWAYS for UI | @promptliano/ui components, forms, tables |
 | **promptliano-forms-architect**     | opus  | ALWAYS for forms | Form systems, validation, UX |
 | **tanstack-router-expert**          | sonnet | ALWAYS for routing | Type-safe routes, navigation |
+| **bun-shell-scripting-expert**      | sonnet | ALWAYS for shell scripts | Bun $ template literal, automation, CI scripts |
 
 ### TIER 3: Specialized Features
 
@@ -253,6 +266,7 @@ So whenever you are given a new feature or bug, you'll use the promptliano overv
 | Agent                               | Model | Usage | Domain |
 | ----------------------------------- | ----- | ----- | ------ |
 | **github-actions-workflow-architect** | opus | ALWAYS for CI/CD | GitHub Actions, workflows, deployment |
+| **bun-shell-scripting-expert**     | sonnet | ALWAYS for shell scripts | Bun $ template literal, automation, CI scripts |
 | **markdown-docs-writer**           | opus  | ALWAYS for docs | README, API docs, guides |
 
 ### Agent Usage Patterns
@@ -329,6 +343,7 @@ Task(
 ```
 
 **Planning Requirements:**
+
 - **EVERY ticket/task MUST have a specific agent assigned**
 - **Agent choice MUST follow the specialization matrix**
 - **Rationale MUST be provided** for agent selection
@@ -336,6 +351,7 @@ Task(
 - **Mandatory review task** with `staff-engineer-code-reviewer`
 
 **Example Task with Agent Assignment:**
+
 ```
 Task: "Implement user authentication API endpoint"
 Agent: hono-bun-api-architect
@@ -347,7 +363,21 @@ Testing: Integration tests for auth flow (use api-test-automation-expert)
 Review: staff-engineer-code-reviewer for security validation
 ```
 
+**Example Shell Script Task:**
+
+```
+Task: "Create automated deployment script for Promptliano"
+Agent: bun-shell-scripting-expert
+Rationale: Cross-platform shell scripting with Bun $ API for deployment automation
+Files: scripts/, docker/, packages/server/
+Prompts: "Bun shell scripting patterns", "deployment automation best practices"
+Estimated: 1.5 hours
+Testing: Test on multiple platforms (Windows/macOS/Linux)
+Review: staff-engineer-code-reviewer for security and error handling validation
+```
+
 **Additional Task for New Services:**
+
 ```
 Task: "Create API tests for authentication service"
 Agent: api-test-automation-expert
@@ -406,6 +436,7 @@ mcp__promptliano__project_manager(action: "update_file_content", projectId: 1754
 ```
 
 **Mandatory Processing Order:**
+
 1. **Pull task** → Extract assigned agent
 2. **Load specialized agent** → REQUIRED, never skip
 3. **Load task prompts** → Implementation guidance
@@ -416,6 +447,7 @@ mcp__promptliano__project_manager(action: "update_file_content", projectId: 1754
 8. **Complete task** → Mark as done and update queue
 
 **FORBIDDEN PATTERNS:**
+
 - ❌ Direct implementation without agent
 - ❌ Skipping the assigned agent
 - ❌ Generic implementation without specialization
@@ -473,9 +505,9 @@ Always prefer suggestions before manual searching.
 
 ## Rules (STRICTLY ENFORCED - NO EXCEPTIONS)
 
-### CRITICAL ENFORCEMENT RULES:
+### CRITICAL ENFORCEMENT RULES
 
-1. **AGENT-FIRST MANDATE**: 
+1. **AGENT-FIRST MANDATE**:
    - 🚫 **FORBIDDEN**: Direct implementation without specialized agent
    - ✅ **REQUIRED**: Load appropriate agent for every single task
    - ⚠️ **VIOLATION**: Any code written without agent assignment is INVALID
@@ -500,16 +532,17 @@ Always prefer suggestions before manual searching.
    - ✅ **REQUIRED**: All work must flow through queue management
    - ⚠️ **VIOLATION**: Direct work bypassing queues is INVALID
 
-### TRADITIONAL RULES (STILL APPLY):
+### TRADITIONAL RULES (STILL APPLY)
 
 - Always start with Overview, then follow the Golden Path
 - Enforce queues for all implementation work
 - Use MCP file ops for reading/writing; avoid manual edits first
 - Run specialized review agents before completion
 
-### ENFORCEMENT ACTIONS:
+### ENFORCEMENT ACTIONS
 
 If these rules are violated:
+
 1. **STOP immediately** and correct the violation
 2. **Restart with proper agent** assignment
 3. **Re-plan if necessary** to include agent assignments
@@ -677,18 +710,21 @@ Maintaining these practices ensures consistent, type-safe evolution of the codeb
 
 Before writing ANY code, validate:
 
-### Pre-Implementation Checklist:
+### Pre-Implementation Checklist
+
 - [ ] Did I load the specialized agent for this exact task?
 - [ ] Is this agent from the approved matrix?
 - [ ] Did I check if this needs planning first?
 - [ ] Am I following the copy-paste template above?
 
-### During Implementation:
+### During Implementation
+
 - [ ] Am I working WITHIN the loaded agent context?
 - [ ] Am I following patterns the agent suggests?
 - [ ] Am I avoiding direct file editing without agent guidance?
 
-### Post-Implementation:
+### Post-Implementation
+
 - [ ] Did I run the staff-engineer-code-reviewer?
 - [ ] Have I addressed all review feedback?
 - [ ] Can I state which specific agent handled this work?
