@@ -227,7 +227,6 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
   //   [prompts]
   // )
 
-
   return (
     <>
       {/* NEW: All Prompts Import Dialog */}
@@ -475,6 +474,13 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
                                 <Copy className='mr-2 h-4 w-4' />
                                 <span>Copy Content</span>
                               </DropdownMenuItem>
+                              <MarkdownExportMenuItem
+                                promptId={prompt.id}
+                                promptName={prompt.name}
+                                onExportComplete={() => {
+                                  toast.success('Prompt exported successfully')
+                                }}
+                              />
                               <DropdownMenuSeparator />
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>

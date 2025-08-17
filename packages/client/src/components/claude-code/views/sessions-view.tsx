@@ -221,7 +221,7 @@ export function SessionsView({
     fullDataLoading,
     error,
     hasFullData,
-    refetchProgressive
+    refetchAll
   } = useClaudeSessionsProgressive(
     projectId,
     {
@@ -352,13 +352,13 @@ export function SessionsView({
   
   const handleRefresh = useCallback(() => {
     if (enableProgressiveLoading) {
-      refetchProgressive()
+      refetchAll()
       refetchRecent()
     } else {
       refetchFallback()
     }
     toast.success('Sessions refreshed')
-  }, [enableProgressiveLoading, refetchProgressive, refetchRecent, refetchFallback])
+  }, [enableProgressiveLoading, refetchAll, refetchRecent, refetchFallback])
 
   if (isLoading) {
     return (

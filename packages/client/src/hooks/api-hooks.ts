@@ -859,7 +859,7 @@ export function useImportMarkdownPrompts() {
       if (options.projectId) formData.append('projectId', options.projectId.toString())
       if (options.overwriteExisting) formData.append('overwriteExisting', 'true')
 
-      const response = await fetch('/api/prompts/import', {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/import`, {
         method: 'POST',
         body: formData
       })
@@ -914,7 +914,7 @@ export function useExportPromptAsMarkdown() {
     }) => {
       if (!client) throw new Error('Client not connected')
 
-      const response = await fetch(`/api/prompts/${promptId}/export`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/${promptId}/export`, {
         method: 'GET'
       })
 
@@ -957,7 +957,7 @@ export function useExportPromptsAsMarkdown() {
     mutationFn: async ({ promptIds, options = {} }: { promptIds: number[]; options?: Partial<BatchExportRequest> }) => {
       if (!client) throw new Error('Client not connected')
 
-      const response = await fetch('/api/prompts/export-batch', {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/export-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptIds, ...options })
@@ -1132,7 +1132,7 @@ export function useImportProjectMarkdownPrompts() {
       files.forEach((file) => formData.append('files', file))
       if (options.overwriteExisting) formData.append('overwriteExisting', 'true')
 
-      const response = await fetch(`/api/projects/${projectId}/prompts/import`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/prompts/import`, {
         method: 'POST',
         body: formData
       })
@@ -1192,7 +1192,7 @@ export function useExportProjectPromptsAsMarkdown() {
       if (options.sortBy) queryParams.append('sortBy', options.sortBy)
       if (options.sortOrder) queryParams.append('sortOrder', options.sortOrder)
 
-      const response = await fetch(`/api/projects/${projectId}/prompts/export?${queryParams}`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/prompts/export?${queryParams}`, {
         method: 'GET'
       })
 

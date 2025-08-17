@@ -13,7 +13,7 @@ import {
   useGetAllPrompts,
   useExportPromptAsMarkdown,
   useExportPromptsAsMarkdown
-} from '@/hooks/api-hooks'
+} from '@/hooks/api/use-prompts-api'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import {
   DropdownMenu,
@@ -84,12 +84,14 @@ export function PromptsPage() {
     try {
       await exportPromptsMutation.mutateAsync({
         promptIds,
-        options: {
-          format: promptIds.length > 1 ? 'multi-file' : 'single-file',
-          includeFrontmatter: true,
-          includeCreatedDate: true,
-          includeUpdatedDate: true
-        }
+        format: promptIds.length > 1 ? 'multi-file' : 'single-file',
+        includeFrontmatter: true,
+        includeCreatedDate: true,
+        includeUpdatedDate: true,
+        includeTags: true,
+        sanitizeContent: true,
+        sortBy: 'name',
+        sortOrder: 'asc'
       })
       toast.success(`Exported ${promptIds.length} prompt${promptIds.length > 1 ? 's' : ''}`)
       setSelectedPrompts(new Set())
@@ -199,7 +201,7 @@ export function PromptsPage() {
                     try {
                       // alert to confirm deletion
                       if (confirm('Are you sure you want to delete this prompt?')) {
-                        await deletePromptMutation.mutateAsync({ promptId: prompt.id })
+                        await deletePromptMutation.mutateAsync(prompt.id)
                       }
                       // toast to confirm deletion
                       toast.success('Prompt deleted successfully')
@@ -209,15 +211,9 @@ export function PromptsPage() {
                   }}
                   onExport={async () => {
                     try {
-                      const promptName = prompt.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
                       await exportPromptMutation.mutateAsync({
                         promptId: prompt.id,
-                        filename: `${promptName}.md`,
-                        options: {
-                          includeFrontmatter: true,
-                          includeCreatedDate: true,
-                          includeUpdatedDate: true
-                        }
+                        promptName: prompt.name
                       })
                       toast.success(`Exported "${prompt.name}"`)
                     } catch (error) {

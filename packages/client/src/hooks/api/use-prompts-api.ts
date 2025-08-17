@@ -213,18 +213,32 @@ export function useExportPromptAsMarkdown() {
   const client = useApiClient()
 
   return useMutation({
-    mutationFn: async (promptId: number) => {
+    mutationFn: async (params: number | { promptId: number; promptName?: string }) => {
       if (!client) throw new Error('API client not initialized')
+      
+      // Handle both legacy number input and new object input
+      const promptId = typeof params === 'number' ? params : params.promptId
+      const promptName = typeof params === 'object' ? params.promptName : undefined
+      
       const markdownContent = await client.markdown.exportPrompt(promptId)
-      return { content: markdownContent, promptId }
+      return { content: markdownContent, promptId, promptName }
     },
     onSuccess: (data) => {
+      // Generate a proper filename based on prompt name or fallback to ID
+      const safeFileName = data.promptName
+        ? `${data.promptName
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .slice(0, 50)}.md`
+        : `prompt-${data.promptId}.md`
+      
       // Create a blob and download the file
       const blob = new Blob([data.content], { type: 'text/markdown' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `prompt-${data.promptId}.md`
+      a.download = safeFileName
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

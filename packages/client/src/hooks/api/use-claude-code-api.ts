@@ -610,7 +610,13 @@ export function useClaudeCodeInvalidation() {
     // Check if data is stale
     isStale: (queryKey: any[]) => {
       const query = queryClient.getQueryState(queryKey)
-      return query ? Date.now() - (query.dataUpdatedAt || 0) > (query.staleTime || 0) : true
+      if (!query) return true
+      
+      // Get the default stale time from query cache or use default
+      const defaultStaleTime = queryClient.getDefaultOptions().queries?.staleTime || 0
+      const staleTime = typeof defaultStaleTime === 'number' ? defaultStaleTime : 0
+      
+      return Date.now() - (query.dataUpdatedAt || 0) > staleTime
     }
   }), [queryClient])
 }

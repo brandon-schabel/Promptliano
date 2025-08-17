@@ -599,7 +599,7 @@ export async function exportPromptsToMarkdown(
       for (const prompt of sortedPrompts) {
         const frontmatter: Record<string, any> = includeFrontmatter
           ? {
-              name: prompt.name
+              name: prompt.name || `prompt-${prompt.id}`
             }
           : {}
 
@@ -668,7 +668,7 @@ export async function exportPromptsToMarkdown(
       for (const prompt of sortedPrompts) {
         const frontmatter: Record<string, any> = includeFrontmatter
           ? {
-              name: prompt.name
+              name: prompt.name || `prompt-${prompt.id}`
             }
           : {}
 
@@ -700,7 +700,7 @@ export async function exportPromptsToMarkdown(
 
         // Generate safe filename
         const safeFileName =
-          prompt.name
+          (prompt.name || `prompt-${prompt.id}`)
             .toLowerCase()
             .replace(/[^a-z0-9\s-]/g, '')
             .replace(/\s+/g, '-')

@@ -42,18 +42,21 @@ interface BaseExportProps {
 
 interface SinglePromptExportProps extends BaseExportProps {
   promptId: number
+  promptName?: string
   promptIds?: never
   projectId?: never
 }
 
 interface MultiplePromptsExportProps extends BaseExportProps {
   promptIds: number[]
+  promptName?: never
   promptId?: never
   projectId?: never
 }
 
 interface ProjectPromptsExportProps extends BaseExportProps {
   projectId: number
+  promptName?: never
   promptId?: never
   promptIds?: never
 }
@@ -242,6 +245,7 @@ function MarkdownExportOptionsDialog({
  */
 export function MarkdownExportMenuItem({
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -258,7 +262,7 @@ export function MarkdownExportMenuItem({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync(promptId)
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         // Multiple prompts export
         await exportMultiple.mutateAsync({
@@ -341,6 +345,7 @@ export function MarkdownExportMenuItem({
  */
 export function MarkdownExportButton({
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -360,7 +365,7 @@ export function MarkdownExportButton({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync(promptId)
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         // Multiple prompts export
         await exportMultiple.mutateAsync({
@@ -462,6 +467,7 @@ export function MarkdownExportDialog({
   open,
   onOpenChange,
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -479,7 +485,7 @@ export function MarkdownExportDialog({
   const handleExport = async (options: ExportOptions) => {
     try {
       if (promptId) {
-        await exportSingle.mutateAsync(promptId)
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         await exportMultiple.mutateAsync({
           promptIds,

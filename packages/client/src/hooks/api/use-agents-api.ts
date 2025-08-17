@@ -168,9 +168,9 @@ export function useSuggestAgents() {
   // Client null check removed - handled by React Query
 
   return useMutation({
-    mutationFn: ({ projectId, userInput, limit }: { projectId: number; userInput: string; limit?: number }) => {
+    mutationFn: ({ projectId, userContext, limit }: { projectId: number; userContext: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.suggestAgents(projectId, { userInput, limit: limit || 5 })
+      return client.agents.suggestAgents(projectId, { userContext, limit: limit || 5 })
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to get agent suggestions')
