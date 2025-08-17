@@ -153,11 +153,14 @@ export function useClaudeSessionsInfinite(
       if (!projectId) throw new Error('Project ID is required')
       if (!client) throw new Error('API client not initialized')
       
-      const cursorQuery = {
-        sortBy: 'lastUpdate',
-        sortOrder: 'desc',
-        limit: 20,
-        ...query,
+      const cursorQuery: z.infer<typeof ClaudeSessionCursorSchema> = {
+        sortBy: (query?.sortBy as 'lastUpdate' | 'startTime' | 'messageCount' | 'fileSize') || 'lastUpdate',
+        sortOrder: (query?.sortOrder as 'asc' | 'desc') || 'desc',
+        limit: query?.limit || 20,
+        search: query?.search,
+        branch: query?.branch,
+        startDate: query?.startDate,
+        endDate: query?.endDate,
         cursor: pageParam
       }
       
@@ -226,7 +229,7 @@ export function useClaudeSessionsTable(
     if (sorting && sorting.length > 0) {
       const sort = sorting[0]
       if (['lastUpdate', 'startTime', 'messageCount', 'fileSize'].includes(sort.id)) {
-        sortBy = sort.id as any
+        sortBy = sort.id as 'lastUpdate' | 'startTime' | 'messageCount' | 'fileSize'
         sortOrder = sort.desc ? 'desc' : 'asc'
       }
     }

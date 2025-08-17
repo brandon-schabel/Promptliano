@@ -686,9 +686,9 @@ export function SessionsTableView({
           session.startTime,
           `${hours}h ${minutes}m`,
           session.messageCount,
-          session.tokenUsage?.totalTokens || (session as any).totalTokensUsed || 0,
-          (session as any).gitBranch || '',
-          (session as any).totalCostUsd?.toFixed(4) || ''
+          (session as ClaudeSession).tokenUsage?.totalTokens || (session as ClaudeSession).totalTokensUsed || 0,
+          (session as ClaudeSession).gitBranch || '',
+          (session as ClaudeSession).totalCostUsd?.toFixed(4) || ''
         ].join(',')
       })
     ].join('\n')
