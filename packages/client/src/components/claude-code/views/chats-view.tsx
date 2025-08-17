@@ -57,8 +57,8 @@ interface MessageBubbleProps {
 
 function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: MessageBubbleProps) {
   const formatMessage = useFormatClaudeMessage()
-  const content = formatMessage(message.message.content)
-  const isUser = message.message.role === 'user'
+  const content = formatMessage(message.message?.content || '')
+  const isUser = message.message?.role === 'user'
   const messageRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -70,7 +70,7 @@ function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: Messag
   return (
     <div
       ref={messageRef}
-      id={message.uuid}
+      id={message.uuid || undefined}
       className={cn('flex gap-3 mb-6 transition-all duration-300', isUser ? 'justify-end' : 'justify-start')}
     >
       <div className={cn('flex gap-3 max-w-[80%]', isUser && 'flex-row-reverse')}>
@@ -173,10 +173,10 @@ function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: Messag
               )}
 
               {/* Token usage from message.usage */}
-              {message.message.usage && <TokenBadge tokenUsage={message.message.usage} />}
+              {message.message?.usage && <TokenBadge tokenUsage={message.message.usage} />}
 
               {/* Legacy token display */}
-              {!message.message.usage && message.tokensUsed && (
+              {!message.message?.usage && message.tokensUsed && (
                 <span>{message.tokensUsed.toLocaleString()} tokens</span>
               )}
 
@@ -194,7 +194,7 @@ function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: Messag
                 </Badge>
               )}
 
-              {message.message.usage?.service_tier && (
+              {message.message?.usage?.service_tier && (
                 <Badge variant='outline' className='text-xs py-0 px-1'>
                   {message.message.usage.service_tier}
                 </Badge>
@@ -202,7 +202,10 @@ function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: Messag
             </div>
 
             {/* Show todo changes if present */}
-            {message.toolUseResult && (message.toolUseResult.oldTodos || message.toolUseResult.newTodos) && (
+            {message.toolUseResult && 
+             typeof message.toolUseResult === 'object' && 
+             !Array.isArray(message.toolUseResult) &&
+             (message.toolUseResult.oldTodos || message.toolUseResult.newTodos) && (
               <div className='mt-2 p-2 bg-muted/50 rounded text-xs'>
                 <span className='font-semibold'>Todo Changes</span>
                 {/* TODO: Create TodoChangeDisplay component */}
@@ -222,7 +225,7 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
   const navigate = useNavigate()
 
   const { data: sessions } = useClaudeSessions(projectId)
-  const currentSession = sessions?.find((s) => s.sessionId === sessionId)
+  const currentSession = sessions?.find((s: any) => s.sessionId === sessionId)
 
   const {
     data: messages,
@@ -421,7 +424,7 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
       ) : (
         <ScrollArea className='flex-1 p-6' ref={scrollAreaRef}>
           <div className='max-w-4xl mx-auto'>
-            {messages.map((message, index) => (
+            {messages.map((message: any, index: number) => (
               <div
                 key={`${message.sessionId}-${message.timestamp}-${index}`}
                 ref={(el) => {

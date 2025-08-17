@@ -40,7 +40,7 @@ export function useGetHook(projectPath: string, eventName: HookEvent, matcherInd
     queryKey: [QUERY_KEY_PREFIX, projectPath, eventName, matcherIndex],
     queryFn: async () => {
       if (!client) throw new Error('API client not initialized')
-      const response = await client.claudeHooks.get(projectPath, eventName, matcherIndex)
+      const response = await client.claudeHooks.getHook(projectPath, eventName, matcherIndex)
       return response.data
     },
     enabled: !!client && !!projectPath && !!eventName && matcherIndex >= 0
@@ -116,7 +116,7 @@ export function useDeleteHook(projectPath: string) {
   return useMutation({
     mutationFn: ({ eventName, matcherIndex }: { eventName: HookEvent; matcherIndex: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.claudeHooks.delete(projectPath, eventName, matcherIndex)
+      return client.claudeHooks.deleteHook(projectPath, eventName, matcherIndex)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_PREFIX, projectPath] })

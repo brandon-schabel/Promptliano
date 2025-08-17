@@ -20,7 +20,7 @@ export function AgentDisplay({
   fallbackToId = true
 }: AgentDisplayProps) {
   // Only fetch if we have a valid agent ID
-  const { data: agentResponse, isLoading } = useGetAgent(agentId || '', projectId)
+  const { data: agentResponse, isLoading } = useGetAgent(agentId || '')
 
   const agent = useMemo(() => {
     if (!agentResponse?.data) return null

@@ -44,12 +44,12 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
   const isEditing = !!agentId
 
   // Fetch agent data if editing
-  const { data: agentResponse, isLoading: isLoadingAgent } = useGetAgent(agentId || '', projectId)
+  const { data: agentResponse, isLoading: isLoadingAgent } = useGetAgent(agentId || '')
   const agent = agentResponse?.data
 
   // Mutations
   const createAgentMutation = useCreateAgent(projectId)
-  const updateAgentMutation = useUpdateAgent(projectId)
+  const updateAgentMutation = useUpdateAgent()
 
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentFormSchema),

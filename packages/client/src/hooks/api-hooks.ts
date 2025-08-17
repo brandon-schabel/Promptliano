@@ -5,7 +5,6 @@ import type { CreateChatBody, UpdateChatBody, Chat, ChatMessage, AiChatStreamReq
 
 import type { CreatePromptBody, UpdatePromptBody, Prompt, OptimizePromptRequest } from '@promptliano/schemas'
 
-// packages/client/src/hooks/api/use-keys-api-v2.ts
 import type { CreateProviderKeyBody, UpdateProviderKeyBody, ProviderKey } from '@promptliano/schemas'
 
 import type { CreateClaudeAgentBody, UpdateClaudeAgentBody, ClaudeAgent } from '@promptliano/schemas'
@@ -19,7 +18,7 @@ import type {
   MarkdownContentValidation
 } from '@promptliano/schemas'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query'
 import { useCallback, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -275,7 +274,7 @@ const PROJECT_KEYS = {
 }
 
 // --- Query Hooks ---
-export function useGetProjects() {
+export function useGetProjects(): UseQueryResult<DataResponseSchema<Project[]>, Error> {
   const client = useApiClient()
 
   return useQuery({
@@ -286,7 +285,7 @@ export function useGetProjects() {
   })
 }
 
-export function useGetProject(projectId: number) {
+export function useGetProject(projectId: number): UseQueryResult<DataResponseSchema<Project>, Error> {
   const client = useApiClient()
 
   return useQuery({
@@ -689,7 +688,7 @@ export function useGetProjectPrompts(projectId: number) {
   return useQuery({
     queryKey: PROMPT_KEYS.projectPrompts(projectId),
     queryFn: () =>
-      client ? client.prompts.listProjectPrompts(projectId) : Promise.reject(new Error('Client not connected')),
+      client ? client.prompts.getProjectPrompts(projectId) : Promise.reject(new Error('Client not connected')),
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000
   })
@@ -809,7 +808,7 @@ export function useOptimizeUserInput() {
   return useMutation({
     mutationFn: (data: OptimizePromptRequest) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.optimizeUserInput(data)
+      return client.prompts.optimizeUserInput(data.projectId, { userContext: data.userContext })
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to optimize user input')
@@ -860,7 +859,7 @@ export function useImportMarkdownPrompts() {
       if (options.projectId) formData.append('projectId', options.projectId.toString())
       if (options.overwriteExisting) formData.append('overwriteExisting', 'true')
 
-      const response = await fetch('/api/prompts/import', {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/import`, {
         method: 'POST',
         body: formData
       })
@@ -915,7 +914,7 @@ export function useExportPromptAsMarkdown() {
     }) => {
       if (!client) throw new Error('Client not connected')
 
-      const response = await fetch(`/api/prompts/${promptId}/export`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/${promptId}/export`, {
         method: 'GET'
       })
 
@@ -958,7 +957,7 @@ export function useExportPromptsAsMarkdown() {
     mutationFn: async ({ promptIds, options = {} }: { promptIds: number[]; options?: Partial<BatchExportRequest> }) => {
       if (!client) throw new Error('Client not connected')
 
-      const response = await fetch('/api/prompts/export-batch', {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/export-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptIds, ...options })
@@ -1133,7 +1132,7 @@ export function useImportProjectMarkdownPrompts() {
       files.forEach((file) => formData.append('files', file))
       if (options.overwriteExisting) formData.append('overwriteExisting', 'true')
 
-      const response = await fetch(`/api/projects/${projectId}/prompts/import`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/prompts/import`, {
         method: 'POST',
         body: formData
       })
@@ -1193,7 +1192,7 @@ export function useExportProjectPromptsAsMarkdown() {
       if (options.sortBy) queryParams.append('sortBy', options.sortBy)
       if (options.sortOrder) queryParams.append('sortOrder', options.sortOrder)
 
-      const response = await fetch(`/api/projects/${projectId}/prompts/export?${queryParams}`, {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/prompts/export?${queryParams}`, {
         method: 'GET'
       })
 
@@ -1616,7 +1615,7 @@ export function useSmartCaching() {
         queryClient.prefetchQuery({
           queryKey: PROMPT_KEYS.projectPrompts(projectId),
           queryFn: () =>
-            client ? client.prompts.listProjectPrompts(projectId) : Promise.reject(new Error('Client not connected'))
+            client ? client.prompts.getProjectPrompts(projectId) : Promise.reject(new Error('Client not connected'))
         })
       ])
     },

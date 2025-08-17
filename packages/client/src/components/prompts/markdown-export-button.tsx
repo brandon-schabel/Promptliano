@@ -42,18 +42,21 @@ interface BaseExportProps {
 
 interface SinglePromptExportProps extends BaseExportProps {
   promptId: number
+  promptName?: string
   promptIds?: never
   projectId?: never
 }
 
 interface MultiplePromptsExportProps extends BaseExportProps {
   promptIds: number[]
+  promptName?: never
   promptId?: never
   projectId?: never
 }
 
 interface ProjectPromptsExportProps extends BaseExportProps {
   projectId: number
+  promptName?: never
   promptId?: never
   promptIds?: never
 }
@@ -242,6 +245,7 @@ function MarkdownExportOptionsDialog({
  */
 export function MarkdownExportMenuItem({
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -258,22 +262,34 @@ export function MarkdownExportMenuItem({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync({
-          promptId,
-          filename: filename || `prompt-${promptId}.md`,
-          options: {}
-        })
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         // Multiple prompts export
         await exportMultiple.mutateAsync({
           promptIds,
-          options: options || {}
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? true,
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: options?.sanitizeContent ?? true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
         })
       } else if (projectId) {
         // Project prompts export
         await exportProject.mutateAsync({
           projectId,
-          options: options || {}
+          data: {
+            format: options?.format || 'single-file',
+            includeFrontmatter: options?.includeFrontmatter ?? true,
+            includeCreatedDate: options?.includeCreatedDate ?? true,
+            includeUpdatedDate: options?.includeUpdatedDate ?? true,
+            includeTags: options?.includeTags ?? true,
+            sanitizeContent: options?.sanitizeContent ?? true,
+            sortBy: options?.sortBy || 'name',
+            sortOrder: options?.sortOrder || 'asc'
+          }
         })
       }
 
@@ -329,6 +345,7 @@ export function MarkdownExportMenuItem({
  */
 export function MarkdownExportButton({
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -348,22 +365,34 @@ export function MarkdownExportButton({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync({
-          promptId,
-          filename: filename || `prompt-${promptId}.md`,
-          options: {}
-        })
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         // Multiple prompts export
         await exportMultiple.mutateAsync({
           promptIds,
-          options: options || {}
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? true,
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: options?.sanitizeContent ?? true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
         })
       } else if (projectId) {
         // Project prompts export
         await exportProject.mutateAsync({
           projectId,
-          options: options || {}
+          data: {
+            format: options?.format || 'single-file',
+            includeFrontmatter: options?.includeFrontmatter ?? true,
+            includeCreatedDate: options?.includeCreatedDate ?? true,
+            includeUpdatedDate: options?.includeUpdatedDate ?? true,
+            includeTags: options?.includeTags ?? true,
+            sanitizeContent: options?.sanitizeContent ?? true,
+            sortBy: options?.sortBy || 'name',
+            sortOrder: options?.sortOrder || 'asc'
+          }
         })
       }
 
@@ -438,6 +467,7 @@ export function MarkdownExportDialog({
   open,
   onOpenChange,
   promptId,
+  promptName,
   promptIds,
   projectId,
   filename,
@@ -455,20 +485,32 @@ export function MarkdownExportDialog({
   const handleExport = async (options: ExportOptions) => {
     try {
       if (promptId) {
-        await exportSingle.mutateAsync({
-          promptId,
-          filename: filename || `prompt-${promptId}.md`,
-          options: {}
-        })
+        await exportSingle.mutateAsync({ promptId, promptName })
       } else if (promptIds) {
         await exportMultiple.mutateAsync({
           promptIds,
-          options
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? true,
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: options?.sanitizeContent ?? true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
         })
       } else if (projectId) {
         await exportProject.mutateAsync({
           projectId,
-          options
+          data: {
+            format: options.format || 'single-file',
+            includeFrontmatter: options.includeFrontmatter ?? true,
+            includeCreatedDate: options.includeCreatedDate ?? true,
+            includeUpdatedDate: options.includeUpdatedDate ?? true,
+            includeTags: options.includeTags ?? true,
+            sanitizeContent: options.sanitizeContent ?? true,
+            sortBy: options.sortBy || 'name',
+            sortOrder: options.sortOrder || 'asc'
+          }
         })
       }
 

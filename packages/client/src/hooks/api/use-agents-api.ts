@@ -28,15 +28,15 @@ export function useGetAllAgents(projectId?: number) {
   })
 }
 
-export function useGetAgent(agentId: string, projectId?: number) {
+export function useGetAgent(agentId: string) {
   const client = useApiClient()
   // Client null check removed - handled by React Query
 
   return useQuery({
-    queryKey: projectId ? [...AGENT_KEYS.detail(agentId), projectId] : AGENT_KEYS.detail(agentId),
+    queryKey: AGENT_KEYS.detail(agentId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.getAgent(agentId, projectId)
+      return client.agents.getAgent(agentId)
     },
     enabled: !!client && !!agentId,
     staleTime: 5 * 60 * 1000
@@ -51,7 +51,7 @@ export function useGetProjectAgents(projectId: number) {
     queryKey: AGENT_KEYS.projectAgents(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.listProjectAgents(projectId)
+      return client.agents.getProjectAgents(projectId)
     },
     enabled: !!client && !!projectId,
     staleTime: 5 * 60 * 1000
@@ -79,7 +79,7 @@ export function useCreateAgent(projectId?: number) {
   })
 }
 
-export function useUpdateAgent(projectId?: number) {
+export function useUpdateAgent() {
   const client = useApiClient()
   // Client null check removed - handled by React Query
 
@@ -88,7 +88,7 @@ export function useUpdateAgent(projectId?: number) {
   return useMutation({
     mutationFn: ({ agentId, data }: { agentId: string; data: UpdateClaudeAgentBody }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.updateAgent(agentId, data, projectId)
+      return client.agents.updateAgent(agentId, data)
     },
     onSuccess: ({ data: updatedAgent }: DataResponseSchema<ClaudeAgent>) => {
       invalidateAllAgents()
@@ -101,7 +101,7 @@ export function useUpdateAgent(projectId?: number) {
   })
 }
 
-export function useDeleteAgent(projectId?: number) {
+export function useDeleteAgent() {
   const client = useApiClient()
 
   const { invalidateAllAgents, removeAgent } = useInvalidateAgents()
@@ -109,7 +109,7 @@ export function useDeleteAgent(projectId?: number) {
   return useMutation({
     mutationFn: (agentId: string) => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.deleteAgent(agentId, projectId)
+      return client.agents.deleteAgent(agentId)
     },
     onSuccess: (_, agentId) => {
       invalidateAllAgents()
@@ -123,47 +123,44 @@ export function useDeleteAgent(projectId?: number) {
 }
 
 // --- Project Association Hooks ---
-export function useAddAgentToProject() {
-  const client = useApiClient()
-  // Client null check removed - handled by React Query
+// TODO: These methods are not yet implemented in the API client
+// export function useAddAgentToProject() {
+//   const client = useApiClient()
+//   const { invalidateProjectAgents } = useInvalidateAgents()
 
-  const { invalidateProjectAgents } = useInvalidateAgents()
+//   return useMutation({
+//     mutationFn: ({ projectId, agentId }: { projectId: number; agentId: string }) => {
+//       if (!client) throw new Error('API client not initialized')
+//       return client.agents.addAgentToProject(projectId, agentId)
+//     },
+//     onSuccess: (_, { projectId }) => {
+//       invalidateProjectAgents(projectId)
+//       toast.success('Agent added to project')
+//     },
+//     onError: (error) => {
+//       toast.error(error.message || 'Failed to add agent to project')
+//     }
+//   })
+// }
 
-  return useMutation({
-    mutationFn: ({ projectId, agentId }: { projectId: number; agentId: string }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.agents.addAgentToProject(projectId, agentId)
-    },
-    onSuccess: (_, { projectId }) => {
-      invalidateProjectAgents(projectId)
-      toast.success('Agent added to project')
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to add agent to project')
-    }
-  })
-}
+// export function useRemoveAgentFromProject() {
+//   const client = useApiClient()
+//   const { invalidateProjectAgents } = useInvalidateAgents()
 
-export function useRemoveAgentFromProject() {
-  const client = useApiClient()
-  // Client null check removed - handled by React Query
-
-  const { invalidateProjectAgents } = useInvalidateAgents()
-
-  return useMutation({
-    mutationFn: ({ projectId, agentId }: { projectId: number; agentId: string }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.agents.removeAgentFromProject(projectId, agentId)
-    },
-    onSuccess: (_, { projectId }) => {
-      invalidateProjectAgents(projectId)
-      toast.success('Agent removed from project')
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to remove agent from project')
-    }
-  })
-}
+//   return useMutation({
+//     mutationFn: ({ projectId, agentId }: { projectId: number; agentId: string }) => {
+//       if (!client) throw new Error('API client not initialized')
+//       return client.agents.removeAgentFromProject(projectId, agentId)
+//     },
+//     onSuccess: (_, { projectId }) => {
+//       invalidateProjectAgents(projectId)
+//       toast.success('Agent removed from project')
+//     },
+//     onError: (error) => {
+//       toast.error(error.message || 'Failed to remove agent from project')
+//     }
+//   })
+// }
 
 // --- AI Suggestions Hook ---
 export function useSuggestAgents() {
@@ -171,9 +168,13 @@ export function useSuggestAgents() {
   // Client null check removed - handled by React Query
 
   return useMutation({
-    mutationFn: ({ projectId, userInput, limit }: { projectId: number; userInput: string; limit?: number }) => {
+    mutationFn: ({ projectId, userContext, limit }: { projectId: number; userContext: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.suggestAgents(projectId, userInput, limit)
+      return client.agents.suggestAgents(projectId, { 
+        projectId, 
+        userContext, 
+        limit: limit || 5 
+      })
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to get agent suggestions')

@@ -102,9 +102,13 @@ export class ClaudeCodeImportService {
   /**
    * Extract text content from Claude's complex content format
    */
-  private extractTextContent(content: string | any[]): string {
+  private extractTextContent(content: string | any[] | null): string {
     if (typeof content === 'string') {
       return content
+    }
+
+    if (content === null) {
+      return ''
     }
 
     // Handle array of content items

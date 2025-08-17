@@ -134,7 +134,7 @@ export function useExecuteCommand(projectId: number) {
   return useMutation({
     mutationFn: ({ commandName, args, namespace }: { commandName: string; args?: string; namespace?: string }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.commands.executeCommand(projectId, commandName, args, namespace)
+      return client.commands.executeCommand(projectId, commandName, { arguments: args }, namespace)
     },
     onSuccess: (result, { commandName }) => {
       toast.success(`Command '${commandName}' executed successfully`)
@@ -150,9 +150,9 @@ export function useSuggestCommands(projectId: number) {
   // Client null check removed - handled by React Query
 
   return useMutation({
-    mutationFn: ({ context, limit }: { context?: string; limit?: number }) => {
+    mutationFn: ({ context }: { context?: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.commands.suggestCommands(projectId, context, limit)
+      return client.commands.suggestCommands(projectId, context)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to get command suggestions')
@@ -169,7 +169,8 @@ export function useGenerateCommand(projectId: number) {
       return client.commands.generateCommand(projectId, data)
     },
     onSuccess: (result) => {
-      toast.success(`Command '${result.data.name}' generated successfully`)
+      const typedResult = result as any
+      toast.success(`Command '${typedResult.data.name}' generated successfully`)
     },
     onError: (error: any) => {
       // Check if it's a timeout error

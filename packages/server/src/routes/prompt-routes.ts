@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
+import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
   CreatePromptBodySchema,
   UpdatePromptBodySchema,
@@ -13,7 +14,8 @@ import {
   MarkdownImportResponseSchema,
   BulkImportResponseSchema,
   MarkdownExportResponseSchema,
-  BatchExportRequestSchema
+  BatchExportRequestSchema,
+  MarkdownContentValidationSchema
 } from '@promptliano/schemas'
 import {
   addPromptToProject,
@@ -27,7 +29,8 @@ import {
   suggestPrompts,
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
-  promptToMarkdown
+  promptToMarkdown,
+  validateMarkdownContent
 } from '@promptliano/services'
 import { ProjectIdParamsSchema } from '@promptliano/schemas'
 
@@ -49,26 +52,7 @@ const createPromptRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: PromptResponseSchema } },
-      description: 'Prompt created successfully'
-    },
-    422: {
-      // Validation Error
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    404: {
-      // Project not found if projectId is provided and invalid
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Referenced project not found'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponsesWithStatus(PromptResponseSchema, 201, 'Prompt created successfully')
 })
 
 const listAllPromptsRoute = createRoute({
@@ -76,16 +60,7 @@ const listAllPromptsRoute = createRoute({
   path: '/api/prompts',
   tags: ['Prompts'],
   summary: 'List all available prompts',
-  responses: {
-    200: {
-      content: { 'application/json': { schema: PromptListResponseSchema } },
-      description: 'Successfully retrieved all prompts'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(PromptListResponseSchema)
 })
 
 const listProjectPromptsRoute = createRoute({
@@ -96,24 +71,7 @@ const listProjectPromptsRoute = createRoute({
   request: {
     params: ProjectIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: PromptListResponseSchema } },
-      description: 'Successfully retrieved project prompts'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project not found'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(PromptListResponseSchema)
 })
 
 const suggestPromptsRoute = createRoute({
@@ -129,24 +87,7 @@ const suggestPromptsRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: SuggestPromptsResponseSchema } },
-      description: 'Successfully retrieved suggested prompts'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project not found'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(SuggestPromptsResponseSchema)
 })
 
 const addPromptToProjectRoute = createRoute({
@@ -157,24 +98,7 @@ const addPromptToProjectRoute = createRoute({
   request: {
     params: ProjectAndPromptIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Prompt successfully associated with project'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project or Prompt not found'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
 const removePromptFromProjectRoute = createRoute({
@@ -185,24 +109,7 @@ const removePromptFromProjectRoute = createRoute({
   request: {
     params: ProjectAndPromptIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Prompt successfully disassociated from project'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project or Prompt not found, or association does not exist'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
 const getPromptByIdRoute = createRoute({
@@ -213,24 +120,7 @@ const getPromptByIdRoute = createRoute({
   request: {
     params: PromptIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: PromptResponseSchema } },
-      description: 'Successfully retrieved prompt'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Prompt not found'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(PromptResponseSchema)
 })
 
 const updatePromptRoute = createRoute({
@@ -245,24 +135,7 @@ const updatePromptRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: PromptResponseSchema } },
-      description: 'Prompt updated successfully'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Prompt not found'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(PromptResponseSchema)
 })
 
 const deletePromptRoute = createRoute({
@@ -273,25 +146,7 @@ const deletePromptRoute = createRoute({
   request: {
     params: PromptIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Prompt deleted successfully'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Prompt not found'
-    },
-    422: {
-      // Validation Error
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation Error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
 // Markdown Import/Export Routes
@@ -327,25 +182,10 @@ const importPromptsRoute = createRoute({
     }
   },
   responses: {
-    200: {
-      content: { 'application/json': { schema: BulkImportResponseSchema } },
-      description: 'Import completed successfully'
-    },
-    400: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Invalid file format or validation error'
-    },
+    ...createStandardResponses(BulkImportResponseSchema),
     413: {
       content: { 'application/json': { schema: ApiErrorResponseSchema } },
       description: 'File too large'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal server error'
     }
   }
 })
@@ -399,24 +239,7 @@ const exportBatchPromptsRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: MarkdownExportResponseSchema } },
-      description: 'Prompts exported successfully'
-    },
-    400: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Invalid prompt IDs provided'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal server error'
-    }
-  }
+  responses: createStandardResponses(MarkdownExportResponseSchema)
 })
 
 const importProjectPromptsRoute = createRoute({
@@ -449,29 +272,10 @@ const importProjectPromptsRoute = createRoute({
     }
   },
   responses: {
-    200: {
-      content: { 'application/json': { schema: BulkImportResponseSchema } },
-      description: 'Import completed successfully'
-    },
-    400: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Invalid file format or validation error'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project not found'
-    },
+    ...createStandardResponses(BulkImportResponseSchema),
     413: {
       content: { 'application/json': { schema: ApiErrorResponseSchema } },
       description: 'File too large'
-    },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation error'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal server error'
     }
   }
 })
@@ -496,20 +300,35 @@ const exportAllProjectPromptsRoute = createRoute({
       })
     })
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: MarkdownExportResponseSchema } },
-      description: 'Project prompts exported successfully'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Project not found'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal server error'
+  responses: createStandardResponses(MarkdownExportResponseSchema)
+})
+
+const validateMarkdownRoute = createRoute({
+  method: 'post',
+  path: '/api/prompts/validate-markdown',
+  tags: ['Prompts', 'Import/Export'],
+  summary: 'Validate markdown content for prompt import',
+  description: 'Validates markdown content structure and frontmatter for prompt import',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            content: z.string().openapi({
+              description: 'Markdown content to validate'
+            })
+          })
+        }
+      },
+      required: true
     }
-  }
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: MarkdownContentValidationSchema
+    })
+  )
 })
 
 export const promptRoutes = new OpenAPIHono()
@@ -763,6 +582,16 @@ export const promptRoutes = new OpenAPIHono()
     })
 
     return c.json({ success: true, data: result } satisfies z.infer<typeof MarkdownExportResponseSchema>, 200)
+  })
+
+  .openapi(validateMarkdownRoute, async (c) => {
+    const { content } = c.req.valid('json')
+    const validationResult = await validateMarkdownContent(content)
+    
+    return c.json({
+      success: true,
+      data: validationResult.validation
+    }, 200)
   })
 
 export type PromptRouteTypes = typeof promptRoutes

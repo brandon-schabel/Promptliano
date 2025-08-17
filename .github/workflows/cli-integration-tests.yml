@@ -1,0 +1,424 @@
+name: CLI Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      package-version:
+        description: 'Version to test (e.g., 1.0.0)'
+        required: true
+        type: string
+      package-name:
+        description: 'Package name to test'
+        required: false
+        type: string
+        default: 'promptliano'
+      test-timeout:
+        description: 'Test timeout in minutes'
+        required: false
+        type: number
+        default: 10
+      comprehensive:
+        description: 'Run comprehensive tests including real environment setups'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      package-version:
+        description: 'Version to test (e.g., 1.0.0)'
+        required: true
+        type: string
+      package-name:
+        description: 'Package name to test'
+        required: false
+        type: string
+        default: 'promptliano'
+      test-timeout:
+        description: 'Test timeout in minutes'
+        required: false
+        type: number
+        default: 10
+      comprehensive:
+        description: 'Run comprehensive tests including real environment setups'
+        required: false
+        type: boolean
+        default: false
+
+# Allow concurrent test runs for different versions
+concurrency:
+  group: cli-integration-tests-${{ inputs.package-version }}
+  cancel-in-progress: true
+
+jobs:
+  # Matrix testing across different environments
+  matrix-tests:
+    name: Test ${{ matrix.runner }} with ${{ matrix.runtime }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ inputs.test-timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, windows-latest, macos-latest]
+        runtime: [npm, bun]
+        exclude:
+          # Reduce matrix size for basic tests
+          - runner: windows-latest
+            runtime: bun
+        include:
+          # Add specific Node.js versions for comprehensive tests
+          - runner: ubuntu-latest
+            runtime: node18
+            node-version: '18.x'
+          - runner: ubuntu-latest
+            runtime: node20
+            node-version: '20.x'
+          - runner: ubuntu-latest
+            runtime: node21
+            node-version: '21.x'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js
+        if: startsWith(matrix.runtime, 'node') || matrix.runtime == 'npm'
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ matrix.node-version || '20.x' }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: 'latest'
+
+      - name: Wait for package availability
+        shell: bash
+        run: |
+          echo "⏳ Waiting for ${{ inputs.package-name }}@${{ inputs.package-version }} to be available..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking package availability..."
+            
+            if npm view ${{ inputs.package-name }}@${{ inputs.package-version }} > /dev/null 2>&1; then
+              echo "✅ Package is available!"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Package not available after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            
+            echo "Package not available yet, waiting 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+      - name: Test package installation via NPX
+        if: matrix.runtime == 'npm' || startsWith(matrix.runtime, 'node')
+        shell: bash
+        run: |
+          echo "🧪 Testing NPX installation and basic commands..."
+
+          # Test version command
+          echo "Testing --version flag..."
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --version || {
+            echo "❌ Version command failed"
+            exit 1
+          }
+
+          # Test help command
+          echo "Testing --help flag..."
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --help || {
+            echo "❌ Help command failed"
+            exit 1
+          }
+
+          echo "✅ NPX tests passed"
+
+      - name: Test package installation via BunX
+        if: matrix.runtime == 'bun'
+        shell: bash
+        run: |
+          echo "🧪 Testing BunX installation and basic commands..."
+
+          # Test version command
+          echo "Testing --version flag..."
+          bunx ${{ inputs.package-name }}@${{ inputs.package-version }} --version || {
+            echo "❌ Version command failed"
+            exit 1
+          }
+
+          # Test help command
+          echo "Testing --help flag..."
+          bunx ${{ inputs.package-name }}@${{ inputs.package-version }} --help || {
+            echo "❌ Help command failed"
+            exit 1
+          }
+
+          echo "✅ BunX tests passed"
+
+      - name: Test global installation
+        shell: bash
+        run: |
+          echo "🧪 Testing global installation..."
+
+          if [ "${{ matrix.runtime }}" = "bun" ]; then
+            bun add -g ${{ inputs.package-name }}@${{ inputs.package-version }}
+          else
+            npm install -g ${{ inputs.package-name }}@${{ inputs.package-version }}
+          fi
+
+          # Test globally installed command
+          ${{ inputs.package-name }} --version || {
+            echo "❌ Global installation test failed"
+            exit 1
+          }
+
+          echo "✅ Global installation test passed"
+
+      - name: Test command variations
+        shell: bash
+        run: |
+          echo "🧪 Testing various command combinations..."
+
+          # Test different flag formats
+          ${{ inputs.package-name }} -v || echo "⚠️ Short version flag not supported"
+          ${{ inputs.package-name }} -h || echo "⚠️ Short help flag not supported"
+
+          # Test invalid commands (should exit gracefully)
+          ${{ inputs.package-name }} invalid-command && {
+            echo "❌ Invalid command should have failed"
+            exit 1
+          } || echo "✅ Invalid command handled gracefully"
+
+          echo "✅ Command variation tests completed"
+
+  # Comprehensive testing for supported systems
+  comprehensive-tests:
+    name: Comprehensive Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: inputs.comprehensive == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20.x'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: 'latest'
+
+      - name: Create test workspace
+        run: |
+          echo "🏗️ Setting up test workspace..."
+          mkdir -p test-workspace
+          cd test-workspace
+          echo "✅ Test workspace created"
+
+      - name: Test CLI in real project environment
+        working-directory: test-workspace
+        run: |
+          echo "🧪 Testing CLI in realistic project environment..."
+
+          # Initialize a basic project structure
+          git init
+          git config user.name "Test User"
+          git config user.email "test@example.com"
+
+          # Create some basic files
+          echo '{"name": "test-project", "version": "1.0.0"}' > package.json
+          echo "# Test Project" > README.md
+          echo "console.log('Hello world')" > index.js
+
+          # Test CLI commands in this environment
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --version
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --help
+
+          echo "✅ CLI works in project environment"
+
+      - name: Test performance and memory usage
+        run: |
+          echo "🧪 Testing CLI performance..."
+
+          # Test startup time
+          echo "Testing startup time..."
+          START_TIME=$(date +%s%N)
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --version > /dev/null
+          END_TIME=$(date +%s%N)
+          DURATION=$((($END_TIME - $START_TIME) / 1000000)) # Convert to milliseconds
+
+          echo "⏱️ Startup time: ${DURATION}ms"
+
+          # Check if startup time is reasonable (less than 5 seconds)
+          if [ $DURATION -gt 5000 ]; then
+            echo "⚠️ Warning: Startup time is slow (${DURATION}ms)"
+          else
+            echo "✅ Startup time is acceptable"
+          fi
+
+      - name: Test error handling
+        run: |
+          echo "🧪 Testing error handling..."
+
+          # Test with invalid arguments
+          npx ${{ inputs.package-name }}@${{ inputs.package-version }} --invalid-flag 2>&1 | grep -q "unknown option\|invalid\|error" && {
+            echo "✅ Invalid flag handling works"
+          } || {
+            echo "⚠️ Invalid flag might not be properly handled"
+          }
+
+          # Test with missing required arguments (if any)
+          echo "✅ Error handling tests completed"
+
+      - name: Test package integrity
+        run: |
+          echo "🧪 Testing package integrity..."
+
+          # Download and inspect the package
+          npm pack ${{ inputs.package-name }}@${{ inputs.package-version }}
+
+          # Extract and check contents
+          PACKAGE_FILE=$(ls ${{ inputs.package-name }}-*.tgz)
+          tar -tzf "$PACKAGE_FILE" | head -20
+
+          # Check for essential files
+          tar -tzf "$PACKAGE_FILE" | grep -q "package/dist/index.js" && {
+            echo "✅ Main distribution file found"
+          } || {
+            echo "❌ Main distribution file missing"
+            exit 1
+          }
+
+          tar -tzf "$PACKAGE_FILE" | grep -q "package/package.json" && {
+            echo "✅ Package.json found"
+          } || {
+            echo "❌ Package.json missing"
+            exit 1
+          }
+
+          echo "✅ Package integrity verified"
+
+  # Performance benchmarking
+  performance-tests:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: inputs.comprehensive == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20.x'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: 'latest'
+
+      - name: Benchmark CLI performance
+        run: |
+          echo "📊 Running CLI performance benchmarks..."
+
+          # Function to measure command execution time
+          measure_command() {
+            local cmd="$1"
+            local desc="$2"
+            local iterations=5
+            local total_time=0
+            
+            echo "Testing: $desc"
+            
+            for i in $(seq 1 $iterations); do
+              start_time=$(date +%s%N)
+              eval "$cmd" > /dev/null 2>&1
+              end_time=$(date +%s%N)
+              duration=$(( ($end_time - $start_time) / 1000000 ))
+              total_time=$(( $total_time + $duration ))
+              echo "  Run $i: ${duration}ms"
+            done
+            
+            avg_time=$(( $total_time / $iterations ))
+            echo "  Average: ${avg_time}ms"
+            echo ""
+          }
+
+          # Benchmark different commands
+          measure_command "npx ${{ inputs.package-name }}@${{ inputs.package-version }} --version" "Version command (NPX)"
+          measure_command "bunx ${{ inputs.package-name }}@${{ inputs.package-version }} --version" "Version command (BunX)"
+          measure_command "npx ${{ inputs.package-name }}@${{ inputs.package-version }} --help" "Help command (NPX)"
+
+          echo "✅ Performance benchmarks completed"
+
+      - name: Memory usage test
+        run: |
+          echo "🧠 Testing memory usage..."
+
+          # Install the package globally for accurate memory measurement
+          npm install -g ${{ inputs.package-name }}@${{ inputs.package-version }}
+
+          # Use time command to measure memory
+          /usr/bin/time -v ${{ inputs.package-name }} --version 2>&1 | grep -E "(Maximum resident set size|Peak memory)" || true
+
+          echo "✅ Memory usage test completed"
+
+  # Generate test report
+  test-report:
+    name: Generate Test Report
+    needs: [matrix-tests, comprehensive-tests, performance-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "## 🧪 CLI Integration Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package**: ${{ inputs.package-name }}@${{ inputs.package-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Type**: ${{ inputs.comprehensive && 'Comprehensive' || 'Basic' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Matrix Tests | ${{ needs.matrix-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.comprehensive }}" = "true" ]; then
+            echo "| Comprehensive Tests | ${{ needs.comprehensive-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Performance Tests | ${{ needs.performance-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [ "${{ needs.matrix-tests.result }}" = "success" ] && \
+             ([ "${{ inputs.comprehensive }}" != "true" ] || \
+              ([ "${{ needs.comprehensive-tests.result }}" = "success" ] && [ "${{ needs.performance-tests.result }}" = "success" ])); then
+            echo "### 🎉 Overall Result: **PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All tests passed successfully! The CLI package is working correctly across all tested environments." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Result: **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Please check the individual job logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [NPM Package](https://www.npmjs.com/package/${{ inputs.package-name }}/v/${{ inputs.package-version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Installation Guide](https://promptliano.com)" >> $GITHUB_STEP_SUMMARY

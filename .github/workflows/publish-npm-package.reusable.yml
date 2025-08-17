@@ -78,6 +78,11 @@ jobs:
     permissions:
       contents: read
       id-token: write # For npm provenance
+    
+    outputs:
+      package-published: ${{ steps.publish_result.outputs.published }}
+      package-version: ${{ steps.version.outputs.VERSION }}
+      package-name: ${{ inputs.package-name }}
 
     steps:
       - name: Checkout repository
@@ -225,6 +230,17 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Set publish result
+        id: publish_result
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "published=false" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.check_duplicate.outputs.duplicate }}" = "true" ]; then
+            echo "published=false" >> $GITHUB_OUTPUT
+          else
+            echo "published=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Skip duplicate publication
         if: github.event_name != 'pull_request' && steps.check_duplicate.outputs.duplicate == 'true'

@@ -42,3 +42,253 @@ jobs:
       version-tag-prefix: ${{ startsWith(github.ref, 'refs/tags/cli-v') && 'cli-v' || 'v' }}
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Post-publish verification and release creation
+  post-publish:
+    name: Post-Publish Verification & Release
+    needs: publish-cli
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && needs.publish-cli.outputs.package-published == 'true'
+    permissions:
+      contents: write
+      issues: write
+      discussions: write
+
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      release-url: ${{ steps.create-release.outputs.html_url }}
+      smoke-test-passed: ${{ steps.smoke-test.outputs.success }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Full history for changelog generation
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: 'latest'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          # Remove the version tag prefix to get the clean version
+          VERSION_PREFIX="${{ startsWith(github.ref, 'refs/tags/cli-v') && 'cli-v' || 'v' }}"
+          CLEAN_VERSION=${VERSION#$VERSION_PREFIX}
+          echo "version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          echo "prefix=$VERSION_PREFIX" >> $GITHUB_OUTPUT
+
+      - name: Wait for NPM propagation
+        run: |
+          echo "⏳ Waiting for NPM package propagation..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if promptliano@${{ steps.extract-version.outputs.version }} is available..."
+            
+            if npm view promptliano@${{ steps.extract-version.outputs.version }} > /dev/null 2>&1; then
+              echo "✅ Package is available on NPM registry!"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Package not available after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            
+            echo "Package not yet available, waiting 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+      - name: Smoke test NPM installation
+        id: smoke-test
+        run: |
+          echo "🔍 Running smoke tests for promptliano CLI..."
+
+          # Test NPM installation
+          echo "Testing NPM installation..."
+          npx promptliano@${{ steps.extract-version.outputs.version }} --version || {
+            echo "❌ NPM installation test failed"
+            exit 1
+          }
+
+          # Test Bun installation  
+          echo "Testing Bun installation..."
+          bunx promptliano@${{ steps.extract-version.outputs.version }} --version || {
+            echo "❌ Bun installation test failed"
+            exit 1
+          }
+
+          # Test help command
+          echo "Testing help command..."
+          npx promptliano@${{ steps.extract-version.outputs.version }} --help | grep -q "Setup and manage Promptliano" || {
+            echo "❌ Help command test failed"
+            exit 1
+          }
+
+          echo "✅ All smoke tests passed!"
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "📝 Generating changelog..."
+
+          # Get the previous tag for changelog generation
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^(cli-v|v)[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+          CURRENT_TAG=${{ steps.extract-version.outputs.tag }}
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, creating initial changelog"
+            CHANGELOG="🎉 Initial release of Promptliano CLI"
+          else
+            echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"
+            
+            # Generate changelog from commits
+            CHANGELOG=$(git log $PREVIOUS_TAG..$CURRENT_TAG --pretty=format:"- %s (%h)" --no-merges | head -20)
+            
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="- Various improvements and bug fixes"
+            fi
+          fi
+
+          # Save changelog to file and output
+          echo "$CHANGELOG" > changelog.md
+          echo "Generated changelog:"
+          cat changelog.md
+
+          # Set multiline output
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.extract-version.outputs.tag }}
+          release_name: 'Promptliano CLI v${{ steps.extract-version.outputs.version }}'
+          body: |
+            # 🚀 Promptliano CLI v${{ steps.extract-version.outputs.version }}
+
+            ## Installation
+
+            ```bash
+            # Install globally
+            npm install -g promptliano@${{ steps.extract-version.outputs.version }}
+
+            # Or run directly
+            npx promptliano@${{ steps.extract-version.outputs.version }}
+            bunx promptliano@${{ steps.extract-version.outputs.version }}
+            ```
+
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Verification
+
+            ✅ NPM Package: [promptliano@${{ steps.extract-version.outputs.version }}](https://www.npmjs.com/package/promptliano/v/${{ steps.extract-version.outputs.version }})
+            ✅ Smoke Tests: ${{ steps.smoke-test.outputs.success == 'true' && 'Passed' || 'Failed' }}
+
+            ## Resources
+
+            - 📚 [Documentation](https://promptliano.com)
+            - 🐛 [Report Issues](https://github.com/brandon-schabel/promptliano/issues)
+            - 💬 [Discussions](https://github.com/brandon-schabel/promptliano/discussions)
+          draft: false
+          prerelease: false
+
+  # Integration testing after successful publish
+  integration-tests:
+    name: CLI Integration Tests
+    needs: [publish-cli, post-publish]
+    if: github.event_name != 'pull_request' && needs.publish-cli.outputs.package-published == 'true' && needs.post-publish.outputs.smoke-test-passed == 'true'
+    uses: ./.github/workflows/cli-integration-tests.yml
+    with:
+      package-version: ${{ needs.post-publish.outputs.version }}
+      package-name: 'promptliano'
+      test-timeout: 15
+      comprehensive: true
+
+  # Notification job for success/failure
+  notify:
+    name: Notify Results
+    needs: [publish-cli, post-publish, integration-tests]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'pull_request'
+    permissions:
+      issues: write
+      discussions: write
+
+    steps:
+      - name: Notify Success
+        if: needs.publish-cli.result == 'success' && needs.post-publish.result == 'success' && (needs.integration-tests.result == 'success' || needs.integration-tests.result == 'skipped')
+        run: |
+          echo "🎉 SUCCESS: Promptliano CLI v${{ needs.post-publish.outputs.version }} published successfully!"
+          echo ""
+          echo "📦 NPM Package: https://www.npmjs.com/package/promptliano/v/${{ needs.post-publish.outputs.version }}"
+          echo "🚀 GitHub Release: ${{ needs.post-publish.outputs.release-url }}"
+          echo "✅ Smoke Tests: ${{ needs.post-publish.outputs.smoke-test-passed == 'true' && 'Passed' || 'Failed' }}"
+          echo "🧪 Integration Tests: ${{ needs.integration-tests.result == 'success' && 'Passed' || (needs.integration-tests.result == 'skipped' && 'Skipped' || 'Failed') }}"
+          echo ""
+          echo "## Quick Install"
+          echo "npm install -g promptliano@${{ needs.post-publish.outputs.version }}"
+          echo "npx promptliano@${{ needs.post-publish.outputs.version }} --version"
+          echo ""
+          echo "## Verification Complete"
+          echo "✅ Package published to NPM"
+          echo "✅ GitHub Release created"
+          echo "✅ Smoke tests passed"
+          if [ "${{ needs.integration-tests.result }}" = "success" ]; then
+            echo "✅ Integration tests passed"
+            echo "✅ Cross-platform compatibility verified"
+            echo "✅ Performance benchmarks completed"
+          fi
+
+      - name: Notify Failure
+        if: needs.publish-cli.result == 'failure' || needs.post-publish.result == 'failure' || needs.integration-tests.result == 'failure'
+        run: |
+          echo "❌ FAILURE: Promptliano CLI publication or verification failed!"
+          echo ""
+          echo "📋 Job Results:"
+          echo "- Publish CLI: ${{ needs.publish-cli.result }}"
+          echo "- Post-Publish: ${{ needs.post-publish.result }}"
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}"
+          echo ""
+          echo "🔍 Check the workflow logs for detailed error information."
+          echo "📝 Consider opening an issue if this is a recurring problem."
+
+          # Specific failure guidance
+          if [ "${{ needs.publish-cli.result }}" = "failure" ]; then
+            echo ""
+            echo "💡 Publish failure - check NPM authentication and package.json"
+          elif [ "${{ needs.post-publish.result }}" = "failure" ]; then
+            echo ""
+            echo "💡 Post-publish failure - package may be published but verification failed"
+          elif [ "${{ needs.integration-tests.result }}" = "failure" ]; then
+            echo ""
+            echo "💡 Integration test failure - package published but compatibility issues detected"
+          fi
+
+          # Exit with error to mark the job as failed
+          exit 1
