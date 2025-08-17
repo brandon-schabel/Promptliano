@@ -1,13 +1,13 @@
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
-import { Input } from '@promptliano/ui'
-import { Button } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
+import { Button } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { PromptlianoTooltip } from '@/components/promptliano/promptliano-tooltip'
 import { ShortcutDisplay } from '@/components/app-shortcut-display'
 import { formatShortcut } from '@/lib/shortcuts'
-import { X, ChevronDown, Files } from 'lucide-react'
+import { ChevronDown, Files, Search, FileText, X } from 'lucide-react'
+import { SearchWithMode } from '@/components/search-with-mode'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useActiveProjectTab, useProjectTabField } from '@/hooks/use-kv-local-storage'
 import { useProjectFileMap, useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
@@ -165,72 +165,68 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
         ref={searchContainerRef}
         className='relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-start'
       >
-        <div className='relative max-w-64 w-full'>
-          <div className='flex items-center gap-2'>
-            <Input
-              ref={ref.searchInputRef}
-              placeholder={`Search file ${searchByContent ? 'content' : 'name'}... (${formatShortcut('mod+f')})`}
-              value={localFileSearch || ''}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className='pr-8 w-full'
-              onFocus={() => setShowAutocomplete(!!(localFileSearch || '').trim())}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  ref.searchInputRef.current?.blur()
-                  setShowAutocomplete(false)
-                } else if (e.key === 'ArrowDown') {
-                  e.preventDefault()
-                  if (showAutocomplete && (localFileSearch || '').trim()) {
-                    setAutocompleteIndex((prev) => Math.min(suggestions.length - 1, prev + 1))
-                  } else {
-                    ref.fileTreeRef.current?.focusTree()
-                  }
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault()
-                  if (showAutocomplete && (localFileSearch || '').trim()) {
-                    setAutocompleteIndex((prev) => Math.max(0, prev - 1))
-                  }
-                } else if (e.key === 'ArrowRight') {
-                  e.preventDefault()
-                  if (autocompleteIndex >= 0 && autocompleteIndex < suggestions.length) {
-                    setViewedFile?.(suggestions[autocompleteIndex] as ProjectFile)
-                  }
-                } else if (e.key === 'Enter' || (allowSpacebarToSelect && e.key === ' ')) {
-                  if (autocompleteIndex >= 0) {
-                    e.preventDefault()
-                  }
-                  if (autocompleteIndex >= 0 && autocompleteIndex < suggestions.length) {
-                    toggleFileInSelection(suggestions[autocompleteIndex] as ProjectFile)
-                    if (autocompleteIndex < suggestions.length - 1) {
-                      setAutocompleteIndex((prev) => prev + 1)
-                    }
-                  }
+        <SearchWithMode
+          ref={ref.searchInputRef}
+          value={localFileSearch || ''}
+          onChange={handleSearchChange}
+          onClear={() => {
+            handleSearchChange('')
+            setShowAutocomplete(false)
+            setAutocompleteIndex(-1)
+          }}
+          mode={searchByContent ? 'content' : 'name'}
+          onModeChange={(mode) => setSearchByContent(mode === 'content')}
+          modes={[
+            {
+              value: 'name',
+              label: 'Search Names',
+              shortLabel: 'Names',
+              icon: <Files className='h-3 w-3' />
+            },
+            {
+              value: 'content',
+              label: 'Search Content',
+              shortLabel: 'Content',
+              icon: <FileText className='h-3 w-3' />
+            }
+          ]}
+          placeholder={`Search files... (${formatShortcut('mod+f')})`}
+          className='max-w-64 w-full'
+          onFocus={() => setShowAutocomplete(!!(localFileSearch || '').trim())}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              ref.searchInputRef.current?.blur()
+              setShowAutocomplete(false)
+            } else if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              if (showAutocomplete && (localFileSearch || '').trim()) {
+                setAutocompleteIndex((prev) => Math.min(suggestions.length - 1, prev + 1))
+              } else {
+                ref.fileTreeRef.current?.focusTree()
+              }
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              if (showAutocomplete && (localFileSearch || '').trim()) {
+                setAutocompleteIndex((prev) => Math.max(0, prev - 1))
+              }
+            } else if (e.key === 'ArrowRight') {
+              e.preventDefault()
+              if (autocompleteIndex >= 0 && autocompleteIndex < suggestions.length) {
+                setViewedFile?.(suggestions[autocompleteIndex] as ProjectFile)
+              }
+            } else if (e.key === 'Enter' || (allowSpacebarToSelect && e.key === ' ')) {
+              if (autocompleteIndex >= 0) {
+                e.preventDefault()
+              }
+              if (autocompleteIndex >= 0 && autocompleteIndex < suggestions.length) {
+                toggleFileInSelection(suggestions[autocompleteIndex] as ProjectFile)
+                if (autocompleteIndex < suggestions.length - 1) {
+                  setAutocompleteIndex((prev) => prev + 1)
                 }
-              }}
-            />
-          </div>
-          {localFileSearch && (
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              className='absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-accent hover:text-accent-foreground'
-              onClick={() => {
-                handleSearchChange('')
-                setShowAutocomplete(false)
-                setAutocompleteIndex(-1)
-                ref.searchInputRef.current?.focus()
-              }}
-              aria-label='Clear search'
-            >
-              <X className='h-3 w-3' />
-            </Button>
-          )}
-        </div>
-
-        <Button variant='outline' size='sm' onClick={() => setSearchByContent((prev) => !prev)}>
-          {searchByContent ? 'Search Content' : 'Search Names'}
-        </Button>
+              }
+            }
+          }}
+        />
 
         {/* File selection dropdown */}
         <DropdownMenu>

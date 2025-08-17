@@ -32,6 +32,30 @@ import {
 } from '@/hooks/api/use-mcp-analytics-api'
 import { useGlobalMCPManager } from '@/hooks/api/use-mcp-global-api'
 import type { MCPAnalyticsRequest, MCPExecutionQuery, MCPToolSummary, MCPToolExecution } from '@promptliano/schemas'
+
+// Type for tool statistics data structure
+type ToolStatisticsData = {
+  id: number
+  successCount: number
+  toolName: string
+  periodStart: number
+  periodEnd: number
+  periodType: "month" | "day" | "hour" | "week"
+  executionCount: number
+  errorCount: number
+  timeoutCount: number
+  maxDurationMs?: number | null
+}
+
+// Type guard to check if data is MCPToolSummary
+function isMCPToolSummary(data: any): data is MCPToolSummary {
+  return data && typeof data.totalExecutions === 'number' && typeof data.successRate === 'number'
+}
+
+// Type guard to check if data is ToolStatisticsData
+function isToolStatisticsData(data: any): data is ToolStatisticsData {
+  return data && typeof data.executionCount === 'number' && typeof data.successCount === 'number'
+}
 import { formatDistanceToNow } from 'date-fns'
 import { MCPExecutionsTable } from './mcp-analytics/mcp-executions-table'
 import { toast } from 'sonner'
@@ -320,27 +344,35 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                         <p className='text-sm mt-1'>Try selecting a different time range</p>
                       </div>
                     ) : (
-                      topToolsData.map((tool: MCPToolSummary) => (
-                        <div key={tool.toolName} className='p-3 border rounded-lg space-y-2'>
+                      topToolsData.map((tool: MCPToolSummary | ToolStatisticsData) => {
+                        const isToolSummary = isMCPToolSummary(tool)
+                        const isStatistics = isToolStatisticsData(tool)
+                        
+                        const toolName = tool.toolName
+                        const totalExecutions = isToolSummary ? tool.totalExecutions : isStatistics ? tool.executionCount : 0
+                        const successRate = isToolSummary ? tool.successRate : isStatistics ? (tool.successCount / Math.max(tool.executionCount, 1)) : 0
+                        
+                        return (
+                        <div key={toolName} className='p-3 border rounded-lg space-y-2'>
                           <div className='flex items-center justify-between'>
-                            <h4 className='font-medium'>{tool.toolName}</h4>
+                            <h4 className='font-medium'>{toolName}</h4>
                             <div className='flex items-center gap-2'>
-                              <Badge variant='secondary'>{tool.totalExecutions} calls</Badge>
+                              <Badge variant='secondary'>{totalExecutions} calls</Badge>
                               <Badge
                                 variant={
-                                  tool.successRate > 0.9
+                                  successRate > 0.9
                                     ? 'default'
-                                    : tool.successRate > 0.7
+                                    : successRate > 0.7
                                       ? 'warning'
                                       : 'destructive'
                                 }
                                 className={cn(
-                                  tool.successRate > 0.9 && 'bg-green-100 text-green-700',
-                                  tool.successRate > 0.7 && tool.successRate <= 0.9 && 'bg-yellow-100 text-yellow-700',
-                                  tool.successRate <= 0.7 && 'bg-red-100 text-red-700'
+                                  successRate > 0.9 && 'bg-green-100 text-green-700',
+                                  successRate > 0.7 && successRate <= 0.9 && 'bg-yellow-100 text-yellow-700',
+                                  successRate <= 0.7 && 'bg-red-100 text-red-700'
                                 )}
                               >
-                                {(tool.successRate * 100).toFixed(1)}% success
+                                {(successRate * 100).toFixed(1)}% success
                               </Badge>
                             </div>
                           </div>
@@ -349,24 +381,33 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                             <div>
                               <p className='text-muted-foreground'>Avg Duration</p>
                               <p className='font-medium'>
-                                {tool.avgDurationMs ? `${(tool.avgDurationMs / 1000).toFixed(2)}s` : 'N/A'}
+                                {isToolSummary && tool.avgDurationMs 
+                                  ? `${(tool.avgDurationMs / 1000).toFixed(2)}s` 
+                                  : isStatistics && tool.maxDurationMs 
+                                    ? `${(tool.maxDurationMs / 1000).toFixed(2)}s (max)` 
+                                    : 'N/A'}
                               </p>
                             </div>
                             <div>
                               <p className='text-muted-foreground'>Min/Max</p>
                               <p className='font-medium'>
-                                {tool.minDurationMs && tool.maxDurationMs
+                                {isToolSummary && tool.minDurationMs && tool.maxDurationMs
                                   ? `${(tool.minDurationMs / 1000).toFixed(2)}s - ${(tool.maxDurationMs / 1000).toFixed(2)}s`
                                   : 'N/A'}
                               </p>
                             </div>
                             <div>
                               <p className='text-muted-foreground'>Total Output</p>
-                              <p className='font-medium'>{(tool.totalOutputSize / 1024).toFixed(1)} KB</p>
+                              <p className='font-medium'>
+                                {isToolSummary 
+                                  ? `${(tool.totalOutputSize / 1024).toFixed(1)} KB`
+                                  : 'N/A'}
+                              </p>
                             </div>
                           </div>
                         </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 </ScrollArea>

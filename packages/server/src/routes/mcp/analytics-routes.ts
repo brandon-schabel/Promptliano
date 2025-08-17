@@ -429,12 +429,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     
     try {
-      const request = {
-        projectId,
-        period: query.period,
-        toolNames: query.toolNames?.split(',')
-      }
-      const overview = await getMCPAnalyticsOverview(request)
+      const overview = await getMCPAnalyticsOverview(projectId)
       return c.json(successResponse(overview))
     } catch (error) {
       throw error

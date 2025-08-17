@@ -165,7 +165,7 @@ export function MCPBatchInstaller({ projectId, projectName }: MCPBatchInstallerP
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-          {availableTools.map((tool) => (
+          {availableTools.map((tool: MCPToolInfo) => (
             <div
               key={tool.tool}
               className={cn(

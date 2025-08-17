@@ -15,12 +15,12 @@ interface MCPExecutionsTableProps {
 
 interface ExportRowData {
   toolName: string
-  inputParams: string | null
+  inputParams?: string | null | undefined
   status: MCPExecutionStatus
   startedAt: number
-  durationMs: number | null
-  outputSize: number | null
-  errorMessage: string | null
+  durationMs?: number | null | undefined
+  outputSize?: number | null | undefined
+  errorMessage?: string | null | undefined
 }
 
 export function MCPExecutionsTable({ projectId, defaultPageSize = 20 }: MCPExecutionsTableProps) {

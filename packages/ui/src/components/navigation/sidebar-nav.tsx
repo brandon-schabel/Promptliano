@@ -149,12 +149,21 @@ export function SectionedSidebarNav<T extends string = string>({
   variant = 'default',
   showSectionTitles = true
 }: SectionedSidebarNavProps<T>) {
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+  
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col', className)}>
       {header && <div className='px-2 pb-2 border-b'>{header}</div>}
 
-      <ScrollArea className='flex-1'>
-        <div className='px-2 py-1 space-y-4 group-data-[collapsible=icon]:px-1'>
+      <div className={cn(
+        'flex-1 min-h-0',
+        isCollapsed ? 'overflow-visible' : 'overflow-hidden'
+      )}>
+        <div className={cn(
+          'px-2 py-1 space-y-4 group-data-[collapsible=icon]:px-1',
+          isCollapsed ? 'space-y-2 group-data-[collapsible=icon]:space-y-1' : ''
+        )}>
           {sections.map((section, index) => (
             <div key={index}>
               {showSectionTitles && section.title && (
@@ -162,7 +171,10 @@ export function SectionedSidebarNav<T extends string = string>({
                   {section.title}
                 </div>
               )}
-              <div className='space-y-1'>
+              <div className={cn(
+                'space-y-1',
+                isCollapsed ? 'group-data-[collapsible=icon]:space-y-1' : ''
+              )}>
                 {section.items.map((item) => {
                   const Icon = item.icon
                   const isActive =
@@ -170,8 +182,8 @@ export function SectionedSidebarNav<T extends string = string>({
                   const isDisabled = item.enabled === false
                   const itemVariant = item.variant || variant
 
-                  const { state, isMobile } = useSidebar()
-                  const shouldShowTooltip = state === 'collapsed' && !isMobile
+                  const { isMobile } = useSidebar()
+                  const shouldShowTooltip = isCollapsed && !isMobile
 
                   const buttonElement = (
                     <Button
@@ -179,7 +191,7 @@ export function SectionedSidebarNav<T extends string = string>({
                       variant={isActive ? 'secondary' : 'ghost'}
                       className={cn(
                         'w-full justify-start gap-3',
-                        'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:p-0',
+                        'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0',
                         itemVariant === 'compact' ? 'h-9 py-2 px-2' : 'h-auto py-3 px-2',
                         'group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:px-0',
                         isDisabled && 'opacity-50 cursor-not-allowed',
@@ -198,7 +210,7 @@ export function SectionedSidebarNav<T extends string = string>({
                     >
                       <Icon className={cn(
                         'h-4 w-4 shrink-0',
-                        'group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5'
+                        'group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4'
                       )} />
 
                       <div className='flex flex-col items-start text-left flex-1 group-data-[collapsible=icon]:hidden'>
@@ -240,7 +252,7 @@ export function SectionedSidebarNav<T extends string = string>({
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
 
       {footer && <div className='px-2 pt-2 border-t'>{footer}</div>}
     </div>

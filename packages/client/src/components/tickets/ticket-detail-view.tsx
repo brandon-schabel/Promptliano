@@ -688,7 +688,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                                         key={index}
                                         fileId={fileId}
                                         projectId={projectId}
-                                        projectRoot={projectData?.data?.path}
+                                        projectRoot={projectData?.path}
                                       />
                                     ))}
                                   </div>

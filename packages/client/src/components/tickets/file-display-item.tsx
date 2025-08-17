@@ -26,17 +26,17 @@ export function FileDisplayItem({ fileId, projectId, projectRoot = '', className
 
   // Find the file by ID
   const file = useMemo(() => {
-    if (!filesResponse?.data) return null
+    if (!filesResponse) return null
 
     // The fileId might be a string representation of a number or a path
     // Try to find by ID first (if it's a number)
     const numericId = Number(fileId)
     if (!isNaN(numericId)) {
-      return filesResponse.data.find((f: any) => f.id === numericId)
+      return filesResponse.find((f: any) => f.id === numericId)
     }
 
     // Otherwise try to find by path
-    return filesResponse.data.find((f: any) => f.path === fileId)
+    return filesResponse.find((f: any) => f.path === fileId)
   }, [filesResponse, fileId])
 
   // Extract file name from path

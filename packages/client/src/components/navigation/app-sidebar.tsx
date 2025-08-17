@@ -149,7 +149,7 @@ export function AppSidebar() {
     <ErrorBoundary>
       <>
         <Sidebar collapsible='icon' side='left' variant='sidebar'>
-          <SidebarHeader className='p-2'>
+          <SidebarHeader className='p-2 flex-shrink-0'>
             <div className='flex items-center justify-center relative group-data-[collapsible=icon]:justify-center'>
               <Logo 
                 size='sm' 
@@ -158,90 +158,103 @@ export function AppSidebar() {
               <span className='text-lg font-semibold group-data-[collapsible=icon]:hidden'>Promptliano</span>
             </div>
           </SidebarHeader>
-          <SidebarContent className='p-2 group-data-[collapsible=icon]:p-1'>
-            <SectionedSidebarNav
-              activeItem={matches.find((match) => 
-                navigationSections.some(section => 
-                  section.items.some(item => item.routeIds.includes(match.routeId))
-                )
-              )?.routeId || ''}
-              sections={navigationSections.map(section => ({
-                ...section,
-                items: section.items.map(item => ({
-                  ...item,
-                  label: item.title,
-                  isActive: matches.some((match) => item.routeIds.includes(match.routeId))
-                }))
-              }))}
-              onItemClick={(item: any) => {
-                navigate({ to: item.href })
-              }}
-            />
+          
+          <SidebarContent className='p-2 group-data-[collapsible=icon]:p-1 flex flex-col min-h-0'>
+            {/* Main Navigation - Always visible */}
+            <div className='flex-shrink-0'>
+              <SectionedSidebarNav
+                activeItem={matches.find((match) => 
+                  navigationSections.some(section => 
+                    section.items.some(item => item.routeIds.includes(match.routeId))
+                  )
+                )?.routeId || ''}
+                sections={navigationSections.map(section => ({
+                  ...section,
+                  items: section.items.map(item => ({
+                    ...item,
+                    label: item.title,
+                    isActive: matches.some((match) => item.routeIds.includes(match.routeId))
+                  }))
+                }))}
+                onItemClick={(item: any) => {
+                  navigate({ to: item.href })
+                }}
+              />
+            </div>
 
-            {/* Recent Projects Section */}
+            {/* Recent Projects Section - Scrollable if needed */}
             {open && recentProjects.length > 0 && projectData && (
-              <>
-                <div className='px-3 py-2 mt-4'>
+              <div className='flex flex-col min-h-0 flex-1'>
+                <div className='px-3 py-2 mt-4 flex-shrink-0'>
                   <p className='text-xs font-medium text-muted-foreground'>Recent Projects</p>
                 </div>
-                <SidebarMenu>
-                  {recentProjects
-                    .map((id) => projectData?.find((p) => p.id === id))
-                    .filter(Boolean)
-                    .slice(0, 3)
-                    .map((project) => {
-                      const isActive = selectedProjectId === project?.id
-                      return (
-                        <SidebarMenuItem key={project!.id} className='flex items-center w-full justify-center gap-2'>
-                          <SidebarMenuButton asChild isActive={isActive} tooltip={project!.name}>
-                            <a
-                              className='flex items-center gap-2 cursor-pointer'
-                              onClick={() => {
-                                if (project) {
-                                  handleSelectProjectInDialog(project.id)
-                                }
-                              }}
-                            >
-                              <FolderIcon className='h-4 w-4 flex-shrink-0' />
-                              <span className='truncate'>{project!.name}</span>
-                            </a>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )
-                    })}
-                </SidebarMenu>
-              </>
+                <div className='min-h-0 overflow-y-auto'>
+                  <SidebarMenu>
+                    {recentProjects
+                      .map((id) => projectData?.find((p) => p.id === id))
+                      .filter(Boolean)
+                      .slice(0, 3)
+                      .map((project) => {
+                        const isActive = selectedProjectId === project?.id
+                        return (
+                          <SidebarMenuItem key={project!.id} className='flex items-center w-full justify-center gap-2'>
+                            <SidebarMenuButton asChild isActive={isActive} tooltip={project!.name}>
+                              <a
+                                className='flex items-center gap-2 cursor-pointer'
+                                onClick={() => {
+                                  if (project) {
+                                    handleSelectProjectInDialog(project.id)
+                                  }
+                                }}
+                              >
+                                <FolderIcon className='h-4 w-4 flex-shrink-0' />
+                                <span className='truncate'>{project!.name}</span>
+                              </a>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )
+                      })}
+                  </SidebarMenu>
+                </div>
+              </div>
             )}
+            
+            {/* Spacer to push footer to bottom */}
+            <div className='flex-1' />
           </SidebarContent>
-          <SidebarFooter>
-            <SidebarMenu>
-              <SidebarMenuItem className='flex items-center w-full justify-center gap-2 group-data-[collapsible=icon]:hidden'>
-                <ServerStatusIndicator />
-              </SidebarMenuItem>
-              <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
-                <SidebarMenuButton onClick={() => setOpenProjectListDialog(true)} tooltip='Manage Projects'>
-                  <FolderTreeIcon className='h-4 w-4 flex-shrink-0' />
-                  <span className='truncate'>Manage Projects</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
-                <SidebarMenuButton asChild tooltip='Settings'>
-                  <Link to='/settings'>
-                    <SettingsIcon className='h-4 w-4 flex-shrink-0' />
-                    <span className='truncate'>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
-                <SidebarMenuButton onClick={() => setHelpOpen(true)} tooltip='Help'>
-                  <HelpCircleIcon className='h-4 w-4 flex-shrink-0' />
-                  <span className='truncate'>Help</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem className='flex items-center w-full justify-center gap-2 text-xs text-muted-foreground'>
-                <span className='px-3'>v{packageJson.version}</span>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          
+          <SidebarFooter className='flex-shrink-0 border-t border-sidebar-border/50'>
+            {/* Footer content with proper overflow handling */}
+            <div className='max-h-[40vh] overflow-y-auto'>
+              <SidebarMenu>
+                <SidebarMenuItem className='flex items-center w-full justify-center gap-2 group-data-[collapsible=icon]:hidden'>
+                  <ServerStatusIndicator />
+                </SidebarMenuItem>
+                <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
+                  <SidebarMenuButton onClick={() => setOpenProjectListDialog(true)} tooltip='Manage Projects'>
+                    <FolderTreeIcon className='h-4 w-4 flex-shrink-0' />
+                    <span className='truncate'>Manage Projects</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
+                  <SidebarMenuButton asChild tooltip='Settings'>
+                    <Link to='/settings'>
+                      <SettingsIcon className='h-4 w-4 flex-shrink-0' />
+                      <span className='truncate'>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
+                  <SidebarMenuButton onClick={() => setHelpOpen(true)} tooltip='Help'>
+                    <HelpCircleIcon className='h-4 w-4 flex-shrink-0' />
+                    <span className='truncate'>Help</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem className='flex items-center w-full justify-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
+                  <span className='px-3'>v{packageJson.version}</span>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </div>
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
