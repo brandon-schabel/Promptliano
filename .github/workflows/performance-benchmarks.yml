@@ -47,21 +47,11 @@ jobs:
       with:
         fetch-depth: 2 # Need previous commit for regression analysis
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+    - name: Setup Bun and dependencies
+      uses: ./.github/actions/setup-bun
       with:
         bun-version: latest
-
-    - name: Cache node modules
-      uses: actions/cache@v3
-      with:
-        path: ~/.bun/install/cache
-        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-bun-
-
-    - name: Install dependencies
-      run: bun install --frozen-lockfile
+        cache-key-suffix: -performance
 
     - name: Type check packages
       run: |
@@ -99,17 +89,19 @@ jobs:
         fi
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
-      if: always()
+      uses: ./.github/actions/optimized-artifact-upload
       with:
-        name: benchmark-results-${{ github.sha }}
-        path: |
-          benchmarks/results/
-        retention-days: 30
+        artifact-name: benchmark-results-${{ github.run_number }}
+        artifact-path: benchmarks/results/
+        upload-condition: always
+        retention-days: ${{ github.ref == 'refs/heads/main' && '30' || '14' }}
+        max-size-mb: 100
+        compress: true
+        include-git-info: true
 
     - name: Comment PR with results
       if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v6
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       with:
         script: |
           const fs = require('fs');
@@ -180,14 +172,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
-
-    - name: Install dependencies
-      run: bun install --frozen-lockfile
+    - name: Setup Bun and dependencies
+      uses: ./.github/actions/setup-bun
+      with:
+        bun-version: latest
+        cache-key-suffix: -bundle-tracking
 
     - name: Download benchmark results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: benchmark-results-${{ github.sha }}
         path: benchmarks/results/

@@ -30,10 +30,9 @@ export class ChatClient extends BaseApiClient {
    * List all chats
    */
   async listChats(): Promise<DataResponseSchema<Chat[]>> {
-    const result = await this.request('GET', '/chats', { 
+    return this.request('GET', '/chats', { 
       responseSchema: ChatListResponseSchemaZ 
     })
-    return result as DataResponseSchema<Chat[]>
   }
 
   /**
@@ -41,11 +40,10 @@ export class ChatClient extends BaseApiClient {
    */
   async createChat(data: CreateChatBody): Promise<DataResponseSchema<Chat>> {
     const validatedData = this.validateBody(CreateChatBodySchema, data)
-    const result = await this.request('POST', '/chats', {
+    return this.request('POST', '/chats', {
       body: validatedData,
       responseSchema: ChatResponseSchemaZ
     })
-    return result as DataResponseSchema<Chat>
   }
 
   /**

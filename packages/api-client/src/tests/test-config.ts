@@ -91,23 +91,71 @@ export interface EnhancedTestConfig {
     /** Enable debug mode */
     debug: boolean
   }
+  /** CI-specific configuration */
+  ci: {
+    /** Detected CI provider */
+    provider: string | null
+    /** Health check timeout for CI */
+    healthCheckTimeout: number
+    /** Database initialization timeout for CI */
+    dbInitTimeout: number
+    /** Enable resource monitoring */
+    enableResourceMonitoring: boolean
+    /** Maximum memory usage threshold */
+    maxMemoryUsage: number
+  }
+}
+
+/**
+ * Detects CI environment with enhanced detection logic
+ */
+export function detectCIEnvironment(): { isCI: boolean; ciProvider: string | null; isLocal: boolean } {
+  // Enhanced CI detection for various providers
+  const ciProviders = {
+    'GitHub Actions': process.env.GITHUB_ACTIONS,
+    'GitLab CI': process.env.GITLAB_CI,
+    'CircleCI': process.env.CIRCLECI,
+    'Buildkite': process.env.BUILDKITE,
+    'Jenkins': process.env.JENKINS_URL,
+    'Azure DevOps': process.env.TF_BUILD,
+    'TeamCity': process.env.TEAMCITY_VERSION,
+    'Travis CI': process.env.TRAVIS,
+    'AppVeyor': process.env.APPVEYOR,
+    'CodeBuild': process.env.CODEBUILD_BUILD_ID,
+    'Drone': process.env.DRONE,
+    'Generic CI': process.env.CI
+  }
+
+  const detectedProvider = Object.entries(ciProviders)
+    .find(([_, value]) => value)
+    ?.[0] || null
+
+  const isCI = detectedProvider !== null || process.env.FORCE_CI_MODE === 'true'
+  const isLocal = !isCI && !process.env.FORCE_CI_MODE
+
+  return { isCI, ciProvider: detectedProvider, isLocal }
 }
 
 /**
  * Gets enhanced test configuration based on environment
  */
 export function getEnhancedTestConfig(): EnhancedTestConfig {
-  const isCI = !!(
-    process.env.CI ||
-    process.env.GITHUB_ACTIONS ||
-    process.env.GITLAB_CI ||
-    process.env.CIRCLECI ||
-    process.env.BUILDKITE ||
-    process.env.JENKINS_URL
-  )
-
-  const isLocal = !isCI && !process.env.FORCE_CI_MODE
+  const { isCI, ciProvider, isLocal } = detectCIEnvironment()
   const enableLMStudio = isLocal && process.env.SKIP_AI_TESTS !== 'true'
+
+  // CI-specific optimizations
+  const ciOptimizations = {
+    // More aggressive timeouts in CI
+    apiTimeout: isCI ? 10000 : 30000,
+    healthCheckTimeout: isCI ? 3000 : 5000,
+    dbInitTimeout: isCI ? 3000 : 5000,
+    // Disable parallel execution in CI for stability
+    parallel: !isCI && process.env.TEST_PARALLEL !== 'false',
+    // Use memory database in CI for speed
+    useMemoryDB: isCI || process.env.TEST_USE_MEMORY_DB === 'true',
+    // Disable resource monitoring in CI unless explicitly enabled
+    enableResourceMonitoring: isLocal && process.env.TEST_ENABLE_MONITORING === 'true'
+  }
 
   return {
     server: {
@@ -119,8 +167,8 @@ export function getEnhancedTestConfig(): EnhancedTestConfig {
       }
     },
     database: {
-      useMemory: isCI || process.env.TEST_USE_MEMORY_DB === 'true',
-      path: process.env.TEST_DB_PATH || (isCI ? ':memory:' : '/tmp/promptliano-test.db'),
+      useMemory: ciOptimizations.useMemoryDB,
+      path: process.env.TEST_DB_PATH || (ciOptimizations.useMemoryDB ? ':memory:' : '/tmp/promptliano-test.db'),
       resetBetweenSuites: process.env.TEST_KEEP_DB !== 'true'
     },
     ai: {
@@ -128,22 +176,22 @@ export function getEnhancedTestConfig(): EnhancedTestConfig {
         enabled: enableLMStudio,
         baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://192.168.1.38:1234',
         model: process.env.LMSTUDIO_MODEL || 'openai/gpt-oss-20b',
-        timeout: parseInt(process.env.AI_TEST_TIMEOUT || '30000', 10),
+        timeout: parseInt(process.env.AI_TEST_TIMEOUT || (isCI ? '15000' : '30000'), 10),
         skipWhenUnavailable: process.env.AI_FAIL_WHEN_UNAVAILABLE !== 'true'
       },
       mocks: {
         enabled: process.env.AI_USE_MOCKS !== 'false',
-        delay: parseInt(process.env.AI_MOCK_DELAY || '100', 10)
+        delay: parseInt(process.env.AI_MOCK_DELAY || (isCI ? '50' : '100'), 10)
       }
     },
     execution: {
-      apiTimeout: parseInt(process.env.TEST_API_TIMEOUT || (isCI ? '15000' : '30000'), 10),
+      apiTimeout: parseInt(process.env.TEST_API_TIMEOUT || ciOptimizations.apiTimeout.toString(), 10),
       enableRateLimit: process.env.TEST_ENABLE_RATE_LIMIT === 'true',
-      parallel: process.env.TEST_PARALLEL !== 'false' && !isCI,
+      parallel: ciOptimizations.parallel,
       logLevel: (process.env.TEST_LOG_LEVEL as any) || (isCI ? 'error' : 'warn'),
       retries: {
-        max: parseInt(process.env.TEST_RETRIES || '3', 10),
-        delay: parseInt(process.env.TEST_RETRY_DELAY || '1000', 10),
+        max: parseInt(process.env.TEST_RETRIES || (isCI ? '2' : '3'), 10),
+        delay: parseInt(process.env.TEST_RETRY_DELAY || (isCI ? '500' : '1000'), 10),
         backoff: process.env.TEST_RETRY_BACKOFF !== 'false'
       }
     },
@@ -151,6 +199,14 @@ export function getEnhancedTestConfig(): EnhancedTestConfig {
       forceCI: process.env.FORCE_CI_MODE === 'true',
       forceLocal: process.env.FORCE_LOCAL_MODE === 'true',
       debug: process.env.TEST_DEBUG === 'true'
+    },
+    // CI-specific configuration
+    ci: {
+      provider: ciProvider,
+      healthCheckTimeout: ciOptimizations.healthCheckTimeout,
+      dbInitTimeout: ciOptimizations.dbInitTimeout,
+      enableResourceMonitoring: ciOptimizations.enableResourceMonitoring,
+      maxMemoryUsage: parseInt(process.env.TEST_MAX_MEMORY_MB || '256', 10) * 1024 * 1024
     }
   }
 }
@@ -194,31 +250,48 @@ export const TEST_ENV_VARS = {
   TEST_DEBUG: 'Set to "true" to enable debug output',
 
   // Legacy
-  PROMPTLIANO_ENCRYPTION_KEY: 'Encryption key for provider keys (auto-generated if not set)'
+  PROMPTLIANO_ENCRYPTION_KEY: 'Encryption key for provider keys (auto-generated if not set)',
+
+  // CI-specific variables
+  TEST_MAX_MEMORY_MB: 'Maximum memory usage in MB (default: 256)',
+  TEST_HEALTH_CHECK_TIMEOUT: 'Health check timeout in ms (default: 5000 local, 3000 CI)',
+  TEST_DB_INIT_TIMEOUT: 'Database initialization timeout in ms (default: 5000 local, 3000 CI)',
+  TEST_ENABLE_MONITORING: 'Set to "true" to enable resource monitoring in local dev'
 } as const
 
 /**
- * Prints current test configuration
+ * Prints current test configuration with enhanced CI information
  */
 export function printTestConfig(config?: EnhancedTestConfig): void {
   const testConfig = config || getEnhancedTestConfig()
   
   console.log('🧪 Test Configuration:')
+  console.log('  Environment:')
+  console.log(`    CI Provider: ${testConfig.ci.provider || 'Local Development'}`)
+  console.log(`    Debug Mode: ${testConfig.environment.debug}`)
   console.log('  Server:')
   console.log(`    Isolated: ${testConfig.server.useIsolated}`)
   console.log(`    Port: ${testConfig.server.port.dynamic ? 'Dynamic' : testConfig.server.port.fixed}`)
+  console.log(`    Health Check Timeout: ${testConfig.ci.healthCheckTimeout}ms`)
   console.log('  Database:')
   console.log(`    Type: ${testConfig.database.useMemory ? 'Memory' : 'File'}`)
   console.log(`    Path: ${testConfig.database.path}`)
+  console.log(`    Init Timeout: ${testConfig.ci.dbInitTimeout}ms`)
   console.log('  AI Services:')
   console.log(`    LMStudio: ${testConfig.ai.lmstudio.enabled ? 'Enabled' : 'Disabled'}`)
   if (testConfig.ai.lmstudio.enabled) {
     console.log(`      URL: ${testConfig.ai.lmstudio.baseUrl}`)
     console.log(`      Model: ${testConfig.ai.lmstudio.model}`)
+    console.log(`      Timeout: ${testConfig.ai.lmstudio.timeout}ms`)
   }
   console.log(`    Mocks: ${testConfig.ai.mocks.enabled ? 'Enabled' : 'Disabled'}`)
   console.log('  Execution:')
   console.log(`    Timeout: ${testConfig.execution.apiTimeout}ms`)
   console.log(`    Rate Limit: ${testConfig.execution.enableRateLimit}`)
+  console.log(`    Parallel: ${testConfig.execution.parallel}`)
   console.log(`    Log Level: ${testConfig.execution.logLevel}`)
+  console.log(`    Max Retries: ${testConfig.execution.retries.max}`)
+  console.log('  Resource Monitoring:')
+  console.log(`    Enabled: ${testConfig.ci.enableResourceMonitoring}`)
+  console.log(`    Max Memory: ${Math.round(testConfig.ci.maxMemoryUsage / 1024 / 1024)}MB`)
 }

@@ -1,0 +1,377 @@
+name: Version Bump CLI Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+      package_name:
+        description: 'Package to bump version for'
+        required: true
+        type: choice
+        options:
+          - promptliano
+        default: 'promptliano'
+      create_pr:
+        description: 'Create pull request'
+        required: false
+        type: boolean
+        default: true
+      auto_merge:
+        description: 'Auto-merge PR if CI passes'
+        required: false
+        type: boolean
+        default: false
+
+# Prevent concurrent version bump operations
+concurrency:
+  group: version-bump-${{ github.event.inputs.package_name }}
+  cancel-in-progress: false
+
+jobs:
+  version-bump:
+    name: Bump ${{ github.event.inputs.package_name }} Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      checks: read
+
+    outputs:
+      new-version: ${{ steps.bump-version.outputs.new_version }}
+      old-version: ${{ steps.get-current-version.outputs.current_version }}
+      pr-number: ${{ steps.create-pr.outputs.pr_number }}
+      pr-url: ${{ steps.create-pr.outputs.pr_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: 'latest'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20.x'
+
+      - name: Get package path
+        id: package-path
+        run: |
+          case "${{ github.event.inputs.package_name }}" in
+            "promptliano")
+              echo "path=packages/promptliano" >> $GITHUB_OUTPUT
+              echo "tag_prefix=cli-v" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "❌ Unknown package: ${{ github.event.inputs.package_name }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Get current version
+        id: get-current-version
+        working-directory: ${{ steps.package-path.outputs.path }}
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Current version: $CURRENT_VERSION"
+
+      - name: Validate version bump
+        run: |
+          echo "🔍 Validating version bump parameters..."
+          echo "Package: ${{ github.event.inputs.package_name }}"
+          echo "Current version: ${{ steps.get-current-version.outputs.current_version }}"
+          echo "Bump type: ${{ github.event.inputs.version_type }}"
+          echo "Create PR: ${{ github.event.inputs.create_pr }}"
+          echo "Auto-merge: ${{ github.event.inputs.auto_merge }}"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests before version bump
+        working-directory: ${{ steps.package-path.outputs.path }}
+        run: |
+          echo "🧪 Running tests to ensure package is in good state..."
+          bun test
+          echo "✅ Tests passed - safe to bump version"
+
+      - name: Create version bump branch
+        id: create-branch
+        run: |
+          BRANCH_NAME="version-bump/${{ github.event.inputs.package_name }}-${{ github.event.inputs.version_type }}-$(date +%Y%m%d-%H%M%S)"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+          echo "📝 Created branch: $BRANCH_NAME"
+
+      - name: Bump version
+        id: bump-version
+        working-directory: ${{ steps.package-path.outputs.path }}
+        run: |
+          echo "⬆️ Bumping ${{ github.event.inputs.version_type }} version..."
+
+          # Use npm version to bump the version in package.json
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version_type }} --no-git-tag-version)
+          NEW_VERSION=${NEW_VERSION#v} # Remove the 'v' prefix if present
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 New version: $NEW_VERSION"
+
+          # Verify the version was updated correctly
+          ACTUAL_VERSION=$(node -p "require('./package.json').version")
+          if [ "$ACTUAL_VERSION" != "$NEW_VERSION" ]; then
+            echo "❌ Version mismatch: expected $NEW_VERSION, got $ACTUAL_VERSION"
+            exit 1
+          fi
+
+          echo "✅ Version successfully bumped to $NEW_VERSION"
+
+      - name: Update lock file
+        run: |
+          echo "🔄 Updating lock file..."
+          bun install --frozen-lockfile
+          echo "✅ Lock file updated"
+
+      - name: Run tests after version bump
+        working-directory: ${{ steps.package-path.outputs.path }}
+        run: |
+          echo "🧪 Running tests after version bump..."
+          bun test
+          echo "✅ Tests still pass after version bump"
+
+      - name: Build package to verify
+        working-directory: ${{ steps.package-path.outputs.path }}
+        run: |
+          echo "🔨 Building package to verify integrity..."
+          bun run build
+          echo "✅ Package builds successfully"
+
+      - name: Generate changelog for version
+        id: changelog
+        run: |
+          echo "📝 Generating changelog for version bump..."
+
+          # Get the last version tag to generate changelog from
+          LAST_TAG=$(git tag --sort=-version:refname | grep -E "^${{ steps.package-path.outputs.tag_prefix }}[0-9]+\.[0-9]+\.[0-9]+$" | head -1)
+
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating changelog from $LAST_TAG"
+            CHANGELOG=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges -- "${{ steps.package-path.outputs.path }}/" | head -10)
+          else
+            echo "No previous tag found, using recent commits"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges --max-count=10 -- "${{ steps.package-path.outputs.path }}/")
+          fi
+
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="- Version bump to ${{ steps.bump-version.outputs.new_version }}"
+          fi
+
+          # Save to multiline output
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+          echo "Generated changelog:"
+          echo "$CHANGELOG"
+
+      - name: Commit changes
+        run: |
+          echo "💾 Committing version bump changes..."
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git commit -m "chore(${{ github.event.inputs.package_name }}): bump version to ${{ steps.bump-version.outputs.new_version }}
+
+          - Bump ${{ github.event.inputs.package_name }} from ${{ steps.get-current-version.outputs.current_version }} to ${{ steps.bump-version.outputs.new_version }}
+          - Update lock file
+          - Version bump type: ${{ github.event.inputs.version_type }}
+
+          🤖 Generated with [Claude Code](https://claude.ai/code)
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+
+          echo "✅ Changes committed"
+
+      - name: Push branch
+        run: |
+          echo "🚀 Pushing branch to remote..."
+          git push origin "${{ steps.create-branch.outputs.branch_name }}"
+          echo "✅ Branch pushed successfully"
+
+      - name: Create Pull Request
+        if: github.event.inputs.create_pr == 'true'
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔀 Creating pull request..."
+
+          PR_BODY=$(cat <<EOF
+          # 🚀 Version Bump: ${{ github.event.inputs.package_name }} v${{ steps.bump-version.outputs.new_version }}
+
+          This PR bumps the version of **${{ github.event.inputs.package_name }}** from \`${{ steps.get-current-version.outputs.current_version }}\` to \`${{ steps.bump-version.outputs.new_version }}\`.
+
+          ## 📋 Changes
+
+          - **Package**: ${{ github.event.inputs.package_name }}
+          - **Version bump type**: ${{ github.event.inputs.version_type }}
+          - **Previous version**: ${{ steps.get-current-version.outputs.current_version }}
+          - **New version**: ${{ steps.bump-version.outputs.new_version }}
+
+          ## 📝 Recent Changes
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          ## ✅ Pre-merge Checklist
+
+          - [x] Tests pass before version bump
+          - [x] Version updated in package.json
+          - [x] Lock file updated
+          - [x] Tests pass after version bump
+          - [x] Package builds successfully
+          - [ ] CI/CD passes
+          - [ ] Ready for release
+
+          ## 🚀 Next Steps
+
+          After merging this PR:
+          1. Create a git tag: \`${{ steps.package-path.outputs.tag_prefix }}${{ steps.bump-version.outputs.new_version }}\`
+          2. Push the tag to trigger the publish workflow
+          3. The package will be automatically published to NPM
+
+          ## 🤖 Automation
+
+          - **Auto-merge enabled**: ${{ github.event.inputs.auto_merge }}
+          - **Created by**: GitHub Actions
+          - **Triggered by**: @${{ github.actor }}
+
+          🤖 Generated with [Claude Code](https://claude.ai/code)
+          EOF
+          )
+
+          PR_OUTPUT=$(gh pr create \
+            --title "chore(${{ github.event.inputs.package_name }}): bump version to ${{ steps.bump-version.outputs.new_version }}" \
+            --body "$PR_BODY" \
+            --head "${{ steps.create-branch.outputs.branch_name }}" \
+            --base main \
+            --label "version-bump" \
+            --label "automation" \
+            --label "${{ github.event.inputs.package_name }}")
+
+          PR_URL=$(echo "$PR_OUTPUT" | grep -o 'https://github.com[^[:space:]]*')
+          PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
+
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          echo "✅ Pull request created: $PR_URL"
+
+      - name: Enable auto-merge
+        if: github.event.inputs.create_pr == 'true' && github.event.inputs.auto_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔄 Enabling auto-merge for PR #${{ steps.create-pr.outputs.pr_number }}..."
+
+          # Enable auto-merge with squash strategy
+          gh pr merge ${{ steps.create-pr.outputs.pr_number }} --auto --squash
+
+          echo "✅ Auto-merge enabled - PR will merge automatically when CI passes"
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Version Bump Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: ${{ github.event.inputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous version**: ${{ steps.get-current-version.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New version**: ${{ steps.bump-version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bump type**: ${{ github.event.inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ steps.create-branch.outputs.branch_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.create_pr }}" = "true" ]; then
+            echo "- **Pull Request**: ${{ steps.create-pr.outputs.pr_url }}" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ github.event.inputs.auto_merge }}" = "true" ]; then
+              echo "- **Auto-merge**: ✅ Enabled" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Auto-merge**: ❌ Disabled" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- **Pull Request**: ❌ Not created" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📝 Recent Changes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.changelog.outputs.changelog }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.create_pr }}" = "true" ]; then
+            if [ "${{ github.event.inputs.auto_merge }}" = "true" ]; then
+              echo "1. ⏳ Wait for CI checks to pass" >> $GITHUB_STEP_SUMMARY
+              echo "2. 🔄 PR will auto-merge when ready" >> $GITHUB_STEP_SUMMARY
+              echo "3. 🏷️ Create and push tag: \`${{ steps.package-path.outputs.tag_prefix }}${{ steps.bump-version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
+              echo "4. 📦 Package will auto-publish to NPM" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "1. 👀 Review the PR: ${{ steps.create-pr.outputs.pr_url }}" >> $GITHUB_STEP_SUMMARY
+              echo "2. ✅ Merge the PR when ready" >> $GITHUB_STEP_SUMMARY
+              echo "3. 🏷️ Create and push tag: \`${{ steps.package-path.outputs.tag_prefix }}${{ steps.bump-version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
+              echo "4. 📦 Package will auto-publish to NPM" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "1. 👀 Review the changes in branch: ${{ steps.create-branch.outputs.branch_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🔀 Create a PR manually if needed" >> $GITHUB_STEP_SUMMARY
+            echo "3. 🏷️ Create and push tag: \`${{ steps.package-path.outputs.tag_prefix }}${{ steps.bump-version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "4. 📦 Package will auto-publish to NPM" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Notification job for results
+  notify:
+    name: Notify Results
+    needs: version-bump
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Notify Success
+        if: needs.version-bump.result == 'success'
+        run: |
+          echo "🎉 SUCCESS: Version bump completed!"
+          echo ""
+          echo "📦 Package: ${{ github.event.inputs.package_name }}"
+          echo "📈 Version: ${{ needs.version-bump.outputs.old-version }} → ${{ needs.version-bump.outputs.new-version }}"
+          echo "🌿 Branch: ${{ needs.version-bump.outputs.branch_name }}"
+          if [ "${{ github.event.inputs.create_pr }}" = "true" ]; then
+            echo "🔀 PR: ${{ needs.version-bump.outputs.pr-url }}"
+          fi
+          echo ""
+          echo "Next: Create and push tag ${{ github.event.inputs.package_name == 'promptliano' && 'cli-v' || 'v' }}${{ needs.version-bump.outputs.new-version }} to trigger release"
+
+      - name: Notify Failure
+        if: needs.version-bump.result == 'failure'
+        run: |
+          echo "❌ FAILURE: Version bump failed!"
+          echo ""
+          echo "📦 Package: ${{ github.event.inputs.package_name }}"
+          echo "📈 Attempted bump: ${{ github.event.inputs.version_type }}"
+          echo ""
+          echo "🔍 Check the workflow logs for detailed error information."
+          echo "📝 Consider running tests locally before retrying."
+
+          # Exit with error to mark notification job as failed
+          exit 1

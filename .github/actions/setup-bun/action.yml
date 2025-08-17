@@ -1,0 +1,112 @@
+name: 'Setup Bun with Caching'
+description: 'Sets up Bun with optimized dependency caching for monorepos'
+author: 'Promptliano Team'
+
+inputs:
+  bun-version:
+    description: 'Bun version to install'
+    required: false
+    default: 'latest'
+  working-directory:
+    description: 'Working directory for operations'
+    required: false
+    default: '.'
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+  install-deps:
+    description: 'Whether to install dependencies'
+    required: false
+    default: 'true'
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+  bun-version:
+    description: 'Actual Bun version installed'
+    value: ${{ steps.bun-setup.outputs.bun-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      id: bun-setup
+      uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Get lockfile hash
+      id: lockfile-hash
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        # Check for both bun.lockb and bun.lock
+        if [ -f "bun.lockb" ]; then
+          LOCKFILE_HASH=$(sha256sum bun.lockb | cut -d' ' -f1)
+          echo "lockfile=bun.lockb" >> $GITHUB_OUTPUT
+        elif [ -f "bun.lock" ]; then
+          LOCKFILE_HASH=$(sha256sum bun.lock | cut -d' ' -f1)
+          echo "lockfile=bun.lock" >> $GITHUB_OUTPUT
+        else
+          echo "No lockfile found"
+          LOCKFILE_HASH="no-lockfile"
+          echo "lockfile=none" >> $GITHUB_OUTPUT
+        fi
+        echo "hash=$LOCKFILE_HASH" >> $GITHUB_OUTPUT
+
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      with:
+        path: |
+          ~/.bun/install/cache
+          node_modules
+          packages/*/node_modules
+          **/node_modules
+        key: ${{ runner.os }}-bun-${{ inputs.bun-version }}-${{ steps.lockfile-hash.outputs.hash }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-bun-${{ inputs.bun-version }}-${{ steps.lockfile-hash.outputs.hash }}
+          ${{ runner.os }}-bun-${{ inputs.bun-version }}-
+          ${{ runner.os }}-bun-
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true' && steps.cache.outputs.cache-hit != 'true'
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        echo "Installing dependencies with Bun..."
+        # Use frozen lockfile for reproducible installs
+        if [ "${{ steps.lockfile-hash.outputs.lockfile }}" != "none" ]; then
+          bun install --frozen-lockfile
+        else
+          echo "⚠️ No lockfile found - installing without frozen lockfile"
+          bun install
+        fi
+
+    - name: Verify installation
+      if: inputs.install-deps == 'true'
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        echo "Verifying Bun and dependency installation..."
+        bun --version
+        
+        # Check if node_modules exists and has content
+        if [ -d "node_modules" ] && [ "$(ls -A node_modules)" ]; then
+          echo "✅ Dependencies installed successfully"
+          echo "📦 Dependency count: $(ls node_modules | wc -l)"
+          
+          # Check workspace setup for monorepos
+          if [ -f "package.json" ] && grep -q '"workspaces"' package.json; then
+            echo "🏗️ Monorepo detected - checking workspace dependencies..."
+            if [ -d "packages" ]; then
+              WORKSPACE_COUNT=$(find packages -name "node_modules" -type d | wc -l)
+              echo "📋 Workspace packages with dependencies: $WORKSPACE_COUNT"
+            fi
+          fi
+        else
+          echo "❌ No dependencies found in node_modules"
+          exit 1
+        fi

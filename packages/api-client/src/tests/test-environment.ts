@@ -1,5 +1,6 @@
-import type { TestServerInstance } from './test-server'
+import type { TestServerInstance, TestServerConfig } from './test-server'
 import { createTestServer } from './test-server'
+import { getEnhancedTestConfig, detectCIEnvironment } from './test-config'
 
 export interface TestEnvironmentConfig {
   /** Whether to use an isolated test server (recommended) */
@@ -66,58 +67,49 @@ export interface TestEnvironment {
 }
 
 /**
- * Detects the current environment
+ * Detects the current environment (legacy function for backward compatibility)
  */
 export function detectEnvironment(): { isCI: boolean; isLocal: boolean } {
-  const isCI = !!(
-    process.env.CI ||
-    process.env.GITHUB_ACTIONS ||
-    process.env.GITLAB_CI ||
-    process.env.CIRCLECI ||
-    process.env.BUILDKITE ||
-    process.env.JENKINS_URL
-  )
-  
-  return {
-    isCI,
-    isLocal: !isCI
-  }
+  const { isCI, isLocal } = detectCIEnvironment()
+  return { isCI, isLocal }
 }
 
 /**
- * Gets default configuration based on environment
+ * Gets default configuration based on environment with enhanced CI support
  */
 export function getDefaultTestConfig(): TestEnvironmentConfig {
+  const enhancedConfig = getEnhancedTestConfig()
   const { isCI, isLocal } = detectEnvironment()
   
-  // Base configuration
+  // Convert enhanced config to test environment config
   const config: TestEnvironmentConfig = {
-    useIsolatedServer: true,
+    useIsolatedServer: enhancedConfig.server.useIsolated,
+    externalServerUrl: enhancedConfig.server.externalUrl,
     database: {
-      useMemory: isCI, // Use memory DB in CI for speed
-      path: isLocal ? '/tmp/promptliano-test.db' : ':memory:'
+      useMemory: enhancedConfig.database.useMemory,
+      path: enhancedConfig.database.path
     },
     ai: {
       lmstudio: {
-        enabled: isLocal, // Only enable in local development
-        baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://192.168.1.38:1234',
-        model: 'openai/gpt-oss-20b',
-        timeout: 30000
+        enabled: enhancedConfig.ai.lmstudio.enabled,
+        baseUrl: enhancedConfig.ai.lmstudio.baseUrl,
+        model: enhancedConfig.ai.lmstudio.model,
+        timeout: enhancedConfig.ai.lmstudio.timeout
       },
-      useMockWhenUnavailable: true
+      useMockWhenUnavailable: enhancedConfig.ai.mocks.enabled
     },
     execution: {
-      apiTimeout: isCI ? 15000 : 30000, // Shorter timeout in CI
-      enableRateLimit: false, // Disable rate limiting in tests
-      logLevel: isCI ? 'error' : 'warn'
+      apiTimeout: enhancedConfig.execution.apiTimeout,
+      enableRateLimit: enhancedConfig.execution.enableRateLimit,
+      logLevel: enhancedConfig.execution.logLevel
     },
     monitoring: {
-      enableMemoryTracking: false, // Disabled by default for regular tests
-      enableCpuTracking: false,
-      enableGcTracking: false,
+      enableMemoryTracking: enhancedConfig.ci.enableResourceMonitoring,
+      enableCpuTracking: enhancedConfig.ci.enableResourceMonitoring,
+      enableGcTracking: enhancedConfig.ci.enableResourceMonitoring,
       sampleIntervalMs: 1000,
-      enableTimelineRecording: false,
-      maxSamples: 1000
+      enableTimelineRecording: enhancedConfig.environment.debug,
+      maxSamples: isCI ? 100 : 1000 // Reduced samples in CI
     }
   }
   
@@ -125,16 +117,17 @@ export function getDefaultTestConfig(): TestEnvironmentConfig {
 }
 
 /**
- * Creates a test environment with proper configuration
+ * Creates a test environment with enhanced CI configuration
  */
 export async function createTestEnvironment(userConfig?: TestEnvironmentConfig): Promise<TestEnvironment> {
-  const { isCI, isLocal } = detectEnvironment()
+  const { isCI, isLocal, ciProvider } = detectCIEnvironment()
+  const enhancedConfig = getEnhancedTestConfig()
   const defaultConfig = getDefaultTestConfig()
   
   // Merge configurations with proper defaults
   const config: Required<TestEnvironmentConfig> = {
     useIsolatedServer: userConfig?.useIsolatedServer ?? defaultConfig.useIsolatedServer!,
-    externalServerUrl: userConfig?.externalServerUrl ?? 'http://localhost:3147',
+    externalServerUrl: userConfig?.externalServerUrl ?? defaultConfig.externalServerUrl!,
     database: {
       useMemory: userConfig?.database?.useMemory ?? defaultConfig.database!.useMemory!,
       path: userConfig?.database?.path ?? defaultConfig.database!.path!
@@ -168,14 +161,27 @@ export async function createTestEnvironment(userConfig?: TestEnvironmentConfig):
   let cleanup: () => Promise<void>
   
   if (config.useIsolatedServer) {
-    // Create isolated test server
-    server = await createTestServer({
+    // Create isolated test server with CI-optimized configuration
+    const serverConfig: TestServerConfig = {
       databasePath: config.database.useMemory ? ':memory:' : config.database.path,
       enableRateLimit: config.execution.enableRateLimit,
-      logLevel: config.execution.logLevel
-    })
+      logLevel: config.execution.logLevel,
+      // Apply CI-specific optimizations
+      healthCheckTimeout: enhancedConfig.ci.healthCheckTimeout,
+      dbInitTimeout: enhancedConfig.ci.dbInitTimeout,
+      enableResourceMonitoring: enhancedConfig.ci.enableResourceMonitoring,
+      enableGracefulShutdown: true,
+      startupTimeout: isCI ? 8000 : 10000 // Shorter timeout in CI
+    }
+    
+    server = await createTestServer(serverConfig)
     baseUrl = server.baseUrl
     cleanup = server.cleanup
+    
+    // Log CI provider if in CI environment
+    if (isCI && config.execution.logLevel !== 'silent') {
+      console.log(`🔧 Test server started for ${ciProvider} CI environment`)
+    }
   } else {
     // Use external server
     baseUrl = config.externalServerUrl
@@ -298,20 +304,27 @@ export async function withTestEnvironment<T>(
 }
 
 /**
- * Prints environment information for debugging
+ * Prints enhanced environment information for debugging
  */
 export function printTestEnvironmentInfo(env: TestEnvironment): void {
-  const { config, isCI, isLocal, baseUrl } = env
+  const { config, isCI, isLocal, baseUrl, server } = env
+  const { ciProvider } = detectCIEnvironment()
   
-  console.log('🧪 Test Environment Configuration:')
-  console.log(`  Environment: ${isCI ? 'CI' : 'Local'}`)
+  console.log('\n🧪 Test Environment Configuration:')
+  console.log(`  Environment: ${isCI ? `CI (${ciProvider})` : 'Local Development'}`)
   console.log(`  Base URL: ${baseUrl}`)
+  if (server) {
+    console.log(`  Server Port: ${server.port}`)
+    console.log(`  Server Ready: ${server.isReady}`)
+  }
   console.log(`  Isolated Server: ${config.useIsolatedServer}`)
   console.log(`  Database: ${config.database.useMemory ? 'Memory' : config.database.path}`)
+  console.log(`  API Timeout: ${config.execution.apiTimeout}ms`)
   console.log(`  LMStudio: ${config.ai.lmstudio.enabled ? 'Enabled' : 'Disabled'}`)
   if (config.ai.lmstudio.enabled) {
     console.log(`    URL: ${config.ai.lmstudio.baseUrl}`)
     console.log(`    Model: ${config.ai.lmstudio.model}`)
+    console.log(`    Timeout: ${config.ai.lmstudio.timeout}ms`)
   }
   console.log(`  Rate Limiting: ${config.execution.enableRateLimit}`)
   console.log(`  Log Level: ${config.execution.logLevel}`)
@@ -320,4 +333,5 @@ export function printTestEnvironmentInfo(env: TestEnvironment): void {
   console.log(`    CPU Tracking: ${config.monitoring.enableCpuTracking}`)
   console.log(`    GC Tracking: ${config.monitoring.enableGcTracking}`)
   console.log(`    Sample Interval: ${config.monitoring.sampleIntervalMs}ms`)
+  console.log('')
 }

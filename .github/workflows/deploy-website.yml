@@ -43,29 +43,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
         with:
           bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          cache-key-suffix: -website
 
       - name: Build website
         run: bun run build:website
@@ -74,11 +56,14 @@ jobs:
           VITE_BASE_URL: ${{ github.event_name == 'pull_request' && format('/pr-preview/pr-{0}', github.event.pull_request.number) || '/' }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: ./.github/actions/optimized-artifact-upload
         with:
-          name: website-build-${{ github.sha }}
-          path: packages/website/dist
-          retention-days: 30
+          artifact-name: website-build-${{ github.run_number }}
+          artifact-path: packages/website/dist
+          upload-condition: always
+          retention-days: ${{ github.event_name == 'pull_request' && '7' || '30' }}
+          max-size-mb: 200
+          compress: true
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
