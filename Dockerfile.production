@@ -7,7 +7,22 @@ WORKDIR /app
 
 # Copy package files for dependency resolution
 COPY package.json bun.lock* ./
-COPY packages/*/package.json ./packages/*/
+
+# Copy each workspace package.json explicitly to maintain structure for Bun workspaces
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/brand-kit/package.json ./packages/brand-kit/
+COPY packages/client/package.json ./packages/client/
+COPY packages/config/package.json ./packages/config/
+COPY packages/mcp-client/package.json ./packages/mcp-client/
+COPY packages/prompt-engineer/package.json ./packages/prompt-engineer/
+COPY packages/promptliano/package.json ./packages/promptliano/
+COPY packages/schemas/package.json ./packages/schemas/
+COPY packages/server/package.json ./packages/server/
+COPY packages/services/package.json ./packages/services/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/storage/package.json ./packages/storage/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/website/package.json ./packages/website/
 
 # Install all dependencies (needed for build)
 RUN bun install --frozen-lockfile
@@ -17,7 +32,23 @@ FROM oven/bun:1-slim AS prod-deps
 WORKDIR /app
 
 COPY package.json bun.lock* ./
-COPY packages/*/package.json ./packages/*/
+
+# Copy each workspace package.json explicitly to maintain structure for Bun workspaces
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/brand-kit/package.json ./packages/brand-kit/
+COPY packages/client/package.json ./packages/client/
+COPY packages/config/package.json ./packages/config/
+COPY packages/mcp-client/package.json ./packages/mcp-client/
+COPY packages/prompt-engineer/package.json ./packages/prompt-engineer/
+COPY packages/promptliano/package.json ./packages/promptliano/
+COPY packages/schemas/package.json ./packages/schemas/
+COPY packages/server/package.json ./packages/server/
+COPY packages/services/package.json ./packages/services/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/storage/package.json ./packages/storage/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/website/package.json ./packages/website/
+
 RUN bun install --frozen-lockfile --production
 
 # Stage 2: Builder - Build the application
