@@ -121,12 +121,12 @@ class PromptStorage extends BaseStorage<Prompt, PromptsStorage> {
 
         // Insert new associations
         const insertStmt = database.prepare(`
-          INSERT INTO prompt_projects (prompt_id, project_id)
-          VALUES (?, ?)
+          INSERT INTO prompt_projects (prompt_id, project_id, created_at)
+          VALUES (?, ?, ?)
         `)
 
         for (const association of validated) {
-          insertStmt.run(association.promptId, association.projectId)
+          insertStmt.run(association.promptId, association.projectId, Date.now())
         }
       })()
 
@@ -163,11 +163,11 @@ class PromptStorage extends BaseStorage<Prompt, PromptsStorage> {
       const database = db.getDatabase()
 
       const insertStmt = database.prepare(`
-        INSERT OR IGNORE INTO prompt_projects (prompt_id, project_id)
-        VALUES (?, ?)
+        INSERT OR IGNORE INTO prompt_projects (prompt_id, project_id, created_at)
+        VALUES (?, ?, ?)
       `)
 
-      insertStmt.run(promptId, projectId)
+      insertStmt.run(promptId, projectId, Date.now())
     } catch (error: any) {
       console.error(`Error adding prompt ${promptId} to project ${projectId}:`, error)
       throw new ApiError(500, 'Failed to add prompt to project', 'DB_WRITE_ERROR', error)

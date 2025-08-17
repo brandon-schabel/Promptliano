@@ -17,6 +17,9 @@ export { KeysClient } from './clients/keys-client'
 export { MCPAnalyticsClient } from './clients/mcp-analytics-client'
 export { ClaudeCodeClient } from './clients/claude-code-client'
 export { ClaudeHooksClient } from './clients/claude-hooks-client'
+export { ClaudeAgentsClient } from './clients/claude-agents-client'
+export { ClaudeCommandsClient } from './clients/claude-commands-client'
+export { SystemClient } from './clients/system-client'
 
 // Import all clients for composition
 import { ProjectClient } from './clients/project-client'
@@ -33,6 +36,9 @@ import { KeysClient } from './clients/keys-client'
 import { MCPAnalyticsClient } from './clients/mcp-analytics-client'
 import { ClaudeCodeClient } from './clients/claude-code-client'
 import { ClaudeHooksClient } from './clients/claude-hooks-client'
+import { ClaudeAgentsClient } from './clients/claude-agents-client'
+import { ClaudeCommandsClient } from './clients/claude-commands-client'
+import { SystemClient } from './clients/system-client'
 
 import type { ApiConfig } from './base-client'
 
@@ -58,11 +64,11 @@ export class PromptlianoClient {
   public readonly mcpAnalytics: MCPAnalyticsClient
   public readonly claudeCode: ClaudeCodeClient
   public readonly claudeHooks: ClaudeHooksClient
+  public readonly agents: ClaudeAgentsClient
+  public readonly commands: ClaudeCommandsClient
+  public readonly system: SystemClient
 
   // Backwards compatibility aliases - not yet implemented
-  public readonly agents: any
-  public readonly commands: any
-  public readonly system: any
   public readonly agentFiles: any
   public readonly mcpInstallation: any
   public readonly mcpProjectConfig: any
@@ -84,6 +90,9 @@ export class PromptlianoClient {
     this.mcpAnalytics = new MCPAnalyticsClient(config)
     this.claudeCode = new ClaudeCodeClient(config)
     this.claudeHooks = new ClaudeHooksClient(config)
+    this.agents = new ClaudeAgentsClient(config)
+    this.commands = new ClaudeCommandsClient(config)
+    this.system = new SystemClient(config)
 
     // For backwards compatibility, map MCP sub-services
     this.mcpInstallation = this.mcp
@@ -92,9 +101,6 @@ export class PromptlianoClient {
 
     // Placeholder implementations for services not yet modularized
     // These would need to be implemented as separate client modules
-    this.agents = null
-    this.commands = null
-    this.system = null
     this.agentFiles = null
 
     // Log a warning about incomplete modularization
@@ -135,6 +141,9 @@ export const GenAiService = GenAiClient
 export const KeysService = KeysClient
 export const ClaudeCodeService = ClaudeCodeClient
 export const ClaudeHooksService = ClaudeHooksClient
+export const ClaudeAgentsService = ClaudeAgentsClient
+export const ClaudeCommandsService = ClaudeCommandsClient
+export const SystemService = SystemClient
 
 // Additional legacy aliases that might be used
 export const MCPAnalyticsService = MCPAnalyticsClient

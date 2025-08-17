@@ -70,8 +70,8 @@ export function PromptlianoClientProvider({ children }: PromptlianoClientProvide
         }
       })
 
-      // Use projects.listProjects as a health check since system.healthCheck is not available in the new API client
-      const response = await testClient.projects.listProjects()
+      // Use system.healthCheck for a lightweight connection test
+      const response = await testClient.system.healthCheck()
       return response && 'success' in response && response.success === true
     } catch (error) {
       console.error('Connection test failed:', error)

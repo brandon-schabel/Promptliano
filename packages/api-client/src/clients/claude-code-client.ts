@@ -4,6 +4,9 @@ import {
   ClaudeProjectDataResponseSchema,
   ClaudeSessionQuerySchema,
   ClaudeMessageQuerySchema,
+  ClaudeSessionCursorSchema,
+  ClaudeSessionsPaginatedResponseSchema,
+  ClaudeSessionsMetadataResponseSchema,
   ChatResponseSchema
 } from '@promptliano/schemas'
 import { z } from 'zod'
@@ -24,7 +27,7 @@ export class ClaudeCodeClient extends BaseApiClient {
    * @returns MCP installation and configuration status
    */
   async getMCPStatus(projectId: number) {
-    const result = await this.request('GET', `/api/claude-code/mcp-status/${projectId}`)
+    const result = await this.request('GET', `/claude-code/mcp-status/${projectId}`)
     return result as DataResponseSchema<{
       claudeDesktop: {
         installed: boolean
@@ -61,7 +64,7 @@ export class ClaudeCodeClient extends BaseApiClient {
     projectId: number,
     query?: z.infer<typeof ClaudeSessionQuerySchema>
   ) {
-    const result = await this.request('GET', `/api/claude-code/sessions/${projectId}`, {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}`, {
       params: query,
       responseSchema: ClaudeSessionsResponseSchema
     })
@@ -81,7 +84,7 @@ export class ClaudeCodeClient extends BaseApiClient {
     sessionId: string,
     query?: z.infer<typeof ClaudeMessageQuerySchema>
   ) {
-    const result = await this.request('GET', `/api/claude-code/sessions/${projectId}/${sessionId}/messages`, {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/${sessionId}/messages`, {
       params: query,
       responseSchema: ClaudeMessagesResponseSchema
     })
@@ -95,7 +98,7 @@ export class ClaudeCodeClient extends BaseApiClient {
    * @returns Project metadata and configuration
    */
   async getProjectData(projectId: number) {
-    const result = await this.request('GET', `/api/claude-code/project-data/${projectId}`, {
+    const result = await this.request('GET', `/claude-code/project-data/${projectId}`, {
       responseSchema: ClaudeProjectDataResponseSchema
     })
     return result as z.infer<typeof ClaudeProjectDataResponseSchema>
@@ -109,9 +112,133 @@ export class ClaudeCodeClient extends BaseApiClient {
    * @returns The created chat from the imported session
    */
   async importSession(projectId: number, sessionId: string) {
-    const result = await this.request('POST', `/api/claude-code/sessions/${projectId}/${sessionId}/import`, {
+    const result = await this.request('POST', `/claude-code/sessions/${projectId}/${sessionId}/import`, {
       responseSchema: ChatResponseSchema
     })
     return result as z.infer<typeof ChatResponseSchema>
+  }
+
+  /**
+   * Get Claude Code sessions metadata for a project (lightweight, fast loading)
+   * 
+   * @param projectId - The project ID to get session metadata for
+   * @param query - Optional cursor-based query parameters for pagination and filtering
+   * @returns List of Claude Code session metadata with optional pagination
+   */
+  async getSessionsMetadata(
+    projectId: number,
+    query?: z.infer<typeof ClaudeSessionCursorSchema>
+  ) {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/metadata`, {
+      params: query,
+      responseSchema: ClaudeSessionsMetadataResponseSchema
+    })
+    return result as z.infer<typeof ClaudeSessionsMetadataResponseSchema>
+  }
+
+  /**
+   * Get Claude Code sessions with cursor-based pagination (optimized for large datasets)
+   * 
+   * @param projectId - The project ID to get sessions for
+   * @param query - Optional cursor-based query parameters for pagination and filtering
+   * @returns Paginated list of Claude Code sessions with cursor information
+   */
+  async getSessionsPaginated(
+    projectId: number,
+    query?: z.infer<typeof ClaudeSessionCursorSchema>
+  ) {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/paginated`, {
+      params: query,
+      responseSchema: ClaudeSessionsPaginatedResponseSchema
+    })
+    return result as z.infer<typeof ClaudeSessionsPaginatedResponseSchema>
+  }
+
+  /**
+   * Get recent Claude Code sessions for a project (last 10 sessions, optimized for quick access)
+   * 
+   * @param projectId - The project ID to get recent sessions for
+   * @returns List of the 10 most recently updated Claude Code sessions
+   */
+  async getRecentSessions(projectId: number) {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/recent`, {
+      responseSchema: ClaudeSessionsPaginatedResponseSchema
+    })
+    return result as z.infer<typeof ClaudeSessionsPaginatedResponseSchema>
+  }
+
+  /**
+   * Get Claude Code sessions with enhanced cursor support (backward compatible)
+   * 
+   * This method enhances the original getSessions method with optional cursor-based pagination
+   * while maintaining full backward compatibility with existing offset-based queries.
+   * 
+   * @param projectId - The project ID to get sessions for
+   * @param query - Query parameters supporting both offset-based and cursor-based pagination
+   * @returns List of Claude Code sessions (supports both response formats)
+   */
+  async getSessionsWithCursor(
+    projectId: number,
+    query?: z.infer<typeof ClaudeSessionQuerySchema> | z.infer<typeof ClaudeSessionCursorSchema>
+  ) {
+    // Determine if this is a cursor-based query or offset-based query
+    const isCursorQuery = query && 'cursor' in query && query.cursor !== undefined
+    
+    if (isCursorQuery) {
+      // Use cursor-based pagination endpoint
+      const result = await this.request('GET', `/claude-code/sessions/${projectId}/paginated`, {
+        params: query,
+        responseSchema: ClaudeSessionsPaginatedResponseSchema
+      })
+      return result as z.infer<typeof ClaudeSessionsPaginatedResponseSchema>
+    } else {
+      // Use traditional offset-based pagination endpoint
+      const result = await this.request('GET', `/claude-code/sessions/${projectId}`, {
+        params: query,
+        responseSchema: ClaudeSessionsResponseSchema
+      })
+      return result as z.infer<typeof ClaudeSessionsResponseSchema>
+    }
+  }
+
+  /**
+   * Get complete Claude Code session with full message data
+   * 
+   * Use this method when you need detailed session information including all messages,
+   * token usage, and cost data. For list views, prefer getRecentSessions or getSessionsMetadata.
+   * 
+   * @param projectId - The project ID
+   * @param sessionId - The session ID to get complete data for
+   * @returns Complete session data including all messages and token usage
+   */
+  async getFullSession(
+    projectId: number,
+    sessionId: string
+  ) {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/${sessionId}/full`, {
+      responseSchema: z.object({
+        success: z.literal(true),
+        data: z.object({
+          sessionId: z.string(),
+          projectPath: z.string(),
+          startTime: z.string(),
+          lastUpdate: z.string(),
+          messageCount: z.number(),
+          gitBranch: z.string().optional(),
+          cwd: z.string().optional(),
+          tokenUsage: z.object({
+            totalInputTokens: z.number(),
+            totalCacheCreationTokens: z.number(),
+            totalCacheReadTokens: z.number(),
+            totalOutputTokens: z.number(),
+            totalTokens: z.number()
+          }).optional(),
+          serviceTiers: z.array(z.string()).optional(),
+          totalTokensUsed: z.number().optional(),
+          totalCostUsd: z.number().optional()
+        }).nullable()
+      })
+    })
+    return result
   }
 }

@@ -27,7 +27,7 @@ export class ClaudeHooksClient extends BaseApiClient {
    */
   async list(projectPath: string) {
     const encodedPath = encodeURIComponent(projectPath)
-    const result = await this.request('GET', `/api/claude-hooks/${encodedPath}`, {
+    const result = await this.request('GET', `/claude-hooks/${encodedPath}`, {
       responseSchema: HookListResponseSchema
     })
     return result as z.infer<typeof HookListResponseSchema>
@@ -43,7 +43,7 @@ export class ClaudeHooksClient extends BaseApiClient {
    */
   async getHook(projectPath: string, eventName: z.infer<typeof HookEventSchema>, matcherIndex: number) {
     const encodedPath = encodeURIComponent(projectPath)
-    const result = await this.request('GET', `/api/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`, {
+    const result = await this.request('GET', `/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`, {
       responseSchema: HookApiResponseSchema
     })
     return result as z.infer<typeof HookApiResponseSchema>
@@ -59,7 +59,7 @@ export class ClaudeHooksClient extends BaseApiClient {
   async create(projectPath: string, data: z.infer<typeof CreateHookRequestSchema>) {
     const encodedPath = encodeURIComponent(projectPath)
     const validatedData = this.validateBody(CreateHookRequestSchema, data)
-    const result = await this.request('POST', `/api/claude-hooks/${encodedPath}`, {
+    const result = await this.request('POST', `/claude-hooks/${encodedPath}`, {
       body: validatedData,
       responseSchema: HookApiResponseSchema
     })
@@ -83,7 +83,7 @@ export class ClaudeHooksClient extends BaseApiClient {
   ) {
     const encodedPath = encodeURIComponent(projectPath)
     const validatedData = this.validateBody(UpdateHookRequestSchema, data)
-    const result = await this.request('PUT', `/api/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`, {
+    const result = await this.request('PUT', `/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`, {
       body: validatedData,
       responseSchema: HookApiResponseSchema
     })
@@ -100,7 +100,7 @@ export class ClaudeHooksClient extends BaseApiClient {
    */
   async deleteHook(projectPath: string, eventName: z.infer<typeof HookEventSchema>, matcherIndex: number) {
     const encodedPath = encodeURIComponent(projectPath)
-    await this.request('DELETE', `/api/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`)
+    await this.request('DELETE', `/claude-hooks/${encodedPath}/${eventName}/${matcherIndex}`)
     return true
   }
 
@@ -114,7 +114,7 @@ export class ClaudeHooksClient extends BaseApiClient {
   async generate(projectPath: string, data: z.infer<typeof HookGenerationRequestSchema>) {
     const encodedPath = encodeURIComponent(projectPath)
     const validatedData = this.validateBody(HookGenerationRequestSchema, data)
-    const result = await this.request('POST', `/api/claude-hooks/${encodedPath}/generate`, {
+    const result = await this.request('POST', `/claude-hooks/${encodedPath}/generate`, {
       body: validatedData,
       responseSchema: HookGenerationResponseSchema
     })
@@ -131,7 +131,7 @@ export class ClaudeHooksClient extends BaseApiClient {
   async test(projectPath: string, data: z.infer<typeof HookTestRequestSchema>) {
     const encodedPath = encodeURIComponent(projectPath)
     const validatedData = this.validateBody(HookTestRequestSchema, data)
-    const result = await this.request('POST', `/api/claude-hooks/${encodedPath}/test`, {
+    const result = await this.request('POST', `/claude-hooks/${encodedPath}/test`, {
       body: validatedData,
       responseSchema: HookTestResponseSchema
     })
@@ -147,7 +147,7 @@ export class ClaudeHooksClient extends BaseApiClient {
    */
   async search(projectPath: string, query: string) {
     const encodedPath = encodeURIComponent(projectPath)
-    const result = await this.request('GET', `/api/claude-hooks/${encodedPath}/search`, {
+    const result = await this.request('GET', `/claude-hooks/${encodedPath}/search`, {
       params: { q: query },
       responseSchema: HookListResponseSchema
     })

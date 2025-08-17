@@ -44,7 +44,7 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
 
   // Fetch agents for this specific project
   const { data: agentsResponse, isLoading, error } = useGetProjectAgents(projectId)
-  const deleteAgentMutation = useDeleteAgent(projectId)
+  const deleteAgentMutation = useDeleteAgent()
 
   console.log({ agentsResponse })
 

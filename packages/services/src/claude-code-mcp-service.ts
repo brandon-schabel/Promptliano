@@ -6,7 +6,7 @@ import { createLogger } from './utils/logger'
 import { getProjectById } from './project-service'
 import { createHash } from 'crypto'
 import { claudeCodeFileReaderService } from './claude-code-file-reader-service'
-import type { ClaudeSession, ClaudeMessage, ClaudeProjectData } from '@promptliano/schemas'
+import type { ClaudeSession, ClaudeMessage, ClaudeProjectData, ClaudeSessionMetadata } from '@promptliano/schemas'
 
 const logger = createLogger('ClaudeCodeMCPService')
 
@@ -130,7 +130,7 @@ export class ClaudeCodeMCPService {
    */
   private async checkClaudeDesktop(): Promise<ClaudeCodeMCPStatus['claudeDesktop']> {
     const configPath = this.getClaudeDesktopConfigPath()
-    
+
     try {
       // Check if Claude Desktop is installed
       let installed = false
@@ -275,11 +275,11 @@ export class ClaudeCodeMCPService {
   }
 
   /**
-   * Get all Claude Code sessions for a project
+   * Get all Claude Code sessions for a project (metadata only for performance)
    */
   async getSessions(projectId: number): Promise<ClaudeSession[]> {
     const project = await getProjectById(projectId)
-    
+
     try {
       // First check if Claude Code is installed
       const isInstalled = await claudeCodeFileReaderService.isClaudeCodeInstalled()
@@ -295,10 +295,141 @@ export class ClaudeCodeMCPService {
         return []
       }
 
-      return await claudeCodeFileReaderService.getSessions(claudeProjectPath)
+      // Use optimized method that returns lightweight sessions without loading full message data
+      return await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, 50)
     } catch (error) {
       logger.error('Failed to get Claude sessions:', error)
       return []
+    }
+  }
+
+  /**
+   * Get recent Claude Code sessions for a project (optimized for performance)
+   */
+  async getRecentSessions(projectId: number, limit: number = 10): Promise<ClaudeSession[]> {
+    const project = await getProjectById(projectId)
+
+    try {
+      // First check if Claude Code is installed
+      const isInstalled = await claudeCodeFileReaderService.isClaudeCodeInstalled()
+      if (!isInstalled) {
+        logger.debug('Claude Code is not installed')
+        return []
+      }
+
+      // Try to find Claude project that matches
+      const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
+      if (!claudeProjectPath) {
+        logger.debug(`No Claude Code data found for project: ${project.path}`)
+        return []
+      }
+
+      return await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, limit)
+    } catch (error) {
+      logger.error('Failed to get recent Claude sessions:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get paginated Claude Code sessions for a project
+   */
+  async getSessionsPaginated(
+    projectId: number,
+    offset: number = 0,
+    limit: number = 20
+  ): Promise<{ sessions: ClaudeSession[]; total: number; hasMore: boolean }> {
+    const project = await getProjectById(projectId)
+
+    try {
+      // First check if Claude Code is installed
+      const isInstalled = await claudeCodeFileReaderService.isClaudeCodeInstalled()
+      if (!isInstalled) {
+        logger.debug('Claude Code is not installed')
+        return { sessions: [], total: 0, hasMore: false }
+      }
+
+      // Try to find Claude project that matches
+      const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
+      if (!claudeProjectPath) {
+        logger.debug(`No Claude Code data found for project: ${project.path}`)
+        return { sessions: [], total: 0, hasMore: false }
+      }
+
+      return await claudeCodeFileReaderService.getSessionsPaginated(claudeProjectPath, { offset, limit })
+    } catch (error) {
+      logger.error('Failed to get paginated Claude sessions:', error)
+      return { sessions: [], total: 0, hasMore: false }
+    }
+  }
+
+  /**
+   * Get Claude Code sessions metadata only (fastest, no message loading)
+   */
+  async getSessionsMetadata(projectId: number): Promise<ClaudeSessionMetadata[]> {
+    const project = await getProjectById(projectId)
+
+    try {
+      // First check if Claude Code is installed
+      const isInstalled = await claudeCodeFileReaderService.isClaudeCodeInstalled()
+      if (!isInstalled) {
+        logger.debug('Claude Code is not installed')
+        return []
+      }
+
+      // Try to find Claude project that matches
+      const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
+      if (!claudeProjectPath) {
+        logger.debug(`No Claude Code data found for project: ${project.path}`)
+        return []
+      }
+
+      return await claudeCodeFileReaderService.getSessionsMetadata(claudeProjectPath)
+    } catch (error) {
+      logger.error('Failed to get Claude sessions metadata:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get full session data with all messages (use sparingly, loads all message data)
+   */
+  async getFullSession(projectId: number, sessionId: string): Promise<ClaudeSession | null> {
+    const project = await getProjectById(projectId)
+
+    try {
+      const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
+      if (!claudeProjectPath) {
+        return null
+      }
+
+      const messages = await claudeCodeFileReaderService.getSessionMessages(claudeProjectPath, sessionId)
+      if (messages.length === 0) {
+        return null
+      }
+
+      const firstMessage = messages[0]
+      const lastMessage = messages[messages.length - 1]
+
+      if (!firstMessage || !lastMessage) return null
+
+      // Find most recent git branch and cwd
+      let gitBranch: string | undefined, cwd: string | undefined
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const msg = messages[i]
+        if (!gitBranch && msg?.gitBranch) gitBranch = msg.gitBranch
+        if (!cwd && msg?.cwd) cwd = msg.cwd
+        if (gitBranch && cwd) break
+      }
+
+      return {
+        sessionId, projectPath: claudeProjectPath, startTime: firstMessage.timestamp,
+        lastUpdate: lastMessage.timestamp, messageCount: messages.length, gitBranch, cwd,
+        tokenUsage: undefined, serviceTiers: undefined, totalTokensUsed: undefined, totalCostUsd: undefined
+      }
+    } catch (error) {
+      logger.error('Failed to get full session:', error)
+      return null
     }
   }
 
@@ -307,7 +438,7 @@ export class ClaudeCodeMCPService {
    */
   async getSessionMessages(projectId: number, sessionId: string): Promise<ClaudeMessage[]> {
     const project = await getProjectById(projectId)
-    
+
     try {
       const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
       if (!claudeProjectPath) {
@@ -326,7 +457,7 @@ export class ClaudeCodeMCPService {
    */
   async getProjectData(projectId: number): Promise<ClaudeProjectData | null> {
     const project = await getProjectById(projectId)
-    
+
     try {
       const claudeProjectPath = await claudeCodeFileReaderService.findProjectByPath(project.path)
       if (!claudeProjectPath) {

@@ -54,6 +54,22 @@ export type {
   UnifiedModel
 } from '@promptliano/schemas'
 
+// Claude Code types
+export type {
+  ClaudeSession,
+  ClaudeSessionMetadata,
+  ClaudeSessionCursor,
+  ClaudeMessage,
+  ClaudeProjectData,
+  ClaudeSessionsResponse,
+  ClaudeSessionsPaginatedResponse,
+  ClaudeSessionsMetadataResponse,
+  ClaudeMessagesResponse,
+  ClaudeProjectDataResponse,
+  ClaudeSessionQuery,
+  ClaudeMessageQuery
+} from '@promptliano/schemas'
+
 // Git-related types
 export type {
   GitBranch,
