@@ -170,7 +170,7 @@ export function useSuggestAgents() {
   return useMutation({
     mutationFn: ({ projectId, userInput, limit }: { projectId: number; userInput: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.agents.suggestAgents(projectId, { userInput, limit })
+      return client.agents.suggestAgents(projectId, { userInput, limit: limit || 5 })
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to get agent suggestions')

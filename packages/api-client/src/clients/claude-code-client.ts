@@ -84,7 +84,7 @@ export class ClaudeCodeClient extends BaseApiClient {
     sessionId: string,
     query?: z.infer<typeof ClaudeMessageQuerySchema>
   ) {
-    const result = await this.request('GET', `/claude-code/sessions/${projectId}/${sessionId}/messages`, {
+    const result = await this.request('GET', `/claude-code/sessions/${projectId}/${sessionId}`, {
       params: query,
       responseSchema: ClaudeMessagesResponseSchema
     })

@@ -215,8 +215,8 @@ export function useExportPromptAsMarkdown() {
   return useMutation({
     mutationFn: async (promptId: number) => {
       if (!client) throw new Error('API client not initialized')
-      const response = await client.markdown.exportPrompt(promptId)
-      return response.data
+      const markdownContent = await client.markdown.exportPrompt(promptId)
+      return { content: markdownContent, promptId }
     },
     onSuccess: (data) => {
       // Create a blob and download the file
@@ -224,7 +224,7 @@ export function useExportPromptAsMarkdown() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = data.filename
+      a.download = `prompt-${data.promptId}.md`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -242,9 +242,9 @@ export function useExportPromptsAsMarkdown() {
   const client = useApiClient()
 
   return useMutation({
-    mutationFn: async (data: BatchExportRequest) => {
+    mutationFn: async (exportData: BatchExportRequest) => {
       if (!client) throw new Error('API client not initialized')
-      const response = await client.markdown.exportBatch(data)
+      const response = await client.markdown.exportBatch(exportData)
       return response.data
     },
     onSuccess: (data) => {
@@ -253,13 +253,13 @@ export function useExportPromptsAsMarkdown() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = data.filename
+      a.download = data.fileName
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
       
-      toast.success(`Exported ${data.count} prompts successfully`)
+      toast.success('Prompts exported successfully')
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to export prompts')
@@ -326,13 +326,13 @@ export function useExportProjectPromptsAsMarkdown() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = data.filename
+      a.download = data.fileName
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
       
-      toast.success(`Exported ${data.count} project prompts successfully`)
+      toast.success(`Exported ${data.promptCount} project prompts successfully`)
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to export project prompts')

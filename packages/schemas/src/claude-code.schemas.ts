@@ -289,3 +289,12 @@ export const ClaudeSessionsMetadataResponseSchema = z.object({
     total: z.number().optional()
   }).optional()
 }).openapi('ClaudeSessionsMetadataResponse')
+
+// Export inferred types for the missing response types
+export type ClaudeSessionsResponse = z.infer<typeof ClaudeSessionsResponseSchema>
+export type ClaudeSessionsPaginatedResponse = z.infer<typeof ClaudeSessionsPaginatedResponseSchema>
+export type ClaudeSessionsMetadataResponse = z.infer<typeof ClaudeSessionsMetadataResponseSchema>
+export type ClaudeMessagesResponse = z.infer<typeof ClaudeMessagesResponseSchema>
+export type ClaudeProjectDataResponse = z.infer<typeof ClaudeProjectDataResponseSchema>
+export type ClaudeSessionQuery = z.infer<typeof ClaudeSessionQuerySchema>
+export type ClaudeMessageQuery = z.infer<typeof ClaudeMessageQuerySchema>

@@ -686,9 +686,9 @@ export function SessionsTableView({
           session.startTime,
           `${hours}h ${minutes}m`,
           session.messageCount,
-          session.tokenUsage?.totalTokens || session.totalTokensUsed || 0,
-          session.gitBranch || '',
-          session.totalCostUsd?.toFixed(4) || ''
+          session.tokenUsage?.totalTokens || (session as any).totalTokensUsed || 0,
+          (session as any).gitBranch || '',
+          (session as any).totalCostUsd?.toFixed(4) || ''
         ].join(',')
       })
     ].join('\n')
@@ -881,7 +881,7 @@ export function SessionsTableView({
             icon={Terminal}
             title="No Claude Code sessions found"
             description="Start a conversation with Claude Code in this project to see your chat history here."
-            action={
+            actions={
               <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh

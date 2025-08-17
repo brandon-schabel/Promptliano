@@ -154,6 +154,9 @@ export function useClaudeSessionsInfinite(
       if (!client) throw new Error('API client not initialized')
       
       const cursorQuery = {
+        sortBy: 'lastUpdate',
+        sortOrder: 'desc',
+        limit: 20,
         ...query,
         cursor: pageParam
       }
@@ -607,7 +610,7 @@ export function useClaudeCodeInvalidation() {
     // Check if data is stale
     isStale: (queryKey: any[]) => {
       const query = queryClient.getQueryState(queryKey)
-      return query ? queryClient.isStale(query) : true
+      return query ? Date.now() - (query.dataUpdatedAt || 0) > (query.staleTime || 0) : true
     }
   }), [queryClient])
 }
@@ -653,8 +656,8 @@ export function useClaudeCodeBackgroundData(
         // Refresh metadata if it's being used
         if (prefetchMetadata) {
           await queryClient.prefetchQuery({
-            queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 20 }),
-            queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 20 }),
+            queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 20, sortBy: 'lastUpdate', sortOrder: 'desc' }),
+            queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 20, sortBy: 'lastUpdate', sortOrder: 'desc' }),
             staleTime: 1 * 60 * 1000 // 1 minute
           })
         }
@@ -682,8 +685,8 @@ export function useClaudeCodeBackgroundData(
         
         if (prefetchMetadata) {
           queryClient.prefetchQuery({
-            queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 10 }),
-            queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 10 }),
+            queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 10, sortBy: 'lastUpdate', sortOrder: 'desc' }),
+            queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 10, sortBy: 'lastUpdate', sortOrder: 'desc' }),
             staleTime: 1 * 60 * 1000
           })
         }
@@ -708,8 +711,8 @@ export function useClaudeCodeBackgroundData(
     prefetchMetadata: useCallback(async (limit = 20) => {
       if (!projectId || !client) return
       return queryClient.prefetchQuery({
-        queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit }),
-        queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit })
+        queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit, sortBy: 'lastUpdate', sortOrder: 'desc' }),
+        queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit, sortBy: 'lastUpdate', sortOrder: 'desc' })
       })
     }, [projectId, client, queryClient])
   }

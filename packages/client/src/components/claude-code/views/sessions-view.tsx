@@ -83,7 +83,7 @@ interface SessionsViewProps {
   initialViewMode?: ViewMode
   enableViewModeToggle?: boolean
   enableProgressiveLoading?: boolean
-  tablePreset?: 'minimal' | 'compact' | 'detailed' | 'mobile'
+  tablePreset?: 'compact' | 'detailed' | 'mobile'
 }
 
 interface SessionCardProps {
@@ -221,13 +221,14 @@ export function SessionsView({
     fullDataLoading,
     error,
     hasFullData,
-    refetch: refetchProgressive
+    refetchProgressive
   } = useClaudeSessionsProgressive(
     projectId,
     {
       search: searchQuery || undefined,
       limit: effectiveViewMode === 'table' ? 50 : 20,
-      offset: 0
+      sortBy: 'lastUpdate',
+      sortOrder: 'desc'
     },
     {
       enabled: enableProgressiveLoading,

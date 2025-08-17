@@ -54,11 +54,11 @@ export class MarkdownClient extends BaseApiClient {
   /**
    * Export a single prompt as markdown
    */
-  async exportPrompt(promptId: number): Promise<DataResponseSchema<any>> {
+  async exportPrompt(promptId: number): Promise<string> {
     const result = await this.request('GET', `/prompts/${promptId}/export`, {
-      responseSchema: MarkdownExportResponseSchemaZ
+      expectTextResponse: true
     })
-    return result as DataResponseSchema<any>
+    return result as string
   }
 
   /**
@@ -66,7 +66,7 @@ export class MarkdownClient extends BaseApiClient {
    */
   async exportBatch(data: BatchExportRequest): Promise<DataResponseSchema<any>> {
     const validatedData = this.validateBody(BatchExportRequestSchema, data)
-    const result = await this.request('POST', '/prompts/export/batch', {
+    const result = await this.request('POST', '/prompts/export-batch', {
       body: validatedData,
       responseSchema: MarkdownExportResponseSchemaZ
     })

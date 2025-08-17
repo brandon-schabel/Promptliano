@@ -14,7 +14,8 @@ import {
   MarkdownImportResponseSchema,
   BulkImportResponseSchema,
   MarkdownExportResponseSchema,
-  BatchExportRequestSchema
+  BatchExportRequestSchema,
+  MarkdownContentValidationSchema
 } from '@promptliano/schemas'
 import {
   addPromptToProject,
@@ -28,7 +29,8 @@ import {
   suggestPrompts,
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
-  promptToMarkdown
+  promptToMarkdown,
+  validateMarkdownContent
 } from '@promptliano/services'
 import { ProjectIdParamsSchema } from '@promptliano/schemas'
 
@@ -301,6 +303,34 @@ const exportAllProjectPromptsRoute = createRoute({
   responses: createStandardResponses(MarkdownExportResponseSchema)
 })
 
+const validateMarkdownRoute = createRoute({
+  method: 'post',
+  path: '/api/prompts/validate-markdown',
+  tags: ['Prompts', 'Import/Export'],
+  summary: 'Validate markdown content for prompt import',
+  description: 'Validates markdown content structure and frontmatter for prompt import',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            content: z.string().openapi({
+              description: 'Markdown content to validate'
+            })
+          })
+        }
+      },
+      required: true
+    }
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: MarkdownContentValidationSchema
+    })
+  )
+})
+
 export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, async (c) => {
     const body = c.req.valid('json')
@@ -552,6 +582,16 @@ export const promptRoutes = new OpenAPIHono()
     })
 
     return c.json({ success: true, data: result } satisfies z.infer<typeof MarkdownExportResponseSchema>, 200)
+  })
+
+  .openapi(validateMarkdownRoute, async (c) => {
+    const { content } = c.req.valid('json')
+    const validationResult = await validateMarkdownContent(content)
+    
+    return c.json({
+      success: true,
+      data: validationResult.validation
+    }, 200)
   })
 
 export type PromptRouteTypes = typeof promptRoutes

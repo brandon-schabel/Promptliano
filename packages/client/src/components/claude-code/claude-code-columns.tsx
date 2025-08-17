@@ -138,9 +138,7 @@ export function createClaudeCodeSessionColumns(
       header: 'Start Time',
       format: 'relative',
       enableSorting: true,
-      meta: {
-        className: 'w-[120px]'
-      }
+      className: 'w-[120px]'
     }),
 
     // Duration column (calculated)
