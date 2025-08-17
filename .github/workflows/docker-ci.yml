@@ -162,7 +162,7 @@ jobs:
           tags: |
             type=ref,event=branch,suffix=-${{ matrix.dockerfile }}
             type=ref,event=pr,suffix=-${{ matrix.dockerfile }}
-            type=sha,prefix={{branch}}-,suffix=-${{ matrix.dockerfile }}
+            type=sha,format=short,suffix=-${{ matrix.dockerfile }}
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
