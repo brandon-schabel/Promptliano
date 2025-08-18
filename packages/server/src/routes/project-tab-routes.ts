@@ -59,7 +59,7 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
     const selectedFiles = tabData?.selectedFiles || []
     const context = tabData?.userPrompt || undefined
 
-    const generatedName = await generateTabName(project.name, selectedFiles, context)
+    const generatedName = await generateTabName(project.name, selectedFiles.map(String), context)
 
     return c.json(successResponse({
       name: generatedName,

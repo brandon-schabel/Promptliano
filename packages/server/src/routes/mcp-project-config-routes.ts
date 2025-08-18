@@ -90,9 +90,9 @@ mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
   } catch (error) {
     console.error('Failed to get merged config:', error)
     if (error instanceof ApiError) {
-      return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+      throw error
     }
-    return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+    throw new ApiError(500, 'Failed to get merged configuration', 'CONFIG_GET_ERROR')
   }
 })
 

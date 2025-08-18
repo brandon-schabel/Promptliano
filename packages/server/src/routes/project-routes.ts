@@ -20,7 +20,7 @@ import {
 } from '@promptliano/schemas'
 
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import { successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 import { existsSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
@@ -846,7 +846,10 @@ export const projectRoutes = new OpenAPIHono()
         includeImports: true,
         includeExports: true,
         progressive: false,
-        includeMetrics: true
+        includeMetrics: true,
+        groupAware: false,
+        includeRelationships: false,
+        contextWindow: 4000
       })
 
       if (!result.metrics) {

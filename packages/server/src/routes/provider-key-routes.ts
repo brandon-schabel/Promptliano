@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import type { Context } from 'hono'
 import { ApiError } from '@promptliano/shared'
 import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
@@ -157,8 +158,8 @@ const updateProviderSettingsRoute = createRoute({
 })
 
 export const providerKeyRoutes = new OpenAPIHono()
-  .openapi(createProviderKeyRoute, async (c) => {
-    const body = c.req.valid('json')
+  .openapi(createProviderKeyRoute, (async (c: Context) => {
+    const body = (c.req as any).valid('json')
     const createKeyInput = {
       ...body,
       encrypted: false,
@@ -168,7 +169,7 @@ export const providerKeyRoutes = new OpenAPIHono()
     }
     const newKey = await providerKeyService.createKey(createKeyInput)
     return c.json(successResponse(newKey), 201)
-  })
+  }) as any)
 
   .openapi(listProviderKeysRoute, async (c) => {
     const keys = await providerKeyService.listKeysCensoredKeys()

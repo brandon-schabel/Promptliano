@@ -137,17 +137,31 @@ class PromptStorage extends BaseStorage<Prompt, PromptsStorage> {
         `)
 
         for (const association of validatedInput) {
-          const result = insertStmt.get(association.promptId, association.projectId, Date.now()) as { id: number }
+          const result = insertStmt.get(association.promptId, association.projectId, Date.now()) as { id: number } | null
+          if (!result) {
+            throw new Error(`Failed to insert prompt-project association for promptId ${association.promptId}, projectId ${association.projectId}`)
+          }
           insertedIds.push(result.id)
         }
       })()
 
       // Return the associations with the auto-generated IDs
-      const resultAssociations: PromptProjectsStorage = validatedInput.map((input, index) => ({
-        id: insertedIds[index],
-        promptId: input.promptId,
-        projectId: input.projectId
-      }))
+      // At this point, we know insertedIds has the same length as validatedInput and all IDs are valid
+      if (insertedIds.length !== validatedInput.length) {
+        throw new Error(`Mismatch between inserted IDs (${insertedIds.length}) and input associations (${validatedInput.length})`)
+      }
+      
+      const resultAssociations: PromptProjectsStorage = validatedInput.map((input, index) => {
+        const id = insertedIds[index]
+        if (typeof id !== 'number') {
+          throw new Error(`Invalid ID at index ${index}: expected number, got ${typeof id}`)
+        }
+        return {
+          id,
+          promptId: input.promptId,
+          projectId: input.projectId
+        }
+      })
 
       return resultAssociations
     } catch (error: any) {
