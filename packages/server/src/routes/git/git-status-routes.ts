@@ -110,7 +110,7 @@ const unstageAllRoute = createRoute({
 export const gitStatusRoutes = new OpenAPIHono()
   .openapi(
     getProjectGitStatusRoute,
-    async (c) => {
+    async (c): Promise<any> => {
       const { projectId } = c.req.valid('param')
       const { refresh = false } = c.req.valid('query') || {}
       
@@ -125,7 +125,7 @@ export const gitStatusRoutes = new OpenAPIHono()
   )
   .openapi(
     stageFilesRoute,
-    async (c) => {
+    async (c): Promise<any> => {
       const { projectId } = c.req.valid('param')
       const body = c.req.valid('json')
       await gitService.stageFiles(projectId, body.filePaths)
@@ -135,7 +135,7 @@ export const gitStatusRoutes = new OpenAPIHono()
   )
   .openapi(
     unstageFilesRoute,
-    async (c) => {
+    async (c): Promise<any> => {
       const { projectId } = c.req.valid('param')
       const body = c.req.valid('json')
       await gitService.unstageFiles(projectId, body.filePaths)
@@ -145,7 +145,7 @@ export const gitStatusRoutes = new OpenAPIHono()
   )
   .openapi(
     stageAllRoute,
-    async (c) => {
+    async (c): Promise<any> => {
       const { projectId } = c.req.valid('param')
       await gitService.stageAll(projectId)
       gitService.clearGitStatusCache(projectId)
@@ -154,7 +154,7 @@ export const gitStatusRoutes = new OpenAPIHono()
   )
   .openapi(
     unstageAllRoute,
-    async (c) => {
+    async (c): Promise<any> => {
       const { projectId } = c.req.valid('param')
       await gitService.unstageAll(projectId)
       gitService.clearGitStatusCache(projectId)

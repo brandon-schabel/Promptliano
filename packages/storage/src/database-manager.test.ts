@@ -27,148 +27,166 @@ describe('DatabaseManager', () => {
   })
 
   test('creates all required tables', async () => {
-    const tables = [
-      'provider_keys',
-      'chats',
-      'chat_messages',
-      'projects',
-      'project_files',
-      'prompts',
-      'prompt_projects',
+    // Test only JSON-based tables that haven't been migrated
+    const jsonTables = [
       'mcp_server_configs',
       'mcp_server_states',
       'mcp_tools',
       'mcp_resources',
-      'mcp_tool_executions'
+      'mcp_tool_executions',
+      'selected_files'
     ]
 
-    for (const table of tables) {
-      // Test that we can query each table without error
+    for (const table of jsonTables) {
+      // Test that we can query each JSON table without error
       const result = await db.getAll(table)
       expect(result).toBeInstanceOf(Map)
       expect(result.size).toBe(0)
     }
+
+    // Test that migration-managed tables exist (but don't test JSON operations)
+    const migrationTables = ['projects', 'tickets', 'prompts', 'chats', 'chat_messages']
+    const database = db.getDatabase()
+    for (const table of migrationTables) {
+      // Just verify the table exists by checking its structure
+      const tableInfo = database.prepare(`PRAGMA table_info(${table})`).all()
+      expect(tableInfo.length).toBeGreaterThan(0)
+    }
   })
 
   test('CRUD operations work correctly', async () => {
+    // Use a JSON-based table that hasn't been migrated
+    const testTable = 'mcp_server_configs'
     const testData = {
-      name: 'Test Project',
-      description: 'A test project',
+      name: 'Test Config',
+      description: 'A test config',
       settings: { theme: 'dark' }
     }
 
     // Create
-    await db.create('projects', 'test-id', testData)
+    await db.create(testTable, 'test-id', testData)
 
     // Read
-    const retrieved = await db.get<typeof testData>('projects', 'test-id')
+    const retrieved = await db.get<typeof testData>(testTable, 'test-id')
     expect(retrieved).toEqual(testData)
 
     // Update
-    const updatedData = { ...testData, name: 'Updated Project' }
-    const updateResult = await db.update('projects', 'test-id', updatedData)
+    const updatedData = { ...testData, name: 'Updated Config' }
+    const updateResult = await db.update(testTable, 'test-id', updatedData)
     expect(updateResult).toBe(true)
 
-    const updatedRetrieved = await db.get<typeof testData>('projects', 'test-id')
-    expect(updatedRetrieved?.name).toBe('Updated Project')
+    const updatedRetrieved = await db.get<typeof testData>(testTable, 'test-id')
+    expect(updatedRetrieved?.name).toBe('Updated Config')
 
     // Exists
-    const exists = await db.exists('projects', 'test-id')
+    const exists = await db.exists(testTable, 'test-id')
     expect(exists).toBe(true)
 
     // Delete
-    const deleteResult = await db.delete('projects', 'test-id')
+    const deleteResult = await db.delete(testTable, 'test-id')
     expect(deleteResult).toBe(true)
 
-    const deletedItem = await db.get('projects', 'test-id')
+    const deletedItem = await db.get(testTable, 'test-id')
     expect(deletedItem).toBeNull()
   })
 
   test('getAll returns items in descending order by created_at', async () => {
+    // Use a JSON-based table for this test
+    const testTable = 'mcp_server_configs'
+    
     // Create items with slight delays to ensure different timestamps
-    await db.create('projects', 'project-1', { name: 'Project 1' })
+    await db.create(testTable, 'config-1', { name: 'Config 1' })
     await new Promise((resolve) => setTimeout(resolve, 10))
-    await db.create('projects', 'project-2', { name: 'Project 2' })
+    await db.create(testTable, 'config-2', { name: 'Config 2' })
     await new Promise((resolve) => setTimeout(resolve, 10))
-    await db.create('projects', 'project-3', { name: 'Project 3' })
+    await db.create(testTable, 'config-3', { name: 'Config 3' })
 
-    const allProjects = await db.getAll<{ name: string }>('projects')
-    const projectArray = Array.from(allProjects.entries())
+    const allConfigs = await db.getAll<{ name: string }>(testTable)
+    const configArray = Array.from(allConfigs.entries())
 
     // Should be in descending order (newest first)
-    expect(projectArray[0]?.[0]).toBe('project-3')
-    expect(projectArray[1]?.[0]).toBe('project-2')
-    expect(projectArray[2]?.[0]).toBe('project-1')
+    expect(configArray[0]?.[0]).toBe('config-3')
+    expect(configArray[1]?.[0]).toBe('config-2')
+    expect(configArray[2]?.[0]).toBe('config-1')
   })
 
   test('findByJsonField queries JSON data correctly', async () => {
-    // Create chat messages
-    await db.create('chat_messages', 'msg-1', {
-      chatId: 'chat-123',
-      content: 'Hello',
-      role: 'user'
+    // Use a JSON-based table for this test
+    const testTable = 'mcp_tools'
+    
+    // Create tools with different server IDs
+    await db.create(testTable, 'tool-1', {
+      serverId: 'server-123',
+      name: 'Tool 1',
+      type: 'function'
     })
-    await db.create('chat_messages', 'msg-2', {
-      chatId: 'chat-123',
-      content: 'Hi there',
-      role: 'assistant'
+    await db.create(testTable, 'tool-2', {
+      serverId: 'server-123',
+      name: 'Tool 2',
+      type: 'function'
     })
-    await db.create('chat_messages', 'msg-3', {
-      chatId: 'chat-456',
-      content: 'Different chat',
-      role: 'user'
+    await db.create(testTable, 'tool-3', {
+      serverId: 'server-456',
+      name: 'Tool 3',
+      type: 'function'
     })
 
-    const messages = await db.findByJsonField<any>('chat_messages', '$.chatId', 'chat-123')
+    const tools = await db.findByJsonField<any>(testTable, '$.serverId', 'server-123')
 
-    expect(messages.length).toBe(2)
-    expect(messages[0].chatId).toBe('chat-123')
-    expect(messages[1].chatId).toBe('chat-123')
+    expect(tools.length).toBe(2)
+    expect(tools[0].serverId).toBe('server-123')
+    expect(tools[1].serverId).toBe('server-123')
   })
 
   test('findByDateRange filters by timestamp', async () => {
+    // Use a JSON-based table for this test
+    const testTable = 'mcp_server_configs'
     const now = Date.now()
     const yesterday = now - 24 * 60 * 60 * 1000
     const tomorrow = now + 24 * 60 * 60 * 1000
 
-    await db.create('prompts', 'prompt-1', { name: 'Prompt 1' })
-    await db.create('prompts', 'prompt-2', { name: 'Prompt 2' })
+    await db.create(testTable, 'config-1', { name: 'Config 1' })
+    await db.create(testTable, 'config-2', { name: 'Config 2' })
 
-    const results = await db.findByDateRange<any>('prompts', yesterday, tomorrow)
+    const results = await db.findByDateRange<any>(testTable, yesterday, tomorrow)
     expect(results.length).toBe(2)
 
-    const noResults = await db.findByDateRange<any>('prompts', tomorrow, tomorrow + 1000)
+    const noResults = await db.findByDateRange<any>(testTable, tomorrow, tomorrow + 1000)
     expect(noResults.length).toBe(0)
   })
 
   test('countByJsonField returns correct count', async () => {
-    await db.create('project_files', 'file-1', { projectId: 'proj-1', name: 'file1.ts' })
-    await db.create('project_files', 'file-2', { projectId: 'proj-1', name: 'file2.ts' })
-    await db.create('project_files', 'file-3', { projectId: 'proj-2', name: 'file3.ts' })
+    // Use a JSON-based table for this test
+    const testTable = 'mcp_tools'
+    
+    await db.create(testTable, 'tool-1', { serverId: 'server-1', name: 'tool1.ts' })
+    await db.create(testTable, 'tool-2', { serverId: 'server-1', name: 'tool2.ts' })
+    await db.create(testTable, 'tool-3', { serverId: 'server-2', name: 'tool3.ts' })
 
-    const count1 = await db.countByJsonField('project_files', '$.projectId', 'proj-1')
+    const count1 = await db.countByJsonField(testTable, '$.serverId', 'server-1')
     expect(count1).toBe(2)
 
-    const count2 = await db.countByJsonField('project_files', '$.projectId', 'proj-2')
+    const count2 = await db.countByJsonField(testTable, '$.serverId', 'server-2')
     expect(count2).toBe(1)
 
-    const count3 = await db.countByJsonField('project_files', '$.projectId', 'proj-3')
+    const count3 = await db.countByJsonField(testTable, '$.serverId', 'server-3')
     expect(count3).toBe(0)
   })
 
   test('transaction support works correctly', async () => {
     let errorThrown = false
+    const testTable = 'mcp_server_configs'
 
     try {
       db.transaction(() => {
         // This should succeed
         db.getDatabase()
-          .prepare('INSERT INTO projects (id, data, created_at, updated_at) VALUES (?, ?, ?, ?)')
+          .prepare(`INSERT INTO ${testTable} (id, data, created_at, updated_at) VALUES (?, ?, ?, ?)`)
           .run('tx-1', JSON.stringify({ name: 'Transaction Test' }), Date.now(), Date.now())
 
         // This should cause an error (duplicate primary key)
         db.getDatabase()
-          .prepare('INSERT INTO projects (id, data, created_at, updated_at) VALUES (?, ?, ?, ?)')
+          .prepare(`INSERT INTO ${testTable} (id, data, created_at, updated_at) VALUES (?, ?, ?, ?)`)
           .run('tx-1', JSON.stringify({ name: 'Duplicate' }), Date.now(), Date.now())
       })
     } catch (error) {
@@ -178,20 +196,22 @@ describe('DatabaseManager', () => {
     expect(errorThrown).toBe(true)
 
     // Transaction should have rolled back
-    const result = await db.get('projects', 'tx-1')
+    const result = await db.get(testTable, 'tx-1')
     expect(result).toBeNull()
   })
 
   test('clear removes all records from table', async () => {
-    await db.create('prompts', 'prompt-1', { name: 'Prompt 1' })
-    await db.create('prompts', 'prompt-2', { name: 'Prompt 2' })
+    const testTable = 'mcp_server_configs'
+    
+    await db.create(testTable, 'config-1', { name: 'Config 1' })
+    await db.create(testTable, 'config-2', { name: 'Config 2' })
 
-    const beforeClear = await db.getAll('prompts')
+    const beforeClear = await db.getAll(testTable)
     expect(beforeClear.size).toBe(2)
 
-    await db.clear('prompts')
+    await db.clear(testTable)
 
-    const afterClear = await db.getAll('prompts')
+    const afterClear = await db.getAll(testTable)
     expect(afterClear.size).toBe(0)
   })
 
@@ -219,21 +239,24 @@ describe('DatabaseManager', () => {
   })
 
   test('indexes are created for JSON fields', async () => {
-    // Create many messages to test index performance
+    // Use a JSON-based table for this test
+    const testTable = 'mcp_tools'
+    
+    // Create many tools to test index performance
     for (let i = 0; i < 100; i++) {
-      await db.create('chat_messages', `msg-${i}`, {
-        chatId: i < 50 ? 'chat-A' : 'chat-B',
-        content: `Message ${i}`,
-        role: i % 2 === 0 ? 'user' : 'assistant'
+      await db.create(testTable, `tool-${i}`, {
+        serverId: i < 50 ? 'server-A' : 'server-B',
+        name: `Tool ${i}`,
+        type: i % 2 === 0 ? 'function' : 'resource'
       })
     }
 
     // This query should use the index
-    const messagesA = await db.findByJsonField<any>('chat_messages', '$.chatId', 'chat-A')
-    expect(messagesA.length).toBe(50)
+    const toolsA = await db.findByJsonField<any>(testTable, '$.serverId', 'server-A')
+    expect(toolsA.length).toBe(50)
 
-    const messagesB = await db.findByJsonField<any>('chat_messages', '$.chatId', 'chat-B')
-    expect(messagesB.length).toBe(50)
+    const toolsB = await db.findByJsonField<any>(testTable, '$.serverId', 'server-B')
+    expect(toolsB.length).toBe(50)
   })
 
   test('getDb helper returns singleton instance', () => {

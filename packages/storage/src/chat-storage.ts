@@ -115,13 +115,16 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
   protected readonly entitySchema = ChatMessageSchema
   protected readonly storageSchema = ChatMessagesStorageSchema
 
-  private readonly fieldMappings = createStandardMappings<ChatMessage>({
-    chatId: { dbColumn: 'chat_id', converter: (v) => SqliteConverters.toNumber(v) },
-    role: 'role',
-    content: 'content',
-    type: { dbColumn: 'type', converter: (v) => v || undefined },
-    attachments: { dbColumn: 'attachments', converter: (v) => v ? JSON.parse(v as string) : [] }
-  })
+  private readonly fieldMappings = {
+    id: { dbColumn: 'id', converter: (v: any) => SqliteConverters.toNumber(v) },
+    chatId: { dbColumn: 'chat_id', converter: (v: any) => SqliteConverters.toNumber(v) },
+    role: { dbColumn: 'role', converter: (v: any) => SqliteConverters.toString(v) },
+    content: { dbColumn: 'content', converter: (v: any) => SqliteConverters.toString(v) },
+    type: { dbColumn: 'type', converter: (v: any) => v || undefined },
+    attachments: { dbColumn: 'attachments', converter: (v: any) => v ? JSON.parse(v as string) : [], defaultValue: [] },
+    created: { dbColumn: 'created_at', converter: (v: any) => SqliteConverters.toTimestamp(v) },
+    updated: { dbColumn: 'updated_at', converter: (v: any) => SqliteConverters.toTimestamp(v) }
+  } as const
 
   private readonly converter = createEntityConverter(
     this.entitySchema,
@@ -144,13 +147,7 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
   }
 
   protected getInsertValues(entity: ChatMessage): any[] {
-    const values = getInsertValuesFromEntity(entity, this.fieldMappings)
-    // Handle attachments serialization
-    const attachmentsIndex = this.getInsertColumns().indexOf('attachments')
-    if (attachmentsIndex !== -1 && entity.attachments) {
-      values[attachmentsIndex] = JSON.stringify(entity.attachments)
-    }
-    return values
+    return getInsertValuesFromEntity(entity, this.fieldMappings)
   }
 
   // === Custom Methods ===
@@ -169,13 +166,13 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
       messagesWithChatId[id] = { ...message, chatId }
     }
 
-    return withTransaction(database, () => {
+    return withTransaction(database, async () => {
       // Delete existing messages for this chat
       database.prepare(`DELETE FROM ${this.tableName} WHERE chat_id = ?`).run(chatId)
       
       // Insert new messages
       for (const message of Object.values(messagesWithChatId)) {
-        this.add(message)
+        await this.add(message)
       }
       
       return messagesWithChatId

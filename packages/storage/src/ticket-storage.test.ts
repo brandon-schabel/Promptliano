@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { ticketStorage } from './ticket-storage'
+import { projectStorage } from './project-storage'
 import { DatabaseManager, getDb } from './database-manager'
-import type { Ticket, TicketTask } from '@promptliano/schemas'
+import type { Ticket, TicketTask, Project } from '@promptliano/schemas'
 
 describe('Ticket Storage', () => {
   let db: DatabaseManager
+  let testProject: Project
 
   beforeEach(async () => {
     // Get fresh database instance
@@ -12,6 +14,19 @@ describe('Ticket Storage', () => {
     // Ensure migrations are run
     const { runMigrations } = await import('./migrations/run-migrations')
     await runMigrations()
+    
+    // Create a unique test project for each test
+    const projectId = Date.now() + Math.floor(Math.random() * 1000) // Add randomness
+    testProject = {
+      id: projectId,
+      name: 'Test Project',
+      description: 'Project for testing tickets',
+      path: `/test/project/${projectId}`,
+      created: Date.now(),
+      updated: Date.now()
+    }
+    // Create project using the writeProjects method since there's no direct add method
+    await projectStorage.writeProjects({ [testProject.id]: testProject })
   })
 
   afterEach(async () => {
@@ -24,7 +39,7 @@ describe('Ticket Storage', () => {
     it('should enforce CHECK constraints on ticket status', async () => {
       const ticket: Ticket = {
         id: Date.now() - 100,
-        projectId: Date.now() - 1000,
+        projectId: testProject.id,
         title: 'Test Ticket',
         overview: 'Test overview',
         status: 'invalid_status' as any, // Invalid status
@@ -43,11 +58,11 @@ describe('Ticket Storage', () => {
     it('should enforce CHECK constraints on ticket priority', async () => {
       const ticket: Ticket = {
         id: Date.now() - 200,
-        projectId: Date.now() - 2000,
+        projectId: testProject.id,
         title: 'Test Ticket',
         overview: 'Test overview',
         status: 'open',
-        priority: 'urgent' as any, // Invalid priority
+        priority: 'urgent' as any, // Invalid priority (should be low|normal|high)
         suggestedFileIds: [],
         suggestedAgentIds: [],
         suggestedPromptIds: [],
@@ -80,7 +95,7 @@ describe('Ticket Storage', () => {
       // Create a ticket
       const ticket: Ticket = {
         id: Date.now() - 400,
-        projectId: Date.now() - 4000,
+        projectId: testProject.id,
         title: 'Parent Ticket',
         overview: '',
         status: 'open',
@@ -96,7 +111,7 @@ describe('Ticket Storage', () => {
       // Create a task
       const task: TicketTask = {
         id: Date.now() - 50,
-        ticketId: Date.now() - 400,
+        ticketId: ticket.id,
         content: 'Test Task',
         description: '',
         suggestedFileIds: [],
@@ -118,7 +133,8 @@ describe('Ticket Storage', () => {
 
   describe('Transaction Rollback', () => {
     it('should rollback all changes on error in writeTickets', async () => {
-      const projectId = Date.now() - 100000 // Use a proper timestamp ID
+      // Use testProject that was already created
+      const projectId = testProject.id
 
       // Add initial tickets
       const ticketId1 = Date.now() - 10000
@@ -147,7 +163,7 @@ describe('Ticket Storage', () => {
       // Try to write new set of tickets with a mismatched projectId
       // This should fail and rollback, leaving the original ticket intact
       const ticketId2 = Date.now() - 5000
-      const wrongProjectId = Date.now() - 200000
+      const wrongProjectId = 999999999 // Non-existent project ID
       const badTickets = {
         [ticketId2]: {
           id: ticketId2,
@@ -177,12 +193,11 @@ describe('Ticket Storage', () => {
 
     it('should rollback all changes on error in writeTicketTasks', async () => {
       const ticketId = Date.now() - 20000
-      const projectId = Date.now() - 300000
 
       // Create parent ticket first
       const ticket: Ticket = {
         id: ticketId,
-        projectId: projectId,
+        projectId: testProject.id,
         title: 'Parent Ticket',
         overview: '',
         status: 'open',
@@ -214,7 +229,7 @@ describe('Ticket Storage', () => {
 
       // Try to write tasks with wrong ticketId
       const taskId2 = Date.now() - 2000
-      const wrongTicketId = Date.now() - 999000
+      const wrongTicketId = 999999999 // Non-existent ticket ID
       const badTasks = {
         [taskId2]: {
           id: taskId2,
@@ -230,7 +245,7 @@ describe('Ticket Storage', () => {
       }
 
       // The error is wrapped, so check for the generic message
-      await expect(ticketStorage.writeTicketTasks(ticketId, badTasks)).rejects.toThrow('Failed to write tasks')
+      await expect(ticketStorage.writeTicketTasks(ticketId, badTasks)).rejects.toThrow('Failed to write ticket_tasks')
 
       // Original task should still exist after rollback
       const tasks = await ticketStorage.readTicketTasks(ticketId)
@@ -255,7 +270,7 @@ describe('Ticket Storage', () => {
 
       insertQuery.run(
         30,
-        400,
+        testProject.id,
         'Test Ticket',
         '',
         'open',
@@ -268,7 +283,7 @@ describe('Ticket Storage', () => {
       )
 
       // Should handle gracefully with fallback
-      const tickets = await ticketStorage.readTickets(400)
+      const tickets = await ticketStorage.readTickets(testProject.id)
       expect(tickets['30']).toBeDefined()
       expect(tickets['30']?.suggestedFileIds).toEqual([]) // Fallback value
     })
@@ -286,7 +301,7 @@ describe('Ticket Storage', () => {
           suggested_file_ids, suggested_agent_ids, suggested_prompt_ids, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      insertTicketQuery.run(40, 500, 'Parent', '', 'open', 'normal', '[]', '[]', '[]', Date.now(), Date.now())
+      insertTicketQuery.run(40, testProject.id, 'Parent', '', 'open', 'normal', '[]', '[]', '[]', Date.now(), Date.now())
 
       const insertTaskQuery = database.prepare(`
         INSERT INTO ticket_tasks (
@@ -327,14 +342,24 @@ describe('Ticket Storage', () => {
 
   describe('Concurrent Access', () => {
     it('should handle concurrent reads safely', async () => {
-      const projectId = Date.now() - 600000
+      // Create a unique project for this test
+      const concurrentProjectId = Date.now() + 10000
+      const concurrentProject: Project = {
+        id: concurrentProjectId,
+        name: 'Concurrent Test Project',
+        description: 'Project for testing concurrent access',
+        path: `/test/concurrent/${concurrentProjectId}`,
+        created: Date.now(),
+        updated: Date.now()
+      }
+      await projectStorage.writeProjects({ [concurrentProject.id]: concurrentProject })
 
       // Create test tickets
       const tickets: Record<string, Ticket> = {}
       for (let i = 0; i < 10; i++) {
         tickets[String(Date.now() - 5000 + i)] = {
           id: Date.now() - 5000 + i,
-          projectId,
+          projectId: concurrentProjectId,
           title: `Ticket ${i}`,
           overview: '',
           status: 'open',
@@ -346,12 +371,12 @@ describe('Ticket Storage', () => {
           updated: Date.now()
         }
       }
-      await ticketStorage.writeTickets(projectId, tickets)
+      await ticketStorage.writeTickets(concurrentProjectId, tickets)
 
       // Concurrent reads
       const readPromises = []
       for (let i = 0; i < 5; i++) {
-        readPromises.push(ticketStorage.readTickets(projectId))
+        readPromises.push(ticketStorage.readTickets(concurrentProjectId))
       }
 
       const results = await Promise.all(readPromises)
@@ -364,12 +389,24 @@ describe('Ticket Storage', () => {
     })
 
     it('should handle concurrent writes with proper isolation', async () => {
+      // Create a unique project for concurrent writes
+      const concurrentWriteProjectId = Date.now() + 20000
+      const concurrentWriteProject: Project = {
+        id: concurrentWriteProjectId,
+        name: 'Concurrent Write Test Project',
+        description: 'Project for testing concurrent writes',
+        path: `/test/concurrent-write/${concurrentWriteProjectId}`,
+        created: Date.now(),
+        updated: Date.now()
+      }
+      await projectStorage.writeProjects({ [concurrentWriteProject.id]: concurrentWriteProject })
+
       // Create multiple tickets concurrently
       const createPromises = []
       for (let i = 0; i < 5; i++) {
         const ticket: Ticket = {
           id: Date.now() - 6000 + i,
-          projectId: Date.now() - 700000,
+          projectId: concurrentWriteProjectId,
           title: `Concurrent Ticket ${i}`,
           overview: '',
           status: 'open',
@@ -386,20 +423,30 @@ describe('Ticket Storage', () => {
       await Promise.all(createPromises)
 
       // Verify all tickets were created
-      const tickets = await ticketStorage.readTickets(700)
-      expect(Object.keys(tickets)).toHaveLength(5)
+      const tickets = await ticketStorage.readTickets(concurrentWriteProjectId)
+      expect(Object.keys(tickets)).toHaveLength(5) // 5 new concurrent tickets
     })
   })
 
   describe('Cascade Delete Behavior', () => {
     it('should delete all tasks when deleting a project', async () => {
-      const projectId = Date.now() - 800000
+      // Create a separate project for this test to avoid conflicts
+      const separateProjectId = Date.now() + 1000
+      const separateProject: Project = {
+        id: separateProjectId,
+        name: 'Cascade Test Project',
+        description: 'Project for testing cascade deletion',
+        path: `/test/cascade/${separateProjectId}`,
+        created: Date.now(),
+        updated: Date.now()
+      }
+      await projectStorage.writeProjects({ [separateProject.id]: separateProject })
 
       // Create tickets with tasks
       for (let i = 0; i < 3; i++) {
         const ticket: Ticket = {
           id: Date.now() - 7000 + i,
-          projectId,
+          projectId: separateProjectId,
           title: `Ticket ${i}`,
           overview: '',
           status: 'open',
@@ -430,10 +477,10 @@ describe('Ticket Storage', () => {
       }
 
       // Delete all tickets for project
-      await ticketStorage.deleteProjectTickets(projectId)
+      await ticketStorage.deleteProjectTickets(separateProjectId)
 
       // Verify all tickets and tasks are gone
-      const tickets = await ticketStorage.readTickets(projectId)
+      const tickets = await ticketStorage.readTickets(separateProjectId)
       expect(Object.keys(tickets)).toHaveLength(0)
 
       // Check tasks are also deleted
@@ -448,7 +495,7 @@ describe('Ticket Storage', () => {
     it('should validate all ticket fields', async () => {
       const invalidTicket = {
         id: 'not-a-number', // Should be number
-        projectId: Date.now() - 900000,
+        projectId: testProject.id,
         title: '', // Should not be empty
         overview: 123, // Should be string
         status: 'open',
@@ -465,7 +512,7 @@ describe('Ticket Storage', () => {
       // Create parent ticket
       const ticket: Ticket = {
         id: Date.now() - 8000,
-        projectId: Date.now() - 900000,
+        projectId: testProject.id,
         title: 'Parent',
         overview: '',
         status: 'open',
@@ -480,7 +527,7 @@ describe('Ticket Storage', () => {
 
       const invalidTask = {
         id: 'not-a-number', // Should be number
-        ticketId: 80,
+        ticketId: ticket.id,
         content: '', // Should not be empty
         description: '',
         suggestedFileIds: [],
@@ -497,7 +544,19 @@ describe('Ticket Storage', () => {
 
   describe('Performance', () => {
     it('should handle large datasets efficiently', async () => {
-      const projectId = Date.now()
+      // Create a separate project for performance testing
+      const perfProjectId = Date.now() + 2000
+      const perfProject: Project = {
+        id: perfProjectId,
+        name: 'Performance Test Project',
+        description: 'Project for testing performance',
+        path: `/test/performance/${perfProjectId}`,
+        created: Date.now(),
+        updated: Date.now()
+      }
+      await projectStorage.writeProjects({ [perfProject.id]: perfProject })
+      
+      const projectId = perfProjectId
       const ticketCount = 100
       const tasksPerTicket = 10
       const baseTicketId = Date.now() - 1000000
@@ -515,7 +574,7 @@ describe('Ticket Storage', () => {
           priority: i % 3 === 0 ? 'high' : i % 2 === 0 ? 'low' : 'normal',
           suggestedFileIds: [`file${i}.ts`, `test${i}.ts`],
           suggestedAgentIds: [`agent-${Date.now() - 2000 + i}`, `agent-${Date.now() - 1000 + i}`],
-          suggestedPromptIds: [`prompt-${Date.now() - 500 + i}`, `prompt-${Date.now() - 400 + i}`],
+          suggestedPromptIds: [Date.now() - 500 + i, Date.now() - 400 + i], // Use numbers for prompt IDs
           created: Date.now() - i * 1000,
           updated: Date.now()
         }

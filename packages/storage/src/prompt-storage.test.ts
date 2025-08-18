@@ -1,23 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { promptStorage } from './prompt-storage'
 import { type Prompt, type PromptProject } from '@promptliano/schemas'
-import { DatabaseManager } from './database-manager'
+import { DatabaseManager, getDb } from './database-manager'
 
 describe('Prompt Storage (SQLite)', () => {
   let testPromptId: number
+  let db: DatabaseManager
 
   beforeEach(async () => {
-    // Get database instance and clear tables
-    const db = DatabaseManager.getInstance()
-    await db.clearAllTables()
+    // Get fresh database instance and run migrations
+    db = getDb()
+    const { runMigrations } = await import('./migrations/run-migrations')
+    await runMigrations()
 
     testPromptId = Date.now()
   })
 
   afterEach(async () => {
-    // Clear all tables for next test
-    const db = DatabaseManager.getInstance()
-    await db.clearAllTables()
+    // Clean up test data using our test utilities
+    const { clearAllData } = await import('./test-utils')
+    await clearAllData()
   })
 
   it('should create and read prompts', async () => {

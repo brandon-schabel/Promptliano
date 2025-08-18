@@ -207,35 +207,48 @@ export function operationSuccessResponseJson(c: Context, message: string = 'Oper
 
 /**
  * Create a route handler with built-in validation and error handling
+ * Simplified version that doesn't pre-extract parameters
  */
-export function createRouteHandler<TArgs extends Record<string, any> = Record<string, any>>(
-  handler: (args: TArgs & { c: Context }) => Promise<any>
+export function createRouteHandler<
+  TParams = any,
+  TQuery = any,
+  TBody = any
+>(
+  handler: (args: {
+    params?: TParams
+    query?: TQuery
+    body?: TBody
+    c: Context
+  }) => Promise<any>
 ) {
   return withErrorHandling(async (c: Context) => {
-    // Type-safe parameter extraction
-    let params: any = undefined
-    let query: any = undefined
-    let body: any = undefined
+    // Let the handler extract its own parameters using c.req.valid()
+    // This avoids type inference issues
+    const result = await handler({ 
+      params: undefined as TParams,
+      query: undefined as TQuery,
+      body: undefined as TBody,
+      c 
+    })
     
-    try {
-      params = c.req.valid('param')
-    } catch {
-      // No params validation defined
+    // If result is already a Response, return it directly
+    if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
+      return result
     }
     
-    try {
-      query = c.req.valid('query')
-    } catch {
-      // No query validation defined
-    }
-    
-    try {
-      body = c.req.valid('json')
-    } catch {
-      // No body validation defined
-    }
-    
-    const result = await handler({ params, query, body, c } as TArgs & { c: Context })
+    return c.json(result)
+  })
+}
+
+/**
+ * Simple route handler wrapper without parameter extraction
+ * Use this when you want to handle c.req.valid() calls manually
+ */
+export function createSimpleRouteHandler(
+  handler: (c: Context) => Promise<any>
+) {
+  return withErrorHandling(async (c: Context) => {
+    const result = await handler(c)
     
     // If result is already a Response, return it directly
     if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
@@ -291,13 +304,14 @@ export function createCrudRoutes<TEntity extends { id: number }>(
   }
 ) {
   return {
-    list: createRouteHandler(async ({ c }) => {
+    list: createSimpleRouteHandler(async (c) => {
       const entities = await service.list()
       return successResponseJson(c, entities)
     }),
     
-    get: createRouteHandler(async ({ params, c }) => {
-      const id = parseInt(params?.id, 10)
+    get: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      const id = parseInt(params.id, 10)
       if (isNaN(id)) {
         throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
       }
@@ -311,31 +325,30 @@ export function createCrudRoutes<TEntity extends { id: number }>(
       return successResponseJson(c, entity)
     }),
     
-    create: createRouteHandler(async ({ body, c }) => {
-      if (!body) {
-        throw new ApiError(400, 'Request body is required', 'MISSING_BODY')
-      }
+    create: createSimpleRouteHandler(async (c) => {
+      const body = (c.req as any).valid('json')
       
       const entity = await service.create(body)
       return successResponseJson(c, entity)
     }),
     
-    update: createRouteHandler(async ({ params, body, c }) => {
-      const id = parseInt(params?.id, 10)
+    update: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      const body = (c.req as any).valid('json')
+      
+      const id = parseInt(params.id, 10)
       if (isNaN(id)) {
         throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
-      }
-      
-      if (!body) {
-        throw new ApiError(400, 'Request body is required', 'MISSING_BODY')
       }
       
       const entity = await service.update(id, body)
       return successResponseJson(c, entity)
     }),
     
-    delete: createRouteHandler(async ({ params, c }) => {
-      const id = parseInt(params?.id, 10)
+    delete: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      
+      const id = parseInt(params.id, 10)
       if (isNaN(id)) {
         throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
       }

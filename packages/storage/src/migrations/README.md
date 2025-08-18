@@ -1,6 +1,37 @@
-# Storage Migration Utilities
+# Promptliano Database Migrations
 
-A comprehensive migration system for Promptliano's Storage V2 that provides version tracking, atomicity, and rollback capabilities.
+Database migration system for Promptliano's SQLite-based storage layer. Includes both the current v1.0 baseline migration and the general-purpose Storage V2 migration utilities.
+
+## Current State (v1.0)
+
+Promptliano v1.0 uses a **baseline migration approach**:
+- Single migration (001-baseline-v1.ts) establishes complete v1.0 schema
+- Previous development migrations (002-026) archived in `archive/` directory  
+- Clean foundation for future v1.x migrations starting from version 2
+
+### Quick Start
+
+Fresh installations automatically run the baseline migration:
+```bash
+# Migrations run automatically on first database access
+bun run test:storage  # Validates migration works correctly
+```
+
+### Schema Overview
+
+The v1.0 baseline creates 28 tables including:
+- **Core entities**: projects, tickets, tasks, prompts
+- **Queue system**: AI agent processing with task_queues
+- **Full-text search**: FTS5 tables for file search
+- **MCP analytics**: Tool execution tracking
+- **Chat system**: Chat sessions and messages
+- **Provider management**: AI provider keys and configuration
+
+---
+
+## Storage V2 Migration Utilities
+
+A comprehensive migration system for Storage V2 that provides version tracking, atomicity, and rollback capabilities.
 
 ## Features
 

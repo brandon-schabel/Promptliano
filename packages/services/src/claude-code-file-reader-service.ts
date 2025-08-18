@@ -730,6 +730,16 @@ export class ClaudeCodeFileReaderService {
     fileSize: number
   ): ClaudeSessionMetadata | null {
     if (!availableLine) return null
+    
+    // Check if the line has any JSON-like structure before attempting fallback
+    // If it doesn't contain basic JSON patterns, return null
+    const hasJsonStructure = availableLine.includes('{') && availableLine.includes('}') && availableLine.includes('"')
+    if (!hasJsonStructure) {
+      logger.debug('Line does not contain JSON structure, skipping minimal metadata creation:', {
+        linePreview: availableLine.substring(0, 100)
+      })
+      return null
+    }
 
     try {
       // Extract basic session info using regex patterns as fallback
@@ -737,6 +747,12 @@ export class ClaudeCodeFileReaderService {
       const timestampMatch = availableLine.match(/"timestamp"\s*:\s*"([^"]+)"/)
       const gitBranchMatch = availableLine.match(/"gitBranch"\s*:\s*"([^"]+)"/)
       const cwdMatch = availableLine.match(/"cwd"\s*:\s*"([^"]+)"/)
+      
+      // If we can't extract any meaningful JSON properties, return null
+      if (!sessionIdMatch && !timestampMatch) {
+        logger.debug('No extractable JSON properties found, cannot create minimal metadata')
+        return null
+      }
 
       // Generate fallback values if we can't extract from the line
       const sessionId = sessionIdMatch?.[1] || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

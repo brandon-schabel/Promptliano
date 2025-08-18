@@ -157,18 +157,25 @@ const updateProviderSettingsRoute = createRoute({
 })
 
 export const providerKeyRoutes = new OpenAPIHono()
-  .openapi(createProviderKeyRoute, async (c) => {
+  .openapi(createProviderKeyRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
-    const newKey = await providerKeyService.createKey({ ...body, isDefault: false })
+    const createKeyInput = {
+      ...body,
+      encrypted: false,
+      isActive: true,
+      environment: 'production',
+      isDefault: body.isDefault ?? false
+    }
+    const newKey = await providerKeyService.createKey(createKeyInput)
     return c.json(successResponse(newKey), 201)
   })
 
-  .openapi(listProviderKeysRoute, async (c) => {
+  .openapi(listProviderKeysRoute, async (c): Promise<any> => {
     const keys = await providerKeyService.listKeysCensoredKeys()
     return c.json(successResponse(keys), 200)
   })
 
-  .openapi(getProviderKeyByIdRoute, async (c) => {
+  .openapi(getProviderKeyByIdRoute, async (c): Promise<any> => {
     const { keyId } = c.req.valid('param')
     const key = await providerKeyService.getKeyById(keyId)
     if (!key) {
@@ -177,38 +184,38 @@ export const providerKeyRoutes = new OpenAPIHono()
     return c.json(successResponse(key), 200)
   })
 
-  .openapi(updateProviderKeyRoute, async (c) => {
+  .openapi(updateProviderKeyRoute, async (c): Promise<any> => {
     const { keyId } = c.req.valid('param')
     const body = c.req.valid('json')
     const updatedKey = await providerKeyService.updateKey(keyId, body)
     return c.json(successResponse(updatedKey), 200)
   })
 
-  .openapi(deleteProviderKeyRoute, async (c) => {
+  .openapi(deleteProviderKeyRoute, async (c): Promise<any> => {
     const { keyId } = c.req.valid('param')
     await providerKeyService.deleteKey(keyId)
     return c.json(operationSuccessResponse('Key deleted successfully.'), 200)
   })
 
-  .openapi(testProviderRoute, async (c) => {
+  .openapi(testProviderRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
     const testResult = await providerKeyService.testProvider(body)
     return c.json(successResponse(testResult), 200)
   })
 
-  .openapi(batchTestProviderRoute, async (c) => {
+  .openapi(batchTestProviderRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
     const batchResult = await providerKeyService.batchTestProviders(body)
     return c.json(successResponse(batchResult), 200)
   })
 
-  .openapi(providerHealthRoute, async (c) => {
+  .openapi(providerHealthRoute, async (c): Promise<any> => {
     const { refresh } = c.req.valid('query')
     const healthStatuses = await providerKeyService.getProviderHealthStatus(refresh)
     return c.json(successResponse(healthStatuses), 200)
   })
 
-  .openapi(updateProviderSettingsRoute, async (c) => {
+  .openapi(updateProviderSettingsRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
 
     // Update the provider settings with custom URLs
@@ -232,7 +239,7 @@ const validateCustomProviderRoute = createRoute({
   responses: createStandardResponses(ValidateCustomProviderResponseSchema)
 })
 
-providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
+providerKeyRoutes.openapi(validateCustomProviderRoute, async (c): Promise<any> => {
   const body = c.req.valid('json')
   
   try {
