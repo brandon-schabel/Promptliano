@@ -45,7 +45,7 @@ runs:
       run: |
         # Install yq for YAML processing
         if ! command -v yq &> /dev/null; then
-          echo "📦 Installing yq..."
+          echo "📦 Installing yq..." >&2
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
             sudo chmod +x /usr/local/bin/yq
@@ -57,38 +57,38 @@ runs:
               chmod +x /usr/local/bin/yq
             fi
           else
-            echo "⚠️ OS not supported for yq installation"
+            echo "⚠️ OS not supported for yq installation" >&2
             exit 1
           fi
-          echo "✅ yq installed successfully"
+          echo "✅ yq installed successfully" >&2
         else
-          echo "✅ yq already available"
+          echo "✅ yq already available" >&2
         fi
 
     - name: Detect changed packages
       id: detect
       shell: bash
       run: |
-        echo "🔍 Detecting changed packages..."
+        echo "🔍 Detecting changed packages..." >&2
         
         # Get changed files based on event type
         if [ "${{ github.event_name }}" = "pull_request" ]; then
-          echo "📝 Analyzing PR changes against ${{ inputs.base-ref }}"
+          echo "📝 Analyzing PR changes against ${{ inputs.base-ref }}" >&2
           CHANGED_FILES=$(git diff --name-only origin/${{ inputs.base-ref }}...HEAD)
         else
-          echo "📝 Analyzing push changes against previous commit"
+          echo "📝 Analyzing push changes against previous commit" >&2
           CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
         fi
         
-        echo "📄 Changed files:"
-        echo "$CHANGED_FILES"
-        echo ""
+        echo "📄 Changed files:" >&2
+        echo "$CHANGED_FILES" >&2
+        echo "" >&2
         
         # Initialize arrays
         CHANGED_PACKAGES=()
         
         # Check each package directory
-        echo "🔍 Scanning packages in ${{ inputs.packages-path }}..."
+        echo "🔍 Scanning packages in ${{ inputs.packages-path }}..." >&2
         for pkg_dir in ${{ inputs.packages-path }}/*/; do
           if [ -d "$pkg_dir" ]; then
             pkg_name=$(basename "$pkg_dir")
@@ -96,34 +96,34 @@ runs:
             # Check if any files in this package changed
             if echo "$CHANGED_FILES" | grep -q "^${{ inputs.packages-path }}/$pkg_name/"; then
               CHANGED_PACKAGES+=("$pkg_name")
-              echo "📦 Package changed: $pkg_name"
+              echo "📦 Package changed: $pkg_name" >&2
             fi
           fi
         done
         
         # Check for root-level changes that affect all packages
         ROOT_CHANGES=false
-        echo "🌍 Checking for root-level changes..."
+        echo "🌍 Checking for root-level changes..." >&2
         
         # Convert root change patterns to proper regex
         ROOT_PATTERNS="${{ inputs.root-change-patterns }}"
         while IFS= read -r pattern; do
           if [ -n "$pattern" ] && echo "$CHANGED_FILES" | grep -qE "$pattern"; then
             ROOT_CHANGES=true
-            echo "✅ Root change detected: $pattern"
+            echo "✅ Root change detected: $pattern" >&2
             break
           fi
         done <<< "$ROOT_PATTERNS"
         
         # If root changes detected, include all packages
         if [ "$ROOT_CHANGES" = "true" ]; then
-          echo "🌍 Root changes detected - will test all packages"
+          echo "🌍 Root changes detected - will test all packages" >&2
           CHANGED_PACKAGES=()
           for pkg_dir in ${{ inputs.packages-path }}/*/; do
             if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/package.json" ]; then
               pkg_name=$(basename "$pkg_dir")
               CHANGED_PACKAGES+=("$pkg_name")
-              echo "📦 Including package: $pkg_name"
+              echo "📦 Including package: $pkg_name" >&2
             fi
           done
         fi
@@ -136,7 +136,7 @@ runs:
           echo "packages=[]" >> $GITHUB_OUTPUT
           echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
           echo "has-changes=false" >> $GITHUB_OUTPUT
-          echo "⏭️ No package changes detected"
+          echo "⏭️ No package changes detected" >&2
         else
           # Create JSON array of package names
           PACKAGES_JSON=$(printf '%s\n' "${CHANGED_PACKAGES[@]}" | jq -R . | jq -s .)
@@ -145,7 +145,7 @@ runs:
           # Load package configurations if config file exists
           CONFIG_FILE="${{ inputs.config-file }}"
           if [ -f "$CONFIG_FILE" ]; then
-            echo "📋 Loading package configurations from $CONFIG_FILE"
+            echo "📋 Loading package configurations from $CONFIG_FILE" >&2
             # Create matrix from configuration file
             # Convert YAML to JSON, then filter and format with jq
             CONFIG_JSON=$(yq eval -o=json '.' "$CONFIG_FILE")
@@ -153,7 +153,7 @@ runs:
             PACKAGES_PATH="${{ inputs.packages-path }}"
             MATRIX_JSON=$(echo "$CONFIG_JSON" | jq --argjson pkgs "$PACKAGES_JSON" --arg pkgpath "$PACKAGES_PATH" '.packages | to_entries | map(select(.key as $k | $pkgs | index($k)) | .value + {"package": .key, "path": ($pkgpath + "/" + .key)}) | {include: .}')
           else
-            echo "⚠️ No config file found at $CONFIG_FILE, using defaults"
+            echo "⚠️ No config file found at $CONFIG_FILE, using defaults" >&2
             # Create matrix with default configurations
             MATRIX_ENTRIES=()
             for pkg in "${CHANGED_PACKAGES[@]}"; do
