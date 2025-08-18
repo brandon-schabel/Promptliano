@@ -38,6 +38,20 @@ export type {
   ClaudeAgent 
 } from '@promptliano/schemas'
 
+// Claude Command types
+export type {
+  ClaudeCommand,
+  ClaudeCommandFrontmatter,
+  CreateClaudeCommandBody,
+  UpdateClaudeCommandBody,
+  ExecuteClaudeCommandBody,
+  CommandSuggestions,
+  SearchCommandsQuery,
+  CommandScope,
+  CommandGenerationRequest,
+  CommandGenerationResponse
+} from '@promptliano/schemas'
+
 export type {
   TestProviderRequest,
   TestProviderResponse,
@@ -373,3 +387,13 @@ export type GitDiffRequest = {
   commitHash2?: string
   staged?: boolean
 }
+
+// Claude Hooks types (imported from schemas)
+export type {
+  CreateHookConfigBody,
+  UpdateHookConfigBody,
+  HookEvent,
+  HookGenerationRequest,
+  HookTestRequest,
+  HookListItem
+} from '@promptliano/schemas'

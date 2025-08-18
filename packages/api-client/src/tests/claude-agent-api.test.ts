@@ -138,6 +138,7 @@ You specialize in comprehensive testing strategies and automation.
         // Create a test project
         const project = await dataManager.createProject({
           name: 'Agent Test Project',
+          description: 'Test project for agent operations',
           path: '/tmp/agent-test-project'
         })
         testProjectId = project.id
@@ -153,7 +154,7 @@ You specialize in comprehensive testing strategies and automation.
           description: 'Testing agent creation'
         })
 
-        const response = await client.claudeAgents.createAgent(agentData)
+        const response = await client.agents.createAgent(agentData)
         
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
@@ -174,7 +175,7 @@ You specialize in comprehensive testing strategies and automation.
           projectId: testProjectId
         })
 
-        const response = await client.claudeAgents.createAgent(agentData, testProjectId)
+        const response = await client.agents.createAgent(agentData, testProjectId)
         
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
@@ -186,14 +187,14 @@ You specialize in comprehensive testing strategies and automation.
       test('should list all agents', async () => {
         // Create multiple agents first
         const agents = await Promise.all([
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'List Agent 1' })),
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'List Agent 2' })),
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'List Agent 3' }))
+          client.agents.createAgent(createTestAgentData({ name: 'List Agent 1' })),
+          client.agents.createAgent(createTestAgentData({ name: 'List Agent 2' })),
+          client.agents.createAgent(createTestAgentData({ name: 'List Agent 3' }))
         ])
 
-        agents.forEach(agent => dataManager.trackAgent(agent.data.id))
+        agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
 
-        const response = await client.claudeAgents.listAgents()
+        const response = await client.agents.listAgents()
         
         assertions.assertSuccessResponse(response)
         assertions.assertArrayOfItems(response.data, 3)
@@ -203,7 +204,7 @@ You specialize in comprehensive testing strategies and automation.
         })
 
         // Verify our created agents are in the list
-        const agentNames = response.data.map(a => a.name)
+        const agentNames = response.data.map((a: any) => a.name)
         expect(agentNames).toContain('List Agent 1')
         expect(agentNames).toContain('List Agent 2')
         expect(agentNames).toContain('List Agent 3')
@@ -211,23 +212,23 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should list agents filtered by project', async () => {
         // Create agents with and without project association
-        const projectAgent = await client.claudeAgents.createAgent(
+        const projectAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Project Filtered Agent' }), 
           testProjectId
         )
-        const globalAgent = await client.claudeAgents.createAgent(
+        const globalAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Global Agent' })
         )
 
         dataManager.trackAgent(projectAgent.data.id)
         dataManager.trackAgent(globalAgent.data.id)
 
-        const response = await client.claudeAgents.listAgents(testProjectId)
+        const response = await client.agents.listAgents(testProjectId)
         
         assertions.assertSuccessResponse(response)
         
         // Should include project-specific agents
-        const agentNames = response.data.map(a => a.name)
+        const agentNames = response.data.map((a: any) => a.name)
         expect(agentNames).toContain('Project Filtered Agent')
         
         // Verify all returned agents are either global or associated with the project
@@ -237,12 +238,12 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should get single agent by ID', async () => {
-        const createdAgent = await client.claudeAgents.createAgent(
+        const createdAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Get Single Agent' })
         )
         dataManager.trackAgent(createdAgent.data.id)
 
-        const response = await client.claudeAgents.getAgent(createdAgent.data.id)
+        const response = await client.agents.getAgent(createdAgent.data.id)
         
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
@@ -251,7 +252,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should update agent successfully', async () => {
-        const createdAgent = await client.claudeAgents.createAgent(
+        const createdAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Update Agent Original' })
         )
         dataManager.trackAgent(createdAgent.data.id)
@@ -263,7 +264,7 @@ You specialize in comprehensive testing strategies and automation.
           content: '# Updated Agent\n\nThis agent has been updated.'
         }
 
-        const response = await client.claudeAgents.updateAgent(createdAgent.data.id, updateData)
+        const response = await client.agents.updateAgent(createdAgent.data.id, updateData)
         
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
@@ -276,7 +277,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should partially update agent', async () => {
-        const createdAgent = await client.claudeAgents.createAgent(
+        const createdAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Partial Update Agent' })
         )
         dataManager.trackAgent(createdAgent.data.id)
@@ -285,7 +286,7 @@ You specialize in comprehensive testing strategies and automation.
           name: 'Partially Updated Name'
         }
 
-        const response = await client.claudeAgents.updateAgent(createdAgent.data.id, partialUpdate)
+        const response = await client.agents.updateAgent(createdAgent.data.id, partialUpdate)
         
         assertions.assertSuccessResponse(response)
         expect(response.data.name).toBe(partialUpdate.name)
@@ -296,16 +297,16 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should delete agent successfully', async () => {
-        const createdAgent = await client.claudeAgents.createAgent(
+        const createdAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Delete Test Agent' })
         )
 
-        const deleteResult = await client.claudeAgents.deleteAgent(createdAgent.data.id)
+        const deleteResult = await client.agents.deleteAgent(createdAgent.data.id)
         expect(deleteResult).toBe(true)
 
         // Verify agent is deleted by trying to get it
         try {
-          await client.claudeAgents.getAgent(createdAgent.data.id)
+          await client.agents.getAgent(createdAgent.data.id)
           expect.unreachable('Should have thrown an error for deleted agent')
         } catch (error: any) {
           expect(error.status).toBe(404)
@@ -330,29 +331,30 @@ You specialize in comprehensive testing strategies and automation.
         
         const project = await dataManager.createProject({
           name: 'Suggestions Test Project',
+          description: 'Test project for agent suggestions',
           path: '/tmp/suggestions-test-project'
         })
         testProjectId = project.id
 
         // Create some agents to suggest
         await Promise.all([
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'Frontend Developer',
             description: 'Expert in React, Vue, and Angular development',
             content: 'Specializes in modern frontend frameworks and UI/UX design'
           })),
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'Backend Engineer', 
             description: 'Expert in Node.js, Python, and database design',
             content: 'Focuses on API development and server architecture'
           })),
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'DevOps Specialist',
             description: 'Expert in CI/CD, Docker, and cloud infrastructure',
             content: 'Specializes in deployment automation and monitoring'
           }))
         ]).then(agents => {
-          agents.forEach(agent => dataManager.trackAgent(agent.data.id))
+          agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
         })
       })
 
@@ -361,7 +363,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should suggest relevant agents for frontend work', async () => {
-        const response = await client.claudeAgents.suggestAgents(
+        const response = await client.agents.suggestAgents(
           testProjectId,
           'I need help building a React component with TypeScript'
         )
@@ -380,7 +382,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should suggest agents for backend work', async () => {
-        const response = await client.claudeAgents.suggestAgents(
+        const response = await client.agents.suggestAgents(
           testProjectId,
           'I need to design an API and set up a database'
         )
@@ -393,7 +395,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should suggest agents for DevOps work', async () => {
-        const response = await client.claudeAgents.suggestAgents(
+        const response = await client.agents.suggestAgents(
           testProjectId,
           'I need to set up CI/CD pipeline and deploy to AWS'
         )
@@ -407,7 +409,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should respect suggestion limit', async () => {
         const limit = 2
-        const response = await client.claudeAgents.suggestAgents(
+        const response = await client.agents.suggestAgents(
           testProjectId,
           'I need help with development',
           limit
@@ -418,7 +420,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test.skipIf(process.env.CI)('should handle empty context gracefully', async () => {
-        const response = await client.claudeAgents.suggestAgents(testProjectId, '')
+        const response = await client.agents.suggestAgents(testProjectId, '')
         
         assertions.assertSuccessResponse(response)
         expect(Array.isArray(response.data.agents)).toBe(true)
@@ -444,12 +446,13 @@ You specialize in comprehensive testing strategies and automation.
         
         const project = await dataManager.createProject({
           name: 'Association Test Project',
+          description: 'Test project for agent associations',
           path: '/tmp/association-test-project'
         })
         testProjectId = project.id
 
         // Create a global agent for association testing
-        const globalAgent = await client.claudeAgents.createAgent(
+        const globalAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'Global Association Agent' })
         )
         globalAgentId = globalAgent.data.id
@@ -462,62 +465,62 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should list project agents', async () => {
         // First associate the global agent with the project
-        await client.claudeAgents.addAgentToProject(testProjectId, globalAgentId)
+        await client.agents.addAgentToProject(testProjectId, globalAgentId)
 
-        const response = await client.claudeAgents.listProjectAgents(testProjectId)
+        const response = await client.agents.listProjectAgents(testProjectId)
         
         assertions.assertSuccessResponse(response)
         assertions.assertArrayOfItems(response.data, 1)
         
-        const agentIds = response.data.map(a => a.id)
+        const agentIds = response.data.map((a: any) => a.id)
         expect(agentIds).toContain(globalAgentId)
       })
 
       test('should add agent to project', async () => {
         // Create another agent for testing
-        const newAgent = await client.claudeAgents.createAgent(
+        const newAgent = await client.agents.createAgent(
           createTestAgentData({ name: 'New Association Agent' })
         )
         dataManager.trackAgent(newAgent.data.id)
 
-        const result = await client.claudeAgents.addAgentToProject(testProjectId, newAgent.data.id)
+        const result = await client.agents.addAgentToProject(testProjectId, newAgent.data.id)
         expect(result).toBe(true)
 
         // Verify it's now associated
-        const projectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
-        const agentIds = projectAgents.data.map(a => a.id)
+        const projectAgents = await client.agents.listProjectAgents(testProjectId)
+        const agentIds = projectAgents.data.map((a: any) => a.id)
         expect(agentIds).toContain(newAgent.data.id)
       })
 
       test('should remove agent from project', async () => {
         // Add an agent first
-        const agentToRemove = await client.claudeAgents.createAgent(
+        const agentToRemove = await client.agents.createAgent(
           createTestAgentData({ name: 'Remove Association Agent' })
         )
         dataManager.trackAgent(agentToRemove.data.id)
 
-        await client.claudeAgents.addAgentToProject(testProjectId, agentToRemove.data.id)
+        await client.agents.addAgentToProject(testProjectId, agentToRemove.data.id)
 
         // Now remove it
-        const result = await client.claudeAgents.removeAgentFromProject(testProjectId, agentToRemove.data.id)
+        const result = await client.agents.removeAgentFromProject(testProjectId, agentToRemove.data.id)
         expect(result).toBe(true)
 
         // Verify it's no longer associated
-        const projectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
-        const agentIds = projectAgents.data.map(a => a.id)
+        const projectAgents = await client.agents.listProjectAgents(testProjectId)
+        const agentIds = projectAgents.data.map((a: any) => a.id)
         expect(agentIds).not.toContain(agentToRemove.data.id)
       })
 
       test('should handle duplicate association gracefully', async () => {
         // Try to add the same agent twice
-        await client.claudeAgents.addAgentToProject(testProjectId, globalAgentId)
-        const result = await client.claudeAgents.addAgentToProject(testProjectId, globalAgentId)
+        await client.agents.addAgentToProject(testProjectId, globalAgentId)
+        const result = await client.agents.addAgentToProject(testProjectId, globalAgentId)
         
         expect(result).toBe(true) // Should not error
         
         // Should still only appear once in the list
-        const projectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
-        const matchingAgents = projectAgents.data.filter(a => a.id === globalAgentId)
+        const projectAgents = await client.agents.listProjectAgents(testProjectId)
+        const matchingAgents = projectAgents.data.filter((a: any) => a.id === globalAgentId)
         expect(matchingAgents.length).toBe(1)
       })
     })
@@ -542,6 +545,7 @@ You specialize in comprehensive testing strategies and automation.
         testProjectPath = '/tmp/agent-files-test-project'
         const project = await dataManager.createProject({
           name: 'Agent Files Test Project',
+          description: 'Test project for agent file operations',
           path: testProjectPath
         })
         testProjectId = project.id
@@ -566,7 +570,7 @@ You specialize in comprehensive testing strategies and automation.
         expect(Array.isArray(response.data.suggestedFiles)).toBe(true)
 
         // Should detect our created agent files
-        const projectFileNames = response.data.projectFiles.map(f => f.name)
+        const projectFileNames = response.data.projectFiles.map((f: any) => f.name)
         expect(projectFileNames).toContain('frontend-expert.md')
         expect(projectFileNames).toContain('backend-architect.md')
         expect(projectFileNames).toContain('testing-specialist.md')
@@ -596,6 +600,7 @@ You specialize in comprehensive testing strategies and automation.
         // Create a new project without agent files
         const emptyProject = await dataManager.createProject({
           name: 'Empty Agent Project',
+          description: 'Test project with no agent files',
           path: '/tmp/empty-agent-project'
         })
 
@@ -629,7 +634,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should handle invalid agent ID gracefully', async () => {
         try {
-          await client.claudeAgents.getAgent('non-existent-agent-id')
+          await client.agents.getAgent('non-existent-agent-id')
           expect.unreachable('Should have thrown an error')
         } catch (error: any) {
           expect(error.status).toBe(404)
@@ -638,7 +643,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should validate required fields in create agent', async () => {
         try {
-          await client.claudeAgents.createAgent({
+          await client.agents.createAgent({
             name: '', // Invalid - empty name
             description: 'Valid description',
             color: 'blue',
@@ -652,7 +657,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should validate agent color values', async () => {
         try {
-          await client.claudeAgents.createAgent({
+          await client.agents.createAgent({
             name: 'Test Agent',
             description: 'Test description',
             color: 'invalid-color' as any,
@@ -665,13 +670,13 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should handle empty update gracefully', async () => {
-        const agent = await client.claudeAgents.createAgent(
+        const agent = await client.agents.createAgent(
           createTestAgentData({ name: 'Empty Update Test' })
         )
         dataManager.trackAgent(agent.data.id)
 
         try {
-          await client.claudeAgents.updateAgent(agent.data.id, {} as UpdateClaudeAgentBody)
+          await client.agents.updateAgent(agent.data.id, {} as UpdateClaudeAgentBody)
           expect.unreachable('Should have thrown validation error for empty update')
         } catch (error: any) {
           expect(error.status).toBe(400)
@@ -680,7 +685,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should handle non-existent project in suggestions', async () => {
         try {
-          await client.claudeAgents.suggestAgents(999999, 'test context')
+          await client.agents.suggestAgents(999999, 'test context')
           expect.unreachable('Should have thrown error for non-existent project')
         } catch (error: any) {
           expect(error.status).toBe(404)
@@ -690,11 +695,12 @@ You specialize in comprehensive testing strategies and automation.
       test('should handle malformed suggestion request', async () => {
         const project = await dataManager.createProject({
           name: 'Malformed Request Test',
+          description: 'Test project for malformed requests',
           path: '/tmp/malformed-test'
         })
 
         try {
-          await client.claudeAgents.suggestAgents(project.id, '')
+          await client.agents.suggestAgents(project.id, '')
           // Empty context might be allowed - check if it returns empty results or handles gracefully
         } catch (error: any) {
           // If it throws, should be a reasonable error
@@ -733,7 +739,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should handle multiple concurrent agent creations', async () => {
         const agentPromises = Array.from({ length: 5 }, (_, i) =>
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: `Concurrent Agent ${i}`,
             description: `Concurrent test agent ${i}`
           }))
@@ -745,13 +751,13 @@ You specialize in comprehensive testing strategies and automation.
         results.forEach(agent => dataManager.trackAgent(agent.data.id))
 
         // All should succeed
-        results.forEach(result => {
+        results.forEach((result: any) => {
           assertions.assertSuccessResponse(result)
           assertValidAgent(result.data)
         })
 
         // All should have unique IDs
-        const ids = results.map(r => r.data.id)
+        const ids = results.map((r: any) => r.data.id)
         const uniqueIds = new Set(ids)
         expect(uniqueIds.size).toBe(ids.length)
       })
@@ -759,17 +765,17 @@ You specialize in comprehensive testing strategies and automation.
       test('should handle concurrent reads efficiently', async () => {
         // Create some agents first
         const agents = await Promise.all([
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'Read Test 1' })),
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'Read Test 2' })),
-          client.claudeAgents.createAgent(createTestAgentData({ name: 'Read Test 3' }))
+          client.agents.createAgent(createTestAgentData({ name: 'Read Test 1' })),
+          client.agents.createAgent(createTestAgentData({ name: 'Read Test 2' })),
+          client.agents.createAgent(createTestAgentData({ name: 'Read Test 3' }))
         ])
 
-        agents.forEach(agent => dataManager.trackAgent(agent.data.id))
+        agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
 
         // Perform concurrent reads
         const startTime = Date.now()
-        const readPromises = agents.map(agent =>
-          client.claudeAgents.getAgent(agent.data.id)
+        const readPromises = agents.map((agent: any) =>
+          client.agents.getAgent(agent.data.id)
         )
 
         const results = await Promise.all(readPromises)
@@ -777,7 +783,7 @@ You specialize in comprehensive testing strategies and automation.
         const totalTime = endTime - startTime
 
         // All should succeed
-        results.forEach(result => {
+        results.forEach((result: any) => {
           assertions.assertSuccessResponse(result)
           assertValidAgent(result.data)
         })
@@ -791,17 +797,17 @@ You specialize in comprehensive testing strategies and automation.
 
         // Create multiple agents
         const agentPromises = Array.from({ length: 10 }, (_, i) =>
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: `Bulk Agent ${i}`,
             color: (i % 2 === 0) ? 'blue' : 'green'
           }))
         )
 
         const agents = await Promise.all(agentPromises)
-        agents.forEach(agent => dataManager.trackAgent(agent.data.id))
+        agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
 
         // List all agents
-        const listResponse = await client.claudeAgents.listAgents()
+        const listResponse = await client.agents.listAgents()
         
         const endTime = Date.now()
         const totalTime = endTime - startTime
@@ -814,32 +820,32 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should maintain data consistency under concurrent updates', async () => {
-        const agent = await client.claudeAgents.createAgent(
+        const agent = await client.agents.createAgent(
           createTestAgentData({ name: 'Concurrent Update Test' })
         )
         dataManager.trackAgent(agent.data.id)
 
         // Perform concurrent updates
         const updatePromises = [
-          client.claudeAgents.updateAgent(agent.data.id, { name: 'Update 1' }),
-          client.claudeAgents.updateAgent(agent.data.id, { description: 'Update 2' }),
-          client.claudeAgents.updateAgent(agent.data.id, { color: 'red' })
+          client.agents.updateAgent(agent.data.id, { name: 'Update 1' }),
+          client.agents.updateAgent(agent.data.id, { description: 'Update 2' }),
+          client.agents.updateAgent(agent.data.id, { color: 'red' })
         ]
 
         const results = await Promise.all(updatePromises)
 
         // All updates should succeed
-        results.forEach(result => {
+        results.forEach((result: any) => {
           assertions.assertSuccessResponse(result)
           assertValidAgent(result.data)
         })
 
         // Final state should be consistent
-        const finalAgent = await client.claudeAgents.getAgent(agent.data.id)
+        const finalAgent = await client.agents.getAgent(agent.data.id)
         assertions.assertSuccessResponse(finalAgent)
         
         // Should have the latest timestamp
-        const latestUpdate = Math.max(...results.map(r => r.data.updated))
+        const latestUpdate = Math.max(...results.map((r: any) => r.data.updated))
         expect(finalAgent.data.updated).toBe(latestUpdate)
       })
     })
@@ -861,6 +867,7 @@ You specialize in comprehensive testing strategies and automation.
         
         const project = await dataManager.createProject({
           name: 'Integration Test Project',
+          description: 'Test project for integration scenarios',
           path: '/tmp/integration-test-project'
         })
         testProjectId = project.id
@@ -872,7 +879,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should support full agent lifecycle workflow', async () => {
         // 1. Create agent
-        const createResponse = await client.claudeAgents.createAgent(createTestAgentData({
+        const createResponse = await client.agents.createAgent(createTestAgentData({
           name: 'Lifecycle Agent',
           description: 'Testing full lifecycle'
         }))
@@ -882,21 +889,21 @@ You specialize in comprehensive testing strategies and automation.
         dataManager.trackAgent(agentId)
 
         // 2. Associate with project
-        await client.claudeAgents.addAgentToProject(testProjectId, agentId)
+        await client.agents.addAgentToProject(testProjectId, agentId)
 
         // 3. Verify in project list
-        const projectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
+        const projectAgents = await client.agents.listProjectAgents(testProjectId)
         expect(projectAgents.data.some(a => a.id === agentId)).toBe(true)
 
         // 4. Update agent
-        const updateResponse = await client.claudeAgents.updateAgent(agentId, {
+        const updateResponse = await client.agents.updateAgent(agentId, {
           name: 'Updated Lifecycle Agent',
           description: 'Updated for lifecycle testing'
         })
         assertions.assertSuccessResponse(updateResponse)
 
         // 5. Use in suggestions
-        const suggestionsResponse = await client.claudeAgents.suggestAgents(
+        const suggestionsResponse = await client.agents.suggestAgents(
           testProjectId, 
           'lifecycle testing'
         )
@@ -904,22 +911,22 @@ You specialize in comprehensive testing strategies and automation.
         // Should include our agent in suggestions (if relevant)
 
         // 6. Remove from project
-        await client.claudeAgents.removeAgentFromProject(testProjectId, agentId)
+        await client.agents.removeAgentFromProject(testProjectId, agentId)
 
         // 7. Verify removal
-        const updatedProjectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
+        const updatedProjectAgents = await client.agents.listProjectAgents(testProjectId)
         expect(updatedProjectAgents.data.some(a => a.id === agentId)).toBe(false)
 
         // 8. Agent should still exist globally
-        const globalAgents = await client.claudeAgents.listAgents()
+        const globalAgents = await client.agents.listAgents()
         expect(globalAgents.data.some(a => a.id === agentId)).toBe(true)
 
         // 9. Delete agent
-        await client.claudeAgents.deleteAgent(agentId)
+        await client.agents.deleteAgent(agentId)
 
         // 10. Verify deletion
         try {
-          await client.claudeAgents.getAgent(agentId)
+          await client.agents.getAgent(agentId)
           expect.unreachable('Agent should be deleted')
         } catch (error: any) {
           expect(error.status).toBe(404)
@@ -929,34 +936,34 @@ You specialize in comprehensive testing strategies and automation.
       test('should handle complex agent ecosystem', async () => {
         // Create multiple agents with different specializations
         const specialists = await Promise.all([
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'React Specialist',
             description: 'Expert in React development and hooks',
             color: 'blue'
           })),
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'Node.js Expert',
             description: 'Backend development with Node.js and Express',
             color: 'green'
           })),
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'Database Designer',
             description: 'Database architecture and optimization',
             color: 'purple'
           })),
-          client.claudeAgents.createAgent(createTestAgentData({
+          client.agents.createAgent(createTestAgentData({
             name: 'Testing Engineer',
             description: 'Automated testing and quality assurance',
             color: 'orange'
           }))
         ])
 
-        specialists.forEach(agent => dataManager.trackAgent(agent.data.id))
+        specialists.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
 
         // Associate different agents with project
         await Promise.all([
-          client.claudeAgents.addAgentToProject(testProjectId, specialists[0].data.id),
-          client.claudeAgents.addAgentToProject(testProjectId, specialists[1].data.id)
+          client.agents.addAgentToProject(testProjectId, specialists[0].data.id),
+          client.agents.addAgentToProject(testProjectId, specialists[1].data.id)
         ])
 
         // Test various suggestion scenarios
@@ -980,7 +987,7 @@ You specialize in comprehensive testing strategies and automation.
         ]
 
         for (const scenario of scenarioTests) {
-          const suggestions = await client.claudeAgents.suggestAgents(
+          const suggestions = await client.agents.suggestAgents(
             testProjectId,
             scenario.context
           )
@@ -994,10 +1001,10 @@ You specialize in comprehensive testing strategies and automation.
         }
 
         // Verify project associations
-        const projectAgents = await client.claudeAgents.listProjectAgents(testProjectId)
+        const projectAgents = await client.agents.listProjectAgents(testProjectId)
         expect(projectAgents.data.length).toBe(2) // Only 2 were associated
         
-        const projectAgentNames = projectAgents.data.map(a => a.name)
+        const projectAgentNames = projectAgents.data.map((a: any) => a.name)
         expect(projectAgentNames).toContain('React Specialist')
         expect(projectAgentNames).toContain('Node.js Expert')
       })

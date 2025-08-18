@@ -487,8 +487,10 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
         status: query.status,
         startDate: query.startDate,
         endDate: query.endDate,
-        limit: query.limit,
-        offset: query.offset
+        limit: query.limit || 10,
+        offset: query.offset || 0,
+        sortBy: 'startedAt', // Add required sortBy parameter
+        sortOrder: 'desc' as const // Add required sortOrder parameter
       }
       const result = await getMCPToolExecutions(executionQuery)
       return c.json(successResponse(result))

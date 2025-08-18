@@ -166,7 +166,7 @@ export function validateRouteParam(
 }
 
 /**
- * Standard success response helper
+ * Standard success response helper - returns data object
  */
 export function successResponse<T>(data: T) {
   return {
@@ -176,7 +176,17 @@ export function successResponse<T>(data: T) {
 }
 
 /**
- * Standard operation success response helper
+ * Standard success response helper with Context - returns Hono response
+ */
+export function successResponseJson<T>(c: Context, data: T) {
+  return c.json({
+    success: true as const,
+    data
+  })
+}
+
+/**
+ * Standard operation success response helper - returns data object
  */
 export function operationSuccessResponse(message: string = 'Operation completed successfully') {
   return {
@@ -186,27 +196,52 @@ export function operationSuccessResponse(message: string = 'Operation completed 
 }
 
 /**
+ * Standard operation success response helper with Context - returns Hono response
+ */
+export function operationSuccessResponseJson(c: Context, message: string = 'Operation completed successfully') {
+  return c.json({
+    success: true as const,
+    message
+  })
+}
+
+/**
  * Create a route handler with built-in validation and error handling
  */
-export function createRouteHandler<
-  TParams = any,
-  TQuery = any,
-  TBody = any,
-  TResponse = any
->(
-  handler: (args: {
-    params?: TParams
-    query?: TQuery
-    body?: TBody
-    c: Context
-  }) => Promise<TResponse>
+export function createRouteHandler<TArgs extends Record<string, any> = Record<string, any>>(
+  handler: (args: TArgs & { c: Context }) => Promise<any>
 ) {
   return withErrorHandling(async (c: Context) => {
-    const params = c.req.valid('param' as any) as TParams | undefined
-    const query = c.req.valid('query' as any) as TQuery | undefined
-    const body = c.req.valid('json' as any) as TBody | undefined
+    // Type-safe parameter extraction
+    let params: any = undefined
+    let query: any = undefined
+    let body: any = undefined
     
-    const result = await handler({ params, query, body, c })
+    try {
+      params = c.req.valid('param')
+    } catch {
+      // No params validation defined
+    }
+    
+    try {
+      query = c.req.valid('query')
+    } catch {
+      // No query validation defined
+    }
+    
+    try {
+      body = c.req.valid('json')
+    } catch {
+      // No body validation defined
+    }
+    
+    const result = await handler({ params, query, body, c } as TArgs & { c: Context })
+    
+    // If result is already a Response, return it directly
+    if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
+      return result
+    }
+    
     return c.json(result)
   })
 }
@@ -256,42 +291,62 @@ export function createCrudRoutes<TEntity extends { id: number }>(
   }
 ) {
   return {
-    list: createRouteHandler(async () => {
+    list: createRouteHandler(async ({ c }) => {
       const entities = await service.list()
-      return successResponse(entities)
+      return successResponseJson(c, entities)
     }),
     
-    get: createRouteHandler<{ id: string }>(async ({ params }) => {
-      const id = parseInt(params!.id, 10)
+    get: createRouteHandler(async ({ params, c }) => {
+      const id = parseInt(params?.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
       const entity = await service.get(id)
       
       if (!entity) {
         throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
       }
       
-      return successResponse(entity)
+      return successResponseJson(c, entity)
     }),
     
-    create: createRouteHandler<any, any, any>(async ({ body }) => {
-      const entity = await service.create(body!)
-      return successResponse(entity)
+    create: createRouteHandler(async ({ body, c }) => {
+      if (!body) {
+        throw new ApiError(400, 'Request body is required', 'MISSING_BODY')
+      }
+      
+      const entity = await service.create(body)
+      return successResponseJson(c, entity)
     }),
     
-    update: createRouteHandler<{ id: string }, any, any>(async ({ params, body }) => {
-      const id = parseInt(params!.id, 10)
-      const entity = await service.update(id, body!)
-      return successResponse(entity)
+    update: createRouteHandler(async ({ params, body, c }) => {
+      const id = parseInt(params?.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
+      if (!body) {
+        throw new ApiError(400, 'Request body is required', 'MISSING_BODY')
+      }
+      
+      const entity = await service.update(id, body)
+      return successResponseJson(c, entity)
     }),
     
-    delete: createRouteHandler<{ id: string }>(async ({ params }) => {
-      const id = parseInt(params!.id, 10)
+    delete: createRouteHandler(async ({ params, c }) => {
+      const id = parseInt(params?.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
       const success = await service.delete(id)
       
       if (!success) {
         throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
       }
       
-      return operationSuccessResponse(`${entityName} deleted successfully`)
+      return operationSuccessResponseJson(c, `${entityName} deleted successfully`)
     })
   }
 }

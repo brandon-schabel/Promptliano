@@ -158,8 +158,7 @@ export const mcpExecutionRoutes = new OpenAPIHono()
     const body = c.req.valid('json')
     const result = await executeMCPTool(
       1, // TODO: projectId
-      body.name || '',
-      body.arguments || {}
+      body // Pass the entire validated request body
     )
     return c.json(successResponse(result))
   })

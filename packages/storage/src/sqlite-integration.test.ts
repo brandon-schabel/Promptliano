@@ -17,6 +17,7 @@ import {
   mcpResourceStorage,
   mcpToolExecutionStorage
 } from './mcp-storage'
+import { MemoryAdapter } from './storage-v2'
 
 // Import types and schemas
 import type {
@@ -151,7 +152,7 @@ describe('SQLite Storage Integration Tests', () => {
       const results = query.all(project.id) as Array<{ data: string }>
       expect(results).toHaveLength(1)
 
-      const foundChat = JSON.parse(results[0].data) as Chat
+      const foundChat = JSON.parse(results[0]?.data) as Chat
       expect(foundChat.id).toBe(chat.id)
     })
 
@@ -219,6 +220,8 @@ describe('SQLite Storage Integration Tests', () => {
           summaryLastUpdated: null,
           meta: null,
           checksum: null,
+          imports: null,
+          exports: null,
           created: Date.now() + i,
           updated: Date.now() + i
         }
@@ -235,7 +238,7 @@ describe('SQLite Storage Integration Tests', () => {
       const fileArray = await projectStorage.getProjectFileArray(project.id)
       expect(fileArray).toHaveLength(3)
       // Should be sorted by created date, newest first
-      expect(fileArray[0].created).toBeGreaterThan(fileArray[1].created)
+      expect(fileArray[0]?.created).toBeGreaterThan(fileArray[1]?.created ?? 0)
     })
 
     test('should handle prompt-project associations', async () => {
@@ -279,21 +282,19 @@ describe('SQLite Storage Integration Tests', () => {
         {
           id: Date.now() + 3,
           promptId: prompt.id,
-          projectId: project1.id,
-          created: Date.now()
+          projectId: project1.id
         },
         {
           id: Date.now() + 4,
           promptId: prompt.id,
-          projectId: project2.id,
-          created: Date.now()
+          projectId: project2.id
         }
       ]
 
-      await promptStorage.writePromptProjects(associations)
+      await promptStorage.writePromptProjectAssociations(associations)
 
       // Verify associations
-      const savedAssociations = await promptStorage.readPromptProjects()
+      const savedAssociations = await promptStorage.readPromptProjectAssociations()
       expect(savedAssociations).toHaveLength(2)
 
       // Verify both associations were saved correctly
@@ -411,6 +412,7 @@ describe('SQLite Storage Integration Tests', () => {
           isActive: true,
           environment: 'production',
           description: `Test key ${i} for integration testing`,
+          encrypted: false,
           created: Date.now() + i,
           updated: Date.now() + i
         }
@@ -706,7 +708,7 @@ describe('SQLite Storage Integration Tests', () => {
         projects: await projectStorage.readProjects(),
         prompts: await promptStorage.readPrompts(),
         providerKeys: await providerKeyStorage.readProviderKeys(),
-        promptProjects: await promptStorage.readPromptProjects()
+        promptProjects: await promptStorage.readPromptProjectAssociations()
       }
 
       // Verify backup contains all data
@@ -726,7 +728,7 @@ describe('SQLite Storage Integration Tests', () => {
         projects: await projectStorage.readProjects(),
         prompts: await promptStorage.readPrompts(),
         providerKeys: await providerKeyStorage.readProviderKeys(),
-        promptProjects: await promptStorage.readPromptProjects()
+        promptProjects: await promptStorage.readPromptProjectAssociations()
       }
 
       // Clear all data
@@ -746,14 +748,14 @@ describe('SQLite Storage Integration Tests', () => {
       await projectStorage.writeProjects(backup.projects)
       await promptStorage.writePrompts(backup.prompts)
       await providerKeyStorage.writeProviderKeys(backup.providerKeys)
-      await promptStorage.writePromptProjects(backup.promptProjects)
+      await promptStorage.writePromptProjectAssociations(backup.promptProjects)
 
       // Verify restoration
       expect(Object.keys(await chatStorage.readChats())).toHaveLength(2)
       expect(Object.keys(await projectStorage.readProjects())).toHaveLength(2)
       expect(Object.keys(await promptStorage.readPrompts())).toHaveLength(1)
       expect(Object.keys(await providerKeyStorage.readProviderKeys())).toHaveLength(2)
-      expect(await promptStorage.readPromptProjects()).toHaveLength(1)
+      expect(await promptStorage.readPromptProjectAssociations()).toHaveLength(1)
     })
   })
 
@@ -852,7 +854,7 @@ describe('SQLite Storage Integration Tests', () => {
       // Query by project - use findBy instead of query
       const projectConfigs = await mcpServerConfigStorage.findBy('projectId', projectId)
       expect(projectConfigs).toHaveLength(1)
-      expect(projectConfigs[0].id).toBe(config.id)
+      expect(projectConfigs[0]?.id).toBe(config.id)
     })
 
     test('should track MCP server states', async () => {
@@ -1135,11 +1137,10 @@ async function createTestData() {
   const association: PromptProject = {
     id: Date.now() + 7,
     promptId: prompt.id,
-    projectId: project1.id,
-    created: Date.now()
+    projectId: project1.id
   }
 
-  await promptStorage.writePromptProjects([association])
+  await promptStorage.writePromptProjectAssociations([association])
 
   // Create provider keys
   const key1: ProviderKey = {
@@ -1151,6 +1152,7 @@ async function createTestData() {
     isActive: true,
     environment: 'production',
     description: 'Test OpenAI key for helper',
+    encrypted: false,
     created: Date.now(),
     updated: Date.now()
   }
@@ -1164,6 +1166,7 @@ async function createTestData() {
     isActive: true,
     environment: 'production',
     description: 'Test Anthropic key for helper',
+    encrypted: false,
     created: Date.now(),
     updated: Date.now()
   }
@@ -1186,6 +1189,8 @@ async function createTestData() {
     summaryLastUpdated: null,
     meta: null,
     checksum: null,
+    imports: null,
+    exports: null,
     created: Date.now(),
     updated: Date.now()
   }

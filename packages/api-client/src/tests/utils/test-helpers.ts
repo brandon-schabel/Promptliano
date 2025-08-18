@@ -23,6 +23,13 @@ export const assertions = {
   },
 
   /**
+   * Alias for assertSuccessResponse for backwards compatibility
+   */
+  apiSuccess<T>(response: any, expectedDataShape?: Partial<T>): asserts response is { success: true; data: T } {
+    return this.assertSuccessResponse(response, expectedDataShape)
+  },
+
+  /**
    * Asserts that an API response has the expected error structure
    */
   assertErrorResponse(response: any, expectedStatus?: number, expectedCode?: string): asserts response is { success: false; error: any } {
@@ -167,7 +174,7 @@ export const assertions = {
    */
   assertValidQueueStats(stats: any): asserts stats is {
     totalItems: number
-    pendingItems: number
+    queuedItems: number
     inProgressItems: number
     completedItems: number
     failedItems: number
@@ -175,7 +182,7 @@ export const assertions = {
   } {
     expect(stats).toBeDefined()
     expect(stats.totalItems).toBeTypeOf('number')
-    expect(stats.pendingItems).toBeTypeOf('number')
+    expect(stats.queuedItems).toBeTypeOf('number')
     expect(stats.inProgressItems).toBeTypeOf('number')
     expect(stats.completedItems).toBeTypeOf('number')
     expect(stats.failedItems).toBeTypeOf('number')
@@ -380,6 +387,26 @@ export class TestDataManager {
   }
 
   /**
+   * Tracks an agent for cleanup (Claude agents use string IDs)
+   */
+  trackAgent(agentId: string): void {
+    this.createdEntities.push({
+      type: 'agent',
+      id: parseInt(agentId, 10) || 0, // Convert string ID to number for tracking
+      deleteFunction: async () => {
+        try {
+          await this.client.agents.deleteAgent(agentId)
+        } catch (error) {
+          // Ignore 404 errors (already deleted)
+          if (!(error instanceof Error && error.message.includes('404'))) {
+            console.warn(`Failed to cleanup agent ${agentId}:`, error)
+          }
+        }
+      }
+    })
+  }
+
+  /**
    * Creates and tracks a chat
    */
   async createChat(data = factories.createChatData()) {
@@ -449,6 +476,25 @@ export class TestDataManager {
         }
       }
     })
+  }
+
+  /**
+   * Adds a command to the cleanup list (commands are created externally)
+   */
+  addCommand(command: { id: string; name: string; namespace?: string }) {
+    this.createdEntities.push({
+      type: 'command',
+      id: command.id as any, // Commands use string IDs, but we'll store as is
+      deleteFunction: async () => {
+        try {
+          // Extract projectId from command context if available
+          // For now, we'll assume commands are cleaned up by project deletion
+        } catch (error) {
+          console.warn(`Failed to cleanup command ${command.name}:`, error)
+        }
+      }
+    })
+    return command
   }
 
 

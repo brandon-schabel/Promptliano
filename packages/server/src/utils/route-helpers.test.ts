@@ -86,7 +86,7 @@ describe('Route Helpers', () => {
         
         // Check that the schema has OpenAPI metadata with correct refId
         expect(schema._def.openapi).toBeDefined()
-        expect(schema._def.openapi._internal.refId).toBe('TestSuccess')
+        expect(schema._def.openapi?._internal?.refId).toBe('TestSuccess')
       })
     })
     
@@ -233,15 +233,15 @@ describe('Route Helpers', () => {
         const responses = createStandardResponsesWithStatus(mockSchema, 201, 'Created')
         
         expect(responses).toHaveProperty('201')
-        expect(responses[201].description).toBe('Created')
-        expect(responses[201].content['application/json'].schema).toBe(mockSchema)
+        expect((responses as any)[201].description).toBe('Created')
+        expect((responses as any)[201].content['application/json'].schema).toBe(mockSchema)
       })
       
       it('should use default 200 status when not specified', () => {
         const responses = createStandardResponsesWithStatus(mockSchema)
         
         expect(responses).toHaveProperty('200')
-        expect(responses[200].description).toBe('Success')
+        expect((responses as any)[200].description).toBe('Success')
       })
       
       it('should include standard error responses with custom status', () => {
@@ -464,7 +464,7 @@ describe('Route Helpers', () => {
   
   describe('Route Handler Factory', () => {
     describe('createRouteHandler', () => {
-      const mockJsonResponse = mock(() => new Response())
+      const mockJsonResponse = mock(() => ({ status: 200, json: {} }) as any)
       const mockContext = createMockContext({
         json: mockJsonResponse
       })

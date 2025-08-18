@@ -548,11 +548,15 @@ export function createProviderKeyService() {
           
           const customData = await response.json() as { data?: Array<{ id?: string; name?: string }> }
           models =
-            customData.data?.map((model) => ({
-              id: model.id,
-              name: model.id || model.name,
-              description: `Custom provider model: ${model.id || model.name}`
-            })) || []
+            customData.data?.map((model) => {
+              const modelId = model.id || 'unknown'
+              const modelName = model.name || model.id || 'Unknown Model'
+              return {
+                id: modelId,
+                name: modelName,
+                description: `Custom provider model: ${model.id || model.name || 'unknown'}`
+              }
+            }) || []
           break
         }
 

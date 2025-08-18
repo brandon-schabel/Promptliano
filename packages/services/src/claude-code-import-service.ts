@@ -21,7 +21,7 @@ export class ClaudeCodeImportService {
     }
 
     // Generate a title from the first user message
-    const firstUserMessage = messages.find((m) => m.message.role === 'user')
+    const firstUserMessage = messages.find((m) => m.message?.role === 'user')
     const title = this.generateChatTitle(firstUserMessage, sessionId)
 
     // Create a new chat with project association
@@ -56,7 +56,7 @@ export class ClaudeCodeImportService {
    * Generate a descriptive title for the chat
    */
   private generateChatTitle(firstUserMessage: ClaudeMessage | undefined, sessionId: string): string {
-    if (firstUserMessage) {
+    if (firstUserMessage?.message?.content) {
       const content = this.extractTextContent(firstUserMessage.message.content)
       // Take first 50 characters of the first user message
       const preview = content.substring(0, 50).trim()
@@ -71,14 +71,15 @@ export class ClaudeCodeImportService {
    * Import a single Claude Code message as a chat message
    */
   private async importMessage(chatId: number, claudeMessage: ClaudeMessage, order: number): Promise<ChatMessage> {
-    const content = this.extractTextContent(claudeMessage.message.content)
+    const content = this.extractTextContent(claudeMessage.message?.content ?? '')
     const timestamp = new Date(claudeMessage.timestamp).getTime()
 
     // Map Claude Code roles to Promptliano roles
     let role: 'user' | 'assistant' | 'system'
-    if (claudeMessage.message.role === 'user') {
+    const messageRole = claudeMessage.message?.role
+    if (messageRole === 'user') {
       role = 'user'
-    } else if (claudeMessage.message.role === 'assistant') {
+    } else if (messageRole === 'assistant') {
       role = 'assistant'
     } else {
       role = 'system'

@@ -160,12 +160,12 @@ export const providerKeyRoutes = new OpenAPIHono()
   .openapi(createProviderKeyRoute, async (c) => {
     const body = c.req.valid('json')
     const newKey = await providerKeyService.createKey({ ...body, isDefault: false })
-    return c.json({ success: true, data: newKey } satisfies z.infer<typeof ProviderKeyResponseSchema>, 201)
+    return c.json(successResponse(newKey), 201)
   })
 
   .openapi(listProviderKeysRoute, async (c) => {
     const keys = await providerKeyService.listKeysCensoredKeys()
-    return c.json({ success: true, data: keys } satisfies z.infer<typeof ProviderKeyListResponseSchema>, 200)
+    return c.json(successResponse(keys), 200)
   })
 
   .openapi(getProviderKeyByIdRoute, async (c) => {
@@ -174,47 +174,38 @@ export const providerKeyRoutes = new OpenAPIHono()
     if (!key) {
       throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
     }
-    return c.json({ success: true, data: key } satisfies z.infer<typeof ProviderKeyResponseSchema>, 200)
+    return c.json(successResponse(key), 200)
   })
 
   .openapi(updateProviderKeyRoute, async (c) => {
     const { keyId } = c.req.valid('param')
     const body = c.req.valid('json')
     const updatedKey = await providerKeyService.updateKey(keyId, body)
-    return c.json({ success: true, data: updatedKey } satisfies z.infer<typeof ProviderKeyResponseSchema>, 200)
+    return c.json(successResponse(updatedKey), 200)
   })
 
   .openapi(deleteProviderKeyRoute, async (c) => {
     const { keyId } = c.req.valid('param')
     await providerKeyService.deleteKey(keyId)
-    return c.json(
-      { success: true, message: 'Key deleted successfully.' } satisfies z.infer<typeof OperationSuccessResponseSchema>,
-      200
-    )
+    return c.json(operationSuccessResponse('Key deleted successfully.'), 200)
   })
 
   .openapi(testProviderRoute, async (c) => {
     const body = c.req.valid('json')
     const testResult = await providerKeyService.testProvider(body)
-    return c.json({ success: true, data: testResult } satisfies z.infer<typeof TestProviderApiResponseSchema>, 200)
+    return c.json(successResponse(testResult), 200)
   })
 
   .openapi(batchTestProviderRoute, async (c) => {
     const body = c.req.valid('json')
     const batchResult = await providerKeyService.batchTestProviders(body)
-    return c.json(
-      { success: true, data: batchResult } satisfies z.infer<typeof BatchTestProviderApiResponseSchema>,
-      200
-    )
+    return c.json(successResponse(batchResult), 200)
   })
 
   .openapi(providerHealthRoute, async (c) => {
     const { refresh } = c.req.valid('query')
     const healthStatuses = await providerKeyService.getProviderHealthStatus(refresh)
-    return c.json(
-      { success: true, data: healthStatuses } satisfies z.infer<typeof ProviderHealthStatusListResponseSchema>,
-      200
-    )
+    return c.json(successResponse(healthStatuses), 200)
   })
 
   .openapi(updateProviderSettingsRoute, async (c) => {
@@ -223,12 +214,7 @@ export const providerKeyRoutes = new OpenAPIHono()
     // Update the provider settings with custom URLs
     updateProviderSettings(body)
 
-    return c.json(
-      { success: true, message: 'Provider settings updated successfully' } satisfies z.infer<
-        typeof OperationSuccessResponseSchema
-      >,
-      200
-    )
+    return c.json(operationSuccessResponse('Provider settings updated successfully'), 200)
   })
 
 // Validate custom provider route
@@ -252,13 +238,7 @@ providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
   try {
     const result = await validateCustomProvider(body)
     
-    return c.json(
-      {
-        success: true,
-        data: result
-      } satisfies z.infer<typeof ValidateCustomProviderResponseSchema>,
-      200
-    )
+    return c.json(successResponse(result), 200)
   } catch (error) {
     if (error instanceof ApiError) {
       throw error

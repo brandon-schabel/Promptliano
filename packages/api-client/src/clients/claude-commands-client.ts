@@ -119,6 +119,22 @@ export class ClaudeCommandsClient extends BaseApiClient {
    * 
    * @param projectId - The project ID
    * @param commandName - The command name to execute
+   * @param arguments - Arguments string for the command (overloaded for convenience)
+   * @param namespace - Optional namespace
+   * @returns The execution result
+   */
+  async executeCommand(
+    projectId: number, 
+    commandName: string, 
+    commandArguments?: string,
+    namespace?: string
+  ): Promise<z.infer<typeof CommandExecutionResponseSchema>>
+
+  /**
+   * Execute a command (full data object)
+   * 
+   * @param projectId - The project ID
+   * @param commandName - The command name to execute
    * @param data - Command execution data
    * @param namespace - Optional namespace
    * @returns The execution result
@@ -128,7 +144,19 @@ export class ClaudeCommandsClient extends BaseApiClient {
     commandName: string, 
     data: z.infer<typeof ExecuteClaudeCommandBodySchema>,
     namespace?: string
+  ): Promise<z.infer<typeof CommandExecutionResponseSchema>>
+
+  async executeCommand(
+    projectId: number, 
+    commandName: string, 
+    argumentsOrData?: string | z.infer<typeof ExecuteClaudeCommandBodySchema>,
+    namespace?: string
   ) {
+    // Handle both string arguments and full data object
+    const data = typeof argumentsOrData === 'string' 
+      ? { arguments: argumentsOrData }
+      : argumentsOrData || {}
+    
     const validatedData = this.validateBody(ExecuteClaudeCommandBodySchema, data)
     const path = namespace 
       ? `/projects/${projectId}/commands/${commandName}/execute?namespace=${encodeURIComponent(namespace)}`
@@ -162,12 +190,16 @@ export class ClaudeCommandsClient extends BaseApiClient {
    * 
    * @param projectId - The project ID
    * @param query - Optional query string for suggestions
+   * @param limit - Optional limit for number of suggestions
    * @returns Command suggestions
    */
-  async suggestCommands(projectId: number, query?: string) {
-    const params = query ? { q: query } : undefined
+  async suggestCommands(projectId: number, query?: string, limit?: number) {
+    const params: Record<string, any> = {}
+    if (query) params.q = query
+    if (limit) params.limit = limit
+    
     const result = await this.request('POST', `/projects/${projectId}/commands/suggest`, {
-      params,
+      params: Object.keys(params).length > 0 ? params : undefined,
       responseSchema: CommandSuggestionsResponseSchema
     })
     return result as z.infer<typeof CommandSuggestionsResponseSchema>

@@ -211,7 +211,11 @@ export async function withTransaction<T>(
     const results: any[] = []
     
     for (let i = 0; i < operations.length; i++) {
-      results.push(await operations[i]())
+      const operation = operations[i]
+      if (!operation) {
+        throw new Error(`Operation at index ${i} is undefined`)
+      }
+      results.push(await operation())
       completed.push(i)
     }
     

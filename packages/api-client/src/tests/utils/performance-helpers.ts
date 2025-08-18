@@ -106,6 +106,7 @@ export interface LoadTestConfig {
     enableCpuTracking?: boolean
     enableGcTracking?: boolean
     sampleIntervalMs?: number
+    maxSamples?: number
   }
 }
 

@@ -138,7 +138,7 @@ export const gitStashRoutes = new OpenAPIHono()
     const body = await c.req.json().catch(() => ({}))
     await gitService.stash(projectId, body?.message)
     gitService.clearGitStatusCache(projectId)
-    return c.json(operationSuccessResponse('Stash created successfully'))
+    return c.json(operationSuccessResponse('Stash created successfully'), 201)
   })
   .openapi(applyStashRoute, async (c) => {
     const projectId = parseInt(c.req.param('projectId')!, 10)

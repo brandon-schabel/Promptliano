@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createStandardResponses, createStandardResponsesWithStatus, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
   TaskQueueSchema,
   QueueStatsSchema,
@@ -38,7 +39,6 @@ import {
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 export const queueRoutes = new OpenAPIHono()
 
@@ -48,7 +48,7 @@ const createQueueRoute = createRoute({
   path: '/api/projects/:projectId/queues',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      projectId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -82,7 +82,7 @@ const listQueuesRoute = createRoute({
   path: '/api/projects/:projectId/queues',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -103,7 +103,7 @@ const getQueueRoute = createRoute({
   path: '/api/queues/:queueId',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -124,7 +124,7 @@ const updateQueueRoute = createRoute({
   path: '/api/queues/:queueId',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -153,7 +153,7 @@ const deleteQueueRoute = createRoute({
   path: '/api/queues/:queueId',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -174,7 +174,7 @@ const enqueueTicketRoute = createRoute({
   path: '/api/tickets/:ticketId/enqueue',
   request: {
     params: z.object({
-      ticketId: z.string().transform((val) => parseInt(val, 10))
+      ticketId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -213,8 +213,8 @@ const enqueueTaskRoute = createRoute({
   path: '/api/tickets/:ticketId/tasks/:taskId/enqueue',
   request: {
     params: z.object({
-      ticketId: z.string().transform((val) => parseInt(val, 10)),
-      taskId: z.string().transform((val) => parseInt(val, 10))
+      ticketId: z.coerce.number().int().positive(),
+      taskId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -246,7 +246,7 @@ const dequeueTicketRoute = createRoute({
   path: '/api/tickets/:ticketId/dequeue',
   request: {
     params: z.object({
-      ticketId: z.string().transform((val) => parseInt(val, 10))
+      ticketId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -267,8 +267,8 @@ const dequeueTaskRoute = createRoute({
   path: '/api/tickets/:ticketId/tasks/:taskId/dequeue',
   request: {
     params: z.object({
-      ticketId: z.string().transform((val) => parseInt(val, 10)),
-      taskId: z.string().transform((val) => parseInt(val, 10))
+      ticketId: z.coerce.number().int().positive(),
+      taskId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -289,7 +289,7 @@ const getQueueStatsRoute = createRoute({
   path: '/api/queues/:queueId/stats',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -310,7 +310,7 @@ const getQueuesWithStatsRoute = createRoute({
   path: '/api/projects/:projectId/queues-with-stats',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -331,7 +331,7 @@ const getNextTaskRoute = createRoute({
   path: '/api/queues/:queueId/next-task',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -362,7 +362,7 @@ const getUnqueuedItemsRoute = createRoute({
   path: '/api/projects/:projectId/unqueued-items',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -386,7 +386,7 @@ const pauseQueueRoute = createRoute({
   path: '/api/queues/:queueId/pause',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -407,7 +407,7 @@ const resumeQueueRoute = createRoute({
   path: '/api/queues/:queueId/resume',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({
@@ -429,7 +429,7 @@ const completeQueueItemRoute = createRoute({
   request: {
     params: z.object({
       itemType: z.enum(['ticket', 'task']),
-      itemId: z.string().transform((val) => parseInt(val, 10))
+      itemId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -461,7 +461,7 @@ const failQueueItemRoute = createRoute({
   request: {
     params: z.object({
       itemType: z.enum(['ticket', 'task']),
-      itemId: z.string().transform((val) => parseInt(val, 10))
+      itemId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -494,7 +494,7 @@ const moveItemToQueueRoute = createRoute({
   request: {
     params: z.object({
       itemType: z.enum(['ticket', 'task']),
-      itemId: z.string().transform((val) => parseInt(val, 10))
+      itemId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -528,7 +528,7 @@ const enqueueTicketToQueueRoute = createRoute({
   path: '/api/queues/:queueId/enqueue-ticket',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -565,7 +565,7 @@ const getQueueItemsRoute = createRoute({
   path: '/api/queues/:queueId/items',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     query: z.object({
       status: z.string().optional()
@@ -595,7 +595,7 @@ const enqueueItemsRoute = createRoute({
   path: '/api/queues/:queueId/items',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -650,7 +650,7 @@ const batchEnqueueRoute = createRoute({
   path: '/api/queues/:queueId/batch-enqueue',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -680,7 +680,7 @@ const getQueueTimelineRoute = createRoute({
   path: '/api/queues/:queueId/timeline',
   request: {
     params: z.object({
-      queueId: z.string().transform((val) => parseInt(val, 10))
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(z.object({

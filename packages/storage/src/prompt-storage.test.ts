@@ -50,10 +50,10 @@ describe('Prompt Storage (SQLite)', () => {
     }
 
     // Write association
-    await promptStorage.writePromptProjects([association])
+    await promptStorage.writePromptProjectAssociations([association])
 
     // Read associations
-    const retrievedAssociations = await promptStorage.readPromptProjects()
+    const retrievedAssociations = await promptStorage.readPromptProjectAssociations()
     expect(retrievedAssociations).toHaveLength(1)
     expect(retrievedAssociations[0]).toEqual(association)
   })
@@ -84,8 +84,8 @@ describe('Prompt Storage (SQLite)', () => {
 
     // Verify update
     const retrievedPrompts = await promptStorage.readPrompts()
-    expect(retrievedPrompts[String(testPromptId)].name).toBe('Updated Name')
-    expect(retrievedPrompts[String(testPromptId)].content).toBe('Updated content')
+    expect(retrievedPrompts[String(testPromptId)]?.name).toBe('Updated Name')
+    expect(retrievedPrompts[String(testPromptId)]?.content).toBe('Updated content')
   })
 
   it('should delete prompts', async () => {
@@ -147,10 +147,10 @@ describe('Prompt Storage (SQLite)', () => {
     ]
 
     // Write associations
-    await promptStorage.writePromptProjects(associations)
+    await promptStorage.writePromptProjectAssociations(associations)
 
     // Read and verify
-    const retrievedAssociations = await promptStorage.readPromptProjects()
+    const retrievedAssociations = await promptStorage.readPromptProjectAssociations()
     expect(retrievedAssociations).toHaveLength(3)
 
     // Check that all associations are preserved

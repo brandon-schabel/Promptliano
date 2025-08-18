@@ -341,7 +341,8 @@ export class SmartTruncation {
       const classMatch = /^(?!export\s+)(abstract\s+)?class\s+(\w+)/.exec(line)
 
       if (classMatch) {
-        const className = classMatch[2] // Group 2 is the class name
+        const className = classMatch[2]
+        if (!className) continue
         const classEnd = this.findBlockEnd(lines, i)
 
         // For large classes, just keep the signature and public methods
@@ -350,7 +351,8 @@ export class SmartTruncation {
 
         // Extract public methods and constructor
         for (let j = 1; j < classLines.length - 1; j++) {
-          const methodLine = classLines[j].trim()
+          const methodLine = classLines[j]?.trim()
+          if (!methodLine) continue
           if (
             methodLine.startsWith('constructor') ||
             methodLine.startsWith('public') ||
@@ -395,7 +397,8 @@ export class SmartTruncation {
       const arrowMatch = /^(?!export\s+)const\s+(\w+)\s*=\s*(async\s+)?\(/.exec(line)
 
       if (funcMatch || arrowMatch) {
-        const funcName = funcMatch ? funcMatch[2] : arrowMatch![1] // Correct group indices
+        const funcName = funcMatch?.[2] ?? arrowMatch?.[1]
+        if (!funcName) continue
         const funcEnd = this.findBlockEnd(lines, i)
 
         // For large functions, keep signature and early return statements
@@ -427,7 +430,8 @@ export class SmartTruncation {
       const typeMatch = /^(?!export\s+)(type|interface)\s+(\w+)/.exec(line)
 
       if (typeMatch) {
-        const typeName = typeMatch[2] // Group 2 is the type name
+        const typeName = typeMatch[2]
+        if (!typeName) continue
         const typeEnd = this.findBlockEnd(lines, i)
 
         sections.push({
@@ -509,7 +513,7 @@ export class SmartTruncation {
         const line = lines[i]
 
         // Handle undefined or null lines
-        if (line === undefined || line === null) {
+        if (line == null) {
           continue
         }
 

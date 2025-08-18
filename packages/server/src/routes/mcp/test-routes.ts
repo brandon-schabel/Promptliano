@@ -262,12 +262,13 @@ export const mcpTestRoutes = new OpenAPIHono()
         }))
       }
       
-      // TODO: Fix executeMCPTool call
-      const result = await executeMCPTool(
-        1, // projectId
-        body.toolName,
-        body.arguments || {}
-      )
+      // Fix executeMCPTool call to use correct request structure
+      const request = {
+        toolId: body.toolName,
+        serverId: body.serverId ? parseInt(body.serverId) : 1, // Default server ID
+        parameters: body.arguments || {}
+      }
+      const result = await executeMCPTool(1, request)
       
       return c.json(successResponse({
         executed: true,

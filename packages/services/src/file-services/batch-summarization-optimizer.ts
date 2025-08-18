@@ -1,4 +1,5 @@
-import type { ProjectFile, FileGroup } from '@promptliano/schemas'
+import type { ProjectFile, FileGroup, FileRelationship } from '@promptliano/schemas'
+import { FileRelationshipTypeEnum } from '@promptliano/schemas'
 import {
   OPTIMAL_TOKENS_FOR_BATCH,
   MAX_FILES_PER_BATCH,
@@ -151,7 +152,7 @@ export class BatchSummarizationOptimizer {
    * Enhance a group with relationship information
    */
   private enhanceGroupWithRelationships(group: FileGroup, allFiles: ProjectFile[]): FileGroup {
-    const relationships: Array<{ sourceFileId: number; targetFileId: number; type: string }> = []
+    const relationships: FileRelationship[] = []
     const fileMap = new Map(allFiles.map((f) => [f.id, f]))
     const groupFileIds = new Set(group.fileIds)
 
@@ -170,7 +171,8 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: fileId,
             targetFileId: importedFile.id,
-            type: 'imports'
+            type: FileRelationshipTypeEnum.enum.imports,
+            strength: 1.0
           })
         }
       }
@@ -196,7 +198,7 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: otherId,
             targetFileId: fileId,
-            type: 'imports' as const,
+            type: FileRelationshipTypeEnum.enum.imports,
             strength: 1.0 // Default strength for import relationships
           })
         }

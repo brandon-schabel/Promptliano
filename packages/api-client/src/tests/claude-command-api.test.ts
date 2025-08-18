@@ -220,7 +220,8 @@ Use appropriate HTTP methods and validate status codes.`,
     test('should fail to create command with duplicate name', async () => {
       const createData: CreateClaudeCommandBody = {
         name: 'duplicate-test',
-        content: 'First command content'
+        content: 'First command content',
+        scope: 'project'
       }
 
       // Create first command
@@ -249,7 +250,8 @@ Use appropriate HTTP methods and validate status codes.`,
         await expect(async () => {
           await client.commands.createCommand(testProject.data.id, {
             name: invalidName,
-            content: 'Test content'
+            content: 'Test content',
+            scope: 'project'
           })
         }).toThrow()
       }
@@ -259,6 +261,7 @@ Use appropriate HTTP methods and validate status codes.`,
       const minimalData: CreateClaudeCommandBody = {
         name: 'minimal-command',
         content: 'Simple command: $ARGUMENTS'
+        // scope defaults to 'project' in schema
       }
 
       const result = await client.commands.createCommand(testProject.data.id, minimalData)
@@ -297,6 +300,7 @@ Use appropriate HTTP methods and validate status codes.`,
         name: 'get-test-command',
         namespace: 'utilities',
         content: 'Test command for retrieval: $ARGUMENTS',
+        scope: 'project',
         frontmatter: {
           description: 'Command for testing get operation'
         }
@@ -330,6 +334,7 @@ Use appropriate HTTP methods and validate status codes.`,
       const createData: CreateClaudeCommandBody = {
         name: 'update-test-command',
         content: 'Original content: $ARGUMENTS',
+        scope: 'project',
         frontmatter: {
           description: 'Original description'
         }
@@ -365,7 +370,8 @@ Use appropriate HTTP methods and validate status codes.`,
       const createData: CreateClaudeCommandBody = {
         name: 'move-test-command',
         namespace: 'original',
-        content: 'Command to be moved: $ARGUMENTS'
+        content: 'Command to be moved: $ARGUMENTS',
+        scope: 'project'
       }
 
       const createResult = await client.commands.createCommand(testProject.data.id, createData)
@@ -400,7 +406,8 @@ Use appropriate HTTP methods and validate status codes.`,
       // Create command to delete
       const createData: CreateClaudeCommandBody = {
         name: 'delete-test-command',
-        content: 'Command to be deleted: $ARGUMENTS'
+        content: 'Command to be deleted: $ARGUMENTS',
+        scope: 'project'
       }
 
       const createResult = await client.commands.createCommand(testProject.data.id, createData)
@@ -445,29 +452,34 @@ Use appropriate HTTP methods and validate status codes.`,
           name: 'security-scan',
           namespace: 'security',
           content: 'Perform security scan for: $ARGUMENTS',
+          scope: 'project' as const,
           frontmatter: { description: 'Security vulnerability scanner' }
         },
         {
           name: 'security-review',
           namespace: 'security',
           content: 'Review security issues for: $ARGUMENTS',
+          scope: 'project' as const,
           frontmatter: { description: 'Manual security code review' }
         },
         {
           name: 'performance-test',
           namespace: 'testing',
           content: 'Run performance tests for: $ARGUMENTS',
+          scope: 'project' as const,
           frontmatter: { description: 'Performance testing and benchmarking' }
         },
         {
           name: 'unit-test',
           namespace: 'testing',
           content: 'Create unit tests for: $ARGUMENTS',
+          scope: 'project' as const,
           frontmatter: { description: 'Unit test generation' }
         },
         {
           name: 'code-format',
           content: 'Format code for: $ARGUMENTS',
+          scope: 'project' as const,
           frontmatter: { description: 'Code formatting and style fixes' }
         }
       ]
@@ -632,6 +644,7 @@ Echo the provided arguments: $ARGUMENTS
 3. Return the result
 
 This is a simple test command for execution testing.`,
+        scope: 'project',
         frontmatter: {
           description: 'Simple echo command for testing',
           'argument-hint': '[text-to-echo]',
@@ -696,7 +709,8 @@ This is a simple test command for execution testing.`,
       const namespacedData: CreateClaudeCommandBody = {
         name: 'namespaced-echo',
         namespace: 'utilities',
-        content: 'Namespaced echo: $ARGUMENTS'
+        content: 'Namespaced echo: $ARGUMENTS',
+        scope: 'project'
       }
 
       const createResult = await client.commands.createCommand(testProject.data.id, namespacedData)
@@ -1120,7 +1134,8 @@ This is a simple test command for execution testing.`,
         await expect(async () => {
           await client.commands.createCommand(testProject.data.id, {
             name: invalidName,
-            content: 'Test content'
+            content: 'Test content',
+            scope: 'project'
           })
         }).toThrow()
       }
@@ -1140,7 +1155,8 @@ This is a simple test command for execution testing.`,
           await client.commands.createCommand(testProject.data.id, {
             name: 'test-command',
             namespace: invalidNamespace,
-            content: 'Test content'
+            content: 'Test content',
+            scope: 'project'
           })
         }).toThrow()
       }
@@ -1240,14 +1256,18 @@ This is a simple test command for execution testing.`,
       // Test with negative offset
       await expect(async () => {
         await client.commands.listCommands(testProject.data.id, {
-          offset: -1
+          offset: -1,
+          limit: 20,
+          includeGlobal: true
         })
       }).toThrow()
 
       // Test with excessive limit
       await expect(async () => {
         await client.commands.listCommands(testProject.data.id, {
-          limit: 1000 // exceeds max of 100
+          limit: 1000, // exceeds max of 100
+          offset: 0,
+          includeGlobal: true
         })
       }).toThrow()
     })
@@ -1265,7 +1285,7 @@ This is a simple test command for execution testing.`,
       testProject = await dataManager.createProject({
         name: 'Performance Test Project',
         description: 'Test project for performance validation',
-        projectPath: '/tmp/claude-performance-test'
+        path: '/tmp/claude-performance-test'
       })
     })
 
@@ -1284,6 +1304,7 @@ This is a simple test command for execution testing.`,
           name: `bulk-command-${i}`,
           namespace: `bulk-${Math.floor(i / 3)}`, // Group into namespaces
           content: `Bulk command ${i} content: $ARGUMENTS\n\nThis is command number ${i} in the bulk creation test.`,
+          scope: 'project',
           frontmatter: {
             description: `Bulk command ${i} for testing`,
             'max-turns': i % 5 + 1
@@ -1330,7 +1351,9 @@ This is a simple test command for execution testing.`,
       const promises = Array.from({ length: concurrentRequests }, (_, i) => 
         client.commands.listCommands(testProject.data.id, {
           query: `bulk-command-${i}`,
-          limit: 5
+          limit: 5,
+          offset: 0,
+          includeGlobal: true
         })
       )
 
@@ -1363,7 +1386,8 @@ This command contains a lot of content to test performance with large command de
       
       const result = await client.commands.createCommand(testProject.data.id, {
         name: 'large-content-command',
-        content: largeContent
+        content: largeContent,
+        scope: 'project'
       })
       
       const endTime = Date.now()
@@ -1382,7 +1406,9 @@ This command contains a lot of content to test performance with large command de
       // Search for commands that should return multiple results
       const result = await client.commands.listCommands(testProject.data.id, {
         query: 'command', // Should match many commands
-        limit: 50
+        limit: 50,
+        offset: 0,
+        includeGlobal: true
       })
       
       const endTime = Date.now()
@@ -1401,7 +1427,8 @@ This command contains a lot of content to test performance with large command de
         // Create, read, update, delete cycle
         const createResult = await client.commands.createCommand(testProject.data.id, {
           name: `rapid-${i}`,
-          content: `Rapid test ${i}: $ARGUMENTS`
+          content: `Rapid test ${i}: $ARGUMENTS`,
+          scope: 'project'
         })
 
         const getResult = await client.commands.getCommand(testProject.data.id, `rapid-${i}`)

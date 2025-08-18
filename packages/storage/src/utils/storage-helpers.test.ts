@@ -142,7 +142,7 @@ describe('storage-helpers', () => {
     })
 
     test('toEnum validates enum values', () => {
-      const validValues = ['open', 'closed', 'pending'] as const
+      const validValues: ('open' | 'closed' | 'pending')[] = ['open', 'closed', 'pending']
       expect(FieldConverters.toEnum('open', validValues, 'pending')).toBe('open')
       expect(FieldConverters.toEnum('invalid', validValues, 'pending')).toBe('pending')
       expect(FieldConverters.toEnum(null, validValues, 'pending')).toBe('pending')
@@ -180,7 +180,7 @@ describe('storage-helpers', () => {
         dbColumn: 'full_name',
         converter: FieldConverters.toString
       })
-      expect(mappings.id).toBeDefined() // Still has default
+      expect((mappings as any).id).toBeDefined() // Still has default
     })
   })
 

@@ -12,7 +12,7 @@ import {
   unstageFilesRequestSchema as UnstageFilesBodySchema
 } from '@promptliano/schemas'
 import * as gitService from '@promptliano/services'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas using factories
 const GitStatusResponseSchema = z.object({
@@ -82,13 +82,11 @@ const stageAllRoute = createRoute({
   request: {
     params: ProjectIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'All changes staged successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    200,
+    'All changes staged successfully'
+  )
 })
 
 // Unstage all changes
@@ -101,13 +99,11 @@ const unstageAllRoute = createRoute({
   request: {
     params: ProjectIdParamsSchema
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'All changes unstaged successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    200,
+    'All changes unstaged successfully'
+  )
 })
 
 // Export routes with simplified handlers using route-helpers

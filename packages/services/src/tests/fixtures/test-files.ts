@@ -1,8 +1,25 @@
 import type { ProjectFile } from '@promptliano/schemas'
 
+// Helper function to create complete ProjectFile objects
+function createTestProjectFile(data: Partial<ProjectFile> & { id: number; projectId: number; path: string; name: string; content: string }): ProjectFile {
+  return {
+    imports: null,
+    summary: null,
+    summaryLastUpdated: null,
+    meta: null,
+    exports: null,
+    extension: data.extension || '.ts',
+    size: data.size || 500,
+    checksum: data.checksum || `mock-checksum-${data.id}`,
+    created: data.created || Date.now(),
+    updated: data.updated || Date.now(),
+    ...data
+  }
+}
+
 // Sample TypeScript files for testing
 export const typescriptFiles = {
-  simpleClass: {
+  simpleClass: createTestProjectFile({
     id: 1,
     projectId: 1,
     path: 'src/models/User.ts',
@@ -32,16 +49,10 @@ export class UserModel extends BaseModel<User> {
     const daysSinceCreation = (Date.now() - this.data.createdAt.getTime()) / (1000 * 60 * 60 * 24)
     return daysSinceCreation < 30
   }
-}`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
-    size: 500,
-    checksum: 'mock-checksum-1'
-  } as ProjectFile,
+}`
+  }),
 
-  serviceWithImports: {
+  serviceWithImports: createTestProjectFile({
     id: 2,
     projectId: 1,
     path: 'src/services/AuthService.ts',
@@ -80,15 +91,11 @@ export class AuthService {
 }
 
 export default new AuthService()`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 800,
     checksum: 'mock-checksum-2'
-  } as ProjectFile,
+  }),
 
-  utilityFunctions: {
+  utilityFunctions: createTestProjectFile({
     id: 3,
     projectId: 1,
     path: 'src/utils/helpers.ts',
@@ -130,18 +137,14 @@ export const retry = async <T>(
   }
   throw new Error('Retry failed')
 }`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 600,
     checksum: 'mock-checksum-3'
-  } as ProjectFile
+  })
 }
 
 // Sample Python files
 export const pythonFiles = {
-  dataProcessor: {
+  dataProcessor: createTestProjectFile({
     id: 4,
     projectId: 1,
     path: 'src/processors/data_processor.py',
@@ -203,13 +206,10 @@ class DataProcessor:
         """Apply transformations to the dataframe."""
         # Custom transformations here
         return df`,
-    type: 'file',
     extension: '.py',
-    created: Date.now(),
-    updated: Date.now(),
     size: 1200,
     checksum: 'mock-checksum-4'
-  } as ProjectFile
+  })
 }
 
 // Large file for testing truncation
@@ -272,38 +272,30 @@ export function createLargeProjectFile(sizeInKB: number = 100): ProjectFile {
 
   const content = lines.join('\n')
 
-  return {
+  return createTestProjectFile({
     id: 100,
     projectId: 1,
     path: 'src/generated/large-service.ts',
     name: 'large-service.ts',
     content,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: content.length,
     checksum: 'mock-checksum-large'
-  } as ProjectFile
+  })
 }
 
 // Edge case files
 export const edgeCaseProjectFiles = {
-  emptyFile: {
+  emptyFile: createTestProjectFile({
     id: 10,
     projectId: 1,
     path: 'src/empty.ts',
     name: 'empty.ts',
     content: '',
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 0,
     checksum: 'mock-checksum-empty'
-  } as ProjectFile,
+  }),
 
-  onlyComments: {
+  onlyComments: createTestProjectFile({
     id: 11,
     projectId: 1,
     path: 'src/comments-only.ts',
@@ -315,43 +307,33 @@ export const edgeCaseProjectFiles = {
  * Still no code
  */
 // TODO: Add actual implementation`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 150,
     checksum: 'mock-checksum-comments'
-  } as ProjectFile,
+  }),
 
-  minifiedCode: {
+  minifiedCode: createTestProjectFile({
     id: 12,
     projectId: 1,
     path: 'dist/bundle.min.js',
     name: 'bundle.min.js',
     content: `!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?module.exports=t():"function"==typeof define&&define.amd?define(t):(e="undefined"!=typeof globalThis?globalThis:e||self).MyLib=t()}(this,(function(){"use strict";var e=function(e,t){return e+t},t=function(e){return e*e};return{add:e,square:t}}));`,
-    type: 'file',
     extension: '.js',
-    created: Date.now(),
-    updated: Date.now(),
     size: 300,
     checksum: 'mock-checksum-minified'
-  } as ProjectFile,
+  }),
 
-  binaryFile: {
+  binaryFile: createTestProjectFile({
     id: 13,
     projectId: 1,
     path: 'assets/logo.png',
     name: 'logo.png',
     content: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString('base64'),
-    type: 'file',
     extension: '.png',
-    created: Date.now(),
-    updated: Date.now(),
     size: 8,
     checksum: 'mock-checksum-binary'
-  } as ProjectFile,
+  }),
 
-  syntaxError: {
+  syntaxError: createTestProjectFile({
     id: 14,
     projectId: 1,
     path: 'src/broken.ts',
@@ -364,13 +346,9 @@ export const edgeCaseProjectFiles = {
 class Incomplete {
   constructor() {
     // Missing closing brace`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 200,
     checksum: 'mock-checksum-syntax-error'
-  } as ProjectFile
+  })
 }
 
 // Batch of files for testing batch operations
@@ -378,7 +356,7 @@ export function createBatchFiles(count: number = 10): ProjectFile[] {
   const files: ProjectFile[] = []
 
   for (let i = 0; i < count; i++) {
-    files.push({
+    files.push(createTestProjectFile({
       id: 100 + i,
       projectId: 1,
       path: `src/batch/file-${i}.ts`,
@@ -402,13 +380,11 @@ export function createBatchFiles(count: number = 10): ProjectFile[] {
 export function batchFunction${i}(input: string): string {
   return \`Processed: \${input} by function ${i}\`
 }`,
-      type: 'file',
-      extension: '.ts',
       created: Date.now() - i * 1000 * 60, // Different timestamps
       updated: Date.now() - i * 1000 * 30,
       size: 300 + i * 10,
       checksum: `mock-checksum-batch-${i}`
-    } as ProjectFile)
+    }))
   }
 
   return files
@@ -416,7 +392,7 @@ export function batchFunction${i}(input: string): string {
 
 // Files with complex import/export relationships
 export const complexRelationshipFiles = {
-  moduleA: {
+  moduleA: createTestProjectFile({
     id: 20,
     projectId: 1,
     path: 'src/modules/moduleA.ts',
@@ -441,24 +417,51 @@ export class ModuleA {
 
 export { ServiceB } from './moduleB'
 export * from './moduleC'`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 400,
     checksum: 'mock-checksum-moduleA',
     imports: [
-      { source: './moduleB', specifiers: ['ServiceB'] },
-      { source: './moduleC', specifiers: ['UtilC', 'HelperC'] },
-      { source: '../types/config', specifiers: ['ConfigType'] }
+      { 
+        source: './moduleB', 
+        specifiers: [
+          { type: 'named', imported: 'ServiceB', local: 'ServiceB' }
+        ]
+      },
+      { 
+        source: './moduleC', 
+        specifiers: [
+          { type: 'named', imported: 'UtilC', local: 'UtilC' },
+          { type: 'named', imported: 'HelperC', local: 'HelperC' }
+        ]
+      },
+      { 
+        source: '../types/config', 
+        specifiers: [
+          { type: 'named', imported: 'ConfigType', local: 'ConfigType' }
+        ]
+      }
     ],
     exports: [
-      { name: 'ModuleA', type: 'class' },
-      { name: 'ServiceB', type: 're-export' }
+      { 
+        type: 'named', 
+        specifiers: [
+          { exported: 'ModuleA', local: 'ModuleA' }
+        ]
+      },
+      { 
+        type: 'named', 
+        source: './moduleB',
+        specifiers: [
+          { exported: 'ServiceB', local: 'ServiceB' }
+        ]
+      },
+      { 
+        type: 'all', 
+        source: './moduleC'
+      }
     ]
-  } as ProjectFile,
+  }),
 
-  moduleB: {
+  moduleB: createTestProjectFile({
     id: 21,
     projectId: 1,
     path: 'src/modules/moduleB.ts',
@@ -477,16 +480,29 @@ export class ServiceB {
     // Implementation
   }
 }`,
-    type: 'file',
-    extension: '.ts',
-    created: Date.now(),
-    updated: Date.now(),
     size: 250,
     checksum: 'mock-checksum-moduleB',
     imports: [
-      { source: './moduleA', specifiers: ['ModuleA'] },
-      { source: '../database', specifiers: ['Database'] }
+      { 
+        source: './moduleA', 
+        specifiers: [
+          { type: 'named', imported: 'ModuleA', local: 'ModuleA' }
+        ]
+      },
+      { 
+        source: '../database', 
+        specifiers: [
+          { type: 'named', imported: 'Database', local: 'Database' }
+        ]
+      }
     ],
-    exports: [{ name: 'ServiceB', type: 'class' }]
-  } as ProjectFile
+    exports: [
+      { 
+        type: 'named', 
+        specifiers: [
+          { exported: 'ServiceB', local: 'ServiceB' }
+        ]
+      }
+    ]
+  })
 }

@@ -306,8 +306,11 @@ export const claudeCodeRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     
     try {
+      // Convert cursor string to offset number for pagination
+      const offset = query.cursor ? parseInt(atob(query.cursor), 10) || 0 : 0
+      
       // Use optimized MCP service method with cursor-based pagination
-      const result = await claudeCodeMCPService.getSessionsPaginated(projectId, query.cursor, query.limit)
+      const result = await claudeCodeMCPService.getSessionsPaginated(projectId, offset, query.limit)
       
       return c.json({
         success: true,

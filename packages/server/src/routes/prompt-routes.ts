@@ -339,67 +339,48 @@ export const promptRoutes = new OpenAPIHono()
       content: body.content,
       projectId: body.projectId
     })
-    return c.json({ success: true, data: createdPrompt } satisfies z.infer<typeof PromptResponseSchema>, 201)
+    return c.json(successResponse(createdPrompt))
   })
   .openapi(listAllPromptsRoute, async (c) => {
-    return c.json(
-      { success: true, data: await listAllPrompts() } satisfies z.infer<typeof PromptListResponseSchema>,
-      200
-    )
+    return c.json(successResponse(await listAllPrompts()))
   })
   .openapi(listProjectPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const projectPrompts = await listPromptsByProject(projectId)
-    return c.json({ success: true, data: projectPrompts } satisfies z.infer<typeof PromptListResponseSchema>, 200)
+    return c.json(successResponse(projectPrompts))
   })
   .openapi(suggestPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { userInput, limit } = c.req.valid('json')
     const suggestedPrompts = await suggestPrompts(projectId, userInput, limit)
-    return c.json(
-      { success: true, data: { prompts: suggestedPrompts } } satisfies z.infer<typeof SuggestPromptsResponseSchema>,
-      200
-    )
+    return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
   .openapi(addPromptToProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
     await addPromptToProject(promptId, projectId)
-    return c.json(
-      { success: true, message: 'Prompt linked to project.' } satisfies z.infer<typeof OperationSuccessResponseSchema>,
-      200
-    )
+    return c.json(operationSuccessResponse('Prompt linked to project.'), 200)
   })
   .openapi(removePromptFromProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
     await removePromptFromProject(promptId, projectId)
-    return c.json(
-      { success: true, message: 'Prompt unlinked from project.' } satisfies z.infer<
-        typeof OperationSuccessResponseSchema
-      >,
-      200
-    )
+    return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
   .openapi(getPromptByIdRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
-    return c.json({ success: true, data: prompt } satisfies z.infer<typeof PromptResponseSchema>, 200)
+    return c.json(successResponse(prompt))
   })
   .openapi(updatePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const body = c.req.valid('json')
     const updatedPrompt = await updatePrompt(promptId, body)
-    return c.json({ success: true, data: updatedPrompt } satisfies z.infer<typeof PromptResponseSchema>, 200)
+    return c.json(successResponse(updatedPrompt))
   })
   .openapi(deletePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     await deletePrompt(promptId)
-    return c.json(
-      { success: true, message: 'Prompt deleted successfully.' } satisfies z.infer<
-        typeof OperationSuccessResponseSchema
-      >,
-      200
-    )
+    return c.json(operationSuccessResponse('Prompt deleted successfully.'), 200)
   })
 
   // Markdown Import/Export Handlers
@@ -453,7 +434,7 @@ export const promptRoutes = new OpenAPIHono()
     }
 
     const result = await bulkImportMarkdownPrompts(files, projectId)
-    return c.json({ success: true, data: result } satisfies z.infer<typeof BulkImportResponseSchema>, 200)
+    return c.json(successResponse(result))
   })
 
   .openapi(exportPromptRoute, async (c) => {
@@ -466,7 +447,7 @@ export const promptRoutes = new OpenAPIHono()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')}.md`
 
-    c.header('Content-Type', 'text/markdown; charset=utf-8')
+    c.header('Content-Type', 'text/markdown' as const)
     c.header('Content-Disposition', `attachment; filename="${filename}"`)
 
     return c.body(markdownContent)
@@ -488,7 +469,7 @@ export const promptRoutes = new OpenAPIHono()
     )
 
     const result = await exportPromptsToMarkdown(prompts, options)
-    return c.json({ success: true, data: result } satisfies z.infer<typeof MarkdownExportResponseSchema>, 200)
+    return c.json(successResponse(result))
   })
 
   .openapi(importProjectPromptsRoute, async (c) => {
@@ -541,7 +522,7 @@ export const promptRoutes = new OpenAPIHono()
     }
 
     const result = await bulkImportMarkdownPrompts(files, projectId)
-    return c.json({ success: true, data: result } satisfies z.infer<typeof BulkImportResponseSchema>, 200)
+    return c.json(successResponse(result))
   })
 
   .openapi(exportAllProjectPromptsRoute, async (c) => {
@@ -572,7 +553,7 @@ export const promptRoutes = new OpenAPIHono()
           }
         }
       }
-      return c.json({ success: true, data: result } satisfies z.infer<typeof MarkdownExportResponseSchema>, 200)
+      return c.json(successResponse(result))
     }
 
     const result = await exportPromptsToMarkdown(projectPrompts, {
@@ -581,7 +562,7 @@ export const promptRoutes = new OpenAPIHono()
       sortOrder
     })
 
-    return c.json({ success: true, data: result } satisfies z.infer<typeof MarkdownExportResponseSchema>, 200)
+    return c.json(successResponse(result))
   })
 
   .openapi(validateMarkdownRoute, async (c) => {

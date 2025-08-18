@@ -192,7 +192,7 @@ describe('Claude Hooks API Tests', () => {
     /**
      * Asserts hook generation response
      */
-    assertValidGenerationResponse(response: any) {
+    assertValidGenerationResponse(response: any): asserts response is { success: true; data: any } {
       assertions.assertSuccessResponse(response)
       expect(response.data.event).toBeTypeOf('string')
       expect(response.data.matcher).toBeTypeOf('string')
@@ -229,7 +229,7 @@ describe('Claude Hooks API Tests', () => {
         path: '/tmp/claude-hooks-test'
       })
       
-      projectPath = testProject.path
+      projectPath = testProject.data.path
 
       // Setup hook files for file-based operations
       await setupHookFiles(projectPath)
@@ -239,7 +239,7 @@ describe('Claude Hooks API Tests', () => {
       // Cleanup created hooks
       for (const hook of createdHooks) {
         try {
-          await client.claudeHooks.delete(projectPath, hook.event, hook.matcherIndex)
+          await client.claudeHooks.deleteHook(projectPath, hook.event, hook.matcherIndex)
         } catch (error) {
           // Ignore errors during cleanup
         }
@@ -328,7 +328,7 @@ describe('Claude Hooks API Tests', () => {
 
         // Now retrieve it
         const result = await performanceTracker.measure('get-hook', async () => {
-          return await client.claudeHooks.get(
+          return await client.claudeHooks.getHook(
             projectPath, 
             createResult.data.event, 
             createResult.data.matcherIndex
@@ -392,7 +392,7 @@ describe('Claude Hooks API Tests', () => {
 
         // Delete it
         const deleteResult = await performanceTracker.measure('delete-hook', async () => {
-          return await client.claudeHooks.delete(
+          return await client.claudeHooks.deleteHook(
             projectPath, 
             createResult.data.event, 
             createResult.data.matcherIndex
@@ -403,7 +403,7 @@ describe('Claude Hooks API Tests', () => {
 
         // Verify it's gone
         await expect(async () => {
-          await client.claudeHooks.get(
+          await client.claudeHooks.getHook(
             projectPath, 
             createResult.data.event, 
             createResult.data.matcherIndex
@@ -536,7 +536,7 @@ describe('Claude Hooks API Tests', () => {
 
       test('should handle get operation for non-existent hook', async () => {
         await expect(async () => {
-          await client.claudeHooks.get(projectPath, 'PostToolUse', 99999)
+          await client.claudeHooks.getHook(projectPath, 'PostToolUse', 99999)
         }).toThrow()
       })
 
@@ -554,7 +554,7 @@ describe('Claude Hooks API Tests', () => {
 
       test('should handle delete operation for non-existent hook', async () => {
         await expect(async () => {
-          await client.claudeHooks.delete(projectPath, 'PostToolUse', 99999)
+          await client.claudeHooks.deleteHook(projectPath, 'PostToolUse', 99999)
         }).toThrow()
       })
 
@@ -702,7 +702,7 @@ describe('Claude Hooks API Tests', () => {
     let dataManager: TestDataManager
     let testProject: any
     let projectPath: string
-    let aiAvailable: boolean
+    let aiAvailable: boolean = false
 
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
@@ -715,7 +715,7 @@ describe('Claude Hooks API Tests', () => {
         path: '/tmp/claude-hooks-ai-test'
       })
       
-      projectPath = testProject.path
+      projectPath = testProject.data.path
 
       // Check AI availability
       const lmStudioCheck = await checkLMStudioAvailability(testEnv.config.ai.lmstudio)
@@ -824,7 +824,7 @@ describe('Claude Hooks API Tests', () => {
         path: '/tmp/claude-hooks-test-ops'
       })
       
-      projectPath = testProject.path
+      projectPath = testProject.data.path
     })
 
     afterAll(async () => {
@@ -896,7 +896,7 @@ describe('Claude Hooks API Tests', () => {
         path: '/tmp/claude-hooks-fs-test'
       })
       
-      projectPath = testProject.path
+      projectPath = testProject.data.path
     })
 
     afterAll(async () => {
@@ -936,7 +936,7 @@ describe('Claude Hooks API Tests', () => {
       expect(foundMatcher.hooks[0].command).toBe(hookData.command)
 
       // Cleanup
-      await client.claudeHooks.delete(projectPath, createResult.data.event, createResult.data.matcherIndex)
+      await client.claudeHooks.deleteHook(projectPath, createResult.data.event, createResult.data.matcherIndex)
     })
 
     test('should handle missing .claude directory gracefully', async () => {
@@ -963,7 +963,7 @@ describe('Claude Hooks API Tests', () => {
         expect(existsSync(hooksFile)).toBe(true)
 
         // Cleanup
-        await client.claudeHooks.delete(cleanProjectPath, result.data.event, result.data.matcherIndex)
+        await client.claudeHooks.deleteHook(cleanProjectPath, result.data.event, result.data.matcherIndex)
       } finally {
         rmSync(cleanProjectPath, { recursive: true, force: true })
       }
@@ -1007,7 +1007,7 @@ describe('Claude Hooks API Tests', () => {
 
       // Cleanup
       for (const result of results) {
-        await client.claudeHooks.delete(projectPath, result.data.event, result.data.matcherIndex)
+        await client.claudeHooks.deleteHook(projectPath, result.data.event, result.data.matcherIndex)
       }
     })
   })
