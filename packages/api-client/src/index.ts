@@ -20,6 +20,7 @@ export { ClaudeHooksClient } from './clients/claude-hooks-client'
 export { ClaudeAgentsClient } from './clients/claude-agents-client'
 export { ClaudeCommandsClient } from './clients/claude-commands-client'
 export { SystemClient } from './clients/system-client'
+export { AgentFilesClient } from './clients/agent-files-client'
 
 // Import all clients for composition
 import { ProjectClient } from './clients/project-client'
@@ -39,6 +40,7 @@ import { ClaudeHooksClient } from './clients/claude-hooks-client'
 import { ClaudeAgentsClient } from './clients/claude-agents-client'
 import { ClaudeCommandsClient } from './clients/claude-commands-client'
 import { SystemClient } from './clients/system-client'
+import { AgentFilesClient } from './clients/agent-files-client'
 
 import type { ApiConfig } from './base-client'
 import { PromptlianoError } from './base-client'
@@ -87,14 +89,9 @@ export class PromptlianoClient {
   public readonly agents: ClaudeAgentsClient
   public readonly commands: ClaudeCommandsClient
   public readonly system: SystemClient
+  public readonly agentFiles: AgentFilesClient
 
-  // Backwards compatibility aliases - not yet implemented
-  /**
-   * @deprecated This service is not yet modularized.
-   * Use individual client imports for full functionality.
-   * Will throw an error if accessed.
-   */
-  public readonly agentFiles: unknown
+  // Backwards compatibility aliases - deprecated
   
   /**
    * @deprecated This service has been migrated to the mcp client.
@@ -133,18 +130,16 @@ export class PromptlianoClient {
     this.agents = new ClaudeAgentsClient(config)
     this.commands = new ClaudeCommandsClient(config)
     this.system = new SystemClient(config)
+    this.agentFiles = new AgentFilesClient(config)
 
     // For backwards compatibility, create error-throwing proxies for deprecated services
     this.mcpInstallation = createNotImplementedProxy('mcpInstallation', 'Use this.mcp instead.')
     this.mcpProjectConfig = createNotImplementedProxy('mcpProjectConfig', 'Use this.mcp instead.')
     this.mcpGlobalConfig = createNotImplementedProxy('mcpGlobalConfig', 'Use this.mcp instead.')
-    
-    // Placeholder implementations for services not yet modularized
-    this.agentFiles = createNotImplementedProxy('agentFiles')
 
-    // Log a warning about incomplete modularization
+    // Log a warning about deprecated services only if they exist
     if (typeof console !== 'undefined') {
-      console.warn('[PromptlianoClient] Some services are not yet modularized. Please use individual client imports for full functionality.')
+      console.warn('[PromptlianoClient] Some MCP services have been migrated. Use this.mcp instead of mcpInstallation, mcpProjectConfig, or mcpGlobalConfig.')
     }
   }
 }
@@ -189,6 +184,7 @@ export const MCPAnalyticsService = MCPAnalyticsClient
 export const MCPInstallationService = MCPClient
 export const MCPProjectConfigService = MCPClient
 export const MCPGlobalConfigService = MCPClient
+export const AgentFilesService = AgentFilesClient
 
 // Default export for easy importing
 export default PromptlianoClient

@@ -206,14 +206,24 @@ export type MCPProjectConfig = {
 
 
 export type MCPInstallationStatus = {
-  isInstalled: boolean
-  version?: string
-  servers: Array<{
-    id: number
-    name: string
-    status: 'running' | 'stopped' | 'error'
-  }>
-  lastUpdated: number
+  projectConfig: {
+    projectId: number
+    projectName: string
+    mcpEnabled: boolean
+    installedTools: Array<{
+      tool: string
+      installedAt: number
+      configPath?: string
+      serverName: string
+    }>
+    customInstructions?: string
+  } | null
+  connectionStatus: {
+    connected: boolean
+    sessionId?: string
+    lastActivity?: number
+    projectId?: number
+  }
 }
 
 export type MCPAnalyticsData = {

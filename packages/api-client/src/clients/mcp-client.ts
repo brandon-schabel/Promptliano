@@ -166,6 +166,20 @@ export class MCPClient extends BaseApiClient {
   // MCP Installation
 
   /**
+   * Detect available MCP tools
+   */
+  async detectTools(): Promise<DataResponseSchema<{ tools: any[]; platform: string }>> {
+    return this.get('/mcp/installation/detect-tools')
+  }
+
+  /**
+   * Batch install MCP tools for a project
+   */
+  async batchInstall(projectId: number, data: { tools: string[]; debug?: boolean }): Promise<DataResponseSchema<any>> {
+    return this.post(`/projects/${projectId}/mcp/installation/batch-install`, data)
+  }
+
+  /**
    * Install MCP for a project
    */
   async installMCP(projectId: number, data: MCPInstallRequest): Promise<MCPInstallResponse> {
@@ -189,14 +203,63 @@ export class MCPClient extends BaseApiClient {
   // MCP Project Configuration
 
   /**
-   * Get MCP project configuration
+   * Get MCP project configuration locations
+   */
+  async getConfigLocations(projectId: number): Promise<DataResponseSchema<{ locations: Array<{ path: string; exists: boolean; priority: number }> }>> {
+    return this.get(`/projects/${projectId}/mcp/config/locations`)
+  }
+
+  /**
+   * Load MCP project configuration
+   */
+  async loadProjectConfig(projectId: number): Promise<DataResponseSchema<{ config: any; source?: string }>> {
+    return this.get(`/projects/${projectId}/mcp/config`)
+  }
+
+  /**
+   * Get merged MCP project configuration
+   */
+  async getMergedConfig(projectId: number): Promise<DataResponseSchema<{ config: any }>> {
+    return this.get(`/projects/${projectId}/mcp/config/merged`)
+  }
+
+  /**
+   * Get expanded MCP project configuration
+   */
+  async getExpandedConfig(projectId: number): Promise<DataResponseSchema<{ config: any }>> {
+    return this.get(`/projects/${projectId}/mcp/config/expanded`)
+  }
+
+  /**
+   * Save MCP project configuration
+   */
+  async saveProjectConfig(projectId: number, config: any): Promise<DataResponseSchema<any>> {
+    return this.post(`/projects/${projectId}/mcp/config`, { config })
+  }
+
+  /**
+   * Save MCP project configuration to specific location
+   */
+  async saveProjectConfigToLocation(projectId: number, location: string, config: any): Promise<DataResponseSchema<any>> {
+    return this.post(`/projects/${projectId}/mcp/config/save-to-location`, { location, config })
+  }
+
+  /**
+   * Get default configuration for location
+   */
+  async getDefaultConfigForLocation(projectId: number, location: string): Promise<DataResponseSchema<{ config: any }>> {
+    return this.get(`/projects/${projectId}/mcp/config/default-for-location`, { params: { location } })
+  }
+
+  /**
+   * Get MCP project configuration (legacy)
    */
   async getProjectConfig(projectId: number): Promise<MCPProjectConfigResponse> {
     return this.get(`/projects/${projectId}/mcp/config`)
   }
 
   /**
-   * Update MCP project configuration
+   * Update MCP project configuration (legacy)
    */
   async updateProjectConfig(projectId: number, data: MCPProjectConfigRequest): Promise<MCPProjectConfigResponse> {
     return this.patch(`/projects/${projectId}/mcp/config`, data)

@@ -45,8 +45,9 @@ interface BatchInstallResponse {
 
 interface InstalledToolInfo {
   tool: string
-  name: string
-  configPath: string
+  installedAt: number
+  configPath?: string
+  serverName: string
 }
 
 export function MCPBatchInstaller({ projectId, projectName }: MCPBatchInstallerProps) {
@@ -57,7 +58,7 @@ export function MCPBatchInstaller({ projectId, projectName }: MCPBatchInstallerP
   const { data: detectionData, refetch: refetchDetection } = useQuery({
     queryKey: ['mcp-detection-batch'],
     queryFn: async () => {
-      const result = await client?.mcpInstallation.detectTools()
+      const result = await client?.mcp.detectTools()
       return result?.data
     }
   })
@@ -65,14 +66,14 @@ export function MCPBatchInstaller({ projectId, projectName }: MCPBatchInstallerP
   const { data: statusData, refetch: refetchStatus } = useQuery({
     queryKey: ['mcp-installation-status-batch', projectId],
     queryFn: async () => {
-      const result = await client?.mcpInstallation.getInstallationStatus(projectId)
+      const result = await client?.mcp.getInstallationStatus(projectId)
       return result?.data
     }
   })
 
   const batchInstallMutation = useMutation({
     mutationFn: async (tools: string[]) => {
-      const response = await client?.mcpInstallation.batchInstall(projectId, {
+      const response = await client?.mcp.batchInstall(projectId, {
         tools,
         debug: false
       })

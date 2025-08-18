@@ -147,7 +147,13 @@ runs:
           if [ -f "$CONFIG_FILE" ]; then
             echo "📋 Loading package configurations from $CONFIG_FILE"
             # Create matrix from configuration file
-            MATRIX_JSON=$(yq '.packages | to_entries | map(.value + {"package": .key, "path": "${{ inputs.packages-path }}/" + .key}) | {include: .}' "$CONFIG_FILE")
+            # Convert YAML to JSON, then filter and format with jq
+            CONFIG_JSON=$(yq eval -o=json '.' "$CONFIG_FILE")
+            MATRIX_JSON=$(echo "$CONFIG_JSON" | jq --argjson pkgs "$PACKAGES_JSON" '
+              .packages | to_entries | 
+              map(select(.key as $k | $pkgs | index($k)) | 
+              .value + {"package": .key, "path": "${{ inputs.packages-path }}/" + .key}) | 
+              {include: .}')
           else
             echo "⚠️ No config file found at $CONFIG_FILE, using defaults"
             # Create matrix with default configurations

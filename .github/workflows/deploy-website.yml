@@ -58,7 +58,7 @@ jobs:
       - name: Upload build artifacts
         uses: ./.github/actions/optimized-artifact-upload
         with:
-          artifact-name: website-build-${{ github.run_number }}
+          artifact-name: website-build-${{ github.sha }}
           artifact-path: packages/website/dist
           upload-condition: always
           retention-days: ${{ github.event_name == 'pull_request' && '7' || '30' }}
