@@ -40,6 +40,31 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        # Install yq for YAML processing
+        if ! command -v yq &> /dev/null; then
+          echo "📦 Installing yq..."
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            sudo chmod +x /usr/local/bin/yq
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            if command -v brew &> /dev/null; then
+              brew install yq
+            else
+              curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_amd64 -o /usr/local/bin/yq
+              chmod +x /usr/local/bin/yq
+            fi
+          else
+            echo "⚠️ OS not supported for yq installation"
+            exit 1
+          fi
+          echo "✅ yq installed successfully"
+        else
+          echo "✅ yq already available"
+        fi
+
     - name: Detect changed packages
       id: detect
       shell: bash
@@ -122,7 +147,7 @@ runs:
           if [ -f "$CONFIG_FILE" ]; then
             echo "📋 Loading package configurations from $CONFIG_FILE"
             # Create matrix from configuration file
-            MATRIX_JSON=$(yq eval '.packages | to_entries | map(.value + {"package": .key, "path": "${{ inputs.packages-path }}/" + .key}) | {include: .}' "$CONFIG_FILE")
+            MATRIX_JSON=$(yq '.packages | to_entries | map(.value + {"package": .key, "path": "${{ inputs.packages-path }}/" + .key}) | {include: .}' "$CONFIG_FILE")
           else
             echo "⚠️ No config file found at $CONFIG_FILE, using defaults"
             # Create matrix with default configurations

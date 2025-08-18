@@ -158,11 +158,13 @@ on:
 
 ```yaml
 - name: Cache dependencies
-  uses: actions/cache@v4
+  uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
   with:
     path: |
       ~/.bun/install/cache
       node_modules
+      packages/*/node_modules
+      **/node_modules
     key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
     restore-keys: |
       ${{ runner.os }}-bun-
@@ -264,14 +266,35 @@ steps:
 
 ### 1. Security
 
+**🚨 CRITICAL: actions/cache Deprecation Notice**
+
+**URGENT ACTION REQUIRED**: GitHub is deprecating older versions of actions/cache. Starting February 1st, 2025, all workflows using deprecated versions will fail.
+
+- **Minimum Required Version**: v4.2.0 or v3.4.0
+- **Current SHA for v4.2.0**: `1bd1e32a3bdc45362d1e726936510720a7c30a57`
+- **Deadline**: February 1st, 2025 (hard cutoff)
+- **Runner Requirement**: Update GitHub runners to v2.231.0 or newer
+
+**Migration Pattern**:
+```yaml
+# ❌ DEPRECATED - Will fail after Feb 1, 2025
+- uses: actions/cache@v4.0.2
+- uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+
+# ✅ REQUIRED - Use v4.2.0 or newer
+- uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+```
+
 #### Use Exact Action Versions
 
 ```yaml
 # Good - uses SHA
-- uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+- uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+- uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
 
 # Avoid - uses tag
 - uses: actions/checkout@v4
+- uses: actions/cache@v4
 ```
 
 #### Minimal Permissions
