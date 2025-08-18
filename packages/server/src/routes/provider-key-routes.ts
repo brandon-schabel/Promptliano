@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi' //
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiError } from '@promptliano/shared'
 import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
@@ -157,7 +157,7 @@ const updateProviderSettingsRoute = createRoute({
 })
 
 export const providerKeyRoutes = new OpenAPIHono()
-  .openapi(createProviderKeyRoute, async (c): Promise<any> => {
+  .openapi(createProviderKeyRoute, async (c) => {
     const body = c.req.valid('json')
     const createKeyInput = {
       ...body,
@@ -170,12 +170,12 @@ export const providerKeyRoutes = new OpenAPIHono()
     return c.json(successResponse(newKey), 201)
   })
 
-  .openapi(listProviderKeysRoute, async (c): Promise<any> => {
+  .openapi(listProviderKeysRoute, async (c) => {
     const keys = await providerKeyService.listKeysCensoredKeys()
     return c.json(successResponse(keys), 200)
   })
 
-  .openapi(getProviderKeyByIdRoute, async (c): Promise<any> => {
+  .openapi(getProviderKeyByIdRoute, async (c) => {
     const { keyId } = c.req.valid('param')
     const key = await providerKeyService.getKeyById(keyId)
     if (!key) {
@@ -184,42 +184,47 @@ export const providerKeyRoutes = new OpenAPIHono()
     return c.json(successResponse(key), 200)
   })
 
-  .openapi(updateProviderKeyRoute, async (c): Promise<any> => {
+  .openapi(updateProviderKeyRoute, async (c) => {
     const { keyId } = c.req.valid('param')
     const body = c.req.valid('json')
     const updatedKey = await providerKeyService.updateKey(keyId, body)
     return c.json(successResponse(updatedKey), 200)
   })
 
-  .openapi(deleteProviderKeyRoute, async (c): Promise<any> => {
+  .openapi(deleteProviderKeyRoute, async (c) => {
     const { keyId } = c.req.valid('param')
     await providerKeyService.deleteKey(keyId)
     return c.json(operationSuccessResponse('Key deleted successfully.'), 200)
   })
 
-  .openapi(testProviderRoute, async (c): Promise<any> => {
+  .openapi(testProviderRoute, async (c) => {
     const body = c.req.valid('json')
     const testResult = await providerKeyService.testProvider(body)
     return c.json(successResponse(testResult), 200)
   })
 
-  .openapi(batchTestProviderRoute, async (c): Promise<any> => {
+  .openapi(batchTestProviderRoute, async (c) => {
     const body = c.req.valid('json')
     const batchResult = await providerKeyService.batchTestProviders(body)
     return c.json(successResponse(batchResult), 200)
   })
 
-  .openapi(providerHealthRoute, async (c): Promise<any> => {
+  .openapi(providerHealthRoute, async (c) => {
     const { refresh } = c.req.valid('query')
     const healthStatuses = await providerKeyService.getProviderHealthStatus(refresh)
     return c.json(successResponse(healthStatuses), 200)
   })
 
-  .openapi(updateProviderSettingsRoute, async (c): Promise<any> => {
+  .openapi(updateProviderSettingsRoute, async (c) => {
     const body = c.req.valid('json')
 
-    // Update the provider settings with custom URLs
-    updateProviderSettings(body)
+    // Transform and update the provider settings with custom URLs
+    const settings = {
+      ollamaUrl: body.ollamaUrl,
+      lmstudioUrl: body.lmstudioUrl,
+      lastUpdated: Date.now()
+    }
+    updateProviderSettings(settings)
 
     return c.json(operationSuccessResponse('Provider settings updated successfully'), 200)
   })
@@ -239,7 +244,7 @@ const validateCustomProviderRoute = createRoute({
   responses: createStandardResponses(ValidateCustomProviderResponseSchema)
 })
 
-providerKeyRoutes.openapi(validateCustomProviderRoute, async (c): Promise<any> => {
+providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
   const body = c.req.valid('json')
   
   try {

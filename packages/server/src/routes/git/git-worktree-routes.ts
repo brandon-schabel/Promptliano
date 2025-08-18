@@ -152,15 +152,15 @@ const pruneWorktreesRoute = createRoute({
 export const gitWorktreeRoutes = new OpenAPIHono()
   .openapi(
     listWorktreesRoute,
-    createRouteHandler<{ projectId: number }>(async ({ params }) => {
+    (createRouteHandler<{ projectId: number }>(async ({ params }) => {
       const worktrees = await gitService.getWorktrees(params!.projectId)
       return successResponse(worktrees)
-    })
+    }) as any)
   )
   .openapi(
     addWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
         await gitService.addWorktree(params!.projectId, {
           path: body!.path,
           branch: body!.branch,
@@ -170,12 +170,12 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         })
         return operationSuccessResponse('Worktree added successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     removeWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
         await gitService.removeWorktree(
           params!.projectId,
           body!.path,
@@ -183,12 +183,12 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         )
         return operationSuccessResponse('Worktree removed successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     lockWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
         await gitService.lockWorktree(
           params!.projectId,
           body!.path,
@@ -196,21 +196,21 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         )
         return operationSuccessResponse('Worktree locked successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     unlockWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
+      async ({ params, body }): Promise<any> => {
         await gitService.unlockWorktree(params!.projectId, body!.worktreePath)
         return operationSuccessResponse('Worktree unlocked successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     pruneWorktreesRoute,
-    createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
-      async ({ params, query }) => {
+    (createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
+      async ({ params, query }): Promise<any> => {
         const { dryRun = false } = query || {}
         const prunedPaths = await gitService.pruneWorktrees(params!.projectId, dryRun)
         
@@ -224,7 +224,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
           message
         }
       }
-    )
+    ) as any)
   )
 
 export type GitWorktreeRouteTypes = typeof gitWorktreeRoutes

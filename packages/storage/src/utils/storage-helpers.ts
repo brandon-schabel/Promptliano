@@ -30,10 +30,17 @@ export function createEntityConverter<T>(
         // Advanced mapping with converter
         const value = row[mapping.dbColumn]
         
-        if (mapping.converter) {
+        if (value === null || value === undefined) {
+          // Use default value if provided, otherwise apply converter to null/undefined
+          if (mapping.defaultValue !== undefined) {
+            entity[entityKey] = mapping.defaultValue
+          } else if (mapping.converter) {
+            entity[entityKey] = mapping.converter(value)
+          } else {
+            entity[entityKey] = value
+          }
+        } else if (mapping.converter) {
           entity[entityKey] = mapping.converter(value)
-        } else if (value === null || value === undefined) {
-          entity[entityKey] = mapping.defaultValue !== undefined ? mapping.defaultValue : value
         } else {
           entity[entityKey] = value
         }

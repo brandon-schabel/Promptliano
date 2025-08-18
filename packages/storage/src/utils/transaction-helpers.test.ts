@@ -71,7 +71,7 @@ describe('transaction-helpers', () => {
       expect(count.count).toBe(1) // Only initial record should exist
       
       const record = db.prepare('SELECT name FROM test_entities WHERE id = 2').get() as any
-      expect(record).toBeUndefined() // Second insert should have been rolled back
+      expect(record).toBeNull() // Second insert should have been rolled back
     })
 
     test('returns value from transaction', () => {

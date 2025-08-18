@@ -40,7 +40,7 @@ import {
 import { ApiError } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 
-export const queueRoutes = new OpenAPIHono()
+const queueRoutesApp = new OpenAPIHono()
 
 // Create queue
 const createQueueRoute = createRoute({
@@ -64,7 +64,7 @@ const createQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(createQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(createQueueRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const body = c.req.valid('json')
 
@@ -91,7 +91,7 @@ const listQueuesRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(listQueuesRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(listQueuesRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const queues = await listQueuesByProject(projectId)
   return c.json(successResponse(queues))
@@ -112,7 +112,7 @@ const getQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const queue = await getQueueById(queueId)
   return c.json(successResponse(queue))
@@ -140,7 +140,7 @@ const updateQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(updateQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(updateQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const body = c.req.valid('json')
   const queue = await updateQueue(queueId, body)
@@ -162,7 +162,7 @@ const deleteQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(deleteQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(deleteQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   await deleteQueue(queueId)
   return c.json(successResponse({ deleted: true }))
@@ -194,7 +194,7 @@ const enqueueTicketRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(enqueueTicketRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(enqueueTicketRoute, async (c) => {
   const { ticketId } = c.req.valid('param')
   const { queueId, priority, includeTasks } = c.req.valid('json')
 
@@ -233,7 +233,7 @@ const enqueueTaskRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(enqueueTaskRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(enqueueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
   const { queueId, priority } = c.req.valid('json')
   const task = await enqueueTask(ticketId, taskId, queueId, priority || 0)
@@ -255,7 +255,7 @@ const dequeueTicketRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(dequeueTicketRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(dequeueTicketRoute, async (c) => {
   const { ticketId } = c.req.valid('param')
   const ticket = await dequeueTicket(ticketId)
   return c.json(successResponse(ticket))
@@ -277,7 +277,7 @@ const dequeueTaskRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(dequeueTaskRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(dequeueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
   const task = await dequeueTask(ticketId, taskId)
   return c.json(successResponse(task))
@@ -298,7 +298,7 @@ const getQueueStatsRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getQueueStatsRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getQueueStatsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const stats = await getQueueStats(queueId)
   return c.json(successResponse(stats))
@@ -319,7 +319,7 @@ const getQueuesWithStatsRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getQueuesWithStatsRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getQueuesWithStatsRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const queuesWithStats = await getQueuesWithStats(projectId)
   return c.json(successResponse(queuesWithStats))
@@ -349,7 +349,7 @@ const getNextTaskRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getNextTaskRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getNextTaskRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { agentId } = c.req.valid('json')
   const nextTask = await getNextTaskFromQueue(queueId, agentId)
@@ -374,7 +374,7 @@ const getUnqueuedItemsRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getUnqueuedItemsRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getUnqueuedItemsRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const unqueuedItems = await getUnqueuedItems(projectId)
   return c.json(successResponse(unqueuedItems))
@@ -395,7 +395,7 @@ const pauseQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(pauseQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(pauseQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const queue = await pauseQueue(queueId)
   return c.json(successResponse(queue))
@@ -416,7 +416,7 @@ const resumeQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(resumeQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(resumeQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const queue = await resumeQueue(queueId)
   return c.json(successResponse(queue))
@@ -447,7 +447,7 @@ const completeQueueItemRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(completeQueueItemRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(completeQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { ticketId } = c.req.valid('json')
   await completeQueueItem(itemType, itemId, ticketId)
@@ -480,7 +480,7 @@ const failQueueItemRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(failQueueItemRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(failQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { errorMessage, ticketId } = c.req.valid('json')
   await failQueueItem(itemType, itemId, errorMessage, ticketId)
@@ -513,7 +513,7 @@ const moveItemToQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(moveItemToQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(moveItemToQueueRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { targetQueueId, ticketId } = c.req.valid('json')
   await moveItemToQueue(itemType, itemId, targetQueueId, ticketId)
@@ -547,7 +547,7 @@ const enqueueTicketToQueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(enqueueTicketToQueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(enqueueTicketToQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { ticketId, priority } = c.req.valid('json')
   
@@ -581,7 +581,7 @@ const getQueueItemsRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getQueueItemsRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getQueueItemsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { status } = c.req.valid('query')
   
@@ -619,12 +619,18 @@ const enqueueItemsRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(enqueueItemsRoute, async (c): Promise<any> => {
-  const { queueId } = c.req.valid('param')
+queueRoutesApp.openapi(enqueueItemsRoute, async (c) => {
+  const params = c.req.valid('param')
   const { ticketId, taskId, priority } = c.req.valid('json')
   
+  // Ensure queueId is valid
+  const queueId = params.queueId
+  if (!queueId || typeof queueId !== 'number') {
+    throw new ApiError(400, 'Invalid queue ID', 'INVALID_QUEUE_ID')
+  }
+  
   if (ticketId) {
-    await enqueueTicket(ticketId, queueId, priority || 0)
+    await enqueueTicket(ticketId, queueId, priority ?? 0)
   } else if (taskId) {
     // Need the ticket ID for the existing service function
     // For now, throw an error - will need to enhance service layer
@@ -666,7 +672,7 @@ const batchEnqueueRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(batchEnqueueRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(batchEnqueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { items } = c.req.valid('json')
   
@@ -689,9 +695,12 @@ const getQueueTimelineRoute = createRoute({
   }))
 })
 
-queueRoutes.openapi(getQueueTimelineRoute, async (c): Promise<any> => {
+queueRoutesApp.openapi(getQueueTimelineRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   
   const timeline = await getQueueTimeline(queueId)
   return c.json(successResponse(timeline))
 })
+
+export const queueRoutes = queueRoutesApp
+export type QueueRouteTypes = typeof queueRoutes

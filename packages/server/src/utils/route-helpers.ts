@@ -125,7 +125,7 @@ export function createStandardResponsesWithStatus(
  */
 export function withErrorHandling<T extends any[], R>(
   handler: (c: Context, ...args: T) => Promise<R>
-) {
+): (c: Context, ...args: T) => Promise<R> {
   return async (c: Context, ...args: T): Promise<R> => {
     try {
       return await handler(c, ...args)
@@ -220,7 +220,7 @@ export function createRouteHandler<
     body?: TBody
     c: Context
   }) => Promise<any>
-) {
+): (c: Context) => Promise<any> {
   return withErrorHandling(async (c: Context) => {
     // Let the handler extract its own parameters using c.req.valid()
     // This avoids type inference issues

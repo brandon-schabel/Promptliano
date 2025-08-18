@@ -332,7 +332,7 @@ const validateMarkdownRoute = createRoute({
 })
 
 export const promptRoutes = new OpenAPIHono()
-  .openapi(createPromptRoute, async (c): Promise<any> => {
+  .openapi(createPromptRoute, async (c) => {
     const body = c.req.valid('json')
     const createdPrompt = await createPrompt({
       name: body.name,
@@ -341,50 +341,50 @@ export const promptRoutes = new OpenAPIHono()
     })
     return c.json(successResponse(createdPrompt))
   })
-  .openapi(listAllPromptsRoute, async (c): Promise<any> => {
+  .openapi(listAllPromptsRoute, async (c) => {
     return c.json(successResponse(await listAllPrompts()))
   })
-  .openapi(listProjectPromptsRoute, async (c): Promise<any> => {
+  .openapi(listProjectPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const projectPrompts = await listPromptsByProject(projectId)
     return c.json(successResponse(projectPrompts))
   })
-  .openapi(suggestPromptsRoute, async (c): Promise<any> => {
+  .openapi(suggestPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { userInput, limit } = c.req.valid('json')
     const suggestedPrompts = await suggestPrompts(projectId, userInput, limit)
     return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
-  .openapi(addPromptToProjectRoute, async (c): Promise<any> => {
+  .openapi(addPromptToProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
     await addPromptToProject(promptId, projectId)
-    return c.json(operationSuccessResponse('Prompt linked to project.'), 200)
+    return c.json(operationSuccessResponse('Prompt linked to project.'))
   })
-  .openapi(removePromptFromProjectRoute, async (c): Promise<any> => {
+  .openapi(removePromptFromProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
     await removePromptFromProject(promptId, projectId)
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
-  .openapi(getPromptByIdRoute, async (c): Promise<any> => {
+  .openapi(getPromptByIdRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
     return c.json(successResponse(prompt))
   })
-  .openapi(updatePromptRoute, async (c): Promise<any> => {
+  .openapi(updatePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const body = c.req.valid('json')
     const updatedPrompt = await updatePrompt(promptId, body)
     return c.json(successResponse(updatedPrompt))
   })
-  .openapi(deletePromptRoute, async (c): Promise<any> => {
+  .openapi(deletePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     await deletePrompt(promptId)
-    return c.json(operationSuccessResponse('Prompt deleted successfully.'), 200)
+    return c.json(operationSuccessResponse('Prompt deleted successfully.'))
   })
 
   // Markdown Import/Export Handlers
-  .openapi(importPromptsRoute, async (c): Promise<any> => {
+  .openapi(importPromptsRoute, async (c) => {
     const body = await c.req.formData()
     const projectId = body.get('projectId') ? parseInt(body.get('projectId') as string) : undefined
     const overwriteExisting = body.get('overwriteExisting') === 'true'
@@ -437,7 +437,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(successResponse(result))
   })
 
-  .openapi(exportPromptRoute, async (c): Promise<any> => {
+  .openapi(exportPromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
     const markdownContent = await promptToMarkdown(prompt)
@@ -453,7 +453,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.body(markdownContent)
   })
 
-  .openapi(exportBatchPromptsRoute, async (c): Promise<any> => {
+  .openapi(exportBatchPromptsRoute, async (c) => {
     const body = c.req.valid('json')
     const { promptIds, ...options } = body
 
@@ -472,7 +472,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(successResponse(result))
   })
 
-  .openapi(importProjectPromptsRoute, async (c): Promise<any> => {
+  .openapi(importProjectPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = await c.req.formData()
     const overwriteExisting = body.get('overwriteExisting') === 'true'
@@ -525,7 +525,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(successResponse(result))
   })
 
-  .openapi(exportAllProjectPromptsRoute, async (c): Promise<any> => {
+  .openapi(exportAllProjectPromptsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { format, sortBy, sortOrder } = c.req.valid('query')
 
@@ -565,7 +565,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(successResponse(result))
   })
 
-  .openapi(validateMarkdownRoute, async (c): Promise<any> => {
+  .openapi(validateMarkdownRoute, async (c) => {
     const { content } = c.req.valid('json')
     const validationResult = await validateMarkdownContent(content)
     
