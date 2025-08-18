@@ -139,7 +139,7 @@ runs:
           echo "⏭️ No package changes detected" >&2
         else
           # Create JSON array of package names
-          PACKAGES_JSON=$(printf '%s\n' "${CHANGED_PACKAGES[@]}" | jq -R . | jq -s .)
+          PACKAGES_JSON=$(printf '%s\n' "${CHANGED_PACKAGES[@]}" | jq -R . | jq -s -c .)
           echo "packages=$PACKAGES_JSON" >> $GITHUB_OUTPUT
           
           # Load package configurations if config file exists
@@ -151,7 +151,7 @@ runs:
             CONFIG_JSON=$(yq eval -o=json '.' "$CONFIG_FILE")
             # Use jq with proper variable passing to avoid quoting issues
             PACKAGES_PATH="${{ inputs.packages-path }}"
-            MATRIX_JSON=$(echo "$CONFIG_JSON" | jq --argjson pkgs "$PACKAGES_JSON" --arg pkgpath "$PACKAGES_PATH" '.packages | to_entries | map(select(.key as $k | $pkgs | index($k)) | .value + {"package": .key, "path": ($pkgpath + "/" + .key)}) | {include: .}')
+            MATRIX_JSON=$(echo "$CONFIG_JSON" | jq -c --argjson pkgs "$PACKAGES_JSON" --arg pkgpath "$PACKAGES_PATH" '.packages | to_entries | map(select(.key as $k | $pkgs | index($k)) | .value + {"package": .key, "path": ($pkgpath + "/" + .key)}) | {include: .}')
           else
             echo "⚠️ No config file found at $CONFIG_FILE, using defaults" >&2
             # Create matrix with default configurations
@@ -162,7 +162,7 @@ runs:
             done
             
             # Join matrix entries
-            MATRIX_JSON=$(printf '%s\n' "${MATRIX_ENTRIES[@]}" | jq -s '{include: .}')
+            MATRIX_JSON=$(printf '%s\n' "${MATRIX_ENTRIES[@]}" | jq -s -c '{include: .}')
           fi
           
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
