@@ -168,11 +168,11 @@ runs:
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
           echo "has-changes=true" >> $GITHUB_OUTPUT
           
-          echo "✅ Detected $CHANGED_COUNT changed packages"
+          echo "✅ Detected $CHANGED_COUNT changed packages" >&2
           echo "$PACKAGES_JSON" | jq -r '.[]' | while read pkg; do
-            echo "  - $pkg"
+            echo "  - $pkg" >&2
           done
         fi
         
-        echo ""
-        echo "🎯 Change detection completed"
+        echo "" >&2
+        echo "🎯 Change detection completed" >&2
