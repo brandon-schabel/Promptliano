@@ -1,0 +1,12 @@
+{
+  "commit": "c25274f8a35eeb484c145d8cd837b28081b33bdd",
+  "branch": "114/merge",
+  "actor": "brandon-schabel",
+  "event": "pull_request",
+  "runId": "17028073770",
+  "runNumber": "118",
+  "timestamp": "2025-08-18T00:48:23Z",
+  "artifactName": "website-build-c25274f8a35eeb484c145d8cd837b28081b33bdd",
+  "originalSize": "6063238",
+  "compressed": "true"
+}
