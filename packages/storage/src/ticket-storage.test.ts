@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { ticketStorage } from './ticket-storage'
 import { projectStorage } from './project-storage'
 import { DatabaseManager, getDb } from './database-manager'
+import { resetDatabaseInstance } from './test-utils'
 import type { Ticket, TicketTask, Project } from '@promptliano/schemas'
 
 describe('Ticket Storage', () => {
@@ -33,6 +34,11 @@ describe('Ticket Storage', () => {
     // Clean up test data using our test utilities
     const { clearAllData } = await import('./test-utils')
     await clearAllData()
+  })
+
+  afterAll(() => {
+    // Reset database instance to ensure complete isolation
+    resetDatabaseInstance()
   })
 
   describe('Database Constraints', () => {

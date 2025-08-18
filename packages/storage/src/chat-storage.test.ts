@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { chatStorage } from './chat-storage'
 import { type Chat, type ChatMessage } from '@promptliano/schemas'
 import { DatabaseManager, getDb } from './database-manager'
+import { resetDatabaseInstance } from './test-utils'
 
 describe('Chat Storage (SQLite)', () => {
   let testChatId: number
@@ -22,6 +23,11 @@ describe('Chat Storage (SQLite)', () => {
     // Clean up test data using our test utilities
     const { clearAllData } = await import('./test-utils')
     await clearAllData()
+  })
+
+  afterAll(() => {
+    // Reset database instance to ensure complete isolation
+    resetDatabaseInstance()
   })
 
   it('should create and read a chat', async () => {

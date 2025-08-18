@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { promptStorage } from './prompt-storage'
 import { type Prompt, type PromptProject } from '@promptliano/schemas'
 import { DatabaseManager, getDb } from './database-manager'
+import { resetDatabaseInstance } from './test-utils'
 
 describe('Prompt Storage (SQLite)', () => {
   let testPromptId: number
@@ -20,6 +21,11 @@ describe('Prompt Storage (SQLite)', () => {
     // Clean up test data using our test utilities
     const { clearAllData } = await import('./test-utils')
     await clearAllData()
+  })
+
+  afterAll(() => {
+    // Reset database instance to ensure complete isolation
+    resetDatabaseInstance()
   })
 
   it('should create and read prompts', async () => {

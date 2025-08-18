@@ -222,12 +222,27 @@ export function createRouteHandler<
   }) => Promise<any>
 ): (c: Context) => Promise<any> {
   return withErrorHandling(async (c: Context) => {
-    // Let the handler extract its own parameters using c.req.valid()
-    // This avoids type inference issues
+    // Extract parameters from the context
+    let params: TParams | undefined
+    let query: TQuery | undefined
+    let body: TBody | undefined
+    
+    try {
+      params = c.req.valid('param' as any)
+    } catch {}
+    
+    try {
+      query = c.req.valid('query' as any)
+    } catch {}
+    
+    try {
+      body = c.req.valid('json' as any)
+    } catch {}
+    
     const result = await handler({ 
-      params: undefined as TParams,
-      query: undefined as TQuery,
-      body: undefined as TBody,
+      params,
+      query,
+      body,
       c 
     })
     
