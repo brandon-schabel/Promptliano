@@ -70,7 +70,13 @@ export abstract class BaseStorage<TEntity extends BaseEntity, TStorage = Record<
     const validationResult = await schema.safeParseAsync(data)
     if (!validationResult.success) {
       console.error(`Zod validation failed for ${context}:`, validationResult.error.errors)
-      throw new ApiError(400, `Validation failed for ${context}`, 'VALIDATION_ERROR')
+      // For tests and better error handling, include the validation details
+      const errors = validationResult.error.errors.map(err => ({
+        path: err.path.join('.'),
+        message: err.message,
+        code: err.code
+      }))
+      throw new ApiError(400, `Validation failed for ${context}: ${errors.map(e => e.message).join(', ')}`, 'VALIDATION_ERROR', { errors })
     }
     return validationResult.data
   }

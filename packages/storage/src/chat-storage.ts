@@ -14,8 +14,7 @@ import {
   getInsertValuesFromEntity
 } from './utils/storage-helpers'
 import { SqliteConverters } from '@promptliano/shared/src/utils/sqlite-converters'
-import { ChatErrors } from '@promptliano/shared/src/error/entity-errors'
-import { withTransaction, replaceEntities } from './utils/transaction-helpers'
+import { withTransaction, withAsyncTransaction, replaceEntities } from './utils/transaction-helpers'
 
 // Storage schemas for validation
 export const ChatsStorageSchema = z.record(z.string(), ChatSchema)
@@ -121,7 +120,7 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
     role: { dbColumn: 'role', converter: (v: any) => SqliteConverters.toString(v) },
     content: { dbColumn: 'content', converter: (v: any) => SqliteConverters.toString(v) },
     type: { dbColumn: 'type', converter: (v: any) => v || undefined },
-    attachments: { dbColumn: 'attachments', converter: (v: any) => v ? JSON.parse(v as string) : [], defaultValue: [] },
+    attachments: { dbColumn: 'attachments', converter: (v: any) => SqliteConverters.toArray(v, [], 'message.attachments'), defaultValue: [] },
     created: { dbColumn: 'created_at', converter: (v: any) => SqliteConverters.toTimestamp(v) },
     updated: { dbColumn: 'updated_at', converter: (v: any) => SqliteConverters.toTimestamp(v) }
   } as const
@@ -166,13 +165,22 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
       messagesWithChatId[id] = { ...message, chatId }
     }
 
-    return withTransaction(database, async () => {
+    return withTransaction(database, () => {
       // Delete existing messages for this chat
       database.prepare(`DELETE FROM ${this.tableName} WHERE chat_id = ?`).run(chatId)
       
       // Insert new messages
+      const columns = this.getInsertColumns().join(', ')
+      const placeholders = this.getInsertColumns().map(() => '?').join(', ')
+      
+      const insertQuery = database.prepare(`
+        INSERT INTO ${this.tableName} (${columns})
+        VALUES (${placeholders})
+      `)
+
       for (const message of Object.values(messagesWithChatId)) {
-        await this.add(message)
+        const values = this.getInsertValues(message)
+        insertQuery.run(...values)
       }
       
       return messagesWithChatId
@@ -217,32 +225,55 @@ class ChatMessageStorageClass extends BaseStorage<ChatMessage, ChatMessagesStora
   }
 }
 
-// Create singleton instances
-const chatStorageInstance = new ChatStorageClass()
-const chatMessageStorageInstance = new ChatMessageStorageClass()
+// Function-based exports to avoid initialization order issues
+function getChatStorageInstance() {
+  return new ChatStorageClass()
+}
+
+function getChatMessageStorageInstance() {
+  return new ChatMessageStorageClass()
+}
+
+// Lazy initialization singletons
+let chatStorageInstance: ChatStorageClass | null = null
+let chatMessageStorageInstance: ChatMessageStorageClass | null = null
+
+function getChatStorage() {
+  if (!chatStorageInstance) {
+    chatStorageInstance = new ChatStorageClass()
+  }
+  return chatStorageInstance
+}
+
+function getChatMessageStorage() {
+  if (!chatMessageStorageInstance) {
+    chatMessageStorageInstance = new ChatMessageStorageClass()
+  }
+  return chatMessageStorageInstance
+}
 
 // Export the combined storage object for backward compatibility
 export const chatStorage = {
   // Chat methods
-  readChats: () => chatStorageInstance.readChats(),
-  writeChats: (chats: ChatsStorage) => chatStorageInstance.writeChats(chats),
-  getChatById: (chatId: number) => chatStorageInstance.getChatById(chatId),
+  readChats: () => getChatStorage().readChats(),
+  writeChats: (chats: ChatsStorage) => getChatStorage().writeChats(chats),
+  getChatById: (chatId: number) => getChatStorage().getChatById(chatId),
   findChatsByDateRange: (startTime: number, endTime: number) => 
-    chatStorageInstance.findChatsByDateRange(startTime, endTime),
-  deleteChatData: (chatId: number) => chatStorageInstance.deleteChatData(chatId),
+    getChatStorage().findChatsByDateRange(startTime, endTime),
+  deleteChatData: (chatId: number) => getChatStorage().deleteChatData(chatId),
   
   // ChatMessage methods
-  readChatMessages: (chatId: number) => chatMessageStorageInstance.readChatMessages(chatId),
+  readChatMessages: (chatId: number) => getChatMessageStorage().readChatMessages(chatId),
   writeChatMessages: (chatId: number, messages: ChatMessagesStorage) => 
-    chatMessageStorageInstance.writeChatMessages(chatId, messages),
-  getMessageById: (messageId: number) => chatMessageStorageInstance.getMessageById(messageId),
-  countMessagesForChat: (chatId: number) => chatMessageStorageInstance.countMessagesForChat(chatId),
-  addMessage: (message: ChatMessage) => chatMessageStorageInstance.addMessage(message),
+    getChatMessageStorage().writeChatMessages(chatId, messages),
+  getMessageById: (messageId: number) => getChatMessageStorage().getMessageById(messageId),
+  countMessagesForChat: (chatId: number) => getChatMessageStorage().countMessagesForChat(chatId),
+  addMessage: (message: ChatMessage) => getChatMessageStorage().addMessage(message),
   updateMessage: (messageId: number, message: ChatMessage) => 
-    chatMessageStorageInstance.updateMessage(messageId, message),
-  deleteMessage: (messageId: number) => chatMessageStorageInstance.deleteMessage(messageId),
+    getChatMessageStorage().updateMessage(messageId, message),
+  deleteMessage: (messageId: number) => getChatMessageStorage().deleteMessage(messageId),
   
   // Utility methods
-  generateId: () => chatStorageInstance.generateId(),
-  generateMessageId: () => chatMessageStorageInstance.generateId()
+  generateId: () => getChatStorage().generateId(),
+  generateMessageId: () => getChatMessageStorage().generateId()
 }

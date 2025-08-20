@@ -207,11 +207,14 @@ export function operationSuccessResponseJson(c: Context, message: string = 'Oper
 
 /**
  * Create a route handler with built-in validation and error handling
- * Simplified version that doesn't pre-extract parameters
+ * Uses safe extraction methods to avoid type system conflicts
+ * 
+ * Note: For full type safety, prefer using c.req.valid() directly in route handlers
+ * where the Context type is properly constrained by OpenAPI route definitions.
  */
 export function createRouteHandler<
-  TParams = any,
-  TQuery = any,
+  TParams = Record<string, any>,
+  TQuery = Record<string, any>,
   TBody = any
 >(
   handler: (args: {
@@ -222,22 +225,38 @@ export function createRouteHandler<
   }) => Promise<any>
 ): (c: Context) => Promise<any> {
   return withErrorHandling(async (c: Context) => {
-    // Extract parameters from the context
+    // Extract parameters from the context using safe methods
     let params: TParams | undefined
     let query: TQuery | undefined
     let body: TBody | undefined
     
+    // Use runtime validation extraction with proper error handling
     try {
-      params = c.req.valid('param' as any)
-    } catch {}
+      // Check if context has validated params - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        params = (c.req as any).valid('param') as TParams
+      }
+    } catch {
+      // If validation fails, params remain undefined
+    }
     
     try {
-      query = c.req.valid('query' as any)
-    } catch {}
+      // Check if context has validated query - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        query = (c.req as any).valid('query') as TQuery
+      }
+    } catch {
+      // If validation fails, query remains undefined
+    }
     
     try {
-      body = c.req.valid('json' as any)
-    } catch {}
+      // Check if context has validated body - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        body = (c.req as any).valid('json') as TBody
+      }
+    } catch {
+      // If validation fails, body remains undefined
+    }
     
     const result = await handler({ 
       params,
