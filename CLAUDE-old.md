@@ -2,32 +2,11 @@
 
 # ⚠️ STOP - AGENT CHECKPOINT ⚠️
 
-## 🚨 CRITICAL: MAJOR ARCHITECTURE REVAMP IN PROGRESS 🚨
-
-**⚡ ALERT: Promptliano is undergoing a massive architecture transformation that will:**
-- **Eliminate 64,000+ lines of code** (Backend: 20,000 lines, Frontend: 44,000 lines)
-- **Increase development velocity by 10-15x**
-- **Achieve 100% type safety from database to UI**
-- **Improve performance by 6-20x on backend, 80% faster on frontend**
-
-**📍 CURRENT STATUS: Migration Phase 1-2 Active**
-- ✅ Architecture plan approved (see `architecture-revamp/MAIN_ARCHITECTURE_IMPROVEMENTS.md`)
-- 🔄 Drizzle ORM migration in progress
-- 🔄 Hook factory patterns being implemented
-- ⏳ Service layer modernization pending
-
-**⚠️ DURING MIGRATION, YOU MUST:**
-1. Check if working on migration-affected code (storage, services, hooks)
-2. Use migration-specific agents for any revamp work
-3. Follow new patterns for any new code
-4. Avoid modifying legacy code that's being replaced
-
 Before ANY code changes:
 
 1. ✅ Did you load the specialized agent? (NO EXCEPTIONS)
 2. ✅ Did you check the agent matrix for the right specialist?
 3. ✅ Are you using promptliano-planning-architect for planning?
-4. ✅ Are you aware of ongoing migration in this area?
 
 If ANY answer is NO → STOP and load the correct agent first.
 
@@ -49,16 +28,12 @@ Then continue ONLY after agent is loaded.
 |-------------------------|----------------------------|
 | Planning any feature/bug | `promptliano-planning-architect` |
 | Database/SQLite | `promptliano-sqlite-expert` |
-| **🔄 Drizzle ORM Migration** | **`drizzle-migration-architect`** |
-| **🔄 Schema Refactoring** | **`migration-schema-refactor`** |
-| **🔄 Hook Factory Patterns** | **`frontend-hook-factory-architect`** |
 | API endpoints | `hono-bun-api-architect` |
 | API testing | `api-test-automation-expert` |
 | UI/React components | `promptliano-ui-architect` |
 | Forms | `promptliano-forms-architect` |
 | Zod schemas | `zod-schema-architect` |
 | Service logic | `promptliano-service-architect` |
-| **🔄 Service Modernization** | **`service-layer-modernizer`** |
 | Code review (ALWAYS after) | `staff-engineer-code-reviewer` |
 
 **EVERY TASK = AGENT FIRST, CODE SECOND**
@@ -267,16 +242,6 @@ So whenever you are given a new feature or bug, you'll use the promptliano overv
 | **promptliano-forms-architect**     | opus  | ALWAYS for forms | Form systems, validation, UX |
 | **tanstack-router-expert**          | sonnet | ALWAYS for routing | Type-safe routes, navigation |
 | **bun-shell-scripting-expert**      | sonnet | ALWAYS for shell scripts | Bun $ template literal, automation, CI scripts |
-
-### TIER 2.5: MIGRATION SPECIALISTS (🔄 ACTIVE NOW)
-
-| Agent                               | Model | Usage | Domain |
-| ----------------------------------- | ----- | ----- | ------ |
-| **drizzle-migration-architect**    | opus  | 🔥 CRITICAL NOW | Drizzle ORM migration, 87% storage reduction |
-| **migration-schema-refactor**      | opus  | 🔥 CRITICAL NOW | Schema consolidation, single source of truth |
-| **frontend-hook-factory-architect** | opus  | 🔥 CRITICAL NOW | Hook factories, 76% frontend code reduction |
-| **service-layer-modernizer**       | sonnet | 🔥 CRITICAL NOW | Service patterns, functional composition |
-| **migration-config-centralizer**   | sonnet | Migration support | Config consolidation, env management |
 
 ### TIER 3: Specialized Features
 
@@ -631,49 +596,6 @@ Source: `.claude/agents/promptliano-planning-architect.md`. Use `promptliano-pla
 
 All test, build, validation, and typecheck commands MUST be executed with Bun. Do not use npm, yarn, or pnpm inside this repository. When generating commands, prefer the existing package scripts (bun run <script>) before inventing new ad‑hoc commands.
 
-### 🔄 MIGRATION-SPECIFIC TESTING
-
-During the architecture revamp, additional testing requirements apply:
-
-#### Parallel Implementation Testing
-```bash
-# Run old and new implementations side-by-side
-bun run test:parallel --old=storage --new=drizzle
-
-# Benchmark performance comparisons
-bun run benchmark:storage --compare
-bun run benchmark:hooks --compare
-
-# Migration validation suite
-bun run test:migration:validate
-```
-
-#### Performance Benchmarking Commands
-```bash
-# Backend performance tests
-bun run benchmark:queries        # Test Drizzle vs manual SQL
-bun run benchmark:services       # Test service layer performance
-bun run benchmark:routes         # Test API endpoint response times
-
-# Frontend performance tests
-bun run benchmark:hooks          # Test hook factory vs manual hooks
-bun run benchmark:render         # Test re-render optimization
-bun run benchmark:bundle         # Analyze bundle size changes
-```
-
-#### Migration-Specific Test Suites
-```bash
-# Test Drizzle migration
-bun run test:drizzle:migration   # Test schema migrations
-bun run test:drizzle:types       # Validate type inference
-bun run test:drizzle:queries     # Test complex queries
-
-# Test hook factories
-bun run test:hooks:factory       # Test factory patterns
-bun run test:hooks:optimistic    # Test optimistic updates
-bun run test:hooks:prefetch      # Test prefetching logic
-```
-
 ### Core Scripts (root package.json)
 
 Fast loop:
@@ -848,278 +770,3 @@ The specialized agent system exists to ensure that **every piece of code is writ
 - Consistent quality across the entire codebase
 
 **When in doubt: Use an agent. When certain: Still use an agent.**
-
----
-
-## 🚀 ARCHITECTURE REVAMP - COMPREHENSIVE GUIDE
-
-### Overview: The 64,000 Line Transformation
-
-Promptliano is undergoing the most significant architectural transformation in its history, eliminating **64,000+ lines of code** while achieving **10-15x development velocity improvement**.
-
-**Full documentation:** `architecture-revamp/MAIN_ARCHITECTURE_IMPROVEMENTS.md`
-
-### Key Transformations
-
-#### 1. Backend Revolution (20,000+ Lines Eliminated)
-
-**Drizzle ORM Migration (87% Code Reduction)**
-- **From:** Manual SQLite with 9,678 lines of storage code
-- **To:** Drizzle ORM with ~2,700 lines
-- **Impact:** 6-20x query performance, 100% type safety
-
-**Service Layer Modernization**
-- **From:** Mixed patterns with heavy boilerplate
-- **To:** Functional composition with service factories
-- **Impact:** 75% code reduction, consistent APIs
-
-**Route Generation System**
-- **From:** 300 lines per route file with manual OpenAPI
-- **To:** Auto-generated from Zod schemas
-- **Impact:** 40% reduction, perfect consistency
-
-#### 2. Frontend Revolution (44,000+ Lines Eliminated)
-
-**Hook Factory Pattern (76% Code Reduction)**
-- **From:** 64,000 lines across 52 hook files
-- **To:** ~20,000 lines with factory patterns
-- **Impact:** New hooks in 35 lines vs 400+
-
-**Optimization Strategies**
-- Unified query key system
-- Smart error handling
-- Optimistic updates factory
-- Intelligent prefetching
-- Cross-tab synchronization
-
-### Migration Timeline (10 Weeks Total)
-
-#### Phase 1: Database Foundation (Weeks 1-2) ✅ IN PROGRESS
-- Create unified database package with Drizzle
-- Define all table schemas as single source of truth
-- Auto-generate Zod schemas from Drizzle
-- Set up migration system
-
-#### Phase 2: Storage & Service Migration (Weeks 3-4) 🔄 ACTIVE
-- Replace storage classes with Drizzle queries
-- Update services to use unified schemas
-- Remove SQLite converters and utilities
-- Migrate complex queries to Drizzle relational API
-
-#### Phase 3: API & Backend (Week 5) ⏳ PENDING
-- Update API routes to use unified schemas
-- Implement route code generation
-- Deploy error factory system
-- Add interceptor system
-
-#### Phase 4: Frontend Hook Factories (Weeks 6-7) ⏳ PENDING
-- Create hook factory infrastructure
-- Migrate all 22 API hook files
-- Implement relationship factories
-- Test with existing components
-
-#### Phase 5: Frontend Optimizations (Weeks 8-9) ⏳ PENDING
-- Deploy unified query key system
-- Implement centralized validation
-- Add smart error handling
-- Create optimistic update factories
-
-#### Phase 6: Integration & Cleanup (Week 10) ⏳ PENDING
-- Remove legacy code
-- Update all imports
-- Comprehensive testing
-- Documentation updates
-
-### Code Pattern Changes
-
-#### Storage Layer: Before vs After
-
-**BEFORE (Manual SQLite - 40+ lines per field mapping):**
-```typescript
-// packages/storage/src/ticket-storage.ts
-private readonly fieldMappings = {
-  id: { dbColumn: 'id', converter: (v: any) => SqliteConverters.toNumber(v) },
-  projectId: { dbColumn: 'project_id', converter: (v: any) => SqliteConverters.toNumber(v) },
-  title: { dbColumn: 'title', converter: (v: any) => SqliteConverters.toString(v) },
-  // ... 30+ more fields with manual conversions
-}
-```
-
-**AFTER (Drizzle ORM - Auto-typed):**
-```typescript
-// packages/database/schema.ts
-export const tickets = sqliteTable('tickets', {
-  id: integer('id').primaryKey(),
-  projectId: integer('project_id').references(() => projects.id),
-  title: text('title').notNull(),
-  // Types automatically inferred, no manual conversion needed
-})
-```
-
-#### Frontend Hooks: Before vs After
-
-**BEFORE (Manual Hook - 40+ lines per operation):**
-```typescript
-export function useCreateProject() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async (data: CreateProjectBody) => {
-      if (!client) throw new Error('API client not initialized')
-      const response = await client.projects.createProject(data)
-      return response.data
-    },
-    onSuccess: (project) => {
-      queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.all })
-      queryClient.setQueryData(PROJECT_KEYS.detail(project.id), project)
-      toast.success('Project created successfully')
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to create project')
-    }
-  })
-}
-```
-
-**AFTER (Factory Pattern - 5 lines):**
-```typescript
-const projectHooks = createEntityHooks<Project, CreateProjectBody, UpdateProjectBody>({
-  entityName: 'Project',
-  clientPath: 'projects',
-  optimistic: { enabled: true }
-})
-export const useCreateProject = projectHooks.useCreate
-```
-
-### Performance Improvements
-
-#### Backend Performance Gains
-| Operation | Current | With Drizzle | Improvement |
-|-----------|---------|--------------|-------------|
-| Simple SELECT | 15-20ms | 2-3ms | **6x faster** |
-| JOIN queries | 80-150ms | 8-12ms | **10x faster** |
-| Batch operations | 100-300ms | 10-20ms | **15x faster** |
-| Type conversion | 3-5ms | 0ms (compile-time) | **∞** |
-
-#### Frontend Performance Gains
-| Metric | Current | Optimized | Improvement |
-|--------|---------|-----------|-------------|
-| Loading Time | 2-3s | 0.5s perceived | **80% faster** |
-| Cache Hit Rate | 30% | 80% | **167% better** |
-| Bundle Size | ~500KB | ~200KB | **60% smaller** |
-| Re-render Count | High | Minimal | **90% reduction** |
-
-### Migration Rules & Guidelines
-
-#### ✅ DO During Migration:
-1. **Use migration-specific agents** for any revamp work
-2. **Follow new patterns** for all new code
-3. **Run parallel implementations** for testing
-4. **Benchmark performance** at each phase
-5. **Document pattern changes** as you go
-
-#### ❌ DON'T During Migration:
-1. **Don't modify legacy code** that's being replaced
-2. **Don't mix old and new patterns** in same file
-3. **Don't skip migration agents** for revamp work
-4. **Don't implement without benchmarking**
-5. **Don't merge without migration review**
-
-### Quick Migration Checklist
-
-#### For Storage Work:
-- [ ] Use `drizzle-migration-architect` agent
-- [ ] Define schema in `packages/database/schema.ts`
-- [ ] Auto-generate Zod schemas with drizzle-zod
-- [ ] Remove manual field mappings
-- [ ] Test with parallel implementation
-
-#### For Service Work:
-- [ ] Use `service-layer-modernizer` agent
-- [ ] Implement functional factory pattern
-- [ ] Use unified error factory
-- [ ] Remove boilerplate CRUD code
-- [ ] Add comprehensive tests
-
-#### For Frontend Hooks:
-- [ ] Use `frontend-hook-factory-architect` agent
-- [ ] Convert to factory pattern
-- [ ] Implement optimistic updates
-- [ ] Add smart error handling
-- [ ] Test with existing components
-
-### Success Metrics
-
-#### Overall Impact
-- **Total Lines Eliminated:** 64,000+
-- **Development Velocity:** 10-15x improvement
-- **Type Safety:** 100% compile-time validation
-- **Performance:** 6-20x backend, 80% faster frontend
-- **Maintenance Burden:** 70% reduction
-- **Time to Market:** 80% faster
-
-#### ROI Timeline
-- **Week 1-2:** Infrastructure setup, 20% productivity gain
-- **Week 3-4:** Core migration, 50% productivity gain
-- **Week 5-6:** Full migration, 10-15x productivity gain
-- **Month 2+:** Compound benefits, continuous acceleration
-
-### Migration Support
-
-#### Key Documents:
-- **Full Plan:** `architecture-revamp/MAIN_ARCHITECTURE_IMPROVEMENTS.md`
-- **Drizzle Guide:** `.claude/agents/drizzle-migration-architect.md`
-- **Hook Factory Guide:** `.claude/agents/frontend-hook-factory-architect.md`
-- **Service Patterns:** `.claude/agents/service-layer-modernizer.md`
-
-#### Migration Agents:
-- `drizzle-migration-architect` - Lead Drizzle ORM migration
-- `migration-schema-refactor` - Schema consolidation
-- `frontend-hook-factory-architect` - Hook factory patterns
-- `service-layer-modernizer` - Service layer patterns
-- `migration-config-centralizer` - Configuration management
-
-### Critical Decision Points
-
-#### Why These Changes Now?
-1. **Technical Debt:** 70% code duplication unsustainable
-2. **Velocity:** Current development 10x slower than needed
-3. **Type Safety:** Runtime errors costing significant debug time
-4. **Performance:** Users experiencing unnecessary latency
-5. **Scalability:** Current patterns won't scale to next phase
-
-#### Expected Outcomes:
-- **Immediate:** 50% less code to maintain
-- **3 Months:** 10x faster feature delivery
-- **6 Months:** Near-zero runtime errors
-- **1 Year:** Industry-leading development velocity
-
-### Action Items for Developers
-
-#### If Working on Storage:
-→ **STOP** using manual SQLite patterns
-→ **START** using Drizzle ORM with `drizzle-migration-architect`
-
-#### If Working on Services:
-→ **STOP** copying boilerplate service code
-→ **START** using service factories with `service-layer-modernizer`
-
-#### If Working on Frontend Hooks:
-→ **STOP** creating individual hook files
-→ **START** using hook factories with `frontend-hook-factory-architect`
-
-#### If Adding New Features:
-→ **ALWAYS** check if area is under migration
-→ **ALWAYS** use new patterns for new code
-→ **ALWAYS** benchmark against old implementation
-
-### The Bottom Line
-
-**Every day without these improvements costs:**
-- 10x more development time per feature
-- 64,000 lines of unnecessary code maintenance
-- Countless runtime errors that could be compile-time
-- Developer frustration with repetitive boilerplate
-
-**The transformation is not optional - it's critical for survival.**
