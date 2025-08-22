@@ -468,7 +468,7 @@ describe('Ticket Storage', () => {
         // Add tasks
         for (let j = 0; j < 2; j++) {
           const task: TicketTask = {
-            id: Date.now() - (i * 100 + j),
+            id: Date.now() - 7000 + (i * 1000 + j * 10),
             ticketId: ticket.id,
             content: `Task ${j}`,
             description: '',
