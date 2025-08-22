@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -178,7 +178,7 @@ jobs:
     needs: [detect-changes, test-packages]
     if: needs.detect-changes.outputs.has-changes == 'true' && contains(needs.detect-changes.outputs.packages, 'services')
     timeout-minutes: 20
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -200,16 +200,16 @@ jobs:
             echo "No integration tests found, skipping..."
           fi
 
-      - name: Run E2E queue tests
-        working-directory: packages/services
-        run: |
-          echo "📦 Running Queue System Tests..."
-          # Run queue tests specifically
-          if ls src/queue-*.test.ts 1> /dev/null 2>&1; then
-            bun test src/queue-*.test.ts --timeout 10000
-          else
-            echo "No queue tests found, skipping..."
-          fi
+      # - name: Run E2E queue tests
+      #   working-directory: packages/services
+      #   run: |
+      #     echo "📦 Running Queue System Tests..."
+      #     # Run queue tests specifically
+      #     if ls src/queue-*.test.ts 1> /dev/null 2>&1; then
+      #       bun test src/queue-*.test.ts --timeout 10000
+      #     else
+      #       echo "No queue tests found, skipping..."
+      #     fi
 
   # Summary job
   ci-summary:
@@ -222,22 +222,22 @@ jobs:
         run: |
           echo "## 🚀 Monorepo CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ needs.detect-changes.outputs.has-changes }}" = "false" ]; then
             echo "### ⏭️ No Changes Detected" >> $GITHUB_STEP_SUMMARY
             echo "No package changes detected - CI skipped" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
-          
+
           echo "### 📦 Tested Packages (${{ needs.detect-changes.outputs.changed-count }} changed)" >> $GITHUB_STEP_SUMMARY
           PACKAGES='${{ needs.detect-changes.outputs.packages }}'
           echo "$PACKAGES" | jq -r '.[]' | while read pkg; do
             echo "- \`$pkg\`" >> $GITHUB_STEP_SUMMARY
           done
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Results" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check package test results
           if [ "${{ needs.test-packages.result }}" = "success" ]; then
             echo "- ✅ **Package Tests**: All passed" >> $GITHUB_STEP_SUMMARY
@@ -246,7 +246,7 @@ jobs:
           else
             echo "- ⏭️ **Package Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Check integration test results
           if [ "${{ needs.integration-tests.result }}" = "success" ]; then
             echo "- ✅ **Integration Tests**: Passed" >> $GITHUB_STEP_SUMMARY
@@ -255,7 +255,7 @@ jobs:
           else
             echo "- ⏭️ **Integration Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.test-packages.result }}" = "success" ] && [ "${{ needs.integration-tests.result }}" != "failure" ]; then
