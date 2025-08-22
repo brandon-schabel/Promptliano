@@ -1,9 +1,58 @@
-# Alpine-based minimal Docker image with security best practices
-FROM alpine:3.19
+# Stage 1: Dependencies - Install all dependencies
+FROM oven/bun:1-slim AS deps
+WORKDIR /app
 
-# Build arguments for flexibility
-ARG VERSION=*
-ARG ARCH=linux-x64
+# Copy package files
+COPY package.json bun.lock* ./
+
+# Copy each workspace package.json explicitly to maintain structure for Bun workspaces
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/brand-kit/package.json ./packages/brand-kit/
+COPY packages/client/package.json ./packages/client/
+COPY packages/config/package.json ./packages/config/
+COPY packages/mcp-client/package.json ./packages/mcp-client/
+COPY packages/prompt-engineer/package.json ./packages/prompt-engineer/
+COPY packages/promptliano/package.json ./packages/promptliano/
+COPY packages/schemas/package.json ./packages/schemas/
+COPY packages/server/package.json ./packages/server/
+COPY packages/services/package.json ./packages/services/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/storage/package.json ./packages/storage/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/website/package.json ./packages/website/
+
+# Install dependencies with frozen lockfile
+RUN bun install --frozen-lockfile
+
+# Stage 2: Builder - Build the application
+FROM oven/bun:1-slim AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/*/node_modules ./packages/*/node_modules
+
+# Copy source code
+COPY . .
+
+# Build all packages
+RUN bun run build:all:bun || bun run build:all
+
+# Stage 3: Compiler - Create standalone binary
+FROM oven/bun:1-slim AS compiler
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app ./
+
+# Compile to standalone binary with Bun runtime included
+RUN bun build ./packages/server/server.ts \
+    --compile \
+    --target=bun-linux-x64-modern \
+    --outfile promptliano
+
+# Stage 4: Runtime - Alpine minimal production image
+FROM alpine:3.19
 
 # Install runtime dependencies and create non-root user
 RUN apk add --no-cache \
@@ -20,10 +69,9 @@ RUN mkdir -p /app /data \
 
 WORKDIR /app
 
-# Copy the Linux binary and client assets with proper ownership
-# Uses build args for version and architecture flexibility
-COPY --chown=promptliano:promptliano dist/promptliano-${VERSION}-${ARCH}/promptliano /app/
-COPY --chown=promptliano:promptliano dist/promptliano-${VERSION}-${ARCH}/client-dist /app/client-dist/
+# Copy the compiled binary and client assets from previous stages
+COPY --from=compiler --chown=promptliano:promptliano /app/promptliano /app/promptliano
+COPY --from=builder --chown=promptliano:promptliano /app/packages/server/client-dist /app/client-dist/
 
 # Make binary executable
 RUN chmod +x /app/promptliano

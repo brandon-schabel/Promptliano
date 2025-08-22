@@ -227,7 +227,10 @@ function isIPInRange(ip: string, start: string, end: string): boolean {
  */
 function ipToNumber(ip: string): number {
   const parts = ip.split('.').map(Number)
-  return (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]
+  if (parts.length !== 4 || parts.some(part => part == null || isNaN(part))) {
+    throw new Error(`Invalid IP address format: ${ip}`)
+  }
+  return (parts[0]! << 24) | (parts[1]! << 16) | (parts[2]! << 8) | parts[3]!
 }
 
 /**

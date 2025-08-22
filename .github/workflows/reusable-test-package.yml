@@ -1,0 +1,291 @@
+name: Reusable Package Testing
+
+on:
+  workflow_call:
+    inputs:
+      package-path:
+        description: 'Path to the package directory'
+        required: true
+        type: string
+      package-name:
+        description: 'Human-readable package name for reporting'
+        required: true
+        type: string
+      test-command:
+        description: 'Test command to run'
+        required: false
+        type: string
+        default: 'bun test'
+      typecheck-command:
+        description: 'TypeScript check command'
+        required: false
+        type: string
+        default: 'bun run typecheck'
+      build-command:
+        description: 'Build command to run'
+        required: false
+        type: string
+        default: 'bun run build'
+      lint-command:
+        description: 'Lint command to run'
+        required: false
+        type: string
+        default: ''
+      bun-version:
+        description: 'Bun version to use'
+        required: false
+        type: string
+        default: 'latest'
+      timeout-minutes:
+        description: 'Job timeout in minutes'
+        required: false
+        type: number
+        default: 15
+      run-tests:
+        description: 'Whether to run tests'
+        required: false
+        type: boolean
+        default: true
+      run-typecheck:
+        description: 'Whether to run type checking'
+        required: false
+        type: boolean
+        default: true
+      run-build:
+        description: 'Whether to run build'
+        required: false
+        type: boolean
+        default: true
+      run-lint:
+        description: 'Whether to run linting'
+        required: false
+        type: boolean
+        default: false
+      generate-coverage:
+        description: 'Whether to generate test coverage'
+        required: false
+        type: boolean
+        default: false
+      upload-artifacts:
+        description: 'Whether to upload test artifacts'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      test-success:
+        description: 'Whether tests passed'
+        value: ${{ jobs.test.outputs.test-success }}
+      typecheck-success:
+        description: 'Whether typecheck passed'
+        value: ${{ jobs.test.outputs.typecheck-success }}
+      build-success:
+        description: 'Whether build passed'
+        value: ${{ jobs.test.outputs.build-success }}
+
+jobs:
+  test:
+    name: Test ${{ inputs.package-name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    outputs:
+      test-success: ${{ steps.test-run.outputs.success }}
+      typecheck-success: ${{ steps.typecheck-run.outputs.success }}
+      build-success: ${{ steps.build-run.outputs.success }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ inputs.bun-version }}
+          working-directory: ${{ inputs.package-path }}
+          cache-key-suffix: -${{ inputs.package-name }}
+
+      - name: Verify package structure
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          echo "📋 Verifying package structure for ${{ inputs.package-name }}..."
+          
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found in ${{ inputs.package-path }}"
+            exit 1
+          fi
+          
+          echo "✅ Package structure verified"
+          echo "📦 Package info:"
+          node -p "JSON.stringify({
+            name: require('./package.json').name,
+            version: require('./package.json').version,
+            main: require('./package.json').main || 'none',
+            module: require('./package.json').module || 'none',
+            types: require('./package.json').types || 'none'
+          }, null, 2)"
+
+      - name: Run TypeScript type checking
+        id: typecheck-run
+        if: inputs.run-typecheck
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          echo "📝 Running TypeScript type checking for ${{ inputs.package-name }}..."
+          if ${{ inputs.typecheck-command }}; then
+            echo "✅ Type checking passed"
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Type checking failed"
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        continue-on-error: false
+
+      - name: Run linting
+        if: inputs.run-lint && inputs.lint-command != ''
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          echo "🔍 Running linting for ${{ inputs.package-name }}..."
+          ${{ inputs.lint-command }}
+        continue-on-error: true
+
+      - name: Run tests
+        id: test-run
+        if: inputs.run-tests
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          echo "🧪 Running tests for ${{ inputs.package-name }}..."
+          
+          # Construct test command with coverage if requested
+          TEST_CMD="${{ inputs.test-command }}"
+          if [ "${{ inputs.generate-coverage }}" = "true" ]; then
+            # Add coverage flag if not already present
+            if [[ ! "$TEST_CMD" =~ --coverage ]]; then
+              TEST_CMD="$TEST_CMD --coverage"
+            fi
+          fi
+          
+          echo "Running: $TEST_CMD"
+          if eval "$TEST_CMD"; then
+            echo "✅ Tests passed"
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed"
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload test coverage
+        if: inputs.generate-coverage && inputs.upload-artifacts
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: ${{ inputs.package-name }}-coverage-${{ github.run_number }}
+          artifact-path: |
+            ${{ inputs.package-path }}/coverage/
+            ${{ inputs.package-path }}/**/*.lcov
+          upload-condition: on-success
+          retention-days: ${{ github.event_name == 'pull_request' && '7' || '14' }}
+          max-size-mb: 50
+          compress: true
+
+      - name: Run build
+        id: build-run
+        if: inputs.run-build
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          echo "🏗️ Building ${{ inputs.package-name }}..."
+          if ${{ inputs.build-command }}; then
+            echo "✅ Build successful"
+            echo "success=true" >> $GITHUB_OUTPUT
+            
+            # Show build output info
+            if [ -d "dist" ]; then
+              echo "📂 Build output:"
+              ls -la dist/ || true
+            fi
+            if [ -d "build" ]; then
+              echo "📂 Build output:"
+              ls -la build/ || true
+            fi
+          else
+            echo "❌ Build failed"
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload build artifacts
+        if: inputs.run-build && inputs.upload-artifacts && steps.build-run.outputs.success == 'true'
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: ${{ inputs.package-name }}-build-${{ github.run_number }}
+          artifact-path: |
+            ${{ inputs.package-path }}/dist/
+            ${{ inputs.package-path }}/build/
+          upload-condition: on-success
+          retention-days: ${{ github.ref == 'refs/heads/main' && '7' || '3' }}
+          max-size-mb: 100
+          compress: auto
+
+      - name: Upload test logs
+        if: inputs.upload-artifacts
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: ${{ inputs.package-name }}-logs-${{ github.run_number }}
+          artifact-path: |
+            ${{ inputs.package-path }}/**/*.log
+            ${{ inputs.package-path }}/**/logs/
+          upload-condition: on-failure
+          retention-days: 5
+          max-size-mb: 20
+          compress: auto
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## 🧪 ${{ inputs.package-name }} Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Type checking results
+          if [ "${{ inputs.run-typecheck }}" = "true" ]; then
+            if [ "${{ steps.typecheck-run.outputs.success }}" = "true" ]; then
+              echo "- ✅ **Type checking**: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ **Type checking**: Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- ⏭️ **Type checking**: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Test results
+          if [ "${{ inputs.run-tests }}" = "true" ]; then
+            if [ "${{ steps.test-run.outputs.success }}" = "true" ]; then
+              echo "- ✅ **Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ **Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ inputs.generate-coverage }}" = "true" ]; then
+              echo "- 📊 **Coverage**: Generated" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- ⏭️ **Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Build results
+          if [ "${{ inputs.run-build }}" = "true" ]; then
+            if [ "${{ steps.build-run.outputs.success }}" = "true" ]; then
+              echo "- ✅ **Build**: Successful" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ **Build**: Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- ⏭️ **Build**: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Lint results
+          if [ "${{ inputs.run-lint }}" = "true" ] && [ "${{ inputs.lint-command }}" != "" ]; then
+            echo "- 🔍 **Linting**: Completed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package Path**: \`${{ inputs.package-path }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Status**: ${{ job.status == 'success' && '✅ Completed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

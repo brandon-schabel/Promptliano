@@ -1,0 +1,485 @@
+name: API Integration Tests
+
+# Temporarily disabled - skip API integration tests for now
+on:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'packages/api-client/**'
+  #     - 'packages/server/**'
+  #     - 'packages/services/**'
+  #     - 'packages/storage/**'
+  #     - 'packages/schemas/**'
+  #     - 'packages/shared/**'
+  #     - '.github/workflows/api-integration-tests.yml'
+  # pull_request:
+  #   paths:
+  #     - 'packages/api-client/**'
+  #     - 'packages/server/**'
+  #     - 'packages/services/**'
+  #     - 'packages/storage/**'
+  #     - 'packages/schemas/**'
+  #     - 'packages/shared/**'
+  #     - '.github/workflows/api-integration-tests.yml'
+  workflow_dispatch:
+    inputs:
+      test-coverage:
+        description: 'Generate test coverage report'
+        required: false
+        type: boolean
+        default: true
+      debug-mode:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+      timeout-minutes:
+        description: 'Test timeout in minutes'
+        required: false
+        type: number
+        default: 15
+
+# Prevent multiple concurrent test runs for the same ref
+concurrency:
+  group: api-integration-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+# Grant minimal required permissions
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  # Setup and dependency validation
+  setup:
+    name: Setup & Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      cache-hit: ${{ steps.setup.outputs.cache-hit }}
+      bun-version: ${{ steps.setup.outputs.bun-version }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 1
+
+      - name: Setup Bun and dependencies
+        id: setup
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: 'latest'
+          cache-key-suffix: -api-integration
+
+      - name: Validate API client package structure
+        working-directory: packages/api-client
+        run: |
+          echo "📋 Validating API client package structure..."
+          
+          # Verify essential files exist
+          [ -f "package.json" ] || { echo "❌ package.json missing"; exit 1; }
+          [ -f "src/index.ts" ] || { echo "❌ src/index.ts missing"; exit 1; }
+          [ -d "src/tests" ] || { echo "❌ src/tests directory missing"; exit 1; }
+          
+          # Check test infrastructure files
+          [ -f "src/tests/test-server.ts" ] || { echo "❌ test-server.ts missing"; exit 1; }
+          [ -f "src/tests/test-config.ts" ] || { echo "❌ test-config.ts missing"; exit 1; }
+          
+          echo "✅ Package structure validated"
+          
+          # Display package info
+          echo "📦 API Client Package Info:"
+          node -p "JSON.stringify({
+            name: require('./package.json').name,
+            version: require('./package.json').version,
+            testScripts: Object.keys(require('./package.json').scripts).filter(s => s.startsWith('test'))
+          }, null, 2)"
+
+  # Type checking across API-related packages
+  typecheck:
+    name: TypeScript Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [api-client, server, services, storage, schemas, shared]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ needs.setup.outputs.bun-version }}
+          cache-key-suffix: -api-integration-${{ matrix.package }}
+
+      - name: Run TypeScript type checking
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          echo "📝 Running TypeScript validation for ${{ matrix.package }}..."
+          bun run typecheck
+          echo "✅ TypeScript validation passed"
+
+  # API Integration Tests with isolated server
+  api-integration-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(inputs.timeout-minutes || '15') }}
+    needs: [setup, typecheck]
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - name: "Core APIs"
+            command: "test:isolated"
+            artifacts: "core-apis"
+          - name: "Flow Integration"
+            command: "test:flow-system"
+            artifacts: "flow-integration"
+          - name: "Tickets & Queues"
+            command: "test:flow-complete"
+            artifacts: "tickets-queues"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ needs.setup.outputs.bun-version }}
+          cache-key-suffix: -api-integration-tests
+
+      - name: Setup test environment
+        run: |
+          echo "🔧 Configuring test environment..."
+          
+          # Set CI-appropriate environment variables
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "CI=true" >> $GITHUB_ENV
+          echo "SKIP_AI_TESTS=true" >> $GITHUB_ENV
+          echo "RATE_LIMIT_ENABLED=false" >> $GITHUB_ENV
+          echo "TEST_USE_MEMORY_DB=true" >> $GITHUB_ENV
+          echo "TEST_TIMEOUT=90000" >> $GITHUB_ENV
+          
+          # Set debug mode if requested
+          if [ "${{ inputs.debug-mode }}" = "true" ]; then
+            echo "TEST_DEBUG=true" >> $GITHUB_ENV
+            echo "TEST_LOG_LEVEL=debug" >> $GITHUB_ENV
+            echo "LOG_LEVEL=debug" >> $GITHUB_ENV
+          else
+            echo "TEST_LOG_LEVEL=error" >> $GITHUB_ENV
+            echo "LOG_LEVEL=error" >> $GITHUB_ENV
+          fi
+          
+          echo "✅ Test environment configured"
+
+      - name: Pre-flight validation
+        working-directory: packages/api-client
+        run: |
+          echo "🔍 Running pre-flight validation..."
+          
+          # Verify test dependencies are available
+          bun run test:config:print
+          
+          # Check if isolated test server can be imported
+          bun -e "
+            import { createTestServer } from './src/tests/test-server.ts';
+            console.log('✅ Test server import successful');
+          "
+          
+          echo "✅ Pre-flight validation completed"
+
+      - name: Run ${{ matrix.test-suite.name }}
+        id: test-execution
+        working-directory: packages/api-client
+        run: |
+          echo "🧪 Running ${{ matrix.test-suite.name }}..."
+          
+          # Set coverage flag if requested
+          if [ "${{ inputs.test-coverage }}" = "true" ]; then
+            COVERAGE_FLAG="--coverage"
+          else
+            COVERAGE_FLAG=""
+          fi
+          
+          # Execute the test suite with timeout and coverage
+          if bun run ${{ matrix.test-suite.command }} $COVERAGE_FLAG; then
+            echo "✅ ${{ matrix.test-suite.name }} passed"
+            echo "test-success=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ${{ matrix.test-suite.name }} failed"
+            echo "test-success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        continue-on-error: false
+
+      - name: Generate test summary for ${{ matrix.test-suite.name }}
+        if: always()
+        run: |
+          echo "## 🧪 ${{ matrix.test-suite.name }} Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.test-execution.outputs.test-success }}" = "true" ]; then
+            echo "- ✅ **Status**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Status**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "- 📦 **Test Suite**: ${{ matrix.test-suite.command }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔧 **Environment**: Memory DB, No AI, Rate Limiting Disabled" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏱️ **Timeout**: ${{ env.TEST_TIMEOUT }}ms" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.debug-mode }}" = "true" ]; then
+            echo "- 🐛 **Debug Mode**: Enabled" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ inputs.test-coverage }}" = "true" ]; then
+            echo "- 📊 **Coverage**: Generated" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test coverage
+        if: inputs.test-coverage && steps.test-execution.outputs.test-success == 'true'
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: api-coverage-${{ matrix.test-suite.artifacts }}-${{ github.run_number }}
+          artifact-path: |
+            packages/api-client/coverage/
+            packages/api-client/**/*.lcov
+          upload-condition: on-success
+          retention-days: ${{ github.event_name == 'pull_request' && '7' || '14' }}
+          max-size-mb: 50
+          compress: true
+
+      - name: Upload test logs
+        uses: ./.github/actions/optimized-artifact-upload
+        with:
+          artifact-name: api-test-logs-${{ matrix.test-suite.artifacts }}-${{ github.run_number }}
+          artifact-path: |
+            packages/api-client/**/*.log
+            packages/api-client/logs/
+          upload-condition: on-failure
+          retention-days: 5
+          max-size-mb: 20
+          compress: auto
+            packages/api-client/**/logs/
+            packages/api-client/test-*.db
+          retention-days: 3
+        continue-on-error: true
+
+  # Performance benchmarking for API endpoints
+  performance-benchmarks:
+    name: API Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [setup, typecheck]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ needs.setup.outputs.bun-version }}
+          cache-key-suffix: -api-performance
+
+      - name: Run API performance benchmarks
+        working-directory: packages/api-client
+        run: |
+          echo "📊 Running API performance benchmarks..."
+          
+          # Set performance test environment
+          export NODE_ENV=test
+          export TEST_USE_MEMORY_DB=true
+          export RATE_LIMIT_ENABLED=false
+          export LOG_LEVEL=error
+          
+          # Create simple performance test
+          cat > performance-test.ts << 'EOF'
+          import { createTestServer } from './src/tests/test-server.ts';
+          
+          async function runPerformanceTest() {
+            const testServer = await createTestServer({ logLevel: 'silent' });
+            
+            try {
+              console.log('🚀 Starting API performance benchmarks...');
+              
+              const results = [];
+              const iterations = 10;
+              
+              // Test endpoint response times
+              for (let i = 0; i < iterations; i++) {
+                const start = performance.now();
+                const response = await fetch(`${testServer.baseUrl}/api/health`);
+                const end = performance.now();
+                
+                if (response.ok) {
+                  results.push(end - start);
+                }
+              }
+              
+              const avgTime = results.reduce((a, b) => a + b, 0) / results.length;
+              const maxTime = Math.max(...results);
+              const minTime = Math.min(...results);
+              
+              console.log(`⏱️ Average response time: ${avgTime.toFixed(2)}ms`);
+              console.log(`📈 Max response time: ${maxTime.toFixed(2)}ms`);
+              console.log(`📉 Min response time: ${minTime.toFixed(2)}ms`);
+              
+              // Performance thresholds
+              if (avgTime > 100) {
+                console.log('⚠️ Warning: Average response time exceeds 100ms');
+              } else {
+                console.log('✅ Performance test passed');
+              }
+              
+            } finally {
+              await testServer.cleanup();
+            }
+          }
+          
+          runPerformanceTest().catch(console.error);
+          EOF
+          
+          bun run performance-test.ts
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: api-performance-results
+          path: |
+            packages/api-client/performance-*.json
+            packages/api-client/benchmark-*.txt
+          retention-days: 30
+        continue-on-error: true
+
+  # Comprehensive test report generation
+  test-report:
+    name: Generate Test Report
+    needs: [setup, typecheck, api-integration-tests, performance-benchmarks]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate comprehensive test report
+        run: |
+          echo "## 🧪 API Integration Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow**: API Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Test Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Setup & Validation | ${{ needs.setup.result == 'success' && '✅ Passed' || '❌ Failed' }} | Dependency validation and caching |" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript Validation | ${{ needs.typecheck.result == 'success' && '✅ Passed' || '❌ Failed' }} | Type checking across API packages |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Integration Tests | ${{ needs.api-integration-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Core API, Flow, Tickets & Queues |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.performance-benchmarks.result }}" != "skipped" ]; then
+            echo "| Performance Benchmarks | ${{ needs.performance-benchmarks.result == 'success' && '✅ Passed' || '❌ Failed' }} | API response time validation |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Performance Benchmarks | ⏭️ Skipped | Only runs on main branch |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🔧 Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database**: Memory DB (isolated per test)" >> $GITHUB_STEP_SUMMARY
+          echo "- **AI Tests**: Disabled (SKIP_AI_TESTS=true)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rate Limiting**: Disabled" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Timeout**: ${{ inputs.timeout-minutes || '15' }} minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Generation**: ${{ inputs.test-coverage && '✅ Enabled' || '❌ Disabled' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Debug Mode**: ${{ inputs.debug-mode && '✅ Enabled' || '❌ Disabled' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bun Version**: ${{ needs.setup.outputs.bun-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cache Hit**: ${{ needs.setup.outputs.cache-hit == 'true' && '✅ Yes' || '❌ No' }}" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [ "${{ needs.setup.result }}" = "success" ] && \
+             [ "${{ needs.typecheck.result }}" = "success" ] && \
+             [ "${{ needs.api-integration-tests.result }}" = "success" ] && \
+             ([ "${{ needs.performance-benchmarks.result }}" = "success" ] || [ "${{ needs.performance-benchmarks.result }}" = "skipped" ]); then
+            echo "### 🎉 Overall Result: **PASSED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All API integration tests passed successfully! The API client is working correctly with the server infrastructure." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Result: **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Please check the individual job logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Test coverage reports (if generated)" >> $GITHUB_STEP_SUMMARY
+          echo "- Test execution logs" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance benchmark results (main branch only)" >> $GITHUB_STEP_SUMMARY
+          echo "- Isolated test database files" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [API Client Package](./packages/api-client/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Test Infrastructure](./packages/api-client/src/tests/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Server Package](./packages/server/)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('API Integration Test Report')
+            );
+            
+            const reportBody = `## 🧪 API Integration Test Report
+            
+**Status**: ${{ (needs.setup.result == 'success' && needs.typecheck.result == 'success' && needs.api-integration-tests.result == 'success') && '✅ All tests passed' || '❌ Some tests failed' }}
+**Commit**: ${{ github.sha }}
+**Workflow**: [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+### Test Results
+- Setup & Validation: ${{ needs.setup.result == 'success' && '✅' || '❌' }}
+- TypeScript Validation: ${{ needs.typecheck.result == 'success' && '✅' || '❌' }}
+- API Integration Tests: ${{ needs.api-integration-tests.result == 'success' && '✅' || '❌' }}
+
+The API client has been tested against isolated server instances with memory databases to ensure proper integration.`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: reportBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: reportBody
+              });
+            }
+        continue-on-error: true

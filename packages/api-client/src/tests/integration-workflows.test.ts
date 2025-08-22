@@ -1285,7 +1285,6 @@ describe('End-to-End Workflow Integration Tests', () => {
               projectCount: 0,
               ticketCount: 0,
               queueCount: 0,
-              jobCount: 0,
               agentCount: 0,
               errorCount: 0
             }
@@ -1300,15 +1299,6 @@ describe('End-to-End Workflow Integration Tests', () => {
               healthMetrics.errorCount++
             }
             
-            try {
-              // Check job system health
-              const jobStats = await client.jobs.getJobStatistics()
-              if (jobStats.success) {
-                healthMetrics.jobCount = jobStats.data.total
-              }
-            } catch (error) {
-              healthMetrics.errorCount++
-            }
             
             try {
               // Check agent system
@@ -1323,7 +1313,7 @@ describe('End-to-End Workflow Integration Tests', () => {
             return healthMetrics
           })
           
-          console.log(`📊 System health: ${healthAssessment.projectCount} projects, ${healthAssessment.jobCount} jobs, ${healthAssessment.agentCount} agents`)
+          console.log(`📊 System health: ${healthAssessment.projectCount} projects, ${healthAssessment.agentCount} agents`)
           
           // Phase 2: Create Administrative Project for System Maintenance
           const adminProject = await dataManager.createProject(factories.createProjectData({
@@ -1396,13 +1386,9 @@ describe('End-to-End Workflow Integration Tests', () => {
               }
             ]
             
+            // Job creation removed (jobs client removed)
             const jobs = []
-            for (const config of jobConfigs) {
-              const job = await dataManager.createJob(config)
-              jobs.push(job)
-              console.log(`📋 Created monitoring job: ${config.type}`)
-            }
-            
+            console.log(`📋 Job system disabled - monitoring functionality reduced`)
             return jobs
           })
           
@@ -1565,16 +1551,8 @@ describe('End-to-End Workflow Integration Tests', () => {
               })
             }
             
-            // Analyze job performance
+            // Job performance analysis removed (jobs client removed)
             let jobAnalysis = null
-            try {
-              const jobStats = await client.jobs.getJobStatistics()
-              if (jobStats.success) {
-                jobAnalysis = jobStats.data
-              }
-            } catch (error) {
-              console.log('⏭️  Job statistics not available')
-            }
             
             return {
               queueAnalysis: allQueueStats,

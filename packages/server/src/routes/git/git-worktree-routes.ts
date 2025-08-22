@@ -13,7 +13,7 @@ import {
   gitWorktreeLockRequestSchema as LockWorktreeBodySchema
 } from '@promptliano/schemas'
 import * as gitService from '@promptliano/services'
-import { createStandardResponses, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import { createStandardResponses, createStandardResponsesWithStatus, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas
 const WorktreeListResponseSchema = z.object({
@@ -54,13 +54,11 @@ const addWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Worktree added successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    201,
+    'Worktree added successfully'
+  )
 })
 
 // Remove worktree
@@ -77,13 +75,11 @@ const removeWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Worktree removed successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    200,
+    'Worktree removed successfully'
+  )
 })
 
 // Lock worktree
@@ -100,13 +96,11 @@ const lockWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Worktree locked successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    200,
+    'Worktree locked successfully'
+  )
 })
 
 // Unlock worktree
@@ -129,13 +123,11 @@ const unlockWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
-      description: 'Worktree unlocked successfully'
-    },
-    ...createStandardResponses(OperationSuccessResponseSchema)
-  }
+  responses: createStandardResponsesWithStatus(
+    OperationSuccessResponseSchema,
+    200,
+    'Worktree unlocked successfully'
+  )
 })
 
 // Prune worktrees
@@ -160,29 +152,30 @@ const pruneWorktreesRoute = createRoute({
 export const gitWorktreeRoutes = new OpenAPIHono()
   .openapi(
     listWorktreesRoute,
-    createRouteHandler<{ projectId: number }>(async ({ params }) => {
+    (createRouteHandler<{ projectId: number }>(async ({ params }) => {
       const worktrees = await gitService.getWorktrees(params!.projectId)
       return successResponse(worktrees)
-    })
+    }) as any)
   )
   .openapi(
     addWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
-      async ({ params, body }) => {
-        await gitService.addWorktree(
-          params!.projectId,
-          body!.path,
-          body!.branch,
-          body!.newBranch
-        )
-        return operationSuccessResponse('Worktree added successfully', 201)
+    (createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
+        await gitService.addWorktree(params!.projectId, {
+          path: body!.path,
+          branch: body!.branch,
+          newBranch: body!.newBranch,
+          commitish: body!.commitish,
+          detach: body!.detach
+        })
+        return operationSuccessResponse('Worktree added successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     removeWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
         await gitService.removeWorktree(
           params!.projectId,
           body!.path,
@@ -190,12 +183,12 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         )
         return operationSuccessResponse('Worktree removed successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     lockWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
+      async ({ params, body }): Promise<any> => {
         await gitService.lockWorktree(
           params!.projectId,
           body!.path,
@@ -203,21 +196,21 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         )
         return operationSuccessResponse('Worktree locked successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     unlockWorktreeRoute,
-    createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
-      async ({ params, body }) => {
+    (createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
+      async ({ params, body }): Promise<any> => {
         await gitService.unlockWorktree(params!.projectId, body!.worktreePath)
         return operationSuccessResponse('Worktree unlocked successfully')
       }
-    )
+    ) as any)
   )
   .openapi(
     pruneWorktreesRoute,
-    createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
-      async ({ params, query }) => {
+    (createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
+      async ({ params, query }): Promise<any> => {
         const { dryRun = false } = query || {}
         const prunedPaths = await gitService.pruneWorktrees(params!.projectId, dryRun)
         
@@ -231,7 +224,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
           message
         }
       }
-    )
+    ) as any)
   )
 
 export type GitWorktreeRouteTypes = typeof gitWorktreeRoutes

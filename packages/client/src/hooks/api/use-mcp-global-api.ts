@@ -21,7 +21,7 @@ export function useGetGlobalMCPConfig() {
     enabled: !!client,
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.getGlobalConfig()
+      return client.mcp.getGlobalConfig()
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2
@@ -37,7 +37,7 @@ export function useGetGlobalInstallations() {
     enabled: !!client,
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.getGlobalInstallations()
+      return client.mcp.getGlobalInstallations()
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: true
@@ -53,7 +53,7 @@ export function useGetGlobalMCPStatus() {
     enabled: !!client,
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.getGlobalStatus()
+      return client.mcp.getGlobalStatus()
     },
     staleTime: 30 * 1000, // 30 seconds
     refetchOnWindowFocus: true
@@ -70,7 +70,7 @@ export function useUpdateGlobalMCPConfig() {
   return useMutation({
     mutationFn: (updates: any) => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.updateGlobalConfig(updates)
+      return client.mcp.updateGlobalConfig(updates)
     },
     onSuccess: (data) => {
       // Invalidate all MCP global queries
@@ -93,7 +93,7 @@ export function useInstallGlobalMCP() {
   return useMutation({
     mutationFn: (data: { tool: string; serverName?: string; debug?: boolean }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.installGlobalMCP(data)
+      return client.mcp.installGlobalMCP(data)
     },
     onSuccess: (data) => {
       // Invalidate installations and status
@@ -118,7 +118,7 @@ export function useUninstallGlobalMCP() {
   return useMutation({
     mutationFn: (data: { tool: string }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.mcpGlobalConfig.uninstallGlobalMCP(data)
+      return client.mcp.uninstallGlobalMCP(data)
     },
     onSuccess: (data) => {
       // Invalidate installations and status

@@ -19,8 +19,8 @@ const getMCPAnalyticsRoute = createRoute({
   summary: 'Get MCP usage analytics',
   request: {
     query: z.object({
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
+      startDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
+      endDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
       serverId: z.string().optional()
     })
   },
@@ -313,11 +313,13 @@ const getProjectMCPExecutionsRoute = createRoute({
     }),
     query: z.object({
       toolName: z.string().optional(),
-      status: z.string().optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
+      status: z.enum(['success', 'error', 'timeout']).optional(),
+      startDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
+      endDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
       limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
-      offset: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined)
+      offset: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
+      sortBy: z.enum(['startedAt', 'duration', 'toolName']).optional(),
+      sortOrder: z.enum(['asc', 'desc']).optional()
     })
   },
   responses: createStandardResponses(z.object({
@@ -487,8 +489,10 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
         status: query.status,
         startDate: query.startDate,
         endDate: query.endDate,
-        limit: query.limit,
-        offset: query.offset
+        limit: query.limit || 10,
+        offset: query.offset || 0,
+        sortBy: query.sortBy || 'startedAt',
+        sortOrder: query.sortOrder || 'desc'
       }
       const result = await getMCPToolExecutions(executionQuery)
       return c.json(successResponse(result))

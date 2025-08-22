@@ -78,7 +78,7 @@ export function ProjectNavigationMenu({
     queryFn: async () => {
       if (!selectedProjectId || !client) return null
       try {
-        const result = await client.mcpProjectConfig.loadProjectConfig(selectedProjectId)
+        const result = await client.mcp.loadProjectConfig(selectedProjectId)
         return result.data
       } catch (error: any) {
         // Handle 404 errors for non-existent projects gracefully

@@ -245,7 +245,7 @@ describe('Migration Utilities', () => {
       expect(status.total).toBe(3)
       expect(status.applied).toHaveLength(2)
       expect(status.pending).toHaveLength(1)
-      expect(status.pending[0].version).toBe(3)
+      expect(status.pending[0]?.version).toBe(3)
     })
   })
 

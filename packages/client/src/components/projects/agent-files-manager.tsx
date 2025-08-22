@@ -53,10 +53,44 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
 
   const updateMutation = useMutation({
     mutationFn: async (files?: { path: string; update: boolean }[]) => {
-      const response = await client?.agentFiles.updateFile(projectId, {
-        files
-      })
-      return response
+      if (!files || files.length === 0) {
+        // For update all, we'll process each file in the component
+        // This is a batch operation, we'll need to handle it differently
+        const allFiles = [...(filesData?.projectFiles || []), ...(filesData?.globalFiles || [])]
+        const results = []
+        
+        for (const file of allFiles) {
+          if (file.exists && file.writable) {
+            try {
+              const response = await client?.agentFiles.updateFile(projectId, {
+                filePath: file.path
+              })
+              results.push(response)
+            } catch (error) {
+              // Continue with other files even if one fails
+              console.warn(`Failed to update ${file.path}:`, error)
+            }
+          }
+        }
+        
+        return { data: { results } }
+      } else {
+        // For specific files
+        const results = []
+        
+        for (const fileUpdate of files) {
+          try {
+            const response = await client?.agentFiles.updateFile(projectId, {
+              filePath: fileUpdate.path
+            })
+            results.push(response)
+          } catch (error) {
+            console.warn(`Failed to update ${fileUpdate.path}:`, error)
+          }
+        }
+        
+        return { data: { results } }
+      }
     },
     onSuccess: (data) => {
       toast.success('Agent files updated', {

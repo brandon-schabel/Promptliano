@@ -5,7 +5,10 @@
 // 4. Maintained same API interface for backward compatibility
 // 5. Added proper type safety and validation
 
-import { createPromptlianoClient, type MCPService } from '../api-client'
+import { createPromptlianoClient } from './index'
+import type { MCPClient } from './clients/mcp-client'
+
+type MCPService = MCPClient
 import type {
   CreateMCPServerConfigBody,
   UpdateMCPServerConfigBody,

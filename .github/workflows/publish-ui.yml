@@ -23,8 +23,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Pre-publish testing using our new reusable workflow
+  test-ui:
+    name: Test UI Package
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test-package.yml
+    with:
+      package-path: packages/ui
+      package-name: '@promptliano/ui'
+      test-command: 'bun run typecheck'
+      typecheck-command: 'bun run typecheck'
+      build-command: 'bun run build'
+      run-tests: true
+      run-typecheck: true
+      run-build: true
+      generate-coverage: false
+      upload-artifacts: true
+
   publish-ui:
     name: Publish @promptliano/ui
+    needs: [test-ui]
+    if: always() && (github.event_name != 'pull_request' || needs.test-ui.result == 'success')
     uses: ./.github/workflows/publish-npm-package.reusable.yml
     with:
       package-path: packages/ui

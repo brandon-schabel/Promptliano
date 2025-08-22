@@ -53,7 +53,7 @@ describe('Flow Integration Tests', () => {
             
             // High priority ticket gets 3 tasks
             for (let i = 1; i <= 3; i++) {
-              tasks.push(await dataManager.createTask(tickets[0].id, factories.createTaskData({
+              tasks.push(await dataManager.createTask(tickets[0]!.id, factories.createTaskData({
                 content: `High Priority Task ${i}`,
                 description: `Task ${i} for critical feature`,
                 estimatedHours: 2 + i,
@@ -63,7 +63,7 @@ describe('Flow Integration Tests', () => {
             
             // Medium priority ticket gets 2 tasks
             for (let i = 1; i <= 2; i++) {
-              tasks.push(await dataManager.createTask(tickets[1].id, factories.createTaskData({
+              tasks.push(await dataManager.createTask(tickets[1]!.id, factories.createTaskData({
                 content: `Medium Priority Task ${i}`,
                 description: `Task ${i} for bug fix`,
                 estimatedHours: 1 + i,
@@ -72,7 +72,7 @@ describe('Flow Integration Tests', () => {
             }
             
             // Low priority ticket gets 1 task
-            tasks.push(await dataManager.createTask(tickets[2].id, factories.createTaskData({
+            tasks.push(await dataManager.createTask(tickets[2]!.id, factories.createTaskData({
               content: 'Low Priority Task 1',
               description: 'Enhancement task',
               estimatedHours: 1,
@@ -116,9 +116,9 @@ describe('Flow Integration Tests', () => {
           assertions.assertSuccessResponse(queueStats)
           assertions.assertValidQueueStats(queueStats.data)
           expect(queueStats.data.totalItems).toBeGreaterThanOrEqual(3) // At least the 3 tickets
-          expect(queueStats.data.pendingItems).toBeGreaterThanOrEqual(3)
+          expect(queueStats.data.queuedItems).toBeGreaterThanOrEqual(3)
           
-          console.log(`✅ Queue stats verified: ${queueStats.data.totalItems} total items, ${queueStats.data.pendingItems} pending`)
+          console.log(`✅ Queue stats verified: ${queueStats.data.totalItems} total items, ${queueStats.data.queuedItems} pending`)
           
           // Phase 7: Process Items in Priority Order
           const processedItems = []
@@ -128,12 +128,12 @@ describe('Flow Integration Tests', () => {
             const nextTask = await client.queues.getNextTask(queue.id, `integration-agent-${processingRound}`)
             assertions.assertSuccessResponse(nextTask)
             
-            if (!nextTask.data.item) {
+            if (!nextTask.data.queueItem) {
               console.log('✅ No more items to process')
               break
             }
             
-            const item = nextTask.data.item
+            const item = nextTask.data.queueItem
             assertions.assertValidQueueItem(item)
             processedItems.push(item)
             
@@ -177,9 +177,9 @@ describe('Flow Integration Tests', () => {
           const finalStats = await client.queues.getQueueStats(queue.id)
           assertions.assertSuccessResponse(finalStats)
           expect(finalStats.data.completedItems).toBeGreaterThanOrEqual(processedItems.length)
-          expect(finalStats.data.pendingItems).toBeLessThan(queueStats.data.pendingItems)
+          expect(finalStats.data.queuedItems).toBeLessThan(queueStats.data.queuedItems)
           
-          console.log(`✅ Final stats: ${finalStats.data.completedItems} completed, ${finalStats.data.pendingItems} pending`)
+          console.log(`✅ Final stats: ${finalStats.data.completedItems} completed, ${finalStats.data.queuedItems} pending`)
           
           // Phase 10: Verify Task and Ticket Status Updates
           await tracker.measure('verify-status-updates', async () => {

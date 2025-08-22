@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiError } from '@promptliano/shared'
+import { createStandardResponses, createStandardResponsesWithStatus, standardResponses } from '../utils/route-helpers'
 import {
   ProjectIdParamsSchema,
   CreateProjectBodySchema,
@@ -19,7 +20,7 @@ import {
 } from '@promptliano/schemas'
 
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import { successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 import { existsSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
@@ -845,7 +846,10 @@ export const projectRoutes = new OpenAPIHono()
         includeImports: true,
         includeExports: true,
         progressive: false,
-        includeMetrics: true
+        includeMetrics: true,
+        groupAware: false,
+        includeRelationships: false,
+        contextWindow: 4000
       })
 
       if (!result.metrics) {

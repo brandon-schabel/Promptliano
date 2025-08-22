@@ -118,7 +118,7 @@ async function testModelsEndpoint(
     const data = await response.json()
     
     // Check if response has the expected OpenAI structure
-    if (!data.data || !Array.isArray(data.data)) {
+    if (!data || typeof data !== 'object' || !('data' in data) || !Array.isArray((data as any).data)) {
       console.error('Models response does not match OpenAI structure')
       return { success: false }
     }

@@ -33,7 +33,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: brandon-schabel/promptliano
 
 jobs:
   # Lint Dockerfiles for best practices
@@ -42,24 +42,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run hadolint on Alpine Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: Dockerfile.alpine
           config: docker/hadolint.yaml
           no-fail: true
 
       - name: Run hadolint on Distroless Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: Dockerfile.distroless
           config: docker/hadolint.yaml
           no-fail: true
 
       - name: Run hadolint on Production Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: Dockerfile.production
           config: docker/hadolint.yaml
@@ -71,123 +71,69 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Bun and dependencies
+        uses: ./.github/actions/setup-bun
         with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          bun-version: 'latest'
+          cache-key-suffix: -docker-binaries
 
       - name: Build binaries
         run: bun run scripts/build-binaries.ts
 
       - name: Upload binaries as artifacts
-        uses: actions/upload-artifact@v4
+        uses: ./.github/actions/optimized-artifact-upload
         with:
-          name: binaries
-          path: dist/
-          retention-days: 1
+          artifact-name: docker-binaries-${{ github.run_id }}
+          artifact-path: dist/
+          upload-condition: always  # Needed by downstream Docker builds
+          retention-days: 1  # Very short for intermediate artifacts
+          max-size-mb: 200
+          compress: true
+          include-git-info: false  # Skip metadata for intermediate artifacts
 
-  # Build and test Docker images
-  docker-build:
-    name: Build ${{ matrix.dockerfile }} (${{ matrix.platform }})
+  # Build Docker images using reusable workflow
+  docker-build-alpine:
+    name: Build Alpine Images
     needs: [lint, build-binaries]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile: 
-          - alpine
-          - distroless
-          - production
-        platform:
-          - linux/amd64
-          - linux/arm64
-        exclude:
-          # Skip certain combinations if needed
-          - dockerfile: production
-            platform: linux/arm64  # Production build is slow on ARM emulation
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      dockerfile: alpine
+      platforms: linux/amd64,linux/arm64
+      push: false
+      upload-artifacts: true
+      needs-binaries: true
+      security-scan: true
 
-      - name: Download binaries
-        if: matrix.dockerfile != 'production'
-        uses: actions/download-artifact@v4
-        with:
-          name: binaries
-          path: dist/
+  docker-build-distroless:
+    name: Build Distroless Images  
+    needs: [lint, build-binaries]
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      dockerfile: distroless
+      platforms: linux/amd64,linux/arm64
+      push: false
+      upload-artifacts: true
+      needs-binaries: true
+      security-scan: true
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Sanitize platform name
-        id: platform
-        run: |
-          PLATFORM="${{ matrix.platform }}"
-          PLATFORM_SAFE="${PLATFORM//\//-}"
-          echo "safe=$PLATFORM_SAFE" >> $GITHUB_OUTPUT
-
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch,suffix=-${{ matrix.dockerfile }}
-            type=ref,event=pr,suffix=-${{ matrix.dockerfile }}
-            type=sha,format=short,suffix=-${{ matrix.dockerfile }}
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platform }}
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/${{ matrix.dockerfile }}-${{ steps.platform.outputs.safe }}.tar
-
-      - name: Upload image as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-${{ matrix.dockerfile }}-${{ steps.platform.outputs.safe }}
-          path: /tmp/${{ matrix.dockerfile }}-${{ steps.platform.outputs.safe }}.tar
-          retention-days: 1
+  docker-build-production:
+    name: Build Production Images
+    needs: [lint, build-binaries]
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      dockerfile: production
+      platforms: linux/amd64  # Skip ARM for production to reduce CI time
+      push: false
+      upload-artifacts: false  # Production images are large
+      needs-binaries: false    # Production builds own binaries
+      security-scan: true
 
   # Test Docker containers
   test-containers:
     name: Test ${{ matrix.dockerfile }} Container
-    needs: docker-build
+    needs: [docker-build-alpine, docker-build-distroless]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -287,63 +233,32 @@ jobs:
           docker rm test-container test-persist || true
           docker volume rm test-data || true
 
-  # Security scanning
+  # Security scanning summary (handled by reusable workflows)
   security-scan:
-    name: Security Scan ${{ matrix.dockerfile }}
-    needs: docker-build
+    name: Security Scan Summary
+    needs: [docker-build-alpine, docker-build-distroless, docker-build-production]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile: 
-          - alpine
-          - distroless
-          - production
+    if: always()
     
     steps:
-      - name: Download Docker image
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-${{ matrix.dockerfile }}-linux-amd64
-          path: /tmp
-
-      - name: Load Docker image
-        run: docker load -i /tmp/${{ matrix.dockerfile }}-linux-amd64.tar
-
-      - name: Get image name
-        id: image
+      - name: Security scan summary
         run: |
-          IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | head -1)
-          echo "name=$IMAGE" >> $GITHUB_OUTPUT
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.image.outputs.name }}
-          format: 'sarif'
-          output: 'trivy-results-${{ matrix.dockerfile }}.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results-${{ matrix.dockerfile }}.sarif'
-          category: 'trivy-${{ matrix.dockerfile }}'
-
-      - name: Trivy scan summary
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.image.outputs.name }}
-          format: 'table'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '1'  # Fail on HIGH or CRITICAL
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Security scanning is performed automatically by the reusable Docker build workflows." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Scanned Images:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏔️ **Alpine**: ${{ needs.docker-build-alpine.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 **Distroless**: ${{ needs.docker-build-distroless.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏭 **Production**: ${{ needs.docker-build-production.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check individual workflow runs for detailed security scan results." >> $GITHUB_STEP_SUMMARY
 
   # Summary job
   docker-ci-summary:
     name: Docker CI Summary
     if: always()
-    needs: [lint, docker-build, test-containers, security-scan]
+    needs: [lint, docker-build-alpine, docker-build-distroless, docker-build-production, test-containers, security-scan]
     runs-on: ubuntu-latest
     steps:
       - name: Summary
@@ -358,10 +273,16 @@ jobs:
             echo "❌ Dockerfile linting failed" >> $GITHUB_STEP_SUMMARY
           fi
           
-          if [ "${{ needs.docker-build.result }}" == "success" ]; then
-            echo "✅ Docker images built successfully" >> $GITHUB_STEP_SUMMARY
+          # Check all docker build jobs
+          if [ "${{ needs.docker-build-alpine.result }}" == "success" ] && \
+             [ "${{ needs.docker-build-distroless.result }}" == "success" ] && \
+             [ "${{ needs.docker-build-production.result }}" == "success" ]; then
+            echo "✅ All Docker images built successfully" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Docker image build failed" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Some Docker image builds failed" >> $GITHUB_STEP_SUMMARY
+            echo "  - Alpine: ${{ needs.docker-build-alpine.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Distroless: ${{ needs.docker-build-distroless.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Production: ${{ needs.docker-build-production.result }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ needs.test-containers.result }}" == "success" ]; then

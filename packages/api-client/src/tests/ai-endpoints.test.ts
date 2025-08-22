@@ -76,7 +76,7 @@ describe('AI Endpoints Integration Tests', () => {
     test.skipIf(skipAITests)('should have the target model available', async () => {
       const status = await checkLMStudioAvailability(testEnv.config.ai.lmstudio)
       const hasTargetModel = status.models.some((model: string) => 
-        model === testEnv.config.ai.lmstudio.model || model.includes('gpt-oss')
+        model === testEnv.config.ai.lmstudio?.model || model.includes('gpt-oss')
       )
       expect(hasTargetModel).toBe(true)
     })
@@ -304,13 +304,13 @@ export class ShoppingCart {
         
         // If we get here, the request completed faster than expected
         // This is not necessarily a failure
-      } catch (error) {
+      } catch (error: unknown) {
         // Expect timeout error
         expect(error instanceof Error).toBe(true)
         expect(
-          error.message.includes('timeout') || 
-          error.message.includes('aborted') ||
-          error.message.includes('signal')
+          (error as Error).message.includes('timeout') || 
+          (error as Error).message.includes('aborted') ||
+          (error as Error).message.includes('signal')
         ).toBe(true)
       }
     })

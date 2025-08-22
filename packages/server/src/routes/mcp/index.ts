@@ -1,4 +1,5 @@
 /**
+import { createStandardResponses, createStandardResponsesWithStatus, standardResponses } from '../../utils/route-helpers'
  * MCP Routes Consolidation
  * Combines all MCP-related routes into a single export
  */

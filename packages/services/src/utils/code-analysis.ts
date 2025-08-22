@@ -49,14 +49,17 @@ function analyzePythonImportsExports(content: string, filename: string): CodeAna
       /^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w.*]+(?:\s+as\s+\w+)?(?:\s*,\s*[\w.*]+(?:\s+as\s+\w+)?)*)/gm
     let match
     while ((match = importRegex.exec(content)) !== null) {
-      const source = match[1] || '' // from source
+      const source = match[1] ?? '' // from source
       const specifiersStr = match[2]
+      if (!specifiersStr) continue
       const specifiers = specifiersStr.split(',').map((s) => {
         const parts = s.trim().split(/\s+as\s+/)
+        const imported = parts[0]?.trim() ?? 'unknown'
+        const local = parts[1]?.trim() ?? imported
         return {
           type: 'named' as const,
-          imported: parts[0].trim(),
-          local: parts[1]?.trim() || parts[0].trim()
+          imported,
+          local
         }
       })
       imports.push({ source, specifiers })
@@ -65,7 +68,8 @@ function analyzePythonImportsExports(content: string, filename: string): CodeAna
     // Top-level defs/classes for "exports" (must start at column 0, no indentation)
     const exportRegex = /^(def|class)\s+(\w+)\s*(?:\(|:)/gm
     while ((match = exportRegex.exec(content)) !== null) {
-      const exportName = match[2] ?? ''
+      const exportName = match[2]
+      if (!exportName) continue
       exports.push({
         type: 'named',
         specifiers: [{ exported: exportName, local: exportName }]

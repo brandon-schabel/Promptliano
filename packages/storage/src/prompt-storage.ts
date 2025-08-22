@@ -18,6 +18,11 @@ export type PromptsStorage = z.infer<typeof PromptsStorageSchema>
 export const PromptProjectsStorageSchema = z.array(PromptProjectSchema)
 export type PromptProjectsStorage = z.infer<typeof PromptProjectsStorageSchema>
 
+// Schema for input validation - ID will be auto-generated
+export const PromptProjectInputSchema = PromptProjectSchema.omit({ id: true })
+export const PromptProjectsInputStorageSchema = z.array(PromptProjectInputSchema)
+export type PromptProjectsInputStorage = z.infer<typeof PromptProjectsInputStorageSchema>
+
 /**
  * Prompt storage implementation using BaseStorage
  */
@@ -111,10 +116,15 @@ class PromptStorage extends BaseStorage<Prompt, PromptsStorage> {
       const db = this.getDb()
       const database = db.getDatabase()
 
-      // Validate input
-      const validated = await this.validateData(associations, PromptProjectsStorageSchema, 'prompt-project associations')
+      // Validate input without IDs (they will be auto-generated)
+      const inputAssociations = associations.map(a => ({ 
+        promptId: a.promptId, 
+        projectId: a.projectId 
+      }))
+      const validatedInput = await this.validateData(inputAssociations, PromptProjectsInputStorageSchema, 'prompt-project associations input')
 
       // Use transaction to ensure atomicity
+      const insertedIds: number[] = []
       database.transaction(() => {
         // Clear existing associations
         database.exec(`DELETE FROM prompt_projects`)
@@ -123,14 +133,37 @@ class PromptStorage extends BaseStorage<Prompt, PromptsStorage> {
         const insertStmt = database.prepare(`
           INSERT INTO prompt_projects (prompt_id, project_id, created_at)
           VALUES (?, ?, ?)
+          RETURNING id
         `)
 
-        for (const association of validated) {
-          insertStmt.run(association.promptId, association.projectId, Date.now())
+        for (const association of validatedInput) {
+          const result = insertStmt.get(association.promptId, association.projectId, Date.now()) as { id: number } | null
+          if (!result) {
+            throw new Error(`Failed to insert prompt-project association for promptId ${association.promptId}, projectId ${association.projectId}`)
+          }
+          insertedIds.push(result.id)
         }
       })()
 
-      return validated
+      // Return the associations with the auto-generated IDs
+      // At this point, we know insertedIds has the same length as validatedInput and all IDs are valid
+      if (insertedIds.length !== validatedInput.length) {
+        throw new Error(`Mismatch between inserted IDs (${insertedIds.length}) and input associations (${validatedInput.length})`)
+      }
+      
+      const resultAssociations: PromptProjectsStorage = validatedInput.map((input, index) => {
+        const id = insertedIds[index]
+        if (typeof id !== 'number') {
+          throw new Error(`Invalid ID at index ${index}: expected number, got ${typeof id}`)
+        }
+        return {
+          id,
+          promptId: input.promptId,
+          projectId: input.projectId
+        }
+      })
+
+      return resultAssociations
     } catch (error: any) {
       console.error('Error writing prompt-project associations:', error)
       throw new ApiError(500, 'Failed to write prompt-project associations', 'DB_WRITE_ERROR', error)

@@ -148,28 +148,27 @@ const stopMCPServerRoute = createRoute({
 
 // Export routes
 export const mcpExecutionRoutes = new OpenAPIHono()
-  .openapi(listMCPToolsRoute, async (c) => {
+  .openapi(listMCPToolsRoute, async (c): Promise<any> => {
     const { serverId } = c.req.valid('query')
     // TODO: Need projectId
     const tools = await listMCPTools(1)
     return c.json(successResponse(tools))
   })
-  .openapi(executeMCPToolRoute, async (c) => {
+  .openapi(executeMCPToolRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
     const result = await executeMCPTool(
       1, // TODO: projectId
-      body.name || '',
-      body.arguments || {}
+      body // Pass the entire validated request body
     )
     return c.json(successResponse(result))
   })
-  .openapi(listMCPResourcesRoute, async (c) => {
+  .openapi(listMCPResourcesRoute, async (c): Promise<any> => {
     const { serverId } = c.req.valid('query')
     // TODO: Need projectId
     const resources = await listMCPResources(1)
     return c.json(successResponse(resources))
   })
-  .openapi(readMCPResourceRoute, async (c) => {
+  .openapi(readMCPResourceRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
     const content = await readMCPResource(
       1, // TODO: projectId
@@ -178,20 +177,21 @@ export const mcpExecutionRoutes = new OpenAPIHono()
     )
     return c.json(successResponse(content))
   })
-  .openapi(getBuiltinToolsRoute, async (c) => {
+  .openapi(getBuiltinToolsRoute, async (c): Promise<any> => {
     // TODO: Implement getBuiltinTools
-    const tools = []
+    const tools: any[] = []
     return c.json(successResponse(tools))
   })
-  .openapi(startMCPServerRoute, async (c) => {
+  .openapi(startMCPServerRoute, async (c): Promise<any> => {
     const { serverId } = c.req.valid('param')
     await startMCPServer(parseInt(serverId))
     return c.json({ success: true, message: 'MCP server started successfully' })
   })
-  .openapi(stopMCPServerRoute, async (c) => {
+  .openapi(stopMCPServerRoute, async (c): Promise<any> => {
     const { serverId } = c.req.valid('param')
     await stopMCPServer(parseInt(serverId))
     return c.json({ success: true, message: 'MCP server stopped successfully' })
-  })
+  }) as any;
 
-export type MCPExecutionRouteTypes = typeof mcpExecutionRoutes
+// Type export
+export type MCPExecutionRouteTypes = typeof mcpExecutionRoutes;

@@ -1,0 +1,234 @@
+name: 'Optimized Artifact Upload'
+description: 'Smart artifact upload with size optimization and conditional logic'
+author: 'Promptliano Team'
+
+inputs:
+  artifact-name:
+    description: 'Name of the artifact'
+    required: true
+  artifact-path:
+    description: 'Path to upload (supports glob patterns)'
+    required: true
+  retention-days:
+    description: 'Number of days to retain the artifact'
+    required: false
+    default: '7'
+  upload-condition:
+    description: 'Condition for upload (always, on-failure, on-success, on-pr)'
+    required: false
+    default: 'always'
+  max-size-mb:
+    description: 'Maximum artifact size in MB (will compress if larger)'
+    required: false
+    default: '100'
+  compress:
+    description: 'Whether to compress the artifact'
+    required: false
+    default: 'auto'
+  include-git-info:
+    description: 'Whether to include git commit info in artifact'
+    required: false
+    default: 'true'
+
+outputs:
+  artifact-url:
+    description: 'URL of the uploaded artifact'
+    value: ${{ steps.upload.outputs.artifact-url }}
+  artifact-size:
+    description: 'Size of the uploaded artifact in bytes'
+    value: ${{ steps.size.outputs.artifact-size }}
+  was-compressed:
+    description: 'Whether the artifact was compressed'
+    value: ${{ steps.compress.outputs.was-compressed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Evaluate upload condition
+      id: condition
+      shell: bash
+      run: |
+        SHOULD_UPLOAD="false"
+        
+        case "${{ inputs.upload-condition }}" in
+          "always")
+            SHOULD_UPLOAD="true"
+            ;;
+          "on-failure")
+            if [ "${{ job.status }}" = "failure" ]; then
+              SHOULD_UPLOAD="true"
+            fi
+            ;;
+          "on-success")
+            if [ "${{ job.status }}" = "success" ]; then
+              SHOULD_UPLOAD="true"
+            fi
+            ;;
+          "on-pr")
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              SHOULD_UPLOAD="true"
+            fi
+            ;;
+          *)
+            SHOULD_UPLOAD="${{ inputs.upload-condition }}"
+            ;;
+        esac
+        
+        echo "should-upload=$SHOULD_UPLOAD" >> $GITHUB_OUTPUT
+        echo "📋 Upload condition: ${{ inputs.upload-condition }} → $SHOULD_UPLOAD"
+
+    - name: Check artifact size and prepare compression
+      id: size
+      if: steps.condition.outputs.should-upload == 'true'
+      shell: bash
+      run: |
+        # Validate and sanitize artifact path to prevent path traversal
+        ARTIFACT_PATH="${{ inputs.artifact-path }}"
+        
+        # Security check: Prevent path traversal attacks
+        if [[ "$ARTIFACT_PATH" == *".."* ]] || [[ "$ARTIFACT_PATH" == "/"* && "$ARTIFACT_PATH" != "/tmp/"* && "$ARTIFACT_PATH" != "/github/"* ]]; then
+          echo "🚨 Security: Invalid artifact path detected: $ARTIFACT_PATH"
+          echo "artifact-size=0" >> $GITHUB_OUTPUT
+          echo "exists=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Resolve to absolute path within workspace
+        if [[ "$ARTIFACT_PATH" != "/"* ]]; then
+          ARTIFACT_PATH="$GITHUB_WORKSPACE/$ARTIFACT_PATH"
+        fi
+        
+        if [ ! -e "$ARTIFACT_PATH" ]; then
+          echo "⚠️ Artifact path does not exist: $ARTIFACT_PATH"
+          echo "artifact-size=0" >> $GITHUB_OUTPUT
+          echo "exists=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Calculate total size
+        if [ -d "$ARTIFACT_PATH" ]; then
+          TOTAL_SIZE=$(du -sb "$ARTIFACT_PATH" | cut -f1)
+        else
+          TOTAL_SIZE=$(stat -f%z "$ARTIFACT_PATH" 2>/dev/null || stat -c%s "$ARTIFACT_PATH" 2>/dev/null || echo "0")
+        fi
+        
+        TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))
+        MAX_SIZE_MB=${{ inputs.max-size-mb }}
+        
+        echo "artifact-size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+        echo "artifact-size-mb=$TOTAL_SIZE_MB" >> $GITHUB_OUTPUT
+        echo "exists=true" >> $GITHUB_OUTPUT
+        
+        echo "📊 Artifact size: ${TOTAL_SIZE_MB}MB (limit: ${MAX_SIZE_MB}MB)"
+        
+        # Determine if compression is needed
+        SHOULD_COMPRESS="false"
+        if [ "${{ inputs.compress }}" = "true" ]; then
+          SHOULD_COMPRESS="true"
+        elif [ "${{ inputs.compress }}" = "auto" ] && [ "$TOTAL_SIZE_MB" -gt "$MAX_SIZE_MB" ]; then
+          SHOULD_COMPRESS="true"
+          echo "🗜️ Auto-compression triggered (size > ${MAX_SIZE_MB}MB)"
+        fi
+        
+        echo "should-compress=$SHOULD_COMPRESS" >> $GITHUB_OUTPUT
+
+    - name: Compress artifact if needed
+      id: compress
+      if: steps.condition.outputs.should-upload == 'true' && steps.size.outputs.exists == 'true' && steps.size.outputs.should-compress == 'true'
+      shell: bash
+      run: |
+        echo "🗜️ Compressing artifact..."
+        
+        ORIGINAL_PATH="${{ inputs.artifact-path }}"
+        COMPRESSED_PATH="/tmp/${{ inputs.artifact-name }}.tar.gz"
+        
+        if [ -d "$ORIGINAL_PATH" ]; then
+          tar -czf "$COMPRESSED_PATH" -C "$(dirname "$ORIGINAL_PATH")" "$(basename "$ORIGINAL_PATH")"
+        else
+          tar -czf "$COMPRESSED_PATH" "$ORIGINAL_PATH"
+        fi
+        
+        ORIGINAL_SIZE=$(echo "${{ steps.size.outputs.artifact-size }}")
+        COMPRESSED_SIZE=$(stat -f%z "$COMPRESSED_PATH" 2>/dev/null || stat -c%s "$COMPRESSED_PATH" 2>/dev/null || echo "0")
+        COMPRESSION_RATIO=$((100 - (COMPRESSED_SIZE * 100 / ORIGINAL_SIZE)))
+        
+        echo "compressed-path=$COMPRESSED_PATH" >> $GITHUB_OUTPUT
+        echo "compressed-size=$COMPRESSED_SIZE" >> $GITHUB_OUTPUT
+        echo "compression-ratio=$COMPRESSION_RATIO" >> $GITHUB_OUTPUT
+        echo "was-compressed=true" >> $GITHUB_OUTPUT
+        
+        echo "✅ Compression completed: ${COMPRESSION_RATIO}% reduction"
+
+    - name: Add git information
+      if: steps.condition.outputs.should-upload == 'true' && steps.size.outputs.exists == 'true' && inputs.include-git-info == 'true'
+      shell: bash
+      run: |
+        # Create git info file
+        mkdir -p /tmp/artifact-metadata
+        cat > /tmp/artifact-metadata/git-info.json << EOF
+        {
+          "commit": "${{ github.sha }}",
+          "branch": "${{ github.ref_name }}",
+          "actor": "${{ github.actor }}",
+          "event": "${{ github.event_name }}",
+          "runId": "${{ github.run_id }}",
+          "runNumber": "${{ github.run_number }}",
+          "timestamp": "$(date -u '+%Y-%m-%dT%H:%M:%SZ')",
+          "artifactName": "${{ inputs.artifact-name }}",
+          "originalSize": "${{ steps.size.outputs.artifact-size }}",
+          "compressed": "${{ steps.compress.outputs.was-compressed || 'false' }}"
+        }
+        EOF
+        
+        echo "📝 Added git metadata to artifact"
+
+    - name: Upload artifact
+      id: upload
+      if: steps.condition.outputs.should-upload == 'true' && steps.size.outputs.exists == 'true'
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          ${{ steps.compress.outputs.was-compressed == 'true' && steps.compress.outputs.compressed-path || inputs.artifact-path }}
+          ${{ inputs.include-git-info == 'true' && '/tmp/artifact-metadata/' || '' }}
+        retention-days: ${{ inputs.retention-days }}
+        compression-level: 0  # Don't double-compress
+      continue-on-error: true
+
+    - name: Upload summary
+      if: always() && steps.condition.outputs.should-upload == 'true'
+      shell: bash
+      run: |
+        echo "## 📦 Artifact Upload: ${{ inputs.artifact-name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.size.outputs.exists }}" = "true" ]; then
+          if [ "${{ steps.upload.outcome }}" = "success" ]; then
+            echo "### ✅ Upload Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Upload Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Original Size | ${{ steps.size.outputs.artifact-size-mb }}MB |" >> $GITHUB_STEP_SUMMARY
+          echo "| Retention | ${{ inputs.retention-days }} days |" >> $GITHUB_STEP_SUMMARY
+          echo "| Condition | ${{ inputs.upload-condition }} |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.compress.outputs.was-compressed }}" = "true" ]; then
+            echo "| Compressed | ✅ Yes (${{ steps.compress.outputs.compression-ratio }}% reduction) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Compressed | ❌ No |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ inputs.include-git-info }}" = "true" ]; then
+            echo "| Git Info | ✅ Included |" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "### ⚠️ Artifact Not Found" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The specified path \`${{ inputs.artifact-path }}\` does not exist." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY

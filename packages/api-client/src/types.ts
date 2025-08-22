@@ -38,6 +38,20 @@ export type {
   ClaudeAgent 
 } from '@promptliano/schemas'
 
+// Claude Command types
+export type {
+  ClaudeCommand,
+  ClaudeCommandFrontmatter,
+  CreateClaudeCommandBody,
+  UpdateClaudeCommandBody,
+  ExecuteClaudeCommandBody,
+  CommandSuggestions,
+  SearchCommandsQuery,
+  CommandScope,
+  CommandGenerationRequest,
+  CommandGenerationResponse
+} from '@promptliano/schemas'
+
 export type {
   TestProviderRequest,
   TestProviderResponse,
@@ -206,14 +220,24 @@ export type MCPProjectConfig = {
 
 
 export type MCPInstallationStatus = {
-  isInstalled: boolean
-  version?: string
-  servers: Array<{
-    id: number
-    name: string
-    status: 'running' | 'stopped' | 'error'
-  }>
-  lastUpdated: number
+  projectConfig: {
+    projectId: number
+    projectName: string
+    mcpEnabled: boolean
+    installedTools: Array<{
+      tool: string
+      installedAt: number
+      configPath?: string
+      serverName: string
+    }>
+    customInstructions?: string
+  } | null
+  connectionStatus: {
+    connected: boolean
+    sessionId?: string
+    lastActivity?: number
+    projectId?: number
+  }
 }
 
 export type MCPAnalyticsData = {
@@ -363,3 +387,13 @@ export type GitDiffRequest = {
   commitHash2?: string
   staged?: boolean
 }
+
+// Claude Hooks types (imported from schemas)
+export type {
+  CreateHookConfigBody,
+  UpdateHookConfigBody,
+  HookEvent,
+  HookGenerationRequest,
+  HookTestRequest,
+  HookListItem
+} from '@promptliano/schemas'

@@ -32,10 +32,9 @@ export class ProjectClient extends BaseApiClient {
    * List all projects
    */
   async listProjects(): Promise<DataResponseSchema<Project[]>> {
-    const result = await this.request('GET', '/projects', {
+    return this.request('GET', '/projects', {
       responseSchema: ProjectListResponseSchemaZ
     })
-    return result as DataResponseSchema<Project[]>
   }
 
   /**
@@ -43,33 +42,32 @@ export class ProjectClient extends BaseApiClient {
    */
   async createProject(data: CreateProjectBody): Promise<DataResponseSchema<Project>> {
     const validatedData = this.validateBody(CreateProjectBodySchema, data)
-    const result = await this.request('POST', '/projects', {
+    return this.request('POST', '/projects', {
       body: validatedData,
       responseSchema: ProjectResponseSchemaZ
     })
-    return result as DataResponseSchema<Project>
   }
 
   /**
    * Get a project by ID
    */
   async getProject(projectId: number): Promise<DataResponseSchema<Project>> {
-    const result = await this.request('GET', `/projects/${projectId}`, {
+    this.validateId(projectId, 'projectId')
+    return this.request('GET', `/projects/${projectId}`, {
       responseSchema: ProjectResponseSchemaZ
     })
-    return result as DataResponseSchema<Project>
   }
 
   /**
    * Update a project
    */
   async updateProject(projectId: number, data: UpdateProjectBody): Promise<DataResponseSchema<Project>> {
+    this.validateId(projectId, 'projectId')
     const validatedData = this.validateBody(UpdateProjectBodySchema, data)
-    const result = await this.request('PATCH', `/projects/${projectId}`, {
+    return this.request('PATCH', `/projects/${projectId}`, {
       body: validatedData,
       responseSchema: ProjectResponseSchemaZ
     })
-    return result as DataResponseSchema<Project>
   }
 
   /**

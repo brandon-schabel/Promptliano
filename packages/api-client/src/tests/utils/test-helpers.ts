@@ -23,6 +23,13 @@ export const assertions = {
   },
 
   /**
+   * Alias for assertSuccessResponse for backwards compatibility
+   */
+  apiSuccess<T>(response: any, expectedDataShape?: Partial<T>): asserts response is { success: true; data: T } {
+    return this.assertSuccessResponse(response, expectedDataShape)
+  },
+
+  /**
    * Asserts that an API response has the expected error structure
    */
   assertErrorResponse(response: any, expectedStatus?: number, expectedCode?: string): asserts response is { success: false; error: any } {
@@ -167,7 +174,7 @@ export const assertions = {
    */
   assertValidQueueStats(stats: any): asserts stats is {
     totalItems: number
-    pendingItems: number
+    queuedItems: number
     inProgressItems: number
     completedItems: number
     failedItems: number
@@ -175,7 +182,7 @@ export const assertions = {
   } {
     expect(stats).toBeDefined()
     expect(stats.totalItems).toBeTypeOf('number')
-    expect(stats.pendingItems).toBeTypeOf('number')
+    expect(stats.queuedItems).toBeTypeOf('number')
     expect(stats.inProgressItems).toBeTypeOf('number')
     expect(stats.completedItems).toBeTypeOf('number')
     expect(stats.failedItems).toBeTypeOf('number')
@@ -185,102 +192,7 @@ export const assertions = {
     }
   },
 
-  /**
-   * Asserts that a job has the expected structure
-   */
-  assertValidJob(job: any): asserts job is {
-    id: number
-    type: string
-    status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
-    priority: 'low' | 'normal' | 'high'
-    projectId?: number
-    userId?: string
-    input: Record<string, any>
-    result?: Record<string, any>
-    error?: { message: string; code?: string; details?: any }
-    progress?: { current: number; total: number; message?: string }
-    metadata?: Record<string, any>
-    createdAt: number
-    startedAt?: number
-    completedAt?: number
-    updatedAt: number
-    timeoutMs?: number
-    maxRetries: number
-    retryCount: number
-    retryDelayMs: number
-  } {
-    expect(job).toBeDefined()
-    this.assertValidId(job.id)
-    expect(job.type).toBeTypeOf('string')
-    expect(['pending', 'running', 'completed', 'failed', 'cancelled']).toContain(job.status)
-    expect(['low', 'normal', 'high']).toContain(job.priority)
-    expect(job.input).toBeTypeOf('object')
-    expect(job.maxRetries).toBeTypeOf('number')
-    expect(job.retryCount).toBeTypeOf('number')
-    expect(job.retryDelayMs).toBeTypeOf('number')
-    this.assertValidTimestamp(job.createdAt)
-    this.assertValidTimestamp(job.updatedAt)
-    
-    if (job.projectId !== undefined) {
-      this.assertValidId(job.projectId)
-    }
-    
-    if (job.startedAt !== undefined) {
-      this.assertValidTimestamp(job.startedAt)
-    }
-    
-    if (job.completedAt !== undefined) {
-      this.assertValidTimestamp(job.completedAt)
-    }
-    
-    if (job.result !== undefined) {
-      expect(job.result).toBeTypeOf('object')
-    }
-    
-    if (job.error !== undefined) {
-      expect(job.error).toBeTypeOf('object')
-      expect(job.error.message).toBeTypeOf('string')
-    }
-    
-    if (job.progress !== undefined) {
-      expect(job.progress).toBeTypeOf('object')
-      expect(job.progress.current).toBeTypeOf('number')
-      expect(job.progress.total).toBeTypeOf('number')
-    }
-  },
 
-  /**
-   * Asserts that job statistics have the expected structure
-   */
-  assertValidJobStats(stats: any): asserts stats is {
-    total: number
-    byStatus: Record<string, number>
-    byType: Record<string, number>
-    byPriority: Record<string, number>
-    avgDurationMs?: number
-    oldestPendingJob?: {
-      id: number
-      createdAt: number
-      ageMs: number
-    }
-  } {
-    expect(stats).toBeDefined()
-    expect(stats.total).toBeTypeOf('number')
-    expect(stats.byStatus).toBeTypeOf('object')
-    expect(stats.byType).toBeTypeOf('object')
-    expect(stats.byPriority).toBeTypeOf('object')
-    
-    if (stats.avgDurationMs !== undefined) {
-      expect(stats.avgDurationMs).toBeTypeOf('number')
-    }
-    
-    if (stats.oldestPendingJob !== undefined) {
-      expect(stats.oldestPendingJob).toBeTypeOf('object')
-      this.assertValidId(stats.oldestPendingJob.id)
-      this.assertValidTimestamp(stats.oldestPendingJob.createdAt)
-      expect(stats.oldestPendingJob.ageMs).toBeTypeOf('number')
-    }
-  }
 }
 
 /**
@@ -425,38 +337,6 @@ export const factories = {
     }
   },
 
-  /**
-   * Creates test job data
-   */
-  createJobData(overrides: Partial<{
-    type: string
-    priority: 'low' | 'normal' | 'high'
-    projectId: number
-    userId: string
-    input: Record<string, any>
-    metadata: Record<string, any>
-    timeoutMs: number
-    maxRetries: number
-    retryDelayMs: number
-  }> = {}) {
-    const timestamp = Date.now()
-    return {
-      type: `test-job-${timestamp}`,
-      priority: 'normal' as const,
-      input: { 
-        action: 'test-action',
-        timestamp,
-        data: `Test job data ${timestamp}`
-      },
-      metadata: {
-        source: 'test-factory',
-        created: new Date().toISOString()
-      },
-      maxRetries: 0,
-      retryDelayMs: 1000,
-      ...overrides
-    }
-  }
 }
 
 /**
@@ -501,6 +381,26 @@ export class TestDataManager {
         // Ignore 404 errors (already deleted)
         if (!(error instanceof Error && error.message.includes('404'))) {
           console.warn(`Failed to cleanup project ${result.data.id}:`, error)
+        }
+      }
+    })
+  }
+
+  /**
+   * Tracks an agent for cleanup (Claude agents use string IDs)
+   */
+  trackAgent(agentId: string): void {
+    this.createdEntities.push({
+      type: 'agent',
+      id: parseInt(agentId, 10) || 0, // Convert string ID to number for tracking
+      deleteFunction: async () => {
+        try {
+          await this.client.agents.deleteAgent(agentId)
+        } catch (error) {
+          // Ignore 404 errors (already deleted)
+          if (!(error instanceof Error && error.message.includes('404'))) {
+            console.warn(`Failed to cleanup agent ${agentId}:`, error)
+          }
         }
       }
     })
@@ -579,22 +479,24 @@ export class TestDataManager {
   }
 
   /**
-   * Creates and tracks a job
+   * Adds a command to the cleanup list (commands are created externally)
    */
-  async createJob(data = factories.createJobData()) {
-    const result = await this.client.jobs.createJob(data)
-    assertions.assertSuccessResponse(result)
-    
-    return this.track('job', result.data, async () => {
-      try {
-        await this.client.jobs.deleteJob(result.data.id)
-      } catch (error) {
-        if (!(error instanceof Error && error.message.includes('404'))) {
-          console.warn(`Failed to cleanup job ${result.data.id}:`, error)
+  addCommand(command: { id: string; name: string; namespace?: string }) {
+    this.createdEntities.push({
+      type: 'command',
+      id: command.id as any, // Commands use string IDs, but we'll store as is
+      deleteFunction: async () => {
+        try {
+          // Extract projectId from command context if available
+          // For now, we'll assume commands are cleaned up by project deletion
+        } catch (error) {
+          console.warn(`Failed to cleanup command ${command.name}:`, error)
         }
       }
     })
+    return command
   }
+
 
   /**
    * Creates and tracks a prompt

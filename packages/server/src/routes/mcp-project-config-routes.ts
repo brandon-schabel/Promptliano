@@ -4,40 +4,41 @@ import { ApiError } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
-// Response schemas
-const ConfigLocationsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      locations: z.array(
-        z.object({
-          path: z.string(),
-          exists: z.boolean(),
-          priority: z.number()
-        })
-      )
+// Response schemas - properly structured for route helpers
+const ConfigLocationsDataSchema = z.object({
+  locations: z.array(
+    z.object({
+      path: z.string(),
+      exists: z.boolean(),
+      priority: z.number()
     })
-  })
-  .openapi('ConfigLocationsResponse')
+  )
+}).openapi('ConfigLocationsData')
 
-const MergedConfigResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      config: ProjectMCPConfigSchema
-    })
-  })
-  .openapi('MergedConfigResponse')
+const MergedConfigDataSchema = z.object({
+  config: ProjectMCPConfigSchema
+}).openapi('MergedConfigData')
 
-const ProjectConfigResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      config: ProjectMCPConfigSchema.nullable(),
-      source: z.string().optional()
-    })
-  })
-  .openapi('ProjectConfigResponse')
+const ProjectConfigDataSchema = z.object({
+  config: ProjectMCPConfigSchema.nullable(),
+  source: z.string().optional()
+}).openapi('ProjectConfigData')
+
+// Success response schemas
+const ConfigLocationsResponseSchema = z.object({
+  success: z.literal(true),
+  data: ConfigLocationsDataSchema
+}).openapi('ConfigLocationsResponse')
+
+const MergedConfigResponseSchema = z.object({
+  success: z.literal(true),
+  data: MergedConfigDataSchema
+}).openapi('MergedConfigResponse')
+
+const ProjectConfigResponseSchema = z.object({
+  success: z.literal(true),
+  data: ProjectConfigDataSchema
+}).openapi('ProjectConfigResponse')
 
 export const mcpProjectConfigApp = new OpenAPIHono()
 
@@ -47,7 +48,7 @@ const getConfigLocationsRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config/locations',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(ConfigLocationsResponseSchema)
@@ -62,9 +63,9 @@ mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
   } catch (error) {
     console.error('Failed to get config locations:', error)
     if (error instanceof ApiError) {
-      return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+      throw error
     }
-    return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+    throw new ApiError(500, 'Failed to get configuration locations', 'CONFIG_LOCATIONS_ERROR')
   }
 })
 
@@ -74,7 +75,7 @@ const getMergedConfigRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config/merged',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
@@ -89,9 +90,9 @@ mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
   } catch (error) {
     console.error('Failed to get merged config:', error)
     if (error instanceof ApiError) {
-      return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+      throw error
     }
-    return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+    throw new ApiError(500, 'Failed to get merged configuration', 'CONFIG_GET_ERROR')
   }
 })
 
@@ -101,7 +102,7 @@ const getExpandedConfigRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config/expanded',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
@@ -117,9 +118,9 @@ mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
   } catch (error) {
     console.error('Failed to get expanded config:', error)
     if (error instanceof ApiError) {
-      return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+      throw error
     }
-    return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+    throw new ApiError(500, 'Failed to get expanded configuration', 'CONFIG_EXPAND_ERROR')
   }
 })
 
@@ -129,7 +130,7 @@ const saveProjectConfigRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -154,9 +155,9 @@ mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
   } catch (error) {
     console.error('Failed to save config:', error)
     if (error instanceof ApiError) {
-      return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+      throw error
     }
-    return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+    throw new ApiError(500, 'Failed to save configuration', 'CONFIG_SAVE_ERROR')
   }
 })
 
@@ -166,7 +167,7 @@ const loadProjectConfigRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(ProjectConfigResponseSchema)
@@ -178,7 +179,7 @@ const saveProjectConfigToLocationRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config/save-to-location',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -200,24 +201,13 @@ const getDefaultConfigForLocationRoute = createRoute({
   path: '/api/projects/{projectId}/mcp/config/default-for-location',
   request: {
     params: z.object({
-      projectId: z.string().transform(Number)
+      projectId: z.coerce.number().int().positive()
     }),
     query: z.object({
       location: z.string()
     })
   },
-  responses: {
-    200: {
-      description: 'Default config retrieved',
-      content: {
-        'application/json': {
-          schema: z.object({
-            config: ProjectMCPConfigSchema
-          })
-        }
-      }
-    }
-  }
+  responses: createStandardResponses(MergedConfigResponseSchema)
 })
 
 mcpProjectConfigApp
@@ -239,21 +229,15 @@ mcpProjectConfigApp
     } catch (error) {
       console.error('Failed to load project config:', error)
       if (error instanceof ApiError) {
-        return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+        throw error
       }
       
       // Handle project not found error specifically
       if (error instanceof Error && error.message.includes('not found')) {
-        return c.json({ 
-          success: false, 
-          error: { 
-            message: error.message, 
-            code: 'PROJECT_NOT_FOUND' 
-          } 
-        }, 404)
+        throw new ApiError(404, error.message, 'PROJECT_NOT_FOUND')
       }
       
-      return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+      throw new ApiError(500, 'Failed to load project configuration', 'CONFIG_LOAD_ERROR')
     }
   })
   .openapi(saveProjectConfigToLocationRoute, async (c) => {
@@ -266,9 +250,9 @@ mcpProjectConfigApp
     } catch (error) {
       console.error('Failed to save config to location:', error)
       if (error instanceof ApiError) {
-        return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+        throw error
       }
-      return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+      throw new ApiError(500, 'Failed to save configuration to location', 'CONFIG_SAVE_LOCATION_ERROR')
     }
   })
   .openapi(getDefaultConfigForLocationRoute, async (c) => {
@@ -281,8 +265,8 @@ mcpProjectConfigApp
     } catch (error) {
       console.error('Failed to get default config:', error)
       if (error instanceof ApiError) {
-        return c.json({ success: false, error: { message: error.message, code: error.code } }, error.status)
+        throw error
       }
-      return c.json({ success: false, error: { message: 'Internal server error' } }, 500)
+      throw new ApiError(500, 'Failed to get default configuration', 'DEFAULT_CONFIG_ERROR')
     }
   })

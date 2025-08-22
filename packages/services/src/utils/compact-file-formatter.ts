@@ -154,8 +154,8 @@ export class CompactFileFormatter {
     if (path.length <= maxLength) return path
     const parts = path.split('/')
     if (parts.length <= 2) return path.substring(0, Math.max(0, maxLength - 3)) + '...'
-    const first = parts[0]
-    const last = parts[parts.length - 1]
+    const first = parts[0] ?? ''
+    const last = parts.at(-1) ?? ''
     const middle = parts.slice(1, -1).join('/')
     if (first.length + last.length + 6 > maxLength) return '.../' + last.substring(0, Math.max(0, maxLength - 4))
     const remainingLength = Math.max(0, maxLength - first.length - last.length - 6)
@@ -171,7 +171,7 @@ export class CompactFileFormatter {
   }
 
   private static getFileName(path: string): string {
-    return path.split('/').pop() || path
+    return path.split('/').pop() ?? path
   }
 
   private static getFileCategory(file: ProjectFile): string {

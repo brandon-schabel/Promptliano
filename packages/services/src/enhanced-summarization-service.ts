@@ -191,6 +191,10 @@ export class EnhancedSummarizationService {
                 }
 
                 const group = optimizedGroups[i]
+                if (!group) {
+                    logger.warn(`Group at index ${i} is undefined, skipping`)
+                    continue
+                }
 
                 // Update progress
                 fileSummarizationTracker.updateBatchProgress(batchId, {
@@ -286,7 +290,11 @@ export class EnhancedSummarizationService {
         }
 
         try {
-            const modelConfig = MODEL_CONFIGS[options.depth || 'standard']
+            const depth = options.depth || 'standard'
+            const modelConfig = MODEL_CONFIGS[depth]
+            if (!modelConfig) {
+                throw new Error(`Invalid depth option: ${depth}`)
+            }
 
             // Build context-aware prompt
             const systemPrompt = options.groupAware ? this.buildGroupAwareSystemPrompt(options) : promptsMap.summarizationSteps

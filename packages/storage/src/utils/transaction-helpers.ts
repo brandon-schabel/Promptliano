@@ -18,6 +18,22 @@ export function withTransaction<T>(
 }
 
 /**
+ * Execute an async database operation within a transaction
+ * For async operations, the transaction is synchronous but the result can be async
+ */
+export async function withAsyncTransaction<T>(
+  database: Database,
+  operation: (db: Database) => Promise<T>
+): Promise<T> {
+  try {
+    return await database.transaction(async () => await operation(database))()
+  } catch (error: any) {
+    console.error('Async transaction failed:', error)
+    throw new ApiError(500, 'Transaction failed', 'TRANSACTION_ERROR', error)
+  }
+}
+
+/**
  * Replace all entities in a table within a transaction
  * Common pattern: DELETE all + INSERT new records
  */

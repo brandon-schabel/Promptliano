@@ -1,23 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { promptStorage } from './prompt-storage'
 import { type Prompt, type PromptProject } from '@promptliano/schemas'
-import { DatabaseManager } from './database-manager'
+import { DatabaseManager, getDb } from './database-manager'
+import { resetDatabaseInstance } from './test-utils'
 
 describe('Prompt Storage (SQLite)', () => {
   let testPromptId: number
+  let db: DatabaseManager
 
   beforeEach(async () => {
-    // Get database instance and clear tables
-    const db = DatabaseManager.getInstance()
-    await db.clearAllTables()
+    // Get fresh database instance and run migrations
+    db = getDb()
+    const { runMigrations } = await import('./migrations/run-migrations')
+    await runMigrations()
 
     testPromptId = Date.now()
   })
 
   afterEach(async () => {
-    // Clear all tables for next test
-    const db = DatabaseManager.getInstance()
-    await db.clearAllTables()
+    // Clean up test data using our test utilities
+    const { clearAllData } = await import('./test-utils')
+    await clearAllData()
+  })
+
+  afterAll(() => {
+    // Reset database instance to ensure complete isolation
+    resetDatabaseInstance()
   })
 
   it('should create and read prompts', async () => {
@@ -43,19 +51,42 @@ describe('Prompt Storage (SQLite)', () => {
     const promptId = testPromptId
     const projectId = testPromptId + 1
 
+    // First, create the parent prompt
+    const testPrompt: Prompt = {
+      id: promptId,
+      name: 'Test Prompt for Association',
+      content: 'This is a test prompt for association',
+      created: promptId,
+      updated: promptId
+    }
+    await promptStorage.writePrompts({ [promptId]: testPrompt })
+
+    // Create the parent project record
+    const database = db.getDatabase()
+    database.prepare(`
+      INSERT INTO projects (id, name, description, path, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(projectId, 'Test Project', 'Test Description', '/test/path', projectId, projectId)
+
     const association: PromptProject = {
-      id: testPromptId + 2,
+      id: testPromptId + 2, // This will be ignored during insert, auto-generated
       promptId: promptId,
       projectId: projectId
     }
 
     // Write association
-    await promptStorage.writePromptProjects([association])
+    await promptStorage.writePromptProjectAssociations([association])
 
     // Read associations
-    const retrievedAssociations = await promptStorage.readPromptProjects()
+    const retrievedAssociations = await promptStorage.readPromptProjectAssociations()
     expect(retrievedAssociations).toHaveLength(1)
-    expect(retrievedAssociations[0]).toEqual(association)
+    
+    // Check that the association has the correct foreign keys (ID will be auto-generated)
+    const retrieved = retrievedAssociations[0]
+    expect(retrieved.promptId).toBe(promptId)
+    expect(retrieved.projectId).toBe(projectId)
+    expect(retrieved.id).toBeDefined()
+    expect(typeof retrieved.id).toBe('number')
   })
 
   it('should update prompts', async () => {
@@ -84,8 +115,8 @@ describe('Prompt Storage (SQLite)', () => {
 
     // Verify update
     const retrievedPrompts = await promptStorage.readPrompts()
-    expect(retrievedPrompts[String(testPromptId)].name).toBe('Updated Name')
-    expect(retrievedPrompts[String(testPromptId)].content).toBe('Updated content')
+    expect(retrievedPrompts[String(testPromptId)]?.name).toBe('Updated Name')
+    expect(retrievedPrompts[String(testPromptId)]?.content).toBe('Updated content')
   })
 
   it('should delete prompts', async () => {
@@ -128,29 +159,61 @@ describe('Prompt Storage (SQLite)', () => {
     const projectId1 = testPromptId + 100
     const projectId2 = testPromptId + 101
 
+    // Create parent prompts
+    const testPrompt1: Prompt = {
+      id: promptId1,
+      name: 'Test Prompt 1',
+      content: 'Content 1',
+      created: promptId1,
+      updated: promptId1
+    }
+    const testPrompt2: Prompt = {
+      id: promptId2,
+      name: 'Test Prompt 2',
+      content: 'Content 2',
+      created: promptId2,
+      updated: promptId2
+    }
+    await promptStorage.writePrompts({ 
+      [promptId1]: testPrompt1,
+      [promptId2]: testPrompt2
+    })
+
+    // Create parent projects
+    const database = db.getDatabase()
+    database.prepare(`
+      INSERT INTO projects (id, name, description, path, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(projectId1, 'Test Project 1', 'Description 1', '/test/path1', projectId1, projectId1)
+    
+    database.prepare(`
+      INSERT INTO projects (id, name, description, path, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(projectId2, 'Test Project 2', 'Description 2', '/test/path2', projectId2, projectId2)
+
     const associations: PromptProject[] = [
       {
-        id: testPromptId + 200,
+        id: 0, // Will be auto-generated
         promptId: promptId1,
         projectId: projectId1
       },
       {
-        id: testPromptId + 201,
+        id: 0, // Will be auto-generated
         promptId: promptId1,
         projectId: projectId2
       },
       {
-        id: testPromptId + 202,
+        id: 0, // Will be auto-generated
         promptId: promptId2,
         projectId: projectId1
       }
     ]
 
     // Write associations
-    await promptStorage.writePromptProjects(associations)
+    await promptStorage.writePromptProjectAssociations(associations)
 
     // Read and verify
-    const retrievedAssociations = await promptStorage.readPromptProjects()
+    const retrievedAssociations = await promptStorage.readPromptProjectAssociations()
     expect(retrievedAssociations).toHaveLength(3)
 
     // Check that all associations are preserved
@@ -159,6 +222,13 @@ describe('Prompt Storage (SQLite)', () => {
 
     const project1Associations = retrievedAssociations.filter((a) => a.projectId === projectId1)
     expect(project1Associations).toHaveLength(2)
+    
+    // Verify all associations have auto-generated IDs
+    for (const assoc of retrievedAssociations) {
+      expect(assoc.id).toBeDefined()
+      expect(typeof assoc.id).toBe('number')
+      expect(assoc.id).toBeGreaterThan(0)
+    }
   })
 
   it('should generate unique IDs', () => {

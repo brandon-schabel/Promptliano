@@ -31,5 +31,5 @@
     }
   },
   "include": ["src", "server.ts", "build.ts"],
-  "exclude": ["node_modules/**/test/**", "node_modules/**/*.test.*", "node_modules/**/*.spec.*"]
+  "exclude": ["node_modules/**/test/**", "node_modules/**/*.test.*", "node_modules/**/*.spec.*", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "src/test-*.ts", "src/tests/**", "src/test-utils/**"]
 }

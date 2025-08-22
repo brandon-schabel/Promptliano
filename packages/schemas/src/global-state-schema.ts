@@ -517,7 +517,7 @@ export const createSafeGlobalState = (): GlobalState => ({
     provider: defaultModelConfigs.provider as APIProviders,
     model: defaultModelConfigs.model ?? 'gpt-4o',
     temperature: defaultModelConfigs.temperature ?? 0.7,
-    maxTokens: defaultModelConfigs.maxTokens ?? 4096,
+    maxTokens: defaultModelConfigs.maxTokens ?? 4000,
     topP: defaultModelConfigs.topP ?? 1,
     frequencyPenalty: defaultModelConfigs.frequencyPenalty ?? 0,
     presencePenalty: defaultModelConfigs.presencePenalty ?? 0,

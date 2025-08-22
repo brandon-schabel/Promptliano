@@ -125,7 +125,7 @@ export function createStandardResponsesWithStatus(
  */
 export function withErrorHandling<T extends any[], R>(
   handler: (c: Context, ...args: T) => Promise<R>
-) {
+): (c: Context, ...args: T) => Promise<R> {
   return async (c: Context, ...args: T): Promise<R> => {
     try {
       return await handler(c, ...args)
@@ -166,7 +166,7 @@ export function validateRouteParam(
 }
 
 /**
- * Standard success response helper
+ * Standard success response helper - returns data object
  */
 export function successResponse<T>(data: T) {
   return {
@@ -176,7 +176,17 @@ export function successResponse<T>(data: T) {
 }
 
 /**
- * Standard operation success response helper
+ * Standard success response helper with Context - returns Hono response
+ */
+export function successResponseJson<T>(c: Context, data: T) {
+  return c.json({
+    success: true as const,
+    data
+  })
+}
+
+/**
+ * Standard operation success response helper - returns data object
  */
 export function operationSuccessResponse(message: string = 'Operation completed successfully') {
   return {
@@ -186,27 +196,99 @@ export function operationSuccessResponse(message: string = 'Operation completed 
 }
 
 /**
+ * Standard operation success response helper with Context - returns Hono response
+ */
+export function operationSuccessResponseJson(c: Context, message: string = 'Operation completed successfully') {
+  return c.json({
+    success: true as const,
+    message
+  })
+}
+
+/**
  * Create a route handler with built-in validation and error handling
+ * Uses safe extraction methods to avoid type system conflicts
+ * 
+ * Note: For full type safety, prefer using c.req.valid() directly in route handlers
+ * where the Context type is properly constrained by OpenAPI route definitions.
  */
 export function createRouteHandler<
-  TParams = any,
-  TQuery = any,
-  TBody = any,
-  TResponse = any
+  TParams = Record<string, any>,
+  TQuery = Record<string, any>,
+  TBody = any
 >(
   handler: (args: {
     params?: TParams
     query?: TQuery
     body?: TBody
     c: Context
-  }) => Promise<TResponse>
+  }) => Promise<any>
+): (c: Context) => Promise<any> {
+  return withErrorHandling(async (c: Context) => {
+    // Extract parameters from the context using safe methods
+    let params: TParams | undefined
+    let query: TQuery | undefined
+    let body: TBody | undefined
+    
+    // Use runtime validation extraction with proper error handling
+    try {
+      // Check if context has validated params - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        params = (c.req as any).valid('param') as TParams
+      }
+    } catch {
+      // If validation fails, params remain undefined
+    }
+    
+    try {
+      // Check if context has validated query - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        query = (c.req as any).valid('query') as TQuery
+      }
+    } catch {
+      // If validation fails, query remains undefined
+    }
+    
+    try {
+      // Check if context has validated body - this works in OpenAPI routes
+      if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
+        body = (c.req as any).valid('json') as TBody
+      }
+    } catch {
+      // If validation fails, body remains undefined
+    }
+    
+    const result = await handler({ 
+      params,
+      query,
+      body,
+      c 
+    })
+    
+    // If result is already a Response, return it directly
+    if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
+      return result
+    }
+    
+    return c.json(result)
+  })
+}
+
+/**
+ * Simple route handler wrapper without parameter extraction
+ * Use this when you want to handle c.req.valid() calls manually
+ */
+export function createSimpleRouteHandler(
+  handler: (c: Context) => Promise<any>
 ) {
   return withErrorHandling(async (c: Context) => {
-    const params = c.req.valid('param' as any) as TParams | undefined
-    const query = c.req.valid('query' as any) as TQuery | undefined
-    const body = c.req.valid('json' as any) as TBody | undefined
+    const result = await handler(c)
     
-    const result = await handler({ params, query, body, c })
+    // If result is already a Response, return it directly
+    if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
+      return result
+    }
+    
     return c.json(result)
   })
 }
@@ -256,42 +338,62 @@ export function createCrudRoutes<TEntity extends { id: number }>(
   }
 ) {
   return {
-    list: createRouteHandler(async () => {
+    list: createSimpleRouteHandler(async (c) => {
       const entities = await service.list()
-      return successResponse(entities)
+      return successResponseJson(c, entities)
     }),
     
-    get: createRouteHandler<{ id: string }>(async ({ params }) => {
-      const id = parseInt(params!.id, 10)
+    get: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      const id = parseInt(params.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
       const entity = await service.get(id)
       
       if (!entity) {
         throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
       }
       
-      return successResponse(entity)
+      return successResponseJson(c, entity)
     }),
     
-    create: createRouteHandler<any, any, any>(async ({ body }) => {
-      const entity = await service.create(body!)
-      return successResponse(entity)
+    create: createSimpleRouteHandler(async (c) => {
+      const body = (c.req as any).valid('json')
+      
+      const entity = await service.create(body)
+      return successResponseJson(c, entity)
     }),
     
-    update: createRouteHandler<{ id: string }, any, any>(async ({ params, body }) => {
-      const id = parseInt(params!.id, 10)
-      const entity = await service.update(id, body!)
-      return successResponse(entity)
+    update: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      const body = (c.req as any).valid('json')
+      
+      const id = parseInt(params.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
+      const entity = await service.update(id, body)
+      return successResponseJson(c, entity)
     }),
     
-    delete: createRouteHandler<{ id: string }>(async ({ params }) => {
-      const id = parseInt(params!.id, 10)
+    delete: createSimpleRouteHandler(async (c) => {
+      const params = (c.req as any).valid('param')
+      
+      const id = parseInt(params.id, 10)
+      if (isNaN(id)) {
+        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
+      }
+      
       const success = await service.delete(id)
       
       if (!success) {
         throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
       }
       
-      return operationSuccessResponse(`${entityName} deleted successfully`)
+      return operationSuccessResponseJson(c, `${entityName} deleted successfully`)
     })
   }
 }

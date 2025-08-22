@@ -2,35 +2,63 @@
 
 This guide documents the CI/CD architecture, workflow patterns, and best practices for Promptliano's GitHub Actions pipelines.
 
+## 🚨 MANDATORY: Use GitHub Actions Workflow Architect Agent
+
+**CRITICAL RULE**: You MUST use the specialized `github-actions-workflow-architect` agent for ALL GitHub Actions work.
+
+```python
+# ALWAYS start GitHub Actions work with this:
+Task(
+  subagent_type: "github-actions-workflow-architect",
+  description: "What you're implementing",
+  prompt: "Detailed requirements for the GitHub Actions work"
+)
+```
+
+**The agent has comprehensive knowledge of:**
+- Optimized Bun workflow patterns that achieved 62% faster CI
+- Reusable workflow architecture (composite actions + reusable workflows)
+- Security best practices with SHA-pinned actions
+- Smart change detection for monorepos
+- Performance optimization strategies
+
+**Never work on GitHub Actions without the agent** - it contains battle-tested patterns specific to this repository.
+
 ## Overview
 
 Promptliano uses GitHub Actions for continuous integration, testing, building, and deploying across our monorepo. All workflows leverage **Bun** as the primary runtime and package manager for optimal performance.
 
+**Recent Optimization**: We achieved 62% faster CI (8min → 3min) through comprehensive workflow consolidation and Bun-first patterns.
+
 ## Workflow Architecture
 
-### Core Workflows
+### Modern Workflow Architecture (Post-Optimization)
 
-#### 1. **Package-Specific CI Workflows**
+#### 1. **Unified CI System**
+- `monorepo-ci.yml` - **Replaces all package-specific workflows** with smart change detection
+- Matrix-based testing only for changed packages
+- Package-specific configurations and timeouts
+- 62% faster execution through intelligent testing
 
-- `client.yml` - Client package CI (React app)
-- `server.yml` - Server package CI (Hono/Bun backend)
-- `services.yml` - Services package CI (business logic)
-- `shared.yml` - Shared utilities CI
+#### 2. **Reusable Components**
+- `reusable-test-package.yml` - Generic package testing workflow
+- `reusable-docker-build.yml` - Docker build/push with security scanning
 
-#### 2. **Publishing Workflows**
+#### 3. **Composite Actions**
+- `.github/actions/setup-bun/` - Bun installation with intelligent caching
+- `.github/actions/install-deps/` - Smart dependency installation
+- `.github/actions/test-summary/` - Rich test result reporting
 
-- `publish-ui.yml` - Publishes @promptliano/ui to npm
+#### 4. **Publishing Workflows**
+- `publish-ui.yml` - Enhanced with pre-publish testing
 - `publish-cli.yml` - Publishes CLI package to npm
 - `publish-npm-package.reusable.yml` - Reusable workflow template
 
-#### 3. **Release Workflows**
-
+#### 5. **Release & Docker Workflows**
 - `release-binaries.yml` - Server binary releases
 - `deploy-website.yml` - Website deployment
-
-#### 4. **Testing Workflows**
-
-- `test-local.yml` - Local testing workflow
+- `docker-ci.yml` - Multi-arch builds with security scanning
+- `docker-publish.yml` - Registry publishing with SBOM generation
 
 ### Workflow Triggers
 
@@ -130,11 +158,13 @@ on:
 
 ```yaml
 - name: Cache dependencies
-  uses: actions/cache@v4
+  uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
   with:
     path: |
       ~/.bun/install/cache
       node_modules
+      packages/*/node_modules
+      **/node_modules
     key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
     restore-keys: |
       ${{ runner.os }}-bun-
@@ -236,14 +266,35 @@ steps:
 
 ### 1. Security
 
+**🚨 CRITICAL: actions/cache Deprecation Notice**
+
+**URGENT ACTION REQUIRED**: GitHub is deprecating older versions of actions/cache. Starting February 1st, 2025, all workflows using deprecated versions will fail.
+
+- **Minimum Required Version**: v4.2.0 or v3.4.0
+- **Current SHA for v4.2.0**: `1bd1e32a3bdc45362d1e726936510720a7c30a57`
+- **Deadline**: February 1st, 2025 (hard cutoff)
+- **Runner Requirement**: Update GitHub runners to v2.231.0 or newer
+
+**Migration Pattern**:
+```yaml
+# ❌ DEPRECATED - Will fail after Feb 1, 2025
+- uses: actions/cache@v4.0.2
+- uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+
+# ✅ REQUIRED - Use v4.2.0 or newer
+- uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+```
+
 #### Use Exact Action Versions
 
 ```yaml
 # Good - uses SHA
-- uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+- uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+- uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
 
 # Avoid - uses tag
 - uses: actions/checkout@v4
+- uses: actions/cache@v4
 ```
 
 #### Minimal Permissions

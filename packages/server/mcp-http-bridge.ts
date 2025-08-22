@@ -23,7 +23,7 @@ const DEBUG = process.env.MCP_DEBUG === 'true'
 const server = new Server(
   {
     name: 'promptliano-http-bridge',
-    version: '0.9.2'
+    version: '0.9.4'
   },
   {
     capabilities: {

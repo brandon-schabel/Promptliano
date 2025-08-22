@@ -55,12 +55,10 @@ export class BaseApiClient {
       // Wrap the custom fetch to ensure it maintains context
       this.customFetch = config.customFetch
     } else {
-      // Bind default fetch to window context
-      // @ts-ignore
+      // Bind default fetch to window context for browser environments
       this.customFetch =
         typeof window !== 'undefined' && window.fetch
-          ? // @ts-ignore
-            window.fetch.bind(window)
+          ? (window.fetch.bind(window) as typeof fetch)
           : fetch
     }
   }
@@ -193,6 +191,79 @@ export class BaseApiClient {
         throw new PromptlianoError(`Request validation failed: ${e.message}`, undefined, 'VALIDATION_ERROR', e.errors)
       }
       throw e
+    }
+  }
+
+  /**
+   * ErrorFactory pattern helpers for consistent error handling
+   */
+  
+  /**
+   * Assert that a response exists and is not null/undefined
+   */
+  protected assertResponse<T>(response: T | null | undefined, context: string): T {
+    if (response === null || response === undefined) {
+      throw new PromptlianoError(`${context}: Response is missing`, undefined, 'ASSERTION_ERROR')
+    }
+    return response
+  }
+
+  /**
+   * Assert that an operation was successful
+   */
+  protected assertSuccess(response: { success: boolean }, operation: string): void {
+    if (!response.success) {
+      throw new PromptlianoError(`${operation} failed`, undefined, 'OPERATION_FAILED', response)
+    }
+  }
+
+  /**
+   * Validate numeric ID parameters
+   */
+  protected validateId(id: number, paramName: string): void {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new PromptlianoError(
+        `Invalid ${paramName}: must be a positive integer`,
+        undefined,
+        'VALIDATION_ERROR'
+      )
+    }
+  }
+
+  /**
+   * Validate string parameters
+   */
+  protected validateString(str: string, paramName: string, options?: { minLength?: number; maxLength?: number }): void {
+    if (typeof str !== 'string') {
+      throw new PromptlianoError(
+        `Invalid ${paramName}: must be a string`,
+        undefined,
+        'VALIDATION_ERROR'
+      )
+    }
+    
+    if (str.trim().length === 0) {
+      throw new PromptlianoError(
+        `Invalid ${paramName}: cannot be empty`,
+        undefined,
+        'VALIDATION_ERROR'
+      )
+    }
+
+    if (options?.minLength && str.length < options.minLength) {
+      throw new PromptlianoError(
+        `Invalid ${paramName}: must be at least ${options.minLength} characters`,
+        undefined,
+        'VALIDATION_ERROR'
+      )
+    }
+
+    if (options?.maxLength && str.length > options.maxLength) {
+      throw new PromptlianoError(
+        `Invalid ${paramName}: must be no more than ${options.maxLength} characters`,
+        undefined,
+        'VALIDATION_ERROR'
+      )
     }
   }
 

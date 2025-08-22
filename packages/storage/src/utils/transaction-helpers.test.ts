@@ -71,7 +71,7 @@ describe('transaction-helpers', () => {
       expect(count.count).toBe(1) // Only initial record should exist
       
       const record = db.prepare('SELECT name FROM test_entities WHERE id = 2').get() as any
-      expect(record).toBeUndefined() // Second insert should have been rolled back
+      expect(record).toBeNull() // Second insert should have been rolled back
     })
 
     test('returns value from transaction', () => {
@@ -106,7 +106,8 @@ describe('transaction-helpers', () => {
         db,
         'test_entities',
         newEntities,
-        ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
+        () => ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
+        (entity: any) => [entity.id, entity.name, entity.value, entity.active, entity.created_at, entity.updated_at],
         'value < ?',
         [30]
       )
@@ -128,7 +129,8 @@ describe('transaction-helpers', () => {
         db,
         'test_entities',
         [],
-        ['id', 'name', 'created_at', 'updated_at'],
+        () => ['id', 'name', 'created_at', 'updated_at'],
+        (entity: any) => [entity.id, entity.name, entity.created_at, entity.updated_at],
         'id = ?',
         [1]
       )
@@ -151,7 +153,8 @@ describe('transaction-helpers', () => {
         db,
         'test_entities',
         newEntities,
-        ['id', 'name', 'value', 'active', 'created_at', 'updated_at']
+        () => ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
+        (entity: any) => [entity.id, entity.name, entity.value, entity.active, entity.created_at, entity.updated_at]
       )
 
       const all = db.prepare('SELECT * FROM test_entities').all() as any[]
@@ -174,7 +177,8 @@ describe('transaction-helpers', () => {
         db,
         'test_entities',
         entities,
-        ['id', 'name', 'value', 'active', 'created_at', 'updated_at']
+        () => ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
+        (entity: any) => [entity.id, entity.name, entity.value, entity.active, entity.created_at, entity.updated_at]
       )
 
       expect(count).toBe(3)
@@ -187,7 +191,7 @@ describe('transaction-helpers', () => {
     })
 
     test('handles empty array', () => {
-      const count = batchInsert(db, 'test_entities', [], ['id', 'name'])
+      const count = batchInsert(db, 'test_entities', [], () => ['id', 'name'], (entity: any) => [entity.id, entity.name])
       expect(count).toBe(0)
 
       const all = db.prepare('SELECT * FROM test_entities').all()
@@ -209,8 +213,8 @@ describe('transaction-helpers', () => {
         db,
         'test_entities',
         entities,
-        ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
-        { batchSize: 25 }
+        () => ['id', 'name', 'value', 'active', 'created_at', 'updated_at'],
+        (entity: any) => [entity.id, entity.name, entity.value, entity.active, entity.created_at, entity.updated_at]
       )
 
       expect(count).toBe(100)
@@ -230,17 +234,17 @@ describe('transaction-helpers', () => {
       db.prepare('INSERT INTO test_entities (id, name, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(3, 'Old 3', 30, now, now)
 
       const updates = [
-        { id: 1, name: 'Updated 1', value: 100 },
-        { id: 2, name: 'Updated 2', value: 200 },
-        { id: 3, name: 'Updated 3', value: 300 }
+        { id: 1, data: { name: 'Updated 1', value: 100 } },
+        { id: 2, data: { name: 'Updated 2', value: 200 } },
+        { id: 3, data: { name: 'Updated 3', value: 300 } }
       ]
 
       const count = batchUpdate(
         db,
         'test_entities',
         updates,
-        ['name', 'value'],
-        'id'
+        () => ['name', 'value'],
+        (data: any) => [data.name, data.value]
       )
 
       expect(count).toBe(3)
@@ -262,16 +266,16 @@ describe('transaction-helpers', () => {
       db.prepare('INSERT INTO test_entities (id, name, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(2, 'Entity B', 20, now, now)
 
       const updates = [
-        { name: 'Entity A', value: 111 },
-        { name: 'Entity B', value: 222 }
+        { id: 1, data: { value: 111 } },
+        { id: 2, data: { value: 222 } }
       ]
 
       const count = batchUpdate(
         db,
         'test_entities',
         updates,
-        ['value'],
-        'name'
+        () => ['value'],
+        (data: any) => [data.value]
       )
 
       expect(count).toBe(2)
@@ -324,7 +328,7 @@ describe('transaction-helpers', () => {
       db.prepare('INSERT INTO test_entities (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)').run(2, 'Beta', now, now)
       db.prepare('INSERT INTO test_entities (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)').run(3, 'Gamma', now, now)
 
-      const count = batchDelete(db, 'test_entities', ['Alpha', 'Gamma'], 'name')
+      const count = batchDelete(db, 'test_entities', [1, 3])
 
       expect(count).toBe(2)
 

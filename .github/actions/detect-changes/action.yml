@@ -1,0 +1,178 @@
+name: 'Detect Changed Packages'
+description: 'Smart change detection for monorepo packages with configurable settings'
+author: 'Promptliano Team'
+
+inputs:
+  base-ref:
+    description: 'Base branch to compare against for PR events'
+    required: false
+    default: 'main'
+  packages-path:
+    description: 'Path to packages directory'
+    required: false
+    default: 'packages'
+  config-file:
+    description: 'Path to package configuration file'
+    required: false
+    default: '.github/package-configs.yml'
+  root-change-patterns:
+    description: 'Patterns that trigger full monorepo rebuild (newline separated)'
+    required: false
+    default: |
+      ^package\.json$
+      ^bun\.lock
+      ^\.github/workflows/monorepo-ci\.yml$
+
+outputs:
+  packages:
+    description: 'JSON array of changed package names'
+    value: ${{ steps.detect.outputs.packages }}
+  matrix:
+    description: 'GitHub Actions matrix configuration'
+    value: ${{ steps.detect.outputs.matrix }}
+  has-changes:
+    description: 'Whether any changes were detected'
+    value: ${{ steps.detect.outputs.has-changes }}
+  changed-count:
+    description: 'Number of changed packages'
+    value: ${{ steps.detect.outputs.changed-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        # Install yq for YAML processing
+        if ! command -v yq &> /dev/null; then
+          echo "📦 Installing yq..." >&2
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            sudo chmod +x /usr/local/bin/yq
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            if command -v brew &> /dev/null; then
+              brew install yq
+            else
+              curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_amd64 -o /usr/local/bin/yq
+              chmod +x /usr/local/bin/yq
+            fi
+          else
+            echo "⚠️ OS not supported for yq installation" >&2
+            exit 1
+          fi
+          echo "✅ yq installed successfully" >&2
+        else
+          echo "✅ yq already available" >&2
+        fi
+
+    - name: Detect changed packages
+      id: detect
+      shell: bash
+      run: |
+        echo "🔍 Detecting changed packages..." >&2
+        
+        # Get changed files based on event type
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "📝 Analyzing PR changes against ${{ inputs.base-ref }}" >&2
+          CHANGED_FILES=$(git diff --name-only origin/${{ inputs.base-ref }}...HEAD)
+        else
+          echo "📝 Analyzing push changes against previous commit" >&2
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+        fi
+        
+        echo "📄 Changed files:" >&2
+        echo "$CHANGED_FILES" >&2
+        echo "" >&2
+        
+        # Initialize arrays
+        CHANGED_PACKAGES=()
+        
+        # Check each package directory
+        echo "🔍 Scanning packages in ${{ inputs.packages-path }}..." >&2
+        for pkg_dir in ${{ inputs.packages-path }}/*/; do
+          if [ -d "$pkg_dir" ]; then
+            pkg_name=$(basename "$pkg_dir")
+            
+            # Check if any files in this package changed
+            if echo "$CHANGED_FILES" | grep -q "^${{ inputs.packages-path }}/$pkg_name/"; then
+              CHANGED_PACKAGES+=("$pkg_name")
+              echo "📦 Package changed: $pkg_name" >&2
+            fi
+          fi
+        done
+        
+        # Check for root-level changes that affect all packages
+        ROOT_CHANGES=false
+        echo "🌍 Checking for root-level changes..." >&2
+        
+        # Convert root change patterns to proper regex
+        ROOT_PATTERNS="${{ inputs.root-change-patterns }}"
+        while IFS= read -r pattern; do
+          if [ -n "$pattern" ] && echo "$CHANGED_FILES" | grep -qE "$pattern"; then
+            ROOT_CHANGES=true
+            echo "✅ Root change detected: $pattern" >&2
+            break
+          fi
+        done <<< "$ROOT_PATTERNS"
+        
+        # If root changes detected, include all packages
+        if [ "$ROOT_CHANGES" = "true" ]; then
+          echo "🌍 Root changes detected - will test all packages" >&2
+          CHANGED_PACKAGES=()
+          for pkg_dir in ${{ inputs.packages-path }}/*/; do
+            if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/package.json" ]; then
+              pkg_name=$(basename "$pkg_dir")
+              CHANGED_PACKAGES+=("$pkg_name")
+              echo "📦 Including package: $pkg_name" >&2
+            fi
+          done
+        fi
+        
+        # Output results
+        CHANGED_COUNT=${#CHANGED_PACKAGES[@]}
+        echo "changed-count=$CHANGED_COUNT" >> $GITHUB_OUTPUT
+        
+        if [ $CHANGED_COUNT -eq 0 ]; then
+          echo "packages=[]" >> $GITHUB_OUTPUT
+          echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          echo "has-changes=false" >> $GITHUB_OUTPUT
+          echo "⏭️ No package changes detected" >&2
+        else
+          # Create JSON array of package names
+          PACKAGES_JSON=$(printf '%s\n' "${CHANGED_PACKAGES[@]}" | jq -R . | jq -s -c .)
+          echo "packages=$PACKAGES_JSON" >> $GITHUB_OUTPUT
+          
+          # Load package configurations if config file exists
+          CONFIG_FILE="${{ inputs.config-file }}"
+          if [ -f "$CONFIG_FILE" ]; then
+            echo "📋 Loading package configurations from $CONFIG_FILE" >&2
+            # Create matrix from configuration file
+            # Convert YAML to JSON, then filter and format with jq
+            CONFIG_JSON=$(yq eval -o=json '.' "$CONFIG_FILE")
+            # Use jq with proper variable passing to avoid quoting issues
+            PACKAGES_PATH="${{ inputs.packages-path }}"
+            MATRIX_JSON=$(echo "$CONFIG_JSON" | jq -c --argjson pkgs "$PACKAGES_JSON" --arg pkgpath "$PACKAGES_PATH" '.packages | to_entries | map(select(.key as $k | $pkgs | index($k)) | .value + {"package": .key, "path": ($pkgpath + "/" + .key)}) | {include: .}')
+          else
+            echo "⚠️ No config file found at $CONFIG_FILE, using defaults" >&2
+            # Create matrix with default configurations
+            MATRIX_ENTRIES=()
+            for pkg in "${CHANGED_PACKAGES[@]}"; do
+              # Default configuration for all packages
+              MATRIX_ENTRIES+=("{\"package\":\"$pkg\",\"path\":\"${{ inputs.packages-path }}/$pkg\",\"test-command\":\"bun test\",\"build-command\":\"bun run build || echo 'No build script'\",\"typecheck\":true,\"timeout\":15}")
+            done
+            
+            # Join matrix entries
+            MATRIX_JSON=$(printf '%s\n' "${MATRIX_ENTRIES[@]}" | jq -s -c '{include: .}')
+          fi
+          
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          
+          echo "✅ Detected $CHANGED_COUNT changed packages" >&2
+          echo "$PACKAGES_JSON" | jq -r '.[]' | while read pkg; do
+            echo "  - $pkg" >&2
+          done
+        fi
+        
+        echo "" >&2
+        echo "🎯 Change detection completed" >&2
