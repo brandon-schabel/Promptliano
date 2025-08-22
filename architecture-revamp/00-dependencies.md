@@ -1,5 +1,102 @@
 # Architecture Improvements - Dependency Graph
 
+## 📋 Dependencies TODO Tracker
+
+### 🔴 Critical Package Dependencies (Must Complete First)
+
+#### Drizzle ORM Installation & Setup
+- [ ] Install core Drizzle packages: `drizzle-orm`, `drizzle-kit` (Priority: HIGH) [2 hours]
+- [ ] Install SQLite driver: `better-sqlite3` and types (Priority: HIGH) [1 hour]
+- [ ] Configure Drizzle config file and connection setup (Priority: HIGH) [3 hours]
+- [ ] Set up Drizzle migrations directory and tooling (Priority: HIGH) [2 hours]
+- [ ] Create initial migration scripts from existing schemas (Priority: HIGH) [8 hours]
+
+#### Development Environment Updates
+- [ ] Update workspace TypeScript configs for Drizzle (Priority: HIGH) [2 hours]
+- [ ] Configure ESLint rules for Drizzle patterns (Priority: MEDIUM) [1 hour]
+- [ ] Set up development database seeding scripts (Priority: MEDIUM) [3 hours]
+- [ ] Update .gitignore for Drizzle generated files (Priority: LOW) [0.5 hours]
+
+### 🟡 Package Dependency Updates & Conflicts
+
+#### Core Package Updates
+- [ ] Audit and update all database-related packages (Priority: HIGH) [4 hours]
+- [ ] Resolve version conflicts between ORM packages (Priority: HIGH) [3 hours]
+- [ ] Update @promptliano/schemas dependencies (Priority: HIGH) [2 hours]
+- [ ] Update @promptliano/storage package.json (Priority: HIGH) [1 hour]
+- [ ] Update @promptliano/services dependencies (Priority: MEDIUM) [2 hours]
+
+#### Type Safety & Validation
+- [ ] Update Zod to latest compatible version (Priority: MEDIUM) [2 hours]
+- [ ] Ensure TypeScript version compatibility across workspace (Priority: HIGH) [3 hours]
+- [ ] Update type definition packages (@types/*) (Priority: MEDIUM) [1 hour]
+- [ ] Resolve any peer dependency warnings (Priority: LOW) [2 hours]
+
+### 🟢 Development Tooling Dependencies
+
+#### Build & Test Configuration
+- [ ] Update Bun configurations for new packages (Priority: MEDIUM) [2 hours]
+- [ ] Configure test environment for Drizzle (Priority: MEDIUM) [3 hours]
+- [ ] Update package.json scripts for migration commands (Priority: MEDIUM) [1 hour]
+- [ ] Set up database test fixtures and cleanup (Priority: MEDIUM) [4 hours]
+- [ ] Update CI/CD pipeline for new dependencies (Priority: HIGH) [3 hours]
+
+#### Code Generation & Tooling
+- [ ] Install and configure Drizzle Studio (Priority: LOW) [1 hour]
+- [ ] Set up database introspection tooling (Priority: LOW) [2 hours]
+- [ ] Configure schema validation in pre-commit hooks (Priority: MEDIUM) [2 hours]
+- [ ] Update code generation scripts for new patterns (Priority: MEDIUM) [3 hours]
+
+### 🔵 Frontend Dependencies (After Backend Complete)
+
+#### Hook Factory Dependencies
+- [ ] Update React Query/Tanstack Query version (Priority: MEDIUM) [2 hours]
+- [ ] Install any new React dev dependencies (Priority: LOW) [1 hour]
+- [ ] Update frontend build tools for new patterns (Priority: MEDIUM) [2 hours]
+- [ ] Configure frontend testing with new backend (Priority: MEDIUM) [3 hours]
+
+### 📚 Documentation Dependencies
+
+#### Package Documentation
+- [ ] Update package.json descriptions and keywords (Priority: LOW) [1 hour]
+- [ ] Create dependency decision log (Priority: MEDIUM) [2 hours]
+- [ ] Document new development setup procedures (Priority: MEDIUM) [3 hours]
+- [ ] Update troubleshooting guides for new stack (Priority: MEDIUM) [2 hours]
+- [ ] Create migration rollback procedures (Priority: HIGH) [4 hours]
+
+#### API Documentation
+- [ ] Update OpenAPI specs for schema changes (Priority: HIGH) [4 hours]
+- [ ] Document new validation patterns (Priority: MEDIUM) [2 hours]
+- [ ] Update client SDK documentation (Priority: MEDIUM) [2 hours]
+
+### 🚨 Risk Mitigation Tasks
+
+#### Backup & Rollback Preparation
+- [ ] Create database backup procedures (Priority: HIGH) [2 hours]
+- [ ] Set up feature flags for gradual rollout (Priority: HIGH) [4 hours]
+- [ ] Create rollback scripts for dependencies (Priority: HIGH) [3 hours]
+- [ ] Test rollback procedures in staging (Priority: HIGH) [2 hours]
+
+#### Version Lock & Security
+- [ ] Pin critical dependency versions (Priority: HIGH) [1 hour]
+- [ ] Run security audit on new packages (Priority: HIGH) [1 hour]
+- [ ] Update dependency license compliance (Priority: MEDIUM) [1 hour]
+- [ ] Set up automated dependency monitoring (Priority: LOW) [2 hours]
+
+### 📊 Progress Tracking
+
+#### Completion Metrics
+- [ ] Set up dependency health dashboard (Priority: LOW) [3 hours]
+- [ ] Create migration progress tracking (Priority: MEDIUM) [2 hours]
+- [ ] Monitor build performance with new deps (Priority: MEDIUM) [1 hour]
+- [ ] Track bundle size impact (Priority: MEDIUM) [1 hour]
+
+**Total Estimated Hours: 94 hours**
+**Critical Path Hours: 18 hours**
+**Parallel Work Hours: 76 hours**
+
+---
+
 ## Overview
 This document maps the dependencies between all architecture improvements, identifying what must be done sequentially and what can be done in parallel.
 

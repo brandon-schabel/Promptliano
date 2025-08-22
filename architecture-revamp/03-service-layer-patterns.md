@@ -1,5 +1,145 @@
 # 03: Unified Service Layer with Functional Patterns
 
+## 📋 Service Layer TODO Tracker
+
+### 🔥 PHASE 1: Core Infrastructure Setup
+
+- [ ] Create ErrorFactory with standardized error patterns (Priority: HIGH) [4 hours]
+- [ ] Implement service-factory with createCrudService helper (Priority: HIGH) [6 hours]
+- [ ] Build service-container for dependency injection (Priority: HIGH) [4 hours]
+- [ ] Create base service interfaces and types (Priority: HIGH) [3 hours]
+- [ ] Set up service composition utilities (Priority: HIGH) [3 hours]
+- [ ] Implement transaction support wrapper (Priority: MEDIUM) [4 hours]
+
+### 🏗️ PHASE 2: Service Migration (Individual Services)
+
+- [ ] Migrate ProjectService to functional pattern (Priority: HIGH) [8 hours]
+  - [ ] Convert from class/singleton to functional factory
+  - [ ] Integrate ErrorFactory for consistent error handling  
+  - [ ] Add dependency injection for repository and fileService
+  - [ ] Implement domain-specific methods (syncFiles, getStats)
+  - [ ] Create comprehensive unit tests with mocks
+
+- [ ] Migrate TicketService to functional pattern (Priority: HIGH) [10 hours]
+  - [ ] Use createCrudService for base operations
+  - [ ] Add composition with TaskService and AIService
+  - [ ] Implement createWithTasks and bulkUpdateStatus
+  - [ ] Integrate ErrorFactory patterns
+  - [ ] Add comprehensive validation and testing
+
+- [ ] Migrate TaskService to functional pattern (Priority: HIGH) [6 hours]
+  - [ ] Convert to functional factory with createCrudService
+  - [ ] Add task state management and validation
+  - [ ] Implement bulk operations with error recovery
+  - [ ] Add dependency injection for repository
+
+- [ ] Migrate ChatService to functional pattern (Priority: HIGH) [8 hours]
+  - [ ] Functional factory with AI service composition
+  - [ ] Stream handling and conversation management
+  - [ ] ErrorFactory integration for AI service errors
+  - [ ] Add comprehensive chat flow testing
+
+- [ ] Migrate FileService to functional pattern (Priority: HIGH) [8 hours]
+  - [ ] File system abstraction with dependency injection
+  - [ ] Project file synchronization and management
+  - [ ] Error handling for file operations
+  - [ ] Cross-platform file system support
+
+- [ ] Migrate PromptService to functional pattern (Priority: MEDIUM) [6 hours]
+  - [ ] Template management and validation
+  - [ ] Composition with AI services
+  - [ ] Variable substitution and parsing
+  - [ ] Test prompt generation workflows
+
+- [ ] Migrate AgentService to functional pattern (Priority: MEDIUM) [6 hours]
+  - [ ] Agent lifecycle management
+  - [ ] Configuration and capability handling
+  - [ ] Integration with execution contexts
+  - [ ] Agent registry and discovery
+
+- [ ] Migrate QueueService to functional pattern (Priority: MEDIUM) [7 hours]
+  - [ ] Queue management with priority handling
+  - [ ] Task processing and worker coordination
+  - [ ] Error recovery and retry mechanisms
+  - [ ] Queue statistics and monitoring
+
+### 🔧 PHASE 3: Integration & Testing
+
+- [ ] Create comprehensive service integration tests (Priority: HIGH) [12 hours]
+  - [ ] Test service composition patterns
+  - [ ] Validate error handling consistency
+  - [ ] Test dependency injection scenarios
+  - [ ] Performance testing with benchmarks
+
+- [ ] Implement service container lifecycle management (Priority: MEDIUM) [4 hours]
+  - [ ] Service initialization and disposal
+  - [ ] Health checks and monitoring
+  - [ ] Graceful shutdown handling
+  - [ ] Resource cleanup validation
+
+- [ ] Create service mocking utilities for testing (Priority: MEDIUM) [6 hours]
+  - [ ] Mock repository factories
+  - [ ] Service dependency stubbing
+  - [ ] Test data generators
+  - [ ] Assertion helpers
+
+### 🚀 PHASE 4: Advanced Patterns & Optimization
+
+- [ ] Implement service caching layer (Priority: LOW) [8 hours]
+  - [ ] In-memory caching for frequently accessed data
+  - [ ] Cache invalidation strategies
+  - [ ] Cache-aside and write-through patterns
+  - [ ] Performance monitoring and metrics
+
+- [ ] Add service observability and monitoring (Priority: LOW) [6 hours]
+  - [ ] Structured logging with context
+  - [ ] Performance metrics collection
+  - [ ] Error tracking and alerting
+  - [ ] Service health endpoints
+
+- [ ] Implement advanced transaction patterns (Priority: LOW) [8 hours]
+  - [ ] Distributed transaction coordination
+  - [ ] Saga pattern for complex workflows
+  - [ ] Transaction rollback and compensation
+  - [ ] Cross-service transaction boundaries
+
+### 🧪 PHASE 5: Validation & Migration
+
+- [ ] Update all API routes to use new service container (Priority: HIGH) [8 hours]
+  - [ ] Replace direct service imports with container injection
+  - [ ] Update error handling in route handlers
+  - [ ] Add route-level service validation
+  - [ ] Test API integration end-to-end
+
+- [ ] Validate service layer performance benchmarks (Priority: MEDIUM) [4 hours]
+  - [ ] Compare old vs new service performance
+  - [ ] Memory usage optimization analysis
+  - [ ] Database connection pooling efficiency
+  - [ ] Service startup time measurements
+
+- [ ] Remove legacy singleton and class-based services (Priority: MEDIUM) [4 hours]
+  - [ ] Delete old service implementations
+  - [ ] Clean up dead code and imports
+  - [ ] Update documentation references
+  - [ ] Final integration testing
+
+- [ ] Create service layer documentation (Priority: LOW) [6 hours]
+  - [ ] Service architecture documentation
+  - [ ] Dependency injection patterns guide
+  - [ ] Error handling best practices
+  - [ ] Testing strategies documentation
+
+### 📊 Success Metrics Tracking
+
+- [ ] Measure code reduction: Target 8,000+ lines removed (Priority: LOW) [2 hours]
+- [ ] Validate 100% ErrorFactory adoption across services (Priority: MEDIUM) [2 hours]
+- [ ] Achieve 90%+ test coverage for all services (Priority: HIGH) [4 hours]
+- [ ] Eliminate all singleton patterns (Priority: HIGH) [2 hours]
+- [ ] Performance benchmarking: No regression in service response times (Priority: MEDIUM) [4 hours]
+
+**Total Estimated Effort: ~165 hours**
+**Target Completion: 21 working days (3 weeks)**
+
 ## Dependencies
 - **REQUIRES**: 01-drizzle-orm-migration.md (Need Drizzle schemas)
 - **REQUIRES**: 02-storage-layer-overhaul.md (Need new storage layer)
