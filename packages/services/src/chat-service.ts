@@ -16,11 +16,11 @@ import { chatRepository } from '@promptliano/database'
 import { 
   type Chat, 
   type ChatMessage,
-  type CreateChatBody, 
-  type UpdateChatBody,
+  type CreateChat as CreateChatBody, 
+  type UpdateChat as UpdateChatBody,
   ChatSchema,
-  ChatMessageSchema
-} from '@promptliano/schemas'
+  MessageSchema as ChatMessageSchema
+} from '@promptliano/database'
 
 // Dependencies interface for dependency injection
 export interface ChatServiceDeps {

@@ -16,11 +16,11 @@ import { ErrorFactory } from '@promptliano/shared'
 import { promptRepository } from '@promptliano/database'
 import { 
   type Prompt, 
-  type CreatePromptBody, 
-  type UpdatePromptBody,
-  PromptSchema,
-  PromptSuggestionsZodSchema
-} from '@promptliano/schemas'
+  type CreatePrompt as CreatePromptBody, 
+  type UpdatePrompt as UpdatePromptBody,
+  PromptSchema
+} from '@promptliano/database'
+import { PromptSuggestionsZodSchema } from '@promptliano/schemas'
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'
 

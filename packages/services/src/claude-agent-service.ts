@@ -1,9 +1,11 @@
 import { storageService } from '@promptliano/database'
 import {
-  type CreateClaudeAgentBody,
-  type UpdateClaudeAgentBody,
   type ClaudeAgent,
-  ClaudeAgentSchema,
+  type InsertClaudeAgent as CreateClaudeAgentBody,
+  type InsertClaudeAgent as UpdateClaudeAgentBody,
+  selectClaudeAgentSchema as ClaudeAgentSchema
+} from '@promptliano/database'
+import {
   type AgentSuggestions,
   AgentSuggestionsSchema
 } from '@promptliano/schemas'

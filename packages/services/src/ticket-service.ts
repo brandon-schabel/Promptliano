@@ -19,16 +19,14 @@ import {
   type Ticket, 
   type InsertTicket, 
   type TicketTask, 
-  type InsertTicketTask 
-} from '@promptliano/database/src/schema'
-import { 
-  type CreateTicketBody, 
-  type UpdateTicketBody,
-  type CreateTaskBody,
-  type UpdateTaskBody,
+  type InsertTicketTask,
+  type CreateTicket as CreateTicketBody, 
+  type UpdateTicket as UpdateTicketBody,
+  type CreateTask as CreateTaskBody,
+  type UpdateTask as UpdateTaskBody,
   TicketSchema,
-  TicketTaskSchema
-} from '@promptliano/schemas'
+  TaskSchema as TicketTaskSchema
+} from '@promptliano/database'
 
 // Dependencies interface for dependency injection
 export interface TicketServiceDeps {

@@ -16,11 +16,11 @@ import { createCrudService, extendService, withErrorContext, createServiceLogger
 import { ErrorFactory } from '@promptliano/shared'
 import { fileRepository } from '@promptliano/database'
 import { 
-  type ProjectFile, 
-  type CreateProjectFileBody, 
-  type UpdateProjectFileBody,
-  ProjectFileSchema
-} from '@promptliano/schemas'
+  type File as ProjectFile, 
+  type CreateFile as CreateProjectFileBody, 
+  type UpdateFile as UpdateProjectFileBody,
+  FileSchema as ProjectFileSchema
+} from '@promptliano/database'
 import { resolvePath } from '@promptliano/shared'
 import path from 'node:path'
 import fs from 'node:fs/promises'

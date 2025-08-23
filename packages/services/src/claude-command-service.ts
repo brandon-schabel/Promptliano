@@ -1,8 +1,10 @@
 import { storageService } from '@promptliano/database'
 import {
-  type CreateClaudeCommandBody,
-  type UpdateClaudeCommandBody,
   type ClaudeCommand,
+  type InsertClaudeCommand as CreateClaudeCommandBody,
+  type InsertClaudeCommand as UpdateClaudeCommandBody
+} from '@promptliano/database'
+import {
   type CommandScope,
   type CommandSuggestions,
   CommandSuggestionsSchema,

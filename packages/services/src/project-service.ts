@@ -15,11 +15,11 @@ import { ErrorFactory } from '@promptliano/shared'
 import { projectRepository } from '@promptliano/database'
 import { 
   type Project, 
-  type CreateProjectBody, 
-  type UpdateProjectBody,
-  type ProjectFile,
+  type CreateProject as CreateProjectBody, 
+  type UpdateProject as UpdateProjectBody,
+  type File as ProjectFile,
   ProjectSchema 
-} from '@promptliano/schemas'
+} from '@promptliano/database'
 
 // Import file service for delegation
 import { fileService } from './file-service'

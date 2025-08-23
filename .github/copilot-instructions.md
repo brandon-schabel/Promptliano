@@ -231,7 +231,6 @@ Always prefer suggestions before manual searching.
 | **@promptliano/mcp-client**      | MCP protocol client                 | promptliano-mcp-tool-creator                                 |
 | **@promptliano/brand-kit**       | Design system, colors               | promptliano-ui-architect                                       |
 | **@promptliano/promptliano**     | CLI package                         | github-actions-workflow-architect                            |
-| **@promptliano/prompt-engineer** | Prompt optimization                 | vercel-ai-sdk-expert                                         |
 
 ## Promptliano Feature Development (12 steps)
 

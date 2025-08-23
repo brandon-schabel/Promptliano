@@ -1,9 +1,12 @@
 import { storageService } from '@promptliano/database'
 import {
-  CreateProviderKeyInputSchema,
   type ProviderKey,
-  ProviderKeySchema,
-  type UpdateProviderKeyInput,
+  type InsertProviderKey as CreateProviderKeyInput,
+  type InsertProviderKey as UpdateProviderKeyInput,
+  selectProviderKeySchema as ProviderKeySchema
+} from '@promptliano/database'
+import {
+  CreateProviderKeyInputSchema,
   type TestProviderRequest,
   type TestProviderResponse,
   type BatchTestProviderRequest,

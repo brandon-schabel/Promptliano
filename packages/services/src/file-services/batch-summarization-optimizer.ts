@@ -9,7 +9,6 @@ import {
 import { SmartTruncation } from '../utils/smart-truncation'
 import { createLogger } from '../utils/logger'
 import { fileGroupingService } from '../file-grouping-service'
-import { fileSummarizationTracker } from '../file-summarization-tracker'
 
 const logger = createLogger('BatchSummarizationOptimizer')
 
