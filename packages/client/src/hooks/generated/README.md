@@ -31,8 +31,8 @@ packages/client/src/hooks/
 │   ├── entity-configs.ts        # Entity configuration mappings
 │   ├── types.ts                 # Comprehensive type definitions
 │   └── validation.test.ts       # Complete test suite
-├── api-hooks.ts                 # Legacy hooks (backward compatibility)
-└── api-hooks-v2.ts             # Complete migrated version
+├── api-hooks-legacy.ts          # Legacy hooks (backward compatibility)
+└── api-hooks.ts                # Main API hooks
 ```
 
 ## Before vs After Comparison

@@ -26,7 +26,7 @@ case "$BUILD_TYPE" in
     alpine)
         echo -e "${YELLOW}Building Alpine-based image...${NC}"
         # First build binaries if not exists
-        if [ ! -d "dist/promptliano-0.9.4-linux-x64" ]; then
+        if [ ! -d "dist/promptliano-0.10.0-linux-x64" ]; then
             echo -e "${YELLOW}Building binaries first...${NC}"
             bun run scripts/build-binaries.ts
         fi
@@ -37,7 +37,7 @@ case "$BUILD_TYPE" in
     distroless)
         echo -e "${YELLOW}Building distroless image...${NC}"
         # First build binaries if not exists
-        if [ ! -d "dist/promptliano-0.9.4-linux-x64" ]; then
+        if [ ! -d "dist/promptliano-0.10.0-linux-x64" ]; then
             echo -e "${YELLOW}Building binaries first...${NC}"
             bun run scripts/build-binaries.ts
         fi

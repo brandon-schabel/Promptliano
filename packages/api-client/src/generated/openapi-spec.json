@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "description": "Promptliano OpenAPI Server Spec",
-    "version": "0.9.4",
+    "version": "0.10.0",
     "title": "@promptliano/server"
   },
   "components": {
