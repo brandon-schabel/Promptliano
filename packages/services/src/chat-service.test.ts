@@ -2,7 +2,8 @@ import { describe, test, expect, beforeEach, mock } from 'bun:test'
 import { createChatService } from '@promptliano/services'
 import { randomString } from '@promptliano/shared/src/utils/test-utils'
 import { normalizeToUnixMs } from '@promptliano/shared'
-// Types now come from @promptliano/schemas and database schema
+import type { Chat, ChatMessage } from '@promptliano/database'
+// Types now come from @promptliano/database schema
 
 // Use realistic unix timestamps for test IDs
 const BASE_TIMESTAMP = 1700000000000 // Nov 2023 as base
@@ -14,20 +15,20 @@ const generateTestId = () => {
 }
 
 // In-memory stores for our mocks
-let mockChatsDb: ChatsStorage = {}
-let mockChatMessagesDb: Record<number, ChatMessagesStorage> = {} // ChatId -> Messages
+let mockChatsDb: Record<string, any> = {}
+let mockChatMessagesDb: Record<number, Record<string, any>> = {} // ChatId -> Messages
 
 // Mock the chatStorage utility
 const mockChatStorage = {
   readChats: async () => JSON.parse(JSON.stringify(mockChatsDb)),
-  writeChats: async (data: ChatsStorage) => {
+  writeChats: async (data: Record<string, any>) => {
     mockChatsDb = JSON.parse(JSON.stringify(data))
     return mockChatsDb
   },
   readChatMessages: async (chatId: number) => {
     return JSON.parse(JSON.stringify(mockChatMessagesDb[chatId] || {}))
   },
-  writeChatMessages: async (chatId: number, data: ChatMessagesStorage) => {
+  writeChatMessages: async (chatId: number, data: Record<string, any>) => {
     mockChatMessagesDb[chatId] = JSON.parse(JSON.stringify(data))
     return mockChatMessagesDb[chatId]
   },
@@ -57,10 +58,10 @@ describe('Chat Service (Mocked Storage)', () => {
     expect(chat.id).toBeDefined()
     expect(typeof chat.id).toBe('number')
     expect(chat.title).toBe(title)
-    expect(chat.created).toBeDefined()
-    expect(typeof chat.created).toBe('number')
-    expect(chat.updated).toBeDefined()
-    expect(typeof chat.updated).toBe('number')
+    expect(chat.createdAt).toBeDefined()
+    expect(typeof chat.createdAt).toBe('number')
+    expect(chat.updatedAt).toBeDefined()
+    expect(typeof chat.updatedAt).toBe('number')
 
     // Verify by trying to get it via the service
     const allChats = await chatService.getAllChats()
@@ -80,14 +81,14 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'system',
       content: 'Hello',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 1000)
+      createdAt: normalizeToUnixMs(now - 1000)
     })
     await chatService.saveMessage({
       chatId: source.id,
       role: 'user',
       content: 'World',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 500)
+      createdAt: normalizeToUnixMs(now - 500)
     })
 
     const newChat = await chatService.createChat('CopyTarget', {
@@ -120,7 +121,7 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'Sample content',
       id: generateTestId(), // Use generated ID
-      created: normalizeToUnixMs(Date.now()) // Ensure Unix ms timestamp
+      createdAt: normalizeToUnixMs(Date.now()) // Ensure Unix ms timestamp
     }
     const msg = await chatService.saveMessage(msgData)
     expect(msg.id).toBeDefined()
@@ -128,8 +129,8 @@ describe('Chat Service (Mocked Storage)', () => {
     expect(msg.chatId).toBe(chat.id)
     expect(msg.role).toBe(msgData.role)
     expect(msg.content).toBe(msgData.content)
-    expect(msg.created).toBeDefined()
-    expect(typeof msg.created).toBe('number')
+    expect(msg.createdAt).toBeDefined()
+    expect(typeof msg.createdAt).toBe('number')
 
     // Verify by getting messages for the chat
     const messages = await chatService.getChatMessages(chat.id)
@@ -151,7 +152,7 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'Old content',
       id: generateTestId(), // Use generated ID
-      created: normalizeToUnixMs(Date.now()) // Ensure Unix ms timestamp
+      createdAt: normalizeToUnixMs(Date.now()) // Ensure Unix ms timestamp
     })
 
     await chatService.updateMessageContent(chat.id, msg.id, 'New content')
@@ -183,13 +184,13 @@ describe('Chat Service (Mocked Storage)', () => {
 
   test('updateChat changes the chat title and updates timestamp', async () => {
     const chat = await chatService.createChat('InitialTitle')
-    const originalUpdated = chat.updated
+    const originalUpdated = chat.updatedAt
     await new Promise((resolve) => setTimeout(resolve, 10)) // Ensure time passes
 
     const updated = await chatService.updateChat(chat.id, 'NewTitle')
     expect(updated.title).toBe('NewTitle')
     expect(updated.id).toBe(chat.id)
-    expect(new Date(updated.updated).getTime()).toBeGreaterThan(new Date(originalUpdated).getTime())
+    expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdated).getTime())
 
     const allChats = await chatService.getAllChats()
     const foundChat = allChats.find((c) => c.id === chat.id)
@@ -205,14 +206,14 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'Hello',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 100)
+      createdAt: normalizeToUnixMs(now - 100)
     })
     await chatService.saveMessage({
       chatId: chat.id,
       role: 'assistant' as const,
       content: 'World',
       id: generateTestId(),
-      created: normalizeToUnixMs(now)
+      createdAt: normalizeToUnixMs(now)
     })
 
     await chatService.deleteChat(chat.id)
@@ -235,14 +236,14 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'First',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 100)
+      createdAt: normalizeToUnixMs(now - 100)
     })
     const m2 = await chatService.saveMessage({
       chatId: chat.id,
       role: 'assistant' as const,
       content: 'Second',
       id: generateTestId(),
-      created: normalizeToUnixMs(now)
+      createdAt: normalizeToUnixMs(now)
     })
 
     await chatService.deleteMessage(chat.id, m1.id)
@@ -262,21 +263,21 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'A',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 200)
+      createdAt: normalizeToUnixMs(now - 200)
     })
     const msgB = await chatService.saveMessage({
       chatId: source.id,
       role: 'assistant' as const,
       content: 'B',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 100)
+      createdAt: normalizeToUnixMs(now - 100)
     })
     const msgC = await chatService.saveMessage({
       chatId: source.id,
       role: 'user' as const,
       content: 'C',
       id: generateTestId(),
-      created: normalizeToUnixMs(now)
+      createdAt: normalizeToUnixMs(now)
     })
 
     const newChat = await chatService.forkChat(source.id, [msgB.id]) // Exclude original msgB.id
@@ -304,7 +305,7 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'Msg1',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 200)
+      createdAt: normalizeToUnixMs(now - 200)
     })
     await new Promise((resolve) => setTimeout(resolve, 1)) // ensure order
     const msg2 = await chatService.saveMessage({
@@ -312,7 +313,7 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'assistant' as const,
       content: 'Msg2',
       id: generateTestId(),
-      created: normalizeToUnixMs(now - 100)
+      createdAt: normalizeToUnixMs(now - 100)
     })
     await new Promise((resolve) => setTimeout(resolve, 1))
     const msg3 = await chatService.saveMessage({
@@ -320,7 +321,7 @@ describe('Chat Service (Mocked Storage)', () => {
       role: 'user' as const,
       content: 'Msg3',
       id: generateTestId(),
-      created: normalizeToUnixMs(now)
+      createdAt: normalizeToUnixMs(now)
     })
 
     // Fork from original msg2, exclude original msg1

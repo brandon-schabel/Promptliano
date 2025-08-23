@@ -1,4 +1,5 @@
 import { storageService } from '@promptliano/database'
+// TODO: These MCP tracking types should be migrated to @promptliano/database
 import {
   type MCPToolExecution,
   type CreateMCPToolExecution,

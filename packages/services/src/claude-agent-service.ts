@@ -5,6 +5,7 @@ import {
   type InsertClaudeAgent as UpdateClaudeAgentBody,
   selectClaudeAgentSchema as ClaudeAgentSchema
 } from '@promptliano/database'
+// AI generation schemas - may remain in schemas package
 import {
   type AgentSuggestions,
   AgentSuggestionsSchema

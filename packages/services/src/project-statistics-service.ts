@@ -2,7 +2,7 @@ import { ApiError } from '@promptliano/shared'
 import { getProjectById, getProjectFiles } from './project-service'
 import { listTicketsByProject, getTasks } from './ticket-service'
 import { listPromptsByProject } from './prompt-service'
-import { type Ticket } from '@promptliano/schemas'
+import { type Ticket } from '@promptliano/database'
 import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
 export interface ProjectStatistics {

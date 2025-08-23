@@ -1,4 +1,4 @@
-import type { Ticket, TicketTask, TaskQueue } from '@promptliano/schemas'
+import type { Ticket, TicketTask, Queue } from '@promptliano/database'
 
 // Test project ID used across tests
 export const TEST_PROJECT_ID = 999999
@@ -8,16 +8,25 @@ export function createTestTicket(overrides: Partial<Ticket> = {}): Omit<Ticket, 
   return {
     projectId: TEST_PROJECT_ID,
     title: 'Test Ticket',
-    description: 'Test description',
     overview: 'Test overview',
     status: 'open',
     priority: 'normal',
-    type: 'feature',
     suggestedFileIds: [],
     suggestedAgentIds: [],
     suggestedPromptIds: [],
-    created: Date.now(),
-    updated: Date.now(),
+    queueId: null,
+    queuePosition: null,
+    queueStatus: null,
+    queuePriority: null,
+    queuedAt: null,
+    queueStartedAt: null,
+    queueCompletedAt: null,
+    queueAgentId: null,
+    queueErrorMessage: null,
+    estimatedProcessingTime: null,
+    actualProcessingTime: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   } as Omit<Ticket, 'id'>
 }
@@ -28,42 +37,42 @@ export function createTestTask(ticketId: number, overrides: Partial<TicketTask> 
     content: 'Test Task',
     description: 'Test task description',
     done: false,
+    status: 'pending',
     orderIndex: 0,
-    estimatedHours: 1,
-    actualHours: null,
+    estimatedHours: null,
+    dependencies: [],
     tags: [],
+    agentId: null,
     suggestedFileIds: [],
-    suggestedAgentIds: [],
     suggestedPromptIds: [],
     queueId: null,
+    queuePosition: null,
     queueStatus: null,
     queuePriority: null,
-    queuePosition: null,
     queuedAt: null,
     queueStartedAt: null,
     queueCompletedAt: null,
     queueAgentId: null,
     queueErrorMessage: null,
-    queueRetryCount: null,
-    queueMaxRetries: null,
-    queueTimeoutAt: null,
-    created: Date.now(),
-    updated: Date.now(),
+    estimatedProcessingTime: null,
+    actualProcessingTime: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   } as Omit<TicketTask, 'id'>
 }
 
-export function createTestQueue(overrides: Partial<TaskQueue> = {}): Omit<TaskQueue, 'id'> {
+export function createTestQueue(overrides: Partial<Queue> = {}): Omit<Queue, 'id'> {
   return {
     projectId: TEST_PROJECT_ID,
     name: 'Test Queue',
     description: 'Test queue description',
-    status: 'active',
     maxParallelItems: 1,
-    created: Date.now(),
-    updated: Date.now(),
+    isActive: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
-  } as Omit<TaskQueue, 'id'>
+  } as Omit<Queue, 'id'>
 }
 
 // Simple assertions

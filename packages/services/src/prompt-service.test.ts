@@ -11,12 +11,23 @@ import {
   getPromptProjects,
   getPromptsByIds
 } from './prompt-service'
-import type { Prompt, PromptProject, CreatePromptBody, UpdatePromptBody } from '@promptliano/schemas'
-// Types now come from @promptliano/schemas and database schema
+import type { 
+  Prompt, 
+  CreatePrompt as CreatePromptBody, 
+  UpdatePrompt as UpdatePromptBody 
+} from '@promptliano/database'
+// Types now come from @promptliano/database schema
 import { ApiError } from '@promptliano/shared'
 
 // In-memory stores for our mocks
 let mockPromptsDb: Record<string, any> = {}
+// PromptProject type from database schema for associations
+type PromptProject = {
+  id: number
+  promptId: number
+  projectId: number
+}
+
 let mockPromptProjectsDb: PromptProject[] = []
 
 // Initialize a base for mock IDs
@@ -31,7 +42,7 @@ const generateTestId = () => {
 // --- Mocking promptStorage ---
 const mockPromptStorage = {
   readPrompts: async () => JSON.parse(JSON.stringify(mockPromptsDb)),
-  writePrompts: async (data: PromptsStorage) => {
+  writePrompts: async (data: Record<string, any>) => {
     mockPromptsDb = JSON.parse(JSON.stringify(data))
     return mockPromptsDb
   },
@@ -68,8 +79,8 @@ describe('Prompt Service', () => {
       expect(prompt.name).toBe(input.name)
       expect(prompt.content).toBe(input.content)
       expect(prompt.projectId).toBe(input.projectId)
-      expect(prompt.created).toBeDefined()
-      expect(prompt.updated).toBeDefined()
+      expect(prompt.createdAt).toBeDefined()
+      expect(prompt.updatedAt).toBeDefined()
       expect(mockPromptsDb[prompt.id]).toBeDefined()
 
       // Check that prompt-project association was created
@@ -137,7 +148,7 @@ describe('Prompt Service', () => {
 
       expect(updated.name).toBe('Updated')
       expect(updated.content).toBe('Updated content')
-      expect(updated.updated).toBeGreaterThan(created.updated)
+      expect(updated.updatedAt).toBeGreaterThan(created.updatedAt)
       expect(mockPromptsDb[created.id].name).toBe('Updated')
     })
 

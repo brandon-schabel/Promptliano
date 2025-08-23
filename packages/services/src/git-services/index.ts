@@ -101,7 +101,7 @@ export const reset = (
 
 export const getCommitLogEnhanced = (
   projectId: number,
-  request: import('@promptliano/schemas').GitLogEnhancedRequest
+  request: any // TODO: Migrate GitLogEnhancedRequest to @promptliano/database
 ) => gitCommitService.getCommitLogEnhanced(projectId, request)
 
 export const getCommitDetail = (

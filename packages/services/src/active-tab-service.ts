@@ -1,8 +1,21 @@
 import { ApiError } from '@promptliano/shared'
 // Import database schemas as source of truth
 import { selectActiveTabSchema as activeTabSchema, type ActiveTab } from '@promptliano/database'
-// Import application-level types from schemas
-import { type ActiveTabData, type UpdateActiveTabBody } from '@promptliano/schemas'
+// Note: ActiveTabData and UpdateActiveTabBody types should be migrated to database
+// For now keeping as local interfaces until full service migration
+interface ActiveTabData {
+  projectId: number;
+  activeTabId: number;
+  clientId?: string;
+  lastUpdated: number;
+  tabMetadata?: any;
+}
+
+interface UpdateActiveTabBody {
+  tabId: number;
+  clientId?: string;
+  tabMetadata?: any;
+}
 import { storageService } from '@promptliano/database'
 import { getProjectById } from './project-service'
 

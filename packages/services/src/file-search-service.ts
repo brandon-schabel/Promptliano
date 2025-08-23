@@ -1,4 +1,4 @@
-import type { ProjectFile, Ticket } from '@promptliano/schemas'
+import type { File, Ticket } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { db } from '@promptliano/database'
 import { ErrorFactory, withErrorContext } from '@promptliano/shared'
@@ -19,7 +19,7 @@ export interface SearchOptions {
 }
 
 export interface SearchResult {
-  file: ProjectFile
+  file: File
   score: number
   matches: Array<{
     line: number
@@ -652,7 +652,7 @@ export class FileSearchService {
   private applyScoring(results: SearchResult[], method: string): SearchResult[] {
     switch (method) {
       case 'recency':
-        return results.sort((a, b) => b.file.updated - a.file.updated)
+        return results.sort((a, b) => b.file.updatedAt - a.file.updatedAt)
 
       case 'frequency':
         return results.sort((a, b) => b.matches.length - a.matches.length)
@@ -716,7 +716,7 @@ export class FileSearchService {
   /**
    * Get file data by ID
    */
-  private async getFileData(fileId: string | number): Promise<ProjectFile | null> {
+  private async getFileData(fileId: string | number): Promise<File | null> {
     try {
       // First try to get from FTS table which has basic file info
       const ftsData = this.db
@@ -764,17 +764,20 @@ export class FileSearchService {
         projectId: ftsData.project_id,
         path: ftsData.path,
         name: ftsData.name,
-        extension: ftsData.extension,
+        size: metadata?.file_size || null,
+        lastModified: null,
+        contentType: null,
         content: ftsData.content,
-        size: metadata?.file_size || 0,
-        created: metadata?.created_at || Date.now(),
-        updated: metadata?.updated_at || Date.now(),
         summary: null,
         summaryLastUpdated: null,
         meta: null,
         checksum: null,
         imports: null,
-        exports: null
+        exports: null,
+        isRelevant: false,
+        relevanceScore: null,
+        createdAt: metadata?.created_at || Date.now(),
+        updatedAt: metadata?.updated_at || Date.now()
       }
     } catch (error) {
       console.error(`Error getting file data for ID ${fileId}:`, error)

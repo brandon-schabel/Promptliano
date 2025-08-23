@@ -9,7 +9,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "drizzle:generate": "drizzle-kit generate",
-    "drizzle:migrate": "bun run src/migrate.ts",
+    "drizzle:migrate": "bun run src/migrations/migrate.ts",
     "drizzle:studio": "drizzle-kit studio",
     "benchmark": "bun run src/benchmarks/performance.ts"
   },

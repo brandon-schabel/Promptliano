@@ -1,4 +1,5 @@
 import { storageService } from '@promptliano/database'
+// TODO: Some hook types available in database as ClaudeHook - need partial migration
 import {
   type CreateHookRequest,
   type UpdateHookRequest,

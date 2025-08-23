@@ -5,16 +5,15 @@ import {
   getTopImportantFiles,
   filterByImportance
 } from './file-importance-scorer'
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 
 // Helper to create test files
 function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
   return {
-    id: 1,
+    id: '1',
     projectId: 1,
     name: 'test.ts',
     path: '/src/test.ts',
-    extension: 'ts',
     size: 1000,
     content: '',
     summary: null,
@@ -23,8 +22,12 @@ function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     checksum: 'abc123',
     imports: [],
     exports: [],
-    created: Date.now(),
-    updated: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    isRelevant: null,
+    relevanceScore: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   }
 }

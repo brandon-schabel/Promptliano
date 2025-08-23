@@ -6,11 +6,9 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createChatService, createProviderKeyService } from '@promptliano/services'
-import type { APIProviders, ProviderKey } from '@promptliano/schemas'
-import type { AiChatStreamRequest } from '@promptliano/schemas'
-import type { AiSdkOptions } from '@promptliano/schemas'
+import type { APIProviders, ProviderKey, AiChatStreamRequest, AiSdkOptions } from '@promptliano/database'
 import { LOW_MODEL_CONFIG, getProvidersConfig } from '@promptliano/config'
-import { structuredDataSchemas } from '@promptliano/schemas'
+import { structuredDataSchemas } from '@promptliano/schemas' // AI generation schemas - may remain in schemas package
 
 import { ApiError } from '@promptliano/shared'
 import { mapProviderErrorToApiError } from './error-mappers'

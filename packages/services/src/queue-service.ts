@@ -16,14 +16,12 @@ import { queueRepository } from '@promptliano/database'
 import { 
   type Queue, 
   type QueueItem,
+  type InsertQueueItem as CreateQueueItemBody,
   type CreateQueue as CreateQueueBody, 
   type UpdateQueue as UpdateQueueBody,
   QueueSchema as TaskQueueSchema,
   selectQueueItemSchema as QueueItemSchema
 } from '@promptliano/database'
-import { 
-  type CreateQueueItemBody
-} from '@promptliano/schemas'
 
 // Dependencies interface for dependency injection
 export interface QueueServiceDeps {

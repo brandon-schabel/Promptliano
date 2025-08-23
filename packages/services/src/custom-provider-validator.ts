@@ -1,5 +1,6 @@
 import { ApiError } from '@promptliano/shared'
 import { logger } from './utils/logger'
+// TODO: These custom provider validation types may remain in schemas package
 import type { 
   ValidateCustomProviderRequest, 
   ValidateCustomProviderResponse,

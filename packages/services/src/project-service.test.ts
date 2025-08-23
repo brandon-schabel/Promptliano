@@ -18,7 +18,12 @@ import {
   summarizeFiles,
   type FileSyncData
 } from './project-service'
-import type { Project, ProjectFile, CreateProjectBody, UpdateProjectBody } from '@promptliano/schemas'
+import type { 
+  Project, 
+  File as ProjectFile, 
+  CreateProject as CreateProjectBody, 
+  UpdateProject as UpdateProjectBody 
+} from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { z } from 'zod'
 
@@ -216,7 +221,7 @@ describe('Project Service (File Storage)', () => {
       expect(updated.name).toBe('After')
       expect(updated.description).toBe('New Desc')
       expect(updated.path).toBe(created.path) // Path not changed
-      expect(new Date(updated.updated).getTime()).toBeGreaterThan(new Date(created.updated).getTime())
+      expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(created.updatedAt).getTime())
     })
 
     test('updateProject throws if project does not exist', async () => {
@@ -323,7 +328,7 @@ describe('Project Service (File Storage)', () => {
 
       expect(updatedFile.content).toBe(newContent)
       expect(updatedFile.size).toBe(Buffer.byteLength(newContent, 'utf8'))
-      expect(new Date(updatedFile.updated).getTime()).toBeGreaterThan(new Date(file.updated).getTime())
+      expect(new Date(updatedFile.updatedAt).getTime()).toBeGreaterThan(new Date(file.updatedAt).getTime())
     })
 
     test('updateFileContent throws if file not found', async () => {

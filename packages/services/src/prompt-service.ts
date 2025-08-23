@@ -20,7 +20,7 @@ import {
   type UpdatePrompt as UpdatePromptBody,
   PromptSchema
 } from '@promptliano/database'
-import { PromptSuggestionsZodSchema } from '@promptliano/schemas'
+import { PromptSuggestionsZodSchema } from '@promptliano/schemas' // AI generation schema - may remain in schemas package
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'
 

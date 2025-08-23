@@ -1,15 +1,14 @@
 import { describe, test, expect } from 'bun:test'
 import { CompactFileFormatter, calculateTokenSavings } from './compact-file-formatter'
-import type { ProjectFile, CompactLevel } from '@promptliano/schemas'
+import type { File as ProjectFile, CompactLevel } from '@promptliano/database'
 
 // Helper to create test files
 function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
   return {
-    id: 1,
+    id: '1',
     projectId: 1,
     name: 'test.ts',
     path: '/src/test.ts',
-    extension: 'ts',
     size: 1000,
     content: '',
     summary: 'Test file summary',
@@ -18,8 +17,12 @@ function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     checksum: 'abc123',
     imports: [],
     exports: [],
-    created: Date.now(),
-    updated: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    isRelevant: null,
+    relevanceScore: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   }
 }
@@ -28,16 +31,16 @@ describe('CompactFileFormatter', () => {
   describe('ultraCompact', () => {
     test('formats files with only id and path', () => {
       const files = [
-        createTestFile({ id: 1, path: '/src/index.ts' }),
-        createTestFile({ id: 2, path: '/src/utils/helper.ts' })
+        createTestFile({ id: '1', path: '/src/index.ts' }),
+        createTestFile({ id: '2', path: '/src/utils/helper.ts' })
       ]
 
       const result = CompactFileFormatter.ultraCompact(files)
       const parsed = JSON.parse(result)
 
       expect(parsed).toHaveLength(2)
-      expect(parsed[0]).toEqual({ i: 1, p: '/src/index.ts' })
-      expect(parsed[1]).toEqual({ i: 2, p: '/src/utils/helper.ts' })
+      expect(parsed[0]).toEqual({ i: '1', p: '/src/index.ts' })
+      expect(parsed[1]).toEqual({ i: '2', p: '/src/utils/helper.ts' })
     })
 
     test('truncates long paths', () => {

@@ -10,6 +10,106 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 // =============================================================================
+// TYPE DEFINITIONS (from @promptliano/schemas)
+// =============================================================================
+
+// Git Types
+export interface GitFileStatus {
+  path: string
+  status: 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'untracked' | 'ignored' | 'unchanged'
+  staged: boolean
+  index: string | null
+  workingDir: string | null
+}
+
+export interface GitCommitAuthor {
+  name: string
+  email: string
+  date?: string
+}
+
+// Claude Code Types  
+export interface ClaudeMessageContent {
+  role: 'user' | 'assistant' | 'system'
+  content: string | any[] | null
+  id?: string | null
+  model?: string | null
+  stop_reason?: string | null
+  stop_sequence?: string | null
+  usage?: TokenUsage
+}
+
+export interface TokenUsage {
+  input_tokens?: number
+  cache_creation_input_tokens?: number
+  cache_read_input_tokens?: number
+  output_tokens?: number
+  service_tier?: string
+}
+
+// File Analysis Types
+export interface ImportSpecifier {
+  type: 'default' | 'named' | 'namespace'
+  imported?: string
+  local: string
+}
+
+export interface ImportInfo {
+  source: string
+  specifiers: ImportSpecifier[]
+}
+
+export interface ExportSpecifier {
+  exported: string
+  local?: string
+}
+
+export interface ExportInfo {
+  type: 'default' | 'named' | 'all'
+  source?: string
+  specifiers?: ExportSpecifier[]
+}
+
+export interface FileRelationship {
+  sourceFileId: string
+  targetFileId: string
+  type: 'imports' | 'exports' | 'sibling' | 'parent' | 'child' | 'semantic'
+  strength: number
+  metadata?: Record<string, any>
+}
+
+// Relevance Types
+export interface RelevanceWeights {
+  keyword: number
+  path: number
+  type: number
+  recency: number
+  import: number
+}
+
+// UI State Types
+export interface ProjectTabMetadata {
+  displayName?: string
+  selectedFiles?: number[]
+  selectedFilePaths?: string[]
+  selectedPrompts?: number[]
+  userPrompt?: string
+  fileSearch?: string
+  contextLimit?: number
+  preferredEditor?: 'vscode' | 'cursor' | 'webstorm'
+  suggestedFileIds?: number[]
+  ticketSearch?: string
+  ticketSort?: 'created_asc' | 'created_desc' | 'status' | 'priority'
+  ticketStatusFilter?: 'all' | 'open' | 'in_progress' | 'closed' | 'non_closed'
+  searchByContent?: boolean
+  resolveImports?: boolean
+  bookmarkedFileGroups?: Record<string, number[]>
+  sortOrder?: number
+  promptsPanelCollapsed?: boolean
+  selectedFilesCollapsed?: boolean
+}
+
+// =============================================================================
 // CORE ENTITY TABLES
 // =============================================================================
 
@@ -240,15 +340,31 @@ export const claudeHooks = sqliteTable('claude_hooks', {
 export const providerKeys = sqliteTable('provider_keys', {
   id: integer('id').primaryKey(),
   provider: text('provider').notNull(),
-  keyName: text('key_name').notNull(),
-  encryptedValue: text('encrypted_value').notNull(),
+  keyName: text('key_name').notNull(), // Keep for backward compatibility
+  name: text('name'), // New field for enhanced provider key schema
+  encryptedValue: text('encrypted_value').notNull(), // Keep for backward compatibility
+  key: text('key'), // New field for enhanced provider key schema  
+  encrypted: integer('encrypted', { mode: 'boolean' }).notNull().default(true),
+  iv: text('iv'),
+  tag: text('tag'),
+  salt: text('salt'),
+  baseUrl: text('base_url'),
+  customHeaders: text('custom_headers', { mode: 'json' }).$type<Record<string, string>>().default(sql`'{}'`),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  environment: text('environment').notNull().default('production'),
+  description: text('description'),
+  expiresAt: integer('expires_at'),
+  lastUsed: integer('last_used'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull()
 }, (table) => ({
   providerIdx: index('provider_keys_provider_idx').on(table.provider),
   keyNameIdx: index('provider_keys_key_name_idx').on(table.keyName),
-  activeIdx: index('provider_keys_active_idx').on(table.isActive)
+  nameIdx: index('provider_keys_name_idx').on(table.name),
+  activeIdx: index('provider_keys_active_idx').on(table.isActive),
+  defaultIdx: index('provider_keys_default_idx').on(table.isDefault),
+  environmentIdx: index('provider_keys_environment_idx').on(table.environment)
 }))
 
 // =============================================================================
@@ -263,7 +379,13 @@ export const files = sqliteTable('files', {
   size: integer('size'),
   lastModified: integer('last_modified'),
   contentType: text('content_type'),
+  content: text('content'),
   summary: text('summary'),
+  summaryLastUpdated: integer('summary_last_updated'),
+  meta: text('meta'),
+  checksum: text('checksum'),
+  imports: text('imports', { mode: 'json' }).$type<ImportInfo[]>(),
+  exports: text('exports', { mode: 'json' }).$type<ExportInfo[]>(),
   isRelevant: integer('is_relevant', { mode: 'boolean' }).default(false),
   relevanceScore: real('relevance_score'),
   createdAt: integer('created_at').notNull(),
@@ -273,7 +395,8 @@ export const files = sqliteTable('files', {
   pathIdx: index('files_path_idx').on(table.path),
   nameIdx: index('files_name_idx').on(table.name),
   relevantIdx: index('files_relevant_idx').on(table.isRelevant),
-  scoreIdx: index('files_score_idx').on(table.relevanceScore)
+  scoreIdx: index('files_score_idx').on(table.relevanceScore),
+  checksumIdx: index('files_checksum_idx').on(table.checksum)
 }))
 
 export const selectedFiles = sqliteTable('selected_files', {
@@ -290,6 +413,363 @@ export const selectedFiles = sqliteTable('selected_files', {
   selectedAtIdx: index('selected_files_selected_at_idx').on(table.selectedAt),
   // Unique constraint
   uniqueProjectFile: index('selected_files_unique_project_file').on(table.projectId, table.fileId)
+}))
+
+// =============================================================================
+// GIT INTEGRATION TABLES  
+// =============================================================================
+
+export const gitStatus = sqliteTable('git_status', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  isRepo: integer('is_repo', { mode: 'boolean' }).notNull(),
+  current: text('current'),
+  tracking: text('tracking'),
+  ahead: integer('ahead').notNull().default(0),
+  behind: integer('behind').notNull().default(0),
+  files: text('files', { mode: 'json' }).$type<GitFileStatus[]>().notNull().default(sql`'[]'`),
+  staged: text('staged', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  modified: text('modified', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  created: text('created_files', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  deleted: text('deleted', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  renamed: text('renamed', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  conflicted: text('conflicted', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('git_status_project_idx').on(table.projectId),
+  repoIdx: index('git_status_repo_idx').on(table.isRepo),
+  branchIdx: index('git_status_branch_idx').on(table.current)
+}))
+
+export const gitRemotes = sqliteTable('git_remotes', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  fetch: text('fetch').notNull(),
+  push: text('push').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('git_remotes_project_idx').on(table.projectId),
+  nameIdx: index('git_remotes_name_idx').on(table.name)
+}))
+
+export const gitTags = sqliteTable('git_tags', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  commit: text('commit').notNull(),
+  annotation: text('annotation'),
+  tagger: text('tagger', { mode: 'json' }).$type<GitCommitAuthor>(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('git_tags_project_idx').on(table.projectId),
+  nameIdx: index('git_tags_name_idx').on(table.name),
+  commitIdx: index('git_tags_commit_idx').on(table.commit)
+}))
+
+export const gitStashes = sqliteTable('git_stashes', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  index: integer('stash_index').notNull(),
+  message: text('message').notNull(),
+  branch: text('branch').notNull(),
+  date: text('date').notNull(),
+  createdAt: integer('created_at').notNull()
+}, (table) => ({
+  projectIdx: index('git_stashes_project_idx').on(table.projectId),
+  indexIdx: index('git_stashes_index_idx').on(table.index),
+  branchIdx: index('git_stashes_branch_idx').on(table.branch)
+}))
+
+export const gitWorktrees = sqliteTable('git_worktrees', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  path: text('path').notNull(),
+  branch: text('branch').notNull(),
+  commit: text('commit').notNull(),
+  isMain: integer('is_main', { mode: 'boolean' }).notNull().default(false),
+  isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
+  lockReason: text('lock_reason'),
+  prunable: integer('prunable', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('git_worktrees_project_idx').on(table.projectId),
+  pathIdx: index('git_worktrees_path_idx').on(table.path),
+  branchIdx: index('git_worktrees_branch_idx').on(table.branch),
+  mainIdx: index('git_worktrees_main_idx').on(table.isMain)
+}))
+
+// =============================================================================
+// CLAUDE CODE INTEGRATION TABLES
+// =============================================================================
+
+export const claudeMessages = sqliteTable('claude_messages', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['user', 'assistant', 'result', 'system', 'summary'] }).notNull(),
+  message: text('message', { mode: 'json' }).$type<ClaudeMessageContent>(),
+  timestamp: text('timestamp').notNull(),
+  sessionId: text('session_id').notNull(),
+  uuid: text('uuid'),
+  parentUuid: text('parent_uuid'),
+  requestId: text('request_id'),
+  userType: text('user_type'),
+  isSidechain: integer('is_sidechain', { mode: 'boolean' }).default(false),
+  cwd: text('cwd'),
+  version: text('version'),
+  gitBranch: text('git_branch'),
+  toolUseResult: text('tool_use_result', { mode: 'json' }).$type<any>(),
+  content: text('content', { mode: 'json' }).$type<any>(),
+  isMeta: integer('is_meta', { mode: 'boolean' }).default(false),
+  toolUseID: text('tool_use_id'),
+  level: text('level'),
+  tokensUsed: integer('tokens_used'),
+  costUsd: real('cost_usd'),
+  durationMs: integer('duration_ms'),
+  model: text('model'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('claude_messages_project_idx').on(table.projectId),
+  sessionIdx: index('claude_messages_session_idx').on(table.sessionId),
+  typeIdx: index('claude_messages_type_idx').on(table.type),
+  timestampIdx: index('claude_messages_timestamp_idx').on(table.timestamp),
+  uuidIdx: index('claude_messages_uuid_idx').on(table.uuid),
+  parentUuidIdx: index('claude_messages_parent_uuid_idx').on(table.parentUuid)
+}))
+
+export const claudeSessions = sqliteTable('claude_sessions', {
+  id: text('id').primaryKey(), // sessionId as primary key
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  projectPath: text('project_path').notNull(),
+  startTime: text('start_time').notNull(),
+  lastUpdate: text('last_update').notNull(),
+  messageCount: integer('message_count').notNull().default(0),
+  gitBranch: text('git_branch'),
+  cwd: text('cwd'),
+  tokenUsage: text('token_usage', { mode: 'json' }).$type<TokenUsage>(),
+  serviceTiers: text('service_tiers', { mode: 'json' }).$type<string[]>().default(sql`'[]'`),
+  totalTokensUsed: integer('total_tokens_used'),
+  totalCostUsd: real('total_cost_usd'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('claude_sessions_project_idx').on(table.projectId),
+  projectPathIdx: index('claude_sessions_project_path_idx').on(table.projectPath),
+  startTimeIdx: index('claude_sessions_start_time_idx').on(table.startTime),
+  lastUpdateIdx: index('claude_sessions_last_update_idx').on(table.lastUpdate),
+  branchIdx: index('claude_sessions_branch_idx').on(table.gitBranch)
+}))
+
+export const claudeSessionMetadata = sqliteTable('claude_session_metadata', {
+  id: integer('id').primaryKey(),
+  sessionId: text('session_id').notNull().references(() => claudeSessions.id, { onDelete: 'cascade' }),
+  projectPath: text('project_path').notNull(),
+  startTime: text('start_time').notNull(),
+  lastUpdate: text('last_update').notNull(),
+  messageCount: integer('message_count').notNull(),
+  fileSize: integer('file_size').notNull(),
+  hasGitBranch: integer('has_git_branch', { mode: 'boolean' }).notNull().default(false),
+  hasCwd: integer('has_cwd', { mode: 'boolean' }).notNull().default(false),
+  firstMessagePreview: text('first_message_preview'),
+  lastMessagePreview: text('last_message_preview'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  sessionIdx: index('claude_session_metadata_session_idx').on(table.sessionId),
+  projectPathIdx: index('claude_session_metadata_project_path_idx').on(table.projectPath),
+  lastUpdateIdx: index('claude_session_metadata_last_update_idx').on(table.lastUpdate),
+  fileSizeIdx: index('claude_session_metadata_file_size_idx').on(table.fileSize)
+}))
+
+// =============================================================================
+// AI CONFIGURATION TABLES
+// =============================================================================
+
+export const aiSdkOptions = sqliteTable('ai_sdk_options', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // Configuration name
+  ollamaUrl: text('ollama_url'),
+  lmstudioUrl: text('lmstudio_url'),
+  temperature: real('temperature'),
+  maxTokens: integer('max_tokens'),
+  topP: real('top_p'),
+  frequencyPenalty: real('frequency_penalty'),
+  presencePenalty: real('presence_penalty'),
+  topK: integer('top_k'),
+  stop: text('stop', { mode: 'json' }).$type<string | string[]>(),
+  responseFormat: text('response_format', { mode: 'json' }).$type<any>(),
+  provider: text('provider'),
+  model: text('model'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('ai_sdk_options_project_idx').on(table.projectId),
+  nameIdx: index('ai_sdk_options_name_idx').on(table.name),
+  providerIdx: index('ai_sdk_options_provider_idx').on(table.provider),
+  modelIdx: index('ai_sdk_options_model_idx').on(table.model)
+}))
+
+export const mcpServerConfigs = sqliteTable('mcp_server_configs', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  command: text('command').notNull(),
+  args: text('args', { mode: 'json' }).$type<string[]>().default(sql`'[]'`),
+  env: text('env', { mode: 'json' }).$type<Record<string, string>>().default(sql`'{}'`),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  autoStart: integer('auto_start', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('mcp_server_configs_project_idx').on(table.projectId),
+  nameIdx: index('mcp_server_configs_name_idx').on(table.name),
+  enabledIdx: index('mcp_server_configs_enabled_idx').on(table.enabled),
+  autoStartIdx: index('mcp_server_configs_auto_start_idx').on(table.autoStart)
+}))
+
+// =============================================================================
+// FILE ANALYSIS TABLES
+// =============================================================================
+
+export const fileImportInfo = sqliteTable('file_import_info', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  source: text('source').notNull(),
+  specifiers: text('specifiers', { mode: 'json' }).$type<ImportSpecifier[]>().notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  fileIdx: index('file_import_info_file_idx').on(table.fileId),
+  sourceIdx: index('file_import_info_source_idx').on(table.source)
+}))
+
+export const fileExportInfo = sqliteTable('file_export_info', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['default', 'named', 'all'] }).notNull(),
+  source: text('source'),
+  specifiers: text('specifiers', { mode: 'json' }).$type<ExportSpecifier[]>(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  fileIdx: index('file_export_info_file_idx').on(table.fileId),
+  typeIdx: index('file_export_info_type_idx').on(table.type)
+}))
+
+export const fileRelationships = sqliteTable('file_relationships', {
+  id: integer('id').primaryKey(),
+  sourceFileId: text('source_file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  targetFileId: text('target_file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['imports', 'exports', 'sibling', 'parent', 'child', 'semantic'] }).notNull(),
+  strength: real('strength').notNull(), // 0-1 scale
+  metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>().default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  sourceIdx: index('file_relationships_source_idx').on(table.sourceFileId),
+  targetIdx: index('file_relationships_target_idx').on(table.targetFileId),
+  typeIdx: index('file_relationships_type_idx').on(table.type),
+  strengthIdx: index('file_relationships_strength_idx').on(table.strength)
+}))
+
+export const fileGroups = sqliteTable('file_groups', {
+  id: text('id').primaryKey(), // String ID as in schema
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  strategy: text('strategy', { enum: ['imports', 'directory', 'semantic', 'mixed'] }).notNull(),
+  fileIds: text('file_ids', { mode: 'json' }).$type<string[]>().notNull(),
+  relationships: text('relationships', { mode: 'json' }).$type<FileRelationship[]>().default(sql`'[]'`),
+  estimatedTokens: integer('estimated_tokens'),
+  priority: integer('priority').notNull().default(5), // 0-10 scale
+  metadata: text('metadata', { mode: 'json' }).$type<{
+    directory?: string;
+    primaryFile?: string;
+    semanticCategory?: string;
+  }>().default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('file_groups_project_idx').on(table.projectId),
+  strategyIdx: index('file_groups_strategy_idx').on(table.strategy),
+  priorityIdx: index('file_groups_priority_idx').on(table.priority),
+  nameIdx: index('file_groups_name_idx').on(table.name)
+}))
+
+export const fileImportance = sqliteTable('file_importance', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(), // 0-10 scale
+  typeScore: real('type_score').notNull(),
+  locationScore: real('location_score').notNull(),
+  dependencyScore: real('dependency_score').notNull(),
+  sizeScore: real('size_score').notNull(),
+  recencyScore: real('recency_score').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  fileIdx: index('file_importance_file_idx').on(table.fileId),
+  projectIdx: index('file_importance_project_idx').on(table.projectId),
+  scoreIdx: index('file_importance_score_idx').on(table.score)
+}))
+
+export const relevanceScores = sqliteTable('relevance_scores', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  totalScore: real('total_score').notNull(), // 0-1 scale
+  keywordScore: real('keyword_score').notNull(),
+  pathScore: real('path_score').notNull(),
+  typeScore: real('type_score').notNull(),
+  recencyScore: real('recency_score').notNull(),
+  importScore: real('import_score').notNull(),
+  query: text('query'), // The query this relevance is for
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  fileIdx: index('relevance_scores_file_idx').on(table.fileId),
+  projectIdx: index('relevance_scores_project_idx').on(table.projectId),
+  totalScoreIdx: index('relevance_scores_total_score_idx').on(table.totalScore),
+  queryIdx: index('relevance_scores_query_idx').on(table.query)
+}))
+
+export const relevanceConfigs = sqliteTable('relevance_configs', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  weights: text('weights', { mode: 'json' }).$type<RelevanceWeights>().notNull(),
+  maxFiles: integer('max_files').notNull().default(100),
+  minScore: real('min_score').notNull().default(0.1),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('relevance_configs_project_idx').on(table.projectId),
+  nameIdx: index('relevance_configs_name_idx').on(table.name)
+}))
+
+// =============================================================================
+// UI STATE TABLES
+// =============================================================================
+
+export const projectTabState = sqliteTable('project_tab_state', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  activeTabId: integer('active_tab_id').notNull().default(0),
+  clientId: text('client_id'),
+  lastUpdated: integer('last_updated').notNull(),
+  tabMetadata: text('tab_metadata', { mode: 'json' }).$type<ProjectTabMetadata>().default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  projectIdx: index('project_tab_state_project_idx').on(table.projectId),
+  clientIdx: index('project_tab_state_client_idx').on(table.clientId),
+  lastUpdatedIdx: index('project_tab_state_last_updated_idx').on(table.lastUpdated)
 }))
 
 // =============================================================================
@@ -324,7 +804,22 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   claudeHooks: many(claudeHooks),
   files: many(files),
   selectedFiles: many(selectedFiles),
-  activeTabs: many(activeTabs)
+  activeTabs: many(activeTabs),
+  // New relationships
+  gitStatus: many(gitStatus),
+  gitRemotes: many(gitRemotes),
+  gitTags: many(gitTags),
+  gitStashes: many(gitStashes),
+  gitWorktrees: many(gitWorktrees),
+  claudeMessages: many(claudeMessages),
+  claudeSessions: many(claudeSessions),
+  aiSdkOptions: many(aiSdkOptions),
+  mcpServerConfigs: many(mcpServerConfigs),
+  fileGroups: many(fileGroups),
+  fileImportance: many(fileImportance),
+  relevanceScores: many(relevanceScores),
+  relevanceConfigs: many(relevanceConfigs),
+  projectTabState: many(projectTabState)
 }))
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
@@ -408,7 +903,13 @@ export const filesRelations = relations(files, ({ one, many }) => ({
     fields: [files.projectId],
     references: [projects.id]
   }),
-  selections: many(selectedFiles)
+  selections: many(selectedFiles),
+  importInfo: many(fileImportInfo),
+  exportInfo: many(fileExportInfo),
+  sourceRelationships: many(fileRelationships, { relationName: 'source' }),
+  targetRelationships: many(fileRelationships, { relationName: 'target' }),
+  importance: many(fileImportance),
+  relevanceScores: many(relevanceScores)
 }))
 
 export const selectedFilesRelations = relations(selectedFiles, ({ one }) => ({
@@ -425,6 +926,153 @@ export const selectedFilesRelations = relations(selectedFiles, ({ one }) => ({
 export const activeTabsRelations = relations(activeTabs, ({ one }) => ({
   project: one(projects, {
     fields: [activeTabs.projectId],
+    references: [projects.id]
+  })
+}))
+
+// New table relationships
+export const gitStatusRelations = relations(gitStatus, ({ one }) => ({
+  project: one(projects, {
+    fields: [gitStatus.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const gitRemotesRelations = relations(gitRemotes, ({ one }) => ({
+  project: one(projects, {
+    fields: [gitRemotes.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const gitTagsRelations = relations(gitTags, ({ one }) => ({
+  project: one(projects, {
+    fields: [gitTags.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const gitStashesRelations = relations(gitStashes, ({ one }) => ({
+  project: one(projects, {
+    fields: [gitStashes.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const gitWorktreesRelations = relations(gitWorktrees, ({ one }) => ({
+  project: one(projects, {
+    fields: [gitWorktrees.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const claudeMessagesRelations = relations(claudeMessages, ({ one }) => ({
+  project: one(projects, {
+    fields: [claudeMessages.projectId],
+    references: [projects.id]
+  }),
+  session: one(claudeSessions, {
+    fields: [claudeMessages.sessionId],
+    references: [claudeSessions.id]
+  })
+}))
+
+export const claudeSessionsRelations = relations(claudeSessions, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [claudeSessions.projectId],
+    references: [projects.id]
+  }),
+  messages: many(claudeMessages),
+  metadata: many(claudeSessionMetadata)
+}))
+
+export const claudeSessionMetadataRelations = relations(claudeSessionMetadata, ({ one }) => ({
+  session: one(claudeSessions, {
+    fields: [claudeSessionMetadata.sessionId],
+    references: [claudeSessions.id]
+  })
+}))
+
+export const aiSdkOptionsRelations = relations(aiSdkOptions, ({ one }) => ({
+  project: one(projects, {
+    fields: [aiSdkOptions.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const mcpServerConfigsRelations = relations(mcpServerConfigs, ({ one }) => ({
+  project: one(projects, {
+    fields: [mcpServerConfigs.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const fileImportInfoRelations = relations(fileImportInfo, ({ one }) => ({
+  file: one(files, {
+    fields: [fileImportInfo.fileId],
+    references: [files.id]
+  })
+}))
+
+export const fileExportInfoRelations = relations(fileExportInfo, ({ one }) => ({
+  file: one(files, {
+    fields: [fileExportInfo.fileId],
+    references: [files.id]
+  })
+}))
+
+export const fileRelationshipsRelations = relations(fileRelationships, ({ one }) => ({
+  sourceFile: one(files, {
+    fields: [fileRelationships.sourceFileId],
+    references: [files.id],
+    relationName: 'source'
+  }),
+  targetFile: one(files, {
+    fields: [fileRelationships.targetFileId],
+    references: [files.id],
+    relationName: 'target'
+  })
+}))
+
+export const fileGroupsRelations = relations(fileGroups, ({ one }) => ({
+  project: one(projects, {
+    fields: [fileGroups.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const fileImportanceRelations = relations(fileImportance, ({ one }) => ({
+  file: one(files, {
+    fields: [fileImportance.fileId],
+    references: [files.id]
+  }),
+  project: one(projects, {
+    fields: [fileImportance.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const relevanceScoresRelations = relations(relevanceScores, ({ one }) => ({
+  file: one(files, {
+    fields: [relevanceScores.fileId],
+    references: [files.id]
+  }),
+  project: one(projects, {
+    fields: [relevanceScores.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const relevanceConfigsRelations = relations(relevanceConfigs, ({ one }) => ({
+  project: one(projects, {
+    fields: [relevanceConfigs.projectId],
+    references: [projects.id]
+  })
+}))
+
+export const projectTabStateRelations = relations(projectTabState, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectTabState.projectId],
     references: [projects.id]
   })
 }))
@@ -450,6 +1098,26 @@ export const insertFileSchema = createInsertSchema(files)
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles)
 export const insertActiveTabSchema = createInsertSchema(activeTabs)
 
+// New table insert schemas
+export const insertGitStatusSchema = createInsertSchema(gitStatus)
+export const insertGitRemoteSchema = createInsertSchema(gitRemotes)
+export const insertGitTagSchema = createInsertSchema(gitTags)
+export const insertGitStashSchema = createInsertSchema(gitStashes)
+export const insertGitWorktreeSchema = createInsertSchema(gitWorktrees)
+export const insertClaudeMessageSchema = createInsertSchema(claudeMessages)
+export const insertClaudeSessionSchema = createInsertSchema(claudeSessions)
+export const insertClaudeSessionMetadataSchema = createInsertSchema(claudeSessionMetadata)
+export const insertAiSdkOptionsSchema = createInsertSchema(aiSdkOptions)
+export const insertMcpServerConfigSchema = createInsertSchema(mcpServerConfigs)
+export const insertFileImportInfoSchema = createInsertSchema(fileImportInfo)
+export const insertFileExportInfoSchema = createInsertSchema(fileExportInfo)
+export const insertFileRelationshipSchema = createInsertSchema(fileRelationships)
+export const insertFileGroupSchema = createInsertSchema(fileGroups)
+export const insertFileImportanceSchema = createInsertSchema(fileImportance)
+export const insertRelevanceScoreSchema = createInsertSchema(relevanceScores)
+export const insertRelevanceConfigSchema = createInsertSchema(relevanceConfigs)
+export const insertProjectTabStateSchema = createInsertSchema(projectTabState)
+
 // Select schemas (for reading existing records)
 export const selectProjectSchema = createSelectSchema(projects)
 export const selectTicketSchema = createSelectSchema(tickets)
@@ -466,6 +1134,26 @@ export const selectProviderKeySchema = createSelectSchema(providerKeys)
 export const selectFileSchema = createSelectSchema(files)
 export const selectSelectedFileSchema = createSelectSchema(selectedFiles)
 export const selectActiveTabSchema = createSelectSchema(activeTabs)
+
+// New table select schemas
+export const selectGitStatusSchema = createSelectSchema(gitStatus)
+export const selectGitRemoteSchema = createSelectSchema(gitRemotes)
+export const selectGitTagSchema = createSelectSchema(gitTags)
+export const selectGitStashSchema = createSelectSchema(gitStashes)
+export const selectGitWorktreeSchema = createSelectSchema(gitWorktrees)
+export const selectClaudeMessageSchema = createSelectSchema(claudeMessages)
+export const selectClaudeSessionSchema = createSelectSchema(claudeSessions)
+export const selectClaudeSessionMetadataSchema = createSelectSchema(claudeSessionMetadata)
+export const selectAiSdkOptionsSchema = createSelectSchema(aiSdkOptions)
+export const selectMcpServerConfigSchema = createSelectSchema(mcpServerConfigs)
+export const selectFileImportInfoSchema = createSelectSchema(fileImportInfo)
+export const selectFileExportInfoSchema = createSelectSchema(fileExportInfo)
+export const selectFileRelationshipSchema = createSelectSchema(fileRelationships)
+export const selectFileGroupSchema = createSelectSchema(fileGroups)
+export const selectFileImportanceSchema = createSelectSchema(fileImportance)
+export const selectRelevanceScoreSchema = createSelectSchema(relevanceScores)
+export const selectRelevanceConfigSchema = createSelectSchema(relevanceConfigs)
+export const selectProjectTabStateSchema = createSelectSchema(projectTabState)
 
 // =============================================================================
 // AUTO-INFERRED TYPESCRIPT TYPES (replaces manual type definitions)
@@ -488,6 +1176,26 @@ export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
 export type InsertActiveTab = typeof activeTabs.$inferInsert
 
+// New table insert types
+export type InsertGitStatus = typeof gitStatus.$inferInsert
+export type InsertGitRemote = typeof gitRemotes.$inferInsert
+export type InsertGitTag = typeof gitTags.$inferInsert
+export type InsertGitStash = typeof gitStashes.$inferInsert
+export type InsertGitWorktree = typeof gitWorktrees.$inferInsert
+export type InsertClaudeMessage = typeof claudeMessages.$inferInsert
+export type InsertClaudeSession = typeof claudeSessions.$inferInsert
+export type InsertClaudeSessionMetadata = typeof claudeSessionMetadata.$inferInsert
+export type InsertAiSdkOptions = typeof aiSdkOptions.$inferInsert
+export type InsertMcpServerConfig = typeof mcpServerConfigs.$inferInsert
+export type InsertFileImportInfo = typeof fileImportInfo.$inferInsert
+export type InsertFileExportInfo = typeof fileExportInfo.$inferInsert
+export type InsertFileRelationship = typeof fileRelationships.$inferInsert
+export type InsertFileGroup = typeof fileGroups.$inferInsert
+export type InsertFileImportance = typeof fileImportance.$inferInsert
+export type InsertRelevanceScore = typeof relevanceScores.$inferInsert
+export type InsertRelevanceConfig = typeof relevanceConfigs.$inferInsert
+export type InsertProjectTabState = typeof projectTabState.$inferInsert
+
 // Select types (for reading existing records)
 export type Project = typeof projects.$inferSelect
 export type Ticket = typeof tickets.$inferSelect
@@ -505,6 +1213,26 @@ export type File = typeof files.$inferSelect
 export type SelectedFile = typeof selectedFiles.$inferSelect
 export type ActiveTab = typeof activeTabs.$inferSelect
 
+// New table select types
+export type GitStatus = typeof gitStatus.$inferSelect
+export type GitRemote = typeof gitRemotes.$inferSelect
+export type GitTag = typeof gitTags.$inferSelect
+export type GitStash = typeof gitStashes.$inferSelect
+export type GitWorktree = typeof gitWorktrees.$inferSelect
+export type ClaudeMessage = typeof claudeMessages.$inferSelect
+export type ClaudeSession = typeof claudeSessions.$inferSelect
+export type ClaudeSessionMetadata = typeof claudeSessionMetadata.$inferSelect
+export type AiSdkOptions = typeof aiSdkOptions.$inferSelect
+export type McpServerConfig = typeof mcpServerConfigs.$inferSelect
+export type FileImportInfo = typeof fileImportInfo.$inferSelect
+export type FileExportInfo = typeof fileExportInfo.$inferSelect
+export type FileRelationshipDb = typeof fileRelationships.$inferSelect
+export type FileGroup = typeof fileGroups.$inferSelect
+export type FileImportance = typeof fileImportance.$inferSelect
+export type RelevanceScore = typeof relevanceScores.$inferSelect
+export type RelevanceConfig = typeof relevanceConfigs.$inferSelect
+export type ProjectTabState = typeof projectTabState.$inferSelect
+
 // Enum types (extracted for reuse)
 export type TicketStatus = 'open' | 'in_progress' | 'closed'
 export type TicketPriority = 'low' | 'normal' | 'high'
@@ -513,6 +1241,17 @@ export type QueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'c
 export type MessageRole = 'user' | 'assistant' | 'system'
 export type HookType = 'pre' | 'post' | 'error'
 export type ItemType = 'ticket' | 'task' | 'chat' | 'prompt'
+
+// New enum types
+export type GitFileStatusType = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'untracked' | 'ignored' | 'unchanged'
+export type ClaudeMessageType = 'user' | 'assistant' | 'result' | 'system' | 'summary'
+export type FileRelationshipType = 'imports' | 'exports' | 'sibling' | 'parent' | 'child' | 'semantic'
+export type GroupingStrategy = 'imports' | 'directory' | 'semantic' | 'mixed'
+export type ExportType = 'default' | 'named' | 'all'
+export type ImportSpecifierType = 'default' | 'named' | 'namespace'
+export type CompactLevel = 'ultra' | 'compact' | 'standard'
+export type FileSuggestionStrategy = 'fast' | 'balanced' | 'thorough'
+export type APIProviders = 'openai' | 'openrouter' | 'lmstudio' | 'ollama' | 'xai' | 'google_gemini' | 'anthropic' | 'groq' | 'together' | 'custom'
 
 // Complex relationship types
 export type TicketWithTasks = Ticket & {
@@ -523,17 +1262,41 @@ export type ChatWithMessages = Chat & {
   messages: ChatMessage[]
 }
 
+export type ClaudeSessionWithMessages = ClaudeSession & {
+  messages: ClaudeMessage[]
+  metadata?: ClaudeSessionMetadata[]
+}
+
+export type FileWithAnalysis = File & {
+  importInfo?: FileImportInfo[]
+  exportInfo?: FileExportInfo[]
+  sourceRelationships?: FileRelationshipDb[]
+  targetRelationships?: FileRelationshipDb[]
+  importance?: FileImportance[]
+  relevanceScores?: RelevanceScore[]
+}
+
 export type ProjectWithAll = Project & {
   tickets: TicketWithTasks[]
   chats: ChatWithMessages[]
   prompts: Prompt[]
   queues: Queue[]
-  files: File[]
+  files: FileWithAnalysis[]
   selectedFiles: SelectedFile[]
+  gitStatus?: GitStatus[]
+  claudeSessions?: ClaudeSessionWithMessages[]
 }
 
 export type QueueWithItems = Queue & {
   items: QueueItem[]
+}
+
+export type ProjectWithGit = Project & {
+  gitStatus?: GitStatus
+  gitRemotes: GitRemote[]
+  gitTags: GitTag[]
+  gitStashes: GitStash[]
+  gitWorktrees: GitWorktree[]
 }
 
 // =============================================================================
@@ -570,3 +1333,20 @@ export type LegacyTicketTask = {
   created: number // Legacy timestamp field
   updated: number // Legacy timestamp field
 }
+
+// =============================================================================
+// BACKWARD COMPATIBILITY ALIASES
+// =============================================================================
+
+// Alias for ClaudeMessage type for backward compatibility with existing imports
+export type ClaudeCodeMessage = ClaudeMessage
+
+// Alias for ProjectTabMetadata for existing imports  
+export type ActiveTabMetadata = ProjectTabMetadata
+
+// Additional type aliases for key migrated types
+export type AiChatStreamRequest = AiSdkOptions
+export type MCPServerConfiguration = McpServerConfig
+
+// Re-export important types that are already defined as interfaces above
+// (GitFileStatus, GitCommitAuthor, ImportInfo, ExportInfo, FileRelationship, RelevanceWeights are already exported)

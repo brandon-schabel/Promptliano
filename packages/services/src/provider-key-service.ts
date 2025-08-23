@@ -16,6 +16,7 @@ import {
   ProviderStatusEnum,
   ProviderHealthStatusEnum
 } from '@promptliano/schemas'
+// Note: These types should be migrated to @promptliano/database in next phase
 import { ApiError } from '@promptliano/shared'
 import { ErrorFactory, assertExists, handleZodError, withErrorContext } from '@promptliano/shared'
 import { logger } from './utils/logger'

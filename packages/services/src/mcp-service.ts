@@ -1,7 +1,7 @@
+// TODO: Most MCP types should be migrated to @promptliano/database
 import {
   type CreateMCPServerConfigBody,
   type UpdateMCPServerConfigBody,
-  type MCPServerConfig,
   type MCPServerState,
   type MCPTool,
   type MCPResource,
@@ -10,6 +10,7 @@ import {
   MCPServerConfigSchema,
   MCPToolExecutionRequestSchema
 } from '@promptliano/schemas'
+import { type McpServerConfig as MCPServerConfig } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { storageService } from '@promptliano/database'
 import { MCPClientManager } from '@promptliano/mcp-client'

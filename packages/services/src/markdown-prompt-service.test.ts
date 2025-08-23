@@ -8,7 +8,7 @@ import {
   type File
 } from './markdown-prompt-service'
 import { ApiError } from '@promptliano/shared'
-import type { Prompt } from '@promptliano/schemas'
+import type { Prompt } from '@promptliano/database'
 
 describe('markdown-prompt-service', () => {
   describe('parseMarkdownToPrompt', () => {

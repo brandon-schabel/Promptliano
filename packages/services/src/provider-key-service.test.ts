@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, mock } from 'bun:test'
 
-// Types now come from @promptliano/schemas and database schema
+// Types now come from @promptliano/database schema
+import type { ProviderKey, CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { normalizeToUnixMs } from '@promptliano/shared'
 import { createProviderKeyService } from './provider-key-service'
@@ -36,7 +37,7 @@ mock.module('@promptliano/shared/src/utils/crypto', () => ({
 mock.module('@promptliano/storage', () => ({
   providerKeyStorage: {
     readProviderKeys: async () => JSON.parse(JSON.stringify(mockProviderKeysDb)),
-    writeProviderKeys: async (data: ProviderKeysStorage) => {
+    writeProviderKeys: async (data: Record<string, any>) => {
       mockProviderKeysDb = JSON.parse(JSON.stringify(data))
       return mockProviderKeysDb
     },
@@ -69,9 +70,9 @@ describe('provider-key-service (File Storage)', () => {
     expect(pk.iv).toBe('mock-iv')
     expect(pk.tag).toBe('mock-tag')
     expect(pk.salt).toBe('mock-salt')
-    expect(pk.created).toBeDefined()
-    expect(pk.updated).toBeDefined()
-    expect(pk.created).toEqual(pk.updated) // Initially, they should be the same
+    expect(pk.createdAt).toBeDefined()
+    expect(pk.updatedAt).toBeDefined()
+    expect(pk.createdAt).toEqual(pk.updatedAt) // Initially, they should be the same
 
     // Verify it's in our mock DB
     expect(mockProviderKeysDb[pk.id]).toEqual(pk)
@@ -191,8 +192,8 @@ describe('provider-key-service (File Storage)', () => {
     expect(censored.provider).toBe(uncensored.provider)
     expect(censored.name).toBe(uncensored.name)
     expect(censored.isDefault).toBe(uncensored.isDefault)
-    expect(censored.created).toBe(uncensored.created)
-    expect(censored.updated).toBe(uncensored.updated)
+    expect(censored.createdAt).toBe(uncensored.createdAt)
+    expect(censored.updatedAt).toBe(uncensored.updatedAt)
 
     // Different key values
     expect(censored.key).toBe('********') // Encrypted keys show as ********
@@ -254,7 +255,7 @@ describe('provider-key-service (File Storage)', () => {
       name: 'initial_provider',
       isDefault: false
     })
-    const originalUpdated = created.updated
+    const originalUpdated = created.updatedAt
 
     // Ensure a small delay for distinct timestamps
     await new Promise((resolve) => setTimeout(resolve, 5))
@@ -266,9 +267,9 @@ describe('provider-key-service (File Storage)', () => {
     expect(updated.id).toBe(created.id)
     expect(updated.key).toBe(updates.key)
     expect(updated.provider).toBe(updates.provider)
-    expect(updated.created).toBe(created.created) // created should not change
-    expect(updated.updated).not.toBe(originalUpdated)
-    expect(new Date(updated.updated).getTime()).toBeGreaterThan(new Date(originalUpdated).getTime())
+    expect(updated.createdAt).toBe(created.createdAt) // createdAt should not change
+    expect(updated.updatedAt).not.toBe(originalUpdated)
+    expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdated).getTime())
 
     // Verify it's updated in our mock DB
     expect(mockProviderKeysDb[created.id]).toEqual(updated)
@@ -278,7 +279,7 @@ describe('provider-key-service (File Storage)', () => {
     const keyOnlyUpdate = await svc.updateKey(created.id, { key: 'final_key_value' })
     expect(keyOnlyUpdate.key).toBe('final_key_value')
     expect(keyOnlyUpdate.provider).toBe(updates.provider) // Provider should persist from previous update
-    expect(new Date(keyOnlyUpdate.updated).getTime()).toBeGreaterThan(new Date(updated.updated).getTime())
+    expect(new Date(keyOnlyUpdate.updatedAt).getTime()).toBeGreaterThan(new Date(updated.updatedAt).getTime())
   })
 
   test('updateKey throws ApiError if key not found', async () => {

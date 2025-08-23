@@ -5,7 +5,7 @@ import * as fs from 'node:fs'
 import { join } from 'node:path'
 import ignore, { type Ignore } from 'ignore'
 import { getFilesConfig } from '@promptliano/config'
-import type { Project } from '@promptliano/schemas'
+import type { Project } from '@promptliano/database'
 
 const { defaultExclusions: DEFAULT_FILE_EXCLUSIONS } = getFilesConfig()
 import type { PathLike, Dirent, Stats } from 'node:fs'
@@ -34,8 +34,8 @@ describe('FileSync Service - Utility Functions', () => {
     name: 'Sync Test Project',
     path: projectPath,
     description: 'Test',
-    created: Date.now(),
-    updated: Date.now()
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   }
 
   // Helper to create mock Dirent
@@ -606,8 +606,8 @@ describe('File Content Truncation', () => {
       name: 'Truncation Test Project',
       path: projectPath,
       description: 'Test',
-      created: Date.now(),
-      updated: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     }
 
     // Set up spies
@@ -743,16 +743,16 @@ describe('cleanup-service', () => {
       name: 'Test Project 1',
       path: '/test/project1',
       description: 'Test project 1',
-      created: normalizeToUnixMs(Date.now()),
-      updated: normalizeToUnixMs(Date.now())
+      createdAt: normalizeToUnixMs(Date.now()),
+      updatedAt: normalizeToUnixMs(Date.now())
     },
     {
       id: 1002,
       name: 'Test Project 2',
       path: '/test/project2',
       description: 'Test project 2',
-      created: normalizeToUnixMs(Date.now()),
-      updated: normalizeToUnixMs(Date.now())
+      createdAt: normalizeToUnixMs(Date.now()),
+      updatedAt: normalizeToUnixMs(Date.now())
     }
   ]
 
