@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { createLogger } from './utils/logger'
 import { EventEmitter } from 'events'
 import { getProjectById } from './project-service'
-import { toPosixPath, toOSPath, joinPosix } from '@promptliano/shared'
+import { toPosixPath, toOSPath, joinPosix, ErrorFactory } from '@promptliano/shared'
 
 const logger = createLogger('MCPProjectConfigService')
 
@@ -87,13 +87,13 @@ export class MCPProjectConfigService extends EventEmitter {
       const project = await getProjectById(projectId)
       
       if (!project) {
-        throw new Error(`Project with ID ${projectId} not found`)
+        throw ErrorFactory.notFound('Project', projectId)
       }
       
       const projectPath = project.path
 
       if (!projectPath) {
-        throw new Error(`Project ${projectId} has no path defined`)
+        throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
       }
 
       const locations: MCPConfigLocation[] = []
@@ -132,13 +132,13 @@ export class MCPProjectConfigService extends EventEmitter {
       const project = await getProjectById(projectId)
       
       if (!project) {
-        throw new Error(`Project with ID ${projectId} not found`)
+        throw ErrorFactory.notFound('Project', projectId)
       }
       
       const projectPath = project.path
       
       if (!projectPath) {
-        throw new Error(`Project ${projectId} has no path defined`)
+        throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
       }
       
       const locations = await this.getConfigLocations(projectId)
@@ -172,7 +172,10 @@ export class MCPProjectConfigService extends EventEmitter {
         return resolved
       } catch (fileError) {
         logger.error(`Failed to load MCP config from ${existingConfig.path}:`, fileError)
-        throw new Error(`Invalid MCP configuration: ${fileError instanceof Error ? fileError.message : String(fileError)}`)
+        throw ErrorFactory.validationFailed(
+          fileError instanceof Error ? fileError : new Error(String(fileError)),
+          { context: 'MCP configuration', path: existingConfig.path }
+        )
       }
     } catch (error: any) {
       logger.error('Error loading project config:', { projectId, error: error.message })
@@ -252,11 +255,11 @@ export class MCPProjectConfigService extends EventEmitter {
     const project = await getProjectById(projectId)
     
     if (!project) {
-      throw new Error(`Project with ID ${projectId} not found`)
+      throw ErrorFactory.notFound('Project', projectId)
     }
     
     if (!project.path) {
-      throw new Error(`Project ${projectId} has no path defined`)
+      throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
     }
 
     const variables: Record<string, string> = {
@@ -332,7 +335,11 @@ export class MCPProjectConfigService extends EventEmitter {
     const fullPath = path.isAbsolute(locationPath) ? locationPath : path.join(project.path, locationPath)
 
     if (!allowedPaths.includes(fullPath)) {
-      throw new Error(`Invalid config location: ${locationPath}. Must be one of: ${CONFIG_FILE_NAMES.join(', ')}`)
+      throw ErrorFactory.invalidInput(
+        'config location',
+        `one of: ${CONFIG_FILE_NAMES.join(', ')}`,
+        locationPath
+      )
     }
 
     // Ensure directory exists

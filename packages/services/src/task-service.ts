@@ -537,7 +537,7 @@ export const enqueueTask = async (taskId: number, queueId?: number, priority?: n
   // For now, just update the task with queue info
   const task = await taskService.getTaskById(taskId)
   if (!task) {
-    throw new Error(`Task ${taskId} not found`)
+    throw ErrorFactory.notFound('Task', taskId)
   }
   
   return taskService.updateTask(taskId, {

@@ -801,7 +801,16 @@ export async function genTextStream({
     }
 
     if (messagesToProcess.length === 0) {
-      throw new Error('No valid input content (prompt or messages) resulted in messages to process.')
+      throw ErrorFactory.invalidInput(
+        'messages',
+        'at least one valid message',
+        messagesToProcess,
+        { 
+          context: 'genTextStream',
+          provider,
+          model: modelInstance?.modelId 
+        }
+      )
     }
 
     if (debug) {

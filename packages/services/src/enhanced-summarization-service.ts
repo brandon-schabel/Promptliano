@@ -9,7 +9,7 @@ import {
     type SummaryProgress
 } from '@promptliano/schemas'
 import { z } from 'zod'
-import { ApiError, promptsMap } from '@promptliano/shared'
+import { ApiError, ErrorFactory, promptsMap } from '@promptliano/shared'
 import { generateStructuredData } from './gen-ai-services'
 import { fileSummarizationTracker } from './file-summarization-tracker'
 import { fileGroupingService } from './file-grouping-service'
@@ -293,7 +293,7 @@ export class EnhancedSummarizationService {
             const depth = options.depth || 'standard'
             const modelConfig = MODEL_CONFIGS[depth]
             if (!modelConfig) {
-                throw new Error(`Invalid depth option: ${depth}`)
+                throw ErrorFactory.invalidInput('depth', 'minimal, standard, or comprehensive', depth)
             }
 
             // Build context-aware prompt
@@ -502,7 +502,7 @@ Provide a concise overview that captures:
 
         const waitForSlot = async () => {
             while (running >= maxConcurrent) {
-                if (signal.aborted) throw new Error('Operation cancelled')
+                if (signal.aborted) throw ErrorFactory.operationFailed('batch-summarization', 'Operation cancelled by user')
                 await new Promise((resolve) => setTimeout(resolve, 100))
             }
         }

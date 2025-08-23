@@ -3,7 +3,7 @@
  * Provides common CRUD operations with full type safety and performance optimization
  */
 
-import { eq, ne, gt, gte, lt, lte, like, notLike, isNull, isNotNull, and, or, not, inArray, notInArray, exists, notExists, between, asc, desc, count, sum, avg, min, max } from 'drizzle-orm'
+import { eq, ne, gt, gte, lt, lte, like, notLike, isNull, isNotNull, and, or, not, inArray, notInArray, exists, notExists, between, asc, desc, count, sum, avg, min, max, type InferSelectModel, type InferInsertModel } from 'drizzle-orm'
 import { SQLiteTable, SQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { db, type DrizzleDb, type DrizzleTransaction } from '../db'
 import { z } from 'zod'
@@ -427,5 +427,36 @@ export const queryHelpers = {
   allOf: (...conditions: any[]) => and(...conditions),
 }
 
+// Repository factory helper for creating typed repositories
+export function createBaseRepository<
+  TTable extends SQLiteTable,
+  TEntity extends BaseEntity = InferSelectModel<TTable>,
+  TInsert extends Record<string, any> = InferInsertModel<TTable>
+>(
+  table: TTable,
+  schema?: z.ZodSchema<TEntity>,
+  entityName?: string
+): BaseRepository<TEntity, TInsert, TTable> {
+  return new BaseRepository<TEntity, TInsert, TTable>(
+    table, 
+    schema, 
+    entityName || table._.name
+  )
+}
+
+// Repository composition helper - merge BaseRepository with extensions
+export function extendRepository<
+  TBase extends BaseRepository<any, any, any>,
+  TExtensions extends Record<string, any>
+>(
+  baseRepository: TBase,
+  extensions: TExtensions
+): TBase & TExtensions {
+  return { ...baseRepository, ...extensions }
+}
+
 // Re-export query operators for convenience
 export { eq, ne, gt, gte, lt, lte, like, notLike, isNull, isNotNull, and, or, not, inArray, notInArray, exists, notExists, between, asc, desc, count, sum, avg, min, max }
+
+// Re-export types for convenience
+export type { InferSelectModel, InferInsertModel } from 'drizzle-orm'

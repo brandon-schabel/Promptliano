@@ -3,21 +3,12 @@
   "version": "0.10.0",
   "module": "server.ts",
   "scripts": {
-    "test": "bun test src/",
-    "test:watch": "bun test --watch src/",
+    "dev": "DEV=true bun --watch server.ts",
     "start": "bun server.ts",
-    "dev": "DEV=true bun server.ts",
-    "dev:watch": "DEV=true bun --watch server.ts",
-    "start:prod": "ENVIRONMENT=prod cd dist && ./start.sh",
-    "mcp": "bun mcp-server.ts",
+    "test": "bun test src/",
     "typecheck": "tsc --noEmit",
-    "routes:generate": "bun src/codegen/cli.ts generate",
-    "routes:extract": "bun src/codegen/cli.ts extract --schema ../database/src/schema.ts --force",
-    "routes:watch": "bun src/codegen/cli.ts watch",
-    "routes:clean": "bun src/codegen/cli.ts clean",
-    "routes:validate": "bun src/codegen/cli.ts validate",
-    "routes:stats": "bun src/codegen/cli.ts stats",
-    "prebuild": "bun run routes:generate"
+    "mcp": "bun mcp-server.ts",
+    "routes:generate": "bun src/codegen/cli.ts generate"
   },
   "type": "module",
   "dependencies": {

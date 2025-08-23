@@ -5,9 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "generate-exports": "tsx src/scripts/generate-exports.ts",
-    "generate-preview": "tsx src/scripts/generate-preview.ts",
-    "generate-all": "npm run generate-exports && npm run generate-preview"
+    "generate": "tsx src/scripts/generate-exports.ts"
   },
   "dependencies": {
     "color": "^4.2.3"

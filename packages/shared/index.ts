@@ -3,6 +3,7 @@ export * from './src/error/api-error'
 export * from './src/error/domain-error'
 export * from './src/error/entity-errors'
 export * from './src/error/error-factory'
+export * from './src/error/error-code-mapping'
 
 // Utils
 // NOTE: crypto.ts is excluded from client builds due to storage dependency

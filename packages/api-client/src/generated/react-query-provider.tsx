@@ -8,7 +8,6 @@
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { initializeApiClient } from './react-query-hooks'
 
 // Create a client with default options
 export const queryClient = new QueryClient({
@@ -39,10 +38,8 @@ export function ApiProvider({
   baseUrl,
   enableDevtools = process.env.NODE_ENV === 'development' 
 }: ApiProviderProps) {
-  // Initialize the API client with the provided base URL
-  React.useEffect(() => {
-    initializeApiClient(baseUrl)
-  }, [baseUrl])
+  // Note: API client initialization would be handled by the consumer
+  // of this library by creating their own instance of ApiClient
 
   return (
     <QueryClientProvider client={queryClient}>

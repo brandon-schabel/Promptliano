@@ -51,16 +51,11 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "vite build --watch",
-    "clean": "rm -rf dist",
-    "build": "bun run clean && NODE_ENV=production vite build && bun run build:css && bun run build:types",
+    "build": "rm -rf dist && NODE_ENV=production vite build && bun run build:css && bun run build:types",
     "build:css": "postcss src/styles/globals.css -o dist/index.css --verbose",
     "build:types": "tsc --project tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "bun run test:build && bun run build",
-    "test:build": "bun run typecheck",
-    "size": "bun run build && du -sh dist/*",
-    "pack:dry": "npm pack --dry-run"
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
   },
   "publishConfig": {
     "access": "public",

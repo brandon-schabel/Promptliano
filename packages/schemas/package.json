@@ -4,12 +4,9 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "test": "bun test src/",
-    "test:watch": "bun test --watch src/",
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "bun run build && bun run test",
-    "publish:dry": "npm publish --dry-run"
+    "test": "bun test src/",
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "dist",

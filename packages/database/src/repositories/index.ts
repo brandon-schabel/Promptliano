@@ -6,15 +6,18 @@
 // Core repositories
 export * from './base-repository'
 export * from './project-repository'
-export * from './ticket-repository'
-export * from './task-repository'
-export * from './chat-repository'
+export * from './ticket-repository' // Also exports taskRepository
+export * from './chat-repository' // Also exports messageRepository
 export * from './prompt-repository'
-export * from './queue-repository'
+export * from './queue-repository' // Also exports queueItemRepository
+export * from './file-repository' // Also exports selectedFileRepository
 
-// Unified storage service
+// Claude-specific repositories
+export * from './claude-repository' // Exports claudeAgentRepository, claudeCommandRepository, claudeHookRepository
+
+// Configuration and state repositories
+export * from './provider-key-repository'
+export * from './app-state-repository' // Exports selectedFileRepository, activeTabRepository
+
+// Unified storage service (for backward compatibility)
 export * from './storage-service'
-
-// Additional repositories
-export * from './file-repository'
-export * from './claude-repository'
