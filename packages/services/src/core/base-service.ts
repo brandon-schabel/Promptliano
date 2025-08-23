@@ -49,7 +49,7 @@ export function withErrorContext<T>(
     }
     
     const details = context.id ? ` (ID: ${context.id})` : ''
-    ErrorFactory.operationFailed(
+    throw ErrorFactory.operationFailed(
       `${context.action} ${context.entity}${details}`,
       error instanceof Error ? error.message : String(error)
     )

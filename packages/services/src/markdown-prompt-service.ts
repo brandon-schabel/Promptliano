@@ -1,4 +1,17 @@
-import { storageService } from '@promptliano/database'
+/**
+ * Markdown Prompt Service - File-based operations with Functional Factory Pattern
+ * Handles markdown import/export operations while maintaining file-based nature
+ * 
+ * Key improvements:
+ * - Functional factory pattern for consistency
+ * - ErrorFactory for standardized error handling
+ * - Dependency injection support
+ * - withErrorContext for better error tracking
+ * - Maintains file-based operations (appropriate for this domain)
+ */
+
+import { withErrorContext, createServiceLogger, type ServiceLogger } from './core/base-service'
+import { ErrorFactory } from '@promptliano/shared'
 import {
   type ParsedMarkdownPrompt,
   type MarkdownFrontmatter,
@@ -13,16 +26,20 @@ import {
   MarkdownFrontmatterSchema,
   BulkImportResultSchema,
   MarkdownExportResultSchema,
-  MarkdownContentValidationSchema,
-  type Prompt,
-  PromptSchema
+  MarkdownContentValidationSchema
 } from '@promptliano/schemas'
-import { ApiError } from '@promptliano/shared'
+import { type Prompt, PromptSchema } from '@promptliano/database'
 import { ZodError } from 'zod'
 import matter from 'gray-matter'
 import yaml from 'js-yaml'
 import DOMPurify from 'isomorphic-dompurify'
-import { createPrompt, getPromptById, updatePrompt, listPromptsByProject, listAllPrompts } from './prompt-service'
+import { createPromptService, type PromptService } from './prompt-service'
+
+// Service dependencies interface for dependency injection
+export interface MarkdownPromptServiceDeps {
+  promptService?: PromptService
+  logger?: ServiceLogger
+}
 
 // Validation result interface
 export interface ValidationResult {
@@ -54,13 +71,100 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_CONTENT_LENGTH = 1024 * 1024 // 1MB per prompt content
 
 /**
- * Parses markdown content with frontmatter to structured prompt data
+ * Create Markdown Prompt Service with functional factory pattern
  */
-export async function parseMarkdownToPrompt(content: string): Promise<ParsedMarkdownPrompt> {
-  try {
-    if (!content || content.trim().length === 0) {
-      throw new ApiError(400, 'Markdown content cannot be empty', 'EMPTY_CONTENT')
+export function createMarkdownPromptService(deps: MarkdownPromptServiceDeps = {}) {
+  const {
+    promptService = createPromptService(),
+    logger = createServiceLogger('MarkdownPromptService')
+  } = deps
+
+  return {
+    /**
+     * Parses markdown content with frontmatter to structured prompt data
+     */
+    parseMarkdownToPrompt: async (content: string): Promise<ParsedMarkdownPrompt> => {
+      return withErrorContext(
+        async () => {
+          return parseMarkdownContent(content)
+        },
+        { entity: 'MarkdownPrompt', action: 'parse' }
+      )
+    },
+
+    /**
+     * Converts a prompt to markdown format with frontmatter
+     */
+    promptToMarkdown: async (prompt: Prompt): Promise<string> => {
+      return withErrorContext(
+        async () => {
+          return convertPromptToMarkdown(prompt)
+        },
+        { entity: 'MarkdownPrompt', action: 'convert', id: prompt.id }
+      )
+    },
+
+    /**
+     * Validates markdown content and structure
+     */
+    validateMarkdownContent: async (content: string): Promise<ValidationResult> => {
+      return withErrorContext(
+        async () => {
+          return validateMarkdown(content)
+        },
+        { entity: 'MarkdownPrompt', action: 'validate' }
+      )
+    },
+
+    /**
+     * Extracts metadata from markdown frontmatter
+     */
+    extractPromptMetadata: async (content: string): Promise<MarkdownFrontmatter> => {
+      return withErrorContext(
+        async () => {
+          return extractMetadata(content)
+        },
+        { entity: 'MarkdownPrompt', action: 'extractMetadata' }
+      )
+    },
+
+    /**
+     * Handles bulk import of multiple markdown files
+     */
+    bulkImportMarkdownPrompts: async (files: File[], projectId?: number): Promise<BulkImportResult> => {
+      return withErrorContext(
+        async () => {
+          return performBulkImport(files, projectId, promptService, logger)
+        },
+        { entity: 'MarkdownPrompt', action: 'bulkImport' }
+      )
+    },
+
+    /**
+     * Exports multiple prompts to markdown format
+     */
+    exportPromptsToMarkdown: async (prompts: Prompt[], options: ExportOptions = {}): Promise<MarkdownExportResult> => {
+      return withErrorContext(
+        async () => {
+          return performExportToMarkdown(prompts, options)
+        },
+        { entity: 'MarkdownPrompt', action: 'export' }
+      )
     }
+  }
+}
+
+// ============================================
+// Core Implementation Functions
+// ============================================
+
+/**
+ * Internal function: Parses markdown content with frontmatter to structured prompt data
+ */
+async function parseMarkdownContent(content: string): Promise<ParsedMarkdownPrompt> {
+  if (!content || content.trim().length === 0) {
+    throw ErrorFactory.invalidInput('content', 'non-empty markdown content', 'empty string')
+  }
 
     // Parse frontmatter and content using gray-matter with safe YAML loading
     const parsed = matter(content, {
@@ -78,7 +182,7 @@ export async function parseMarkdownToPrompt(content: string): Promise<ParsedMark
 
     // Ensure required name field exists
     if (!frontmatterData.name || typeof frontmatterData.name !== 'string' || frontmatterData.name.trim().length === 0) {
-      throw new ApiError(400, 'Frontmatter must include a valid "name" field', 'MISSING_NAME_FIELD')
+      throw ErrorFactory.missingRequired('name', 'markdown frontmatter')
     }
 
     // Parse and validate dates if provided
@@ -102,12 +206,7 @@ export async function parseMarkdownToPrompt(content: string): Promise<ParsedMark
       })
     } catch (error) {
       if (error instanceof ZodError) {
-        throw new ApiError(
-          400,
-          `Invalid frontmatter format: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-          'INVALID_FRONTMATTER',
-          error.flatten().fieldErrors
-        )
+        throw ErrorFactory.validationFailed(error, { entity: 'MarkdownFrontmatter' })
       }
       throw error
     }
@@ -115,14 +214,13 @@ export async function parseMarkdownToPrompt(content: string): Promise<ParsedMark
     // Validate content
     const promptContent = parsed.content.trim()
     if (promptContent.length === 0) {
-      throw new ApiError(400, 'Prompt content cannot be empty', 'EMPTY_PROMPT_CONTENT')
+      throw ErrorFactory.invalidInput('content', 'non-empty prompt content')
     }
 
     if (promptContent.length > MAX_CONTENT_LENGTH) {
-      throw new ApiError(
-        400,
-        `Prompt content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters`,
-        'CONTENT_TOO_LARGE'
+      throw ErrorFactory.businessRuleViolation(
+        'content size limit',
+        `Content length ${promptContent.length} exceeds maximum of ${MAX_CONTENT_LENGTH} characters`
       )
     }
 
@@ -137,54 +235,41 @@ export async function parseMarkdownToPrompt(content: string): Promise<ParsedMark
       ParsedMarkdownPromptSchema.parse(result)
     } catch (error) {
       if (error instanceof ZodError) {
-        throw new ApiError(
-          500,
-          `Failed to create valid parsed markdown prompt: ${error.message}`,
-          'PARSING_VALIDATION_ERROR',
-          error.flatten().fieldErrors
-        )
+        throw ErrorFactory.validationFailed(error, { entity: 'ParsedMarkdownPrompt' })
       }
       throw error
     }
 
     return result
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-
-    // Handle gray-matter parsing errors
-    if (error instanceof Error && error.message.includes('YAMLException')) {
-      throw new ApiError(400, `Invalid YAML frontmatter: ${error.message}`, 'INVALID_YAML')
-    }
-
-    throw new ApiError(
-      500,
-      `Failed to parse markdown: ${error instanceof Error ? error.message : String(error)}`,
-      'MARKDOWN_PARSING_ERROR'
-    )
-  }
 }
 
 /**
- * Converts a prompt to markdown format with frontmatter
+ * Internal function: Converts a prompt to markdown format with frontmatter
  */
-export async function promptToMarkdown(prompt: Prompt): Promise<string> {
+async function convertPromptToMarkdown(prompt: Prompt): Promise<string> {
+  // Validate input prompt
   try {
-    // Validate input prompt
     PromptSchema.parse(prompt)
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw ErrorFactory.validationFailed(error, { entity: 'Prompt' })
+    }
+    throw error
+  }
 
     // Build frontmatter object
     const frontmatter: Record<string, any> = {
-      name: prompt.name
+      name: prompt.title
     }
 
     // Add created date if available
-    if (prompt.created) {
-      frontmatter.created = new Date(prompt.created).toISOString()
+    if (prompt.createdAt) {
+      frontmatter.created = new Date(prompt.createdAt).toISOString()
     }
 
     // Add updated date if available
-    if (prompt.updated) {
-      frontmatter.updated = new Date(prompt.updated).toISOString()
+    if (prompt.updatedAt) {
+      frontmatter.updated = new Date(prompt.updatedAt).toISOString()
     }
 
     // Add empty tags array for future extensibility
@@ -194,28 +279,12 @@ export async function promptToMarkdown(prompt: Prompt): Promise<string> {
     const markdownContent = matter.stringify(prompt.content, frontmatter)
 
     return markdownContent
-  } catch (error) {
-    if (error instanceof ZodError) {
-      throw new ApiError(
-        400,
-        `Invalid prompt data: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-        'INVALID_PROMPT_DATA',
-        error.flatten().fieldErrors
-      )
-    }
-
-    throw new ApiError(
-      500,
-      `Failed to convert prompt to markdown: ${error instanceof Error ? error.message : String(error)}`,
-      'MARKDOWN_CONVERSION_ERROR'
-    )
-  }
 }
 
 /**
- * Validates markdown content and structure
+ * Internal function: Validates markdown content and structure
  */
-export async function validateMarkdownContent(content: string): Promise<ValidationResult> {
+async function validateMarkdown(content: string): Promise<ValidationResult> {
   const validation: MarkdownContentValidation = {
     hasValidFrontmatter: false,
     hasRequiredFields: false,
@@ -330,9 +399,9 @@ export async function validateMarkdownContent(content: string): Promise<Validati
 }
 
 /**
- * Extracts metadata from markdown frontmatter
+ * Internal function: Extracts metadata from markdown frontmatter
  */
-export async function extractPromptMetadata(content: string): Promise<MarkdownFrontmatter> {
+async function extractMetadata(content: string): Promise<MarkdownFrontmatter> {
   try {
     const parsed = matter(content)
     const frontmatterData = parsed.data || {}
@@ -358,33 +427,29 @@ export async function extractPromptMetadata(content: string): Promise<MarkdownFr
     return frontmatter
   } catch (error) {
     if (error instanceof ZodError) {
-      const fieldErrors = error.errors
-        .map((e) => {
-          const field = e.path.join('.') || 'root'
-          return `${field}: ${e.message}`
-        })
-        .join(', ')
-      throw new ApiError(
-        400,
-        `Invalid frontmatter structure - ${fieldErrors}. Expected format: name (string), created/updated (ISO dates), tags (array).`,
-        'INVALID_FRONTMATTER',
-        { fieldErrors: error.flatten().fieldErrors, issues: error.errors }
-      )
+      throw ErrorFactory.validationFailed(error, { 
+        entity: 'MarkdownFrontmatter',
+        action: 'extract',
+        context: 'Expected format: name (string), created/updated (ISO dates), tags (array)'
+      })
     }
 
-    throw new ApiError(
-      500,
-      `Failed to extract metadata from markdown: ${error instanceof Error ? error.message : 'Unknown error'}. Check that your file has valid YAML frontmatter between --- markers.`,
-      'METADATA_EXTRACTION_ERROR',
-      { originalError: error instanceof Error ? error.message : String(error) }
+    throw ErrorFactory.operationFailed(
+      'extract metadata from markdown',
+      `Check that your file has valid YAML frontmatter between --- markers: ${error instanceof Error ? error.message : String(error)}`
     )
   }
 }
 
 /**
- * Handles bulk import of multiple markdown files
+ * Internal function: Handles bulk import of multiple markdown files
  */
-export async function bulkImportMarkdownPrompts(files: File[], projectId?: number): Promise<BulkImportResult> {
+async function performBulkImport(
+  files: File[], 
+  projectId: number | undefined, 
+  promptService: PromptService,
+  logger: ServiceLogger
+): Promise<BulkImportResult> {
   const fileResults: MarkdownImportResult[] = []
   let totalPrompts = 0
   let promptsImported = 0
@@ -395,9 +460,8 @@ export async function bulkImportMarkdownPrompts(files: File[], projectId?: numbe
     failed: 0
   }
 
-  try {
-    // Process each file
-    for (const file of files) {
+  // Process each file
+  for (const file of files) {
       const fileResult: MarkdownImportResult = {
         success: false,
         fileName: file.name,
@@ -408,27 +472,27 @@ export async function bulkImportMarkdownPrompts(files: File[], projectId?: numbe
         warnings: []
       }
 
-      try {
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          fileResult.errors.push(
-            `File size (${Math.round((file.size / (1024 * 1024)) * 100) / 100}MB) exceeds maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`
-          )
-          fileResults.push(fileResult)
-          continue
-        }
+    try {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        fileResult.errors.push(
+          `File size (${Math.round((file.size / (1024 * 1024)) * 100) / 100}MB) exceeds maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+        )
+        fileResults.push(fileResult)
+        continue
+      }
 
-        // Validate content
-        const validationResult = await validateMarkdownContent(file.content)
-        if (!validationResult.isValid) {
-          fileResult.errors.push(...validationResult.validation.errors)
-          fileResult.warnings.push(...validationResult.validation.warnings)
-          fileResults.push(fileResult)
-          continue
-        }
+      // Validate content
+      const validationResult = await validateMarkdown(file.content)
+      if (!validationResult.isValid) {
+        fileResult.errors.push(...validationResult.validation.errors)
+        fileResult.warnings.push(...validationResult.validation.warnings)
+        fileResults.push(fileResult)
+        continue
+      }
 
-        // Parse the markdown
-        const parsedPrompt = await parseMarkdownToPrompt(file.content)
+      // Parse the markdown
+      const parsedPrompt = await parseMarkdownContent(file.content)
         fileResult.promptsProcessed = 1
         totalPrompts += 1
 
@@ -439,22 +503,22 @@ export async function bulkImportMarkdownPrompts(files: File[], projectId?: numbe
           action: 'skipped'
         }
 
-        try {
-          // Check if a prompt with this name already exists in the project
-          let existingPrompts: Prompt[]
-          if (projectId) {
-            existingPrompts = await listPromptsByProject(projectId)
-          } else {
-            existingPrompts = await listAllPrompts()
-          }
+      try {
+        // Check if a prompt with this name already exists in the project
+        let existingPrompts: Prompt[]
+        if (projectId) {
+          existingPrompts = await promptService.getByProject(projectId)
+        } else {
+          existingPrompts = await promptService.getAll()
+        }
 
-          const existingPrompt = existingPrompts.find((p) => p.name === parsedPrompt.frontmatter.name)
+          const existingPrompt = existingPrompts.find((p) => p.title === parsedPrompt.frontmatter.name)
 
-          if (existingPrompt) {
-            // Update existing prompt
-            const updatedPrompt = await updatePrompt(existingPrompt.id, {
-              content: parsedPrompt.content
-            })
+        if (existingPrompt) {
+          // Update existing prompt
+          const updatedPrompt = await promptService.update(existingPrompt.id, {
+            content: parsedPrompt.content
+          })
 
             importResult.success = true
             importResult.promptId = updatedPrompt.id
@@ -462,76 +526,67 @@ export async function bulkImportMarkdownPrompts(files: File[], projectId?: numbe
             summary.updated++
             promptsImported++
             fileResult.promptsImported++
-          } else {
-            // Create new prompt
-            const now = Date.now()
-            const createdTimestamp = parsedPrompt.frontmatter.created
-              ? new Date(parsedPrompt.frontmatter.created).getTime()
-              : now
-            const updatedTimestamp = parsedPrompt.frontmatter.updated
-              ? new Date(parsedPrompt.frontmatter.updated).getTime()
-              : now
-
-            const newPrompt = await createPrompt({
-              name: parsedPrompt.frontmatter.name,
-              content: parsedPrompt.content,
-              projectId
-            })
-
-            // Update timestamps to match frontmatter if provided
-            if (parsedPrompt.frontmatter.created || parsedPrompt.frontmatter.updated) {
-              await updateTimestamps(newPrompt.id, createdTimestamp, updatedTimestamp)
-            }
-
-            importResult.success = true
-            importResult.promptId = newPrompt.id
-            importResult.action = 'created'
-            summary.created++
-            promptsImported++
-            fileResult.promptsImported++
+        } else {
+          // Create new prompt - projectId is required
+          if (!projectId) {
+            throw ErrorFactory.missingRequired('projectId', 'prompt creation')
           }
-        } catch (error) {
-          importResult.error = error instanceof Error ? error.message : String(error)
-          summary.failed++
-        }
+          
+          const newPrompt = await promptService.create({
+            title: parsedPrompt.frontmatter.name,
+            content: parsedPrompt.content,
+            projectId
+          })
 
-        fileResult.results.push(importResult)
-        fileResult.success = importResult.success
+          importResult.success = true
+          importResult.promptId = newPrompt.id
+          importResult.action = 'created'
+          summary.created++
+          promptsImported++
+          fileResult.promptsImported++
+        }
       } catch (error) {
-        fileResult.errors.push(error instanceof Error ? error.message : String(error))
+        importResult.error = error instanceof Error ? error.message : String(error)
         summary.failed++
       }
 
-      fileResults.push(fileResult)
+      fileResult.results.push(importResult)
+      fileResult.success = importResult.success
+    } catch (error) {
+      fileResult.errors.push(error instanceof Error ? error.message : String(error))
+      summary.failed++
     }
 
-    const result: BulkImportResult = {
-      success: promptsImported > 0,
-      totalFiles: files.length,
-      filesProcessed: fileResults.filter((f) => f.promptsProcessed > 0).length,
-      totalPrompts,
-      promptsImported,
-      fileResults,
-      summary
-    }
-
-    // Validate the complete result
-    BulkImportResultSchema.parse(result)
-
-    return result
-  } catch (error) {
-    throw new ApiError(
-      500,
-      `Bulk import failed: ${error instanceof Error ? error.message : String(error)}`,
-      'BULK_IMPORT_ERROR'
-    )
+    fileResults.push(fileResult)
   }
+
+  const result: BulkImportResult = {
+    success: promptsImported > 0,
+    totalFiles: files.length,
+    filesProcessed: fileResults.filter((f) => f.promptsProcessed > 0).length,
+    totalPrompts,
+    promptsImported,
+    fileResults,
+    summary
+  }
+
+  // Validate the complete result
+  try {
+    BulkImportResultSchema.parse(result)
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw ErrorFactory.validationFailed(error, { entity: 'BulkImportResult' })
+    }
+    throw error
+  }
+
+  return result
 }
 
 /**
- * Exports multiple prompts to markdown format
+ * Internal function: Exports multiple prompts to markdown format
  */
-export async function exportPromptsToMarkdown(
+async function performExportToMarkdown(
   prompts: Prompt[],
   options: ExportOptions = {}
 ): Promise<MarkdownExportResult> {
@@ -546,23 +601,25 @@ export async function exportPromptsToMarkdown(
     sortOrder = 'asc'
   } = options
 
-  try {
-    // Validate input prompts
-    const validatedPrompts = prompts.map((prompt) => {
-      try {
-        return PromptSchema.parse(prompt)
-      } catch (error) {
-        throw new ApiError(
-          400,
-          `Invalid prompt data for "${prompt.name || 'unnamed'}": ${error instanceof ZodError ? error.message : String(error)}`,
-          'INVALID_PROMPT_DATA'
-        )
+  // Validate input prompts
+  const validatedPrompts = prompts.map((prompt) => {
+    try {
+      return PromptSchema.parse(prompt)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw ErrorFactory.validationFailed(error, {
+          entity: 'Prompt',
+          action: 'export',
+          context: `prompt "${prompt.title || 'unnamed'}"`
+        })
       }
-    })
-
-    if (validatedPrompts.length === 0) {
-      throw new ApiError(400, 'No valid prompts provided for export', 'NO_PROMPTS_TO_EXPORT')
+      throw error
     }
+  })
+
+  if (validatedPrompts.length === 0) {
+    throw ErrorFactory.invalidInput('prompts', 'at least one valid prompt')
+  }
 
     // Sort prompts
     const sortedPrompts = [...validatedPrompts].sort((a, b) => {
@@ -571,17 +628,17 @@ export async function exportPromptsToMarkdown(
 
       switch (sortBy) {
         case 'created':
-          aValue = a.created || 0
-          bValue = b.created || 0
+          aValue = a.createdAt || 0
+          bValue = b.createdAt || 0
           break
         case 'updated':
-          aValue = a.updated || 0
-          bValue = b.updated || 0
+          aValue = a.updatedAt || 0
+          bValue = b.updatedAt || 0
           break
         case 'name':
         default:
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
+          aValue = a.title.toLowerCase()
+          bValue = b.title.toLowerCase()
           break
       }
 
@@ -599,16 +656,16 @@ export async function exportPromptsToMarkdown(
       for (const prompt of sortedPrompts) {
         const frontmatter: Record<string, any> = includeFrontmatter
           ? {
-              name: prompt.name || `prompt-${prompt.id}`
+              name: prompt.title || `prompt-${prompt.id}`
             }
           : {}
 
         if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.created) {
-            frontmatter.created = new Date(prompt.created).toISOString()
+          if (includeCreatedDate && prompt.createdAt) {
+            frontmatter.created = new Date(prompt.createdAt).toISOString()
           }
-          if (includeUpdatedDate && prompt.updated) {
-            frontmatter.updated = new Date(prompt.updated).toISOString()
+          if (includeUpdatedDate && prompt.updatedAt) {
+            frontmatter.updated = new Date(prompt.updatedAt).toISOString()
           }
           if (includeTags) {
             frontmatter.tags = []
@@ -659,7 +716,14 @@ export async function exportPromptsToMarkdown(
       }
 
       // Validate the result
-      MarkdownExportResultSchema.parse(result)
+      try {
+        MarkdownExportResultSchema.parse(result)
+      } catch (error) {
+        if (error instanceof ZodError) {
+          throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
+        }
+        throw error
+      }
       return result
     } else {
       // Export each prompt to a separate file
@@ -668,16 +732,16 @@ export async function exportPromptsToMarkdown(
       for (const prompt of sortedPrompts) {
         const frontmatter: Record<string, any> = includeFrontmatter
           ? {
-              name: prompt.name || `prompt-${prompt.id}`
+              name: prompt.title || `prompt-${prompt.id}`
             }
           : {}
 
         if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.created) {
-            frontmatter.created = new Date(prompt.created).toISOString()
+          if (includeCreatedDate && prompt.createdAt) {
+            frontmatter.created = new Date(prompt.createdAt).toISOString()
           }
-          if (includeUpdatedDate && prompt.updated) {
-            frontmatter.updated = new Date(prompt.updated).toISOString()
+          if (includeUpdatedDate && prompt.updatedAt) {
+            frontmatter.updated = new Date(prompt.updatedAt).toISOString()
           }
           if (includeTags) {
             frontmatter.tags = []
@@ -700,7 +764,7 @@ export async function exportPromptsToMarkdown(
 
         // Generate safe filename
         const safeFileName =
-          (prompt.name || `prompt-${prompt.id}`)
+          (prompt.title || `prompt-${prompt.id}`)
             .toLowerCase()
             .replace(/[^a-z0-9\s-]/g, '')
             .replace(/\s+/g, '-')
@@ -710,7 +774,7 @@ export async function exportPromptsToMarkdown(
           fileName: safeFileName,
           content: promptMarkdown,
           promptId: prompt.id,
-          promptName: prompt.name
+          promptName: prompt.title
         })
 
         totalSize += Buffer.byteLength(promptMarkdown, 'utf8')
@@ -738,40 +802,30 @@ export async function exportPromptsToMarkdown(
       }
 
       // Validate the result
-      MarkdownExportResultSchema.parse(result)
+      try {
+        MarkdownExportResultSchema.parse(result)
+      } catch (error) {
+        if (error instanceof ZodError) {
+          throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
+        }
+        throw error
+      }
       return result
     }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-
-    throw new ApiError(500, `Export failed: ${error instanceof Error ? error.message : String(error)}`, 'EXPORT_ERROR')
-  }
 }
 
-/**
- * Helper function to update prompt timestamps (for internal use)
- */
-async function updateTimestamps(promptId: number, created: number, updated: number): Promise<void> {
-  try {
-    // Direct database access to update timestamps while preserving other data
-    const db = promptStorage
-    const allPrompts = await db.readPrompts()
+// Export type for consumers
+export type MarkdownPromptService = ReturnType<typeof createMarkdownPromptService>
 
-    const existingPrompt = allPrompts[String(promptId)]
-    if (existingPrompt) {
-      // Ensure all required fields are present
-      allPrompts[String(promptId)] = {
-        name: existingPrompt.name || '',
-        content: existingPrompt.content || '',
-        id: existingPrompt.id || promptId,
-        created,
-        updated,
-        projectId: existingPrompt.projectId
-      }
-      await db.writePrompts(allPrompts)
-    }
-  } catch (error) {
-    console.warn(`Failed to update timestamps for prompt ${promptId}:`, error)
-    // Non-critical error, don't throw
-  }
-}
+// Export singleton for backward compatibility
+export const markdownPromptService = createMarkdownPromptService()
+
+// Export individual functions for tree-shaking
+export const {
+  parseMarkdownToPrompt,
+  promptToMarkdown,
+  validateMarkdownContent,
+  extractPromptMetadata,
+  bulkImportMarkdownPrompts,
+  exportPromptsToMarkdown
+} = markdownPromptService

@@ -1,384 +1,461 @@
-// TODO: Most MCP types should be migrated to @promptliano/database
+/**
+ * MCP Service - Functional Factory Pattern
+ * Migrated from direct storage access to repository-based operations
+ * 
+ * Key improvements:
+ * - Uses mcpServerRepository instead of mcpStorage
+ * - Consistent error handling with ErrorFactory
+ * - Functional composition with dependency injection
+ * - Maintains MCP client manager lifecycle
+ */
+
+import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
+import { ErrorFactory } from '@promptliano/shared'
+import { mcpServerRepository } from '@promptliano/database'
 import {
-  type CreateMCPServerConfigBody,
-  type UpdateMCPServerConfigBody,
+  type McpServerConfig,
+  type InsertMcpServerConfig as CreateMCPServerConfig,
+  insertMcpServerConfigSchema as MCPServerConfigSchema,
+  type MCPServerConfiguration
+} from '@promptliano/database'
+import {
   type MCPServerState,
   type MCPTool,
   type MCPResource,
   type MCPToolExecutionRequest,
   type MCPToolExecutionResult,
-  MCPServerConfigSchema,
   MCPToolExecutionRequestSchema
 } from '@promptliano/schemas'
-import { type McpServerConfig as MCPServerConfig } from '@promptliano/database'
-import { ApiError } from '@promptliano/shared'
-import { storageService } from '@promptliano/database'
 import { MCPClientManager } from '@promptliano/mcp-client'
 import { z, ZodError } from 'zod'
-import { getProjectById } from './project-service'
+import { projectService } from './project-service'
 
-// Global MCP client manager instance
-let mcpClientManager: MCPClientManager | null = null
-
-export function getMCPClientManager(): MCPClientManager {
-  if (!mcpClientManager) {
-    mcpClientManager = new MCPClientManager({
-      onServerStateChange: async (serverId, state) => {
-        console.log(`MCP server ${serverId} state changed to: ${state}`)
-        // Update server state in storage
-        await mcpStorage.updateMCPServerState(serverId, {
-          status: state,
-          pid: state === 'running' ? process.pid : null,
-          error: state === 'error' ? 'Server encountered an error' : null,
-          startedAt: state === 'running' ? Date.now() : null,
-          lastHeartbeat: state === 'running' ? Date.now() : null
-        })
-      },
-      onServerError: async (serverId, error) => {
-        console.error(`MCP server ${serverId} error:`, error)
-        // Update server state with error
-        await mcpStorage.updateMCPServerState(serverId, {
-          status: 'error',
-          pid: null,
-          error: error.message,
-          startedAt: null,
-          lastHeartbeat: null
-        })
-      }
-    })
-  }
-  return mcpClientManager
+// Dependencies interface for dependency injection
+export interface MCPServiceDeps {
+  repository?: typeof mcpServerRepository
+  logger?: ReturnType<typeof createServiceLogger>
+  projectService?: any // To avoid circular dependency
+  clientManager?: MCPClientManager
 }
 
-// MCP Server Config CRUD operations
-export async function createMCPServerConfig(
-  projectId: number,
-  data: CreateMCPServerConfigBody
-): Promise<MCPServerConfig> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
-
-    const config = await mcpStorage.createMCPServerConfig({
-      ...data,
-      projectId
-    })
-
-    // Auto-start if enabled and autoStart is true
-    if (config.enabled && config.autoStart) {
-      const manager = getMCPClientManager()
+// Global MCP client manager factory
+function createMCPClientManager(repository: typeof mcpServerRepository, logger: ReturnType<typeof createServiceLogger>): MCPClientManager {
+  return new MCPClientManager({
+    onServerStateChange: async (serverId, state) => {
+      logger.info(`MCP server ${serverId} state changed to: ${state}`)
+      // Update server state in repository
       try {
-        await manager.startServer(config)
+        await repository.updateState(serverId, {
+          // Note: Current schema doesn't have status/pid/error fields
+          // This is prepared for future schema additions
+        })
       } catch (error) {
-        console.error(`Failed to auto-start MCP server ${config.name}:`, error)
+        logger.error('Failed to update server state', { serverId, state, error })
+      }
+    },
+    onServerError: async (serverId, error) => {
+      logger.error(`MCP server ${serverId} error:`, error)
+      // Update server state with error in repository
+      try {
+        await repository.updateState(serverId, {
+          // Note: Current schema doesn't have status/pid/error fields
+          // This is prepared for future schema additions
+        })
+      } catch (updateError) {
+        logger.error('Failed to update server error state', { serverId, error, updateError })
       }
     }
+  })
+}
 
-    return config
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof ZodError) {
-      throw new ApiError(
-        500,
-        `Internal validation failed creating MCP server config: ${error.message}`,
-        'MCP_CONFIG_VALIDATION_ERROR',
-        error.flatten().fieldErrors
+/**
+ * Create MCP Service with functional factory pattern
+ */
+export function createMCPService(deps: MCPServiceDeps = {}) {
+  const {
+    repository = mcpServerRepository,
+    logger = createServiceLogger('MCPService'),
+    projectService: injectedProjectService = projectService,
+    clientManager = createMCPClientManager(repository, logger)
+  } = deps
+
+  // Base CRUD operations using the service factory
+  const baseService = createCrudService<McpServerConfig, CreateMCPServerConfig>({
+    entityName: 'MCPServerConfig',
+    repository: repository as any, // TODO: Fix repository type mismatch
+    schema: MCPServerConfigSchema,
+    logger
+  })
+
+  // Extended domain operations
+  const extensions = {
+    /**
+     * Create MCP server config with project validation and auto-start
+     */
+    async createForProject(
+      projectId: number,
+      data: Omit<CreateMCPServerConfig, 'projectId'>
+    ): Promise<McpServerConfig> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+
+          const configData: CreateMCPServerConfig = {
+            ...data,
+            projectId,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          }
+
+          const config = await baseService.create(configData)
+
+          // Auto-start if enabled and autoStart is true
+          if (config.enabled && config.autoStart) {
+            try {
+              await clientManager.startServer(config as MCPServerConfiguration)
+            } catch (error) {
+              logger.error(`Failed to auto-start MCP server ${config.name}`, error)
+            }
+          }
+
+          return config
+        },
+        { entity: 'MCPServerConfig', action: 'createForProject', id: projectId }
       )
-    }
-    throw new ApiError(
-      500,
-      `Failed to create MCP server config: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_CONFIG_CREATE_FAILED'
-    )
-  }
-}
+    },
 
-export async function getMCPServerConfigById(configId: number): Promise<MCPServerConfig> {
-  const config = await mcpStorage.getMCPServerConfig(configId)
+    /**
+     * Get MCP server config by ID (alias for base getById)
+     */
+    async getConfigById(configId: number): Promise<McpServerConfig> {
+      return baseService.getById(configId)
+    },
 
-  if (!config) {
-    throw new ApiError(404, `MCP server config not found with ID ${configId}`, 'MCP_CONFIG_NOT_FOUND')
-  }
-
-  return config
-}
-
-export async function listMCPServerConfigs(projectId: number): Promise<MCPServerConfig[]> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
-
-    return await mcpStorage.getProjectMCPServerConfigs(projectId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to list MCP server configs: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_CONFIG_LIST_FAILED'
-    )
-  }
-}
-
-export async function updateMCPServerConfig(
-  configId: number,
-  data: UpdateMCPServerConfigBody
-): Promise<MCPServerConfig> {
-  try {
-    const existing = await getMCPServerConfigById(configId)
-    const updated = await mcpStorage.updateMCPServerConfig(configId, data)
-
-    if (!updated) {
-      throw new ApiError(404, `MCP server config not found with ID ${configId}`, 'MCP_CONFIG_NOT_FOUND')
-    }
-
-    const manager = getMCPClientManager()
-
-    // Handle state changes based on update
-    if (existing.enabled && !updated.enabled) {
-      // Server was disabled, stop it
-      await manager.stopServer(configId)
-    } else if (!existing.enabled && updated.enabled && updated.autoStart) {
-      // Server was enabled with autoStart, start it
-      await manager.startServer(updated)
-    } else if (existing.enabled && updated.enabled) {
-      // Server config changed while enabled, restart it
-      await manager.restartServer(updated)
-    }
-
-    return updated
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof ZodError) {
-      throw new ApiError(
-        500,
-        `Internal validation failed updating MCP server config: ${error.message}`,
-        'MCP_CONFIG_VALIDATION_ERROR',
-        error.flatten().fieldErrors
+    /**
+     * List MCP server configs for a project
+     */
+    async listForProject(projectId: number): Promise<McpServerConfig[]> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+          return await repository.getByProject(projectId)
+        },
+        { entity: 'MCPServerConfig', action: 'listForProject', id: projectId }
       )
-    }
-    throw new ApiError(
-      500,
-      `Failed to update MCP server config: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_CONFIG_UPDATE_FAILED'
-    )
-  }
-}
+    },
 
-export async function deleteMCPServerConfig(configId: number): Promise<boolean> {
-  try {
-    const manager = getMCPClientManager()
+    /**
+     * Update MCP server config with server lifecycle management
+     */
+    async updateConfig(
+      configId: number,
+      data: Partial<CreateMCPServerConfig>
+    ): Promise<McpServerConfig> {
+      return withErrorContext(
+        async () => {
+          const existing = await baseService.getById(configId)
+          
+          const updateData = {
+            ...data,
+            updatedAt: Date.now()
+          }
+          
+          const updated = await baseService.update(configId, updateData)
 
-    // Stop the server if running
-    await manager.stopServer(configId)
+          // Handle state changes based on update
+          if (existing.enabled && !updated.enabled) {
+            // Server was disabled, stop it
+            await clientManager.stopServer(configId)
+          } else if (!existing.enabled && updated.enabled && updated.autoStart) {
+            // Server was enabled with autoStart, start it
+            await clientManager.startServer(updated as MCPServerConfiguration)
+          } else if (existing.enabled && updated.enabled) {
+            // Server config changed while enabled, restart it
+            await clientManager.restartServer(updated as MCPServerConfiguration)
+          }
 
-    // Delete from storage
-    return await mcpStorage.deleteMCPServerConfig(configId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to delete MCP server config: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_CONFIG_DELETE_FAILED'
-    )
-  }
-}
-
-// MCP Server Management operations
-export async function startMCPServer(configId: number): Promise<MCPServerState> {
-  try {
-    const config = await getMCPServerConfigById(configId)
-
-    if (!config.enabled) {
-      throw new ApiError(400, 'Cannot start disabled MCP server', 'MCP_SERVER_DISABLED')
-    }
-
-    const manager = getMCPClientManager()
-    await manager.startServer(config)
-
-    return manager.getServerState(configId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to start MCP server: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_SERVER_START_FAILED'
-    )
-  }
-}
-
-export async function stopMCPServer(configId: number): Promise<MCPServerState> {
-  try {
-    const manager = getMCPClientManager()
-    await manager.stopServer(configId)
-
-    return manager.getServerState(configId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to stop MCP server: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_SERVER_STOP_FAILED'
-    )
-  }
-}
-
-export async function getMCPServerState(configId: number): Promise<MCPServerState> {
-  const manager = getMCPClientManager()
-  return manager.getServerState(configId)
-}
-
-// MCP Tool operations
-export async function listMCPTools(projectId: number): Promise<MCPTool[]> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
-
-    const manager = getMCPClientManager()
-    return await manager.listAllTools(projectId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to list MCP tools: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_TOOLS_LIST_FAILED'
-    )
-  }
-}
-
-export async function executeMCPTool(
-  projectId: number,
-  request: MCPToolExecutionRequest
-): Promise<MCPToolExecutionResult> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
-
-    // Validate request
-    const validatedRequest = MCPToolExecutionRequestSchema.parse(request)
-
-    // Verify the server belongs to this project
-    const config = await getMCPServerConfigById(validatedRequest.serverId)
-    if (config.projectId !== projectId) {
-      throw new ApiError(403, 'MCP server does not belong to this project', 'MCP_SERVER_ACCESS_DENIED')
-    }
-
-    const manager = getMCPClientManager()
-    const executionId = `exec_${Date.now()}`
-    const startedAt = Date.now()
-
-    try {
-      const result = await manager.executeTool(
-        validatedRequest.serverId,
-        validatedRequest.toolId,
-        validatedRequest.parameters
+          return updated
+        },
+        { entity: 'MCPServerConfig', action: 'updateConfig', id: configId }
       )
+    },
 
-      return {
-        id: executionId,
-        toolId: validatedRequest.toolId,
-        serverId: validatedRequest.serverId,
-        status: 'success',
-        result,
-        error: null,
-        startedAt,
-        completedAt: Date.now()
-      }
-    } catch (error) {
-      return {
-        id: executionId,
-        toolId: validatedRequest.toolId,
-        serverId: validatedRequest.serverId,
-        status: 'error',
-        result: null,
-        error: error instanceof Error ? error.message : String(error),
-        startedAt,
-        completedAt: Date.now()
-      }
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof ZodError) {
-      throw new ApiError(
-        422,
-        `Invalid tool execution request: ${error.message}`,
-        'MCP_TOOL_REQUEST_INVALID',
-        error.flatten().fieldErrors
+    /**
+     * Delete MCP server config with server cleanup
+     */
+    async deleteConfig(configId: number): Promise<boolean> {
+      return withErrorContext(
+        async () => {
+          // Stop the server if running
+          await clientManager.stopServer(configId)
+          
+          // Delete from repository
+          return await baseService.delete(configId)
+        },
+        { entity: 'MCPServerConfig', action: 'deleteConfig', id: configId }
       )
+    },
+
+    // MCP Server Management operations
+    /**
+     * Start MCP server
+     */
+    async startServer(configId: number): Promise<MCPServerState> {
+      return withErrorContext(
+        async () => {
+          const config = await baseService.getById(configId)
+
+          if (!config.enabled) {
+            throw ErrorFactory.businessRuleViolation('Cannot start disabled MCP server')
+          }
+
+          await clientManager.startServer(config as MCPServerConfiguration)
+          return clientManager.getServerState(configId)
+        },
+        { entity: 'MCPServer', action: 'start', id: configId }
+      )
+    },
+
+    /**
+     * Stop MCP server
+     */
+    async stopServer(configId: number): Promise<MCPServerState> {
+      return withErrorContext(
+        async () => {
+          await clientManager.stopServer(configId)
+          return clientManager.getServerState(configId)
+        },
+        { entity: 'MCPServer', action: 'stop', id: configId }
+      )
+    },
+
+    /**
+     * Get MCP server state
+     */
+    async getServerState(configId: number): Promise<MCPServerState> {
+      return withErrorContext(
+        async () => {
+          return clientManager.getServerState(configId)
+        },
+        { entity: 'MCPServer', action: 'getState', id: configId }
+      )
+    },
+
+    // MCP Tool operations
+    /**
+     * List all MCP tools for a project
+     */
+    async listTools(projectId: number): Promise<MCPTool[]> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+          return await clientManager.listAllTools(projectId)
+        },
+        { entity: 'MCPTool', action: 'list', id: projectId }
+      )
+    },
+
+    /**
+     * Execute MCP tool with request validation and project verification
+     */
+    async executeTool(
+      projectId: number,
+      request: MCPToolExecutionRequest
+    ): Promise<MCPToolExecutionResult> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+
+          // Validate request
+          const validatedRequest = MCPToolExecutionRequestSchema.parse(request)
+
+          // Verify the server belongs to this project
+          const config = await baseService.getById(validatedRequest.serverId)
+          if (config.projectId !== projectId) {
+            throw ErrorFactory.forbidden('MCP server does not belong to this project')
+          }
+
+          const executionId = `exec_${Date.now()}`
+          const startedAt = Date.now()
+
+          try {
+            const result = await clientManager.executeTool(
+              validatedRequest.serverId,
+              validatedRequest.toolId,
+              validatedRequest.parameters
+            )
+
+            return {
+              id: executionId,
+              toolId: validatedRequest.toolId,
+              serverId: validatedRequest.serverId,
+              status: 'success',
+              result,
+              error: null,
+              startedAt,
+              completedAt: Date.now()
+            }
+          } catch (error) {
+            return {
+              id: executionId,
+              toolId: validatedRequest.toolId,
+              serverId: validatedRequest.serverId,
+              status: 'error',
+              result: null,
+              error: error instanceof Error ? error.message : String(error),
+              startedAt,
+              completedAt: Date.now()
+            }
+          }
+        },
+        { entity: 'MCPTool', action: 'execute', id: projectId }
+      )
+    },
+
+    // MCP Resource operations
+    /**
+     * List all MCP resources for a project
+     */
+    async listResources(projectId: number): Promise<MCPResource[]> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+          return await clientManager.listAllResources(projectId)
+        },
+        { entity: 'MCPResource', action: 'list', id: projectId }
+      )
+    },
+
+    /**
+     * Read MCP resource with project and server verification
+     */
+    async readResource(projectId: number, serverId: number, uri: string): Promise<any> {
+      return withErrorContext(
+        async () => {
+          // Verify project exists
+          await injectedProjectService.getById(projectId)
+
+          // Verify the server belongs to this project
+          const config = await baseService.getById(serverId)
+          if (config.projectId !== projectId) {
+            throw ErrorFactory.forbidden('MCP server does not belong to this project')
+          }
+
+          return await clientManager.readResource(serverId, uri)
+        },
+        { entity: 'MCPResource', action: 'read', id: projectId }
+      )
+    },
+
+    /**
+     * Auto-start servers for a project
+     */
+    async autoStartProjectServers(projectId: number): Promise<void> {
+      return withErrorContext(
+        async () => {
+          const configs = await repository.getAutoStartByProject(projectId)
+          await clientManager.autoStartProjectServers(configs as MCPServerConfiguration[])
+        },
+        { entity: 'MCPServer', action: 'autoStartProject', id: projectId }
+      )
+    },
+
+    /**
+     * Clean up when project is deleted
+     */
+    async cleanupProjectServers(projectId: number): Promise<void> {
+      return withErrorContext(
+        async () => {
+          const configs = await repository.getByProject(projectId)
+
+          // Stop all servers for this project
+          for (const config of configs) {
+            try {
+              await clientManager.stopServer(config.id)
+            } catch (error) {
+              logger.warn(`Failed to stop server ${config.id} during cleanup`, error)
+            }
+          }
+
+          // Delete all MCP configs for this project
+          await repository.deleteByProject(projectId)
+        },
+        { entity: 'MCPServer', action: 'cleanupProject', id: projectId }
+      )
+    },
+
+    /**
+     * Get enabled servers for a project
+     */
+    async getEnabledForProject(projectId: number): Promise<McpServerConfig[]> {
+      return withErrorContext(
+        async () => {
+          await injectedProjectService.getById(projectId)
+          return await repository.getEnabledByProject(projectId)
+        },
+        { entity: 'MCPServerConfig', action: 'getEnabledForProject', id: projectId }
+      )
+    },
+
+    /**
+     * Access to the MCP client manager for advanced operations
+     */
+    getClientManager(): MCPClientManager {
+      return clientManager
     }
-    throw new ApiError(
-      500,
-      `Failed to execute MCP tool: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_TOOL_EXECUTION_FAILED'
-    )
   }
+
+  return extendService(baseService, extensions)
 }
 
-// MCP Resource operations
-export async function listMCPResources(projectId: number): Promise<MCPResource[]> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
+// Export type for consumers
+export type MCPService = ReturnType<typeof createMCPService>
 
-    const manager = getMCPClientManager()
-    return await manager.listAllResources(projectId)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to list MCP resources: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_RESOURCES_LIST_FAILED'
-    )
-  }
-}
+// Export singleton for backward compatibility
+export const mcpService = createMCPService()
 
-export async function readMCPResource(projectId: number, serverId: number, uri: string): Promise<any> {
-  try {
-    // Verify project exists
-    await getProjectById(projectId)
+// Export individual functions for tree-shaking and backward compatibility
+export const {
+  create,
+  getById,
+  update,
+  delete: deleteMCPConfig,
+  createForProject,
+  getConfigById,
+  listForProject,
+  updateConfig,
+  deleteConfig,
+  startServer,
+  stopServer,
+  getServerState,
+  listTools,
+  executeTool,
+  listResources,
+  readResource,
+  autoStartProjectServers,
+  cleanupProjectServers,
+  getEnabledForProject,
+  getClientManager
+} = mcpService
 
-    // Verify the server belongs to this project
-    const config = await getMCPServerConfigById(serverId)
-    if (config.projectId !== projectId) {
-      throw new ApiError(403, 'MCP server does not belong to this project', 'MCP_SERVER_ACCESS_DENIED')
-    }
-
-    const manager = getMCPClientManager()
-    return await manager.readResource(serverId, uri)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to read MCP resource: ${error instanceof Error ? error.message : String(error)}`,
-      'MCP_RESOURCE_READ_FAILED'
-    )
-  }
-}
-
-// Auto-start servers for a project
-export async function autoStartProjectMCPServers(projectId: number): Promise<void> {
-  try {
-    const configs = await listMCPServerConfigs(projectId)
-    const manager = getMCPClientManager()
-    await manager.autoStartProjectServers(configs)
-  } catch (error) {
-    console.error(`Failed to auto-start MCP servers for project ${projectId}:`, error)
-  }
-}
-
-// Clean up when project is deleted
-export async function cleanupProjectMCPServers(projectId: number): Promise<void> {
-  try {
-    const configs = await listMCPServerConfigs(projectId)
-    const manager = getMCPClientManager()
-
-    // Stop all servers for this project
-    for (const config of configs) {
-      await manager.stopServer(config.id)
-    }
-
-    // Delete all MCP data for this project
-    await mcpStorage.deleteProjectMCPData(projectId)
-  } catch (error) {
-    console.error(`Failed to cleanup MCP servers for project ${projectId}:`, error)
-  }
-}
+// Legacy exports for backward compatibility (avoid name conflicts)
+export const createMCPServerConfig = mcpService.createForProject
+export const getMCPServerConfigById = mcpService.getConfigById
+export const listMCPServerConfigs = mcpService.listForProject
+export const updateMCPServerConfig = mcpService.updateConfig
+export const deleteMCPServerConfig = mcpService.deleteConfig
+export const startMCPServer = mcpService.startServer
+export const stopMCPServer = mcpService.stopServer
+export const getMCPServerState = mcpService.getServerState
+export const listMCPTools = mcpService.listTools
+export const executeMCPTool = mcpService.executeTool
+export const listMCPResources = mcpService.listResources
+export const readMCPResource = mcpService.readResource
+export const autoStartProjectMCPServers = mcpService.autoStartProjectServers
+export const cleanupProjectMCPServers = mcpService.cleanupProjectServers
+export const getMCPClientManager = mcpService.getClientManager

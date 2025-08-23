@@ -18,6 +18,7 @@ import {
 } from './claude-repository'
 import { providerKeyRepository } from './provider-key-repository'
 import { activeTabRepository } from './app-state-repository'
+import { mcpServerRepository } from './mcp-server-repository'
 import { 
   projects,
   tickets, 
@@ -34,6 +35,7 @@ import {
   files,
   selectedFiles,
   activeTabs,
+  mcpServerConfigs,
   type Project,
   type Ticket,
   type TicketTask,
@@ -48,7 +50,8 @@ import {
   type ProviderKey,
   type File,
   type SelectedFile,
-  type ActiveTab
+  type ActiveTab,
+  type McpServerConfig
 } from '../schema'
 
 /**
@@ -76,6 +79,7 @@ export class StorageService {
   // Configuration repositories (fully typed)
   public readonly providerKeys = providerKeyRepository
   public readonly activeTabs = activeTabRepository
+  public readonly mcpServers = mcpServerRepository
 
   /**
    * Get comprehensive storage statistics
@@ -98,7 +102,8 @@ export class StorageService {
       commandCount,
       hookCount,
       providerKeyCount,
-      activeTabCount
+      activeTabCount,
+      mcpServerCount
     ] = await Promise.all([
       db.select({ count: count() }).from(projects).then(result => result[0]?.count ?? 0),
       db.select({ count: count() }).from(tickets).then(result => result[0]?.count ?? 0),
@@ -113,12 +118,13 @@ export class StorageService {
       db.select({ count: count() }).from(claudeCommands).then(result => result[0]?.count ?? 0),
       db.select({ count: count() }).from(claudeHooks).then(result => result[0]?.count ?? 0),
       db.select({ count: count() }).from(providerKeys).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(activeTabs).then(result => result[0]?.count ?? 0)
+      db.select({ count: count() }).from(activeTabs).then(result => result[0]?.count ?? 0),
+      db.select({ count: count() }).from(mcpServerConfigs).then(result => result[0]?.count ?? 0)
     ])
 
     const totalRecords = projectCount + ticketCount + taskCount + chatCount + 
       messageCount + promptCount + queueCount + queueItemCount + fileCount + 
-      agentCount + commandCount + hookCount + providerKeyCount + activeTabCount
+      agentCount + commandCount + hookCount + providerKeyCount + activeTabCount + mcpServerCount
 
     return {
       // Core entities
@@ -140,6 +146,7 @@ export class StorageService {
       // Configuration
       providerKeys: providerKeyCount,
       activeTabs: activeTabCount,
+      mcpServers: mcpServerCount,
       
       // Totals
       total: totalRecords,
@@ -147,7 +154,7 @@ export class StorageService {
       // Categories
       coreEntities: projectCount + ticketCount + taskCount + chatCount + messageCount,
       claudeEntities: agentCount + commandCount + hookCount,
-      configEntities: providerKeyCount + activeTabCount,
+      configEntities: providerKeyCount + activeTabCount + mcpServerCount,
       workflowEntities: queueCount + queueItemCount + promptCount + fileCount
     }
   }
@@ -176,7 +183,8 @@ export class StorageService {
       { name: 'claudeCommands', repo: this.claudeCommands },
       { name: 'claudeHooks', repo: this.claudeHooks },
       { name: 'providerKeys', repo: this.providerKeys },
-      { name: 'activeTabs', repo: this.activeTabs }
+      { name: 'activeTabs', repo: this.activeTabs },
+      { name: 'mcpServers', repo: this.mcpServers }
     ]
 
     await Promise.all(repositories.map(async ({ name, repo }) => {
@@ -223,7 +231,8 @@ export class StorageService {
       'claudeCommands': this.claudeCommands,
       'claudeHooks': this.claudeHooks,
       'providerKeys': this.providerKeys,
-      'activeTabs': this.activeTabs
+      'activeTabs': this.activeTabs,
+      'mcpServers': this.mcpServers
     }
     
     return repositories[entityName] || null

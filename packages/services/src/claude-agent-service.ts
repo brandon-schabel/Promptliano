@@ -3,13 +3,26 @@ import {
   type ClaudeAgent,
   type InsertClaudeAgent as CreateClaudeAgentBody,
   type InsertClaudeAgent as UpdateClaudeAgentBody,
-  selectClaudeAgentSchema as ClaudeAgentSchema
+  selectClaudeAgentSchema as ClaudeAgentSchema,
+  claudeAgents
 } from '@promptliano/database'
-// AI generation schemas - may remain in schemas package
-import {
-  type AgentSuggestions,
-  AgentSuggestionsSchema
-} from '@promptliano/schemas'
+import { eq } from 'drizzle-orm'
+import { db } from '@promptliano/database/src/db'
+// AI generation schemas - define locally for now until schemas package is updated
+import { z } from 'zod'
+
+// Define AgentSuggestions schema locally
+export const AgentSuggestionsSchema = z.object({
+  suggestions: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    instructions: z.string(),
+    model: z.string().default('claude-3-sonnet'),
+    specializations: z.array(z.string()).default([])
+  }))
+})
+
+export type AgentSuggestions = z.infer<typeof AgentSuggestionsSchema>
 
 import { ApiError, promptsMap } from '@promptliano/shared'
 import { ErrorFactory, assertExists, withErrorContext } from '@promptliano/shared'
@@ -66,7 +79,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         const agentId = generateAgentId(data.name)
         
         // Check if agent already exists
-        const existingAgent = await repository.getById(agentId)
+        const [existingAgent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
         if (existingAgent) {
           throw ErrorFactory.duplicate('Agent', 'ID', agentId)
         }
@@ -81,7 +94,11 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           isActive: true
         }
 
-        const agent = await repository.create(agentData)
+        const [agent] = await db.insert(claudeAgents).values({
+          ...agentData,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }).returning()
         
         // Write markdown file if instructions provided
         if (data.instructions) {
@@ -90,7 +107,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           await writeAgentFile(filePath, data.instructions)
         }
 
-        return agent
+        return agent as ClaudeAgent
       },
       { entity: 'Agent', action: 'create', data: { name: data.name } }
     )
@@ -99,9 +116,9 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
   const getAgentById = async (agentId: string): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
-        const agent = await repository.getById(agentId)
+        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
         assertExists(agent, 'Agent', agentId)
-        return agent
+        return agent as ClaudeAgent
       },
       { entity: 'Agent', action: 'getById', id: agentId }
     )
@@ -110,9 +127,8 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
   const listAgents = async (): Promise<ClaudeAgent[]> => {
     return withErrorContext(
       async () => {
-        const agents = await repository.getAll('asc')
-        // Sort by name for consistent ordering
-        return agents.sort((a, b) => a.name.localeCompare(b.name))
+        const agents = await db.select().from(claudeAgents).orderBy(claudeAgents.name)
+        return agents as ClaudeAgent[]
       },
       { entity: 'Agent', action: 'list' }
     )
@@ -134,7 +150,8 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     return withErrorContext(
       async () => {
         // Verify agent exists
-        await getAgentById(agentId)
+        const [existing] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
+        assertExists(existing, 'Agent', agentId)
         
         // Prepare update data to match current schema
         const updateData: Partial<UpdateClaudeAgentBody> = {
@@ -152,7 +169,11 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           }
         })
 
-        const updatedAgent = await repository.update(agentId, updateData)
+        // Update agent in database
+        const [updatedAgent] = await db.update(claudeAgents)
+          .set({ ...updateData, updatedAt: Date.now() })
+          .where(eq(claudeAgents.id, agentId))
+          .returning()
         
         // Update markdown file if instructions changed
         if (data.instructions !== undefined) {
@@ -172,7 +193,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           }
         }
 
-        return updatedAgent
+        return updatedAgent as ClaudeAgent
       },
       { entity: 'Agent', action: 'update', id: agentId }
     )
@@ -182,13 +203,17 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     return withErrorContext(
       async () => {
         // Verify agent exists
-        const agent = await repository.getById(agentId)
+        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
         if (!agent) {
           return false
         }
 
         // Delete from database
-        await repository.delete(agentId)
+        const result = await db.delete(claudeAgents)
+          .where(eq(claudeAgents.id, agentId))
+          .run() as unknown as { changes: number }
+        
+        const success = result.changes > 0
         
         // Delete markdown file if it exists
         const agentsDir = getAgentsDir(projectPath)
@@ -201,7 +226,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           logger?.debug(`Could not delete agent file: ${filePath}`, error)
         }
 
-        return true
+        return success
       },
       { entity: 'Agent', action: 'delete', id: agentId }
     )
@@ -349,82 +374,112 @@ This agent could not be loaded. Please proceed with general knowledge.
     )
   }
 
-export async function suggestAgentForTask(
-  taskTitle: string,
-  taskDescription: string = '',
-  availableAgents: ClaudeAgent[]
-): Promise<string | null> {
-  if (availableAgents.length === 0) return null
+  const suggestAgentForTask = async (
+    taskTitle: string,
+    taskDescription: string = '',
+    availableAgents?: ClaudeAgent[]
+  ): Promise<string | null> => {
+    return withErrorContext(
+      async () => {
+        // Get available agents if not provided
+        const agents = availableAgents || await listAgents()
+        if (agents.length === 0) return null
 
-  // Simple heuristic-based matching
-  const taskContent = `${taskTitle} ${taskDescription}`.toLowerCase()
+        // Simple heuristic-based matching
+        const taskContent = `${taskTitle} ${taskDescription}`.toLowerCase()
 
-  // Priority mappings for common task types
-  const agentPriorities: Record<string, string[]> = {
-    'zod-schema-architect': ['schema', 'zod', 'validation', 'data model', 'type'],
-    'promptliano-ui-architect': ['ui', 'component', 'frontend', 'react', 'shadcn', 'button', 'form', 'page'],
-    'hono-bun-api-architect': ['api', 'endpoint', 'route', 'hono', 'rest', 'http'],
-    'promptliano-service-architect': ['service', 'business logic', 'storage'],
-    'promptliano-mcp-tool-creator': ['mcp', 'tool', 'claude'],
-    'staff-engineer-code-reviewer': ['review', 'quality', 'refactor', 'improve'],
-    'code-modularization-expert': ['modularize', 'split', 'refactor', 'organize'],
-    'promptliano-sqlite-expert': ['migration', 'database', 'sqlite', 'table'],
-    'tanstack-router-expert': ['route', 'router', 'navigation', 'tanstack'],
-    'vercel-ai-sdk-expert': ['ai', 'llm', 'vercel', 'streaming', 'chat'],
-    'simple-git-integration-expert': ['git', 'version', 'commit', 'branch'],
-    'promptliano-planning-architect': ['plan', 'architect', 'design', 'breakdown']
+        // Priority mappings for common task types
+        const agentPriorities: Record<string, string[]> = {
+          'zod-schema-architect': ['schema', 'zod', 'validation', 'data model', 'type'],
+          'promptliano-ui-architect': ['ui', 'component', 'frontend', 'react', 'shadcn', 'button', 'form', 'page'],
+          'hono-bun-api-architect': ['api', 'endpoint', 'route', 'hono', 'rest', 'http'],
+          'promptliano-service-architect': ['service', 'business logic', 'storage'],
+          'promptliano-mcp-tool-creator': ['mcp', 'tool', 'claude'],
+          'staff-engineer-code-reviewer': ['review', 'quality', 'refactor', 'improve'],
+          'code-modularization-expert': ['modularize', 'split', 'refactor', 'organize'],
+          'promptliano-sqlite-expert': ['migration', 'database', 'sqlite', 'table'],
+          'tanstack-router-expert': ['route', 'router', 'navigation', 'tanstack'],
+          'vercel-ai-sdk-expert': ['ai', 'llm', 'vercel', 'streaming', 'chat'],
+          'simple-git-integration-expert': ['git', 'version', 'commit', 'branch'],
+          'promptliano-planning-architect': ['plan', 'architect', 'design', 'breakdown']
+        }
+
+        // Find best match
+        let bestMatch: string | null = null
+        let highestScore = 0
+
+        for (const agent of agents) {
+          const keywords = agentPriorities[agent.id] || []
+          let score = 0
+
+          for (const keyword of keywords) {
+            if (taskContent.includes(keyword)) {
+              score += 1
+            }
+          }
+
+          // Also check agent description
+          if (agent.description) {
+            const descWords = agent.description.toLowerCase().split(' ')
+            for (const word of descWords) {
+              if (taskContent.includes(word) && word.length > 3) {
+                score += 0.5
+              }
+            }
+          }
+
+          if (score > highestScore) {
+            highestScore = score
+            bestMatch = agent.id
+          }
+        }
+
+        return bestMatch
+      },
+      { entity: 'Agent', action: 'suggestForTask', task: taskTitle }
+    )
   }
 
-  // Find best match
-  let bestMatch: string | null = null
-  let highestScore = 0
-
-  for (const agent of availableAgents) {
-    const keywords = agentPriorities[agent.id] || []
-    let score = 0
-
-    for (const keyword of keywords) {
-      if (taskContent.includes(keyword)) {
-        score += 1
-      }
-    }
-
-    // Also check agent description
-    const descWords = agent.description.toLowerCase().split(' ')
-    for (const word of descWords) {
-      if (taskContent.includes(word) && word.length > 3) {
-        score += 0.5
-      }
-    }
-
-    if (score > highestScore) {
-      highestScore = score
-      bestMatch = agent.id
-    }
+  // Return service interface
+  return {
+    // Core CRUD operations
+    create: createAgent,
+    getById: getAgentById,
+    list: listAgents,
+    update: updateAgent,
+    delete: deleteAgent,
+    
+    // Query operations
+    getByProject: getAgentsByProject,
+    getByIds: getAgentsByIds,
+    
+    // Content operations
+    getContent: getAgentContent,
+    formatContext: formatAgentContext,
+    
+    // AI-powered operations
+    suggest: suggestAgents,
+    suggestForTask: suggestAgentForTask
   }
-
-  return bestMatch
 }
 
-// Create singleton service instance
-class ClaudeAgentService {
-  listAgents = listAgents
-  getAgentById = getAgentById
-  createAgent = createAgent
-  updateAgent = updateAgent
-  deleteAgent = deleteAgent
-  getAgentsByProjectId = getAgentsByProjectId
-  suggestAgents = suggestAgents
-  getAgentContentById = getAgentContentById
-  formatAgentContext = formatAgentContext
-  getAgentsByIds = getAgentsByIds
-  suggestAgentForTask = suggestAgentForTask
-}
+// Export service type for consumers
+export type ClaudeAgentService = ReturnType<typeof createClaudeAgentService>
 
-// Export singleton instance
-export const claudeAgentService = new ClaudeAgentService()
+// Export singleton for backward compatibility
+export const claudeAgentService = createClaudeAgentService()
 
-// Export factory function for consistency with other services
-export function createClaudeAgentService(): ClaudeAgentService {
-  return claudeAgentService
-}
+// Export individual functions for tree-shaking
+export const {
+  create: createAgent,
+  getById: getAgentById,
+  list: listAgents,
+  update: updateAgent,
+  delete: deleteAgent,
+  getByProject: getAgentsByProject,
+  getByIds: getAgentsByIds,
+  getContent: getAgentContent,
+  formatContext: formatAgentContext,
+  suggest: suggestAgents,
+  suggestForTask: suggestAgentForTask
+} = claudeAgentService
