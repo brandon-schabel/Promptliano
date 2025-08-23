@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
- * Generated at: 2025-08-23T17:06:51.807Z
+ * Generated at: 2025-08-23T20:25:02.526Z
  * Generated from: 208 API endpoints
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
@@ -11,358 +11,341 @@ import type { paths } from './api-types'
 // Re-export all paths for external usage
 export type ApiPaths = paths
 
-// ===== UTILITY TYPES FOR SAFE RESPONSE EXTRACTION =====
-
-/**
- * Safely extract 200 response type from OpenAPI paths
- */
-type Safe200ResponseType<T> = T extends { responses: { 200: { content: { 'application/json': infer R } } } } ? R : never
-
-/**
- * Safely extract 201 response type from OpenAPI paths  
- */
-type Safe201ResponseType<T> = T extends { responses: { 201: { content: { 'application/json': infer R } } } } ? R : never
-
-/**
- * Safely extract request body type from OpenAPI paths
- */
-type SafeRequestType<T> = T extends { requestBody: { content: { 'application/json': infer R } } } ? R : never
-
 // ===== GENERATED TYPES FOR ALL ENDPOINTS =====
 
-export type GetChatsResponse = Safe200ResponseType<paths['/api/chats']['get']>
-export type CreateChatsResponse = Safe201ResponseType<paths['/api/chats']['post']>
-export type CreateChatsRequest = SafeRequestType<paths['/api/chats']['post']>
-export type ListChatsByChatIdMessagesResponse = Safe200ResponseType<paths['/api/chats/{chatId}/messages']['get']>
-export type CreateChatsByChatIdForkResponse = Safe201ResponseType<paths['/api/chats/{chatId}/fork']['post']>
-export type CreateChatsByChatIdForkRequest = SafeRequestType<paths['/api/chats/{chatId}/fork']['post']>
-export type CreateChatsByChatIdForkByMessageIdResponse = Safe201ResponseType<paths['/api/chats/{chatId}/fork/{messageId}']['post']>
-export type CreateChatsByChatIdForkByMessageIdRequest = SafeRequestType<paths['/api/chats/{chatId}/fork/{messageId}']['post']>
-export type UpdateChatsByChatIdResponse = Safe200ResponseType<paths['/api/chats/{chatId}']['patch']>
-export type UpdateChatsByChatIdRequest = SafeRequestType<paths['/api/chats/{chatId}']['patch']>
-export type DeleteChatsByChatIdResponse = Safe200ResponseType<paths['/api/chats/{chatId}']['delete']>
+export type GetChatsResponse = paths['/api/chats']['get']['responses']['200']['content']['application/json']
+export type CreateChatResponse = paths['/api/chats']['post']['responses']['201']['content']['application/json']
+export type CreateChatRequest = paths['/api/chats']['post']['requestBody']['content']['application/json']
+export type ListChatsByChatIdMessagesResponse = paths['/api/chats/{chatId}/messages']['get']['responses']['200']['content']['application/json']
+export type CreateChatsByChatIdForkResponse = paths['/api/chats/{chatId}/fork']['post']['responses']['201']['content']['application/json']
+export type CreateChatsByChatIdForkRequest = paths['/api/chats/{chatId}/fork']['post']['requestBody']['content']['application/json']
+export type CreateChatsByChatIdForkByMessageIdResponse = paths['/api/chats/{chatId}/fork/{messageId}']['post']['responses']['201']['content']['application/json']
+export type CreateChatsByChatIdForkByMessageIdRequest = paths['/api/chats/{chatId}/fork/{messageId}']['post']['requestBody']['content']['application/json']
+export type UpdateChatResponse = paths['/api/chats/{chatId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateChatRequest = paths['/api/chats/{chatId}']['patch']['requestBody']['content']['application/json']
+export type DeleteChatResponse = paths['/api/chats/{chatId}']['delete']['responses']['200']['content']['application/json']
 export type CreateAiChatResponse = { success: boolean; message?: string }
-export type CreateAiChatRequest = SafeRequestType<paths['/api/ai/chat']['post']>
-export type GetProvidersResponse = Safe200ResponseType<paths['/api/providers']['get']>
-export type GetModelsResponse = Safe200ResponseType<paths['/api/models']['get']>
-export type CreateAiGenerateTextResponse = Safe200ResponseType<paths['/api/ai/generate/text']['post']>
-export type CreateAiGenerateTextRequest = SafeRequestType<paths['/api/ai/generate/text']['post']>
-export type CreateProviderSettingsResponse = Safe200ResponseType<paths['/api/provider-settings']['post']>
-export type CreateProviderSettingsRequest = SafeRequestType<paths['/api/provider-settings']['post']>
-export type DeleteChatsByChatIdMessagesByMessageIdResponse = Safe200ResponseType<paths['/api/chats/{chatId}/messages/{messageId}']['delete']>
-export type GetProjectsResponse = Safe200ResponseType<paths['/api/projects']['get']>
-export type CreateProjectsResponse = Safe201ResponseType<paths['/api/projects']['post']>
-export type CreateProjectsRequest = SafeRequestType<paths['/api/projects']['post']>
-export type ListProjectsByProjectIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}']['get']>
-export type UpdateProjectsByProjectIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}']['patch']>
-export type UpdateProjectsByProjectIdRequest = SafeRequestType<paths['/api/projects/{projectId}']['patch']>
-export type DeleteProjectsByProjectIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}']['delete']>
-export type CreateProjectsByProjectIdSyncResponse = Safe200ResponseType<paths['/api/projects/{projectId}/sync']['post']>
+export type CreateAiChatRequest = paths['/api/ai/chat']['post']['requestBody']['content']['application/json']
+export type GetProvidersResponse = paths['/api/providers']['get']['responses']['200']['content']['application/json']
+export type GetModelsResponse = paths['/api/models']['get']['responses']['200']['content']['application/json']
+export type CreateAiGenerateTextResponse = paths['/api/ai/generate/text']['post']['responses']['200']['content']['application/json']
+export type CreateAiGenerateTextRequest = paths['/api/ai/generate/text']['post']['requestBody']['content']['application/json']
+export type CreateProviderSettingResponse = paths['/api/provider-settings']['post']['responses']['200']['content']['application/json']
+export type CreateProviderSettingRequest = paths['/api/provider-settings']['post']['requestBody']['content']['application/json']
+export type DeleteChatsByChatIdMessagesByMessageIdResponse = paths['/api/chats/{chatId}/messages/{messageId}']['delete']['responses']['200']['content']['application/json']
+export type GetProjectsResponse = paths['/api/projects']['get']['responses']['200']['content']['application/json']
+export type CreateProjectResponse = paths['/api/projects']['post']['responses']['201']['content']['application/json']
+export type CreateProjectRequest = paths['/api/projects']['post']['requestBody']['content']['application/json']
+export type GetProjectResponse = paths['/api/projects/{projectId}']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectResponse = paths['/api/projects/{projectId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateProjectRequest = paths['/api/projects/{projectId}']['patch']['requestBody']['content']['application/json']
+export type DeleteProjectResponse = paths['/api/projects/{projectId}']['delete']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSyncResponse = paths['/api/projects/{projectId}/sync']['post']['responses']['200']['content']['application/json']
 export type ListProjectsByProjectIdSyncStreamResponse = { success: boolean; message?: string }
-export type ListProjectsByProjectIdFilesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files']['get']>
-export type ListProjectsByProjectIdFilesMetadataResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files/metadata']['get']>
-export type UpdateProjectsByProjectIdFilesBulkResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files/bulk']['put']>
-export type UpdateProjectsByProjectIdFilesBulkRequest = SafeRequestType<paths['/api/projects/{projectId}/files/bulk']['put']>
-export type UpdateProjectsByProjectIdFilesByFileIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files/{fileId}']['put']>
-export type UpdateProjectsByProjectIdFilesByFileIdRequest = SafeRequestType<paths['/api/projects/{projectId}/files/{fileId}']['put']>
-export type CreateProjectsByProjectIdRefreshResponse = Safe200ResponseType<paths['/api/projects/{projectId}/refresh']['post']>
-export type ListProjectsByProjectIdSummaryResponse = Safe200ResponseType<paths['/api/projects/{projectId}/summary']['get']>
-export type CreateProjectsByProjectIdSummaryAdvancedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/summary/advanced']['post']>
-export type CreateProjectsByProjectIdSummaryAdvancedRequest = SafeRequestType<paths['/api/projects/{projectId}/summary/advanced']['post']>
-export type ListProjectsByProjectIdSummaryMetricsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/summary/metrics']['get']>
-export type CreateProjectsByProjectIdSummaryInvalidateResponse = Safe200ResponseType<paths['/api/projects/{projectId}/summary/invalidate']['post']>
-export type CreateProjectsByProjectIdSuggestFilesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/suggest-files']['post']>
-export type CreateProjectsByProjectIdSuggestFilesRequest = SafeRequestType<paths['/api/projects/{projectId}/suggest-files']['post']>
-export type CreateProjectsByProjectIdFilesSummarizeResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files/summarize']['post']>
-export type CreateProjectsByProjectIdFilesSummarizeRequest = SafeRequestType<paths['/api/projects/{projectId}/files/summarize']['post']>
-export type CreateProjectsByProjectIdFilesRemoveSummariesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/files/remove-summaries']['post']>
-export type CreateProjectsByProjectIdFilesRemoveSummariesRequest = SafeRequestType<paths['/api/projects/{projectId}/files/remove-summaries']['post']>
-export type ListProjectsByProjectIdStatisticsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/statistics']['get']>
-export type CreateProjectsByProjectIdBatchSummarizeResponse = Safe200ResponseType<paths['/api/projects/{projectId}/batch-summarize']['post']>
-export type CreateProjectsByProjectIdBatchSummarizeRequest = SafeRequestType<paths['/api/projects/{projectId}/batch-summarize']['post']>
-export type ListProjectsByProjectIdBatchSummarizeByBatchIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}/batch-summarize/{batchId}']['get']>
-export type DeleteProjectsByProjectIdBatchSummarizeByBatchIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}/batch-summarize/{batchId}']['delete']>
-export type ListProjectsByProjectIdSummarizationStatsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/summarization-stats']['get']>
-export type CreateProjectsByProjectIdPreviewFileGroupsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/preview-file-groups']['post']>
-export type CreateProjectsByProjectIdPreviewFileGroupsRequest = SafeRequestType<paths['/api/projects/{projectId}/preview-file-groups']['post']>
-export type ListProjectsByProjectIdPromptsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/prompts']['get']>
-export type CreateProjectsByProjectIdSuggestPromptsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/suggest-prompts']['post']>
-export type CreateProjectsByProjectIdSuggestPromptsRequest = SafeRequestType<paths['/api/projects/{projectId}/suggest-prompts']['post']>
-export type CreateProjectsByProjectIdPromptsByPromptIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}/prompts/{promptId}']['post']>
-export type DeleteProjectsByProjectIdPromptsByPromptIdResponse = Safe200ResponseType<paths['/api/projects/{projectId}/prompts/{promptId}']['delete']>
-export type ListProjectsByProjectIdPromptsExportResponse = Safe200ResponseType<paths['/api/projects/{projectId}/prompts/export']['get']>
-export type ListProjectsByProjectIdTicketsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/tickets']['get']>
-export type ListProjectsByProjectIdTicketsWithCountResponse = Safe200ResponseType<paths['/api/projects/{projectId}/tickets-with-count']['get']>
-export type ListProjectsByProjectIdTicketsWithTasksResponse = Safe200ResponseType<paths['/api/projects/{projectId}/tickets-with-tasks']['get']>
-export type ListProjectsByProjectIdAgentsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agents']['get']>
-export type CreateProjectsByProjectIdSuggestAgentsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/suggest-agents']['post']>
-export type CreateProjectsByProjectIdSuggestAgentsRequest = SafeRequestType<paths['/api/projects/{projectId}/suggest-agents']['post']>
-export type CreatePromptOptimizeResponse = Safe200ResponseType<paths['/api/prompt/optimize']['post']>
-export type CreatePromptOptimizeRequest = SafeRequestType<paths['/api/prompt/optimize']['post']>
-export type GetPromptsResponse = Safe200ResponseType<paths['/api/prompts']['get']>
-export type CreatePromptsResponse = Safe201ResponseType<paths['/api/prompts']['post']>
-export type CreatePromptsRequest = SafeRequestType<paths['/api/prompts']['post']>
-export type ListPromptsByPromptIdResponse = Safe200ResponseType<paths['/api/prompts/{promptId}']['get']>
-export type UpdatePromptsByPromptIdResponse = Safe200ResponseType<paths['/api/prompts/{promptId}']['patch']>
-export type UpdatePromptsByPromptIdRequest = SafeRequestType<paths['/api/prompts/{promptId}']['patch']>
-export type DeletePromptsByPromptIdResponse = Safe200ResponseType<paths['/api/prompts/{promptId}']['delete']>
+export type ListProjectsByProjectIdFilesResponse = paths['/api/projects/{projectId}/files']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdFilesMetadataResponse = paths['/api/projects/{projectId}/files/metadata']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectsByProjectIdFilesBulkResponse = paths['/api/projects/{projectId}/files/bulk']['put']['responses']['200']['content']['application/json']
+export type UpdateProjectsByProjectIdFilesBulkRequest = paths['/api/projects/{projectId}/files/bulk']['put']['requestBody']['content']['application/json']
+export type UpdateProjectsByProjectIdFilesByFileIdResponse = paths['/api/projects/{projectId}/files/{fileId}']['put']['responses']['200']['content']['application/json']
+export type UpdateProjectsByProjectIdFilesByFileIdRequest = paths['/api/projects/{projectId}/files/{fileId}']['put']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdRefreshResponse = paths['/api/projects/{projectId}/refresh']['post']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdSummaryResponse = paths['/api/projects/{projectId}/summary']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSummaryAdvancedResponse = paths['/api/projects/{projectId}/summary/advanced']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSummaryAdvancedRequest = paths['/api/projects/{projectId}/summary/advanced']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdSummaryMetricsResponse = paths['/api/projects/{projectId}/summary/metrics']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSummaryInvalidateResponse = paths['/api/projects/{projectId}/summary/invalidate']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestFilesResponse = paths['/api/projects/{projectId}/suggest-files']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestFilesRequest = paths['/api/projects/{projectId}/suggest-files']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdFilesSummarizeResponse = paths['/api/projects/{projectId}/files/summarize']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdFilesSummarizeRequest = paths['/api/projects/{projectId}/files/summarize']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdFilesRemoveSummariesResponse = paths['/api/projects/{projectId}/files/remove-summaries']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdFilesRemoveSummariesRequest = paths['/api/projects/{projectId}/files/remove-summaries']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdStatisticsResponse = paths['/api/projects/{projectId}/statistics']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdBatchSummarizeResponse = paths['/api/projects/{projectId}/batch-summarize']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdBatchSummarizeRequest = paths['/api/projects/{projectId}/batch-summarize']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdBatchSummarizeByBatchIdResponse = paths['/api/projects/{projectId}/batch-summarize/{batchId}']['get']['responses']['200']['content']['application/json']
+export type DeleteProjectsByProjectIdBatchSummarizeByBatchIdResponse = paths['/api/projects/{projectId}/batch-summarize/{batchId}']['delete']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdSummarizationStatsResponse = paths['/api/projects/{projectId}/summarization-stats']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdPreviewFileGroupsResponse = paths['/api/projects/{projectId}/preview-file-groups']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdPreviewFileGroupsRequest = paths['/api/projects/{projectId}/preview-file-groups']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdPromptsResponse = paths['/api/projects/{projectId}/prompts']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestPromptsResponse = paths['/api/projects/{projectId}/suggest-prompts']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestPromptsRequest = paths['/api/projects/{projectId}/suggest-prompts']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdPromptsByPromptIdResponse = paths['/api/projects/{projectId}/prompts/{promptId}']['post']['responses']['200']['content']['application/json']
+export type DeleteProjectsByProjectIdPromptsByPromptIdResponse = paths['/api/projects/{projectId}/prompts/{promptId}']['delete']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdPromptsExportResponse = paths['/api/projects/{projectId}/prompts/export']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdTicketsResponse = paths['/api/projects/{projectId}/tickets']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdTicketsWithCountResponse = paths['/api/projects/{projectId}/tickets-with-count']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdTicketsWithTasksResponse = paths['/api/projects/{projectId}/tickets-with-tasks']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdAgentsResponse = paths['/api/projects/{projectId}/agents']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestAgentsResponse = paths['/api/projects/{projectId}/suggest-agents']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdSuggestAgentsRequest = paths['/api/projects/{projectId}/suggest-agents']['post']['requestBody']['content']['application/json']
+export type CreatePromptOptimizeResponse = paths['/api/prompt/optimize']['post']['responses']['200']['content']['application/json']
+export type CreatePromptOptimizeRequest = paths['/api/prompt/optimize']['post']['requestBody']['content']['application/json']
+export type GetPromptsResponse = paths['/api/prompts']['get']['responses']['200']['content']['application/json']
+export type CreatePromptResponse = paths['/api/prompts']['post']['responses']['201']['content']['application/json']
+export type CreatePromptRequest = paths['/api/prompts']['post']['requestBody']['content']['application/json']
+export type GetPromptResponse = paths['/api/prompts/{promptId}']['get']['responses']['200']['content']['application/json']
+export type UpdatePromptResponse = paths['/api/prompts/{promptId}']['patch']['responses']['200']['content']['application/json']
+export type UpdatePromptRequest = paths['/api/prompts/{promptId}']['patch']['requestBody']['content']['application/json']
+export type DeletePromptResponse = paths['/api/prompts/{promptId}']['delete']['responses']['200']['content']['application/json']
 export type ListPromptsByPromptIdExportResponse = { success: boolean; message?: string }
-export type CreatePromptsExportBatchResponse = Safe200ResponseType<paths['/api/prompts/export-batch']['post']>
-export type CreatePromptsExportBatchRequest = SafeRequestType<paths['/api/prompts/export-batch']['post']>
-export type CreatePromptsValidateMarkdownResponse = Safe200ResponseType<paths['/api/prompts/validate-markdown']['post']>
-export type CreatePromptsValidateMarkdownRequest = SafeRequestType<paths['/api/prompts/validate-markdown']['post']>
-export type GetKeysResponse = Safe200ResponseType<paths['/api/keys']['get']>
-export type CreateKeysResponse = Safe201ResponseType<paths['/api/keys']['post']>
-export type CreateKeysRequest = SafeRequestType<paths['/api/keys']['post']>
-export type ListKeysByKeyIdResponse = Safe200ResponseType<paths['/api/keys/{keyId}']['get']>
-export type UpdateKeysByKeyIdResponse = Safe200ResponseType<paths['/api/keys/{keyId}']['patch']>
-export type UpdateKeysByKeyIdRequest = SafeRequestType<paths['/api/keys/{keyId}']['patch']>
-export type DeleteKeysByKeyIdResponse = Safe200ResponseType<paths['/api/keys/{keyId}']['delete']>
-export type CreateKeysValidateCustomResponse = Safe200ResponseType<paths['/api/keys/validate-custom']['post']>
-export type CreateKeysValidateCustomRequest = SafeRequestType<paths['/api/keys/validate-custom']['post']>
-export type CreateProvidersTestResponse = Safe200ResponseType<paths['/api/providers/test']['post']>
-export type CreateProvidersTestRequest = SafeRequestType<paths['/api/providers/test']['post']>
-export type CreateProvidersBatchTestResponse = Safe200ResponseType<paths['/api/providers/batch-test']['post']>
-export type CreateProvidersBatchTestRequest = SafeRequestType<paths['/api/providers/batch-test']['post']>
-export type ListProvidersHealthResponse = Safe200ResponseType<paths['/api/providers/health']['get']>
-export type UpdateProvidersSettingsResponse = Safe200ResponseType<paths['/api/providers/settings']['put']>
-export type UpdateProvidersSettingsRequest = SafeRequestType<paths['/api/providers/settings']['put']>
-export type CreateTicketsResponse = Safe201ResponseType<paths['/api/tickets']['post']>
-export type CreateTicketsRequest = SafeRequestType<paths['/api/tickets']['post']>
-export type ListTicketsByTicketIdResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}']['get']>
-export type UpdateTicketsByTicketIdResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}']['patch']>
-export type UpdateTicketsByTicketIdRequest = SafeRequestType<paths['/api/tickets/{ticketId}']['patch']>
-export type DeleteTicketsByTicketIdResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}']['delete']>
-export type CreateTicketsByTicketIdCompleteResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/complete']['post']>
-export type CreateTicketsByTicketIdLinkFilesResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/link-files']['post']>
-export type CreateTicketsByTicketIdLinkFilesRequest = SafeRequestType<paths['/api/tickets/{ticketId}/link-files']['post']>
-export type CreateTicketsByTicketIdSuggestFilesResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/suggest-files']['post']>
-export type CreateTicketsByTicketIdSuggestFilesRequest = SafeRequestType<paths['/api/tickets/{ticketId}/suggest-files']['post']>
-export type CreateTicketsByTicketIdSuggestTasksResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/suggest-tasks']['post']>
-export type CreateTicketsByTicketIdSuggestTasksRequest = SafeRequestType<paths['/api/tickets/{ticketId}/suggest-tasks']['post']>
-export type ListTicketsByTicketIdTasksResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/tasks']['get']>
-export type CreateTicketsByTicketIdTasksResponse = Safe201ResponseType<paths['/api/tickets/{ticketId}/tasks']['post']>
-export type CreateTicketsByTicketIdTasksRequest = SafeRequestType<paths['/api/tickets/{ticketId}/tasks']['post']>
-export type UpdateTicketsByTicketIdTasksByTaskIdResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/tasks/{taskId}']['patch']>
-export type UpdateTicketsByTicketIdTasksByTaskIdRequest = SafeRequestType<paths['/api/tickets/{ticketId}/tasks/{taskId}']['patch']>
-export type DeleteTicketsByTicketIdTasksByTaskIdResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/tasks/{taskId}']['delete']>
-export type UpdateTicketsByTicketIdTasksReorderResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/tasks/reorder']['patch']>
-export type UpdateTicketsByTicketIdTasksReorderRequest = SafeRequestType<paths['/api/tickets/{ticketId}/tasks/reorder']['patch']>
-export type CreateTicketsByTicketIdAutoGenerateTasksResponse = Safe200ResponseType<paths['/api/tickets/{ticketId}/auto-generate-tasks']['post']>
-export type ListTicketsBulkTasksResponse = Safe200ResponseType<paths['/api/tickets/bulk-tasks']['get']>
-export type ListProjectsByProjectIdFlowResponse = Safe200ResponseType<paths['/api/projects/{projectId}/flow']['get']>
-export type ListProjectsByProjectIdFlowItemsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/flow/items']['get']>
-export type ListProjectsByProjectIdFlowUnqueuedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/flow/unqueued']['get']>
-export type CreateFlowTicketsByTicketIdEnqueueResponse = Safe200ResponseType<paths['/api/flow/tickets/{ticketId}/enqueue']['post']>
-export type CreateFlowTicketsByTicketIdEnqueueRequest = SafeRequestType<paths['/api/flow/tickets/{ticketId}/enqueue']['post']>
-export type CreateFlowTasksByTaskIdEnqueueResponse = Safe200ResponseType<paths['/api/flow/tasks/{taskId}/enqueue']['post']>
-export type CreateFlowTasksByTaskIdEnqueueRequest = SafeRequestType<paths['/api/flow/tasks/{taskId}/enqueue']['post']>
-export type CreateFlowTicketsByTicketIdDequeueResponse = Safe200ResponseType<paths['/api/flow/tickets/{ticketId}/dequeue']['post']>
-export type CreateFlowTasksByTaskIdDequeueResponse = Safe200ResponseType<paths['/api/flow/tasks/{taskId}/dequeue']['post']>
-export type CreateFlowMoveResponse = Safe200ResponseType<paths['/api/flow/move']['post']>
-export type CreateFlowMoveRequest = SafeRequestType<paths['/api/flow/move']['post']>
-export type CreateFlowReorderResponse = Safe200ResponseType<paths['/api/flow/reorder']['post']>
-export type CreateFlowReorderRequest = SafeRequestType<paths['/api/flow/reorder']['post']>
-export type CreateFlowProcessStartResponse = Safe200ResponseType<paths['/api/flow/process/start']['post']>
-export type CreateFlowProcessStartRequest = SafeRequestType<paths['/api/flow/process/start']['post']>
-export type CreateFlowProcessCompleteResponse = Safe200ResponseType<paths['/api/flow/process/complete']['post']>
-export type CreateFlowProcessCompleteRequest = SafeRequestType<paths['/api/flow/process/complete']['post']>
-export type CreateFlowProcessFailResponse = Safe200ResponseType<paths['/api/flow/process/fail']['post']>
-export type CreateFlowProcessFailRequest = SafeRequestType<paths['/api/flow/process/fail']['post']>
-export type CreateFlowBulkMoveResponse = Safe200ResponseType<paths['/api/flow/bulk-move']['post']>
-export type CreateFlowBulkMoveRequest = SafeRequestType<paths['/api/flow/bulk-move']['post']>
+export type CreatePromptsExportBatchResponse = paths['/api/prompts/export-batch']['post']['responses']['200']['content']['application/json']
+export type CreatePromptsExportBatchRequest = paths['/api/prompts/export-batch']['post']['requestBody']['content']['application/json']
+export type CreatePromptsValidateMarkdownResponse = paths['/api/prompts/validate-markdown']['post']['responses']['200']['content']['application/json']
+export type CreatePromptsValidateMarkdownRequest = paths['/api/prompts/validate-markdown']['post']['requestBody']['content']['application/json']
+export type GetKeysResponse = paths['/api/keys']['get']['responses']['200']['content']['application/json']
+export type CreateKeyResponse = paths['/api/keys']['post']['responses']['201']['content']['application/json']
+export type CreateKeyRequest = paths['/api/keys']['post']['requestBody']['content']['application/json']
+export type GetKeyResponse = paths['/api/keys/{keyId}']['get']['responses']['200']['content']['application/json']
+export type UpdateKeyResponse = paths['/api/keys/{keyId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateKeyRequest = paths['/api/keys/{keyId}']['patch']['requestBody']['content']['application/json']
+export type DeleteKeyResponse = paths['/api/keys/{keyId}']['delete']['responses']['200']['content']['application/json']
+export type CreateKeysValidateCustomResponse = paths['/api/keys/validate-custom']['post']['responses']['200']['content']['application/json']
+export type CreateKeysValidateCustomRequest = paths['/api/keys/validate-custom']['post']['requestBody']['content']['application/json']
+export type CreateProvidersTestResponse = paths['/api/providers/test']['post']['responses']['200']['content']['application/json']
+export type CreateProvidersTestRequest = paths['/api/providers/test']['post']['requestBody']['content']['application/json']
+export type CreateProvidersBatchTestResponse = paths['/api/providers/batch-test']['post']['responses']['200']['content']['application/json']
+export type CreateProvidersBatchTestRequest = paths['/api/providers/batch-test']['post']['requestBody']['content']['application/json']
+export type ListProvidersHealthResponse = paths['/api/providers/health']['get']['responses']['200']['content']['application/json']
+export type UpdateProvidersSettingsResponse = paths['/api/providers/settings']['put']['responses']['200']['content']['application/json']
+export type UpdateProvidersSettingsRequest = paths['/api/providers/settings']['put']['requestBody']['content']['application/json']
+export type CreateTicketResponse = paths['/api/tickets']['post']['responses']['201']['content']['application/json']
+export type CreateTicketRequest = paths['/api/tickets']['post']['requestBody']['content']['application/json']
+export type GetTicketResponse = paths['/api/tickets/{ticketId}']['get']['responses']['200']['content']['application/json']
+export type UpdateTicketResponse = paths['/api/tickets/{ticketId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateTicketRequest = paths['/api/tickets/{ticketId}']['patch']['requestBody']['content']['application/json']
+export type DeleteTicketResponse = paths['/api/tickets/{ticketId}']['delete']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdCompleteResponse = paths['/api/tickets/{ticketId}/complete']['post']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdLinkFilesResponse = paths['/api/tickets/{ticketId}/link-files']['post']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdLinkFilesRequest = paths['/api/tickets/{ticketId}/link-files']['post']['requestBody']['content']['application/json']
+export type CreateTicketsByTicketIdSuggestFilesResponse = paths['/api/tickets/{ticketId}/suggest-files']['post']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdSuggestFilesRequest = paths['/api/tickets/{ticketId}/suggest-files']['post']['requestBody']['content']['application/json']
+export type CreateTicketsByTicketIdSuggestTasksResponse = paths['/api/tickets/{ticketId}/suggest-tasks']['post']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdSuggestTasksRequest = paths['/api/tickets/{ticketId}/suggest-tasks']['post']['requestBody']['content']['application/json']
+export type ListTicketsByTicketIdTasksResponse = paths['/api/tickets/{ticketId}/tasks']['get']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdTasksResponse = paths['/api/tickets/{ticketId}/tasks']['post']['responses']['201']['content']['application/json']
+export type CreateTicketsByTicketIdTasksRequest = paths['/api/tickets/{ticketId}/tasks']['post']['requestBody']['content']['application/json']
+export type UpdateTicketsByTicketIdTasksByTaskIdResponse = paths['/api/tickets/{ticketId}/tasks/{taskId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateTicketsByTicketIdTasksByTaskIdRequest = paths['/api/tickets/{ticketId}/tasks/{taskId}']['patch']['requestBody']['content']['application/json']
+export type DeleteTicketsByTicketIdTasksByTaskIdResponse = paths['/api/tickets/{ticketId}/tasks/{taskId}']['delete']['responses']['200']['content']['application/json']
+export type UpdateTicketsByTicketIdTasksReorderResponse = paths['/api/tickets/{ticketId}/tasks/reorder']['patch']['responses']['200']['content']['application/json']
+export type UpdateTicketsByTicketIdTasksReorderRequest = paths['/api/tickets/{ticketId}/tasks/reorder']['patch']['requestBody']['content']['application/json']
+export type CreateTicketsByTicketIdAutoGenerateTasksResponse = paths['/api/tickets/{ticketId}/auto-generate-tasks']['post']['responses']['200']['content']['application/json']
+export type ListTicketsBulkTasksResponse = paths['/api/tickets/bulk-tasks']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdFlowResponse = paths['/api/projects/{projectId}/flow']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdFlowItemsResponse = paths['/api/projects/{projectId}/flow/items']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdFlowUnqueuedResponse = paths['/api/projects/{projectId}/flow/unqueued']['get']['responses']['200']['content']['application/json']
+export type CreateFlowTicketsByTicketIdEnqueueResponse = paths['/api/flow/tickets/{ticketId}/enqueue']['post']['responses']['200']['content']['application/json']
+export type CreateFlowTicketsByTicketIdEnqueueRequest = paths['/api/flow/tickets/{ticketId}/enqueue']['post']['requestBody']['content']['application/json']
+export type CreateFlowTasksByTaskIdEnqueueResponse = paths['/api/flow/tasks/{taskId}/enqueue']['post']['responses']['200']['content']['application/json']
+export type CreateFlowTasksByTaskIdEnqueueRequest = paths['/api/flow/tasks/{taskId}/enqueue']['post']['requestBody']['content']['application/json']
+export type CreateFlowTicketsByTicketIdDequeueResponse = paths['/api/flow/tickets/{ticketId}/dequeue']['post']['responses']['200']['content']['application/json']
+export type CreateFlowTasksByTaskIdDequeueResponse = paths['/api/flow/tasks/{taskId}/dequeue']['post']['responses']['200']['content']['application/json']
+export type CreateFlowMoveResponse = paths['/api/flow/move']['post']['responses']['200']['content']['application/json']
+export type CreateFlowMoveRequest = paths['/api/flow/move']['post']['requestBody']['content']['application/json']
+export type CreateFlowReorderResponse = paths['/api/flow/reorder']['post']['responses']['200']['content']['application/json']
+export type CreateFlowReorderRequest = paths['/api/flow/reorder']['post']['requestBody']['content']['application/json']
+export type CreateFlowProcessStartResponse = paths['/api/flow/process/start']['post']['responses']['200']['content']['application/json']
+export type CreateFlowProcessStartRequest = paths['/api/flow/process/start']['post']['requestBody']['content']['application/json']
+export type CreateFlowProcessCompleteResponse = paths['/api/flow/process/complete']['post']['responses']['200']['content']['application/json']
+export type CreateFlowProcessCompleteRequest = paths['/api/flow/process/complete']['post']['requestBody']['content']['application/json']
+export type CreateFlowProcessFailResponse = paths['/api/flow/process/fail']['post']['responses']['200']['content']['application/json']
+export type CreateFlowProcessFailRequest = paths['/api/flow/process/fail']['post']['requestBody']['content']['application/json']
+export type CreateFlowBulkMoveResponse = paths['/api/flow/bulk-move']['post']['responses']['200']['content']['application/json']
+export type CreateFlowBulkMoveRequest = paths['/api/flow/bulk-move']['post']['requestBody']['content']['application/json']
 export type CreateGenAiStreamResponse = { success: boolean; message?: string }
-export type CreateGenAiStreamRequest = SafeRequestType<paths['/api/gen-ai/stream']['post']>
-export type CreateGenAiTextResponse = Safe200ResponseType<paths['/api/gen-ai/text']['post']>
-export type CreateGenAiTextRequest = SafeRequestType<paths['/api/gen-ai/text']['post']>
-export type CreateGenAiStructuredResponse = Safe200ResponseType<paths['/api/gen-ai/structured']['post']>
-export type CreateGenAiStructuredRequest = SafeRequestType<paths['/api/gen-ai/structured']['post']>
-export type CreateBrowseDirectoryResponse = Safe200ResponseType<paths['/api/browse-directory']['post']>
-export type CreateBrowseDirectoryRequest = SafeRequestType<paths['/api/browse-directory']['post']>
-export type ListMcpServersResponse = Safe200ResponseType<paths['/api/mcp/servers']['get']>
-export type CreateMcpServersResponse = Safe200ResponseType<paths['/api/mcp/servers']['post']>
-export type CreateMcpServersRequest = SafeRequestType<paths['/api/mcp/servers']['post']>
-export type ListMcpServersByServerIdResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}']['get']>
-export type UpdateMcpServersByServerIdResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}']['patch']>
-export type UpdateMcpServersByServerIdRequest = SafeRequestType<paths['/api/mcp/servers/{serverId}']['patch']>
-export type DeleteMcpServersByServerIdResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}']['delete']>
-export type ListMcpToolsResponse = Safe200ResponseType<paths['/api/mcp/tools']['get']>
-export type CreateMcpToolsExecuteResponse = Safe200ResponseType<paths['/api/mcp/tools/execute']['post']>
-export type CreateMcpToolsExecuteRequest = SafeRequestType<paths['/api/mcp/tools/execute']['post']>
-export type ListMcpResourcesResponse = Safe200ResponseType<paths['/api/mcp/resources']['get']>
-export type CreateMcpResourcesReadResponse = Safe200ResponseType<paths['/api/mcp/resources/read']['post']>
-export type CreateMcpResourcesReadRequest = SafeRequestType<paths['/api/mcp/resources/read']['post']>
-export type ListMcpBuiltinToolsResponse = Safe200ResponseType<paths['/api/mcp/builtin-tools']['get']>
-export type CreateMcpServersByServerIdStartResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}/start']['post']>
-export type CreateMcpServersByServerIdStopResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}/stop']['post']>
-export type ListMcpAnalyticsResponse = Safe200ResponseType<paths['/api/mcp/analytics']['get']>
-export type ListMcpServersByServerIdStatsResponse = Safe200ResponseType<paths['/api/mcp/servers/{serverId}/stats']['get']>
-export type ListMcpToolsStatsResponse = Safe200ResponseType<paths['/api/mcp/tools/stats']['get']>
-export type ListMcpResourcesStatsResponse = Safe200ResponseType<paths['/api/mcp/resources/stats']['get']>
-export type CreateMcpAnalyticsReportResponse = Safe200ResponseType<paths['/api/mcp/analytics/report']['post']>
-export type CreateMcpAnalyticsReportRequest = SafeRequestType<paths['/api/mcp/analytics/report']['post']>
-export type ListMcpSessionsStatsResponse = Safe200ResponseType<paths['/api/mcp/sessions/stats']['get']>
-export type ListMcpAnalyticsPerformanceResponse = Safe200ResponseType<paths['/api/mcp/analytics/performance']['get']>
-export type ListProjectsByProjectIdMcpAnalyticsOverviewResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/analytics/overview']['get']>
-export type ListProjectsByProjectIdMcpAnalyticsStatisticsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/analytics/statistics']['get']>
-export type ListProjectsByProjectIdMcpAnalyticsTimelineResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/analytics/timeline']['get']>
-export type ListProjectsByProjectIdMcpAnalyticsErrorPatternsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/analytics/error-patterns']['get']>
-export type ListProjectsByProjectIdMcpAnalyticsExecutionsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/analytics/executions']['get']>
-export type CreateMcpTestConnectionResponse = Safe200ResponseType<paths['/api/mcp/test/connection']['post']>
-export type CreateMcpTestConnectionRequest = SafeRequestType<paths['/api/mcp/test/connection']['post']>
-export type CreateMcpTestInitializeResponse = Safe200ResponseType<paths['/api/mcp/test/initialize']['post']>
-export type CreateMcpTestInitializeRequest = SafeRequestType<paths['/api/mcp/test/initialize']['post']>
-export type CreateMcpTestToolResponse = Safe200ResponseType<paths['/api/mcp/test/tool']['post']>
-export type CreateMcpTestToolRequest = SafeRequestType<paths['/api/mcp/test/tool']['post']>
-export type CreateMcpTestValidateConfigResponse = Safe200ResponseType<paths['/api/mcp/test/validate-config']['post']>
-export type CreateMcpTestValidateConfigRequest = SafeRequestType<paths['/api/mcp/test/validate-config']['post']>
-export type CreateMcpTestDebugResponse = Safe200ResponseType<paths['/api/mcp/test/debug']['post']>
-export type CreateMcpTestDebugRequest = SafeRequestType<paths['/api/mcp/test/debug']['post']>
-export type ListMcpSessionsResponse = Safe200ResponseType<paths['/api/mcp/sessions']['get']>
-export type CreateMcpSessionsResponse = Safe200ResponseType<paths['/api/mcp/sessions']['post']>
-export type CreateMcpSessionsRequest = SafeRequestType<paths['/api/mcp/sessions']['post']>
-export type ListMcpSessionsBySessionIdResponse = Safe200ResponseType<paths['/api/mcp/sessions/{sessionId}']['get']>
-export type CreateMcpSessionsBySessionIdCloseResponse = Safe200ResponseType<paths['/api/mcp/sessions/{sessionId}/close']['post']>
-export type CreateMcpSessionsBySessionIdCloseRequest = SafeRequestType<paths['/api/mcp/sessions/{sessionId}/close']['post']>
-export type CreateMcpSessionsBySessionIdRefreshResponse = Safe200ResponseType<paths['/api/mcp/sessions/{sessionId}/refresh']['post']>
-export type ListMcpSessionsBySessionIdHistoryResponse = Safe200ResponseType<paths['/api/mcp/sessions/{sessionId}/history']['get']>
-export type CreateMcpSessionsCleanupResponse = Safe200ResponseType<paths['/api/mcp/sessions/cleanup']['post']>
-export type CreateMcpSessionsCleanupRequest = SafeRequestType<paths['/api/mcp/sessions/cleanup']['post']>
-export type ListProjectsByProjectIdGitStatusResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/status']['get']>
-export type CreateProjectsByProjectIdGitStageResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stage']['post']>
-export type CreateProjectsByProjectIdGitStageRequest = SafeRequestType<paths['/api/projects/{projectId}/git/stage']['post']>
-export type CreateProjectsByProjectIdGitUnstageResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/unstage']['post']>
-export type CreateProjectsByProjectIdGitUnstageRequest = SafeRequestType<paths['/api/projects/{projectId}/git/unstage']['post']>
-export type CreateProjectsByProjectIdGitStageAllResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stage-all']['post']>
-export type CreateProjectsByProjectIdGitUnstageAllResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/unstage-all']['post']>
-export type CreateProjectsByProjectIdGitCommitResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/commit']['post']>
-export type CreateProjectsByProjectIdGitCommitRequest = SafeRequestType<paths['/api/projects/{projectId}/git/commit']['post']>
-export type ListProjectsByProjectIdGitLogResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/log']['get']>
-export type ListProjectsByProjectIdGitLogEnhancedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/log-enhanced']['get']>
-export type ListProjectsByProjectIdGitCommitsByCommitHashResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/commits/{commitHash}']['get']>
-export type ListProjectsByProjectIdGitDiffResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/diff']['get']>
-export type ListProjectsByProjectIdGitBranchesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/branches']['get']>
-export type CreateProjectsByProjectIdGitBranchesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/branches']['post']>
-export type CreateProjectsByProjectIdGitBranchesRequest = SafeRequestType<paths['/api/projects/{projectId}/git/branches']['post']>
-export type ListProjectsByProjectIdGitBranchesEnhancedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/branches-enhanced']['get']>
-export type CreateProjectsByProjectIdGitBranchesSwitchResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/branches/switch']['post']>
-export type CreateProjectsByProjectIdGitBranchesSwitchRequest = SafeRequestType<paths['/api/projects/{projectId}/git/branches/switch']['post']>
-export type DeleteProjectsByProjectIdGitBranchesByBranchNameResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/branches/{branchName}']['delete']>
-export type ListProjectsByProjectIdGitStashResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stash']['get']>
-export type CreateProjectsByProjectIdGitStashResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stash']['post']>
-export type CreateProjectsByProjectIdGitStashRequest = SafeRequestType<paths['/api/projects/{projectId}/git/stash']['post']>
-export type DeleteProjectsByProjectIdGitStashResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stash']['delete']>
-export type DeleteProjectsByProjectIdGitStashRequest = SafeRequestType<paths['/api/projects/{projectId}/git/stash']['delete']>
-export type CreateProjectsByProjectIdGitStashApplyResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stash/apply']['post']>
-export type CreateProjectsByProjectIdGitStashApplyRequest = SafeRequestType<paths['/api/projects/{projectId}/git/stash/apply']['post']>
-export type CreateProjectsByProjectIdGitStashPopResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/stash/pop']['post']>
-export type CreateProjectsByProjectIdGitStashPopRequest = SafeRequestType<paths['/api/projects/{projectId}/git/stash/pop']['post']>
-export type ListProjectsByProjectIdGitWorktreesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/worktrees']['get']>
-export type CreateProjectsByProjectIdGitWorktreesResponse = Safe201ResponseType<paths['/api/projects/{projectId}/git/worktrees']['post']>
-export type CreateProjectsByProjectIdGitWorktreesRequest = SafeRequestType<paths['/api/projects/{projectId}/git/worktrees']['post']>
-export type DeleteProjectsByProjectIdGitWorktreesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/worktrees']['delete']>
-export type DeleteProjectsByProjectIdGitWorktreesRequest = SafeRequestType<paths['/api/projects/{projectId}/git/worktrees']['delete']>
-export type CreateProjectsByProjectIdGitWorktreesLockResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/worktrees/lock']['post']>
-export type CreateProjectsByProjectIdGitWorktreesLockRequest = SafeRequestType<paths['/api/projects/{projectId}/git/worktrees/lock']['post']>
-export type CreateProjectsByProjectIdGitWorktreesUnlockResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/worktrees/unlock']['post']>
-export type CreateProjectsByProjectIdGitWorktreesUnlockRequest = SafeRequestType<paths['/api/projects/{projectId}/git/worktrees/unlock']['post']>
-export type CreateProjectsByProjectIdGitWorktreesPruneResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/worktrees/prune']['post']>
-export type ListProjectsByProjectIdGitRemotesResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/remotes']['get']>
-export type CreateProjectsByProjectIdGitPushResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/push']['post']>
-export type CreateProjectsByProjectIdGitPushRequest = SafeRequestType<paths['/api/projects/{projectId}/git/push']['post']>
-export type CreateProjectsByProjectIdGitFetchResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/fetch']['post']>
-export type CreateProjectsByProjectIdGitFetchRequest = SafeRequestType<paths['/api/projects/{projectId}/git/fetch']['post']>
-export type CreateProjectsByProjectIdGitPullResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/pull']['post']>
-export type CreateProjectsByProjectIdGitPullRequest = SafeRequestType<paths['/api/projects/{projectId}/git/pull']['post']>
-export type ListProjectsByProjectIdGitTagsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/tags']['get']>
-export type CreateProjectsByProjectIdGitTagsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/tags']['post']>
-export type CreateProjectsByProjectIdGitTagsRequest = SafeRequestType<paths['/api/projects/{projectId}/git/tags']['post']>
-export type CreateProjectsByProjectIdGitResetResponse = Safe200ResponseType<paths['/api/projects/{projectId}/git/reset']['post']>
-export type CreateProjectsByProjectIdGitResetRequest = SafeRequestType<paths['/api/projects/{projectId}/git/reset']['post']>
-export type ListProjectsByProjectIdActiveTabResponse = Safe200ResponseType<paths['/api/projects/{projectId}/active-tab']['get']>
-export type CreateProjectsByProjectIdActiveTabResponse = Safe200ResponseType<paths['/api/projects/{projectId}/active-tab']['post']>
-export type CreateProjectsByProjectIdActiveTabRequest = SafeRequestType<paths['/api/projects/{projectId}/active-tab']['post']>
-export type DeleteProjectsByProjectIdActiveTabResponse = Safe200ResponseType<paths['/api/projects/{projectId}/active-tab']['delete']>
-export type ListProjectsByProjectIdMcpConfigResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config']['get']>
-export type CreateProjectsByProjectIdMcpConfigResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config']['post']>
-export type CreateProjectsByProjectIdMcpConfigRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/config']['post']>
-export type ListProjectsByProjectIdMcpConfigLocationsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config/locations']['get']>
-export type ListProjectsByProjectIdMcpConfigMergedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config/merged']['get']>
-export type ListProjectsByProjectIdMcpConfigExpandedResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config/expanded']['get']>
-export type CreateProjectsByProjectIdMcpConfigSaveToLocationResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config/save-to-location']['post']>
-export type CreateProjectsByProjectIdMcpConfigSaveToLocationRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/config/save-to-location']['post']>
-export type ListProjectsByProjectIdMcpConfigDefaultForLocationResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/config/default-for-location']['get']>
-export type CreateProjectTabsByTabIdGenerateNameResponse = Safe200ResponseType<paths['/api/project-tabs/{tabId}/generate-name']['post']>
-export type CreateProjectTabsByTabIdGenerateNameRequest = SafeRequestType<paths['/api/project-tabs/{tabId}/generate-name']['post']>
-export type ListProjectsByProjectIdAgentFilesDetectResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agent-files/detect']['get']>
-export type CreateProjectsByProjectIdAgentFilesUpdateResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agent-files/update']['post']>
-export type CreateProjectsByProjectIdAgentFilesUpdateRequest = SafeRequestType<paths['/api/projects/{projectId}/agent-files/update']['post']>
-export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']>
-export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsRequest = SafeRequestType<paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']>
-export type ListProjectsByProjectIdAgentFilesStatusResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agent-files/status']['get']>
-export type CreateProjectsByProjectIdAgentFilesCreateResponse = Safe200ResponseType<paths['/api/projects/{projectId}/agent-files/create']['post']>
-export type CreateProjectsByProjectIdAgentFilesCreateRequest = SafeRequestType<paths['/api/projects/{projectId}/agent-files/create']['post']>
-export type GetAgentsResponse = Safe200ResponseType<paths['/api/agents']['get']>
-export type CreateAgentsResponse = Safe201ResponseType<paths['/api/agents']['post']>
-export type CreateAgentsRequest = SafeRequestType<paths['/api/agents']['post']>
-export type ListAgentsByAgentIdResponse = Safe200ResponseType<paths['/api/agents/{agentId}']['get']>
-export type UpdateAgentsByAgentIdResponse = Safe200ResponseType<paths['/api/agents/{agentId}']['patch']>
-export type UpdateAgentsByAgentIdRequest = SafeRequestType<paths['/api/agents/{agentId}']['patch']>
-export type DeleteAgentsByAgentIdResponse = Safe200ResponseType<paths['/api/agents/{agentId}']['delete']>
-export type ListProjectsByProjectIdCommandsResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands']['get']>
-export type CreateProjectsByProjectIdCommandsResponse = Safe201ResponseType<paths['/api/projects/{projectId}/commands']['post']>
-export type CreateProjectsByProjectIdCommandsRequest = SafeRequestType<paths['/api/projects/{projectId}/commands']['post']>
-export type ListProjectsByProjectIdCommandsByCommandNameResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/{commandName}']['get']>
-export type UpdateProjectsByProjectIdCommandsByCommandNameResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/{commandName}']['put']>
-export type UpdateProjectsByProjectIdCommandsByCommandNameRequest = SafeRequestType<paths['/api/projects/{projectId}/commands/{commandName}']['put']>
-export type DeleteProjectsByProjectIdCommandsByCommandNameResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/{commandName}']['delete']>
-export type CreateProjectsByProjectIdCommandsByCommandNameExecuteResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']>
-export type CreateProjectsByProjectIdCommandsByCommandNameExecuteRequest = SafeRequestType<paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']>
-export type CreateProjectsByProjectIdCommandsGenerateResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/generate']['post']>
-export type CreateProjectsByProjectIdCommandsGenerateRequest = SafeRequestType<paths['/api/projects/{projectId}/commands/generate']['post']>
-export type CreateProjectsByProjectIdCommandsSuggestResponse = Safe200ResponseType<paths['/api/projects/{projectId}/commands/suggest']['post']>
-export type CreateProjectsByProjectIdCommandsSuggestRequest = SafeRequestType<paths['/api/projects/{projectId}/commands/suggest']['post']>
-export type ListClaudeCodeMcpStatusByProjectIdResponse = Safe200ResponseType<paths['/api/claude-code/mcp-status/{projectId}']['get']>
-export type ListClaudeCodeSessionsByProjectIdMetadataResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}/metadata']['get']>
-export type ListClaudeCodeSessionsByProjectIdRecentResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}/recent']['get']>
-export type ListClaudeCodeSessionsByProjectIdPaginatedResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}/paginated']['get']>
-export type ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}/{sessionId}/full']['get']>
-export type ListClaudeCodeSessionsByProjectIdBySessionIdResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}/{sessionId}']['get']>
-export type ListClaudeCodeSessionsByProjectIdResponse = Safe200ResponseType<paths['/api/claude-code/sessions/{projectId}']['get']>
-export type ListClaudeCodeProjectDataByProjectIdResponse = Safe200ResponseType<paths['/api/claude-code/project-data/{projectId}']['get']>
-export type CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse = Safe200ResponseType<paths['/api/claude-code/import-session/{projectId}/{sessionId}']['post']>
-export type ListClaudeHooksByProjectPathResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}']['get']>
-export type CreateClaudeHooksByProjectPathResponse = Safe201ResponseType<paths['/api/claude-hooks/{projectPath}']['post']>
-export type CreateClaudeHooksByProjectPathRequest = SafeRequestType<paths['/api/claude-hooks/{projectPath}']['post']>
-export type ListClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['get']>
-export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']>
-export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexRequest = SafeRequestType<paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']>
-export type DeleteClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['delete']>
-export type CreateClaudeHooksByProjectPathGenerateResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/generate']['post']>
-export type CreateClaudeHooksByProjectPathGenerateRequest = SafeRequestType<paths['/api/claude-hooks/{projectPath}/generate']['post']>
-export type CreateClaudeHooksByProjectPathTestResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/test']['post']>
-export type CreateClaudeHooksByProjectPathTestRequest = SafeRequestType<paths['/api/claude-hooks/{projectPath}/test']['post']>
-export type ListClaudeHooksByProjectPathSearchResponse = Safe200ResponseType<paths['/api/claude-hooks/{projectPath}/search']['get']>
-export type ListMcpInstallationDetectResponse = Safe200ResponseType<paths['/api/mcp/installation/detect']['get']>
-export type ListProjectsByProjectIdMcpInstallationStatusResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/installation/status']['get']>
-export type CreateProjectsByProjectIdMcpInstallationInstallResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/installation/install']['post']>
-export type CreateProjectsByProjectIdMcpInstallationInstallRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/installation/install']['post']>
-export type CreateProjectsByProjectIdMcpInstallationUninstallResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']>
-export type CreateProjectsByProjectIdMcpInstallationUninstallRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']>
-export type ListMcpStatusResponse = Safe200ResponseType<paths['/api/mcp/status']['get']>
-export type CreateProjectsByProjectIdMcpInstallationBatchInstallResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']>
-export type CreateProjectsByProjectIdMcpInstallationBatchInstallRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']>
-export type CreateProjectsByProjectIdMcpInstallProjectConfigResponse = Safe200ResponseType<paths['/api/projects/{projectId}/mcp/install-project-config']['post']>
-export type CreateProjectsByProjectIdMcpInstallProjectConfigRequest = SafeRequestType<paths['/api/projects/{projectId}/mcp/install-project-config']['post']>
-export type ListMcpGlobalConfigResponse = Safe200ResponseType<paths['/api/mcp/global/config']['get']>
-export type CreateMcpGlobalConfigResponse = Safe200ResponseType<paths['/api/mcp/global/config']['post']>
-export type CreateMcpGlobalConfigRequest = SafeRequestType<paths['/api/mcp/global/config']['post']>
-export type ListMcpGlobalInstallationsResponse = Safe200ResponseType<paths['/api/mcp/global/installations']['get']>
-export type CreateMcpGlobalInstallResponse = Safe200ResponseType<paths['/api/mcp/global/install']['post']>
-export type CreateMcpGlobalInstallRequest = SafeRequestType<paths['/api/mcp/global/install']['post']>
-export type CreateMcpGlobalUninstallResponse = Safe200ResponseType<paths['/api/mcp/global/uninstall']['post']>
-export type CreateMcpGlobalUninstallRequest = SafeRequestType<paths['/api/mcp/global/uninstall']['post']>
-export type ListMcpGlobalStatusResponse = Safe200ResponseType<paths['/api/mcp/global/status']['get']>
+export type CreateGenAiStreamRequest = paths['/api/gen-ai/stream']['post']['requestBody']['content']['application/json']
+export type CreateGenAiTextResponse = paths['/api/gen-ai/text']['post']['responses']['200']['content']['application/json']
+export type CreateGenAiTextRequest = paths['/api/gen-ai/text']['post']['requestBody']['content']['application/json']
+export type CreateGenAiStructuredResponse = paths['/api/gen-ai/structured']['post']['responses']['200']['content']['application/json']
+export type CreateGenAiStructuredRequest = paths['/api/gen-ai/structured']['post']['requestBody']['content']['application/json']
+export type CreateBrowseDirectorResponse = paths['/api/browse-directory']['post']['responses']['200']['content']['application/json']
+export type CreateBrowseDirectorRequest = paths['/api/browse-directory']['post']['requestBody']['content']['application/json']
+export type ListMcpServersResponse = paths['/api/mcp/servers']['get']['responses']['200']['content']['application/json']
+export type CreateMcpServersResponse = paths['/api/mcp/servers']['post']['responses']['200']['content']['application/json']
+export type CreateMcpServersRequest = paths['/api/mcp/servers']['post']['requestBody']['content']['application/json']
+export type ListMcpServersByServerIdResponse = paths['/api/mcp/servers/{serverId}']['get']['responses']['200']['content']['application/json']
+export type UpdateMcpServersByServerIdResponse = paths['/api/mcp/servers/{serverId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateMcpServersByServerIdRequest = paths['/api/mcp/servers/{serverId}']['patch']['requestBody']['content']['application/json']
+export type DeleteMcpServersByServerIdResponse = paths['/api/mcp/servers/{serverId}']['delete']['responses']['200']['content']['application/json']
+export type ListMcpToolsResponse = paths['/api/mcp/tools']['get']['responses']['200']['content']['application/json']
+export type CreateMcpToolsExecuteResponse = paths['/api/mcp/tools/execute']['post']['responses']['200']['content']['application/json']
+export type CreateMcpToolsExecuteRequest = paths['/api/mcp/tools/execute']['post']['requestBody']['content']['application/json']
+export type ListMcpResourcesResponse = paths['/api/mcp/resources']['get']['responses']['200']['content']['application/json']
+export type CreateMcpResourcesReadResponse = paths['/api/mcp/resources/read']['post']['responses']['200']['content']['application/json']
+export type CreateMcpResourcesReadRequest = paths['/api/mcp/resources/read']['post']['requestBody']['content']['application/json']
+export type ListMcpBuiltinToolsResponse = paths['/api/mcp/builtin-tools']['get']['responses']['200']['content']['application/json']
+export type CreateMcpServersByServerIdStartResponse = paths['/api/mcp/servers/{serverId}/start']['post']['responses']['200']['content']['application/json']
+export type CreateMcpServersByServerIdStopResponse = paths['/api/mcp/servers/{serverId}/stop']['post']['responses']['200']['content']['application/json']
+export type ListMcpAnalyticsResponse = paths['/api/mcp/analytics']['get']['responses']['200']['content']['application/json']
+export type ListMcpServersByServerIdStatsResponse = paths['/api/mcp/servers/{serverId}/stats']['get']['responses']['200']['content']['application/json']
+export type ListMcpToolsStatsResponse = paths['/api/mcp/tools/stats']['get']['responses']['200']['content']['application/json']
+export type ListMcpResourcesStatsResponse = paths['/api/mcp/resources/stats']['get']['responses']['200']['content']['application/json']
+export type CreateMcpAnalyticsReportResponse = paths['/api/mcp/analytics/report']['post']['responses']['200']['content']['application/json']
+export type CreateMcpAnalyticsReportRequest = paths['/api/mcp/analytics/report']['post']['requestBody']['content']['application/json']
+export type ListMcpSessionsStatsResponse = paths['/api/mcp/sessions/stats']['get']['responses']['200']['content']['application/json']
+export type ListMcpAnalyticsPerformanceResponse = paths['/api/mcp/analytics/performance']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpAnalyticsOverviewResponse = paths['/api/projects/{projectId}/mcp/analytics/overview']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpAnalyticsStatisticsResponse = paths['/api/projects/{projectId}/mcp/analytics/statistics']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpAnalyticsTimelineResponse = paths['/api/projects/{projectId}/mcp/analytics/timeline']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpAnalyticsErrorPatternsResponse = paths['/api/projects/{projectId}/mcp/analytics/error-patterns']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpAnalyticsExecutionsResponse = paths['/api/projects/{projectId}/mcp/analytics/executions']['get']['responses']['200']['content']['application/json']
+export type CreateMcpTestConnectionResponse = paths['/api/mcp/test/connection']['post']['responses']['200']['content']['application/json']
+export type CreateMcpTestConnectionRequest = paths['/api/mcp/test/connection']['post']['requestBody']['content']['application/json']
+export type CreateMcpTestInitializeResponse = paths['/api/mcp/test/initialize']['post']['responses']['200']['content']['application/json']
+export type CreateMcpTestInitializeRequest = paths['/api/mcp/test/initialize']['post']['requestBody']['content']['application/json']
+export type CreateMcpTestToolResponse = paths['/api/mcp/test/tool']['post']['responses']['200']['content']['application/json']
+export type CreateMcpTestToolRequest = paths['/api/mcp/test/tool']['post']['requestBody']['content']['application/json']
+export type CreateMcpTestValidateConfigResponse = paths['/api/mcp/test/validate-config']['post']['responses']['200']['content']['application/json']
+export type CreateMcpTestValidateConfigRequest = paths['/api/mcp/test/validate-config']['post']['requestBody']['content']['application/json']
+export type CreateMcpTestDebugResponse = paths['/api/mcp/test/debug']['post']['responses']['200']['content']['application/json']
+export type CreateMcpTestDebugRequest = paths['/api/mcp/test/debug']['post']['requestBody']['content']['application/json']
+export type ListMcpSessionsResponse = paths['/api/mcp/sessions']['get']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsResponse = paths['/api/mcp/sessions']['post']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsRequest = paths['/api/mcp/sessions']['post']['requestBody']['content']['application/json']
+export type ListMcpSessionsBySessionIdResponse = paths['/api/mcp/sessions/{sessionId}']['get']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsBySessionIdCloseResponse = paths['/api/mcp/sessions/{sessionId}/close']['post']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsBySessionIdCloseRequest = paths['/api/mcp/sessions/{sessionId}/close']['post']['requestBody']['content']['application/json']
+export type CreateMcpSessionsBySessionIdRefreshResponse = paths['/api/mcp/sessions/{sessionId}/refresh']['post']['responses']['200']['content']['application/json']
+export type ListMcpSessionsBySessionIdHistoryResponse = paths['/api/mcp/sessions/{sessionId}/history']['get']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsCleanupResponse = paths['/api/mcp/sessions/cleanup']['post']['responses']['200']['content']['application/json']
+export type CreateMcpSessionsCleanupRequest = paths['/api/mcp/sessions/cleanup']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdGitStatusResponse = paths['/api/projects/{projectId}/git/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStageResponse = paths['/api/projects/{projectId}/git/stage']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStageRequest = paths['/api/projects/{projectId}/git/stage']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitUnstageResponse = paths['/api/projects/{projectId}/git/unstage']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitUnstageRequest = paths['/api/projects/{projectId}/git/unstage']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitStageAllResponse = paths['/api/projects/{projectId}/git/stage-all']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitUnstageAllResponse = paths['/api/projects/{projectId}/git/unstage-all']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitCommitResponse = paths['/api/projects/{projectId}/git/commit']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitCommitRequest = paths['/api/projects/{projectId}/git/commit']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdGitLogResponse = paths['/api/projects/{projectId}/git/log']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitLogEnhancedResponse = paths['/api/projects/{projectId}/git/log-enhanced']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitCommitsByCommitHashResponse = paths['/api/projects/{projectId}/git/commits/{commitHash}']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitDiffResponse = paths['/api/projects/{projectId}/git/diff']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitBranchesResponse = paths['/api/projects/{projectId}/git/branches']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitBranchesResponse = paths['/api/projects/{projectId}/git/branches']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitBranchesRequest = paths['/api/projects/{projectId}/git/branches']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdGitBranchesEnhancedResponse = paths['/api/projects/{projectId}/git/branches-enhanced']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitBranchesSwitchResponse = paths['/api/projects/{projectId}/git/branches/switch']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitBranchesSwitchRequest = paths['/api/projects/{projectId}/git/branches/switch']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByProjectIdGitBranchesByBranchNameResponse = paths['/api/projects/{projectId}/git/branches/{branchName}']['delete']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashRequest = paths['/api/projects/{projectId}/git/stash']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['delete']['responses']['200']['content']['application/json']
+export type DeleteProjectsByProjectIdGitStashRequest = paths['/api/projects/{projectId}/git/stash']['delete']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashApplyResponse = paths['/api/projects/{projectId}/git/stash/apply']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashApplyRequest = paths['/api/projects/{projectId}/git/stash/apply']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashPopResponse = paths['/api/projects/{projectId}/git/stash/pop']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitStashPopRequest = paths['/api/projects/{projectId}/git/stash/pop']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['post']['responses']['201']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesRequest = paths['/api/projects/{projectId}/git/worktrees']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['delete']['responses']['200']['content']['application/json']
+export type DeleteProjectsByProjectIdGitWorktreesRequest = paths['/api/projects/{projectId}/git/worktrees']['delete']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesLockResponse = paths['/api/projects/{projectId}/git/worktrees/lock']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesLockRequest = paths['/api/projects/{projectId}/git/worktrees/lock']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesUnlockResponse = paths['/api/projects/{projectId}/git/worktrees/unlock']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesUnlockRequest = paths['/api/projects/{projectId}/git/worktrees/unlock']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitWorktreesPruneResponse = paths['/api/projects/{projectId}/git/worktrees/prune']['post']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdGitRemotesResponse = paths['/api/projects/{projectId}/git/remotes']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitPushResponse = paths['/api/projects/{projectId}/git/push']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitPushRequest = paths['/api/projects/{projectId}/git/push']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitFetchResponse = paths['/api/projects/{projectId}/git/fetch']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitFetchRequest = paths['/api/projects/{projectId}/git/fetch']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitPullResponse = paths['/api/projects/{projectId}/git/pull']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitPullRequest = paths['/api/projects/{projectId}/git/pull']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdGitTagsResponse = paths['/api/projects/{projectId}/git/tags']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitTagsResponse = paths['/api/projects/{projectId}/git/tags']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitTagsRequest = paths['/api/projects/{projectId}/git/tags']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdGitResetResponse = paths['/api/projects/{projectId}/git/reset']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdGitResetRequest = paths['/api/projects/{projectId}/git/reset']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdActiveTabResponse = paths['/api/projects/{projectId}/active-tab']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdActiveTabResponse = paths['/api/projects/{projectId}/active-tab']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdActiveTabRequest = paths['/api/projects/{projectId}/active-tab']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByProjectIdActiveTabResponse = paths['/api/projects/{projectId}/active-tab']['delete']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpConfigRequest = paths['/api/projects/{projectId}/mcp/config']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdMcpConfigLocationsResponse = paths['/api/projects/{projectId}/mcp/config/locations']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpConfigMergedResponse = paths['/api/projects/{projectId}/mcp/config/merged']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpConfigExpandedResponse = paths['/api/projects/{projectId}/mcp/config/expanded']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpConfigSaveToLocationResponse = paths['/api/projects/{projectId}/mcp/config/save-to-location']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpConfigSaveToLocationRequest = paths['/api/projects/{projectId}/mcp/config/save-to-location']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdMcpConfigDefaultForLocationResponse = paths['/api/projects/{projectId}/mcp/config/default-for-location']['get']['responses']['200']['content']['application/json']
+export type CreateProjectTabsByTabIdGenerateNameResponse = paths['/api/project-tabs/{tabId}/generate-name']['post']['responses']['200']['content']['application/json']
+export type CreateProjectTabsByTabIdGenerateNameRequest = paths['/api/project-tabs/{tabId}/generate-name']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdAgentFilesDetectResponse = paths['/api/projects/{projectId}/agent-files/detect']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesUpdateResponse = paths['/api/projects/{projectId}/agent-files/update']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesUpdateRequest = paths['/api/projects/{projectId}/agent-files/update']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsResponse = paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsRequest = paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdAgentFilesStatusResponse = paths['/api/projects/{projectId}/agent-files/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesCreateResponse = paths['/api/projects/{projectId}/agent-files/create']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdAgentFilesCreateRequest = paths['/api/projects/{projectId}/agent-files/create']['post']['requestBody']['content']['application/json']
+export type GetAgentsResponse = paths['/api/agents']['get']['responses']['200']['content']['application/json']
+export type CreateAgentResponse = paths['/api/agents']['post']['responses']['201']['content']['application/json']
+export type CreateAgentRequest = paths['/api/agents']['post']['requestBody']['content']['application/json']
+export type GetAgentResponse = paths['/api/agents/{agentId}']['get']['responses']['200']['content']['application/json']
+export type UpdateAgentResponse = paths['/api/agents/{agentId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateAgentRequest = paths['/api/agents/{agentId}']['patch']['requestBody']['content']['application/json']
+export type DeleteAgentResponse = paths['/api/agents/{agentId}']['delete']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdCommandsResponse = paths['/api/projects/{projectId}/commands']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsResponse = paths['/api/projects/{projectId}/commands']['post']['responses']['201']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsRequest = paths['/api/projects/{projectId}/commands']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['put']['responses']['200']['content']['application/json']
+export type UpdateProjectsByProjectIdCommandsByCommandNameRequest = paths['/api/projects/{projectId}/commands/{commandName}']['put']['requestBody']['content']['application/json']
+export type DeleteProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['delete']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsByCommandNameExecuteResponse = paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsByCommandNameExecuteRequest = paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsGenerateResponse = paths['/api/projects/{projectId}/commands/generate']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsGenerateRequest = paths['/api/projects/{projectId}/commands/generate']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsSuggestResponse = paths['/api/projects/{projectId}/commands/suggest']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdCommandsSuggestRequest = paths['/api/projects/{projectId}/commands/suggest']['post']['requestBody']['content']['application/json']
+export type ListClaudeCodeMcpStatusByProjectIdResponse = paths['/api/claude-code/mcp-status/{projectId}']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdMetadataResponse = paths['/api/claude-code/sessions/{projectId}/metadata']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdRecentResponse = paths['/api/claude-code/sessions/{projectId}/recent']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdPaginatedResponse = paths['/api/claude-code/sessions/{projectId}/paginated']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}/full']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdBySessionIdResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeSessionsByProjectIdResponse = paths['/api/claude-code/sessions/{projectId}']['get']['responses']['200']['content']['application/json']
+export type ListClaudeCodeProjectDataByProjectIdResponse = paths['/api/claude-code/project-data/{projectId}']['get']['responses']['200']['content']['application/json']
+export type CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse = paths['/api/claude-code/import-session/{projectId}/{sessionId}']['post']['responses']['200']['content']['application/json']
+export type GetClaudeHookResponse = paths['/api/claude-hooks/{projectPath}']['get']['responses']['200']['content']['application/json']
+export type CreateClaudeHookResponse = paths['/api/claude-hooks/{projectPath}']['post']['responses']['201']['content']['application/json']
+export type CreateClaudeHookRequest = paths['/api/claude-hooks/{projectPath}']['post']['requestBody']['content']['application/json']
+export type ListClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['get']['responses']['200']['content']['application/json']
+export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']['responses']['200']['content']['application/json']
+export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexRequest = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']['requestBody']['content']['application/json']
+export type DeleteClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['delete']['responses']['200']['content']['application/json']
+export type CreateClaudeHooksByProjectPathGenerateResponse = paths['/api/claude-hooks/{projectPath}/generate']['post']['responses']['200']['content']['application/json']
+export type CreateClaudeHooksByProjectPathGenerateRequest = paths['/api/claude-hooks/{projectPath}/generate']['post']['requestBody']['content']['application/json']
+export type CreateClaudeHooksByProjectPathTestResponse = paths['/api/claude-hooks/{projectPath}/test']['post']['responses']['200']['content']['application/json']
+export type CreateClaudeHooksByProjectPathTestRequest = paths['/api/claude-hooks/{projectPath}/test']['post']['requestBody']['content']['application/json']
+export type ListClaudeHooksByProjectPathSearchResponse = paths['/api/claude-hooks/{projectPath}/search']['get']['responses']['200']['content']['application/json']
+export type ListMcpInstallationDetectResponse = paths['/api/mcp/installation/detect']['get']['responses']['200']['content']['application/json']
+export type ListProjectsByProjectIdMcpInstallationStatusResponse = paths['/api/projects/{projectId}/mcp/installation/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationInstallResponse = paths['/api/projects/{projectId}/mcp/installation/install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationInstallRequest = paths['/api/projects/{projectId}/mcp/installation/install']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationUninstallResponse = paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationUninstallRequest = paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']['requestBody']['content']['application/json']
+export type ListMcpStatusResponse = paths['/api/mcp/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationBatchInstallResponse = paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallationBatchInstallRequest = paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallProjectConfigResponse = paths['/api/projects/{projectId}/mcp/install-project-config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByProjectIdMcpInstallProjectConfigRequest = paths['/api/projects/{projectId}/mcp/install-project-config']['post']['requestBody']['content']['application/json']
+export type ListMcpGlobalConfigResponse = paths['/api/mcp/global/config']['get']['responses']['200']['content']['application/json']
+export type CreateMcpGlobalConfigResponse = paths['/api/mcp/global/config']['post']['responses']['200']['content']['application/json']
+export type CreateMcpGlobalConfigRequest = paths['/api/mcp/global/config']['post']['requestBody']['content']['application/json']
+export type ListMcpGlobalInstallationsResponse = paths['/api/mcp/global/installations']['get']['responses']['200']['content']['application/json']
+export type CreateMcpGlobalInstallResponse = paths['/api/mcp/global/install']['post']['responses']['200']['content']['application/json']
+export type CreateMcpGlobalInstallRequest = paths['/api/mcp/global/install']['post']['requestBody']['content']['application/json']
+export type CreateMcpGlobalUninstallResponse = paths['/api/mcp/global/uninstall']['post']['responses']['200']['content']['application/json']
+export type CreateMcpGlobalUninstallRequest = paths['/api/mcp/global/uninstall']['post']['requestBody']['content']['application/json']
+export type ListMcpGlobalStatusResponse = paths['/api/mcp/global/status']['get']['responses']['200']['content']['application/json']
 
 
 /**
@@ -451,7 +434,7 @@ export class TypeSafeApiClient {
       }
 
       const responseText = await response.text()
-      return responseText ? JSON.parse(responseText) : ({} as T)
+      return responseText ? JSON.parse(responseText) : undefined
     } catch (e) {
       clearTimeout(timeoutId)
       if (e instanceof Error && e.name === 'AbortError') {
@@ -500,8 +483,8 @@ export class TypeSafeApiClient {
   /**
    * Create a new chat session
    */
-  async createChats(data: CreateChatsRequest, options?: { timeout?: number }): Promise<CreateChatsResponse> {
-    return this.request<CreateChatsResponse>('POST', `/api/chats`, { body: data, timeout: options?.timeout })
+  async createChat(data: CreateChatRequest, options?: { timeout?: number }): Promise<CreateChatResponse> {
+    return this.request<CreateChatResponse>('POST', `/api/chats`, { body: data, timeout: options?.timeout })
   }
 
   /**
@@ -528,15 +511,15 @@ export class TypeSafeApiClient {
   /**
    * Update chat properties (e.g., title)
    */
-  async updateChatsByChatId(chatId: string | number, data: UpdateChatsByChatIdRequest, options?: { timeout?: number }): Promise<UpdateChatsByChatIdResponse> {
-    return this.request<UpdateChatsByChatIdResponse>('PATCH', this.buildPath(`/api/chats/{chatId}`, { chatId }), { body: data, timeout: options?.timeout })
+  async updateChat(chatId: string | number, data: UpdateChatRequest, options?: { timeout?: number }): Promise<UpdateChatResponse> {
+    return this.request<UpdateChatResponse>('PATCH', this.buildPath(`/api/chats/{chatId}`, { chatId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a chat session and its messages
    */
-  async deleteChatsByChatId(chatId: string | number, options?: { timeout?: number }): Promise<DeleteChatsByChatIdResponse> {
-    return this.request<DeleteChatsByChatIdResponse>('DELETE', this.buildPath(`/api/chats/{chatId}`, { chatId }), { timeout: options?.timeout })
+  async deleteChat(chatId: string | number, options?: { timeout?: number }): Promise<DeleteChatResponse> {
+    return this.request<DeleteChatResponse>('DELETE', this.buildPath(`/api/chats/{chatId}`, { chatId }), { timeout: options?.timeout })
   }
 
 
@@ -572,8 +555,8 @@ export class TypeSafeApiClient {
   /**
    * Update provider settings
    */
-  async createProviderSettings(data: CreateProviderSettingsRequest, options?: { timeout?: number }): Promise<CreateProviderSettingsResponse> {
-    return this.request<CreateProviderSettingsResponse>('POST', `/api/provider-settings`, { body: data, timeout: options?.timeout })
+  async createProviderSetting(data: CreateProviderSettingRequest, options?: { timeout?: number }): Promise<CreateProviderSettingResponse> {
+    return this.request<CreateProviderSettingResponse>('POST', `/api/provider-settings`, { body: data, timeout: options?.timeout })
   }
 
 
@@ -597,29 +580,29 @@ export class TypeSafeApiClient {
   /**
    * Create a new project and sync its files
    */
-  async createProjects(data: CreateProjectsRequest, options?: { timeout?: number }): Promise<CreateProjectsResponse> {
-    return this.request<CreateProjectsResponse>('POST', `/api/projects`, { body: data, timeout: options?.timeout })
+  async createProject(data: CreateProjectRequest, options?: { timeout?: number }): Promise<CreateProjectResponse> {
+    return this.request<CreateProjectResponse>('POST', `/api/projects`, { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a specific project by ID
    */
-  async listProjectsByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdResponse> {
-    return this.request<ListProjectsByProjectIdResponse>('GET', this.buildPath(`/api/projects/{projectId}`, { projectId }), { timeout: options?.timeout })
+  async getProject(projectId: string | number, options?: { timeout?: number }): Promise<GetProjectResponse> {
+    return this.request<GetProjectResponse>('GET', this.buildPath(`/api/projects/{projectId}`, { projectId }), { timeout: options?.timeout })
   }
 
   /**
    * Update a project's details
    */
-  async updateProjectsByProjectId(projectId: string | number, data: UpdateProjectsByProjectIdRequest, options?: { timeout?: number }): Promise<UpdateProjectsByProjectIdResponse> {
-    return this.request<UpdateProjectsByProjectIdResponse>('PATCH', this.buildPath(`/api/projects/{projectId}`, { projectId }), { body: data, timeout: options?.timeout })
+  async updateProject(projectId: string | number, data: UpdateProjectRequest, options?: { timeout?: number }): Promise<UpdateProjectResponse> {
+    return this.request<UpdateProjectResponse>('PATCH', this.buildPath(`/api/projects/{projectId}`, { projectId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a project and its associated data
    */
-  async deleteProjectsByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdResponse> {
-    return this.request<DeleteProjectsByProjectIdResponse>('DELETE', this.buildPath(`/api/projects/{projectId}`, { projectId }), { timeout: options?.timeout })
+  async deleteProject(projectId: string | number, options?: { timeout?: number }): Promise<DeleteProjectResponse> {
+    return this.request<DeleteProjectResponse>('DELETE', this.buildPath(`/api/projects/{projectId}`, { projectId }), { timeout: options?.timeout })
   }
 
   /**
@@ -851,29 +834,29 @@ export class TypeSafeApiClient {
   /**
    * Create a new prompt
    */
-  async createPrompts(data: CreatePromptsRequest, options?: { timeout?: number }): Promise<CreatePromptsResponse> {
-    return this.request<CreatePromptsResponse>('POST', `/api/prompts`, { body: data, timeout: options?.timeout })
+  async createPrompt(data: CreatePromptRequest, options?: { timeout?: number }): Promise<CreatePromptResponse> {
+    return this.request<CreatePromptResponse>('POST', `/api/prompts`, { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a specific prompt by its ID
    */
-  async listPromptsByPromptId(promptId: string | number, options?: { timeout?: number }): Promise<ListPromptsByPromptIdResponse> {
-    return this.request<ListPromptsByPromptIdResponse>('GET', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { timeout: options?.timeout })
+  async getPrompt(promptId: string | number, options?: { timeout?: number }): Promise<GetPromptResponse> {
+    return this.request<GetPromptResponse>('GET', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { timeout: options?.timeout })
   }
 
   /**
    * Update a prompt's details
    */
-  async updatePromptsByPromptId(promptId: string | number, data: UpdatePromptsByPromptIdRequest, options?: { timeout?: number }): Promise<UpdatePromptsByPromptIdResponse> {
-    return this.request<UpdatePromptsByPromptIdResponse>('PATCH', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { body: data, timeout: options?.timeout })
+  async updatePrompt(promptId: string | number, data: UpdatePromptRequest, options?: { timeout?: number }): Promise<UpdatePromptResponse> {
+    return this.request<UpdatePromptResponse>('PATCH', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a prompt
    */
-  async deletePromptsByPromptId(promptId: string | number, options?: { timeout?: number }): Promise<DeletePromptsByPromptIdResponse> {
-    return this.request<DeletePromptsByPromptIdResponse>('DELETE', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { timeout: options?.timeout })
+  async deletePrompt(promptId: string | number, options?: { timeout?: number }): Promise<DeletePromptResponse> {
+    return this.request<DeletePromptResponse>('DELETE', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { timeout: options?.timeout })
   }
 
   /**
@@ -909,29 +892,29 @@ export class TypeSafeApiClient {
   /**
    * Add a new API key for an AI provider
    */
-  async createKeys(data: CreateKeysRequest, options?: { timeout?: number }): Promise<CreateKeysResponse> {
-    return this.request<CreateKeysResponse>('POST', `/api/keys`, { body: data, timeout: options?.timeout })
+  async createKey(data: CreateKeyRequest, options?: { timeout?: number }): Promise<CreateKeyResponse> {
+    return this.request<CreateKeyResponse>('POST', `/api/keys`, { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a specific provider key by ID (including secret)
    */
-  async listKeysByKeyId(keyId: string | number, options?: { timeout?: number }): Promise<ListKeysByKeyIdResponse> {
-    return this.request<ListKeysByKeyIdResponse>('GET', this.buildPath(`/api/keys/{keyId}`, { keyId }), { timeout: options?.timeout })
+  async getKey(keyId: string | number, options?: { timeout?: number }): Promise<GetKeyResponse> {
+    return this.request<GetKeyResponse>('GET', this.buildPath(`/api/keys/{keyId}`, { keyId }), { timeout: options?.timeout })
   }
 
   /**
    * Update a provider key's details
    */
-  async updateKeysByKeyId(keyId: string | number, data: UpdateKeysByKeyIdRequest, options?: { timeout?: number }): Promise<UpdateKeysByKeyIdResponse> {
-    return this.request<UpdateKeysByKeyIdResponse>('PATCH', this.buildPath(`/api/keys/{keyId}`, { keyId }), { body: data, timeout: options?.timeout })
+  async updateKey(keyId: string | number, data: UpdateKeyRequest, options?: { timeout?: number }): Promise<UpdateKeyResponse> {
+    return this.request<UpdateKeyResponse>('PATCH', this.buildPath(`/api/keys/{keyId}`, { keyId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a provider key
    */
-  async deleteKeysByKeyId(keyId: string | number, options?: { timeout?: number }): Promise<DeleteKeysByKeyIdResponse> {
-    return this.request<DeleteKeysByKeyIdResponse>('DELETE', this.buildPath(`/api/keys/{keyId}`, { keyId }), { timeout: options?.timeout })
+  async deleteKey(keyId: string | number, options?: { timeout?: number }): Promise<DeleteKeyResponse> {
+    return this.request<DeleteKeyResponse>('DELETE', this.buildPath(`/api/keys/{keyId}`, { keyId }), { timeout: options?.timeout })
   }
 
   /**
@@ -978,29 +961,29 @@ export class TypeSafeApiClient {
   /**
    * Create a new ticket
    */
-  async createTickets(data: CreateTicketsRequest, options?: { timeout?: number }): Promise<CreateTicketsResponse> {
-    return this.request<CreateTicketsResponse>('POST', `/api/tickets`, { body: data, timeout: options?.timeout })
+  async createTicket(data: CreateTicketRequest, options?: { timeout?: number }): Promise<CreateTicketResponse> {
+    return this.request<CreateTicketResponse>('POST', `/api/tickets`, { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a ticket by ID
    */
-  async listTicketsByTicketId(ticketId: string | number, options?: { timeout?: number }): Promise<ListTicketsByTicketIdResponse> {
-    return this.request<ListTicketsByTicketIdResponse>('GET', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { timeout: options?.timeout })
+  async getTicket(ticketId: string | number, options?: { timeout?: number }): Promise<GetTicketResponse> {
+    return this.request<GetTicketResponse>('GET', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { timeout: options?.timeout })
   }
 
   /**
    * Update a ticket
    */
-  async updateTicketsByTicketId(ticketId: string | number, data: UpdateTicketsByTicketIdRequest, options?: { timeout?: number }): Promise<UpdateTicketsByTicketIdResponse> {
-    return this.request<UpdateTicketsByTicketIdResponse>('PATCH', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { body: data, timeout: options?.timeout })
+  async updateTicket(ticketId: string | number, data: UpdateTicketRequest, options?: { timeout?: number }): Promise<UpdateTicketResponse> {
+    return this.request<UpdateTicketResponse>('PATCH', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a ticket
    */
-  async deleteTicketsByTicketId(ticketId: string | number, options?: { timeout?: number }): Promise<DeleteTicketsByTicketIdResponse> {
-    return this.request<DeleteTicketsByTicketIdResponse>('DELETE', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { timeout: options?.timeout })
+  async deleteTicket(ticketId: string | number, options?: { timeout?: number }): Promise<DeleteTicketResponse> {
+    return this.request<DeleteTicketResponse>('DELETE', this.buildPath(`/api/tickets/{ticketId}`, { ticketId }), { timeout: options?.timeout })
   }
 
   /**
@@ -1201,8 +1184,8 @@ export class TypeSafeApiClient {
   /**
    * Browse directories on the file system
    */
-  async createBrowseDirectory(data: CreateBrowseDirectoryRequest, options?: { timeout?: number }): Promise<CreateBrowseDirectoryResponse> {
-    return this.request<CreateBrowseDirectoryResponse>('POST', `/api/browse-directory`, { body: data, timeout: options?.timeout })
+  async createBrowseDirector(data: CreateBrowseDirectorRequest, options?: { timeout?: number }): Promise<CreateBrowseDirectorResponse> {
+    return this.request<CreateBrowseDirectorResponse>('POST', `/api/browse-directory`, { body: data, timeout: options?.timeout })
   }
 
 
@@ -1822,29 +1805,29 @@ export class TypeSafeApiClient {
   /**
    * Create a new Claude agent
    */
-  async createAgents(data: CreateAgentsRequest, query?: { projectId?: any }, options?: { timeout?: number }): Promise<CreateAgentsResponse> {
-    return this.request<CreateAgentsResponse>('POST', `/api/agents`, { params: query, body: data, timeout: options?.timeout })
+  async createAgent(data: CreateAgentRequest, query?: { projectId?: any }, options?: { timeout?: number }): Promise<CreateAgentResponse> {
+    return this.request<CreateAgentResponse>('POST', `/api/agents`, { params: query, body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a specific Claude agent by its ID
    */
-  async listAgentsByAgentId(agentId: string | number, query?: { projectId?: any }, options?: { timeout?: number }): Promise<ListAgentsByAgentIdResponse> {
-    return this.request<ListAgentsByAgentIdResponse>('GET', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, timeout: options?.timeout })
+  async getAgent(agentId: string | number, query?: { projectId?: any }, options?: { timeout?: number }): Promise<GetAgentResponse> {
+    return this.request<GetAgentResponse>('GET', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Update a Claude agent's details
    */
-  async updateAgentsByAgentId(agentId: string | number, data: UpdateAgentsByAgentIdRequest, query?: { projectId?: any }, options?: { timeout?: number }): Promise<UpdateAgentsByAgentIdResponse> {
-    return this.request<UpdateAgentsByAgentIdResponse>('PATCH', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, body: data, timeout: options?.timeout })
+  async updateAgent(agentId: string | number, data: UpdateAgentRequest, query?: { projectId?: any }, options?: { timeout?: number }): Promise<UpdateAgentResponse> {
+    return this.request<UpdateAgentResponse>('PATCH', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a Claude agent
    */
-  async deleteAgentsByAgentId(agentId: string | number, query?: { projectId?: any }, options?: { timeout?: number }): Promise<DeleteAgentsByAgentIdResponse> {
-    return this.request<DeleteAgentsByAgentIdResponse>('DELETE', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, timeout: options?.timeout })
+  async deleteAgent(agentId: string | number, query?: { projectId?: any }, options?: { timeout?: number }): Promise<DeleteAgentResponse> {
+    return this.request<DeleteAgentResponse>('DELETE', this.buildPath(`/api/agents/{agentId}`, { agentId }), { params: query, timeout: options?.timeout })
   }
 
 
@@ -1975,15 +1958,15 @@ export class TypeSafeApiClient {
   /**
    * List all hooks for a project
    */
-  async listClaudeHooksByProjectPath(projectPath: string | number, options?: { timeout?: number }): Promise<ListClaudeHooksByProjectPathResponse> {
-    return this.request<ListClaudeHooksByProjectPathResponse>('GET', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { timeout: options?.timeout })
+  async getClaudeHook(projectPath: string | number, options?: { timeout?: number }): Promise<GetClaudeHookResponse> {
+    return this.request<GetClaudeHookResponse>('GET', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { timeout: options?.timeout })
   }
 
   /**
    * Create new hook
    */
-  async createClaudeHooksByProjectPath(projectPath: string | number, data: CreateClaudeHooksByProjectPathRequest, options?: { timeout?: number }): Promise<CreateClaudeHooksByProjectPathResponse> {
-    return this.request<CreateClaudeHooksByProjectPathResponse>('POST', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { body: data, timeout: options?.timeout })
+  async createClaudeHook(projectPath: string | number, data: CreateClaudeHookRequest, options?: { timeout?: number }): Promise<CreateClaudeHookResponse> {
+    return this.request<CreateClaudeHookResponse>('POST', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { body: data, timeout: options?.timeout })
   }
 
   /**

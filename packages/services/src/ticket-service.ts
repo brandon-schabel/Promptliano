@@ -418,6 +418,9 @@ export const {
   search: searchTickets
 } = ticketService
 
+// Legacy export aliases for backward compatibility
+export const listTicketsWithTaskCount = getTicketsWithStats
+
 export const {
   create: createTask,
   getById: getTaskById,

@@ -90,8 +90,47 @@ function pathToMethodName(path: string, method: string): string {
   }
   
   // Split by slashes and parameters
-  const parts = cleanPath
-    .split('/')
+  const pathSegments = cleanPath.split('/').filter(segment => segment.length > 0)
+  
+  // Check if this is a simple CRUD operation
+  const isSingleResourceCrud = pathSegments.length === 2 && 
+    (pathSegments[1].startsWith('{') || pathSegments[1].startsWith(':'))
+  
+  const isCollectionCrud = pathSegments.length === 1
+  
+  // For CRUD operations, use clean method names
+  if (isSingleResourceCrud || isCollectionCrud) {
+    const entityName = pathSegments[0]
+    const cleanEntityName = entityName
+      .split('-')
+      .map((word, index) => 
+        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
+      .join('')
+    
+    // Create clean CRUD method names
+    if (method === 'GET') {
+      if (isSingleResourceCrud) {
+        // GET /projects/{id} -> getProject  
+        return 'get' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1) // Remove trailing 's'
+      } else {
+        // GET /projects -> getProjects (keep plural for collections)
+        return 'get' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1)
+      }
+    } else if (method === 'POST') {
+      // POST /projects -> createProject (singular)
+      return 'create' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1)
+    } else if (method === 'PUT' || method === 'PATCH') {
+      // PATCH /projects/{id} -> updateProject
+      return 'update' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1)
+    } else if (method === 'DELETE') {
+      // DELETE /projects/{id} -> deleteProject  
+      return 'delete' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1)
+    }
+  }
+  
+  // For complex paths, use the original logic
+  const parts = pathSegments
     .map(part => {
       // Convert path parameters {id} to ById, {name} to ByName
       if (part.startsWith('{') && part.endsWith('}')) {
@@ -111,7 +150,6 @@ function pathToMethodName(path: string, method: string): string {
         )
         .join('')
     })
-    .filter(part => part.length > 0)
 
   // Create method name based on HTTP method
   let methodName = method.toLowerCase()

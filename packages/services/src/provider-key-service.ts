@@ -1,4 +1,4 @@
-import { providerKeyRepository, eq } from '@promptliano/database'
+import { eq } from '@promptliano/database'
 import {
   type ProviderKey,
   type InsertProviderKey as CreateProviderKeyInput,
@@ -35,6 +35,12 @@ export type CreateProviderKeyInput = z.infer<typeof CreateProviderKeyInputSchema
  * using repository pattern with Drizzle ORM.
  */
 export function createProviderKeyService() {
+  // Lazy import to avoid circular dependency
+  const getRepository = async () => {
+    const { providerKeyRepository } = await import('@promptliano/database')
+    return providerKeyRepository
+  }
+
   async function createKey(data: CreateProviderKeyInput): Promise<ProviderKey> {
     return withErrorContext(
       async () => {
@@ -42,8 +48,9 @@ export function createProviderKeyService() {
 
         // If this new key is set to default, unset other defaults for the same provider
         if (data.isDefault) {
-          const existingDefaultKeys = await providerKeyRepository.findWhere(
-            eq(providerKeyRepository.getTable().provider, data.provider)
+          const repository = await getRepository()
+          const existingDefaultKeys = await repository.findWhere(
+            eq(repository.getTable().provider, data.provider)
           )
           
           // Update all existing default keys for this provider to not be default
@@ -51,7 +58,7 @@ export function createProviderKeyService() {
           if (defaultKeys.length > 0) {
             await Promise.all(
               defaultKeys.map(key =>
-                providerKeyRepository.update(key.id, { isDefault: false })
+                repository.update(key.id, { isDefault: false })
               )
             )
           }
@@ -79,7 +86,8 @@ export function createProviderKeyService() {
         }
 
         // Create the key using repository (ID, createdAt, updatedAt handled automatically)
-        const createdKey = await providerKeyRepository.create(newKeyData)
+        const repository = await getRepository()
+        const createdKey = await repository.create(newKeyData)
 
         // Return the key with decrypted value
         return { ...createdKey, key: data.key }
@@ -92,7 +100,8 @@ export function createProviderKeyService() {
     return withErrorContext(
       async () => {
         // Get all keys from repository (already sorted by createdAt desc)
-        const allKeys = await providerKeyRepository.getAll('desc')
+        const repository = await getRepository()
+        const allKeys = await repository.getAll('desc')
         
         const keyList = allKeys.map((key) => {
           // For encrypted keys, we don't decrypt them, just show a generic mask
@@ -125,7 +134,8 @@ export function createProviderKeyService() {
     return withErrorContext(
       async () => {
         // Get all keys from repository (already sorted by createdAt desc)
-        const allKeys = await providerKeyRepository.getAll('desc')
+        const repository = await getRepository()
+        const allKeys = await repository.getAll('desc')
         
         const keyList = await Promise.all(
           allKeys.map(async (key) => {
@@ -186,7 +196,8 @@ export function createProviderKeyService() {
   async function getKeyById(id: number): Promise<ProviderKey | null> {
     return withErrorContext(
       async () => {
-        const foundKeyData = await providerKeyRepository.getById(id)
+        const repository = await getRepository()
+        const foundKeyData = await repository.getById(id)
 
         if (!foundKeyData) {
           return null
@@ -218,14 +229,15 @@ export function createProviderKeyService() {
     return withErrorContext(
       async () => {
         // First, get the existing key to verify it exists
-        const existingKey = await providerKeyRepository.getById(id)
+        const repository = await getRepository()
+        const existingKey = await repository.getById(id)
         assertExists(existingKey, 'Provider Key', id)
 
         // If this key is being set to default, unset other defaults for the same provider
         const targetProvider = data.provider ?? existingKey.provider
         if (data.isDefault === true && existingKey.provider === targetProvider) {
-          const existingDefaultKeys = await providerKeyRepository.findWhere(
-            eq(providerKeyRepository.getTable().provider, targetProvider)
+          const existingDefaultKeys = await repository.findWhere(
+            eq(repository.getTable().provider, targetProvider)
           )
           
           // Update all existing default keys for this provider to not be default (except current key)
@@ -233,7 +245,7 @@ export function createProviderKeyService() {
           if (defaultKeys.length > 0) {
             await Promise.all(
               defaultKeys.map(key =>
-                providerKeyRepository.update(key.id, { isDefault: false })
+                repository.update(key.id, { isDefault: false })
               )
             )
           }
@@ -267,7 +279,7 @@ export function createProviderKeyService() {
         }
 
         // Update the key using repository
-        const updatedKey = await providerKeyRepository.update(id, updateData)
+        const updatedKey = await repository.update(id, updateData)
 
         // Return the key with decrypted value if we have a new key or if it's encrypted
         if (data.key) {
@@ -299,13 +311,14 @@ export function createProviderKeyService() {
     return withErrorContext(
       async () => {
         // Check if key exists first
-        const keyExists = await providerKeyRepository.exists(id)
+        const repository = await getRepository()
+        const keyExists = await repository.exists(id)
         if (!keyExists) {
           return false // Key not found, nothing to delete
         }
 
         // Delete the key using repository
-        const deleted = await providerKeyRepository.delete(id)
+        const deleted = await repository.delete(id)
         return deleted
       },
       { entity: 'ProviderKey', action: 'delete', id }
