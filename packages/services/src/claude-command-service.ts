@@ -357,6 +357,7 @@ export const claudeCommandService = createClaudeCommandService()
 
 // Export individual functions for tree-shaking
 export {
+  createCommand,
   listCommands,
   getCommandByName,
   updateCommand,

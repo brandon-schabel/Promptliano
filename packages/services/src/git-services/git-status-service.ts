@@ -1,5 +1,6 @@
 import type { StatusResult, FileStatusResult } from 'simple-git'
-import type { GitStatus, GitFileStatus, GitStatusResult, GitFileStatusType } from '@promptliano/schemas'
+import type { GitStatus, GitFileStatus } from '@promptliano/database'
+import type { GitStatusResult, GitFileStatusType } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 import { BaseGitService } from './base-git-service'
 import { retryOperation } from '../utils/retry-operation'

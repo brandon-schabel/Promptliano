@@ -11,7 +11,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import { ErrorFactory, ApiError, promptsMap } from '@promptliano/shared'
 import { projectRepository } from '@promptliano/database'
 import { 
   type Project, 
@@ -20,9 +20,17 @@ import {
   type File as ProjectFile,
   ProjectSchema 
 } from '@promptliano/database'
+import { z } from 'zod'
+import { generateStructuredData } from './gen-ai-services'
+import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
 // Import file service for delegation
 import { fileService } from './file-service'
+
+// Schema for AI summarization requests
+const FileSummarizationSchema = z.object({
+  summary: z.string()
+})
 
 // Repository returns correct Project type from database - no adapters needed
 
@@ -350,7 +358,70 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     }
   }
 
-  return extendService(baseService, extensions)
+  // Standalone functions for backward compatibility
+  const standaloneExtensions = {
+    /**
+     * Summarize a single file using AI
+     */
+    async summarizeSingleFile(file: ProjectFile, force: boolean = false): Promise<ProjectFile | null> {
+      return withErrorContext(
+        async () => {
+          // Skip empty files
+          if (!file.content || file.content.trim().length === 0) {
+            return null
+          }
+
+          // Skip files that are too large
+          if (file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
+            return null
+          }
+
+          // Skip if already has summary and not forced
+          if (file.summary && !force) {
+            return file
+          }
+
+          try {
+            // Use AI to generate summary
+            const result = await generateStructuredData({
+              prompt: `Analyze the following ${file.extension} file and provide a concise summary of its purpose, key functionality, and important details:\n\n${file.content}`,
+              schema: FileSummarizationSchema,
+              systemMessage: promptsMap.summarizationSteps || 'You are a code analysis expert. Provide clear, concise summaries of source code files.',
+              options: {
+                model: 'gemini-1.5-flash',
+                maxOutputTokens: 500,
+                temperature: 0.3
+              }
+            })
+
+            // Update file with summary
+            const updatedFile = {
+              ...file,
+              summary: result.object.summary,
+              summaryLastUpdated: Date.now()
+            }
+
+            // Update in database using file service
+            await fileService.update(file.id, {
+              summary: result.object.summary,
+              summaryLastUpdated: Date.now()
+            } as any)
+
+            return updatedFile
+          } catch (error) {
+            throw new ApiError(
+              500,
+              `Failed to summarize file ${file.path} in project ${file.projectId}. Reason: ${error instanceof Error ? error.message : String(error)}`,
+              'FILE_SUMMARIZE_FAILED'
+            )
+          }
+        },
+        { entity: 'File', action: 'summarizeSingleFile', id: file.id }
+      )
+    }
+  }
+
+  return extendService(baseService, { ...extensions, ...standaloneExtensions })
 }
 
 // Export type for consumers
@@ -381,6 +452,7 @@ export const {
   updateFileContent,
   summarizeFiles,
   removeSummariesFromFiles,
-  suggestFiles
+  suggestFiles,
+  summarizeSingleFile
 } = projectService
 

@@ -10,12 +10,14 @@ import { ticketRepository, queueRepository } from '@promptliano/database'
 import type {
   Ticket,
   TicketTask,
+  Queue as TaskQueue
+} from '@promptliano/database'
+import type {
   TicketWithTasks,
   CreateTicketBody,
   UpdateTicketBody,
   CreateTaskBody,
-  UpdateTaskBody,
-  TaskQueue
+  UpdateTaskBody
 } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 import { QueueStateMachine, type QueueStatus } from './queue-state-machine'

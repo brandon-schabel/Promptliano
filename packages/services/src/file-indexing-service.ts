@@ -1,4 +1,4 @@
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { db } from '@promptliano/database'
 import type { Database, Statement } from 'bun:sqlite'

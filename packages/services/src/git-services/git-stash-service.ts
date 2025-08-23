@@ -1,4 +1,4 @@
-import type { GitStash } from '@promptliano/schemas'
+import type { GitStash } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { BaseGitService } from './base-git-service'
 import { gitStatusService } from './git-status-service'

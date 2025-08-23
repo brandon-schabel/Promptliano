@@ -6,7 +6,8 @@ import { createLogger } from './utils/logger'
 import { getProjectById } from './project-service'
 import { createHash } from 'crypto'
 import { claudeCodeFileReaderService } from './claude-code-file-reader-service'
-import type { ClaudeSession, ClaudeMessage, ClaudeProjectData, ClaudeSessionMetadata } from '@promptliano/schemas'
+import type { ClaudeSession, ClaudeMessage, ClaudeSessionMetadata } from '@promptliano/database'
+import type { ClaudeProjectData } from '@promptliano/schemas'
 
 const logger = createLogger('ClaudeCodeMCPService')
 

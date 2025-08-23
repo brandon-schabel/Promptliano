@@ -3,12 +3,14 @@ import type { Context } from 'hono'
 import { ApiError } from '@promptliano/shared'
 import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
+  type ProviderKey
+} from '@promptliano/database'
+import {
   CreateProviderKeyBodySchema,
   UpdateProviderKeyBodySchema,
   ProviderKeyIdParamsSchema,
   ProviderKeyResponseSchema,
   ProviderKeyListResponseSchema,
-  type ProviderKey,
   TestProviderRequestSchema,
   TestProviderApiResponseSchema,
   BatchTestProviderRequestSchema,

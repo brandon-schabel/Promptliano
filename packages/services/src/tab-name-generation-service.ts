@@ -1,5 +1,5 @@
 import { generateTabName } from './gen-ai-services'
-import type { ProjectTabState } from '@promptliano/schemas'
+import type { ProjectTabState } from '@promptliano/database'
 import { getProjectById, getProjectFiles } from './project-service'
 
 export interface TabNameGenerationResult {

@@ -1,6 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { createStandardResponses, createStandardResponsesWithStatus, standardResponses } from '../utils/route-helpers'
 import {
+  type File as ProjectFile
+} from '@promptliano/database'
+import {
   ProjectIdParamsSchema,
   CreateProjectBodySchema,
   UpdateProjectBodySchema,
@@ -13,7 +16,6 @@ import {
   ProjectResponseMultiStatusSchema,
   ProjectSummaryResponseSchema,
   ProjectFileSchema,
-  type ProjectFile,
   SummaryOptionsSchema,
   BatchSummaryOptionsSchema
 } from '@promptliano/schemas'

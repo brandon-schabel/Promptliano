@@ -68,16 +68,15 @@ export {
   type ProjectFileMap 
 } from './src/project.schemas'
 
-// Hook Configuration Types (TODO: Evaluate if these should move to @promptliano/database)
-export { 
-  type HookConfig, 
-  type HookEvent 
-} from './src/claude-hook.schemas'
+// Note: HookConfig, HookEvent, and APIProviders types have been moved to @promptliano/database
+// Import them directly from @promptliano/database instead
 
-// Provider Types (TODO: Evaluate if these should move to @promptliano/database) 
-export { 
-  type APIProviders 
-} from './src/provider-key.schemas'
+// API Request/Response Schemas (kept for API validation)
+export * from './src/project.schemas'
+export * from './src/ticket.schemas'
+export * from './src/queue.schemas'
+export * from './src/chat.schemas'
+export * from './src/prompt.schemas'
 
 // =============================================================================
 // DEPRECATED EXPORTS - These now come from @promptliano/database

@@ -19,10 +19,10 @@ import {
   ChatSchema, 
   type Chat, 
   type ChatMessage,
+  type ClaudeMessage,
   type CreateChat as CreateChatBody, 
   type UpdateChat as UpdateChatBody
 } from '@promptliano/database'
-import type { ClaudeMessage } from '@promptliano/schemas'
 import { normalizeToUnixMs } from '@promptliano/shared'
 
 // Dependencies interface for dependency injection

@@ -1,4 +1,4 @@
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 
 export interface SummarizationContext {
   fileType?: string

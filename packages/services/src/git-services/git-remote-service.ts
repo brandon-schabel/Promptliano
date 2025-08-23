@@ -1,4 +1,4 @@
-import type { GitRemote, GitTag } from '@promptliano/schemas'
+import type { GitRemote, GitTag } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { BaseGitService } from './base-git-service'
 import { gitStatusService } from './git-status-service'

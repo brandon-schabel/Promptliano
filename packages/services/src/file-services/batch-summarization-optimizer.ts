@@ -1,5 +1,13 @@
-import type { ProjectFile, FileGroup, FileRelationship } from '@promptliano/schemas'
-import { FileRelationshipTypeEnum } from '@promptliano/schemas'
+import type { File as ProjectFile, FileGroup, FileRelationship } from '@promptliano/database'
+// FileRelationshipTypeEnum is defined inline in database schema
+const FileRelationshipTypeEnum = {
+  imports: 'imports',
+  exports: 'exports',
+  sibling: 'sibling',
+  parent: 'parent',
+  child: 'child',
+  semantic: 'semantic'
+} as const
 import {
   OPTIMAL_TOKENS_FOR_BATCH,
   MAX_FILES_PER_BATCH,
