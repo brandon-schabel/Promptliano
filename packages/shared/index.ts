@@ -2,6 +2,7 @@
 export * from './src/error/api-error'
 export * from './src/error/domain-error'
 export * from './src/error/entity-errors'
+export * from './src/error/error-factory'
 
 // Utils
 // NOTE: crypto.ts is excluded from client builds due to storage dependency
@@ -14,7 +15,6 @@ export * from './src/utils/projects-utils'
 export * from './src/utils/prompts-map'
 export * from './src/utils/secure-path-validator'
 export * from './src/utils/service-utils'
-export * from './src/utils/sqlite-converters'
 export * from './src/utils/summary-formatters'
 export * from './src/utils/project-summary-formatter'
 export * from './src/utils/zod-utils'

@@ -15,7 +15,7 @@
   "dependencies": {
     "@promptliano/config": "workspace:*",
     "@promptliano/shared": "workspace:*",
-    "@promptliano/storage": "workspace:*",
+    "@promptliano/database": "workspace:*",
     "@promptliano/schemas": "workspace:*"
   },
   "devDependencies": {

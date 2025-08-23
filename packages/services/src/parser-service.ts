@@ -1,4 +1,4 @@
-import { parserRegistry, ParserRegistry } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   type ParseFileRequest,
   type ParseResult,

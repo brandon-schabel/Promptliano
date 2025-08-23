@@ -1,8 +1,12 @@
-// Last 5 changes: Fixed imports to use Promptliano package structure
-import { ApiError } from '@promptliano/shared'
+// Modern functional service imports with ErrorFactory integration
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
-import {
+
+// Modern service imports
+import { 
+  ticketService,
+  ErrorFactory,
+  withErrorContext,
   createTicket,
   getTicketById,
   updateTicket,
@@ -424,11 +428,11 @@ const getTasksForTicketsRoute = createRoute({
   responses: createStandardResponses(BulkTasksResponseSchema)
 })
 
-// Helper function to parse string ID to number
+// Helper function to parse string ID to number using ErrorFactory
 const parseNumericId = (id: string): number => {
   const parsed = parseInt(id, 10)
   if (isNaN(parsed)) {
-    throw new ApiError(400, `Invalid ID format: ${id}`, 'INVALID_ID_FORMAT')
+    throw ErrorFactory.invalidParam('id', 'number', id)
   }
   return parsed
 }
@@ -449,17 +453,35 @@ export const ticketRoutes = new OpenAPIHono()
 
   .openapi(createTicketRoute, async (c) => {
     const body = c.req.valid('json')
-    const ticket = await createTicket(body)
-    const formattedTicket = formatTicketData(ticket)
-    const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-    return c.json(payload, 201)
+    
+    return await withErrorContext(async () => {
+      const ticket = await createTicket(body)
+      const formattedTicket = formatTicketData(ticket)
+      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+      return c.json(payload, 201)
+    }, { 
+      entity: 'Ticket', 
+      action: 'create',
+      metadata: { title: body.title, projectId: body.projectId }
+    })
   })
   .openapi(getTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
-    const ticket = await getTicketById(parseNumericId(ticketId))
-    const formattedTicket = formatTicketData(ticket)
-    const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-    return c.json(payload, 200)
+    const numericTicketId = parseNumericId(ticketId)
+    
+    return await withErrorContext(async () => {
+      const ticket = await getTicketById(numericTicketId)
+      if (!ticket) {
+        throw ErrorFactory.notFound('Ticket', numericTicketId)
+      }
+      const formattedTicket = formatTicketData(ticket)
+      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+      return c.json(payload, 200)
+    }, { 
+      entity: 'Ticket', 
+      action: 'get',
+      correlationId: ticketId
+    })
   })
   .openapi(updateTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')

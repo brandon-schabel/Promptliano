@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, mock } from 'bun:test'
 import { createChatService } from '@promptliano/services'
 import { randomString } from '@promptliano/shared/src/utils/test-utils'
 import { normalizeToUnixMs } from '@promptliano/shared'
-import type { ChatsStorage, ChatMessagesStorage } from '@promptliano/storage'
+// Types now come from @promptliano/schemas and database schema
 
 // Use realistic unix timestamps for test IDs
 const BASE_TIMESTAMP = 1700000000000 // Nov 2023 as base

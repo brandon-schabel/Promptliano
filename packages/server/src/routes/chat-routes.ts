@@ -1,7 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi'
 
 import { createChatService, handleChatMessage } from '@promptliano/services'
-import { ApiError } from '@promptliano/shared'
+import { ApiError, ErrorFactory, withErrorContext } from '@promptliano/shared'
 import { ApiErrorResponseSchema, MessageRoleEnum, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import {
@@ -207,30 +207,37 @@ const deleteChatRoute = createRoute({
 })
 export const chatRoutes = new OpenAPIHono()
   .openapi(getAllChatsRoute, async (c) => {
-    const userChats = await chatService.getAllChats()
-    // Assuming chatService.getAllChats now returns Chat[] with correct date strings
-    // or mapDbRowToChat correctly formats them.
-    return c.json(
-      {
-        success: true,
-        data: userChats // No need to remap if service formats correctly
-      } satisfies z.infer<typeof ChatListResponseSchema>,
-      200
-    )
+    return await withErrorContext(async () => {
+      const userChats = await chatService.getAllChats()
+      return c.json(
+        {
+          success: true,
+          data: userChats
+        } satisfies z.infer<typeof ChatListResponseSchema>,
+        200
+      )
+    }, { entity: 'Chat', action: 'list' })
   })
   .openapi(createChatRoute, async (c) => {
     const body = c.req.valid('json')
-    const chat = await chatService.createChat(body.title, {
-      copyExisting: body.copyExisting,
-      currentChatId: body.currentChatId
+    
+    return await withErrorContext(async () => {
+      const chat = await chatService.createChat(body.title, {
+        copyExisting: body.copyExisting,
+        currentChatId: body.currentChatId
+      })
+      return c.json(
+        {
+          success: true,
+          data: chat
+        } satisfies z.infer<typeof ChatResponseSchema>,
+        201
+      )
+    }, { 
+      entity: 'Chat', 
+      action: 'create',
+      metadata: { title: body.title, copyExisting: body.copyExisting }
     })
-    return c.json(
-      {
-        success: true,
-        data: chat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
   })
   .openapi(getChatMessagesRoute, async (c) => {
     const { chatId } = c.req.valid('param')
@@ -255,7 +262,7 @@ export const chatRoutes = new OpenAPIHono()
 
     console.log(`[Hono AI Chat] /ai/chat request: ChatID=${chatId}, Provider=${provider}, Model=${model}`)
 
-    try {
+    return await withErrorContext(async () => {
       const unifiedOptions = { ...options, model }
 
       c.header('Content-Type', 'text/event-stream; charset=utf-8')
@@ -274,28 +281,12 @@ export const chatRoutes = new OpenAPIHono()
       return stream(c, async (streamInstance) => {
         await streamInstance.pipe(readableStream.toDataStream())
       })
-    } catch (error: any) {
-      console.error(`[Hono AI Chat] /ai/chat Error:`, error)
-      if (error instanceof ApiError) {
-        throw error
-      }
-      if (error.message?.includes('not found') || error.code === 'CHAT_NOT_FOUND') {
-        // Check code too
-        throw new ApiError(
-          404,
-          `Chat session with ID ${chatId} not found. Details: ${error.message}`,
-          'CHAT_NOT_FOUND',
-          { originalError: error.message }
-        )
-      }
-      if (error.message?.toLowerCase().includes('api key') || error.code === 'MISSING_API_KEY') {
-        throw new ApiError(400, error.message, 'MISSING_API_KEY', { originalError: error.message })
-      }
-      // Add more specific error conversions if identifiable from `handleChatMessage`
-      throw new ApiError(500, error.message || 'Error processing AI chat stream', 'AI_STREAM_ERROR', {
-        originalError: error.message
-      })
-    }
+    }, {
+      entity: 'Chat',
+      action: 'ai_stream',
+      correlationId: chatId,
+      metadata: { provider, model, tempId }
+    })
   })
   .openapi(forkChatRoute, async (c) => {
     const { chatId } = c.req.valid('param')

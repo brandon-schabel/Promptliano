@@ -8,6 +8,11 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build",
     "publish:dry": "npm publish --dry-run",
+    "generate": "bun scripts/generate-client.ts",
+    "generate:hooks": "bun scripts/generate-advanced-hooks.ts",
+    "generate:all": "bun run generate && bun run generate:hooks",
+    "generate:watch": "bun scripts/watch.ts",
+    "prebuild": "bun run generate:all",
     "test": "bun src/tests/run-functional-tests.ts",
     "test:all": "bun src/tests/run-functional-tests.ts",
     "test:legacy": "bun src/tests/run-functional-tests.ts",
@@ -35,7 +40,8 @@
     "test:debug": "TEST_DEBUG=true TEST_LOG_LEVEL=debug bun run test:isolated"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "openapi-typescript": "^7.9.1"
   },
   "peerDependencies": {
     "typescript": "^5"

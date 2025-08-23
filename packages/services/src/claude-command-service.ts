@@ -1,4 +1,4 @@
-import { claudeCommandStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   type CreateClaudeCommandBody,
   type UpdateClaudeCommandBody,

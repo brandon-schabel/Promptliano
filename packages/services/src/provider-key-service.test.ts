@@ -1,12 +1,12 @@
 import { describe, test, expect, beforeEach, mock } from 'bun:test'
 
-import type { ProviderKeysStorage } from '@promptliano/storage' // ADDED
+// Types now come from @promptliano/schemas and database schema
 import { ApiError } from '@promptliano/shared'
 import { normalizeToUnixMs } from '@promptliano/shared'
 import { createProviderKeyService } from './provider-key-service'
 
-// In-memory store for our mock
-let mockProviderKeysDb: ProviderKeysStorage = {}
+// In-memory store for our mock  
+let mockProviderKeysDb: Record<string, any> = {}
 
 // Mock the crypto functions to return plain text for testing
 mock.module('@promptliano/shared/src/utils/crypto', () => ({

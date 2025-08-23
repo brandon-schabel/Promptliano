@@ -1,4 +1,4 @@
-import { claudeHookStorageSimple } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   type CreateHookRequest,
   type UpdateHookRequest,

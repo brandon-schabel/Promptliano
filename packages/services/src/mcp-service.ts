@@ -11,7 +11,7 @@ import {
   MCPToolExecutionRequestSchema
 } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
-import { mcpStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import { MCPClientManager } from '@promptliano/mcp-client'
 import { z, ZodError } from 'zod'
 import { getProjectById } from './project-service'

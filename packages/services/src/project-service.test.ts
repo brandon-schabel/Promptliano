@@ -87,9 +87,7 @@ const randomString = (length = 8) =>
 
 describe('Project Service (File Storage)', () => {
   beforeEach(async () => {
-    // Use test utilities to ensure proper database isolation
-    const { clearAllData } = await import('@promptliano/storage')
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
 
     // Reset mock call counts
     mockGenerateStructuredData.mockClear()
@@ -97,9 +95,7 @@ describe('Project Service (File Storage)', () => {
   })
 
   afterEach(async () => {
-    // Clean up after each test
-    const { clearAllData } = await import('@promptliano/storage')
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
 
     // Reset mocks
     mockGenerateStructuredData.mockClear()

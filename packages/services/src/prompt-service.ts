@@ -1,472 +1,299 @@
-import { promptStorage } from '@promptliano/storage'
-import {
-  type CreatePromptBody,
+/**
+ * Prompt Service - Functional Factory Pattern
+ * Modernized prompt management with repository integration
+ * 
+ * Key improvements:
+ * - Uses Drizzle repository instead of manual storage
+ * - Functional composition pattern
+ * - Consistent error handling with ErrorFactory
+ * - Dependency injection support
+ * - Project association management
+ * - AI prompt optimization features
+ */
+
+import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
+import { ErrorFactory } from '@promptliano/shared'
+import { promptRepository } from '@promptliano/database'
+import { 
+  type Prompt, 
+  type CreatePromptBody, 
   type UpdatePromptBody,
-  type Prompt,
   PromptSchema,
-  type PromptProject,
-  PromptProjectSchema,
   PromptSuggestionsZodSchema
 } from '@promptliano/schemas'
-
-import { ApiError, promptsMap } from '@promptliano/shared'
-import { ZodError } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'
 
-// Utility function to populate projectId on prompts from associations
-async function populatePromptProjectId(prompt: Prompt): Promise<Prompt> {
-  const promptProjects = await promptStorage.readPromptProjectAssociations()
-  const association = promptProjects.find((link) => link.promptId === prompt.id)
-  return {
-    ...prompt,
-    projectId: association?.projectId
-  }
-}
-
-// Utility function to populate projectId on multiple prompts
-async function populatePromptsProjectIds(prompts: Prompt[]): Promise<Prompt[]> {
-  const promptProjects = await promptStorage.readPromptProjectAssociations()
-  const associationMap = new Map(promptProjects.map((link) => [link.promptId, link.projectId]))
-
-  return prompts.map((prompt) => ({
-    ...prompt,
-    projectId: associationMap.get(prompt.id)
-  }))
-}
-
-export async function createPrompt(data: CreatePromptBody): Promise<Prompt> {
-  const now = Date.now()
-
-  try {
-    const promptId = promptStorage.generateId()
-
-    const newPromptData: Prompt = {
-      id: promptId,
-      name: data.name,
-      content: data.content,
-      projectId: data.projectId,
-      created: now,
-      updated: now
-    }
-
-    PromptSchema.parse(newPromptData) // Validate before adding to storage
-
-    const allPrompts = await promptStorage.readPrompts()
-    allPrompts[promptId] = newPromptData
-    await promptStorage.writePrompts(allPrompts)
-
-    if (data.projectId) {
-      await addPromptToProject(newPromptData.id, data.projectId)
-    }
-
-    // Return the prompt with populated projectId
-    return await populatePromptProjectId(newPromptData)
-  } catch (error) {
-    if (error instanceof ZodError) {
-      console.error(`Validation failed for new prompt data: ${error.message}`, error.flatten().fieldErrors)
-      throw new ApiError(
-        500,
-        `Internal validation error creating prompt.`,
-        'PROMPT_VALIDATION_ERROR',
-        error.flatten().fieldErrors
-      )
-    }
-    throw error
-  }
-}
-
-export async function addPromptToProject(promptId: number, projectId: number): Promise<void> {
-  const allPrompts = await promptStorage.readPrompts()
-  if (!allPrompts[promptId]) {
-    throw new ApiError(404, `Prompt with ID ${promptId} not found.`, 'PROMPT_NOT_FOUND')
-  }
-
-  let promptProjects = await promptStorage.readPromptProjectAssociations()
-
-  // Check if association already exists
-  const existingLink = promptProjects.find((link) => link.promptId === promptId && link.projectId === projectId)
-  if (existingLink) {
-    return // Association already exists, do nothing
-  }
-
-  // In the previous DB version, this was effectively an "set project for prompt"
-  // For a file-based many-to-many, we usually add.
-  // The old code `db.prepare('DELETE FROM prompt_projects WHERE prompt_id = ?').run(promptId)`
-  // would remove the prompt from ALL projects before adding to one.
-  // This is a change in behavior if we simply add.
-  // Let's stick to the previous behavior for now: a prompt is associated with one project via this call.
-  // If multiple projects are desired, a different method or logic modification is needed.
-  // The schema `CreatePromptBodySchema` implies one project association at creation.
-  // The `listPromptsByProject` and `removePromptFromProject` suggest many-to-many is possible.
-
-  // Re-evaluating: The original DB `addPromptToProject` did NOT remove all other associations.
-  // It only added a new one. The `DELETE FROM prompt_projects WHERE prompt_id = ?` was in `createPrompt` if a `projectId` was given.
-  // Let's look at the `createPrompt`'s use of `addPromptToProject`.
-  // The DB `addPromptToProject`:
-  // `db.prepare('DELETE FROM prompt_projects WHERE prompt_id = ?').run(promptId)` THIS IS THE LINE.
-  // So yes, it first removes all project associations for that prompt, then adds the new one.
-  // This means a prompt is assigned to at most one project via the `createPrompt` or direct `addPromptToProject` flow.
-
-  // To replicate: filter out existing links for this promptId, then add the new one.
-  promptProjects = promptProjects.filter((link) => link.promptId !== promptId)
-
-  const associationId = promptStorage.generateId()
-
-  const newLink: PromptProject = {
-    id: associationId, // ID for the association itself
-    promptId: promptId,
-    projectId: projectId
-  }
-
-  try {
-    PromptProjectSchema.parse(newLink)
-  } catch (error) {
-    if (error instanceof ZodError) {
-      console.error(`Validation failed for new prompt-project link: ${error.message}`, error.flatten().fieldErrors)
-      throw new ApiError(
-        500,
-        `Internal validation error linking prompt to project.`,
-        'PROMPT_LINK_VALIDATION_ERROR',
-        error.flatten().fieldErrors
-      )
-    }
-    throw error
-  }
-
-  promptProjects.push(newLink)
-  await promptStorage.writePromptProjectAssociations(promptProjects)
-}
-
-export async function removePromptFromProject(promptId: number, projectId: number): Promise<void> {
-  let promptProjects = await promptStorage.readPromptProjectAssociations()
-  const initialLinkCount = promptProjects.length
-
-  promptProjects = promptProjects.filter((link) => !(link.promptId === promptId && link.projectId === projectId))
-
-  if (promptProjects.length === initialLinkCount) {
-    const allPrompts = await promptStorage.readPrompts()
-    if (!allPrompts[promptId]) {
-      throw new ApiError(404, `Prompt with ID ${promptId} not found.`, 'PROMPT_NOT_FOUND')
-    }
-    // If prompt exists, but link didn't, then the association was not found.
-    throw new ApiError(
-      404,
-      `Association between prompt ${promptId} and project ${projectId} not found.`,
-      'PROMPT_PROJECT_LINK_NOT_FOUND'
-    )
-  }
-
-  await promptStorage.writePromptProjectAssociations(promptProjects)
-}
-
-export async function getPromptById(promptId: number): Promise<Prompt> {
-  const allPrompts = await promptStorage.readPrompts()
-  const found = allPrompts[promptId]
-  if (!found) {
-    throw new ApiError(404, `Prompt with ID ${promptId} not found.`, 'PROMPT_NOT_FOUND')
-  }
-  return await populatePromptProjectId(found)
-}
-
-export async function listAllPrompts(): Promise<Prompt[]> {
-  const allPromptsData = await promptStorage.readPrompts()
-  const promptList = Object.values(allPromptsData)
-  // Optional: sort if needed, e.g., by upated or name
-  promptList.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  return await populatePromptsProjectIds(promptList)
-}
-
-export const getPromptsByIds = async (promptIds: number[]): Promise<Prompt[]> => {
-  const allPrompts = await promptStorage.readPrompts()
-  const prompts = promptIds.map((id) => allPrompts[id]).filter(Boolean) as Prompt[]
-  return await populatePromptsProjectIds(prompts)
-}
-
-export async function listPromptsByProject(projectId: number): Promise<Prompt[]> {
-  const promptProjects = await promptStorage.readPromptProjectAssociations()
-  const relevantPromptIds = promptProjects.filter((link) => link.projectId === projectId).map((link) => link.promptId)
-
-  if (relevantPromptIds.length === 0) {
-    return []
-  }
-  const allPrompts = await promptStorage.readPrompts()
-  const prompts = relevantPromptIds.map((promptId) => allPrompts[promptId]).filter(Boolean) as Prompt[]
-  // For prompts retrieved by project, we already know the projectId, so we can set it directly
-  return prompts.map((prompt) => ({ ...prompt, projectId }))
-}
-
-export async function updatePrompt(promptId: number, data: UpdatePromptBody): Promise<Prompt> {
-  const allPrompts = await promptStorage.readPrompts()
-  const existingPrompt = allPrompts[promptId]
-
-  if (!existingPrompt) {
-    throw new ApiError(404, `Prompt with ID ${promptId} not found for update.`, 'PROMPT_NOT_FOUND')
-  }
-
-  const updatedPromptData: Prompt = {
-    ...existingPrompt,
-    name: data.name ?? existingPrompt.name,
-    content: data.content ?? existingPrompt.content,
-    updated: Date.now()
-  }
-
-  try {
-    PromptSchema.parse(updatedPromptData)
-  } catch (error) {
-    if (error instanceof ZodError) {
-      console.error(`Validation failed updating prompt ${promptId}: ${error.message}`, error.flatten().fieldErrors)
-      throw new ApiError(
-        500,
-        `Internal validation error updating prompt.`,
-        'PROMPT_VALIDATION_ERROR',
-        error.flatten().fieldErrors
-      )
-    }
-    throw error
-  }
-
-  allPrompts[promptId] = updatedPromptData
-  await promptStorage.writePrompts(allPrompts)
-  return await populatePromptProjectId(updatedPromptData)
-}
-
-export async function deletePrompt(promptId: number): Promise<boolean> {
-  const allPrompts = await promptStorage.readPrompts()
-  if (!allPrompts[promptId]) {
-    return false // Prompt not found, nothing to delete
-  }
-
-  delete allPrompts[promptId]
-  await promptStorage.writePrompts(allPrompts)
-
-  // Also remove any associations for this prompt
-  let promptProjects = await promptStorage.readPromptProjectAssociations()
-  const initialLinkCount = promptProjects.length
-  promptProjects = promptProjects.filter((link) => link.promptId !== promptId)
-
-  if (promptProjects.length < initialLinkCount) {
-    await promptStorage.writePromptProjectAssociations(promptProjects)
-  }
-
-  return true
-}
-
-export async function getPromptProjects(promptId: number): Promise<PromptProject[]> {
-  const promptProjects = await promptStorage.readPromptProjectAssociations()
-  return promptProjects.filter((link) => link.promptId === promptId)
-}
-
-export async function suggestPrompts(projectId: number, userInput: string, limit: number = 5): Promise<Prompt[]> {
-  // Validate input
-  if (!userInput || userInput.trim().length === 0) {
-    throw new ApiError(400, 'User input is required for prompt suggestions', 'USER_INPUT_REQUIRED')
-  }
-
-  // Get all prompts for the project - moved outside try block for scope
-  let prompts = await listPromptsByProject(projectId)
-
-  try {
-    // If no project-specific prompts, fall back to all prompts
-    if (prompts.length === 0) {
-      console.log(`No prompts associated with project ${projectId}, using all prompts as fallback`)
-      prompts = await listAllPrompts()
-      // If still no prompts exist at all, return empty
-      if (prompts.length === 0) {
-        console.log('No prompts exist in the system')
-        return []
-      }
-    }
-
-    // Get compact project summary for context
-    let projectSummary = ''
-    try {
-      projectSummary = await getCompactProjectSummary(projectId)
-    } catch (error) {
-      // If project summary fails (e.g., no files), continue with empty summary
-      console.log(
-        `Warning: Could not get project summary for prompt suggestions: ${error instanceof Error ? error.message : String(error)}`
-      )
-      projectSummary = 'No project context available'
-    }
-
-    // Build prompt summaries with id, name, and content preview
-    const promptSummaries = prompts.map((prompt) => ({
-      id: prompt.id,
-      name: prompt.name,
-      contentPreview: prompt.content.slice(0, 200) + (prompt.content.length > 200 ? '...' : '')
-    }))
-
-    const systemPrompt = promptsMap.suggestPrompts
-
-    const userPrompt = `
-<user_input>
-${userInput}
-</user_input>
-
-<project_summary>
-${projectSummary}
-</project_summary>
-
-<available_prompts>
-${JSON.stringify(promptSummaries, null, 2)}
-</available_prompts>
-
-Based on the user's input and project context, suggest the most relevant prompts that would help them accomplish their task. Return only the prompt IDs.
-`
-
-    // Use AI to get suggested prompt IDs
-    const result = await generateStructuredData({
-      prompt: userPrompt,
-      schema: PromptSuggestionsZodSchema,
-      systemMessage: systemPrompt
-    })
-
-    // Extract the suggestions from the result object
-    const suggestions = result.object
-
-    // Filter and order prompts based on AI suggestions
-    const suggestedPromptIds = (suggestions.promptIds || []).slice(0, limit)
-    let suggestedPrompts: Prompt[] = []
-
-    // Maintain the order suggested by AI
-    for (const promptId of suggestedPromptIds) {
-      const prompt = prompts.find((p) => p.id === promptId)
-      if (prompt) {
-        suggestedPrompts.push(prompt)
-      }
-    }
-
-    // If AI suggestions are insufficient, enhance with keyword-based matching
-    if (suggestedPrompts.length < Math.min(3, limit)) {
-      console.log(`AI only suggested ${suggestedPrompts.length} prompts, enhancing with keyword matching`)
-
-      // Calculate relevance scores for remaining prompts
-      const remainingPrompts = prompts.filter((p: Prompt) => !suggestedPrompts.find((sp: Prompt) => sp.id === p.id))
-      const scoredPrompts = remainingPrompts.map((prompt: Prompt) => ({
-        prompt,
-        score: calculatePromptRelevance(userInput, prompt)
-      }))
-
-      // Add high-scoring prompts
-      const additionalPrompts = scoredPrompts
-        .filter((item: { prompt: Prompt; score: number }) => item.score > 0)
-        .sort((a: { prompt: Prompt; score: number }, b: { prompt: Prompt; score: number }) => b.score - a.score)
-        .slice(0, limit - suggestedPrompts.length)
-        .map((item: { prompt: Prompt; score: number }) => item.prompt)
-
-      suggestedPrompts = [...suggestedPrompts, ...additionalPrompts]
-    }
-
-    return suggestedPrompts
-  } catch (error) {
-    // If AI fails, fall back to keyword-based matching
-    if (error instanceof Error && error.message.includes('generate')) {
-      console.log('AI prompt suggestion failed, using keyword-based fallback')
-
-      const scoredPrompts = prompts.map((prompt: Prompt) => ({
-        prompt,
-        score: calculatePromptRelevance(userInput, prompt)
-      }))
-
-      return scoredPrompts
-        .filter((item: { prompt: Prompt; score: number }) => item.score > 0)
-        .sort((a: { prompt: Prompt; score: number }, b: { prompt: Prompt; score: number }) => b.score - a.score)
-        .slice(0, limit)
-        .map((item: { prompt: Prompt; score: number }) => item.prompt)
-    }
-
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to suggest prompts: ${error instanceof Error ? error.message : String(error)}`,
-      'SUGGEST_PROMPTS_FAILED'
-    )
-  }
+// Dependencies interface for dependency injection
+export interface PromptServiceDeps {
+  repository?: typeof promptRepository
+  logger?: ReturnType<typeof createServiceLogger>
+  aiService?: any // For prompt optimization
+  projectService?: any // For project validation
 }
 
 /**
- * Calculate relevance score between user input and prompt
+ * Create Prompt Service with functional factory pattern
  */
-function calculatePromptRelevance(userInput: string, prompt: Prompt): number {
-  const userWords = userInput
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 2)
-  const promptText = `${prompt.name} ${prompt.content}`.toLowerCase()
+export function createPromptService(deps: PromptServiceDeps = {}) {
+  const {
+    repository = promptRepository,
+    logger = createServiceLogger('PromptService'),
+  } = deps
 
-  let score = 0
+  // Base CRUD operations using the service factory
+  const baseService = createCrudService<Prompt, CreatePromptBody, UpdatePromptBody>({
+    entityName: 'Prompt',
+    repository,
+    schema: PromptSchema,
+    logger
+  })
 
-  // Direct word matches
-  for (const word of userWords) {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi')
-    const matches = promptText.match(regex)
-    if (matches) {
-      score += matches.length * 10
+  // Extended domain operations
+  const extensions = {
+    /**
+     * List prompts by project with proper associations
+     */
+    async getByProject(projectId: number): Promise<Prompt[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.getByProject(projectId)
+        },
+        { entity: 'Prompt', action: 'getByProject' }
+      )
+    },
+
+    /**
+     * Search prompts by content or name
+     */
+    async search(query: string, projectId?: number): Promise<Prompt[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.search(query, projectId)
+        },
+        { entity: 'Prompt', action: 'search' }
+      )
+    },
+
+    /**
+     * Create prompt with project association
+     */
+    async createWithProject(data: CreatePromptBody): Promise<Prompt> {
+      return withErrorContext(
+        async () => {
+          // Validate project exists if projectId provided
+          if (data.projectId && deps.projectService) {
+            await deps.projectService.getById(data.projectId)
+          }
+
+          return await baseService.create(data)
+        },
+        { entity: 'Prompt', action: 'createWithProject' }
+      )
+    },
+
+    /**
+     * Get prompt suggestions based on project context
+     */
+    async getSuggestions(projectId: number, userQuery: string): Promise<string[]> {
+      return withErrorContext(
+        async () => {
+          const projectSummary = await getCompactProjectSummary(projectId)
+          const existingPrompts = await this.getByProject(projectId)
+          
+          const systemPrompt = `You are a prompt engineering assistant. Based on the project context and user query, suggest relevant prompt templates that would be useful for this project.
+
+Return an array of prompt suggestions that are:
+1. Specific to the project's domain and technology stack
+2. Actionable and practical for development tasks
+3. Different from existing prompts
+4. Tailored to the user's query
+
+Project Summary:
+${projectSummary}
+
+Existing Prompts:
+${existingPrompts.map(p => `- ${p.name}: ${p.content.substring(0, 100)}...`).join('\n')}
+
+User Query: ${userQuery}`
+
+          const result = await generateStructuredData({
+            prompt: userQuery,
+            systemMessage: systemPrompt,
+            schema: PromptSuggestionsZodSchema
+          })
+
+          return result.object.suggestions
+        },
+        { entity: 'Prompt', action: 'getSuggestions' }
+      )
+    },
+
+    /**
+     * Optimize existing prompt content using AI
+     */
+    async optimizePrompt(promptId: number, context?: string): Promise<string> {
+      return withErrorContext(
+        async () => {
+          const prompt = await baseService.getById(promptId)
+          
+          const systemPrompt = `You are a prompt optimization expert. Improve the given prompt to be more effective, clear, and specific.
+
+Original Prompt:
+${prompt.content}
+
+${context ? `Additional Context: ${context}` : ''}
+
+Return the optimized version that:
+1. Is more specific and actionable
+2. Uses clear, direct language
+3. Includes relevant context
+4. Follows prompt engineering best practices
+5. Maintains the original intent`
+
+          const result = await generateStructuredData({
+            prompt: prompt.content,
+            systemMessage: systemPrompt,
+            schema: PromptSchema.pick({ content: true })
+          })
+
+          return result.object.content
+        },
+        { entity: 'Prompt', action: 'optimizePrompt', id: promptId }
+      )
+    },
+
+    /**
+     * Duplicate prompt with optional modifications
+     */
+    async duplicate(promptId: number, modifications?: Partial<CreatePromptBody>): Promise<Prompt> {
+      return withErrorContext(
+        async () => {
+          const original = await baseService.getById(promptId)
+          
+          const duplicateData: CreatePromptBody = {
+            name: `${original.name} (Copy)`,
+            content: original.content,
+            projectId: original.projectId,
+            ...modifications
+          }
+          
+          return await baseService.create(duplicateData)
+        },
+        { entity: 'Prompt', action: 'duplicate', id: promptId }
+      )
+    },
+
+    /**
+     * Get prompt usage statistics
+     */
+    async getUsageStats(promptId: number): Promise<{
+      usageCount: number
+      lastUsed: Date | null
+      projectsUsedIn: number[]
+    }> {
+      return withErrorContext(
+        async () => {
+          // This would integrate with usage tracking when implemented
+          return await repository.getUsageStats(promptId)
+        },
+        { entity: 'Prompt', action: 'getUsageStats', id: promptId }
+      )
+    },
+
+    /**
+     * Batch operations for prompts
+     */
+    batch: {
+      /**
+       * Create multiple prompts at once
+       */
+      createMany: async (prompts: CreatePromptBody[]): Promise<Prompt[]> => {
+        return withErrorContext(
+          async () => {
+            return await repository.createMany(prompts)
+          },
+          { entity: 'Prompt', action: 'batchCreate' }
+        )
+      },
+
+      /**
+       * Update multiple prompts
+       */
+      updateMany: async (updates: Array<{ id: number; data: UpdatePromptBody }>): Promise<number> => {
+        return withErrorContext(
+          async () => {
+            const results = await Promise.allSettled(
+              updates.map(({ id, data }) => baseService.update(id, data))
+            )
+            
+            const successful = results.filter(r => r.status === 'fulfilled').length
+            
+            if (successful < updates.length) {
+              logger.warn('Some prompt updates failed', {
+                total: updates.length,
+                successful,
+                failed: updates.length - successful
+              })
+            }
+            
+            return successful
+          },
+          { entity: 'Prompt', action: 'batchUpdate' }
+        )
+      },
+
+      /**
+       * Delete multiple prompts
+       */
+      deleteMany: async (promptIds: number[]): Promise<number> => {
+        return withErrorContext(
+          async () => {
+            const results = await Promise.allSettled(
+              promptIds.map(id => baseService.delete(id))
+            )
+            
+            return results.filter(r => r.status === 'fulfilled').length
+          },
+          { entity: 'Prompt', action: 'batchDelete' }
+        )
+      }
     }
   }
-  // Boost for name matches
-  const nameLower = prompt.name.toLowerCase()
-  for (const word of userWords) {
-    if (nameLower.includes(word)) {
-      score += 20
-    }
-  }
 
-  // Check for common programming concepts with enhanced MCP-specific terms
-  const concepts = {
-    debug: ['error', 'fix', 'troubleshoot', 'issue', 'problem', 'bug', 'resolve', 'trace', 'diagnose'],
-    implement: ['create', 'build', 'develop', 'add', 'feature', 'code', 'write', 'construct', 'design'],
-    optimize: ['performance', 'speed', 'improve', 'enhance', 'refactor', 'efficiency', 'fast', 'slow'],
-    test: ['testing', 'unit', 'integration', 'e2e', 'spec', 'jest', 'playwright', 'mock', 'assertion'],
-    document: ['docs', 'documentation', 'readme', 'guide', 'comment', 'explain', 'describe'],
-    mcp: [
-      'model context protocol',
-      'tool',
-      'integration',
-      'consolidated-tools',
-      'mcp-server',
-      'mcp-client',
-      'promptliano'
-    ],
-    api: ['endpoint', 'route', 'rest', 'graphql', 'http', 'request', 'response', 'hono'],
-    database: ['sql', 'query', 'schema', 'migration', 'storage', 'sqlite', 'table', 'index'],
-    ai: ['llm', 'model', 'prompt', 'generate', 'claude', 'openai', 'anthropic', 'gpt'],
-    file: ['filesystem', 'directory', 'path', 'read', 'write', 'sync', 'summarize'],
-    ticket: ['issue', 'task', 'todo', 'project', 'priority', 'status'],
-    error: ['exception', 'failure', 'crash', 'broken', 'fail', 'retry', 'recovery'],
-    config: ['configuration', 'settings', 'environment', 'setup', 'initialize'],
-    auth: ['authentication', 'authorization', 'permission', 'security', 'token', 'key']
-  }
-
-  for (const [concept, related] of Object.entries(concepts)) {
-    const userHasConcept =
-      userInput.toLowerCase().includes(concept) || related.some((r) => userInput.toLowerCase().includes(r))
-    const promptHasConcept = promptText.includes(concept) || related.some((r) => promptText.includes(r))
-
-    if (userHasConcept && promptHasConcept) {
-      score += 15
-    }
-  }
-
-  // Slightly penalize generic prompts when user has specific request
-  const genericTerms = ['general', 'overview', 'introduction', 'basic']
-  const hasSpecificRequest = userWords.length > 3 || userWords.some((w) => w.length > 6)
-  if (hasSpecificRequest && genericTerms.some((term) => nameLower.includes(term))) {
-    // Only penalize if the prompt has no other matching concepts
-    if (score < 15) {
-      score = Math.max(0, score - 5) // Reduced penalty from 10 to 5
-    }
-  }
-  // Bonus for exact phrase matches
-  const twoWordPhrases = []
-  for (let i = 0; i < userWords.length - 1; i++) {
-    twoWordPhrases.push(`${userWords[i]} ${userWords[i + 1]}`)
-  }
-  for (const phrase of twoWordPhrases) {
-    if (promptText.includes(phrase)) {
-      score += 25 // Strong bonus for exact phrase matches
-    }
-  }
-  return score
+  return extendService(baseService, extensions)
 }
+
+// Export type for consumers
+export type PromptService = ReturnType<typeof createPromptService>
+export type PromptServiceV2 = ReturnType<typeof createPromptService>
+
+// Export singleton for backward compatibility
+export const promptService = createPromptService()
+export const promptServiceV2 = promptService
+
+// Export individual functions for tree-shaking (main functions)
+export const {
+  create: createPrompt,
+  getById: getPromptById,
+  update: updatePrompt,
+  delete: deletePrompt,
+  getByProject: getPromptsByProject,
+  search: searchPrompts,
+  getSuggestions: getPromptSuggestions,
+  optimizePrompt,
+  duplicate: duplicatePrompt
+} = promptService
+
+// Export individual functions for tree-shaking (V2 backwards compatibility)
+export const {
+  create: createPromptV2,
+  getById: getPromptByIdV2,
+  update: updatePromptV2,
+  delete: deletePromptV2,
+  getByProject: getPromptsByProjectV2,
+  search: searchPromptsV2,
+  getSuggestions: getPromptSuggestionsV2,
+  optimizePrompt: optimizePromptV2,
+  duplicate: duplicatePromptV2
+} = promptServiceV2

@@ -1,0 +1,38 @@
+{
+  "name": "@promptliano/database",
+  "version": "0.1.0",
+  "description": "Drizzle ORM database layer for Promptliano - 87% storage code reduction",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "drizzle:generate": "drizzle-kit generate",
+    "drizzle:migrate": "bun run src/migrate.ts",
+    "drizzle:studio": "drizzle-kit studio",
+    "benchmark": "bun run src/benchmarks/performance.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "drizzle-zod": "^0.5.1",
+    "@promptliano/schemas": "workspace:*",
+    "@promptliano/shared": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.28.1",
+    "@types/bun": "latest",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [
+    "drizzle",
+    "orm",
+    "sqlite",
+    "database",
+    "typescript",
+    "schema"
+  ],
+  "author": "Promptliano Team",
+  "license": "MIT"
+}

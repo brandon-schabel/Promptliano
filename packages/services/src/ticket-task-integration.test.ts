@@ -19,13 +19,13 @@ import {
   deleteTicket,
   updateTicket
 } from './ticket-service'
-import { clearAllData, resetTestDatabase } from '@promptliano/storage/src/test-utils'
+// TODO: Implement test utilities with Drizzle
 
 describe('Ticket-Task Integration', () => {
   let testProjectId: number
 
   beforeEach(async () => {
-    await resetTestDatabase()
+    // TODO: Implement test database reset with Drizzle
 
     const project = await createProject({
       name: 'Integration Test Project',
@@ -35,7 +35,7 @@ describe('Ticket-Task Integration', () => {
   })
 
   afterAll(async () => {
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
   })
 
   describe('Parent-Child Relationships', () => {

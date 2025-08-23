@@ -1,4 +1,4 @@
-import { promptStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   type ParsedMarkdownPrompt,
   type MarkdownFrontmatter,

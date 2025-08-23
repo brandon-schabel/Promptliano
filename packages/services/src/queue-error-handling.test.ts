@@ -17,13 +17,13 @@ import {
 } from './queue-service'
 import { createProject } from './project-service'
 import { createTicket, createTask, updateTicket, updateTask, getTicketById } from './ticket-service'
-import { clearAllData, resetTestDatabase } from '@promptliano/storage/src/test-utils'
+// TODO: Implement test utilities with Drizzle
 
 describe('Queue Error Handling', () => {
   let testProjectId: number
 
   beforeEach(async () => {
-    await resetTestDatabase()
+    // TODO: Implement test database reset with Drizzle
 
     const project = await createProject({
       name: 'Error Test Project',
@@ -35,7 +35,7 @@ describe('Queue Error Handling', () => {
   })
 
   afterAll(async () => {
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
   })
 
   describe('Invalid Operations', () => {

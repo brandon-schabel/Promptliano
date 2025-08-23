@@ -12,11 +12,11 @@ import {
   getPromptsByIds
 } from './prompt-service'
 import type { Prompt, PromptProject, CreatePromptBody, UpdatePromptBody } from '@promptliano/schemas'
-import type { PromptsStorage } from '@promptliano/storage'
+// Types now come from @promptliano/schemas and database schema
 import { ApiError } from '@promptliano/shared'
 
 // In-memory stores for our mocks
-let mockPromptsDb: PromptsStorage = {}
+let mockPromptsDb: Record<string, any> = {}
 let mockPromptProjectsDb: PromptProject[] = []
 
 // Initialize a base for mock IDs

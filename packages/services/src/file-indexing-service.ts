@@ -1,6 +1,6 @@
 import type { ProjectFile } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
-import { DatabaseManager } from '@promptliano/storage'
+import { db } from '@promptliano/database'
 import type { Database, Statement } from 'bun:sqlite'
 
 /**
@@ -54,7 +54,7 @@ export class FileIndexingService {
   ])
 
   constructor() {
-    this.db = DatabaseManager.getInstance().getDatabase()
+    this.db = db
     this.ensureTables()
     this.initializeStatements()
   }

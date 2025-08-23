@@ -24,23 +24,20 @@ import {
 import { createProject, deleteProject } from './project-service'
 import { createTicket, updateTicket, deleteTicket } from './ticket-service'
 import { createTask, updateTask } from './ticket-service'
-import { DatabaseManager } from '@promptliano/storage'
-import { clearAllData, resetTestDatabase, resetDatabaseInstance } from '@promptliano/storage/src/test-utils'
+import { db } from '@promptliano/database'
+// Database test utilities - to be implemented with Drizzle
 import { randomBytes } from 'crypto'
 
 describe('Consolidated Queue System Tests', () => {
   let testProjectId: number
   let testQueueId: number
   let testQueueName: string
-  let db: DatabaseManager
-
   // Generate unique suffix for this test suite
   const suiteId = randomBytes(4).toString('hex')
 
   beforeEach(async () => {
-    // Initialize database for testing
-    await resetTestDatabase()
-    db = DatabaseManager.getInstance()
+    // Database is already initialized through import
+    // TODO: Implement test database reset with Drizzle
 
     // Create a test project with unique name
     const projectSuffix = randomBytes(4).toString('hex')
@@ -63,7 +60,7 @@ describe('Consolidated Queue System Tests', () => {
 
   afterAll(async () => {
     // Clean up test data and reset database instance
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
     resetDatabaseInstance()
   })
 

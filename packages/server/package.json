@@ -10,11 +10,22 @@
     "dev:watch": "DEV=true bun --watch server.ts",
     "start:prod": "ENVIRONMENT=prod cd dist && ./start.sh",
     "mcp": "bun mcp-server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "routes:generate": "bun src/codegen/cli.ts generate",
+    "routes:extract": "bun src/codegen/cli.ts extract --schema ../database/src/schema.ts --force",
+    "routes:watch": "bun src/codegen/cli.ts watch",
+    "routes:clean": "bun src/codegen/cli.ts clean",
+    "routes:validate": "bun src/codegen/cli.ts validate",
+    "routes:stats": "bun src/codegen/cli.ts stats",
+    "prebuild": "bun run routes:generate"
   },
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
-    "@promptliano/config": "workspace:*"
+    "@promptliano/config": "workspace:*",
+    "chalk": "^5.6.0",
+    "chokidar": "^4.0.3",
+    "commander": "^14.0.0",
+    "ora": "^8.2.0"
   }
 }

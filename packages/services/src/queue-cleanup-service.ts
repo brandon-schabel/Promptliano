@@ -1,6 +1,6 @@
 import { ApiError } from '@promptliano/shared'
-import { DatabaseManager } from '@promptliano/storage/src/database-manager'
-import { queueStorage } from '@promptliano/storage'
+import { queueRepository, db } from '@promptliano/database'
+import { queueService } from './queue-service'
 
 export interface CleanupResult {
   orphanedItemsRemoved: number
@@ -30,7 +30,7 @@ export async function cleanupQueueData(
   }
 
   try {
-    const db = DatabaseManager.getInstance().getDatabase()
+    const database = db
     const now = Date.now()
     const cutoffTime = now - maxAgeMs
 
@@ -89,7 +89,7 @@ export async function cleanupQueueData(
       // 5. Update queue statistics after cleanup (using direct SQL within transaction)
       if (projectId) {
         // Get all queues for this project
-        const queuesQuery = db.prepare(`
+        const queuesQuery = database.prepare(`
           SELECT id FROM task_queues WHERE project_id = ?
         `)
         const queues = queuesQuery.all(projectId) as any[]
@@ -97,7 +97,7 @@ export async function cleanupQueueData(
         // Update statistics for each queue using direct SQL
         for (const queue of queues) {
           // Calculate statistics directly in SQL
-          const statsQuery = db.prepare(`
+          const statsQuery = database.prepare(`
             SELECT 
               COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_items,
               AVG(CASE 
@@ -111,7 +111,7 @@ export async function cleanupQueueData(
           const stats = statsQuery.get(queue.id) as any
 
           // Update queue statistics directly
-          const updateQuery = db.prepare(`
+          const updateQuery = database.prepare(`
             UPDATE task_queues 
             SET 
               average_processing_time = ?,
@@ -152,14 +152,14 @@ export async function cleanupQueueData(
  */
 export async function resetQueue(queueId: number): Promise<number> {
   try {
-    const db = DatabaseManager.getInstance().getDatabase()
+    const database = db
 
     // Start transaction for atomic reset
     db.exec('BEGIN TRANSACTION')
 
     try {
       // Verify queue exists
-      const queueCheck = db.prepare('SELECT id FROM task_queues WHERE id = ?').get(queueId)
+      const queueCheck = database.prepare('SELECT id FROM task_queues WHERE id = ?').get(queueId)
       if (!queueCheck) {
         db.exec('ROLLBACK')
         throw new ApiError(404, `Queue ${queueId} not found`, 'QUEUE_NOT_FOUND')
@@ -175,7 +175,7 @@ export async function resetQueue(queueId: number): Promise<number> {
         .run(queueId)
 
       // Reset queue statistics directly
-      db.prepare(
+      database.prepare(
         `
         UPDATE task_queues 
         SET 
@@ -207,7 +207,7 @@ export async function resetQueue(queueId: number): Promise<number> {
  */
 export async function moveFailedToDeadLetter(queueId?: number): Promise<number> {
   try {
-    const db = DatabaseManager.getInstance().getDatabase()
+    const database = db
     let movedCount = 0
 
     const whereClause = queueId
@@ -224,7 +224,7 @@ export async function moveFailedToDeadLetter(queueId?: number): Promise<number> 
 
     for (const item of failedItems) {
       // Insert into dead letter queue
-      db.prepare(
+      database.prepare(
         `
         INSERT INTO queue_dead_letter (
           original_queue_id, original_item_id, ticket_id, task_id,
@@ -247,7 +247,7 @@ export async function moveFailedToDeadLetter(queueId?: number): Promise<number> 
       )
 
       // Delete from main queue
-      db.prepare('DELETE FROM queue_items WHERE id = ?').run(item.id)
+      database.prepare('DELETE FROM queue_items WHERE id = ?').run(item.id)
       movedCount++
     }
 
@@ -274,7 +274,7 @@ export async function getQueueHealth(projectId: number): Promise<{
   }
 }> {
   const issues: string[] = []
-  const db = DatabaseManager.getInstance().getDatabase()
+  const database = db
 
   try {
     // Get queue stats

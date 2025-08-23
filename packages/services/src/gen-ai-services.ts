@@ -14,7 +14,7 @@ import { structuredDataSchemas } from '@promptliano/schemas'
 
 import { ApiError } from '@promptliano/shared'
 import { mapProviderErrorToApiError } from './error-mappers'
-import { ErrorFactory, assertExists } from './utils/error-factory'
+import { ErrorFactory, assertExists } from '@promptliano/shared'
 import { retryOperation } from './utils/bulk-operations'
 import { getProviderUrl } from './provider-settings-service'
 import { LMStudioProvider } from './providers/lmstudio-provider'

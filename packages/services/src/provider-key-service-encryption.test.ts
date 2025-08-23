@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, beforeEach, afterAll } from 'bun:test'
 import { createProviderKeyService } from './provider-key-service'
-import { providerKeyStorage, encryptionKeyStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import type { ProviderKey } from '@promptliano/schemas'
 
 describe('Provider Key Service Encryption', () => {

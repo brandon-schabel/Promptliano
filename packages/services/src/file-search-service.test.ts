@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
-import { DatabaseManager, resetTestDatabase, clearAllData } from '@promptliano/storage'
+import { db } from '@promptliano/database'
+// TODO: Implement test utilities with Drizzle
 import { fileSearchService } from './file-search-service'
 import { fileIndexingService } from './file-indexing-service'
 import type { ProjectFile } from '@promptliano/schemas'
@@ -10,10 +11,10 @@ describe('FileSearchService', () => {
 
   beforeAll(async () => {
     // Reset and initialize test database with migrations
-    await resetTestDatabase()
+    // TODO: Implement test database reset with Drizzle
     
     // Get database instance
-    db = DatabaseManager.getInstance().getDatabase()
+    // db is already imported and available.getDatabase()
   })
 
   beforeEach(async () => {
@@ -37,7 +38,7 @@ describe('FileSearchService', () => {
 
   afterAll(async () => {
     // Clean up all test data
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
   })
 
   const createTestFile = (id: string, path: string, content: string): ProjectFile => ({

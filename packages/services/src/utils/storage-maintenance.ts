@@ -1,10 +1,3 @@
-import {
-  projectStorage,
-  chatStorage,
-  promptStorage,
-  providerKeyStorage,
-  claudeAgentStorage
-} from '@promptliano/storage'
 import path from 'node:path'
 import * as fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -60,15 +53,15 @@ async function performInitialCleanup(options: { verbose?: boolean }): Promise<vo
     continueOnError: true
   }
 
-  const storages = [
-    { name: 'projects', storage: projectStorage, basePath: 'data/projects' },
-    { name: 'chats', storage: chatStorage, basePath: 'data/chat_storage' },
-    { name: 'prompts', storage: promptStorage, basePath: 'data/prompt_storage' },
+  const dataPaths = [
+    { name: 'projects', basePath: 'data/projects' },
+    { name: 'chats', basePath: 'data/chat_storage' },
+    { name: 'prompts', basePath: 'data/prompt_storage' },
     { name: 'tickets', basePath: 'data/ticket_storage' },
-    { name: 'provider keys', storage: providerKeyStorage, basePath: 'data/provider_key_storage' }
+    { name: 'provider keys', basePath: 'data/provider_key_storage' }
   ]
 
-  for (const { name, storage, basePath } of storages) {
+  for (const { name, basePath } of dataPaths) {
     try {
       if (options.verbose) {
         console.log(`[StorageMaintenance] Cleaning ${name} storage...`)

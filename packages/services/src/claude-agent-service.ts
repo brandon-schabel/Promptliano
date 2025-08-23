@@ -1,4 +1,4 @@
-import { claudeAgentStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   type CreateClaudeAgentBody,
   type UpdateClaudeAgentBody,
@@ -10,7 +10,7 @@ import {
 
 import { ApiError, promptsMap } from '@promptliano/shared'
 import { ZodError } from 'zod'
-import { ErrorFactory, assertExists, handleZodError } from './utils/error-factory'
+import { ErrorFactory, assertExists, handleZodError } from '@promptliano/shared'
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'
 import * as path from 'path'

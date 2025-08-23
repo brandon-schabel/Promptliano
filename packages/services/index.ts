@@ -1,12 +1,115 @@
-export * from './src/chat-service'
-export * from './src/project-service'
+// Modern functional factory pattern services (primary exports)
+export {
+  // Project Service
+  createProjectService,
+  projectService,
+  createProject,
+  getProjectById,
+  getAllProjects,
+  updateProject,
+  deleteProject,
+  projectExists,
+  listProjects,
+  // File-related functions
+  getProjectFiles,
+  updateFileContent,
+  summarizeFiles,
+  removeSummariesFromFiles,
+  suggestFiles,
+  type ProjectService,
+  type FileSyncData
+} from './src/project-service'
+
+export {
+  // Ticket Service
+  createTicketService,
+  ticketService,
+  createTicket,
+  getTicketById,
+  updateTicket,
+  deleteTicket,
+  type TicketService
+} from './src/ticket-service'
+
+export {
+  // Queue Service
+  createQueueService,
+  queueService,
+  type QueueService
+} from './src/queue-service'
+
+export {
+  // Chat Service
+  createChatService,
+  chatService,
+  type ChatService
+} from './src/chat-service'
+
+export {
+  // Prompt Service
+  createPromptService,
+  promptService,
+  createPrompt,
+  getPromptById,
+  updatePrompt,
+  deletePrompt,
+  getPromptsByProject,
+  searchPrompts,
+  getPromptSuggestions,
+  optimizePrompt,
+  duplicatePrompt,
+  type PromptService
+} from './src/prompt-service'
+
+export {
+  // File Service
+  createFileService,
+  fileService,
+  type FileService
+} from './src/file-service'
+
+export {
+  // Task Service
+  TaskService,
+  taskService,
+  // Functional API exports
+  createTask,
+  getTasks,
+  updateTask,
+  deleteTask,
+  reorderTasks,
+  getTasksForTickets,
+  batchCreateTasks,
+  batchUpdateTasks,
+  batchDeleteTasks,
+  batchMoveTasks,
+  filterTasks,
+  getTaskWithContext,
+  analyzeTaskComplexity,
+  suggestFilesForTask,
+  // Queue integration functions
+  enqueueTask,
+  dequeueTask,
+  getNextTaskFromQueue,
+  enqueueTicketWithAllTasks,
+  // Types
+  type TicketTask,
+  type InsertTicketTask,
+  type TaskStatus
+} from './src/task-service'
+
+// Legacy services have been removed as part of architecture revamp
+// All functionality now available through modern functional factory patterns above
+
+// Other services (unchanged)
 export * from './src/project-statistics-service'
-export * from './src/prompt-service'
 export * from './src/provider-key-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
-export * from './src/ticket-service'
-export * from './src/queue-service'
+
+// Service container and composition
+export * from './src/service-container'
+export * from './src/project-domain-service'
 // Explicit re-export to avoid CleanupResult ambiguity with file-sync-service-unified
 export { cleanupQueueData, resetQueue, moveFailedToDeadLetter, getQueueHealth } from './src/queue-cleanup-service'
 export type { CleanupResult as QueueCleanupResult } from './src/queue-cleanup-service'

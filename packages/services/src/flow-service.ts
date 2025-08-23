@@ -6,7 +6,7 @@
  * eliminating the need for separate queue_items tracking.
  */
 
-import { ticketStorage, queueStorage } from '@promptliano/storage'
+import { ticketRepository, queueRepository } from '@promptliano/database'
 import type {
   Ticket,
   TicketTask,

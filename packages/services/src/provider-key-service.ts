@@ -1,4 +1,4 @@
-import { providerKeyStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import {
   CreateProviderKeyInputSchema,
   type ProviderKey,
@@ -14,7 +14,7 @@ import {
   ProviderHealthStatusEnum
 } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
-import { ErrorFactory, assertExists, handleZodError, withErrorContext } from './utils/error-factory'
+import { ErrorFactory, assertExists, handleZodError, withErrorContext } from '@promptliano/shared'
 import { logger } from './utils/logger'
 import { z } from '@hono/zod-openapi'
 import { normalizeToUnixMs } from '@promptliano/shared'

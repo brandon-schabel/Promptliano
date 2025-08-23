@@ -1,4 +1,4 @@
-import { chatStorage } from '@promptliano/storage'
+import { storageService } from '@promptliano/database'
 import { claudeCodeMCPService } from './claude-code-mcp-service'
 import { ChatSchema } from '@promptliano/schemas'
 import type { ClaudeMessage } from '@promptliano/schemas'

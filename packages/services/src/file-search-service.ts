@@ -1,7 +1,7 @@
 import type { ProjectFile, Ticket } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
-import { DatabaseManager } from '@promptliano/storage'
-import { ErrorFactory, withErrorContext } from './utils/error-factory'
+import { db } from '@promptliano/database'
+import { ErrorFactory, withErrorContext } from '@promptliano/shared'
 import type { Database, Statement } from 'bun:sqlite'
 import { getProjectFiles } from './project-service'
 import { fileIndexingService } from './file-indexing-service'
@@ -53,7 +53,7 @@ export class FileSearchService {
   private readonly MAX_CACHE_SIZE = 1000
 
   constructor() {
-    this.db = DatabaseManager.getInstance().getDatabase()
+    this.db = db
     this.initializeStatements()
     this.startCacheCleanup()
   }
