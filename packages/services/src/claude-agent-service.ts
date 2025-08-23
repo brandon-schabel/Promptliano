@@ -1,4 +1,4 @@
-import { storageService } from '@promptliano/database'
+import { claudeAgentRepository } from '@promptliano/database'
 import {
   type ClaudeAgent,
   type InsertClaudeAgent as CreateClaudeAgentBody,
@@ -12,154 +12,221 @@ import {
 } from '@promptliano/schemas'
 
 import { ApiError, promptsMap } from '@promptliano/shared'
-import { ZodError } from 'zod'
-import { ErrorFactory, assertExists, handleZodError } from '@promptliano/shared'
+import { ErrorFactory, assertExists, withErrorContext } from '@promptliano/shared'
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'
 import * as path from 'path'
 import * as fs from 'fs/promises'
 import { relativePosix, toPosixPath, toOSPath } from '@promptliano/shared'
 
-export async function createAgent(projectPath: string, data: CreateClaudeAgentBody): Promise<ClaudeAgent> {
-  const now = Date.now()
-
-  try {
-    // Generate agent ID based on name
-    const agentId = claudeAgentStorage.generateAgentId(data.name)
-
-    // Check if agent with this ID already exists
-    const existingAgent = await claudeAgentStorage.getAgentById(projectPath, agentId)
-    if (existingAgent) {
-      throw ErrorFactory.duplicate('Agent', 'ID', agentId)
-    }
-
-    // Prepare file path
-    const filePath = data.filePath || `${agentId}.md`
-    const fullFilePath = path.join(claudeAgentStorage.getAgentsDir(projectPath), filePath)
-
-    const newAgentData: ClaudeAgent = {
-      id: agentId,
-      name: data.name,
-      description: data.description,
-      color: data.color,
-      filePath: relativePosix(projectPath, fullFilePath),
-      content: data.content,
-      projectId: data.projectId,
-      created: now,
-      updated: now
-    }
-
-    try {
-      ClaudeAgentSchema.parse(newAgentData) // Validate before saving
-    } catch (error) {
-      handleZodError(error, 'Agent', 'creating')
-    }
-
-    // Write agent to filesystem
-    const savedAgent = await claudeAgentStorage.writeAgent(projectPath, agentId, newAgentData)
-
-    // Return the agent with projectId if specified
-    return {
-      ...savedAgent,
-      projectId: data.projectId
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw ErrorFactory.createFailed('Agent', error instanceof Error ? error.message : 'Unknown error')
-  }
+// Service dependencies interface
+export interface ClaudeAgentServiceDeps {
+  repository?: typeof claudeAgentRepository
+  logger?: any
+  cache?: any
+  projectPath?: string
 }
 
-export async function getAgentById(projectPath: string, agentId: string): Promise<ClaudeAgent> {
-  const agent = await claudeAgentStorage.getAgentById(projectPath, agentId)
-  assertExists(agent, 'Agent', agentId)
-  return agent
-}
+/**
+ * Create Claude Agent Service factory function
+ */
+export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
+  const {
+    repository = claudeAgentRepository,
+    logger = console,
+    cache,
+    projectPath = process.cwd()
+  } = deps
 
-export async function listAgents(projectPath: string): Promise<ClaudeAgent[]> {
-  const agentsData = await claudeAgentStorage.readAgents(projectPath)
-  const agentList = Object.values(agentsData)
-  // Sort by name
-  agentList.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  return agentList
-}
-
-export async function getAgentsByProjectId(projectPath: string, projectId: number): Promise<ClaudeAgent[]> {
-  // Since we no longer have database associations, we return all agents
-  // and let the frontend filter by project if needed
-  const agents = await listAgents(projectPath)
-  return agents
-}
-
-export async function updateAgent(
-  projectPath: string,
-  agentId: string,
-  data: UpdateClaudeAgentBody
-): Promise<ClaudeAgent> {
-  const existingAgent = await claudeAgentStorage.getAgentById(projectPath, agentId)
-  assertExists(existingAgent, 'Agent', agentId)
-
-  const updatedAgentData: ClaudeAgent = {
-    ...existingAgent,
-    name: data.name ?? existingAgent.name,
-    description: data.description ?? existingAgent.description,
-    color: data.color ?? existingAgent.color,
-    content: data.content ?? existingAgent.content,
-    updated: Date.now()
+  // Helper function to generate agent ID from name
+  const generateAgentId = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .slice(0, 50) // Limit length
   }
 
-  // Handle file path change if specified
-  if (data.filePath && data.filePath !== existingAgent.filePath) {
-    // Delete old file
-    const oldFullPath = path.join(projectPath, toOSPath(existingAgent.filePath))
-    try {
-      await fs.unlink(oldFullPath)
-    } catch (error) {
-      console.warn(`Could not delete old agent file: ${oldFullPath}`, error)
-    }
-
-    updatedAgentData.filePath = toPosixPath(data.filePath)
+  // Helper function to get agents directory
+  const getAgentsDir = (basePath: string): string => {
+    return path.join(basePath, 'claude-agents')
   }
 
-  try {
-    ClaudeAgentSchema.parse(updatedAgentData)
-  } catch (error) {
-    handleZodError(error, 'Agent', 'updating')
+  // Helper function to write agent markdown file
+  const writeAgentFile = async (agentPath: string, content: string): Promise<void> => {
+    const dir = path.dirname(agentPath)
+    await fs.mkdir(dir, { recursive: true })
+    await fs.writeFile(agentPath, content, 'utf-8')
   }
 
-  const savedAgent = await claudeAgentStorage.writeAgent(projectPath, agentId, updatedAgentData)
-  return savedAgent
-}
+  const createAgent = async (data: CreateClaudeAgentBody): Promise<ClaudeAgent> => {
+    return withErrorContext(
+      async () => {
+        // Generate unique agent ID
+        const agentId = generateAgentId(data.name)
+        
+        // Check if agent already exists
+        const existingAgent = await repository.getById(agentId)
+        if (existingAgent) {
+          throw ErrorFactory.duplicate('Agent', 'ID', agentId)
+        }
 
-export async function deleteAgent(projectPath: string, agentId: string): Promise<boolean> {
-  const agent = await claudeAgentStorage.getAgentById(projectPath, agentId)
-  if (!agent) {
-    return false // Agent not found
+        // Create agent in database with current schema fields
+        const agentData = {
+          id: agentId,
+          name: data.name,
+          description: data.description || null,
+          instructions: data.instructions || '',
+          model: data.model || 'claude-3-sonnet',
+          isActive: true
+        }
+
+        const agent = await repository.create(agentData)
+        
+        // Write markdown file if instructions provided
+        if (data.instructions) {
+          const agentsDir = getAgentsDir(projectPath)
+          const filePath = path.join(agentsDir, `${agentId}.md`)
+          await writeAgentFile(filePath, data.instructions)
+        }
+
+        return agent
+      },
+      { entity: 'Agent', action: 'create', data: { name: data.name } }
+    )
   }
 
-  // Delete file
-  const deleted = await claudeAgentStorage.deleteAgent(projectPath, agentId)
-  return deleted
-}
+  const getAgentById = async (agentId: string): Promise<ClaudeAgent> => {
+    return withErrorContext(
+      async () => {
+        const agent = await repository.getById(agentId)
+        assertExists(agent, 'Agent', agentId)
+        return agent
+      },
+      { entity: 'Agent', action: 'getById', id: agentId }
+    )
+  }
 
-export async function suggestAgents(
-  projectId: number,
-  context: string = '',
-  limit: number = 5
-): Promise<AgentSuggestions> {
-  try {
-    // Get project summary for context
-    let projectSummary = ''
-    try {
-      projectSummary = await getCompactProjectSummary(projectId)
-    } catch (error) {
-      console.log(
-        `Warning: Could not get project summary for agent suggestions: ${error instanceof Error ? error.message : String(error)}`
-      )
-      projectSummary = 'No project context available'
-    }
+  const listAgents = async (): Promise<ClaudeAgent[]> => {
+    return withErrorContext(
+      async () => {
+        const agents = await repository.getAll('asc')
+        // Sort by name for consistent ordering
+        return agents.sort((a, b) => a.name.localeCompare(b.name))
+      },
+      { entity: 'Agent', action: 'list' }
+    )
+  }
 
-    // Create a system prompt for agent suggestions
-    const systemPrompt = `
+  const getAgentsByProject = async (projectId?: number): Promise<ClaudeAgent[]> => {
+    return withErrorContext(
+      async () => {
+        // Get all agents since current schema doesn't have projectId association
+        // This can be filtered client-side or enhanced later with project associations
+        const agents = await listAgents()
+        return agents.filter(agent => agent.isActive) // Only return active agents
+      },
+      { entity: 'Agent', action: 'getByProject', projectId }
+    )
+  }
+
+  const updateAgent = async (agentId: string, data: Partial<UpdateClaudeAgentBody>): Promise<ClaudeAgent> => {
+    return withErrorContext(
+      async () => {
+        // Verify agent exists
+        await getAgentById(agentId)
+        
+        // Prepare update data to match current schema
+        const updateData: Partial<UpdateClaudeAgentBody> = {
+          name: data.name,
+          description: data.description,
+          instructions: data.instructions,
+          model: data.model,
+          isActive: data.isActive
+        }
+        
+        // Remove undefined fields
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key as keyof typeof updateData] === undefined) {
+            delete updateData[key as keyof typeof updateData]
+          }
+        })
+
+        const updatedAgent = await repository.update(agentId, updateData)
+        
+        // Update markdown file if instructions changed
+        if (data.instructions !== undefined) {
+          const agentsDir = getAgentsDir(projectPath)
+          const filePath = path.join(agentsDir, `${agentId}.md`)
+          
+          if (data.instructions) {
+            await writeAgentFile(filePath, data.instructions)
+          } else {
+            // Remove file if instructions are empty
+            try {
+              await fs.unlink(filePath)
+            } catch (error) {
+              // File might not exist, that's okay
+              logger?.debug(`Could not delete agent file: ${filePath}`, error)
+            }
+          }
+        }
+
+        return updatedAgent
+      },
+      { entity: 'Agent', action: 'update', id: agentId }
+    )
+  }
+
+  const deleteAgent = async (agentId: string): Promise<boolean> => {
+    return withErrorContext(
+      async () => {
+        // Verify agent exists
+        const agent = await repository.getById(agentId)
+        if (!agent) {
+          return false
+        }
+
+        // Delete from database
+        await repository.delete(agentId)
+        
+        // Delete markdown file if it exists
+        const agentsDir = getAgentsDir(projectPath)
+        const filePath = path.join(agentsDir, `${agentId}.md`)
+        
+        try {
+          await fs.unlink(filePath)
+        } catch (error) {
+          // File might not exist, that's okay
+          logger?.debug(`Could not delete agent file: ${filePath}`, error)
+        }
+
+        return true
+      },
+      { entity: 'Agent', action: 'delete', id: agentId }
+    )
+  }
+
+  const suggestAgents = async (
+    projectId: number,
+    context: string = '',
+    limit: number = 5
+  ): Promise<AgentSuggestions> => {
+    return withErrorContext(
+      async () => {
+        // Get project summary for context
+        let projectSummary = ''
+        try {
+          projectSummary = await getCompactProjectSummary(projectId)
+        } catch (error) {
+          logger?.warn(
+            `Could not get project summary for agent suggestions: ${error instanceof Error ? error.message : String(error)}`
+          )
+          projectSummary = 'No project context available'
+        }
+
+        // Create a system prompt for agent suggestions
+        const systemPrompt = `
 You are an expert at analyzing project codebases and suggesting specialized AI agents that would be most helpful for development tasks.
 
 ## Your Task:
@@ -179,7 +246,7 @@ Based on the project structure, technologies used, and any user context provided
 - Make agents that would genuinely help with real development tasks
 `
 
-    const userPrompt = `
+        const userPrompt = `
 <project_summary>
 ${projectSummary}
 </project_summary>
@@ -191,66 +258,96 @@ ${context || 'General development assistance needed'}
 Based on this project's structure and the user's context, suggest ${limit} specialized AI agents that would be most valuable for this project. Focus on agents that address the specific technologies, patterns, and potential challenges visible in this codebase.
 `
 
-    // Use AI to generate agent suggestions
-    const result = await generateStructuredData({
-      prompt: userPrompt,
-      schema: AgentSuggestionsSchema,
-      systemMessage: systemPrompt
-    })
+        // Use AI to generate agent suggestions
+        const result = await generateStructuredData({
+          prompt: userPrompt,
+          schema: AgentSuggestionsSchema,
+          systemMessage: systemPrompt
+        })
 
-    return result.object
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw ErrorFactory.operationFailed('suggest agents', error instanceof Error ? error.message : String(error))
-  }
-}
-
-export async function getAgentContentById(projectPath: string, agentId: string): Promise<string | null> {
-  try {
-    const agent = await getAgentById(projectPath, agentId)
-    return agent.content
-  } catch (error) {
-    console.log(
-      `Warning: Could not get agent content for ${agentId}: ${error instanceof Error ? error.message : String(error)}`
+        return result.object
+      },
+      { entity: 'Agent', action: 'suggest', projectId, context, limit }
     )
-    return null
   }
-}
 
-export async function formatAgentContext(projectPath: string, agentId: string): Promise<string> {
-  try {
-    const agent = await getAgentById(projectPath, agentId)
-    return `## Agent: ${agent.name}
+  const getAgentContent = async (agentId: string): Promise<string | null> => {
+    return withErrorContext(
+      async () => {
+        try {
+          const agent = await getAgentById(agentId)
+          
+          // Try to read content from markdown file first
+          const agentsDir = getAgentsDir(projectPath)
+          const filePath = path.join(agentsDir, `${agentId}.md`)
+          
+          try {
+            const fileContent = await fs.readFile(filePath, 'utf-8')
+            return fileContent
+          } catch {
+            // Fall back to database instructions field
+            return agent.instructions || null
+          }
+        } catch (error) {
+          logger?.warn(
+            `Could not get agent content for ${agentId}: ${error instanceof Error ? error.message : String(error)}`
+          )
+          return null
+        }
+      },
+      { entity: 'Agent', action: 'getContent', id: agentId }
+    )
+  }
 
-${agent.content}
+  const formatAgentContext = async (agentId: string): Promise<string> => {
+    return withErrorContext(
+      async () => {
+        try {
+          const agent = await getAgentById(agentId)
+          const content = await getAgentContent(agentId)
+          
+          return `## Agent: ${agent.name}
+
+${content || agent.instructions || 'No instructions available.'}
 
 ---
 Agent ID: ${agent.id}
-Specialization: ${agent.description}
+Model: ${agent.model}
+Description: ${agent.description || 'No description provided.'}
 `
-  } catch (error) {
-    console.log(
-      `Warning: Could not format agent context for ${agentId}: ${error instanceof Error ? error.message : String(error)}`
-    )
-    return `## Agent: ${agentId} (not found)
+        } catch (error) {
+          logger?.warn(
+            `Could not format agent context for ${agentId}: ${error instanceof Error ? error.message : String(error)}`
+          )
+          return `## Agent: ${agentId} (not found)
 
 This agent could not be loaded. Please proceed with general knowledge.
 `
+        }
+      },
+      { entity: 'Agent', action: 'formatContext', id: agentId }
+    )
   }
-}
 
-export async function getAgentsByIds(projectPath: string, agentIds: string[]): Promise<ClaudeAgent[]> {
-  const agents: ClaudeAgent[] = []
-  for (const agentId of agentIds) {
-    try {
-      const agent = await getAgentById(projectPath, agentId)
-      agents.push(agent)
-    } catch (error) {
-      console.log(`Warning: Could not get agent ${agentId}: ${error instanceof Error ? error.message : String(error)}`)
-    }
+  const getAgentsByIds = async (agentIds: string[]): Promise<ClaudeAgent[]> => {
+    return withErrorContext(
+      async () => {
+        const agents: ClaudeAgent[] = []
+        
+        for (const agentId of agentIds) {
+          try {
+            const agent = await getAgentById(agentId)
+            agents.push(agent)
+          } catch (error) {
+            logger?.warn(`Could not get agent ${agentId}: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        }
+        
+        return agents
+      },
+      { entity: 'Agent', action: 'getByIds', ids: agentIds }
+    )
   }
-  return agents
-}
 
 export async function suggestAgentForTask(
   taskTitle: string,

@@ -1,8 +1,13 @@
-import { ApiError } from '@promptliano/shared'
-// Import database schemas as source of truth
-import { selectActiveTabSchema as activeTabSchema, type ActiveTab } from '@promptliano/database'
-// Note: ActiveTabData and UpdateActiveTabBody types should be migrated to database
-// For now keeping as local interfaces until full service migration
+/**
+ * Active Tab Service - Migrated to Repository Pattern
+ * Manages active tab state for projects using activeTabRepository
+ */
+
+import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import { activeTabRepository, type ActiveTab, type InsertActiveTab, selectActiveTabSchema } from '@promptliano/database'
+import { getProjectById } from './project-service'
+
+// Legacy interface compatibility
 interface ActiveTabData {
   projectId: number;
   activeTabId: number;
@@ -16,42 +21,79 @@ interface UpdateActiveTabBody {
   clientId?: string;
   tabMetadata?: any;
 }
-import { storageService } from '@promptliano/database'
-import { getProjectById } from './project-service'
 
-// Get the active tab repository from storageService
-const activeTabStorage = storageService.activeTabs
+interface LegacyActiveTab {
+  id: number;
+  data: ActiveTabData;
+  created: number;
+  updated: number;
+}
+
+/**
+ * Map database ActiveTab to legacy format for backward compatibility
+ */
+function mapToLegacyFormat(dbTab: ActiveTab): LegacyActiveTab {
+  return {
+    id: dbTab.id,
+    data: {
+      projectId: dbTab.projectId,
+      activeTabId: (dbTab.tabData as any)?.activeTabId || 0,
+      clientId: (dbTab.tabData as any)?.clientId,
+      lastUpdated: dbTab.lastAccessedAt,
+      tabMetadata: dbTab.tabData,
+    },
+    created: dbTab.createdAt,
+    updated: dbTab.lastAccessedAt,
+  }
+}
+
+/**
+ * Map legacy format to database ActiveTab for creation
+ */
+function mapFromLegacyFormat(data: ActiveTabData): Omit<InsertActiveTab, 'id'> {
+  return {
+    projectId: data.projectId,
+    tabType: 'active',
+    tabData: {
+      activeTabId: data.activeTabId,
+      clientId: data.clientId,
+      ...data.tabMetadata,
+    },
+    isActive: true,
+    lastAccessedAt: data.lastUpdated,
+    createdAt: Date.now(),
+  }
+}
 
 /**
  * Get the active tab for a project
  */
-export async function getActiveTab(projectId: number, clientId?: string): Promise<ActiveTab | null> {
-  try {
-    // Validate project exists
-    await getProjectById(projectId)
+export async function getActiveTab(projectId: number, clientId?: string): Promise<LegacyActiveTab | null> {
+  return withErrorContext(
+    async () => {
+      // Validate project exists
+      await getProjectById(projectId)
 
-    // Get all active tabs
-    const allActiveTabs = await activeTabStorage.getAll()
-
-    // Find active tab for this project (and optionally client)
-    for (const activeTab of allActiveTabs.values()) {
-      if (activeTab.data.projectId === projectId) {
+      // Get active tabs for this project
+      const dbTabs = await activeTabRepository.getByProject(projectId)
+      
+      // Find the matching active tab
+      const matchingTab = dbTabs.find(tab => {
+        if (!tab.isActive) return false
+        
         // If clientId specified, must match
-        if (clientId && activeTab.data.clientId !== clientId) {
-          continue
+        if (clientId) {
+          const tabClientId = (tab.tabData as any)?.clientId
+          return tabClientId === clientId
         }
-        return activeTab
-      }
-    }
-    return null
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to get active tab: ${error instanceof Error ? error.message : String(error)}`,
-      'GET_ACTIVE_TAB_FAILED'
-    )
-  }
+        
+        return true
+      })
+      
+      return matchingTab ? mapToLegacyFormat(matchingTab) : null
+    },
+    { entity: 'ActiveTab', action: 'get', projectId, clientId }
+  )
 }
 
 /**
@@ -62,53 +104,38 @@ export async function setActiveTab(
   tabId: number,
   clientId?: string,
   tabMetadata?: ActiveTabData['tabMetadata']
-): Promise<ActiveTab> {
-  try {
-    // Validate project exists
-    await getProjectById(projectId)
+): Promise<LegacyActiveTab> {
+  return withErrorContext(
+    async () => {
+      // Validate project exists
+      await getProjectById(projectId)
 
-    // Check if we already have an active tab entry for this project
-    const existingActiveTab = await getActiveTab(projectId, clientId)
+      // Check if we already have an active tab entry for this project
+      const existingActiveTab = await getActiveTab(projectId, clientId)
 
-    const now = Date.now()
-    const activeTabData: ActiveTabData = {
-      projectId,
-      activeTabId: tabId,
-      clientId,
-      lastUpdated: now,
-      tabMetadata
-    }
-
-    if (existingActiveTab) {
-      // Update existing entry
-      const updated: ActiveTab = {
-        ...existingActiveTab,
-        data: activeTabData,
-        updated: now
+      const now = Date.now()
+      const activeTabData: ActiveTabData = {
+        projectId,
+        activeTabId: tabId,
+        clientId,
+        lastUpdated: now,
+        tabMetadata
       }
-      await activeTabStorage.update(existingActiveTab.id, updated)
-      return updated
-    } else {
-      // Create new entry
-      const id = Date.now()
-      const newActiveTab: ActiveTab = {
-        id,
-        data: activeTabData,
-        created: now,
-        updated: now
+
+      if (existingActiveTab) {
+        // Update existing entry
+        const updateData = mapFromLegacyFormat(activeTabData)
+        const updated = await activeTabRepository.update(existingActiveTab.id, updateData)
+        return mapToLegacyFormat(updated)
+      } else {
+        // Create new entry
+        const createData = mapFromLegacyFormat(activeTabData)
+        const created = await activeTabRepository.create(createData)
+        return mapToLegacyFormat(created)
       }
-      const validated = activeTabSchema.parse(newActiveTab)
-      await activeTabStorage.create(validated)
-      return validated
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to set active tab: ${error instanceof Error ? error.message : String(error)}`,
-      'SET_ACTIVE_TAB_FAILED'
-    )
-  }
+    },
+    { entity: 'ActiveTab', action: 'set', projectId, tabId, clientId }
+  )
 }
 
 /**
@@ -116,15 +143,20 @@ export async function setActiveTab(
  */
 export async function getOrCreateDefaultActiveTab(projectId: number, clientId?: string): Promise<number> {
   try {
-    const activeTab = await getActiveTab(projectId, clientId)
-    if (activeTab) {
-      return activeTab.data.activeTabId
-    }
-    // No active tab, create default tab 0
-    const created = await setActiveTab(projectId, 0, clientId)
-    return created.data.activeTabId
+    return await withErrorContext(
+      async () => {
+        const activeTab = await getActiveTab(projectId, clientId)
+        if (activeTab) {
+          return activeTab.data.activeTabId
+        }
+        // No active tab, create default tab 0
+        const created = await setActiveTab(projectId, 0, clientId)
+        return created.data.activeTabId
+      },
+      { entity: 'ActiveTab', action: 'getOrCreate', projectId, clientId }
+    )
   } catch (error) {
-    // If all else fails, return 0
+    // Fallback: return 0 if all else fails
     console.warn(`Failed to get/create active tab for project ${projectId}, defaulting to 0:`, error)
     return 0
   }
@@ -134,25 +166,21 @@ export async function getOrCreateDefaultActiveTab(projectId: number, clientId?: 
  * Clear active tab for a project
  */
 export async function clearActiveTab(projectId: number, clientId?: string): Promise<boolean> {
-  try {
-    const activeTab = await getActiveTab(projectId, clientId)
-    if (!activeTab) {
-      return false
-    }
-    return await activeTabStorage.delete(activeTab.id)
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError(
-      500,
-      `Failed to clear active tab: ${error instanceof Error ? error.message : String(error)}`,
-      'CLEAR_ACTIVE_TAB_FAILED'
-    )
-  }
+  return withErrorContext(
+    async () => {
+      const activeTab = await getActiveTab(projectId, clientId)
+      if (!activeTab) {
+        return false
+      }
+      return await activeTabRepository.delete(activeTab.id)
+    },
+    { entity: 'ActiveTab', action: 'clear', projectId, clientId }
+  )
 }
 
 /**
  * Update active tab from request body
  */
-export async function updateActiveTab(projectId: number, body: UpdateActiveTabBody): Promise<ActiveTab> {
+export async function updateActiveTab(projectId: number, body: UpdateActiveTabBody): Promise<LegacyActiveTab> {
   return setActiveTab(projectId, body.tabId, body.clientId, body.tabMetadata)
 }
