@@ -14,6 +14,7 @@ export {
   getProjectFiles,
   updateFileContent,
   summarizeFiles,
+  summarizeSingleFile,
   removeSummariesFromFiles,
   suggestFiles,
   type ProjectService,
@@ -35,6 +36,7 @@ export {
   // Queue Service
   createQueueService,
   queueService,
+  dequeueTicket,
   type QueueService
 } from './src/queue-service'
 

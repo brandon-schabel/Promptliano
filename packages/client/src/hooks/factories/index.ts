@@ -42,12 +42,3 @@ export {
   type SearchResult,
   type SearchApiClient
 } from './search-hook-factory'
-
-
-
-
-
-import { getUnifiedQueryKeys, useSmartInvalidation } from '../../lib/query-keys'
-
-export const QUERY_KEYS = getUnifiedQueryKeys()
-export { useSmartInvalidation }

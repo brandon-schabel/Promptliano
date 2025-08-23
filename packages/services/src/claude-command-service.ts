@@ -20,7 +20,7 @@ import { getCompactProjectSummary } from './utils/project-summary-service'
 import { ClaudeCommandParser } from '@promptliano/shared'
 import { HIGH_MODEL_CONFIG } from '@promptliano/config'
 
-export async function createCommand(projectId: number, data: CreateClaudeCommandBody): Promise<ClaudeCommand> {
+async function createCommand(projectId: number, data: CreateClaudeCommandBody): Promise<ClaudeCommand> {
   return withErrorContext(
     async () => {
       // Validate command name
@@ -54,7 +54,7 @@ export async function createCommand(projectId: number, data: CreateClaudeCommand
   )
 }
 
-export async function listCommands(
+async function listCommands(
   projectId: number,
   query: SearchCommandsQuery = {
     includeGlobal: true,
@@ -94,7 +94,7 @@ export async function listCommands(
   )
 }
 
-export async function getCommandByName(
+async function getCommandByName(
   projectId: number,
   commandName: string
 ): Promise<ClaudeCommand> {
@@ -113,7 +113,7 @@ export async function getCommandByName(
   )
 }
 
-export async function updateCommand(
+async function updateCommand(
   projectId: number,
   commandName: string,
   data: Partial<UpdateClaudeCommandBody>
@@ -141,7 +141,7 @@ export async function updateCommand(
   )
 }
 
-export async function deleteCommand(projectId: number, commandName: string): Promise<boolean> {
+async function deleteCommand(projectId: number, commandName: string): Promise<boolean> {
   return withErrorContext(
     async () => {
       // Get command to verify it exists
@@ -156,7 +156,7 @@ export async function deleteCommand(projectId: number, commandName: string): Pro
   )
 }
 
-export async function executeCommand(
+async function executeCommand(
   projectId: number,
   commandName: string,
   args?: Record<string, any>
@@ -190,7 +190,7 @@ export async function executeCommand(
   )
 }
 
-export async function generateCommand(
+async function generateCommand(
   projectId: number,
   data: CommandGenerationRequest
 ): Promise<CommandGenerationResponse['data']> {
@@ -271,7 +271,7 @@ Generate a Claude Code slash command based on the user's requirements and projec
   )
 }
 
-export async function suggestCommands(
+async function suggestCommands(
   projectId: number,
   context: string = '',
   limit: number = 5
@@ -335,7 +335,7 @@ Based on this project's structure and the user's context, suggest ${limit} Claud
 }
 
 // Service factory following modern functional pattern
-export function createClaudeCommandService(deps: {
+function createClaudeCommandService(deps: {
   repository?: typeof claudeCommandRepository
 } = {}) {
   const repository = deps.repository || claudeCommandRepository
@@ -364,5 +364,6 @@ export {
   deleteCommand,
   executeCommand,
   suggestCommands,
-  generateCommand
+  generateCommand,
+  createClaudeCommandService
 }

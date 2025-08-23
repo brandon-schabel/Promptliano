@@ -488,5 +488,7 @@ export const {
   failItem: failQueueItem,
   setStatus: setQueueStatus,
   clearCompleted: clearCompletedItems,
-  getProcessingStats: getQueueProcessingStats
+  getProcessingStats: getQueueProcessingStats,
+  getNextTaskFromQueue,
+  dequeueTicket
 } = queueService
