@@ -1,5 +1,5 @@
 import { useProjectTabField, useUpdateActiveProjectTab, useAppSettings } from '@/hooks/use-kv-local-storage'
-import { useSyncProjectWithProgress, useGetProject } from '@/hooks/api/use-projects-api'
+import { useSyncProjectWithProgress, useGetProject } from '@/hooks/api-hooks'
 import { SyncProgressDialog } from './sync-progress-dialog'
 import type { SyncProgressEvent } from '@promptliano/schemas'
 import { GlobalStateEditorType as EditorType, EDITOR_OPTIONS } from '@promptliano/schemas'

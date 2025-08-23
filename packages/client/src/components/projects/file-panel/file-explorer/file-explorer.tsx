@@ -19,10 +19,10 @@ import { NoResultsScreen } from './no-results-screen'
 import { EmptyProjectScreen } from './empty-project-screen'
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'
 import { useQueryClient } from '@tanstack/react-query'
-import { useGetProjectFiles, useGetProject, useUpdateFileContent } from '@/hooks/api/use-projects-api'
+import { useGetProjectFiles, useGetProject, useUpdateFileContent } from '@/hooks/api-hooks'
 import { ProjectFile } from '@promptliano/schemas'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { useProjectGitStatus } from '@/hooks/api/use-git-api'
+import { useProjectGitStatus } from '@/hooks/api-hooks'
 import { GitPullRequest, GitBranch } from 'lucide-react'
 import {
   DropdownMenu,

@@ -13,7 +13,7 @@ import {
 } from '@promptliano/ui'
 import { LazyMonacoDiffViewer } from '../lazy-monaco-diff-viewer'
 import { DiffViewer } from '../file-changes/diff-viewer'
-import { useFileDiff } from '@/hooks/api/use-git-api'
+import { useFileDiff } from '@/hooks/api-hooks'
 import { getFileLanguage } from '@/lib/file-utils'
 import { Copy, X } from 'lucide-react'
 import { toast } from 'sonner'

@@ -29,7 +29,7 @@ import {
   useClaudeSessions,
   useFormatClaudeMessage,
   useSessionDuration
-} from '@/hooks/api/use-claude-code-api'
+} from '@/hooks/api-hooks'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { ClaudeMessage } from '@promptliano/schemas'

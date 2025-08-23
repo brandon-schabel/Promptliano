@@ -202,51 +202,6 @@ export function useMigrateLegacyKeys() {
 }
 
 // ============================================================================
-// Legacy Query Key Constants (for backwards compatibility)
-// ============================================================================
-
-/**
- * Legacy query key constants for backwards compatibility
- * @deprecated Use unified query keys instead
- */
-export const LEGACY_KEYS = {
-  CHAT_KEYS: {
-    all: ['chats'] as const,
-    list: () => ['chats', 'list'] as const,
-    detail: (chatId: number) => ['chats', 'detail', chatId] as const,
-    messages: (chatId: number) => ['chats', 'messages', chatId] as const
-  },
-  
-  PROJECT_KEYS: {
-    all: ['projects'] as const,
-    list: () => ['projects', 'list'] as const,
-    detail: (projectId: number) => ['projects', 'detail', projectId] as const,
-    files: (projectId: number) => ['projects', 'files', projectId] as const,
-    summary: (projectId: number) => ['projects', 'summary', projectId] as const
-  },
-  
-  PROMPT_KEYS: {
-    all: ['prompts'] as const,
-    list: () => ['prompts', 'list'] as const,
-    detail: (promptId: number) => ['prompts', 'detail', promptId] as const,
-    projectPrompts: (projectId: number) => ['prompts', 'project', projectId] as const
-  },
-  
-  TICKET_KEYS: {
-    all: ['tickets'] as const,
-    projectTickets: (projectId: number) => ['tickets', 'project', projectId] as const,
-    detail: (ticketId: number) => ['tickets', 'detail', ticketId] as const,
-    tasks: (ticketId: number) => ['tickets', 'tasks', ticketId] as const
-  },
-  
-  KEY_KEYS: {
-    all: ['keys'] as const,
-    list: () => ['keys', 'list'] as const,
-    detail: (keyId: number) => ['keys', 'detail', keyId] as const
-  }
-}
-
-// ============================================================================
 // Performance Utilities
 // ============================================================================
 

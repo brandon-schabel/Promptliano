@@ -1,5 +1,8 @@
 import { ApiError } from '@promptliano/shared'
-import { type ActiveTab, type ActiveTabData, type UpdateActiveTabBody, activeTabSchema } from '@promptliano/schemas'
+// Import database schemas as source of truth
+import { selectActiveTabSchema as activeTabSchema, type ActiveTab } from '@promptliano/database'
+// Import application-level types from schemas
+import { type ActiveTabData, type UpdateActiveTabBody } from '@promptliano/schemas'
 import { storageService } from '@promptliano/database'
 import { getProjectById } from './project-service'
 

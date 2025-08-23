@@ -60,6 +60,25 @@ export * from './src/claude-code.schemas'
 // Legacy Model Configuration (TODO: Move to @promptliano/config)
 export * from './src/constants/models-temp-not-allowed'
 
+// Legacy Project File Types (TODO: Migrate these to @promptliano/database)
+export { 
+  type ImportInfo, 
+  type ExportInfo, 
+  type ProjectFile, 
+  type ProjectFileMap 
+} from './src/project.schemas'
+
+// Hook Configuration Types (TODO: Evaluate if these should move to @promptliano/database)
+export { 
+  type HookConfig, 
+  type HookEvent 
+} from './src/claude-hook.schemas'
+
+// Provider Types (TODO: Evaluate if these should move to @promptliano/database) 
+export { 
+  type APIProviders 
+} from './src/provider-key.schemas'
+
 // =============================================================================
 // DEPRECATED EXPORTS - These now come from @promptliano/database
 // =============================================================================

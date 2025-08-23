@@ -74,7 +74,7 @@ import {
   useClaudeCodeInvalidation,
   useClaudeFullSession,
   useCopyToClipboard 
-} from '@/hooks/api/use-claude-code-api'
+} from '@/hooks/api-hooks'
 import { 
   createClaudeCodeSessionColumns, 
   type SessionTableActions,

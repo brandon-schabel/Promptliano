@@ -24,20 +24,7 @@ import {
 // Import file service for delegation
 import { fileService } from './file-service'
 
-// Adapter function to convert repository objects to schema format
-function adaptProject(dbProject: any): Project {
-  if (!dbProject) return dbProject
-  return {
-    ...dbProject,
-    created: dbProject.createdAt || dbProject.created,
-    updated: dbProject.updatedAt || dbProject.updated,
-    description: dbProject.description || ''
-  }
-}
-
-function adaptProjects(dbProjects: any[]): Project[] {
-  return dbProjects.map(adaptProject)
-}
+// Repository returns correct Project type from database - no adapters needed
 
 // Dependencies interface for dependency injection
 export interface ProjectServiceDeps {
@@ -72,8 +59,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     async getByPath(path: string): Promise<Project | null> {
       return withErrorContext(
         async () => {
-          const dbProject = await repository.getByPath(path)
-          return adaptProject(dbProject)
+          return await repository.getByPath(path)
         },
         { entity: 'Project', action: 'getByPath' }
       )
@@ -113,7 +99,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           lines.push('=== PROJECT OVERVIEW ===')
           lines.push(`Project: ${project.name} (ID: ${project.id})`)
           lines.push(`Path: ${project.path}`)
-          lines.push(`Last Updated: ${new Date(project.updated).toLocaleString()}`)
+          lines.push(`Last Updated: ${new Date(project.updatedAt).toLocaleString()}`)
           lines.push('')
 
           // Add tickets section
@@ -166,16 +152,13 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     } = {}): Promise<Project[]> {
       return withErrorContext(
         async () => {
-          const dbProjects = await repository.getAll()
-          const projects = adaptProjects(dbProjects)
+          const projects = await repository.getAll()
           
           // Apply sorting
           if (options.sortBy && options.sortBy !== 'updatedAt') {
             projects.sort((a, b) => {
-              // Map sort field to correct property name
-              const sortField = options.sortBy === 'createdAt' ? 'created' : 
-                              options.sortBy === 'updatedAt' ? 'updated' : 
-                              options.sortBy!
+              // Use the correct database field names
+              const sortField = options.sortBy!
               const aVal = (a as any)[sortField]
               const bVal = (b as any)[sortField]
               const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
@@ -222,8 +205,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     async search(query: string): Promise<Project[]> {
       return withErrorContext(
         async () => {
-          const dbProjects = await repository.getAll()
-          const projects = adaptProjects(dbProjects)
+          const projects = await repository.getAll()
           const lowercaseQuery = query.toLowerCase()
           
           return projects.filter(project => 

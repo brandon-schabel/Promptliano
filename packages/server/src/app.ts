@@ -1,7 +1,9 @@
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { ApiError, ErrorFactory } from '@promptliano/shared'
-// Revert to manual routes temporarily while fixing generated route issues
+// Import generated routes
+import { registerAllGeneratedRoutes } from './routes/generated/index.generated'
+// Revert to manual routes temporarily while fixing generated route issues - KEEPING BOTH FOR NOW
 import { chatRoutes } from './routes/chat-routes'
 import { genAiRoutes } from './routes/gen-ai-routes'
 import { projectRoutes } from './routes/project-routes'
@@ -196,29 +198,46 @@ app.use('/api/projects/*/mcp*', async (c, next) => {
 
 app.get('/api/health', (c) => c.json({ success: true }))
 
-// Register all routes (manual routing until generated routes are fixed)
-app.route('/', chatRoutes)
-app.route('/', projectRoutes)
-app.route('/', providerKeyRoutes)
-app.route('/', promptRoutes)
-app.route('/', ticketRoutes)
-app.route('/', queueRoutes)
+// Register generated routes (CRUD operations for all entities)
+registerAllGeneratedRoutes(app)
+
+// Register manual routes (complex operations only - no CRUD conflicts)
+// COMMENTED OUT: Basic CRUD routes (now handled by generated routes)
+// app.route('/', chatRoutes)        // Basic CRUD -> Generated
+// app.route('/', projectRoutes)     // Basic CRUD -> Generated  
+// app.route('/', providerKeyRoutes) // Basic CRUD -> Generated
+// app.route('/', promptRoutes)      // Basic CRUD -> Generated
+// app.route('/', ticketRoutes)      // Basic CRUD -> Generated
+// app.route('/', queueRoutes)       // Basic CRUD -> Generated
+// app.route('/', claudeAgentRoutes) // Basic CRUD -> Generated
+// app.route('/', claudeCommandRoutes) // Basic CRUD -> Generated
+// app.route('/', activeTabRoutes)   // Basic CRUD -> Generated
+
+// KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)
 app.route('/', genAiRoutes)
 app.route('/', browseDirectoryRoutes)
 app.route('/', mcpRoutes)
 app.route('/', gitRoutes)
 app.route('/', gitAdvancedRoutes)
-app.route('/', activeTabRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
-app.route('/', claudeAgentRoutes)
-app.route('/', claudeCommandRoutes)
 app.route('/', claudeCodeRoutes)
 app.route('/', claudeHookRoutesSimple)
 app.route('/', mcpInstallationRoutes)
 app.route('/', mcpProjectConfigApp)
 app.route('/', mcpGlobalConfigRoutes)
+
+// NOTE: These route files have been replaced by generated routes:
+// - chatRoutes -> /api/chats CRUD via generated routes
+// - projectRoutes -> /api/projects CRUD via generated routes  
+// - providerKeyRoutes -> /api/providerkeys CRUD via generated routes
+// - promptRoutes -> /api/prompts CRUD via generated routes
+// - ticketRoutes -> /api/tickets CRUD via generated routes
+// - queueRoutes -> /api/queues CRUD via generated routes
+// - claudeAgentRoutes -> /api/claudeagents CRUD via generated routes
+// - claudeCommandRoutes -> /api/claudecommands CRUD via generated routes
+// - activeTabRoutes -> /api/activetabs CRUD via generated routes
 
 // Global error handler with ErrorFactory integration
 app.onError((err, c) => {

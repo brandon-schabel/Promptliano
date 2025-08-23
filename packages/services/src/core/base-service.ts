@@ -3,7 +3,7 @@
  * Replaces BaseService class with functional composition approach for 75% code reduction
  */
 
-import { ErrorFactory } from '../utils/error-factory'
+import { ErrorFactory } from '@promptliano/shared'
 import { z } from 'zod'
 
 export interface ServiceLogger {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useCommitDetail } from '@/hooks/api/use-git-api'
+import { useCommitDetail } from '@/hooks/api-hooks'
 import type { GitFileDiff } from '@promptliano/api-client'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'

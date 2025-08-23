@@ -75,7 +75,7 @@ export const projectManagerTool: MCPToolDefinition = {
           case ProjectManagerAction.GET: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
             const project = await getProjectById(validProjectId)
-            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.created).toLocaleString()}\nUpdated: ${new Date(project.updated).toLocaleString()}`
+            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.createdAt).toLocaleString()}\nUpdated: ${new Date(project.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }

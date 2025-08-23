@@ -1,8 +1,8 @@
 import { storageService } from '@promptliano/database'
 import { claudeCodeMCPService } from './claude-code-mcp-service'
-import { ChatSchema } from '@promptliano/schemas'
+// Import database schemas as source of truth
+import { selectChatSchema as ChatSchema, type Chat, type ChatMessage } from '@promptliano/database'
 import type { ClaudeMessage } from '@promptliano/schemas'
-import type { Chat, ChatMessage } from '@promptliano/schemas'
 import { normalizeToUnixMs } from '@promptliano/shared'
 
 export class ClaudeCodeImportService {

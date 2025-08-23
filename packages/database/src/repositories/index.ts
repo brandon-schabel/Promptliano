@@ -15,6 +15,6 @@ export * from './queue-repository'
 // Unified storage service
 export * from './storage-service'
 
-// Legacy repositories (to be implemented)
-// export * from './file-repository'
-// export * from './claude-repository'
+// Additional repositories
+export * from './file-repository'
+export * from './claude-repository'

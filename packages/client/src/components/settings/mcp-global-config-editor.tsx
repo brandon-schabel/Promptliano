@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useGlobalMCPManager } from '@/hooks/api/use-mcp-global-api'
+import { useGlobalMCPManager } from '@/hooks/api-hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Alert, AlertDescription } from '@promptliano/ui'

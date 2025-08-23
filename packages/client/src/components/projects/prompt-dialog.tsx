@@ -19,7 +19,7 @@ import {
   useUpdatePrompt,
   useGetProjectPrompts,
   useAddPromptToProject
-} from '@/hooks/api/use-prompts-api'
+} from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 

@@ -9,7 +9,7 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { createAndRegisterEntityRoutes, type EntityConfig } from '../codegen/route-factory'
+import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { claudeagentServiceV2 } from '@promptliano/services'
 import {
   ClaudeAgentSchema,

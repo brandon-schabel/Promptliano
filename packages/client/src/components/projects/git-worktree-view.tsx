@@ -7,7 +7,7 @@ import {
   useUnlockGitWorktree,
   usePruneGitWorktrees,
   useGitBranches
-} from '@/hooks/api/use-git-api'
+} from '@/hooks/api-hooks'
 import { Button } from '@promptliano/ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'

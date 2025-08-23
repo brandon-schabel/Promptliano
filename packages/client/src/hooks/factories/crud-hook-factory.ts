@@ -78,6 +78,7 @@ export interface CrudHookConfig<TEntity, TCreate, TUpdate, TListParams = void> {
   optimistic?: OptimisticConfig<TEntity>
   prefetch?: PrefetchConfig
   invalidation?: InvalidationStrategy
+  polling?: PollingStrategy
 }
 
 export interface EntityMessages {
@@ -101,6 +102,19 @@ export interface PrefetchConfig {
   prefetchOnHover?: boolean
   prefetchDelay?: number
   prefetchStaleTime?: number
+}
+
+export interface PollingConfig {
+  enabled: boolean
+  interval: number | ((data: any) => number)
+  condition?: (data: any) => boolean
+  refetchInBackground?: boolean
+}
+
+export interface PollingStrategy {
+  list?: PollingConfig
+  detail?: PollingConfig
+  custom?: Record<string, PollingConfig>
 }
 
 export interface InvalidationStrategy {
@@ -172,7 +186,8 @@ export function createCrudHooks<
     messages = createDefaultMessages(entityName),
     optimistic: optimisticConfig,
     prefetch = { enabled: false },
-    invalidation = DEFAULT_INVALIDATION
+    invalidation = DEFAULT_INVALIDATION,
+    polling = {}
   } = config
 
   const resolvedMessages = { ...createDefaultMessages(entityName), ...messages }
@@ -183,22 +198,40 @@ export function createCrudHooks<
   // ============================================================================
 
   function useList(params?: TListParams, options?: UseQueryOptions<TEntity[], ApiError>) {
+    const pollingConfig = polling.list
+    
     return useQuery({
       queryKey: queryKeys.list(params),
       queryFn: ({ signal }) => apiClient.list(undefined, params), // Will be wrapped with client
       staleTime,
       gcTime: cacheTime,
+      // Apply polling configuration
+      ...(pollingConfig?.enabled && {
+        refetchInterval: typeof pollingConfig.interval === 'function'
+          ? (data) => pollingConfig.interval(data)
+          : pollingConfig.interval,
+        refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
+      }),
       ...options
     })
   }
 
   function useGetById(id: number, options?: UseQueryOptions<TEntity, ApiError>) {
+    const pollingConfig = polling.detail
+    
     return useQuery({
       queryKey: queryKeys.detail(id),
       queryFn: ({ signal }) => apiClient.getById(undefined, id),
       enabled: !!id && id > 0,
       staleTime,
       gcTime: cacheTime,
+      // Apply polling configuration
+      ...(pollingConfig?.enabled && {
+        refetchInterval: typeof pollingConfig.interval === 'function'
+          ? (data) => pollingConfig.interval(data)
+          : pollingConfig.interval,
+        refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
+      }),
       ...options
     })
   }
@@ -590,6 +623,40 @@ export function createCrudHooks<
   }
 
   // ============================================================================
+  // Custom Hook Creator for Specialized Operations
+  // ============================================================================
+  
+  function createCustomHook<T = any>(
+    operation: string,
+    queryFn: (client: any, ...args: any[]) => Promise<T>,
+    options?: {
+      queryKey?: ((...args: any[]) => readonly unknown[])
+      polling?: PollingConfig
+      staleTime?: number
+    }
+  ) {
+    const operationPolling = polling.custom?.[operation] || options?.polling
+    
+    return (...args: any[]) => {
+      return useQuery({
+        queryKey: options?.queryKey
+          ? options.queryKey(...args)
+          : [...queryKeys.all, operation, ...args].filter(Boolean),
+        queryFn: ({ signal }) => queryFn(undefined, ...args),
+        staleTime: options?.staleTime ?? staleTime,
+        gcTime: cacheTime,
+        // Apply polling configuration
+        ...(operationPolling?.enabled && {
+          refetchInterval: typeof operationPolling.interval === 'function'
+            ? (data) => operationPolling.interval(data)
+            : operationPolling.interval,
+          refetchIntervalInBackground: operationPolling.refetchInBackground ?? false
+        })
+      })
+    }
+  }
+
+  // ============================================================================
   // Return all hooks
   // ============================================================================
 
@@ -613,9 +680,13 @@ export function createCrudHooks<
     usePrefetch,
     useInvalidate,
     
+    // Custom hook creator
+    createCustomHook,
+    
     // Metadata
     queryKeys,
-    entityName
+    entityName,
+    polling
   }
 }
 

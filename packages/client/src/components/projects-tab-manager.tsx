@@ -22,7 +22,7 @@ import {
   useUpdateProjectTabById
 } from '@/hooks/use-kv-local-storage'
 import { toast } from 'sonner'
-import { useGetProjects, useGetProjectFiles } from '@/hooks/api/use-projects-api'
+import { useGetProjects, useGetProjectFiles } from '@/hooks/api-hooks'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGenerateTabName } from '@/hooks/api/use-tab-naming'
 import { Sparkles } from 'lucide-react'

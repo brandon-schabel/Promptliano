@@ -13,7 +13,7 @@ import {
   useStageAll,
   useUnstageAll,
   useCommitChanges
-} from '@/hooks/api/use-git-api'
+} from '@/hooks/api-hooks'
 import type { GitFileStatus } from '@promptliano/schemas'
 import { getGitStatusColor, getGitStatusLabel, getFileName } from '@/lib/git-utils'
 

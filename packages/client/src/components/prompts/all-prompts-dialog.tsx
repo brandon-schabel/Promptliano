@@ -17,7 +17,7 @@ import {
   useGetProjectPrompts,
   useAddPromptToProject,
   useRemovePromptFromProject
-} from '@/hooks/api/use-prompts-api'
+} from '@/hooks/api-hooks'
 
 interface PromptsDialogAllProps {
   open: boolean

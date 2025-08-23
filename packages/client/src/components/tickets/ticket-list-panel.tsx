@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react'
-import { useGetTicketsWithTasks, useDeleteTicket } from '@/hooks/api/use-tickets-api'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
+import { useGetTicketsWithTasks, useDeleteTicket } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats } from '@/hooks/api-hooks'
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'

@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react'
 import { APIProviders } from '@promptliano/schemas'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useGetModels } from '@/hooks/api/use-gen-ai-api'
+import { useGetModels } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 
 export interface UseModelSelectionOptions {

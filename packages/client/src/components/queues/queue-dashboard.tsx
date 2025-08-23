@@ -55,8 +55,8 @@ import {
   useUpdateQueue,
   useDeleteQueue,
   useGetQueueTimeline
-} from '@/hooks/api/use-queue-api'
-import { useGetFlowData } from '@/hooks/api/use-flow-api'
+} from '@/hooks/api-hooks'
+import { useGetFlowData } from '@/hooks/api-hooks'
 import type { QueueItem, QueueStats, TaskQueue } from '@promptliano/schemas'
 
 interface QueueDashboardProps {

@@ -27,7 +27,7 @@ import { ScrollArea } from '@promptliano/ui'
 import { Plus, Loader2 } from 'lucide-react'
 import { QueueStatsCard } from './queue-stats-card'
 import { QueueDetailsDialog } from './queue-details-dialog'
-import { useGetQueuesWithStats, useCreateQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats, useCreateQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { QueueWithStats } from '@promptliano/schemas'
 

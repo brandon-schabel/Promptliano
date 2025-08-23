@@ -7,7 +7,7 @@ import { Button } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
 import { ListTodo, FileText, Clock, AlertCircle, ChevronRight, Inbox, CheckCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { useCompleteQueueItem, useDequeueTask } from '@/hooks/api/use-flow-api'
+import { useCompleteQueueItem, useDequeueTask } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 
 interface KanbanCardProps {

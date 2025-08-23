@@ -5,7 +5,7 @@ import {
   useUpdateActiveProjectTab,
   useUpdateProjectTabById
 } from '@/hooks/use-kv-local-storage'
-import { useGetProjectFilesWithoutContent, useGetProjectFiles } from '@/hooks/api/use-projects-api'
+import { useGetProjectFilesWithoutContent, useProjectFiles } from '@/hooks/api-hooks'
 import { useMemo } from 'react'
 import { buildProjectFileMapWithoutContent, buildProjectFileMap } from '@promptliano/shared'
 import { useClaudeMdDetection } from './use-claude-md-detection'

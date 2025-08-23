@@ -1,5 +1,5 @@
 import React from 'react'
-import { useGetProjectStatistics } from '@/hooks/api/use-projects-api'
+import { useGetProjectStatistics } from '@/hooks/api-hooks'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, MetricCard, ComparisonStats } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Progress } from '@promptliano/ui'

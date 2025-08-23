@@ -77,7 +77,7 @@ import {
   useDeleteProviderKey,
   useTestProvider,
   useBatchTestProviders
-} from '@/hooks/api/use-providers-api'
+} from '@/hooks/api-hooks'
 import { PROVIDERS } from '@/constants/providers-constants'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

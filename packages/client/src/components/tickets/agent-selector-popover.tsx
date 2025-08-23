@@ -12,7 +12,7 @@ import {
   CommandSeparator
 } from '@promptliano/ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@promptliano/ui'
-import { useGetAllAgents } from '@/hooks/api/use-agents-api'
+import { useGetAllAgents } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 
 interface AgentSelectorPopoverProps {

@@ -24,7 +24,7 @@ import {
 } from '@promptliano/ui'
 import { QueueWithStats, QueueItem, ItemQueueStatus } from '@promptliano/schemas'
 import { toast } from 'sonner'
-import { useGetQueueItems } from '@/hooks/api/use-queue-api'
+import { useGetQueueItems } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { safeFormatDate, ensureArray, normalizeQueueItem } from '@/utils/queue-item-utils'

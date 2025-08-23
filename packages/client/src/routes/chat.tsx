@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner'
 import { Message } from '@ai-sdk/react'
 
-import { useAIChat } from '@/hooks/api/use-ai-chat'
+import { useAIChat } from '@/hooks/api-hooks'
 import { useChatModelParams } from '@/hooks/chat/use-chat-model-params'
 import { SlidingSidebar } from '@/components/sliding-sidebar'
 import {
@@ -30,8 +30,8 @@ import {
   useCreateChat,
   useDeleteMessage,
   useForkChatFromMessage
-} from '@/hooks/api/use-chat-api'
-import { Chat, ChatMessage, ChatMessageAttachment } from '@promptliano/schemas'
+} from '@/hooks/api-hooks'
+import type { Chat, AiMessage as ChatMessage, ChatMessageAttachment } from '@promptliano/schemas'
 import { cn } from '@/lib/utils'
 import {
   ScrollArea,
@@ -60,7 +60,7 @@ import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { useActiveChatId, useSelectSetting, useProjectTabField, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import { useGetModels } from '@/hooks/api/use-gen-ai-api'
+import { useGetModels } from '@/hooks/api-hooks'
 import {
   ProviderModelSelector,
   ModelSettingsPopover as ReusableModelSettingsPopover

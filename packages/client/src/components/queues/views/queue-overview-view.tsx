@@ -4,7 +4,7 @@ import { Skeleton } from '@promptliano/ui'
 import { Plus } from 'lucide-react'
 import { QueueStatsCard } from '../queue-stats-card'
 import { QueueDetailsDialog } from '../queue-details-dialog'
-import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/api-hooks'
 import { QueueWithStats } from '@promptliano/schemas'
 import { useState } from 'react'
 import {

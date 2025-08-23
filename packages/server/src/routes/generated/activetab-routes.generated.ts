@@ -9,7 +9,7 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { createAndRegisterEntityRoutes, type EntityConfig } from '../codegen/route-factory'
+import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { activetabServiceV2 } from '@promptliano/services'
 import {
   ActiveTabSchema,

@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { formatShortcut } from '@/lib/shortcuts'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useOptimizeUserInput } from '@/hooks/api/use-projects-api'
+import { useOptimizeUserInput } from '@/hooks/api-hooks'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 
 type ExpandableTextareaProps = {

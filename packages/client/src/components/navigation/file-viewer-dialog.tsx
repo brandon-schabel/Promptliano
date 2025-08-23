@@ -13,8 +13,8 @@ import { Switch } from '@promptliano/ui'
 import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 import { ProjectFile } from '@promptliano/schemas'
 import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
-import { useUpdateFileContent } from '@/hooks/api/use-projects-api'
-import { useProjectGitStatus, useFileDiff } from '@/hooks/api/use-git-api'
+import { useUpdateFileContent } from '@/hooks/api-hooks'
+import { useProjectGitStatus, useFileDiff } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 
 type FileViewerDialogProps = {

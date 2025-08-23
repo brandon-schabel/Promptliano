@@ -8,11 +8,11 @@ import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Info, FileText } from 'lucide-react'
 import {
-  useGetProjectFiles,
+  useProjectFiles,
   useGetProjectSummary,
   useRemoveSummariesFromFiles,
   useSummarizeProjectFiles
-} from '@/hooks/api/use-projects-api'
+} from '@/hooks/api-hooks'
 import { buildCombinedFileSummariesXml } from '@promptliano/shared'
 
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'

@@ -51,12 +51,12 @@ import {
   useDeleteTicket,
   useDeleteTask,
   useAutoGenerateTasks
-} from '@/hooks/api/use-tickets-api'
-import { useDequeueTicket, useDequeueTask, useMoveItem, useGetFlowData } from '@/hooks/api/use-flow-api'
-import { useInvalidateTickets } from '@/hooks/api/use-tickets-api'
+} from '@/hooks/api-hooks'
+import { useDequeueTicket, useDequeueTask, useMoveItem, useGetFlowData } from '@/hooks/api-hooks'
+import { useInvalidateTickets } from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
-import { useGetQueue } from '@/hooks/api/use-queue-api'
-import { useGetProject } from '@/hooks/api/use-projects-api'
+import { useGetQueue } from '@/hooks/api-hooks'
+import { useGetProject } from '@/hooks/api-hooks'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { toast } from 'sonner'
 import { TicketDialog } from './ticket-dialog'

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetAgent } from '@/hooks/api/use-agents-api'
+import { useGetAgent } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 
 interface AgentDisplayProps {

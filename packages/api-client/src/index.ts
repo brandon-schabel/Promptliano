@@ -45,24 +45,6 @@ import { AgentFilesClient } from './clients/agent-files-client'
 import type { ApiConfig } from './base-client'
 import { PromptlianoError } from './base-client'
 
-/**
- * Creates a proxy that throws descriptive errors when accessing deprecated services
- */
-function createNotImplementedProxy(serviceName: string, suggestion?: string): unknown {
-  return new Proxy({}, {
-    get() {
-      const message = suggestion 
-        ? `Service '${serviceName}' has been migrated. ${suggestion}`
-        : `Service '${serviceName}' is not yet modularized. Use individual client imports for full functionality.`
-      
-      throw new PromptlianoError(
-        message,
-        undefined,
-        'NOT_IMPLEMENTED'
-      )
-    }
-  })
-}
 
 /**
  * Main Promptliano API client that composes all individual service clients
@@ -91,25 +73,6 @@ export class PromptlianoClient {
   public readonly system: SystemClient
   public readonly agentFiles: AgentFilesClient
 
-  // Backwards compatibility aliases - deprecated
-  
-  /**
-   * @deprecated This service has been migrated to the mcp client.
-   * Use this.mcp instead.
-   */
-  public readonly mcpInstallation: unknown
-  
-  /**
-   * @deprecated This service has been migrated to the mcp client.
-   * Use this.mcp instead.
-   */
-  public readonly mcpProjectConfig: unknown
-  
-  /**
-   * @deprecated This service has been migrated to the mcp client.
-   * Use this.mcp instead.
-   */
-  public readonly mcpGlobalConfig: unknown
 
   constructor(config: ApiConfig) {
     // Initialize the main service clients
@@ -132,15 +95,6 @@ export class PromptlianoClient {
     this.system = new SystemClient(config)
     this.agentFiles = new AgentFilesClient(config)
 
-    // For backwards compatibility, create error-throwing proxies for deprecated services
-    this.mcpInstallation = createNotImplementedProxy('mcpInstallation', 'Use this.mcp instead.')
-    this.mcpProjectConfig = createNotImplementedProxy('mcpProjectConfig', 'Use this.mcp instead.')
-    this.mcpGlobalConfig = createNotImplementedProxy('mcpGlobalConfig', 'Use this.mcp instead.')
-
-    // Log a warning about deprecated services only if they exist
-    if (typeof console !== 'undefined') {
-      console.warn('[PromptlianoClient] Some MCP services have been migrated. Use this.mcp instead of mcpInstallation, mcpProjectConfig, or mcpGlobalConfig.')
-    }
   }
 }
 

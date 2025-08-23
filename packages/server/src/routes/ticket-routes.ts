@@ -26,12 +26,16 @@ import {
   listTicketsWithTasks,
   suggestFilesForTicket
 } from '@promptliano/services'
-import { ticketsApiValidation, TicketSchema, TicketTaskSchema } from '@promptliano/schemas'
+// Import database schemas as source of truth
+import { 
+  selectTicketSchema as TicketSchema, 
+  selectTicketTaskSchema as TicketTaskSchema 
+} from '@promptliano/database'
+// Import API-specific validation from schemas
+import { ticketsApiValidation } from '@promptliano/schemas'
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 
-// Use the proper TicketSchema from @promptliano/schemas instead of redefining
-
-// Use the proper TicketTaskSchema from @promptliano/schemas instead of redefining
+// Schemas now come from @promptliano/database as single source of truth
 const TaskSchema = TicketTaskSchema // Alias for consistency with existing code
 
 const TicketResponseSchema = z

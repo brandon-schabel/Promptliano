@@ -74,7 +74,7 @@ export {
   taskService,
   // Functional API exports
   createTask,
-  getTasks,
+  getTasks, // Exported from task-service
   updateTask,
   deleteTask,
   reorderTasks,
@@ -161,7 +161,7 @@ export * from './src/utils/file-importance-scorer'
 export * from './src/utils/json-scribe'
 // path-utils moved to @promptliano/shared
 
-export * from './src/utils/storage-maintenance'
+// export * from './src/utils/storage-maintenance' // File not found
 export * from './src/file-search-service'
 export * from './src/file-indexing-service'
 export * from './src/mcp-tracking-service'
@@ -215,7 +215,7 @@ export type {
   CreateHookRequest,
   UpdateHookRequest
 } from '@promptliano/schemas'
-export * from './src/parser-service'
+export * from './src/parsers'
 // Parsers moved to @promptliano/shared
 export * from './src/markdown-prompt-service'
 

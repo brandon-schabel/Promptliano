@@ -6,7 +6,7 @@ import { Textarea } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { X } from 'lucide-react'
-import { useUpdateTask } from '@/hooks/api/use-tickets-api'
+import { useUpdateTask } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 import type { TicketTask } from '@promptliano/schemas'
 

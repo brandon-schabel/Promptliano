@@ -1,7 +1,7 @@
 import React from 'react'
 import { DataTable } from '@promptliano/ui'
 import { mcpExecutionsColumns, defaultColumnVisibility } from './mcp-executions-columns'
-import { useGetMCPExecutions } from '@/hooks/api/use-mcp-analytics-api'
+import { useGetMCPExecutions } from '@/hooks/api-hooks'
 import type { MCPExecutionQuery, MCPToolExecution, MCPExecutionStatus } from '@promptliano/schemas'
 import type { PaginationState, SortingState, ColumnFiltersState } from '@tanstack/react-table'
 import { RefreshCw, Download, FileJson } from 'lucide-react'

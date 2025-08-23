@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ConfiguredDataTable, createDataTableColumns, type DataTableColumnsConfig } from '@promptliano/ui'
 import { QueueItem, ItemQueueStatus } from '@promptliano/schemas'
 import { toast } from 'sonner'
-import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api/use-queue-api'
-import { useGetTicketsWithTasks } from '@/hooks/api/use-tickets-api'
+import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api-hooks'
+import { useGetTicketsWithTasks } from '@/hooks/api-hooks'
 import { formatDistanceToNow } from 'date-fns'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
 import {

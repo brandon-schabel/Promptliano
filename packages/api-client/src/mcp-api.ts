@@ -8,16 +8,11 @@
 import { createPromptlianoClient } from './index'
 import type { MCPClient } from './clients/mcp-client'
 
-type MCPService = MCPClient
 import type {
   CreateMCPServerConfigBody,
   UpdateMCPServerConfigBody,
-  MCPServerConfig,
-  MCPServerState,
-  MCPTool,
-  MCPResource,
   MCPToolExecutionRequest,
-  MCPToolExecutionResult
+  
 } from '@promptliano/schemas'
 
 export function createMCPApi(apiUrl: string) {

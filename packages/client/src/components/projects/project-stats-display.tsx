@@ -6,7 +6,7 @@
 // 4. Implemented helper functions for data processing and formatting.
 // 5. Added loading and error states.
 import React from 'react'
-import { useGetProjectFilesWithoutContent } from '@/hooks/api/use-projects-api'
+import { useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
 import { ProjectFile } from '@promptliano/schemas' // Using direct schema type
 
 // Type for project files without content

@@ -61,18 +61,7 @@ const UpdateFileContentBodySchema = z.object({
   content: z.string()
 })
 
-const BulkCreateFilesBodySchema = z.object({
-  files: z.array(
-    z.object({
-      path: z.string(),
-      name: z.string(),
-      extension: z.string(),
-      content: z.string(),
-      size: z.coerce.number().int().nonnegative(),
-      checksum: z.string().optional()
-    })
-  )
-})
+
 
 const BulkUpdateFilesBodySchema = z.object({
   updates: z.array(

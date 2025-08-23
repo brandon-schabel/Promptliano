@@ -229,7 +229,7 @@ For more information, visit: https://github.com/Ejb503/promptliano`
           const project = await getProjectById(projectId)
           const files = await getProjectFiles(projectId)
           const fileCount = files?.length || 0
-          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.created).toLocaleString()}`
+          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.createdAt).toLocaleString()}`
 
           return {
             contents: [

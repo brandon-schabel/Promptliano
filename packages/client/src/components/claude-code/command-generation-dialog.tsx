@@ -22,7 +22,7 @@ import {
   History,
   X
 } from 'lucide-react'
-import { useGenerateCommand } from '@/hooks/api/use-commands-api'
+import { useGenerateCommand } from '@/hooks/api-hooks'
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { useCommandGenerationCache } from '@/hooks/use-command-generation-cache'
 import type { CommandGenerationRequest, ClaudeCommand, ClaudeCommandFrontmatter } from '@promptliano/schemas'

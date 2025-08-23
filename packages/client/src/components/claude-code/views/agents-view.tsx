@@ -5,7 +5,7 @@ import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Plus, Search, Edit, Trash2, FileText, Calendar, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetProjectAgents, useDeleteAgent } from '@/hooks/api/use-agents-api'
+import { useGetProjectAgents, useDeleteAgent } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 import {
   AlertDialog,

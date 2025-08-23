@@ -19,7 +19,7 @@ import { Skeleton } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { toast } from 'sonner'
 import { Plus, RefreshCw } from 'lucide-react'
-import { useGetQueuesWithStats, useCreateQueue } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats, useCreateQueue } from '@/hooks/api-hooks'
 import {
   useGetFlowData,
   useEnqueueTicket,
@@ -28,12 +28,12 @@ import {
   useDequeueTask,
   useMoveItem,
   useBulkMoveItems
-} from '@/hooks/api/use-flow-api'
+} from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
 import { QueueWithStats } from '@promptliano/schemas'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { TicketDetailView } from '@/components/tickets/ticket-detail-view'
-import { useGetTicket, useGetTasks } from '@/hooks/api/use-tickets-api'
+import { useGetTicket, useGetTasks } from '@/hooks/api-hooks'
 import { Input } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
 import { Textarea } from '@promptliano/ui'

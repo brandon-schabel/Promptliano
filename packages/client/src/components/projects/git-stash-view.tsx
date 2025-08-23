@@ -24,7 +24,7 @@ import {
   useGitStashPop,
   useGitStashDrop,
   useProjectGitStatus
-} from '@/hooks/api/use-git-api'
+} from '@/hooks/api-hooks'
 import type { GitStash } from '@promptliano/schemas'
 
 interface GitStashViewProps {

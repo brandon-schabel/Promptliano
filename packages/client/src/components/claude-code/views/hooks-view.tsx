@@ -18,8 +18,8 @@ import {
 } from '@promptliano/ui'
 import { HookDialog } from '../hook-dialog'
 import type { HookListItem, HookEvent } from '@promptliano/schemas'
-import { useGetProjectHooks, useDeleteHook } from '@/hooks/api/use-claude-hooks'
-import { useGetProject } from '@/hooks/api/use-projects-api'
+import { useGetProjectHooks, useDeleteHook } from '@/hooks/api-hooks'
+import { useGetProject } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 
 interface HooksViewProps {

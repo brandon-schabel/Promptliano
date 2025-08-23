@@ -25,7 +25,7 @@ import {
   useExportPromptAsMarkdown,
   useExportPromptsAsMarkdown,
   useExportProjectPromptsAsMarkdown
-} from '@/hooks/api/use-prompts-api'
+} from '@/hooks/api-hooks'
 import type { BatchExportRequest } from '@promptliano/schemas'
 
 interface ExportOptions extends Partial<BatchExportRequest> {

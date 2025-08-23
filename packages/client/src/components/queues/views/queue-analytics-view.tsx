@@ -5,7 +5,7 @@ import { Skeleton } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Progress } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
-import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api-hooks'
 import {
   BarChart,
   Bar,

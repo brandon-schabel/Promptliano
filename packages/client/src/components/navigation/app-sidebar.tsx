@@ -4,7 +4,7 @@ import { Button } from '@promptliano/ui' // Assuming @ui maps to @/components/ui
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { ProjectList } from '@/components/projects/project-list'
 import { ProjectDialog } from '@/components/projects/project-dialog'
-import { useGetProjects, useDeleteProject } from '@/hooks/api/use-projects-api'
+import { useGetProjects, useDeleteProject } from '@/hooks/api-hooks'
 import { useRecentProjects } from '@/hooks/use-recent-projects'
 import { useHotkeys } from 'react-hotkeys-hook'
 import packageJson from '../../../package.json'

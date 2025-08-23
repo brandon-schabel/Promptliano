@@ -3,7 +3,7 @@ import { APIProviders } from '@promptliano/schemas'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
-import { useGetModels, useGetProviders } from '@/hooks/api/use-gen-ai-api'
+import { useGetModels, useGetProviders } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 
 export interface ProviderModelSelectorProps {

@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@promptliano/ui'
 import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
-import { useGetProjectPrompts } from '@/hooks/api/use-prompts-api'
+import { useGetProjectPrompts } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 import type { Prompt } from '@promptliano/schemas'
 
