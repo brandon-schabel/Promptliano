@@ -1,6 +1,6 @@
-# Schema Architecture Guide - The Single Source of Truth
+# Schema Architecture Guide - Application-Level Validation
 
-The `@promptliano/schemas` package has evolved into the **absolute single source of truth** for all data structures in Promptliano. With the integration of Drizzle ORM, schemas now automatically generate database tables, API types, validation rules, and client types - all from one definition. This revolutionary approach has eliminated thousands of lines of duplicate type definitions.
+The `@promptliano/schemas` package now handles **application-level validation** and non-database schemas only. The **absolute single source of truth** for data structures has moved to `@promptliano/database`, where Drizzle ORM table definitions automatically generate Zod schemas, TypeScript types, and database migrations. This revolutionary architecture has eliminated thousands of lines of duplicate code.
 
 ## Agent Integration Requirements
 
@@ -19,9 +19,9 @@ When working in this package, these agents MUST be used:
    - Focus on schema composition and reusability
 
 3. **Package-Specific Agents**
-   - Use `zod-schema-architect` for schema design and validation patterns
+   - Use `zod-schema-architect` for application-level validation patterns
+   - Use `promptliano-sqlite-expert` when working with database schemas (primary source)
    - Use `hono-bun-api-architect` when schemas integrate with API routes
-   - Use `promptliano-sqlite-expert` when schemas affect database structure
 
 ### Proactive Usage
 
@@ -34,13 +34,13 @@ When working in this package, these agents MUST be used:
 
 This package is part of the 12-step fullstack feature development process:
 
-1. **Zod schemas** - Define data structure (source of truth) (this package)
-2. **Storage layer** - Create tables with validation
-3. **Services** - Implement business logic
+1. **Drizzle schemas** - Define database structure (source of truth) (@promptliano/database)
+2. **Auto-generated validation** - Zod schemas generated via drizzle-zod
+3. **Services** - Implement business logic using generated types
 4. **MCP tools** - Enable AI access
-5. **API routes** - Create endpoints with OpenAPI
+5. **API routes** - Create endpoints with auto-generated schemas
 6. **API client** - Add to single api-client.ts file
-7. **React hooks** - Setup with TanStack Query
+7. **React hooks** - Setup with TanStack Query using generated types
 8. **UI components** - Build with shadcn/ui
 9. **Page integration** - Wire everything together
 10. **Lint & typecheck** - Ensure code quality
@@ -49,233 +49,282 @@ This package is part of the 12-step fullstack feature development process:
 
 ### This Package's Role
 
-This package handles step 1: Defining Zod schemas as the single source of truth for all data structures across the application.
+This package provides application-level validation schemas for non-database entities (global state, API responses, file operations, etc.). Database entities are now defined in `@promptliano/database` with Drizzle ORM as the source of truth.
 
 See main `/CLAUDE.md` for complete flow documentation.
 
 ## Architecture Revolution
 
-### Core Principles 2.0
+### New Architecture: Database-First Design
 
-1. **Unified Schema Definition**: Zod + Drizzle = One schema to rule them all
-2. **Zero Type Duplication**: Types are NEVER manually defined - always inferred
-3. **Auto-Generated Everything**: Database tables, migrations, API types, all from schemas
-4. **OpenAPI + Database**: Schemas define both API contracts AND database structure
-5. **Compile-Time Safety**: TypeScript catches schema mismatches at build time
+1. **Database as Source of Truth**: `@promptliano/database` with Drizzle ORM defines all entities
+2. **Auto-Generated Validation**: Zod schemas generated from Drizzle using `drizzle-zod`
+3. **Zero Type Duplication**: All types inferred from Drizzle table definitions
+4. **Application-Level Schemas**: This package handles non-database validation only
+5. **Compile-Time Safety**: Full type safety from database to UI
 
-### Evolved Package Structure
+### Package Separation Strategy
 
 ```
-src/
-├── unified/                    # Unified Zod+Drizzle schemas ⭐ NEW
-│   ├── project.schema.ts       # Single definition for Project
-│   ├── ticket.schema.ts        # Single definition for Ticket
-│   └── index.ts                # Auto-exports all types
-├── drizzle/                    # Drizzle table definitions ⭐ NEW
-│   ├── schema.ts               # All database tables
-│   └── relations.ts            # Table relationships
-├── zod/                        # Pure Zod validation schemas
-│   ├── api.schemas.ts          # API request/response
-│   └── validation.schemas.ts   # Business validation
-├── generated/                  # Auto-generated types ⭐ NEW
-│   └── types.ts                # All inferred types
-└── index.ts                    # Unified exports
+@promptliano/database/          # 🎯 SOURCE OF TRUTH
+├── src/schema.ts              # Drizzle table definitions
+├── src/repositories/          # Data access layer
+└── Auto-generated:
+    ├── Zod schemas            # via drizzle-zod
+    ├── TypeScript types       # via $inferSelect/$inferInsert
+    └── Database migrations    # via drizzle-kit
+
+@promptliano/schemas/          # 📋 APPLICATION VALIDATION
+├── src/global-state-schema.ts # UI state management
+├── src/gen-ai.schemas.ts      # AI/LLM configurations
+├── src/mcp.schemas.ts         # MCP protocol validation
+├── src/file-*.schemas.ts      # File system operations
+└── src/common.schemas.ts      # API responses & utilities
 ```
 
-## Unified Schema Pattern ⭐ **THE GAME CHANGER**
+## Database-First Schema Pattern ⭐ **THE NEW STANDARD**
 
-### 1. Single Definition, Multiple Uses
+### 1. Drizzle ORM as Source of Truth
 
-Define once, use everywhere - Zod schema becomes Drizzle table:
+Database table definition generates everything automatically:
 
 ```typescript
-// unified/project.schema.ts - ONE definition for everything!
-import { z } from 'zod'
+// @promptliano/database/src/schema.ts - THE source of truth!
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
-import { createZodSchema } from '../utils/schema-bridge'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
-// Step 1: Define Drizzle table (database structure)
-export const projectsTable = sqliteTable('projects', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+// Step 1: Define Drizzle table (ONLY definition needed!)
+export const projects = sqliteTable('projects', {
+  id: integer('id').primaryKey(),
   name: text('name').notNull(),
-  path: text('path').notNull(), 
+  path: text('path').notNull(),
   description: text('description'),
-  status: text('status', { enum: ['active', 'archived'] }).default('active'),
-  metadata: text('metadata', { mode: 'json' }).$type<ProjectMetadata>(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull()
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
 })
 
-// Step 2: Auto-generate Zod schema from Drizzle (magic happens here!)
-export const ProjectSchema = createZodSchema(projectsTable).openapi('Project')
+// Step 2: Auto-generate Zod schemas via drizzle-zod
+export const insertProjectSchema = createInsertSchema(projects)
+export const selectProjectSchema = createSelectSchema(projects)
 
-// Step 3: Infer ALL types automatically
-export type Project = typeof projectsTable.$inferSelect         // From DB
-export type NewProject = typeof projectsTable.$inferInsert      // To DB
-export type ProjectAPI = z.infer<typeof ProjectSchema>          // API/validation
+// Step 3: Auto-infer TypeScript types
+export type Project = typeof projects.$inferSelect      // Database record
+export type InsertProject = typeof projects.$inferInsert // Insert data
 
-// Step 4: API schemas built on top
-export const CreateProjectSchema = ProjectSchema.pick({
-  name: true,
-  path: true,
-  description: true
-}).openapi('CreateProject')
-
-export const UpdateProjectSchema = CreateProjectSchema.partial().openapi('UpdateProject')
-
-// RESULT: One source generates:
-// - Database table structure
-// - TypeScript types
-// - Zod validation schemas  
-// - API request/response types
-// - OpenAPI documentation
-// Zero duplication, 100% consistency!
-```
-
-### 2. Schema Bridge Utility ⭐ **NEW MAGIC**
-
-The bridge that connects Zod and Drizzle:
-
-```typescript
-// utils/schema-bridge.ts
-import { z } from 'zod'
-import type { Table } from 'drizzle-orm'
-
-// Automatically create Zod schema from Drizzle table
-export function createZodSchema<T extends Table>(table: T): z.ZodSchema {
-  const columns = table._.columns
-  const shape: Record<string, z.ZodTypeAny> = {}
-  
-  for (const [key, column] of Object.entries(columns)) {
-    // Map Drizzle types to Zod types
-    if (column.dataType === 'integer') {
-      shape[key] = z.number().int()
-    } else if (column.dataType === 'text') {
-      shape[key] = z.string()
-    } else if (column.dataType === 'boolean') {
-      shape[key] = z.boolean()
-    } else if (column.dataType === 'json') {
-      shape[key] = z.unknown() // Or specific schema
-    }
-    
-    // Apply constraints
-    if (column.notNull) {
-      // Already required
-    } else {
-      shape[key] = shape[key].optional()
-    }
-    
-    if (column.hasDefault) {
-      shape[key] = shape[key].default(column.default)
-    }
-  }
-  
-  return z.object(shape)
-}
-
-// Validate Drizzle data with Zod
-export function validateDrizzleData<T>(
-  table: Table,
-  data: unknown
-): T {
-  const schema = createZodSchema(table)
-  return schema.parse(data) as T
-}
-```
-
-### 3. Automatic API Schema Generation
-
-Generate all API schemas from Drizzle tables:
-
-```typescript
-// generated/api-schemas.ts (auto-generated)
-import { generateApiSchemas } from '../utils/api-generator'
-import * as tables from '../drizzle/schema'
-
-// Generate CRUD schemas for all tables automatically
-export const apiSchemas = generateApiSchemas(tables)
-
-// Results in:
-// apiSchemas.projects.create    - CreateProjectSchema
-// apiSchemas.projects.update    - UpdateProjectSchema  
-// apiSchemas.projects.response  - ProjectResponseSchema
-// apiSchemas.projects.list      - ProjectListResponseSchema
-// ... for ALL tables!
-
-// Usage in routes (fully typed):
-app.post(
-  '/projects',
-  zValidator('json', apiSchemas.projects.create),
+// Step 4: Use in API routes with full type safety
+// @promptliano/server/src/routes/projects.ts
+app.post('/projects', 
+  zValidator('json', insertProjectSchema),
   async (c) => {
     const data = c.req.valid('json') // Fully typed!
-    // ...
+    const project = await db.insert(projects).values(data).returning()
+    return c.json({ success: true, data: project })
+  }
+)
+
+// RESULT: One Drizzle table generates:
+// - Database table + migrations
+// - TypeScript types
+// - Zod validation schemas
+// - Fully typed API endpoints
+// - Type-safe database queries
+// Zero manual work, 100% consistency!
+```
+
+### 2. Drizzle-Zod Integration ⭐ **AUTOMATIC MAGIC**
+
+Zod schemas are automatically generated from Drizzle tables:
+
+```typescript
+// @promptliano/database/src/schema.ts
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
+
+// After defining your Drizzle table...
+export const tickets = sqliteTable('tickets', {
+  id: integer('id').primaryKey(),
+  title: text('title').notNull(),
+  status: text('status', { enum: ['open', 'in_progress', 'closed'] }).default('open'),
+  priority: text('priority', { enum: ['low', 'normal', 'high'] }).default('normal'),
+  // ... more fields
+})
+
+// Auto-generate Zod schemas (no manual work!)
+export const insertTicketSchema = createInsertSchema(tickets)
+export const selectTicketSchema = createSelectSchema(tickets)
+
+// Customize validation with refinements
+export const createTicketSchema = createInsertSchema(tickets, {
+  title: z.string().min(1).max(200), // Custom title validation
+  status: z.enum(['open', 'in_progress', 'closed']).default('open')
+}).omit({ id: true, createdAt: true, updatedAt: true })
+
+// Types are automatically inferred
+export type Ticket = typeof tickets.$inferSelect
+export type CreateTicket = z.infer<typeof createTicketSchema>
+
+// Use in services with full type safety
+export async function createTicket(data: CreateTicket): Promise<Ticket> {
+  return await db.insert(tickets).values({
+    ...data,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }).returning()
+}
+```
+
+### 3. Direct API Integration
+
+API routes directly use generated schemas from database:
+
+```typescript
+// @promptliano/server/src/routes/tickets.ts
+import { 
+  tickets, 
+  insertTicketSchema, 
+  selectTicketSchema,
+  type Ticket,
+  type InsertTicket 
+} from '@promptliano/database'
+import { zValidator } from '@hono/zod-validator'
+
+// Create endpoint with generated schema
+app.post('/tickets', 
+  zValidator('json', insertTicketSchema.omit({ 
+    id: true, 
+    createdAt: true, 
+    updatedAt: true 
+  })),
+  async (c) => {
+    const data = c.req.valid('json') // Fully typed as InsertTicket!
+    
+    const ticket = await db.insert(tickets).values({
+      ...data,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }).returning()
+    
+    return c.json({ success: true, data: ticket[0] })
+  }
+)
+
+// List endpoint with automatic response typing
+app.get('/tickets', async (c) => {
+  const tickets = await db.query.tickets.findMany()
+  // tickets is automatically typed as Ticket[]
+  return c.json({ success: true, data: tickets })
+})
+
+// Update with partial schema
+app.patch('/tickets/:id',
+  zValidator('json', insertTicketSchema.partial().omit({ id: true })),
+  async (c) => {
+    const id = parseInt(c.req.param('id'))
+    const updates = c.req.valid('json') // Typed as Partial<InsertTicket>!
+    
+    const updated = await db.update(tickets)
+      .set({ ...updates, updatedAt: Date.now() })
+      .where(eq(tickets.id, id))
+      .returning()
+    
+    return c.json({ success: true, data: updated[0] })
   }
 )
 ```
 
-## Schema Composition Techniques
+## Application Schema Patterns
 
-### 1. Schema Extension
+### 1. Global State Validation
 
-Use `.extend()` for adding fields to existing schemas:
+This package's primary responsibility - UI and application state:
 
 ```typescript
-export const ExtendedEntitySchema = EntitySchema.extend({
-  additionalField: z.string().optional(),
-  complexField: z.object({
-    nested: z.string()
+// global-state-schema.ts - Complex nested validation
+export const projectTabStateSchema = z.object({
+  selectedFileIds: z.array(z.string()).default([]),
+  activeTicketId: entityIdOptionalSchema,
+  filters: z.object({
+    status: z.array(z.enum(['open', 'in_progress', 'closed'])).default([]),
+    priority: z.array(z.enum(['low', 'normal', 'high'])).default([])
+  }).default({}),
+  ui: z.object({
+    sidebarCollapsed: z.boolean().default(false),
+    theme: z.enum(['light', 'dark', 'system']).default('system')
+  }).default({})
+})
+
+export const globalStateSchema = z.object({
+  projectTabs: z.record(z.number(), projectTabStateSchema).default({}),
+  appSettings: appSettingsSchema.default({}),
+  lastActiveProjectId: entityIdOptionalSchema
+})
+```
+
+### 2. API Response Schemas
+
+Standardized response formats:
+
+```typescript
+// common.schemas.ts
+export const successResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.literal(true),
+    data: dataSchema,
+    message: z.string().optional()
   })
-}).openapi('ExtendedEntity')
+
+export const errorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  details: z.unknown().optional()
+})
+
+// Usage with database types
+export const projectListResponseSchema = successResponseSchema(
+  z.array(selectProjectSchema) // From @promptliano/database
+)
 ```
 
-### 2. Schema Picking/Omitting
+### 3. File Operation Schemas
 
-Create variations by selecting or excluding fields:
+Complex validation for file system operations:
 
 ```typescript
-// Without sensitive data
-export const PublicEntitySchema = EntitySchema.omit({
-  internalField: true
-}).openapi('PublicEntity')
-
-// Only specific fields
-export const EntitySummarySchema = EntitySchema.pick({
-  id: true,
-  name: true,
-  created: true
-}).openapi('EntitySummary')
+// file-summarization.schemas.ts
+export const fileSummaryRequestSchema = z.object({
+  filePaths: z.array(z.string().min(1)),
+  options: z.object({
+    maxTokens: z.number().int().min(100).max(4000).default(1000),
+    includeImports: z.boolean().default(true),
+    includeExports: z.boolean().default(true),
+    strategy: z.enum(['fast', 'balanced', 'thorough']).default('balanced')
+  }).default({})
+})
 ```
 
-### 3. Schema Merging
+### 4. MCP Protocol Validation
 
-Combine schemas from different domains:
-
-```typescript
-export const EnhancedEntitySchema = EntitySchema.merge(AuditSchema).openapi('EnhancedEntity')
-```
-
-### 4. Conditional Validation
-
-Use `.refine()` for complex validation logic:
+Protocol-specific schemas for AI interactions:
 
 ```typescript
-export const ConditionalSchema = z
-  .object({
-    type: z.enum(['A', 'B']),
-    valueA: z.string().optional(),
-    valueB: z.number().optional()
-  })
-  .refine(
-    (data) => {
-      if (data.type === 'A') return data.valueA !== undefined
-      if (data.type === 'B') return data.valueB !== undefined
-      return false
-    },
-    {
-      message: 'Value must match the specified type'
-    }
-  )
-  .openapi('ConditionalData')
+// mcp.schemas.ts
+export const mcpToolCallSchema = z.object({
+  name: z.string(),
+  arguments: z.record(z.unknown()),
+  call_id: z.string().optional()
+})
+
+export const mcpMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.union([
+    z.string(),
+    z.array(z.object({
+      type: z.enum(['text', 'image']),
+      text: z.string().optional(),
+      image_url: z.object({ url: z.string() }).optional()
+    }))
+  ])
+})
 ```
 
 ## Validation Utilities
@@ -401,47 +450,58 @@ export const AiSdkOptionsSchema = z
 
 ## Revolutionary Type System ⭐
 
-### 1. Zero Manual Types Policy
+### 1. Database-First Type Inference
 
-**CRITICAL: We NEVER write type definitions manually. EVER.**
+**CRITICAL: All database types come from `@promptliano/database`. Application types from this package.**
 
 ```typescript
-// ❌ FORBIDDEN - Manual type definition
+// ✅ DATABASE ENTITIES - Import from @promptliano/database
+import { 
+  type Project, 
+  type InsertProject,
+  type Ticket,
+  type InsertTicket,
+  insertProjectSchema,
+  selectProjectSchema
+} from '@promptliano/database'
+
+// ✅ APPLICATION TYPES - From this package
+import { 
+  type GlobalState,
+  type ProjectTabState,
+  type FileSummaryRequest,
+  globalStateSchema,
+  fileSummaryRequestSchema
+} from '@promptliano/schemas'
+
+// ❌ FORBIDDEN - Never define manually
 type Project = {
   id: number
   name: string
-  // ... more fields
+  // ...
 }
-
-// ✅ REQUIRED - Inferred from source of truth
-// From Drizzle (database)
-type Project = typeof projectsTable.$inferSelect
-
-// From Zod (validation)
-type ProjectInput = z.infer<typeof ProjectSchema>
-
-// From API (generated)
-type ProjectResponse = typeof apiSchemas.projects.response._type
 ```
 
-**The Type Inference Hierarchy:**
+**The New Type Hierarchy:**
 ```
-Drizzle Table Definition (source of truth)
+@promptliano/database (Drizzle tables)
      ↓
-Database Types (inferSelect, inferInsert)
+Database Types ($inferSelect, $inferInsert)
      ↓  
-Zod Schemas (via schema bridge)
+Zod Schemas (via drizzle-zod)
      ↓
-API Types (request/response)
+API Types (fully typed)
+     ↓
+@promptliano/schemas (application-level)
      ↓
 Client Types (hooks and components)
 ```
 
 **Impact:**
-- **100% type consistency** - Impossible to have mismatched types
-- **Zero type maintenance** - Change schema, types update automatically
-- **Compile-time safety** - TypeScript catches all mismatches
-- **10x faster development** - No time wasted on type definitions
+- **100% type consistency** - Single source, zero drift
+- **Zero maintenance** - Database changes propagate automatically  
+- **Compile-time safety** - Full stack type checking
+- **Clear separation** - Database vs application concerns
 
 ### 2. Generic Type Utilities
 
@@ -524,85 +584,127 @@ it('should provide helpful error messages', () => {
 })
 ```
 
-## Integration with Services
+## Integration Patterns
 
-### 1. Service Layer Validation
+### 1. Service Layer with Database Types
 
-Services use schemas for input/output validation:
+Services import directly from database package:
 
 ```typescript
-// In service methods
-export async function createEntity(data: CreateEntityBody): Promise<Entity> {
-  // Input is already validated by schema
-  const entity = await repository.create(data)
+// @promptliano/services/src/ticket-service.ts
+import { 
+  db,
+  tickets,
+  insertTicketSchema,
+  type Ticket,
+  type InsertTicket 
+} from '@promptliano/database'
 
-  // Output validation ensures type safety
-  return EntitySchema.parse(entity)
+export class TicketService {
+  async create(data: Omit<InsertTicket, 'id' | 'createdAt' | 'updatedAt'>): Promise<Ticket> {
+    // Validation happens automatically via drizzle-zod
+    const validatedData = insertTicketSchema.omit({ 
+      id: true, 
+      createdAt: true, 
+      updatedAt: true 
+    }).parse(data)
+    
+    const result = await db.insert(tickets).values({
+      ...validatedData,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }).returning()
+    
+    return result[0] // Typed as Ticket
+  }
 }
 ```
 
-### 2. API Route Integration
+### 2. API Routes with Generated Schemas
 
-Hono routes use schemas for automatic validation:
+Routes use database schemas directly:
 
 ```typescript
-app.post('/entities', zValidator('json', CreateEntityBodySchema), async (c) => {
-  const body = c.req.valid('json') // Fully typed
-  const result = await entityService.create(body)
-  return c.json(
-    EntityResponseSchema.parse({
+// @promptliano/server/src/routes/tickets.ts
+import { insertTicketSchema, selectTicketSchema } from '@promptliano/database'
+import { successResponseSchema } from '@promptliano/schemas'
+
+app.post('/tickets', 
+  zValidator('json', insertTicketSchema.omit({ 
+    id: true, 
+    createdAt: true, 
+    updatedAt: true 
+  })),
+  async (c) => {
+    const data = c.req.valid('json') // Auto-typed!
+    const ticket = await ticketService.create(data)
+    
+    return c.json(successResponseSchema(selectTicketSchema).parse({
       success: true,
-      data: result
-    })
-  )
-})
+      data: ticket
+    }))
+  }
+)
 ```
 
-### 3. Form Validation
+### 3. Client Forms with Database Types
 
-Client forms use schemas for validation:
+Forms use database types for validation:
 
 ```typescript
-const form = useForm<CreateEntityBody>({
-  resolver: zodResolver(CreateEntityBodySchema),
-  defaultValues: {
-    name: ''
-    // ... other defaults
-  }
+// @promptliano/client/src/components/TicketForm.tsx
+import { zodResolver } from '@hookform/resolvers/zod'
+import { insertTicketSchema, type InsertTicket } from '@promptliano/database'
+
+const createTicketSchema = insertTicketSchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
 })
+
+export function TicketForm() {
+  const form = useForm<z.infer<typeof createTicketSchema>>({
+    resolver: zodResolver(createTicketSchema),
+    defaultValues: {
+      title: '',
+      status: 'open',
+      priority: 'normal'
+    }
+  })
+  
+  // Form is fully typed based on database schema!
+}
 ```
 
 ## Best Practices
 
-### 1. Schema Creation
+### 1. Package Separation
 
-- **Start with the domain model**: Define core entities first
-- **Use composition**: Build complex schemas from simple ones
-- **Include OpenAPI metadata**: Every schema needs `.openapi()`
-- **Export types**: Always export inferred types
-- **Validate defaults**: Ensure default values pass schema validation
+- **Database entities**: Always define in `@promptliano/database` with Drizzle
+- **Application state**: Define in this package for UI, MCP, file operations
+- **Import correctly**: Database types from `@promptliano/database`, app types from here
+- **Never duplicate**: If it exists in database, import it - don't recreate
 
-### 2. Validation Strategy
+### 2. Schema Design Strategy
 
-- **Fail fast**: Use strict validation at boundaries
-- **Provide defaults**: Use `.default()` for optional fields with sensible defaults
-- **Clear error messages**: Use custom messages with `.refine()`
-- **Preprocessing**: Use `.preprocess()` for data transformation
+- **Start with database**: Define Drizzle tables first for entities
+- **Layer validation**: Add application-specific validation on top
+- **Use composition**: Build complex application schemas from simple ones
+- **Fail fast**: Validate at boundaries (API, forms, file operations)
 
-### 3. Testing Approach
+### 3. Integration Patterns
 
-- **Test valid cases**: Ensure schemas accept valid data
-- **Test invalid cases**: Ensure schemas reject invalid data
-- **Test edge cases**: Handle null, undefined, empty values
-- **Test integration**: Verify schemas work with services and API routes
-- **Test type inference**: Ensure TypeScript types are correct
+- **Services**: Import database types directly, add business logic
+- **API routes**: Use generated schemas with `.omit()` and `.partial()`
+- **Forms**: Derive form schemas from database schemas
+- **Responses**: Use application schemas for standardized responses
 
-### 4. Performance Considerations
+### 4. Testing Approach
 
-- **Schema caching**: Zod schemas are immutable and cacheable
-- **Lazy evaluation**: Use `.lazy()` for recursive schemas
-- **Selective parsing**: Use `.pick()` and `.omit()` to reduce validation overhead
-- **Error handling**: Use `.safeParse()` when errors are expected
+- **Test both layers**: Database schema generation AND application validation
+- **Test boundaries**: API endpoints, form validation, file operations
+- **Test edge cases**: Invalid inputs, missing fields, type coercion
+- **Integration tests**: Verify database ↔ application schema compatibility
 
 ## Common Patterns
 
@@ -645,84 +747,62 @@ export const SearchQuerySchema = z
   .openapi('SearchQuery')
 ```
 
-## Schema Evolution with Drizzle
+## Database Evolution Example
 
-### 1. Automatic Migration Generation
+### How Schema Changes Propagate Automatically
 
-When schemas evolve, migrations are automatic:
+When database schemas evolve in `@promptliano/database`, everything updates:
 
 ```typescript
-// 1. Update Drizzle table
-export const projectsTable = sqliteTable('projects', {
+// @promptliano/database/src/schema.ts
+// 1. Add field to Drizzle table
+export const tickets = sqliteTable('tickets', {
   // ... existing fields
-  priority: integer('priority').default(0), // NEW FIELD
-  tags: text('tags', { mode: 'json' }).$type<string[]>() // NEW FIELD
+  priority: text('priority', { enum: ['low', 'normal', 'high'] }).default('normal'), // NEW
+  assigneeId: integer('assignee_id').references(() => users.id), // NEW
 })
 
-// 2. Run migration command
-// $ bun drizzle-kit generate:sqlite
+// 2. Generate migration automatically
+// $ bun drizzle:generate
+// Creates: migrations/0001_add_ticket_priority.sql
 
-// 3. Migration created automatically!
-// migrations/0001_add_project_priority.sql:
-ALTER TABLE projects ADD COLUMN priority INTEGER DEFAULT 0;
-ALTER TABLE projects ADD COLUMN tags TEXT;
+// 3. Auto-generated schemas update
+export const insertTicketSchema = createInsertSchema(tickets) // Now includes priority!
+export const selectTicketSchema = createSelectSchema(tickets) // Now includes assigneeId!
 
-// 4. Types update automatically everywhere!
-// - Project type now has priority and tags
-// - API schemas include new fields
-// - Client hooks handle new fields
-// Zero manual updates needed!
+// 4. TypeScript types update everywhere
+export type Ticket = typeof tickets.$inferSelect // Has new fields!
+export type InsertTicket = typeof tickets.$inferInsert // Has new fields!
 ```
 
-### 2. Real-World Example: Complete Flow
-
-From schema to production in one flow:
+### Automatic Propagation Across Stack
 
 ```typescript
-// 1. Define in Drizzle
-export const ticketsTable = sqliteTable('tickets', {
-  id: integer('id').primaryKey(),
-  title: text('title').notNull(),
-  status: text('status', { 
-    enum: ['open', 'in_progress', 'resolved', 'closed'] 
-  }).default('open'),
-  assignee: text('assignee'),
-  priority: integer('priority').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-})
-
-// 2. Types are ready (no additional work!)
-type Ticket = typeof ticketsTable.$inferSelect
-
-// 3. Service uses inferred types
-export function createTicketService(db: DrizzleDb) {
-  return {
-    async create(data: NewTicket) { // NewTicket auto-inferred!
-      return await db.insert(ticketsTable).values(data).returning()
-    }
-  }
-}
-
-// 4. API route has full type safety
+// @promptliano/server - API routes get new fields automatically
 app.post('/tickets', 
-  zValidator('json', CreateTicketSchema), // Auto-generated!
+  zValidator('json', insertTicketSchema), // Validates new fields!
   async (c) => {
-    const data = c.req.valid('json') // Typed!
-    const ticket = await ticketService.create(data)
-    return c.json({ success: true, data: ticket }) // Typed!
+    const data = c.req.valid('json') // Typed with new fields!
+    // ...
   }
 )
 
-// 5. Client hook with full types
-const { data } = useCreateTicket() // Return type inferred!
+// @promptliano/client - Forms get new fields automatically  
+const form = useForm<z.infer<typeof insertTicketSchema>>({
+  resolver: zodResolver(insertTicketSchema), // Handles new validation!
+  defaultValues: {
+    title: '',
+    priority: 'normal', // New field with default!
+    assigneeId: null // New optional field!
+  }
+})
 
-// 6. Component with type safety
-function TicketForm() {
-  const form = useForm<CreateTicket>() // Type from schema!
-  // ...
-}
+// @promptliano/schemas - Application schemas can reference database types
+import { type Ticket } from '@promptliano/database'
 
-// ENTIRE FLOW: Zero manual type definitions!
+export const ticketListResponseSchema = successResponseSchema(
+  z.array(selectTicketSchema) // Automatically includes new fields!
+)
 ```
 
 ## Performance Impact
@@ -744,14 +824,27 @@ function TicketForm() {
 - **Type updates**: 1 hour → 0 minutes (automatic)
 - **Migration writing**: 30 minutes → 0 minutes (automatic)
 
-## Summary: The Schema Revolution
+## Summary: The Database-First Revolution
 
-The integration of Zod with Drizzle ORM represents a **paradigm shift** in how we handle data definitions:
+The separation of database and application schemas represents a **paradigm shift** in architecture:
 
-- **One source of truth** - Drizzle table is THE definition
-- **Zero type duplication** - Everything is inferred
-- **Automatic everything** - Migrations, types, validation
-- **90% less code** - Dramatic reduction in boilerplate
-- **100% consistency** - Impossible to have mismatched types
+### @promptliano/database (The Source of Truth)
+- **Drizzle ORM tables** - Single definition for all entities
+- **Auto-generated Zod schemas** - Via drizzle-zod integration
+- **Inferred TypeScript types** - Zero manual type definitions
+- **Automatic migrations** - Database evolution made simple
 
-This is not an incremental improvement - it's a complete transformation of how modern TypeScript applications should handle data. The future is unified schemas.
+### @promptliano/schemas (Application Layer)
+- **UI state validation** - Global state, forms, tabs
+- **Protocol schemas** - MCP, AI integration, file operations
+- **API response formatting** - Standardized success/error responses
+- **Business validation** - Application-specific rules
+
+### Revolutionary Benefits
+- **100% type safety** - From database to UI, fully typed
+- **Zero duplication** - Single source for each concern
+- **90% less code** - Eliminated thousands of lines
+- **Clear separation** - Database vs application concerns
+- **Instant propagation** - Database changes flow automatically
+
+This is not just refactoring - it's a fundamental reimagining of how TypeScript applications should be architected. The future is database-first with clear separation of concerns.

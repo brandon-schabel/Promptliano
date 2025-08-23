@@ -16,22 +16,22 @@ export const PromptSchema = DatabasePromptSchema
 
 // API Request Body Schemas - derived from database schema
 export const CreatePromptBodySchema = PromptSchema.pick({
-  name: true,
+  title: true,
   content: true,
   projectId: true
 }).extend({
   projectId: entityIdOptionalSchema,
-  name: z.string().min(1).openapi({ example: 'My New Prompt' }),
+  title: z.string().min(1).openapi({ example: 'My New Prompt' }),
   content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
 }).openapi('CreatePromptRequestBody')
 
 export const UpdatePromptBodySchema = CreatePromptBodySchema.pick({
-  name: true,
+  title: true,
   content: true
 }).partial().refine(
-  (data) => data.name || data.content,
+  (data) => data.title || data.content,
   {
-    message: 'At least one of name or content must be provided for update'
+    message: 'At least one of title or content must be provided for update'
   }
 ).openapi('UpdatePromptRequestBody')
 

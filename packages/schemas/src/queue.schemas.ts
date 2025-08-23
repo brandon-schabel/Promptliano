@@ -9,8 +9,8 @@ import {
 
 // Import database schemas as source of truth
 import { 
-  QueueSchema as DatabaseQueueSchema,
-  QueueItemSchema as DatabaseQueueItemSchema 
+  selectQueueSchema as DatabaseQueueSchema,
+  selectQueueItemSchema as DatabaseQueueItemSchema 
 } from '@promptliano/database'
 
 // Use database schemas as the base
@@ -118,7 +118,6 @@ export const QueueWithStatsSchema = z
 
 // Type exports
 export type TaskQueue = z.infer<typeof TaskQueueSchema>
-export type UpdateTaskQueue = z.infer<typeof UpdateTaskQueueSchema>
 export type QueueItem = z.infer<typeof QueueItemSchema>
 export type QueueStats = z.infer<typeof QueueStatsSchema>
 export type CreateQueueBody = z.infer<typeof CreateQueueBodySchema>
