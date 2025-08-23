@@ -7,118 +7,69 @@ import {
   entityIdNullableOptionalSchema,
   entityIdArraySchema
 } from './schema-utils'
-import { createEntitySchemas } from './schema-factories'
 
-// Ticket schemas using factory pattern
-const ticketSchemas = createEntitySchemas('Ticket', {
-  projectId: entityIdSchema,
+// Import database schemas as source of truth
+import { 
+  TicketSchema as DatabaseTicketSchema,
+  TaskSchema as DatabaseTaskSchema 
+} from '@promptliano/database'
+
+// Use database schemas as the base
+export const TicketSchema = DatabaseTicketSchema
+export const TicketTaskSchema = DatabaseTaskSchema
+
+// API Request Body Schemas - derived from database schemas  
+export const CreateTicketBodySchema = TicketSchema.pick({
+  projectId: true,
+  title: true, 
+  overview: true,
+  status: true,
+  priority: true,
+  suggestedFileIds: true,
+  suggestedAgentIds: true,
+  suggestedPromptIds: true
+}).extend({
   title: z.string().min(1),
-  overview: z.string().optional(),
-  status: z.enum(['open', 'in_progress', 'closed']).optional(),
-  priority: z.enum(['low', 'normal', 'high']).optional(),
-  suggestedFileIds: z.array(z.string()).optional(),
-  suggestedAgentIds: z.array(z.string()).optional(),
-  suggestedPromptIds: z.array(entityIdSchema).optional(),
-  // Queue integration fields (unified flow system)
-  queueId: entityIdNullableOptionalSchema,
-  queuePosition: z.number().nullable().optional(),
-  queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable().optional(),
-  queuePriority: z.number().optional(),
-  queuedAt: unixTSOptionalSchemaSpec,
-  queueStartedAt: unixTSOptionalSchemaSpec,
-  queueCompletedAt: unixTSOptionalSchemaSpec,
-  queueAgentId: z.string().nullable().optional(),
-  queueErrorMessage: z.string().nullable().optional(),
-  estimatedProcessingTime: z.number().nullable().optional(),
-  actualProcessingTime: z.number().nullable().optional()
-})
+  overview: z.string().default(''),
+  status: z.enum(['open', 'in_progress', 'closed']).default('open'),
+  priority: z.enum(['low', 'normal', 'high']).default('normal')
+}).openapi('CreateTicketBody')
 
-export const TicketSchema = ticketSchemas.base
+export const UpdateTicketBodySchema = CreateTicketBodySchema.pick({
+  title: true,
+  overview: true, 
+  status: true,
+  priority: true,
+  suggestedFileIds: true,
+  suggestedAgentIds: true,
+  suggestedPromptIds: true
+}).partial().openapi('UpdateTicketBody')
 
-// Enhanced Task schema - keeping original definition to maintain compatibility
-export const TicketTaskSchema = z
-  .object({
-    id: entityIdSchema,
-    ticketId: entityIdSchema,
-    content: z.string().min(1), // Keep as task title/summary
-    description: z.string().optional(), // NEW: Detailed task breakdown
-    suggestedFileIds: z.array(z.string()).optional(), // NEW: File associations
-    done: z.boolean().default(false),
-    orderIndex: z.number().min(0),
-    estimatedHours: z.number().nullable().optional(), // NEW: Time estimation
-    dependencies: z.array(entityIdSchema).optional(), // NEW: Task dependencies
-    tags: z.array(z.string()).optional(), // NEW: Tags for categorization
-    agentId: z.string().nullable().optional(), // NEW: Assigned agent for this task
-    suggestedPromptIds: z.array(entityIdSchema).optional(), // NEW: Suggested prompts
-    // Queue integration fields (unified flow system)
-    queueId: entityIdNullableOptionalSchema,
-    queuePosition: z.number().nullable().optional(),
-    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable().optional(),
-    queuePriority: z.number().optional(),
-    queuedAt: unixTSOptionalSchemaSpec,
-    queueStartedAt: unixTSOptionalSchemaSpec,
-    queueCompletedAt: unixTSOptionalSchemaSpec,
-    queueAgentId: z.string().nullable().optional(),
-    queueErrorMessage: z.string().nullable().optional(),
-    estimatedProcessingTime: z.number().nullable().optional(),
-    actualProcessingTime: z.number().nullable().optional(),
-    created: unixTSSchemaSpec,
-    updated: unixTSSchemaSpec
-  })
-  .openapi('TicketTask')
+export const CreateTaskBodySchema = TicketTaskSchema.pick({
+  content: true,
+  description: true,
+  suggestedFileIds: true,
+  estimatedHours: true,
+  dependencies: true,
+  tags: true,
+  agentId: true,
+  suggestedPromptIds: true
+}).extend({
+  content: z.string().min(1)
+}).openapi('CreateTaskBody')
 
-// Create schemas - manually define to avoid complex omit operations
-export const CreateTicketBodySchema = z
-  .object({
-    projectId: entityIdSchema,
-    title: z.string().min(1),
-    overview: z.string().default(''),
-    status: z.enum(['open', 'in_progress', 'closed']).default('open'),
-    priority: z.enum(['low', 'normal', 'high']).default('normal'),
-    suggestedFileIds: z.array(z.string()).optional(),
-    suggestedAgentIds: z.array(z.string()).optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
-  })
-  .openapi('CreateTicketBody')
-
-export const UpdateTicketBodySchema = z
-  .object({
-    title: z.string().min(1).optional(),
-    overview: z.string().optional(),
-    status: z.enum(['open', 'in_progress', 'closed']).optional(),
-    priority: z.enum(['low', 'normal', 'high']).optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
-    suggestedAgentIds: z.array(z.string()).optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
-  })
-  .openapi('UpdateTicketBody')
-
-export const CreateTaskBodySchema = z
-  .object({
-    content: z.string().min(1),
-    description: z.string().optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
-    estimatedHours: z.number().nullable().optional(),
-    dependencies: z.array(entityIdSchema).optional(),
-    tags: z.array(z.string()).optional(),
-    agentId: z.string().optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
-  })
-  .openapi('CreateTaskBody')
-
-export const UpdateTaskBodySchema = z
-  .object({
-    content: z.string().min(1).optional(),
-    description: z.string().optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
-    done: z.boolean().optional(),
-    estimatedHours: z.number().nullable().optional(),
-    dependencies: z.array(entityIdSchema).optional(),
-    tags: z.array(z.string()).optional(),
-    agentId: z.string().optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
-  })
-  .openapi('UpdateTaskBody')
+export const UpdateTaskBodySchema = CreateTaskBodySchema.pick({
+  content: true,
+  description: true,
+  suggestedFileIds: true,
+  estimatedHours: true,
+  dependencies: true,
+  tags: true,
+  agentId: true,
+  suggestedPromptIds: true
+}).partial().extend({
+  done: z.boolean().optional()
+}).openapi('UpdateTaskBody')
 
 export const ReorderTasksBodySchema = z
   .object({

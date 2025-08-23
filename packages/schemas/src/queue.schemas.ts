@@ -6,73 +6,23 @@ import {
   entityIdOptionalSchema,
   entityIdNullableOptionalSchema
 } from './schema-utils'
-import { createEntitySchemas } from './schema-factories'
 
-// Queue status enum
+// Import database schemas as source of truth
+import { 
+  QueueSchema as DatabaseQueueSchema,
+  QueueItemSchema as DatabaseQueueItemSchema 
+} from '@promptliano/database'
+
+// Use database schemas as the base
+export const TaskQueueSchema = DatabaseQueueSchema  
+export const QueueItemSchema = DatabaseQueueItemSchema
+
+// Queue status enums (keep for API validation)
 export const QueueStatusEnum = z.enum(['active', 'paused', 'inactive'])
 export type QueueStatus = z.infer<typeof QueueStatusEnum>
 
-// Item queue status enum for tickets/tasks in Flow System
 export const ItemQueueStatusEnum = z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled', 'timeout'])
 export type ItemQueueStatus = z.infer<typeof ItemQueueStatusEnum>
-
-// Task queue schemas using factory pattern
-const queueSchemas = createEntitySchemas('TaskQueue', {
-  projectId: entityIdSchema,
-  name: z.string().min(1).max(100),
-  description: z.string().default(''),
-  status: QueueStatusEnum.default('active'),
-  maxParallelItems: z.number().min(1).max(10).default(1),
-  averageProcessingTime: z.number().nullable().optional(), // in milliseconds
-  totalCompletedItems: z.number().default(0)
-}, {
-  // Don't exclude status from updates - we want it to remain required
-  updateExcludes: []
-})
-
-// Create a custom update schema that keeps status required while making other fields optional
-export const UpdateTaskQueueSchema = queueSchemas.base
-  .omit({ id: true, created: true, updated: true })
-  .partial()
-  .merge(z.object({
-    status: QueueStatusEnum // Keep status required
-  }))
-  .openapi('UpdateTaskQueue')
-
-export const TaskQueueSchema = queueSchemas.base
-
-// Queue item schemas using factory pattern
-const queueItemSchemas = createEntitySchemas('QueueItem', {
-  queueId: entityIdSchema,
-  ticketId: entityIdNullableOptionalSchema,
-  taskId: entityIdNullableOptionalSchema,
-  status: ItemQueueStatusEnum.default('queued'),
-  priority: z.number().default(0),
-  position: z.number().nullable().optional(),
-  estimatedProcessingTime: z.number().nullable().optional(), // in milliseconds
-  actualProcessingTime: z.number().nullable().optional(), // in milliseconds
-  agentId: z.string().nullable().optional(),
-  errorMessage: z.string().nullable().optional(),
-  retryCount: z.number().default(0).optional(),
-  maxRetries: z.number().default(3).optional(),
-  timeoutAt: z.number().nullable().optional(), // Unix timestamp for timeout
-  startedAt: unixTSOptionalSchemaSpec,
-  completedAt: unixTSOptionalSchemaSpec
-})
-
-export const QueueItemSchema = queueItemSchemas.base
-  .refine(
-    (data) => {
-      // Ensure either ticketId or taskId is set, but not both
-      const hasTicket = data.ticketId != null // Check for both null and undefined
-      const hasTask = data.taskId != null // Check for both null and undefined
-      return (hasTicket && !hasTask) || (!hasTicket && hasTask)
-    },
-    {
-      message: 'Either ticketId or taskId must be set, but not both'
-    }
-  )
-  .openapi('QueueItem')
 
 // Queue statistics schema
 export const QueueStatsSchema = z
@@ -94,24 +44,25 @@ export const QueueStatsSchema = z
   })
   .openapi('QueueStats')
 
-// Create and update schemas - manually define to avoid complex omit operations
-export const CreateQueueBodySchema = z
-  .object({
-    projectId: entityIdSchema,
-    name: z.string().min(1).max(100),
-    description: z.string().optional(),
-    maxParallelItems: z.number().min(1).max(10).optional()
-  })
-  .openapi('CreateQueueBody')
+// API Request Body Schemas - derived from database schemas
+export const CreateQueueBodySchema = TaskQueueSchema.pick({
+  projectId: true,
+  name: true,
+  description: true,
+  maxParallelItems: true
+}).extend({
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  maxParallelItems: z.number().min(1).max(10).optional()
+}).openapi('CreateQueueBody')
 
-export const UpdateQueueBodySchema = z
-  .object({
-    name: z.string().min(1).max(100).optional(),
-    description: z.string().optional(),
-    status: QueueStatusEnum.optional(),
-    maxParallelItems: z.number().min(1).max(10).optional()
-  })
-  .openapi('UpdateQueueBody')
+export const UpdateQueueBodySchema = CreateQueueBodySchema.pick({
+  name: true,
+  description: true,
+  maxParallelItems: true
+}).partial().extend({
+  status: QueueStatusEnum.optional()
+}).openapi('UpdateQueueBody')
 
 // Enqueue item body schema
 export const EnqueueItemBodySchema = z

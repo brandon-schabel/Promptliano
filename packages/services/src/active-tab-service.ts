@@ -1,7 +1,10 @@
 import { ApiError } from '@promptliano/shared'
-import { type ActiveTab, activeTabSchema } from '@promptliano/schemas'
+import { type ActiveTab, type ActiveTabData, type UpdateActiveTabBody, activeTabSchema } from '@promptliano/schemas'
 import { storageService } from '@promptliano/database'
 import { getProjectById } from './project-service'
+
+// Get the active tab repository from storageService
+const activeTabStorage = storageService.activeTabs
 
 /**
  * Get the active tab for a project

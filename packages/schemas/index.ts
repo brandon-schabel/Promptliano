@@ -81,4 +81,4 @@ export * from './src/constants/models-temp-not-allowed'
 // - claude-hook.schemas.ts -> ClaudeHook, CreateClaudeHook, UpdateClaudeHook
 // - provider-key.schemas.ts -> ProviderKey, CreateProviderKey, UpdateProviderKey
 // - active-tab.schemas.ts -> ActiveTab, CreateActiveTab, UpdateActiveTab
-// - selected-files.schemas.ts -> SelectedFile, CreateSelectedFile, UpdateSelectedFile
+// - selected-files.schemas.ts -> REMOVED (unused schemas)

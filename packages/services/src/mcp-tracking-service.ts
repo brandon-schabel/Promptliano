@@ -15,6 +15,48 @@ import { createLogger } from './utils/logger'
 
 const logger = createLogger('MCPTracking')
 
+// TODO: Implement proper MCP tracking repository
+// For now, create a basic interface to prevent compilation errors
+const mcpTrackingStorage = {
+  async createExecution(data: any) {
+    // Temporary stub - needs proper implementation with MCP tables
+    logger.warn('MCP tracking not fully implemented - createExecution called')
+    return { id: Date.now(), ...data }
+  },
+  async updateExecution(id: number, data: any) {
+    logger.warn('MCP tracking not fully implemented - updateExecution called')
+  },
+  async queryExecutions(query: any) {
+    logger.warn('MCP tracking not fully implemented - queryExecutions called')
+    return { executions: [], total: 0 }
+  },
+  async getToolSummaries(projectId?: number, limit?: number) {
+    logger.warn('MCP tracking not fully implemented - getToolSummaries called')
+    return []
+  },
+  async getExecutionTimeline(projectId?: number, period?: string, startDate?: number, endDate?: number) {
+    logger.warn('MCP tracking not fully implemented - getExecutionTimeline called')
+    return []
+  },
+  async createChain(chainId: string, executionId: number, parentExecutionId?: number, position?: number) {
+    logger.warn('MCP tracking not fully implemented - createChain called')
+  },
+  async getChainExecutions(chainId: string) {
+    logger.warn('MCP tracking not fully implemented - getChainExecutions called')
+    return []
+  },
+  async upsertStatistics(data: any) {
+    logger.warn('MCP tracking not fully implemented - upsertStatistics called')
+  },
+  async recordPattern(projectId: number | null, type: string, pattern: any) {
+    logger.warn('MCP tracking not fully implemented - recordPattern called')
+  },
+  async getTopPatterns(projectId?: number, type?: string, limit?: number) {
+    logger.warn('MCP tracking not fully implemented - getTopPatterns called')
+    return []
+  }
+}
+
 // Global tracking state for active executions
 const activeExecutions = new Map<
   number,

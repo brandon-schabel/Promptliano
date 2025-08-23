@@ -8,38 +8,32 @@ import {
   entityIdCoercibleSchema
 } from './schema-utils'
 
-export const PromptSchema = z
-  .object({
-    id: entityIdSchema,
-    name: z.string().openapi({ example: 'Code Refactoring Prompt', description: 'Prompt name' }),
-    content: z.string().openapi({
-      example: 'Refactor the following code to be more efficient: {code}',
-      description: 'Prompt content template'
-    }),
-    projectId: entityIdOptionalSchema,
-    created: unixTSSchemaSpec,
-    updated: unixTSSchemaSpec
-  })
-  .openapi('Prompt')
+// Import database schemas as source of truth
+import { PromptSchema as DatabasePromptSchema } from '@promptliano/database'
 
-export const CreatePromptBodySchema = z
-  .object({
-    // Allow projectId to be optional during creation, linking can happen separately or via this field
-    projectId: entityIdOptionalSchema,
-    name: z.string().min(1).openapi({ example: 'My New Prompt' }),
-    content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
-  })
-  .openapi('CreatePromptRequestBody')
+// Use database schema as the base
+export const PromptSchema = DatabasePromptSchema
 
-export const UpdatePromptBodySchema = z
-  .object({
-    name: z.string().min(1).optional().openapi({ example: 'Updated Prompt Name' }),
-    content: z.string().min(1).optional().openapi({ example: 'Updated content: {variable}' })
-  })
-  .refine((data) => data.name || data.content, {
+// API Request Body Schemas - derived from database schema
+export const CreatePromptBodySchema = PromptSchema.pick({
+  name: true,
+  content: true,
+  projectId: true
+}).extend({
+  projectId: entityIdOptionalSchema,
+  name: z.string().min(1).openapi({ example: 'My New Prompt' }),
+  content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
+}).openapi('CreatePromptRequestBody')
+
+export const UpdatePromptBodySchema = CreatePromptBodySchema.pick({
+  name: true,
+  content: true
+}).partial().refine(
+  (data) => data.name || data.content,
+  {
     message: 'At least one of name or content must be provided for update'
-  })
-  .openapi('UpdatePromptRequestBody')
+  }
+).openapi('UpdatePromptRequestBody')
 
 // --- Request Parameter Schemas ---
 export const PromptIdParamsSchema = z
