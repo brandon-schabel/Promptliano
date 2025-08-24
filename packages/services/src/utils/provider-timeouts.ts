@@ -1,4 +1,4 @@
-import type { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 /**
  * Provider-specific timeout configurations

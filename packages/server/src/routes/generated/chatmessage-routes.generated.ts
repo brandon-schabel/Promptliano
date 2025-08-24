@@ -14,7 +14,9 @@ import { chatmessageServiceV2 } from '@promptliano/services'
 import {
   ChatMessageSchema,
   CreateChatMessageSchema,
-  UpdateChatMessageSchema,
+  UpdateChatMessageSchema
+} from '@promptliano/database'
+import {
   ChatMessageIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

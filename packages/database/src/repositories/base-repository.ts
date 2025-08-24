@@ -9,8 +9,8 @@ import { db, type DrizzleDb, type DrizzleTransaction } from '../db'
 import { z } from 'zod'
 import { ErrorFactory, assertExists, assertDatabaseOperation, createErrorHandler } from '@promptliano/shared/src/error/error-factory'
 
-export type BaseEntity = {
-  id: number
+export type BaseEntity<TId = number> = {
+  id: TId
   createdAt: number
   updatedAt: number
 }
@@ -21,7 +21,7 @@ export type InsertBaseEntity<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>
  * Generic repository class for common database operations
  */
 export class BaseRepository<
-  TEntity extends BaseEntity,
+  TEntity extends BaseEntity<any>,
   TInsert extends Record<string, any> = InsertBaseEntity<TEntity>,
   TTable extends SQLiteTable = SQLiteTable
 > {
@@ -55,7 +55,7 @@ export class BaseRepository<
   /**
    * Get entity by ID
    */
-  async getById(id: number): Promise<TEntity | null> {
+  async getById(id: TEntity['id']): Promise<TEntity | null> {
     return this.errorHandler.withContext(async () => {
       const [entity] = await db.select()
         .from(this.table)
@@ -80,7 +80,7 @@ export class BaseRepository<
   /**
    * Update entity by ID
    */
-  async update(id: number, data: Partial<TInsert>): Promise<TEntity> {
+  async update(id: TEntity['id'], data: Partial<TInsert>): Promise<TEntity> {
     return this.errorHandler.withContext(async () => {
       const [updated] = await db.update(this.table)
         .set({
@@ -101,7 +101,7 @@ export class BaseRepository<
   /**
    * Delete entity by ID
    */
-  async delete(id: number): Promise<boolean> {
+  async delete(id: TEntity['id']): Promise<boolean> {
     return this.errorHandler.withContext(async () => {
       const result = await db.delete(this.table)
         .where(eq((this.table as any).id, id))
@@ -114,7 +114,7 @@ export class BaseRepository<
   /**
    * Check if entity exists
    */
-  async exists(id: number): Promise<boolean> {
+  async exists(id: TEntity['id']): Promise<boolean> {
     const [result] = await db.select({ count: count() })
       .from(this.table)
       .where(eq((this.table as any).id, id))
@@ -430,7 +430,7 @@ export const queryHelpers = {
 // Repository factory helper for creating typed repositories
 export function createBaseRepository<
   TTable extends SQLiteTable,
-  TEntity extends BaseEntity = InferSelectModel<TTable>,
+  TEntity extends BaseEntity = InferSelectModel<TTable> & BaseEntity,
   TInsert extends Record<string, any> = InferInsertModel<TTable>
 >(
   table: TTable,

@@ -12,7 +12,7 @@ import {
   gitWorktreeRemoveRequestSchema as RemoveWorktreeBodySchema,
   gitWorktreeLockRequestSchema as LockWorktreeBodySchema
 } from '@promptliano/schemas'
-import * as gitService from '@promptliano/services'
+import { getWorktrees, addWorktree, removeWorktree, lockWorktree, unlockWorktree, pruneWorktrees } from '@promptliano/services'
 import { createStandardResponses, createStandardResponsesWithStatus, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas
@@ -153,7 +153,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   .openapi(
     listWorktreesRoute,
     (createRouteHandler<{ projectId: number }>(async ({ params }) => {
-      const worktrees = await gitService.getWorktrees(params!.projectId)
+      const worktrees = await getWorktrees(params!.projectId)
       return successResponse(worktrees)
     }) as any)
   )
@@ -161,7 +161,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
     addWorktreeRoute,
     (createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
-        await gitService.addWorktree(params!.projectId, {
+        await addWorktree(params!.projectId, {
           path: body!.path,
           branch: body!.branch,
           newBranch: body!.newBranch,
@@ -176,7 +176,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
     removeWorktreeRoute,
     (createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
-        await gitService.removeWorktree(
+        await removeWorktree(
           params!.projectId,
           body!.path,
           body!.force || false

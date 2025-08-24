@@ -14,7 +14,9 @@ import { promptService } from '@promptliano/services'
 import {
   PromptSchema,
   CreatePromptSchema,
-  UpdatePromptSchema,
+  UpdatePromptSchema
+} from '@promptliano/database'
+import {
   PromptIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -44,7 +46,7 @@ const promptConfig: EntityConfig = {
     entity: PromptSchema,
     create: CreatePromptSchema,
     update: UpdatePromptSchema,
-    id: PromptIdParamsSchema.shape.id
+    id: PromptIdParamsSchema.shape.promptId
   },
   service: promptService,
   options: {

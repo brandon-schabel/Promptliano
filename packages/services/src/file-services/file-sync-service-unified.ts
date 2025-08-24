@@ -1,7 +1,7 @@
 import { watch as fsWatch, type FSWatcher, existsSync as fsLibExistsSync } from 'fs'
 import { join, extname, resolve as pathResolve, relative, basename } from 'node:path'
 import { readdirSync, readFileSync, statSync, Dirent, existsSync as nodeFsExistsSync } from 'node:fs'
-import { type Project, type ProjectFile } from '@promptliano/schemas'
+import { type Project, type File as ProjectFile } from '@promptliano/database'
 import { getFilesConfig } from '@promptliano/config'
 import ignorePackage, { type Ignore } from 'ignore'
 
@@ -16,9 +16,9 @@ import {
   bulkCreateProjectFiles,
   bulkUpdateProjectFiles,
   bulkDeleteProjectFiles,
-  type FileSyncData, // Interface from project-service
   listProjects,
-  summarizeSingleFile
+  summarizeSingleFile,
+  type FileSyncData
 } from '../project-service'
 import { fileIndexingService } from '../file-indexing-service'
 import { resolvePath, normalizePathForDb as normalizePathForDbUtil } from '../utils/path-utils'
@@ -372,8 +372,8 @@ export async function syncFileSet(
   logger.verbose(`Starting syncFileSet for project ${project.id} with ${absoluteFilePathsOnDisk.length} disk files`)
 
   let filesToCreate: FileSyncData[] = []
-  let filesToUpdate: { fileId: number; data: FileSyncData }[] = []
-  let fileIdsToDelete: number[] = []
+  let filesToUpdate: { fileId: string; data: FileSyncData }[] = []
+  let fileIdsToDelete: string[] = []
   let skippedCount = 0
   let processedCount = 0
 
@@ -443,7 +443,6 @@ export async function syncFileSet(
       const fileData: FileSyncData = {
         path: normalizedRelativePath,
         name: fileName,
-        extension: extension,
         content: content,
         size: stats.size,
         checksum: checksum,

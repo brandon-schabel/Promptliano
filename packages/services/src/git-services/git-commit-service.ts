@@ -1,7 +1,5 @@
 import type {
-  GitCommit
-} from '@promptliano/database'
-import type {
+  GitCommit,
   GitLogEntry,
   GitDiff,
   GitLogEnhancedRequest,

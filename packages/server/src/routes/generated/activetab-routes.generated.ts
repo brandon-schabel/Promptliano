@@ -14,7 +14,9 @@ import { activetabServiceV2 } from '@promptliano/services'
 import {
   ActiveTabSchema,
   CreateActiveTabSchema,
-  UpdateActiveTabSchema,
+  UpdateActiveTabSchema
+} from '@promptliano/database'
+import {
   ActiveTabIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

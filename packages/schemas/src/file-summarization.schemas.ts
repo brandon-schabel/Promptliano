@@ -11,8 +11,8 @@ export type FileRelationshipType = z.infer<typeof FileRelationshipTypeEnum>
 
 // File relationship schema
 export const FileRelationshipSchema = z.object({
-  sourceFileId: z.number(),
-  targetFileId: z.number(),
+  sourceFileId: z.string(), // Changed to string to match database File.id type
+  targetFileId: z.string(), // Changed to string to match database File.id type
   type: FileRelationshipTypeEnum,
   strength: z.number().min(0).max(1).describe('Relationship strength (0-1)'),
   metadata: z.record(z.any()).optional()
@@ -24,7 +24,7 @@ export const FileGroupSchema = z.object({
   id: z.string(),
   name: z.string().describe('Human-readable group name'),
   strategy: GroupingStrategyEnum,
-  fileIds: z.array(z.number()).min(1),
+  fileIds: z.array(z.string()).min(1), // Changed to string to match database File.id type
   relationships: z.array(FileRelationshipSchema).optional(),
   estimatedTokens: z.number().optional(),
   priority: z.number().min(0).max(10).default(5),
@@ -87,12 +87,12 @@ export type SummaryProgress = z.infer<typeof SummaryProgressSchema>
 
 // Enhanced summary with relationships
 export const EnhancedFileSummarySchema = z.object({
-  fileId: z.number(),
+  fileId: z.string(), // Changed to string to match database File.id type
   summary: z.string(),
   relationships: z
     .array(
       z.object({
-        relatedFileId: z.number(),
+        relatedFileId: z.string(), // Changed to string to match database File.id type
         relationshipType: FileRelationshipTypeEnum,
         context: z.string().optional()
       })

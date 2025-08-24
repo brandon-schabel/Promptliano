@@ -14,7 +14,9 @@ import { claudecommandServiceV2 } from '@promptliano/services'
 import {
   ClaudeCommandSchema,
   CreateClaudeCommandSchema,
-  UpdateClaudeCommandSchema,
+  UpdateClaudeCommandSchema
+} from '@promptliano/database'
+import {
   ClaudeCommandIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

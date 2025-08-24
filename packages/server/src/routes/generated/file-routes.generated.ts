@@ -14,7 +14,9 @@ import { fileService } from '@promptliano/services'
 import {
   FileSchema,
   CreateFileSchema,
-  UpdateFileSchema,
+  UpdateFileSchema
+} from '@promptliano/database'
+import {
   FileIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

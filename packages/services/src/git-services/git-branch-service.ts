@@ -1,7 +1,5 @@
 import type {
-  GitBranch
-} from '@promptliano/database'
-import type {
+  GitBranch,
   GitBranchEnhanced,
   GitBranchListEnhancedResponse
 } from '@promptliano/schemas'

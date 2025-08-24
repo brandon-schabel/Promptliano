@@ -297,3 +297,25 @@ export const {
   optimizePrompt: optimizePromptV2,
   duplicate: duplicatePromptV2
 } = promptServiceV2
+
+// Add legacy aliases and missing functions for backward compatibility
+export const listPromptsByProject = getPromptsByProject
+export const suggestPrompts = getPromptSuggestions
+
+export const listAllPrompts = async () => {
+  // Get all prompts across all projects
+  const prompts = await promptRepository.getAll()
+  return prompts
+}
+
+export const addPromptToProject = async (promptId: number, projectId: number) => {
+  // Update prompt to associate with project
+  const prompt = await promptRepository.update(promptId, { projectId })
+  return prompt
+}
+
+export const removePromptFromProject = async (promptId: number) => {
+  // Remove prompt from project by setting projectId to null
+  const prompt = await promptRepository.update(promptId, { projectId: null })
+  return prompt
+}

@@ -1,12 +1,36 @@
 import type { 
   File as ProjectFile, 
   Ticket, 
-  TicketTask 
+  TicketTask,
+  RelevanceScore
 } from '@promptliano/database'
-import type { RelevanceScore, RelevanceConfig } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 import { fileIndexingService } from './file-indexing-service'
 import { getProjectFiles } from './project-service'
+
+// Local interface for service configuration (separate from database schema)
+interface RelevanceConfig {
+  weights: {
+    keyword: number
+    path: number
+    type: number
+    recency: number
+    import: number
+  }
+  maxFiles: number
+  minScore: number
+}
+
+// Local interface for relevance scoring results
+interface RelevanceScoreResult {
+  fileId: string
+  totalScore: number
+  keywordScore: number
+  pathScore: number
+  typeScore: number
+  recencyScore: number
+  importScore: number
+}
 
 const DEFAULT_CONFIG: RelevanceConfig = {
   weights: {
@@ -21,6 +45,10 @@ const DEFAULT_CONFIG: RelevanceConfig = {
 }
 
 export class FileRelevanceService {
+  private getFileExtension(filePath: string): string {
+    return filePath.split('.').pop() || ''
+  }
+
   private stopWords = new Set([
     'the',
     'is',
@@ -76,22 +104,22 @@ export class FileRelevanceService {
 
   constructor(private config: RelevanceConfig = DEFAULT_CONFIG) {}
 
-  async scoreFilesForTicket(ticket: Ticket, projectId: number, userContext?: string): Promise<RelevanceScore[]> {
+  async scoreFilesForTicket(ticket: Ticket, projectId: number, userContext?: string): Promise<RelevanceScoreResult[]> {
     const text = `${ticket.title} ${ticket.overview} ${userContext || ''}`
     return this.scoreFilesForText(text, projectId)
   }
 
-  async scoreFilesForTask(task: TicketTask, ticket: Ticket, projectId: number): Promise<RelevanceScore[]> {
+  async scoreFilesForTask(task: TicketTask, ticket: Ticket, projectId: number): Promise<RelevanceScoreResult[]> {
     const text = `${task.content} ${task.description} ${ticket.title}`
     return this.scoreFilesForText(text, projectId)
   }
 
-  async scoreFilesForText(text: string, projectId: number): Promise<RelevanceScore[]> {
+  async scoreFilesForText(text: string, projectId: number): Promise<RelevanceScoreResult[]> {
     const files = await getProjectFiles(projectId)
     if (!files || files.length === 0) return []
 
     const keywords = this.extractKeywords(text)
-    const scores: RelevanceScore[] = []
+    const scores: RelevanceScoreResult[] = []
 
     for (const file of files) {
       // Skip binary and large files
@@ -107,7 +135,7 @@ export class FileRelevanceService {
     return scores.sort((a, b) => b.totalScore - a.totalScore).slice(0, this.config.maxFiles)
   }
 
-  private calculateFileRelevance(file: ProjectFile, keywords: string[], allFiles: ProjectFile[]): RelevanceScore {
+  private calculateFileRelevance(file: ProjectFile, keywords: string[], allFiles: ProjectFile[]): RelevanceScoreResult {
     const keywordScore = this.calculateKeywordScore(file, keywords)
     const pathScore = this.calculatePathScore(file, keywords)
     const typeScore = this.calculateTypeScore(file, keywords)
@@ -175,7 +203,7 @@ export class FileRelevanceService {
   }
 
   private calculateTypeScore(file: ProjectFile, keywords: string[]): number {
-    const ext = file.extension?.toLowerCase() || ''
+    const ext = this.getFileExtension(file.path).toLowerCase()
 
     // Map keywords to likely file types
     const typeAssociations: Record<string, string[]> = {
@@ -205,10 +233,10 @@ export class FileRelevanceService {
   }
 
   private calculateRecencyScore(file: ProjectFile): number {
-    if (!file.updated) return 0.5
+    if (!file.updatedAt) return 0.5
 
     const now = Date.now()
-    const fileAge = now - file.updated
+    const fileAge = now - file.updatedAt
     const dayInMs = 24 * 60 * 60 * 1000
 
     // Files modified in the last day get highest score
@@ -286,7 +314,8 @@ export class FileRelevanceService {
       'so',
       'dylib'
     ]
-    if (file.extension && binaryExtensions.includes(file.extension.toLowerCase())) {
+    const extension = this.getFileExtension(file.path)
+    if (extension && binaryExtensions.includes(extension.toLowerCase())) {
       return true
     }
 

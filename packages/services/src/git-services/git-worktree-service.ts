@@ -1,4 +1,4 @@
-import type { GitWorktree } from '@promptliano/database'
+import type { GitWorktree } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 import { BaseGitService } from './base-git-service'
 import * as path from 'path'

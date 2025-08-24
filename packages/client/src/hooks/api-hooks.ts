@@ -55,40 +55,8 @@ export {
   useForkChat,
   useForkChatFromMessage,
   useDeleteMessage,
-  useStreamChat,
   useAIChatV2,
   useInvalidateAIChats,
-  
-  // Browse Directory Hooks (Phase 2 Complete)
-  useBrowseDirectory,
-  
-  // Claude Code Hooks with Advanced Session Management (Phase 2 Complete)
-  useClaudeSessions,
-  useClaudeSessionsMetadata,
-  useClaudeSessionsRecent,
-  useClaudeSessionsInfinite,
-  useClaudeSessionsTable,
-  useClaudeSessionsProgressive,
-  useClaudeMessages,
-  useClaudeFullSession,
-  useClaudeProjectData,
-  useWatchClaudeSessions,
-  useClaudeCodeBackgroundData,
-  useClaudeCodeInvalidation,
-  useCopyToClipboard,
-  useFormatClaudeMessage,
-  useSessionDuration,
-  
-  // Claude Hooks Management (Phase 2 Complete)
-  useGetProjectHooks,
-  useGetHook,
-  useSearchHooks,
-  useCreateHook,
-  useUpdateHook,
-  useDeleteHook,
-  useGenerateHook,
-  useTestHook,
-  useClaudeHooksInvalidation,
   
   usePrompts,
   usePrompt,
@@ -129,10 +97,8 @@ export {
   useCreateTask,
   useCompleteTicket,
   useChatMessages,
-  useStreamChat,
   useQueueStats,
   useQueueItems,
-  useEnqueueTicket,
   
   // Utility hooks
   useBatchOperations,
@@ -607,74 +573,8 @@ export function useSuggestPrompts() {
 
 /**
  * Advanced Chat Operations with Streaming Support
+ * Note: useForkChat, useForkChatFromMessage, and useDeleteMessage are now provided by generated hooks
  */
-
-export function useForkChat() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ chatId, excludeMessageIds }: { chatId: number; excludeMessageIds?: number[] }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.chats.forkChat(chatId, { excludedMessageIds: excludeMessageIds || [] })
-    },
-    onSuccess: () => {
-      invalidateWithRelationships(queryClient, 'chats')
-      toast.success('Chat forked successfully')
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to fork chat')
-    }
-  })
-}
-
-export function useForkChatFromMessage() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({
-      chatId,
-      messageId,
-      excludedMessageIds
-    }: {
-      chatId: number
-      messageId: number
-      excludedMessageIds?: number[]
-    }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.chats.forkChatFromMessage(chatId, messageId, {
-        excludedMessageIds: excludedMessageIds || []
-      })
-    },
-    onSuccess: () => {
-      invalidateWithRelationships(queryClient, 'chats')
-      toast.success('Chat forked from message successfully')
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to fork chat from message')
-    }
-  })
-}
-
-export function useDeleteMessage() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ chatId, messageId }: { chatId: number; messageId: number }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.chats.deleteMessage(chatId, messageId)
-    },
-    onSuccess: (_, { chatId }) => {
-      queryClient.invalidateQueries({ queryKey: ['chats', 'messages', chatId] })
-      toast.success('Message deleted successfully')
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to delete message')
-    }
-  })
-}
 
 /**
  * Enhanced AI Chat Hook with Streaming
@@ -935,8 +835,7 @@ export function useValidateMarkdownFile() {
 // Provide aliases for existing hook names to ensure backward compatibility
 export const useGetProjects = useProjects
 export const useGetProject = useProject
-export const useGetChats = useChats
-export const useGetChat = useChat
+// Note: useGetChats and useGetChat are already exported from generated hooks (line 46-47)
 export const useGetAllPrompts = usePrompts
 export const useGetPrompt = usePrompt
 export const useGetAllAgents = useAgents

@@ -86,6 +86,18 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
 
   return {
     /**
+     * List all hooks (route factory compatible)
+     */
+    async list(): Promise<ClaudeHook[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.getAll()
+        },
+        { entity: 'ClaudeHook', action: 'list' }
+      )
+    },
+
+    /**
      * List all hooks for a project
      */
     async listHooks(projectId: number): Promise<ClaudeHook[]> {

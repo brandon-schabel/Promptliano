@@ -307,7 +307,7 @@ async function handleToolsList(
               type: 'object' as const,
               properties:
                 tool.parameters?.reduce(
-                  (acc, param) => {
+                  (acc: Record<string, any>, param: any) => {
                     acc[param.name] = {
                       type: param.type,
                       description: param.description,
@@ -318,7 +318,7 @@ async function handleToolsList(
                   },
                   {} as Record<string, any>
                 ) || {},
-              required: tool.parameters?.filter((p) => p.required).map((p) => p.name) || []
+              required: tool.parameters?.filter((p: any) => p.required).map((p: any) => p.name) || []
             }
           }
           mcpTools.push(externalTool as any)
@@ -383,7 +383,7 @@ async function handleToolsCall(
 
       const externalToolName = name.replace('external_', '')
       const tools = await getMCPClientManager().listAllTools(parseInt(projectId))
-      const tool = tools.find((t) => t.name === externalToolName)
+      const tool = tools.find((t: any) => t.name === externalToolName)
 
       if (!tool) {
         return {
@@ -578,13 +578,16 @@ async function handleResourcesList(
           name: file.name,
           description: `File: ${file.path} (${file.size} bytes)`,
           mimeType:
-            file.extension === '.json'
-              ? 'application/json'
-              : file.extension === '.md'
-                ? 'text/markdown'
-                : file.extension.match(/\.(js|ts|jsx|tsx)$/)
-                  ? 'text/javascript'
-                  : 'text/plain'
+            (() => {
+              const extension = file.path.split('.').pop()?.toLowerCase()
+              return extension === 'json'
+                ? 'application/json'
+                : extension === 'md'
+                  ? 'text/markdown'
+                  : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
+                    ? 'text/javascript'
+                    : 'text/plain'
+            })()
         }))
 
         mcpResources.push(...fileResources)
@@ -597,7 +600,7 @@ async function handleResourcesList(
     if (projectId) {
       try {
         const externalResources = await getMCPClientManager().listAllResources(parseInt(projectId))
-        const externalMcpResources = externalResources.map((resource) => ({
+        const externalMcpResources = externalResources.map((resource: any) => ({
           uri: `external://${resource.uri}`,
           name: `[External] ${resource.name}`,
           description: resource.description,
@@ -664,7 +667,7 @@ async function handleResourcesRead(
 
       const externalUri = uri.replace('external://', '')
       const resources = await getMCPClientManager().listAllResources(parseInt(projectId))
-      const resource = resources.find((r) => r.uri === externalUri)
+      const resource = resources.find((r: any) => r.uri === externalUri)
 
       if (!resource) {
         return {
@@ -799,7 +802,7 @@ async function handleResourcesRead(
           }
           
           const files = await getProjectFiles(parseInt(projectId))
-          const file = files?.find((f) => f.id === fileId)
+          const file = files?.find((f: any) => f.id === fileId || f.id === String(fileId))
 
           if (!file) {
             return {
@@ -820,13 +823,16 @@ async function handleResourcesRead(
                 {
                   uri,
                   mimeType:
-                    file.extension === '.json'
-                      ? 'application/json'
-                      : file.extension === '.md'
-                        ? 'text/markdown'
-                        : file.extension.match(/\.(js|ts|jsx|tsx)$/)
-                          ? 'text/javascript'
-                          : 'text/plain',
+                    (() => {
+                      const extension = file.path.split('.').pop()?.toLowerCase()
+                      return extension === 'json'
+                        ? 'application/json'
+                        : extension === 'md'
+                          ? 'text/markdown'
+                          : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
+                            ? 'text/javascript'
+                            : 'text/plain'
+                    })(),
                   text: file.content
                 }
               ]

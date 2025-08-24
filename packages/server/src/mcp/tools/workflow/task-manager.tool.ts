@@ -77,15 +77,16 @@ export const taskManagerTool: MCPToolDefinition = {
             const content = validateDataField<string>(data, 'content', 'string', '"Implement login validation"')
             // Support enhanced task creation
             const taskData = {
+              ticketId: validTicketId,
               content,
               description: data.description,
-              suggestedFileIds: data.suggestedFileIds,
+              suggestedFileIds: data.suggestedFileIds || [],
               estimatedHours: data.estimatedHours,
-              dependencies: data.dependencies,
-              tags: data.tags,
+              dependencies: data.dependencies || [],
+              tags: data.tags || [],
               agentId: data.agentId
             }
-            const task = await createTask(validTicketId, taskData)
+            const task = await createTask(taskData)
             return {
               content: [{ type: 'text', text: `Task created successfully: ${task.content} (ID: ${task.id})` }]
             }
@@ -96,13 +97,13 @@ export const taskManagerTool: MCPToolDefinition = {
             const updateData: UpdateTaskBody = {}
             if (data.content !== undefined) updateData.content = data.content
             if (data.description !== undefined) updateData.description = data.description
-            if (data.suggestedFileIds !== undefined) updateData.suggestedFileIds = data.suggestedFileIds
+            if (data.suggestedFileIds !== undefined) updateData.suggestedFileIds = data.suggestedFileIds as any
             if (data.done !== undefined) updateData.done = data.done
             if (data.estimatedHours !== undefined) updateData.estimatedHours = data.estimatedHours
-            if (data.dependencies !== undefined) updateData.dependencies = data.dependencies
-            if (data.tags !== undefined) updateData.tags = data.tags
+            if (data.dependencies !== undefined) updateData.dependencies = data.dependencies as any
+            if (data.tags !== undefined) updateData.tags = data.tags as any
             if (data.agentId !== undefined) updateData.agentId = data.agentId
-            const task = await updateTask(validTicketId, taskId, updateData)
+            const task = await updateTask(taskId, updateData as any)
             return {
               content: [{ type: 'text', text: `Task updated successfully: ${task.content} (ID: ${taskId})` }]
             }
@@ -110,7 +111,7 @@ export const taskManagerTool: MCPToolDefinition = {
 
           case TaskManagerAction.DELETE: {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
-            await deleteTask(validTicketId, taskId)
+            await deleteTask(taskId)
             return {
               content: [{ type: 'text', text: `Task ${taskId} deleted successfully` }]
             }
@@ -123,8 +124,10 @@ export const taskManagerTool: MCPToolDefinition = {
               'array',
               '[{"taskId": 789, "orderIndex": 0}]'
             )
-            const reorderedTasks = await reorderTasks(validTicketId, tasks)
-            const taskList = reorderedTasks.map((t) => `${t.id}: ${t.content} (order: ${t.orderIndex})`).join('\n')
+            await reorderTasks(validTicketId, tasks)
+            // Get updated tasks to show the new order
+            const updatedTasks = await getTasks(validTicketId)
+            const taskList = updatedTasks.map((t: any) => `${t.id}: ${t.content} (order: ${t.orderIndex})`).join('\n')
             return {
               content: [{ type: 'text', text: `Tasks reordered successfully:\n${taskList}` }]
             }
@@ -133,7 +136,7 @@ export const taskManagerTool: MCPToolDefinition = {
           case TaskManagerAction.SUGGEST_FILES: {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const context = data.context as string | undefined
-            const suggestedFiles = await suggestFilesForTask(taskId, context)
+            const suggestedFiles = await suggestFilesForTask(taskId)
             return {
               content: [
                 {
@@ -151,11 +154,11 @@ export const taskManagerTool: MCPToolDefinition = {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const updateData: UpdateTaskBody = {
               description: data.description,
-              suggestedFileIds: data.suggestedFileIds,
+              suggestedFileIds: data.suggestedFileIds as any,
               estimatedHours: data.estimatedHours,
-              tags: data.tags
+              tags: data.tags as any
             }
-            const task = await updateTask(validTicketId, taskId, updateData)
+            const task = await updateTask(taskId, updateData as any)
             return {
               content: [
                 {
@@ -169,6 +172,9 @@ export const taskManagerTool: MCPToolDefinition = {
           case TaskManagerAction.GET_WITH_CONTEXT: {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const taskWithContext = await getTaskWithContext(taskId)
+            if (!taskWithContext) {
+              throw createMCPError(MCPErrorCode.NOT_FOUND, `Task ${taskId} not found`)
+            }
             const contextInfo = {
               task: taskWithContext.content,
               description: taskWithContext.description,
@@ -176,7 +182,7 @@ export const taskManagerTool: MCPToolDefinition = {
               tags: taskWithContext.tags,
               agentId: taskWithContext.agentId,
               fileCount: taskWithContext.suggestedFileIds?.length || 0,
-              files: taskWithContext.files
+              files: taskWithContext.suggestedFileIds || []
             }
             return {
               content: [

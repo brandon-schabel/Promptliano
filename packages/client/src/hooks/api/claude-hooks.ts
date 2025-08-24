@@ -413,11 +413,5 @@ export const useTestHook = utilityHooks.useTestHook
 
 export const useClaudeHooksInvalidation = cacheHooks.useClaudeHooksInvalidation
 
-// Export factories for advanced usage
-export {
-  createClaudeHooksFactory,
-  createClaudeHooksMutationFactory,
-  createClaudeHooksUtilityFactory,
-  createClaudeHooksCacheFactory,
-  CLAUDE_HOOKS_KEYS
-}
+// Export query keys for advanced usage
+export { CLAUDE_HOOKS_KEYS }

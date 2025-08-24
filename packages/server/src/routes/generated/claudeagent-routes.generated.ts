@@ -14,7 +14,9 @@ import { claudeagentServiceV2 } from '@promptliano/services'
 import {
   ClaudeAgentSchema,
   CreateClaudeAgentSchema,
-  UpdateClaudeAgentSchema,
+  UpdateClaudeAgentSchema
+} from '@promptliano/database'
+import {
   ClaudeAgentIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

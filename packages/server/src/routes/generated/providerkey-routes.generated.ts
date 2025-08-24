@@ -14,7 +14,9 @@ import { providerkeyServiceV2 } from '@promptliano/services'
 import {
   ProviderKeySchema,
   CreateProviderKeySchema,
-  UpdateProviderKeySchema,
+  UpdateProviderKeySchema
+} from '@promptliano/database'
+import {
   ProviderKeyIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

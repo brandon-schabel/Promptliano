@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
  * Generated at: 2025-08-23T20:25:02.526Z

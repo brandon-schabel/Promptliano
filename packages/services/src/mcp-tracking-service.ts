@@ -271,16 +271,16 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
         const executionTrend = await storage.getExecutionTimeline(projectId, 'day', timelineStartDate, endDate)
 
         // Calculate overview metrics
-        const totalExecutions = topTools.reduce((sum, tool) => sum + (tool.totalExecutions as number), 0)
+        const totalExecutions = topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number), 0)
         const uniqueTools = topTools.length
         const overallSuccessRate =
           totalExecutions > 0
-            ? topTools.reduce((sum, tool) => sum + (tool.totalExecutions as number) * (tool.successRate as number), 0) /
+            ? topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number) * (tool.successRate as number), 0) /
               totalExecutions
             : 0
         const avgExecutionTime =
           totalExecutions > 0
-            ? topTools.reduce((sum, tool) => sum + (tool.totalExecutions as number) * (tool.avgDurationMs as number), 0) /
+            ? topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number) * (tool.avgDurationMs as number), 0) /
               totalExecutions
             : 0
 
@@ -291,7 +291,7 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
           avgExecutionTime,
           topTools,
           recentErrors,
-          executionTrend: executionTrend.map((item) => ({
+          executionTrend: executionTrend.map((item: MCPExecutionTimeline) => ({
             timestamp: item.timestamp,
             count: item.totalCount,
             avgDuration: item.avgDuration

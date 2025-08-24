@@ -15,11 +15,11 @@ export interface ServiceLogger {
 
 export interface BaseRepository<TEntity, TCreate> {
   create(data: TCreate): Promise<TEntity>
-  getById(id: number): Promise<TEntity | null>
+  getById(id: number | string): Promise<TEntity | null>
   getAll(): Promise<TEntity[]>
-  update(id: number, data: Partial<TCreate>): Promise<TEntity>
-  delete(id: number): Promise<boolean>
-  exists(id: number): Promise<boolean>
+  update(id: number | string, data: Partial<TCreate>): Promise<TEntity>
+  delete(id: number | string): Promise<boolean>
+  exists(id: number | string): Promise<boolean>
   count(where?: any): Promise<number>
   createMany(items: TCreate[]): Promise<TEntity[]>
 }
@@ -32,7 +32,7 @@ export interface ServiceContext {
 export interface CrudServiceConfig<TEntity, TCreate, TUpdate = Partial<TCreate>> {
   entityName: string
   repository: BaseRepository<TEntity, TCreate>
-  schema?: z.ZodSchema<TEntity>
+  schema?: z.ZodType<TEntity>
   logger?: ServiceLogger
 }
 
@@ -41,7 +41,7 @@ export interface CrudServiceConfig<TEntity, TCreate, TUpdate = Partial<TCreate>>
  */
 export function withErrorContext<T>(
   operation: () => Promise<T>,
-  context: { entity: string; action: string; id?: number }
+  context: { entity: string; action: string; id?: number | string; [key: string]: any }
 ): Promise<T> {
   return operation().catch((error) => {
     if (error instanceof Error && error.name === 'ApiError') {
@@ -82,12 +82,34 @@ export function createServiceLogger(serviceName: string): ServiceLogger {
 }
 
 /**
+ * Standard service interface expected by route factory
+ */
+export interface StandardServiceInterface<TEntity, TCreate, TUpdate> {
+  list: () => Promise<TEntity[]>
+  getById: (id: number | string) => Promise<TEntity>
+  create: (data: TCreate) => Promise<TEntity>
+  update: (id: number | string, data: TUpdate) => Promise<TEntity>
+  delete?: (id: number | string) => Promise<boolean>
+  deleteCascade?: (id: number | string) => Promise<boolean>
+}
+
+/**
  * Creates a CRUD service with consistent patterns
  * Reduces service boilerplate by 75%
+ * Now ensures compatibility with route factory interface
  */
-export function createCrudService<TEntity extends { id: number }, TCreate, TUpdate = Partial<TCreate>>(
+export function createCrudService<TEntity extends { id: number | string }, TCreate, TUpdate = Partial<TCreate>>(
   config: CrudServiceConfig<TEntity, TCreate, TUpdate>
-) {
+): StandardServiceInterface<TEntity, TCreate, TUpdate> & {
+  // Additional helper methods
+  findById: (id: number | string) => Promise<TEntity | null>
+  getAll: () => Promise<TEntity[]>
+  exists: (id: number | string) => Promise<boolean>
+  count: (where?: any) => Promise<number>
+  batch: {
+    create: (items: TCreate[]) => Promise<TEntity[]>
+  }
+} {
   const logger = config.logger || createServiceLogger(config.entityName)
   const { repository, entityName, schema } = config
 
@@ -108,9 +130,9 @@ export function createCrudService<TEntity extends { id: number }, TCreate, TUpda
     },
 
     /**
-     * Get entity by ID with existence check
+     * Get entity by ID with existence check (route factory compatible)
      */
-    async getById(id: number): Promise<TEntity> {
+    async getById(id: number | string): Promise<TEntity> {
       return withErrorContext(
         async () => {
           const entity = await repository.getById(id)
@@ -122,9 +144,21 @@ export function createCrudService<TEntity extends { id: number }, TCreate, TUpda
     },
 
     /**
+     * List all entities (route factory compatible alias for getAll)
+     */
+    async list(): Promise<TEntity[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.getAll()
+        },
+        { entity: entityName, action: 'list' }
+      )
+    },
+
+    /**
      * Get entity by ID (returns null if not found)
      */
-    async findById(id: number): Promise<TEntity | null> {
+    async findById(id: number | string): Promise<TEntity | null> {
       return withErrorContext(
         async () => {
           return await repository.getById(id)
@@ -134,27 +168,33 @@ export function createCrudService<TEntity extends { id: number }, TCreate, TUpda
     },
 
     /**
-     * Get all entities
+     * Get all entities (alias for list)
      */
     async getAll(): Promise<TEntity[]> {
-      return withErrorContext(
-        async () => {
-          return await repository.getAll()
-        },
-        { entity: entityName, action: 'getAll' }
-      )
+      return this.list()
     },
 
     /**
-     * Update entity
+     * Update entity (route factory compatible)
      */
-    async update(id: number, data: TUpdate): Promise<TEntity> {
+    async update(id: number | string, data: TUpdate): Promise<TEntity> {
       return withErrorContext(
         async () => {
           // Verify entity exists first
           await this.getById(id)
           
-          const validated = schema && data ? schema.partial().parse(data) : data
+          // Handle schema validation - only call partial() on ZodObject instances
+          let validated: any = data
+          if (schema && data) {
+            if ('partial' in schema && typeof schema.partial === 'function') {
+              // This is a ZodObject, we can call partial()
+              validated = (schema as any).partial().parse(data)
+            } else {
+              // This is another ZodType, validate as-is (may not be appropriate for partial updates)
+              validated = data
+            }
+          }
+          
           const result = await repository.update(id, validated as Partial<TCreate>)
           logger.info(`Updated ${entityName}`, { id })
           return result
@@ -164,9 +204,9 @@ export function createCrudService<TEntity extends { id: number }, TCreate, TUpda
     },
 
     /**
-     * Delete entity
+     * Delete entity (route factory compatible)
      */
-    async delete(id: number): Promise<boolean> {
+    async delete(id: number | string): Promise<boolean> {
       return withErrorContext(
         async () => {
           // Verify entity exists first
@@ -185,7 +225,7 @@ export function createCrudService<TEntity extends { id: number }, TCreate, TUpda
     /**
      * Check if entity exists
      */
-    async exists(id: number): Promise<boolean> {
+    async exists(id: number | string): Promise<boolean> {
       return withErrorContext(
         async () => {
           return await repository.exists(id)
@@ -232,6 +272,60 @@ export function extendService<TBase, TExtensions>(
   extensions: TExtensions
 ): TBase & TExtensions {
   return { ...baseService, ...extensions }
+}
+
+/**
+ * Wrap existing service to ensure route factory compatibility
+ * Adds missing methods and ensures proper interface
+ */
+export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
+  service: any,
+  options: {
+    entityName: string
+    getByIdMethod?: string
+    listMethod?: string
+    createMethod?: string
+    updateMethod?: string
+    deleteMethod?: string
+  }
+): StandardServiceInterface<TEntity, TCreate, TUpdate> {
+  const {
+    entityName,
+    getByIdMethod = 'getById',
+    listMethod = 'getAll',
+    createMethod = 'create',
+    updateMethod = 'update',
+    deleteMethod = 'delete'
+  } = options
+
+  return {
+    // Ensure list method exists
+    list: service[listMethod] || service.list || service.getAll || (async () => {
+      console.warn(`Service ${entityName} missing list method, returning empty array`)
+      return []
+    }),
+
+    // Ensure getById method exists and handles both string and number IDs
+    getById: service[getByIdMethod] || service.getById || (async (id: number | string) => {
+      throw ErrorFactory.notFound(entityName, id)
+    }),
+
+    // Ensure create method exists
+    create: service[createMethod] || service.create || (async (data: TCreate) => {
+      throw ErrorFactory.operationFailed(`create ${entityName}`, 'Method not implemented')
+    }),
+
+    // Ensure update method exists and handles both string and number IDs
+    update: service[updateMethod] || service.update || (async (id: number | string, data: TUpdate) => {
+      throw ErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
+    }),
+
+    // Optional delete method
+    delete: service[deleteMethod] || service.delete || undefined,
+
+    // Optional cascade delete method
+    deleteCascade: service.deleteCascade || undefined
+  }
 }
 
 /**

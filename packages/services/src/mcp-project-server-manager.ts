@@ -64,8 +64,8 @@ class MCPProjectServerManager {
             args: serverConfig.args || [],
             env: serverConfig.env || {},
             enabled: true,
-            created: Date.now(),
-            updated: Date.now(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
             autoStart: true
           }
 

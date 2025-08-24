@@ -22,13 +22,14 @@ import { HIGH_MODEL_CONFIG } from '@promptliano/config'
 
 async function createCommand(projectId: number, data: CreateClaudeCommandBody): Promise<ClaudeCommand> {
   return withErrorContext(
-    async () => {
+    async (): Promise<ClaudeCommand> => {
       // Validate command name
       if (!/^[a-z0-9-]+$/.test(data.name)) {
-        throw ErrorFactory.validation('Invalid command name. Use lowercase letters, numbers, and hyphens only.', {
-          field: 'name',
-          value: data.name
-        })
+        throw ErrorFactory.invalidInput(
+          'name',
+          'lowercase letters, numbers, and hyphens only',
+          data.name
+        )
       }
 
       // Check if command already exists for this project
@@ -48,7 +49,7 @@ async function createCommand(projectId: number, data: CreateClaudeCommandBody): 
         projectId
       })
 
-      return command
+      return command as ClaudeCommand
     },
     { entity: 'ClaudeCommand', action: 'create', projectId }
   )
@@ -119,14 +120,16 @@ async function updateCommand(
   data: Partial<UpdateClaudeCommandBody>
 ): Promise<ClaudeCommand> {
   return withErrorContext(
-    async () => {
+    async (): Promise<ClaudeCommand> => {
       // Get existing command
       const existing = await getCommandByName(projectId, commandName)
 
-      // Merge args if provided
+      // Merge args if provided - handle JSON type conversion
+      const existingArgs = existing.args as Record<string, any> | null
+      const dataArgs = data.args as Record<string, any> | null
       const updatedArgs = {
-        ...existing.args,
-        ...(data.args || {})
+        ...(existingArgs || {}),
+        ...(dataArgs || {})
       }
 
       // Update command
@@ -135,7 +138,7 @@ async function updateCommand(
         args: updatedArgs
       })
 
-      return command
+      return command as ClaudeCommand
     },
     { entity: 'ClaudeCommand', action: 'update', projectId, commandName }
   )
@@ -264,7 +267,6 @@ Generate a Claude Code slash command based on the user's requirements and projec
 
       // Ensure the generated name matches the requested name
       result.object.name = data.name
-
       return result.object
     },
     { entity: 'ClaudeCommand', action: 'generate', projectId }
@@ -341,11 +343,65 @@ function createClaudeCommandService(deps: {
   const repository = deps.repository || claudeCommandRepository
 
   return {
-    create: createCommand,
-    list: listCommands,
+    // Route factory compatible interface
+    async list(): Promise<ClaudeCommand[]> {
+      // List all commands across all projects
+      return withErrorContext(
+        async () => {
+          return await repository.getAll()
+        },
+        { entity: 'ClaudeCommand', action: 'list' }
+      )
+    },
+
+    async getById(id: number | string): Promise<ClaudeCommand> {
+      return withErrorContext(
+        async () => {
+          const command = await repository.getById(Number(id))
+          if (!command) {
+            throw ErrorFactory.notFound('ClaudeCommand', id)
+          }
+          return command
+        },
+        { entity: 'ClaudeCommand', action: 'getById', id }
+      )
+    },
+
+    async create(data: any): Promise<ClaudeCommand> {
+      // Wrapper for project-specific creation - requires projectId
+      if (!data.projectId) {
+        throw ErrorFactory.missingRequired('projectId', 'ClaudeCommand creation')
+      }
+      return createCommand(data.projectId, data)
+    },
+
+    async update(id: number | string, data: any): Promise<ClaudeCommand> {
+      return withErrorContext(
+        async () => {
+          const command = await this.getById(id)
+          // Update by name since that's how the original service works
+          return updateCommand(command.projectId, command.name, data)
+        },
+        { entity: 'ClaudeCommand', action: 'update', id }
+      )
+    },
+
+    async delete(id: number | string): Promise<boolean> {
+      return withErrorContext(
+        async () => {
+          const command = await this.getById(id)
+          return deleteCommand(command.projectId, command.name)
+        },
+        { entity: 'ClaudeCommand', action: 'delete', id }
+      )
+    },
+
+    // Original methods for backward compatibility
+    createCommand,
+    listCommands,
     getByName: getCommandByName,
-    update: updateCommand,
-    delete: deleteCommand,
+    updateCommand,
+    deleteCommand,
     execute: executeCommand,
     suggest: suggestCommands,
     generate: generateCommand

@@ -14,7 +14,9 @@ import { claudehookServiceV2 } from '@promptliano/services'
 import {
   ClaudeHookSchema,
   CreateClaudeHookSchema,
-  UpdateClaudeHookSchema,
+  UpdateClaudeHookSchema
+} from '@promptliano/database'
+import {
   ClaudeHookIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

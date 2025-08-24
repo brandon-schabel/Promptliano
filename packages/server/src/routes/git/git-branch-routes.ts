@@ -12,7 +12,7 @@ import {
   gitCreateBranchRequestSchema as CreateBranchBodySchema,
   gitSwitchBranchRequestSchema as SwitchBranchBodySchema
 } from '@promptliano/schemas'
-import * as gitService from '@promptliano/services'
+import { getBranches, getBranchesEnhanced, createBranch, switchBranch, deleteBranch, clearGitStatusCache } from '@promptliano/services'
 import { createStandardResponses, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas
@@ -117,18 +117,18 @@ const deleteBranchRoute = createRoute({
 export const gitBranchRoutes = new OpenAPIHono()
   .openapi(getBranchesRoute, (async (c: any): Promise<any> => {
     const { projectId } = c.req.valid('param')
-    const branches = await gitService.getBranches(projectId)
+    const branches = await getBranches(projectId)
     return c.json(successResponse(branches))
   }) as any)
   .openapi(getBranchesEnhancedRoute, (async (c: any): Promise<any> => {
     const { projectId } = c.req.valid('param')
-    const result = await gitService.getBranchesEnhanced(projectId)
+    const result = await getBranchesEnhanced(projectId)
     return c.json(successResponse(result))
   }) as any)
   .openapi(createBranchRoute, (async (c: any): Promise<any> => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    await gitService.createBranch(
+    await createBranch(
       projectId,
       body.name,
       body.startPoint
@@ -138,14 +138,14 @@ export const gitBranchRoutes = new OpenAPIHono()
   .openapi(switchBranchRoute, (async (c: any): Promise<any> => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    await gitService.switchBranch(projectId, body.name)
-    gitService.clearGitStatusCache(projectId)
+    await switchBranch(projectId, body.name)
+    clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Branch switched successfully'))
   }) as any)
   .openapi(deleteBranchRoute, (async (c: any): Promise<any> => {
     const { projectId, branchName } = c.req.valid('param')
     const { force = false } = c.req.valid('query') || {}
-    await gitService.deleteBranch(projectId, branchName, force)
+    await deleteBranch(projectId, branchName, force)
     return c.json(operationSuccessResponse('Branch deleted successfully'))
   }) as any)
 

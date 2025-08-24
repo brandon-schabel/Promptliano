@@ -43,7 +43,11 @@ export interface SearchStats {
  * Provides sub-millisecond search using FTS5, TF-IDF, and intelligent caching
  */
 export class FileSearchService {
-  private db: Database
+  private db: any // Using any to avoid type conflicts between drizzle and bun:sqlite
+
+  private getFileExtension(filePath: string): string {
+    return filePath.split('.').pop() || ''
+  }
   private searchCacheStmt!: Statement
   private insertCacheStmt!: Statement
   private updateCacheHitStmt!: Statement
@@ -461,7 +465,7 @@ export class FileSearchService {
 
       // Apply file type filter if specified
       if (options.fileTypes && options.fileTypes.length > 0) {
-        if (!options.fileTypes.includes(fileData.extension || '')) {
+        if (!options.fileTypes.includes(this.getFileExtension(fileData.path))) {
           continue
         }
       }

@@ -8,7 +8,7 @@ import type { Database, Statement } from 'bun:sqlite'
  * Uses TF-IDF, keyword extraction, and FTS5 for sub-millisecond searches
  */
 export class FileIndexingService {
-  private db: Database
+  private db: any // Using any to avoid type conflicts between drizzle and bun:sqlite
   private insertFTSStmt!: Statement
   private insertMetadataStmt!: Statement
   private insertKeywordStmt!: Statement
@@ -57,6 +57,10 @@ export class FileIndexingService {
     this.db = db
     this.ensureTables()
     this.initializeStatements()
+  }
+
+  private getFileExtension(filePath: string): string {
+    return filePath.split('.').pop() || ''
   }
 
   private ensureTables() {
@@ -206,7 +210,7 @@ export class FileIndexingService {
       // Check if already indexed and up to date
       if (!forceReindex) {
         const metadata = this.getFileMetadata(String(file.id))
-        if (metadata && metadata.last_indexed >= file.updated) {
+        if (metadata && metadata.last_indexed >= file.updatedAt) {
           return // Already indexed and current
         }
       }
@@ -237,7 +241,7 @@ export class FileIndexingService {
             file.projectId,
             file.path,
             file.name,
-            file.extension || '',
+            this.getFileExtension(file.path),
             processedContent,
             file.summary || '',
             keywords.map((k) => k.keyword).join(' ')
@@ -253,9 +257,9 @@ export class FileIndexingService {
           Date.now(),
           file.size || 0,
           tokens.length,
-          this.detectLanguage(file.extension),
-          file.created,
-          file.updated
+          this.detectLanguage(this.getFileExtension(file.path)),
+          file.createdAt,
+          file.updatedAt
         )
 
         // Clear existing keywords and trigrams
@@ -304,7 +308,7 @@ export class FileIndexingService {
       for (const file of batch) {
         try {
           const metadata = this.getFileMetadata(String(file.id))
-          if (!forceReindex && metadata && metadata.last_indexed >= file.updated) {
+          if (!forceReindex && metadata && metadata.last_indexed >= file.updatedAt) {
             skipped++
             continue
           }

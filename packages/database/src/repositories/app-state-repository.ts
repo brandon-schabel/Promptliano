@@ -3,7 +3,7 @@
  * These entities don't follow strict BaseEntity pattern due to legacy schema
  */
 
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { db } from '../db'
 import { 
   selectedFiles as selectedFilesTable,
@@ -53,8 +53,13 @@ export const selectedFileRepository = {
   async deleteMany(ids: number[]): Promise<number> {
     if (ids.length === 0) return 0
     
+    // Use inArray for multiple IDs or single eq for one ID
+    const condition = ids.length === 1 
+      ? eq(selectedFilesTable.id, ids[0]!)
+      : inArray(selectedFilesTable.id, ids)
+    
     const result = await db.delete(selectedFilesTable)
-      .where(eq(selectedFilesTable.id, ids[0])) // Simple implementation for now
+      .where(condition)
       .run() as unknown as { changes: number }
     return result.changes
   },
@@ -68,6 +73,18 @@ export const selectedFileRepository = {
       ))
       .limit(1)
     return file.length > 0
+  },
+
+  async count(where?: any): Promise<number> {
+    const { count } = await import('drizzle-orm')
+    const query = db.select({ count: count() }).from(selectedFilesTable)
+    
+    if (where) {
+      query.where(where)
+    }
+    
+    const [result] = await query
+    return result?.count ?? 0
   }
 }
 
@@ -133,6 +150,18 @@ export const activeTabRepository = {
       tab.tabData && 
       (tab.tabData as any).filePath === filePath
     ) || null
+  },
+
+  async count(where?: any): Promise<number> {
+    const { count } = await import('drizzle-orm')
+    const query = db.select({ count: count() }).from(activeTabsTable)
+    
+    if (where) {
+      query.where(where)
+    }
+    
+    const [result] = await query
+    return result?.count ?? 0
   }
 }
 

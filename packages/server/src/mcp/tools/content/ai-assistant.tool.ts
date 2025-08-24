@@ -51,7 +51,7 @@ export const aiAssistantTool: MCPToolDefinition = {
         switch (action) {
           case AIAssistantAction.OPTIMIZE_PROMPT: {
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"help me fix the authentication flow"')
-            const optimizedPrompt = await optimizeUserInput(projectId, prompt)
+            const optimizedPrompt = await optimizeUserInput(prompt, projectId)
             return {
               content: [{ type: 'text', text: optimizedPrompt }]
             }

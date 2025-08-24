@@ -63,7 +63,7 @@ export class SummarizationCache {
   /**
    * Generate cache key for a file
    */
-  private getCacheKey(projectId: number, fileId: number): string {
+  private getCacheKey(projectId: number, fileId: string | number): string {
     return `${projectId}-${fileId}`
   }
 
@@ -169,7 +169,7 @@ export class SummarizationCache {
   /**
    * Invalidate cache for a specific file
    */
-  invalidate(projectId: number, fileId: number): boolean {
+  invalidate(projectId: number, fileId: string | number): boolean {
     const cacheKey = this.getCacheKey(projectId, fileId)
     const deleted = this.cache.delete(cacheKey)
 

@@ -133,7 +133,7 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
   const projectService = createProjectService({
     repository: repos.project,
     logger: createServiceLogger('ProjectService'),
-    fileService: external.fileService,
+    aiService: external.aiService,
     gitService: external.gitService
   } as ProjectServiceDeps)
   

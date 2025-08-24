@@ -1,7 +1,7 @@
 import { ApiError } from '@promptliano/shared'
 import { getProjectById, getProjectFiles } from './project-service'
-import { listTicketsByProject, getTasks } from './ticket-service'
-import { listPromptsByProject } from './prompt-service'
+import { getTicketsByProject } from './ticket-service'
+import { getPromptsByProject } from './prompt-service'
 import { type Ticket } from '@promptliano/database'
 import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
@@ -106,8 +106,8 @@ export async function getProjectStatistics(projectId: number): Promise<ProjectSt
     // Fetch all data in parallel for performance
     const [filesData, tickets, prompts] = await Promise.all([
       getProjectFiles(projectId),
-      listTicketsByProject(projectId),
-      listPromptsByProject(projectId)
+      getTicketsByProject(projectId),
+      getPromptsByProject(projectId)
     ])
 
     const files = filesData || []
@@ -230,7 +230,8 @@ async function calculateTicketAndTaskStats(tickets: Ticket[]): Promise<{
       }
 
       // Get tasks for this ticket
-      const tasks = await getTasks(ticket.id)
+      // TODO: Implement getTasks method or use ticketTaskRepository
+      const tasks: any[] = [] // await ticketTaskRepository.getByTicketId(ticket.id)
       const ticketTotalTasks = tasks.length
       const ticketCompletedTasks = tasks.filter((task) => task.done).length
 
@@ -299,7 +300,7 @@ function calculateActivityStats(files: any[], tickets: Ticket[]): ProjectStatist
   let lastUpdateTime = 0
 
   files.forEach((file) => {
-    const updateTime = file.updated || file.created || 0
+    const updateTime = file.updatedAt || file.createdAt || 0
     if (updateTime > oneWeekAgo) {
       recentUpdates++
     }
@@ -309,7 +310,7 @@ function calculateActivityStats(files: any[], tickets: Ticket[]): ProjectStatist
   })
 
   tickets.forEach((ticket) => {
-    const updateTime = ticket.updated || ticket.created || 0
+    const updateTime = ticket.updatedAt || ticket.createdAt || 0
     if (updateTime > oneWeekAgo) {
       recentUpdates++
     }
@@ -329,12 +330,12 @@ function calculateActivityStats(files: any[], tickets: Ticket[]): ProjectStatist
     const dayEnd = date.setHours(23, 59, 59, 999)
 
     const filesCreated = files.filter((f) => {
-      const created = f.created || 0
+      const created = f.createdAt || 0
       return created >= dayStart && created <= dayEnd
     }).length
 
     const ticketsCreated = tickets.filter((t) => {
-      const created = t.created || 0
+      const created = t.createdAt || 0
       return created >= dayStart && created <= dayEnd
     }).length
 

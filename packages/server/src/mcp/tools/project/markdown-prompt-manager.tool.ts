@@ -18,7 +18,7 @@ import {
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
   getPromptById,
-  listPromptsByProject,
+  getPromptsByProject as listPromptsByProject,
   listAllPrompts,
   createPrompt,
   type File,
@@ -71,8 +71,18 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
               const parsedPrompt = await parseMarkdownToPrompt(content)
 
               // Create the prompt
+              // Note: projectId is required by the database schema, but optional in MCP tool parameters
+              // If not provided, we'll throw a helpful error
+              if (!projectId) {
+                throw createMCPError(
+                  MCPErrorCode.MISSING_REQUIRED_PARAM,
+                  'projectId is required for creating prompts. Prompts must be associated with a project.',
+                  { action, parameter: 'projectId', example: '1754713756748' }
+                )
+              }
+              
               const newPrompt = await createPrompt({
-                name: parsedPrompt.frontmatter.name,
+                title: parsedPrompt.frontmatter.name,
                 content: parsedPrompt.content,
                 projectId
               })

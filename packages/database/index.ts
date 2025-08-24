@@ -8,6 +8,25 @@ export * from './src/schema'
 export * from './src/db'
 export * from './src/repositories'
 
+// Export table definitions for services that need direct access
+export { 
+  projects,
+  tickets,
+  ticketTasks,
+  chats,
+  chatMessages,
+  prompts,
+  queues,
+  queueItems,
+  files,
+  selectedFiles,
+  activeTabs,
+  claudeAgents,
+  claudeCommands,
+  claudeHooks,
+  providerKeys
+} from './src/schema'
+
 // =============================================================================
 // BACKWARD COMPATIBILITY ALIASES
 // =============================================================================
@@ -21,7 +40,14 @@ import {
   selectChatMessageSchema,
   selectPromptSchema,
   selectQueueSchema,
+  selectQueueItemSchema,
   selectFileSchema,
+  selectClaudeAgentSchema,
+  selectClaudeCommandSchema,
+  selectClaudeHookSchema,
+  selectProviderKeySchema,
+  selectActiveTabSchema,
+  selectSelectedFileSchema,
   insertProjectSchema, 
   insertTicketSchema, 
   insertTicketTaskSchema,
@@ -29,7 +55,14 @@ import {
   insertChatMessageSchema,
   insertPromptSchema,
   insertQueueSchema,
-  insertFileSchema
+  insertQueueItemSchema,
+  insertFileSchema,
+  insertClaudeAgentSchema,
+  insertClaudeCommandSchema,
+  insertClaudeHookSchema,
+  insertProviderKeySchema,
+  insertActiveTabSchema,
+  insertSelectedFileSchema
 } from './src/schema'
 
 // Project schemas (backward compatibility)
@@ -84,6 +117,16 @@ export const CreateMessageSchema = insertChatMessageSchema.omit({
 })
 export type CreateMessage = typeof CreateMessageSchema._type
 
+// ChatMessage schemas (backward compatibility - alias to Message)
+export const ChatMessageSchema = selectChatMessageSchema
+export const CreateChatMessageSchema = insertChatMessageSchema.omit({ 
+  id: true, 
+  createdAt: true 
+})
+export const UpdateChatMessageSchema = CreateChatMessageSchema.partial()
+export type CreateChatMessage = typeof CreateChatMessageSchema._type
+export type UpdateChatMessage = typeof UpdateChatMessageSchema._type
+
 // Prompt schemas (backward compatibility)
 export const PromptSchema = selectPromptSchema
 export const CreatePromptSchema = insertPromptSchema.omit({ 
@@ -112,3 +155,77 @@ export const CreateFileSchema = insertFileSchema.omit({ createdAt: true, updated
 export const UpdateFileSchema = CreateFileSchema.partial()
 export type CreateFile = typeof CreateFileSchema._type
 export type UpdateFile = typeof UpdateFileSchema._type
+
+// QueueItem schemas (backward compatibility)
+export const QueueItemSchema = selectQueueItemSchema
+export const CreateQueueItemSchema = insertQueueItemSchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+})
+export const UpdateQueueItemSchema = CreateQueueItemSchema.partial()
+export type CreateQueueItem = typeof CreateQueueItemSchema._type
+export type UpdateQueueItem = typeof UpdateQueueItemSchema._type
+
+// ClaudeAgent schemas (backward compatibility)
+export const ClaudeAgentSchema = selectClaudeAgentSchema
+export const CreateClaudeAgentSchema = insertClaudeAgentSchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+})
+export const UpdateClaudeAgentSchema = CreateClaudeAgentSchema.partial()
+export type CreateClaudeAgent = typeof CreateClaudeAgentSchema._type
+export type UpdateClaudeAgent = typeof UpdateClaudeAgentSchema._type
+
+// ClaudeCommand schemas (backward compatibility)
+export const ClaudeCommandSchema = selectClaudeCommandSchema
+export const CreateClaudeCommandSchema = insertClaudeCommandSchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+})
+export const UpdateClaudeCommandSchema = CreateClaudeCommandSchema.partial()
+export type CreateClaudeCommand = typeof CreateClaudeCommandSchema._type
+export type UpdateClaudeCommand = typeof UpdateClaudeCommandSchema._type
+
+// ClaudeHook schemas (backward compatibility)
+export const ClaudeHookSchema = selectClaudeHookSchema
+export const CreateClaudeHookSchema = insertClaudeHookSchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+})
+export const UpdateClaudeHookSchema = CreateClaudeHookSchema.partial()
+export type CreateClaudeHook = typeof CreateClaudeHookSchema._type
+export type UpdateClaudeHook = typeof UpdateClaudeHookSchema._type
+
+// ProviderKey schemas (backward compatibility)
+export const ProviderKeySchema = selectProviderKeySchema
+export const CreateProviderKeySchema = insertProviderKeySchema.omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+})
+export const UpdateProviderKeySchema = CreateProviderKeySchema.partial()
+export type CreateProviderKey = typeof CreateProviderKeySchema._type
+export type UpdateProviderKey = typeof UpdateProviderKeySchema._type
+
+// ActiveTab schemas (backward compatibility)
+export const ActiveTabSchema = selectActiveTabSchema
+export const CreateActiveTabSchema = insertActiveTabSchema.omit({ 
+  id: true, 
+  createdAt: true
+})
+export const UpdateActiveTabSchema = CreateActiveTabSchema.partial()
+export type CreateActiveTab = typeof CreateActiveTabSchema._type
+export type UpdateActiveTab = typeof UpdateActiveTabSchema._type
+
+// SelectedFile schemas (backward compatibility)
+export const SelectedFileSchema = selectSelectedFileSchema
+export const CreateSelectedFileSchema = insertSelectedFileSchema.omit({ 
+  id: true
+})
+export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
+export type CreateSelectedFile = typeof CreateSelectedFileSchema._type
+export type UpdateSelectedFile = typeof UpdateSelectedFileSchema._type

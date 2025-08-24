@@ -1,7 +1,7 @@
 import { createRoute } from '@hono/zod-openapi'
 import { z } from '@hono/zod-openapi'
 import { OpenAPIHono } from '@hono/zod-openapi'
-import * as activeTabService from '@promptliano/services'
+import { activeTabService } from '@promptliano/services'
 import { updateActiveTabSchema, ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 

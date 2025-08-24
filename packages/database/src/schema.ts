@@ -376,6 +376,7 @@ export const files = sqliteTable('files', {
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   path: text('path').notNull(),
+  extension: text('extension'), // File extension for type classification
   size: integer('size'),
   lastModified: integer('last_modified'),
   contentType: text('content_type'),
@@ -394,6 +395,7 @@ export const files = sqliteTable('files', {
   projectIdx: index('files_project_idx').on(table.projectId),
   pathIdx: index('files_path_idx').on(table.path),
   nameIdx: index('files_name_idx').on(table.name),
+  extensionIdx: index('files_extension_idx').on(table.extension),
   relevantIdx: index('files_relevant_idx').on(table.isRelevant),
   scoreIdx: index('files_score_idx').on(table.relevanceScore),
   checksumIdx: index('files_checksum_idx').on(table.checksum)
@@ -1198,40 +1200,171 @@ export type InsertProjectTabState = typeof projectTabState.$inferInsert
 
 // Select types (for reading existing records)
 export type Project = typeof projects.$inferSelect
-export type Ticket = typeof tickets.$inferSelect
-export type TicketTask = typeof ticketTasks.$inferSelect
+
+// Override Ticket type to fix JSON field types
+type TicketInferred = typeof tickets.$inferSelect
+export type Ticket = Omit<TicketInferred, 'suggestedFileIds' | 'suggestedAgentIds' | 'suggestedPromptIds'> & {
+  suggestedFileIds: string[]
+  suggestedAgentIds: string[]
+  suggestedPromptIds: number[]
+}
+
+// Override TicketTask type to fix JSON field types
+type TicketTaskInferred = typeof ticketTasks.$inferSelect
+export type TicketTask = Omit<TicketTaskInferred, 'suggestedFileIds' | 'dependencies' | 'tags' | 'suggestedPromptIds'> & {
+  suggestedFileIds: string[]
+  dependencies: number[]
+  tags: string[]
+  suggestedPromptIds: number[]
+}
+
 export type Chat = typeof chats.$inferSelect
-export type ChatMessage = typeof chatMessages.$inferSelect
-export type Prompt = typeof prompts.$inferSelect
+
+// Override ChatMessage type to fix JSON field types
+type ChatMessageInferred = typeof chatMessages.$inferSelect
+export type ChatMessage = Omit<ChatMessageInferred, 'metadata'> & {
+  metadata: Record<string, any> | null
+}
+
+// Override Prompt type to fix JSON field types
+type PromptInferred = typeof prompts.$inferSelect
+export type Prompt = Omit<PromptInferred, 'tags'> & {
+  tags: string[]
+}
+
 export type Queue = typeof queues.$inferSelect
 export type QueueItem = typeof queueItems.$inferSelect
 export type ClaudeAgent = typeof claudeAgents.$inferSelect
-export type ClaudeCommand = typeof claudeCommands.$inferSelect
+
+// Override ClaudeCommand type to fix JSON field types
+type ClaudeCommandInferred = typeof claudeCommands.$inferSelect
+export type ClaudeCommand = Omit<ClaudeCommandInferred, 'args'> & {
+  args: Record<string, any>
+}
+
 export type ClaudeHook = typeof claudeHooks.$inferSelect
-export type ProviderKey = typeof providerKeys.$inferSelect
-export type File = typeof files.$inferSelect
+
+// Override ProviderKey type to fix JSON field types
+type ProviderKeyInferred = typeof providerKeys.$inferSelect
+export type ProviderKey = Omit<ProviderKeyInferred, 'customHeaders'> & {
+  customHeaders: Record<string, string> | null
+}
+
+// Override File type to fix JSON field types
+type FileInferred = typeof files.$inferSelect
+export type File = Omit<FileInferred, 'imports' | 'exports'> & {
+  imports: ImportInfo[] | null
+  exports: ExportInfo[] | null
+}
+
 export type SelectedFile = typeof selectedFiles.$inferSelect
-export type ActiveTab = typeof activeTabs.$inferSelect
+
+// Override ActiveTab type to fix JSON field types
+type ActiveTabInferred = typeof activeTabs.$inferSelect
+export type ActiveTab = Omit<ActiveTabInferred, 'tabData'> & {
+  tabData: Record<string, any>
+}
 
 // New table select types
-export type GitStatus = typeof gitStatus.$inferSelect
+
+// Override GitStatus type to fix JSON field types
+type GitStatusInferred = typeof gitStatus.$inferSelect
+export type GitStatus = Omit<GitStatusInferred, 'files' | 'staged' | 'modified' | 'created' | 'deleted' | 'renamed' | 'conflicted'> & {
+  files: GitFileStatus[]
+  staged: string[]
+  modified: string[]
+  created: string[]
+  deleted: string[]
+  renamed: string[]
+  conflicted: string[]
+}
+
 export type GitRemote = typeof gitRemotes.$inferSelect
-export type GitTag = typeof gitTags.$inferSelect
+
+// Override GitTag type to fix JSON field types
+type GitTagInferred = typeof gitTags.$inferSelect
+export type GitTag = Omit<GitTagInferred, 'tagger'> & {
+  tagger: GitCommitAuthor | null
+}
+
 export type GitStash = typeof gitStashes.$inferSelect
 export type GitWorktree = typeof gitWorktrees.$inferSelect
-export type ClaudeMessage = typeof claudeMessages.$inferSelect
-export type ClaudeSession = typeof claudeSessions.$inferSelect
+
+// Override ClaudeMessage type to fix JSON field types
+type ClaudeMessageInferred = typeof claudeMessages.$inferSelect
+export type ClaudeMessage = Omit<ClaudeMessageInferred, 'message' | 'toolUseResult' | 'content'> & {
+  message: ClaudeMessageContent | null
+  toolUseResult: any | null
+  content: any | null
+}
+
+// Override ClaudeSession type to fix JSON field types
+type ClaudeSessionInferred = typeof claudeSessions.$inferSelect
+export type ClaudeSession = Omit<ClaudeSessionInferred, 'tokenUsage' | 'serviceTiers'> & {
+  tokenUsage: TokenUsage | null
+  serviceTiers: string[]
+}
+
 export type ClaudeSessionMetadata = typeof claudeSessionMetadata.$inferSelect
-export type AiSdkOptions = typeof aiSdkOptions.$inferSelect
-export type McpServerConfig = typeof mcpServerConfigs.$inferSelect
-export type FileImportInfo = typeof fileImportInfo.$inferSelect
-export type FileExportInfo = typeof fileExportInfo.$inferSelect
-export type FileRelationshipDb = typeof fileRelationships.$inferSelect
-export type FileGroup = typeof fileGroups.$inferSelect
+
+// Override AiSdkOptions type to fix JSON field types
+type AiSdkOptionsInferred = typeof aiSdkOptions.$inferSelect
+export type AiSdkOptions = Omit<AiSdkOptionsInferred, 'stop' | 'responseFormat'> & {
+  stop: string | string[] | null
+  responseFormat: any | null
+}
+
+// Override McpServerConfig type to fix JSON field types
+type McpServerConfigInferred = typeof mcpServerConfigs.$inferSelect
+export type McpServerConfig = Omit<McpServerConfigInferred, 'args' | 'env'> & {
+  args: string[] | null
+  env: Record<string, string> | null
+}
+
+// Override FileImportInfo type to fix JSON field types
+type FileImportInfoInferred = typeof fileImportInfo.$inferSelect
+export type FileImportInfo = Omit<FileImportInfoInferred, 'specifiers'> & {
+  specifiers: ImportSpecifier[]
+}
+
+// Override FileExportInfo type to fix JSON field types
+type FileExportInfoInferred = typeof fileExportInfo.$inferSelect
+export type FileExportInfo = Omit<FileExportInfoInferred, 'specifiers'> & {
+  specifiers: ExportSpecifier[] | null
+}
+
+// Override FileRelationshipDb type to fix JSON field types
+type FileRelationshipDbInferred = typeof fileRelationships.$inferSelect
+export type FileRelationshipDb = Omit<FileRelationshipDbInferred, 'metadata'> & {
+  metadata: Record<string, any>
+}
+
+// Override FileGroup type to fix JSON field types
+type FileGroupInferred = typeof fileGroups.$inferSelect
+export type FileGroup = Omit<FileGroupInferred, 'fileIds' | 'relationships' | 'metadata'> & {
+  fileIds: string[]
+  relationships: FileRelationship[]
+  metadata: {
+    directory?: string
+    primaryFile?: string
+    semanticCategory?: string
+  }
+}
+
 export type FileImportance = typeof fileImportance.$inferSelect
 export type RelevanceScore = typeof relevanceScores.$inferSelect
-export type RelevanceConfig = typeof relevanceConfigs.$inferSelect
-export type ProjectTabState = typeof projectTabState.$inferSelect
+
+// Override RelevanceConfig type to fix JSON field types
+type RelevanceConfigInferred = typeof relevanceConfigs.$inferSelect
+export type RelevanceConfig = Omit<RelevanceConfigInferred, 'weights'> & {
+  weights: RelevanceWeights
+}
+
+// Override ProjectTabState type to fix JSON field types
+type ProjectTabStateInferred = typeof projectTabState.$inferSelect
+export type ProjectTabState = Omit<ProjectTabStateInferred, 'tabMetadata'> & {
+  tabMetadata: ProjectTabMetadata
+}
 
 // Enum types (extracted for reuse)
 export type TicketStatus = 'open' | 'in_progress' | 'closed'
@@ -1252,6 +1385,16 @@ export type ImportSpecifierType = 'default' | 'named' | 'namespace'
 export type CompactLevel = 'ultra' | 'compact' | 'standard'
 export type FileSuggestionStrategy = 'fast' | 'balanced' | 'thorough'
 export type APIProviders = 'openai' | 'openrouter' | 'lmstudio' | 'ollama' | 'xai' | 'google_gemini' | 'anthropic' | 'groq' | 'together' | 'custom'
+
+// Hook Configuration Types (migrated from @promptliano/schemas)
+export type HookEvent = 'PreToolUse' | 'PostToolUse' | 'UserPromptSubmit' | 'Notification' | 'Stop' | 'SubagentStop' | 'SessionStart' | 'PreCompact'
+
+export interface HookConfig {
+  type: 'command'
+  command: string
+  timeout?: number
+  run_in_background?: boolean
+}
 
 // Complex relationship types
 export type TicketWithTasks = Ticket & {

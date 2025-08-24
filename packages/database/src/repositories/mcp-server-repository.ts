@@ -3,41 +3,52 @@
  */
 
 import { eq, and } from 'drizzle-orm'
-import { createBaseRepository } from './base-repository'
+import { createBaseRepository, extendRepository } from './base-repository'
 import { mcpServerConfigs, type McpServerConfig, type InsertMcpServerConfig } from '../schema'
 import { db } from '../db'
 
-export const mcpServerRepository = createBaseRepository(mcpServerConfigs, {
+// Create base repository with proper schema
+const baseMcpServerRepository = createBaseRepository(
+  mcpServerConfigs,
+  undefined, // Will use default validation
+  'McpServerConfig'
+)
+
+// Extend with domain-specific methods
+export const mcpServerRepository = extendRepository(baseMcpServerRepository, {
   /**
    * Get all MCP server configurations for a specific project
    */
   async getByProject(projectId: number): Promise<McpServerConfig[]> {
-    return await db.select().from(mcpServerConfigs).where(eq(mcpServerConfigs.projectId, projectId))
+    const results = await db.select().from(mcpServerConfigs).where(eq(mcpServerConfigs.projectId, projectId))
+    return results as McpServerConfig[]
   },
 
   /**
    * Get enabled MCP servers for a project
    */
   async getEnabledByProject(projectId: number): Promise<McpServerConfig[]> {
-    return await db.select()
+    const results = await db.select()
       .from(mcpServerConfigs)
       .where(and(
         eq(mcpServerConfigs.projectId, projectId),
         eq(mcpServerConfigs.enabled, true)
       ))
+    return results as McpServerConfig[]
   },
 
   /**
    * Get auto-start servers for a project
    */
   async getAutoStartByProject(projectId: number): Promise<McpServerConfig[]> {
-    return await db.select()
+    const results = await db.select()
       .from(mcpServerConfigs)
       .where(and(
         eq(mcpServerConfigs.projectId, projectId),
         eq(mcpServerConfigs.enabled, true),
         eq(mcpServerConfigs.autoStart, true)
       ))
+    return results as McpServerConfig[]
   },
 
   /**
@@ -67,7 +78,7 @@ export const mcpServerRepository = createBaseRepository(mcpServerConfigs, {
       throw new Error(`Failed to update MCP server state for ID ${serverId}`)
     }
     
-    return updated
+    return updated as McpServerConfig
   },
 
   /**
@@ -76,8 +87,9 @@ export const mcpServerRepository = createBaseRepository(mcpServerConfigs, {
   async deleteByProject(projectId: number): Promise<number> {
     const result = await db.delete(mcpServerConfigs)
       .where(eq(mcpServerConfigs.projectId, projectId))
+      .run() as unknown as { changes: number }
     
-    return result.rowsAffected || 0
+    return result.changes || 0
   }
 })
 

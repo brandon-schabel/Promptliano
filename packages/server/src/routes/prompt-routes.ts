@@ -336,7 +336,7 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
     const createdPrompt = await createPrompt({
-      name: body.name,
+      title: body.title,
       content: body.content,
       projectId: body.projectId
     })
@@ -353,7 +353,7 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(suggestPromptsRoute, async (c) => {
     const { projectId } = (c.req as any).valid('param')
     const { userInput, limit } = c.req.valid('json')
-    const suggestedPrompts = await suggestPrompts(projectId, userInput, limit)
+    const suggestedPrompts = await suggestPrompts(projectId, userInput)
     return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
@@ -364,7 +364,7 @@ export const promptRoutes = new OpenAPIHono()
   })
   .openapi(removePromptFromProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
-    await removePromptFromProject(promptId, projectId)
+    await removePromptFromProject(promptId)
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
   .openapi(getPromptByIdRoute, async (c) => {
@@ -446,7 +446,7 @@ export const promptRoutes = new OpenAPIHono()
     const prompt = await getPromptById(promptId)
     const markdownContent = await promptToMarkdown(prompt)
 
-    const filename = `${prompt.name
+    const filename = `${prompt.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')}.md`

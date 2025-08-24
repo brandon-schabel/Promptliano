@@ -184,3 +184,78 @@ export async function clearActiveTab(projectId: number, clientId?: string): Prom
 export async function updateActiveTab(projectId: number, body: UpdateActiveTabBody): Promise<LegacyActiveTab> {
   return setActiveTab(projectId, body.tabId, body.clientId, body.tabMetadata)
 }
+
+/**
+ * Service factory function for route compatibility
+ */
+export function createActiveTabService(deps = {}) {
+  return {
+    async list(): Promise<LegacyActiveTab[]> {
+      // Get all active tabs from the repository
+      return withErrorContext(
+        async () => {
+          const allTabs = await activeTabRepository.getAll()
+          return allTabs.map(mapToLegacyFormat)
+        },
+        { entity: 'ActiveTab', action: 'list' }
+      )
+    },
+
+    async getById(id: number | string): Promise<LegacyActiveTab> {
+      return withErrorContext(
+        async () => {
+          const tab = await activeTabRepository.getById(Number(id))
+          if (!tab) {
+            throw ErrorFactory.notFound('ActiveTab', id)
+          }
+          return mapToLegacyFormat(tab)
+        },
+        { entity: 'ActiveTab', action: 'getById', id }
+      )
+    },
+
+    async create(data: any): Promise<LegacyActiveTab> {
+      return withErrorContext(
+        async () => {
+          const createData = mapFromLegacyFormat(data)
+          const created = await activeTabRepository.create(createData)
+          return mapToLegacyFormat(created)
+        },
+        { entity: 'ActiveTab', action: 'create' }
+      )
+    },
+
+    async update(id: number | string, data: any): Promise<LegacyActiveTab> {
+      return withErrorContext(
+        async () => {
+          const updateData = mapFromLegacyFormat(data)
+          const updated = await activeTabRepository.update(Number(id), updateData)
+          if (!updated) {
+            throw ErrorFactory.notFound('ActiveTab', id)
+          }
+          return mapToLegacyFormat(updated)
+        },
+        { entity: 'ActiveTab', action: 'update', id }
+      )
+    },
+
+    async delete(id: number | string): Promise<boolean> {
+      return withErrorContext(
+        async () => {
+          return await activeTabRepository.delete(Number(id))
+        },
+        { entity: 'ActiveTab', action: 'delete', id }
+      )
+    },
+
+    // Additional methods for compatibility
+    getActiveTab,
+    setActiveTab,
+    getOrCreateDefaultActiveTab,
+    clearActiveTab,
+    updateActiveTab
+  }
+}
+
+// Export singleton service for route compatibility
+export const activeTabService = createActiveTabService()

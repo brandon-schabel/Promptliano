@@ -114,6 +114,22 @@ export const SuggestFilesBodySchema = z
   })
   .openapi('SuggestFilesRequestBody')
 
+export const SuggestFilesResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      suggestedFiles: z.array(z.object({
+        path: z.string(),
+        relevance: z.number().min(0).max(1),
+        reason: z.string(),
+        fileType: z.string()
+      })),
+      totalFiles: z.number(),
+      processingTime: z.number()
+    })
+  })
+  .openapi('SuggestFilesResponse')
+
 // Request Query Schemas
 export const RefreshQuerySchema = z
   .object({
@@ -262,6 +278,7 @@ export const ProjectFileMapWithoutContentSchema = z
   .openapi('ProjectFileMapWithoutContent')
 
 export type Project = z.infer<typeof ProjectSchema>
+export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema>
 export type ProjectFile = z.infer<typeof ProjectFileSchema>
 export type ProjectFileWithoutContent = z.infer<typeof ProjectFileWithoutContentSchema>
 export type CreateProjectBody = z.infer<typeof CreateProjectBodySchema>
@@ -282,6 +299,7 @@ export type FileResponse = z.infer<typeof FileResponseSchema>
 export type ProjectStatistics = z.infer<typeof ProjectStatisticsSchema>
 export type ProjectStatisticsResponse = z.infer<typeof ProjectStatisticsResponseSchema>
 export type ProjectSummaryResponse = z.infer<typeof ProjectSummaryResponseSchema>
+export type SuggestFilesResponse = z.infer<typeof SuggestFilesResponseSchema>
 
 // Sync Progress Schemas
 export const SyncProgressEventSchema = z

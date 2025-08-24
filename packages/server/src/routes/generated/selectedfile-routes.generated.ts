@@ -14,7 +14,9 @@ import { selectedfileServiceV2 } from '@promptliano/services'
 import {
   SelectedFileSchema,
   CreateSelectedFileSchema,
-  UpdateSelectedFileSchema,
+  UpdateSelectedFileSchema
+} from '@promptliano/database'
+import {
   SelectedFileIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

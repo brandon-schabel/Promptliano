@@ -12,6 +12,7 @@
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
 import { ErrorFactory, ApiError, promptsMap } from '@promptliano/shared'
+import { getFileExtension } from './utils/file-utils'
 import { projectRepository } from '@promptliano/database'
 import { 
   type Project, 
@@ -25,7 +26,10 @@ import { generateStructuredData } from './gen-ai-services'
 import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
 // Import file service for delegation
-import { fileService } from './file-service'
+import { fileService, type FileSyncData } from './file-service'
+
+// Re-export FileSyncData type for consumers
+export type { FileSyncData } from './file-service'
 
 // Schema for AI summarization requests
 const FileSummarizationSchema = z.object({
@@ -272,7 +276,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     /**
      * Update file content (project-scoped)
      */
-    async updateFileContent(projectId: number, fileId: number, content: string): Promise<ProjectFile> {
+    async updateFileContent(projectId: number, fileId: string, content: string): Promise<ProjectFile> {
       return withErrorContext(
         async () => {
           // Verify project exists
@@ -372,7 +376,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           }
 
           // Skip files that are too large
-          if (file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
+          if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
             return null
           }
 
@@ -384,12 +388,12 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           try {
             // Use AI to generate summary
             const result = await generateStructuredData({
-              prompt: `Analyze the following ${file.extension} file and provide a concise summary of its purpose, key functionality, and important details:\n\n${file.content}`,
+              prompt: `Analyze the following ${getFileExtension(file.path) || 'unknown'} file and provide a concise summary of its purpose, key functionality, and important details:\n\n${file.content}`,
               schema: FileSummarizationSchema,
               systemMessage: promptsMap.summarizationSteps || 'You are a code analysis expert. Provide clear, concise summaries of source code files.',
               options: {
                 model: 'gemini-1.5-flash',
-                maxOutputTokens: 500,
+                maxTokens: 500,
                 temperature: 0.3
               }
             })
@@ -455,4 +459,110 @@ export const {
   suggestFiles,
   summarizeSingleFile
 } = projectService
+
+/**
+ * Bulk create project files in batches with transaction support
+ * Used by file sync service for efficient bulk operations
+ */
+export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncData[]): Promise<ProjectFile[]> => {
+  return withErrorContext(
+    async () => {
+      if (files.length === 0) {
+        return []
+      }
+      
+      // Verify project exists first
+      await projectService.getById(projectId)
+      
+      // Prepare file data with proper IDs and timestamps
+      const now = Date.now()
+      const filesData = files.map(fileData => ({
+        id: `${projectId}_${fileData.path}`, // Composite ID for files
+        projectId,
+        name: fileData.name,
+        path: fileData.path,
+        size: fileData.size,
+        content: fileData.content,
+        checksum: fileData.checksum,
+        imports: fileData.imports,
+        exports: fileData.exports,
+        createdAt: now,
+        updatedAt: now
+      }))
+      
+      // Use batch creation from file service
+      return await fileService.batch.createFiles(projectId, files)
+    },
+    { entity: 'Project', action: 'bulkCreateFiles', id: projectId }
+  )
+}
+
+/**
+ * Bulk update project files in batches with transaction support
+ * Used by file sync service for efficient bulk operations
+ */
+export const bulkUpdateProjectFiles = async (
+  projectId: number, 
+  updates: Array<{ fileId: string; data: FileSyncData }>
+): Promise<ProjectFile[]> => {
+  return withErrorContext(
+    async () => {
+      if (updates.length === 0) {
+        return []
+      }
+      
+      // Verify project exists first
+      await projectService.getById(projectId)
+      
+      // File IDs are already strings in the new schema, so no conversion needed
+      
+      // Use batch updates from file service
+      return await fileService.batch.updateFiles(projectId, updates)
+    },
+    { entity: 'Project', action: 'bulkUpdateFiles', id: projectId }
+  )
+}
+
+/**
+ * Bulk delete project files in batches with transaction support
+ * Used by file sync service for efficient bulk operations
+ */
+export const bulkDeleteProjectFiles = async (
+  projectId: number, 
+  fileIds: string[]
+): Promise<{ deletedCount: number }> => {
+  return withErrorContext(
+    async () => {
+      if (fileIds.length === 0) {
+        return { deletedCount: 0 }
+      }
+      
+      // Verify project exists first
+      await projectService.getById(projectId)
+      
+      // File IDs are already strings in the new schema
+      
+      // Use batch deletion from file service
+      const deletedCount = await fileService.batch.deleteFiles(projectId, fileIds)
+      
+      return { deletedCount }
+    },
+    { entity: 'Project', action: 'bulkDeleteFiles', id: projectId }
+  )
+}
+
+// Add missing function for file tree
+export const getProjectFileTree = async (projectId: number): Promise<any> => {
+  // TODO: Implement proper file tree structure
+  const files = await getProjectFiles(projectId)
+  return {
+    name: 'Project Root',
+    type: 'directory',
+    children: files.map(f => ({
+      name: f.path,
+      type: 'file',
+      content: f.content
+    }))
+  }
+}
 

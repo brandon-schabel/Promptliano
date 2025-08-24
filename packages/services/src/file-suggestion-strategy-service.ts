@@ -1,19 +1,43 @@
 import type {
   Ticket,
-  ProjectFile,
+  File,
   FileSuggestionStrategy,
-  RelevanceConfig,
-  FileSuggestionResponse,
-  RelevanceScore
-} from '@promptliano/schemas'
+  RelevanceConfig
+} from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { fileSearchService } from './file-search-service'
 import { fileRelevanceService } from './file-relevance-service'
 import { CompactFileFormatter } from './utils/compact-file-formatter'
 import { generateStructuredData } from './gen-ai-services'
 import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG } from '@promptliano/config'
+import type { ModelOptionsWithProvider } from '@promptliano/config'
 import { z } from 'zod'
 import { getProjectFiles } from './project-service'
+
+// Local interface for relevance scoring results (matches file-relevance-service output)
+interface RelevanceScoreResult {
+  fileId: string
+  totalScore: number
+  keywordScore: number
+  pathScore: number
+  typeScore: number
+  recencyScore: number
+  importScore: number
+}
+
+// Response interface for file suggestions
+export interface FileSuggestionResponse {
+  suggestions: string[]  // File IDs
+  scores?: RelevanceScoreResult[]
+  metadata: {
+    totalFiles: number
+    analyzedFiles: number
+    strategy: FileSuggestionStrategy
+    processingTime: number
+    tokensSaved: number
+  }
+  error?: string
+}
 
 export interface StrategyConfig {
   maxPreFilterFiles: number
@@ -67,8 +91,8 @@ export class FileSuggestionStrategyService {
         customConfig
       )
 
-      let finalSuggestions: number[]
-      let scores: RelevanceScore[] | undefined
+      let finalSuggestions: string[]
+      let scores: RelevanceScoreResult[] | undefined
 
       if (strategyConfig.useAI && relevanceScores.length > 0) {
         // Step 2: Use AI to refine suggestions from pre-filtered set
@@ -124,7 +148,7 @@ export class FileSuggestionStrategyService {
     maxFiles: number,
     userContext?: string,
     customConfig?: Partial<RelevanceConfig>
-  ): Promise<RelevanceScore[]> {
+  ): Promise<RelevanceScoreResult[]> {
     // Update config if custom settings provided
     if (customConfig) {
       fileRelevanceService.updateConfig(customConfig)
@@ -137,7 +161,7 @@ export class FileSuggestionStrategyService {
     return scores.slice(0, maxFiles)
   }
 
-  private async getFilesByScores(projectId: number, scores: RelevanceScore[]): Promise<ProjectFile[]> {
+  private async getFilesByScores(projectId: number, scores: RelevanceScoreResult[]): Promise<File[]> {
     const { getProjectFiles } = await import('./project-service')
     const allFiles = await getProjectFiles(projectId)
 
@@ -148,16 +172,16 @@ export class FileSuggestionStrategyService {
     }
 
     const fileMap = new Map(allFiles.map((f) => [f.id, f]))
-    return scores.map((score) => fileMap.get(score.fileId)).filter((file): file is ProjectFile => file !== undefined)
+    return scores.map((score) => fileMap.get(score.fileId)).filter((file): file is File => file !== undefined)
   }
 
   private async aiRefineSuggestions(
     ticket: Ticket,
-    candidateFiles: ProjectFile[],
+    candidateFiles: File[],
     maxResults: number,
     config: StrategyConfig,
     userContext?: string
-  ): Promise<number[]> {
+  ): Promise<string[]> {
     // Format files in compact representation
     const compactSummary = CompactFileFormatter.format(candidateFiles, config.compactLevel)
 
@@ -182,10 +206,10 @@ ${CompactFileFormatter.toAIPrompt(candidateFiles, config.compactLevel)}
 Select the ${maxResults} most relevant file IDs from the above list.`
 
     const FileSuggestionsSchema = z.object({
-      fileIds: z.array(z.number()).max(maxResults)
+      fileIds: z.array(z.string()).max(maxResults)
     })
 
-    const modelConfig = config.aiModel === 'high' ? HIGH_MODEL_CONFIG : MEDIUM_MODEL_CONFIG
+    const modelConfig: ModelOptionsWithProvider = config.aiModel === 'high' ? HIGH_MODEL_CONFIG : MEDIUM_MODEL_CONFIG
 
     const result = await generateStructuredData({
       prompt: userPrompt,
@@ -197,7 +221,7 @@ Select the ${maxResults} most relevant file IDs from the above list.`
     return result.object.fileIds
   }
 
-  private createDefaultScore(fileId: number): RelevanceScore {
+  private createDefaultScore(fileId: string): RelevanceScoreResult {
     return {
       fileId,
       totalScore: 0.5,

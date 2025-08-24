@@ -48,7 +48,16 @@ export * from './src/git.schemas'
 
 // MCP Protocol Schemas
 export * from './src/mcp.schemas'
+
+// Hook Schemas
+export * from './src/hooks.schemas'
 export * from './src/mcp-tracking.schemas'
+
+// ID Parameter Schemas (for auto-generated routes)
+export * from './src/id-params.schemas'
+
+// Response Schemas (for auto-generated routes)
+export * from './src/response.schemas'
 
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
@@ -56,6 +65,12 @@ export * from './src/parser-config.schemas'
 
 // Claude Code Integration
 export * from './src/claude-code.schemas'
+
+// Command Management Schemas
+export * from './src/command.schemas'
+
+// Provider Testing Schemas
+export * from './src/provider-testing.schemas'
 
 // Legacy Model Configuration (TODO: Move to @promptliano/config)
 export * from './src/constants/models-temp-not-allowed'
@@ -75,7 +90,6 @@ export {
 export * from './src/project.schemas'
 export * from './src/ticket.schemas'
 export * from './src/queue.schemas'
-export * from './src/chat.schemas'
 export * from './src/prompt.schemas'
 
 // =============================================================================

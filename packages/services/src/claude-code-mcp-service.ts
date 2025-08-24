@@ -436,6 +436,7 @@ export class ClaudeCodeMCPService {
 
   /**
    * Get messages for a specific Claude Code session
+   * Note: Returns ClaudeMessage array from file reader, which has different structure than database ClaudeMessage
    */
   async getSessionMessages(projectId: number, sessionId: string): Promise<ClaudeMessage[]> {
     const project = await getProjectById(projectId)
@@ -446,7 +447,18 @@ export class ClaudeCodeMCPService {
         return []
       }
 
-      return await claudeCodeFileReaderService.getSessionMessages(claudeProjectPath, sessionId)
+      // Get file-based messages from Claude Code
+      const fileMessages = await claudeCodeFileReaderService.getSessionMessages(claudeProjectPath, sessionId)
+      
+      // Convert file messages to database-compatible format
+      return fileMessages.map(msg => ({
+        ...msg,
+        // Add required database fields (these are not stored in Claude Code files)
+        id: `${sessionId}-${msg.uuid || msg.timestamp}`, // Use composite key as string ID
+        projectId: projectId,
+        createdAt: new Date(msg.timestamp).getTime(),
+        updatedAt: new Date(msg.timestamp).getTime()
+      })) as ClaudeMessage[]
     } catch (error) {
       logger.error('Failed to get session messages:', error)
       return []
@@ -482,7 +494,19 @@ export class ClaudeCodeMCPService {
     getProjectById(projectId).then(project => {
       claudeCodeFileReaderService.findProjectByPath(project.path).then(claudeProjectPath => {
         if (claudeProjectPath) {
-          cleanup = claudeCodeFileReaderService.watchChatHistory(claudeProjectPath, onUpdate)
+          // Wrap the callback to convert file messages to database format
+          cleanup = claudeCodeFileReaderService.watchChatHistory(claudeProjectPath, (fileMessages) => {
+            // Convert file messages to database-compatible format
+            const dbMessages = fileMessages.map(msg => ({
+              ...msg,
+              // Add required database fields
+              id: `${msg.sessionId}-${msg.uuid || msg.timestamp}`, // Use composite key as string ID
+              projectId: projectId,
+              createdAt: new Date(msg.timestamp).getTime(),
+              updatedAt: new Date(msg.timestamp).getTime()
+            })) as ClaudeMessage[]
+            onUpdate(dbMessages)
+          })
         }
       })
     }).catch(error => {

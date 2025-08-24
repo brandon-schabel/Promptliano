@@ -24,6 +24,8 @@ export const promptRepository = extendRepository(basePromptRepository, {
    * Get prompts by project ID (optimized with BaseRepository)
    */
   async getByProject(projectId: number): Promise<Prompt[]> {
-    return basePromptRepository.findWhere(eq(prompts.projectId, projectId))
+    const results = await basePromptRepository.findWhere(eq(prompts.projectId, projectId))
+    // Cast to ensure proper type with JSON fields
+    return results as Prompt[]
   }
 })

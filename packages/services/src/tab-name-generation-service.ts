@@ -1,5 +1,6 @@
 import { generateTabName } from './gen-ai-services'
-import type { ProjectTabState } from '@promptliano/database'
+import type { ProjectTabMetadata } from '@promptliano/database'
+import type { ProjectTabState } from '@promptliano/schemas'
 import { getProjectById, getProjectFiles } from './project-service'
 
 export interface TabNameGenerationResult {
@@ -9,7 +10,7 @@ export interface TabNameGenerationResult {
 }
 
 export class TabNameGenerationService {
-  static async generateTabName(projectId: number, tabData: Partial<ProjectTabState>): Promise<TabNameGenerationResult> {
+  static async generateTabName(projectId: number, tabData: Partial<ProjectTabMetadata>): Promise<TabNameGenerationResult> {
     try {
       const project = await getProjectById(projectId)
       if (!project) {
@@ -23,8 +24,8 @@ export class TabNameGenerationService {
       if (selectedFiles.length > 0) {
         const projectFiles = await getProjectFiles(projectId)
         fileNames = selectedFiles
-          .map((fileId) => {
-            const file = projectFiles?.find((f) => f.id === fileId)
+          .map((fileId: number) => {
+            const file = projectFiles?.find((f) => String(f.id) === String(fileId))
             return file?.path || ''
           })
           .filter(Boolean)
@@ -68,7 +69,7 @@ export class TabNameGenerationService {
     return 'General project work'
   }
 
-  private static generateFallbackName(projectId: number, tabData: Partial<ProjectTabState>): string {
+  private static generateFallbackName(projectId: number, tabData: Partial<ProjectTabMetadata>): string {
     const timestamp = new Date().getTime()
     const shortId = timestamp.toString().slice(-4)
 
@@ -81,7 +82,7 @@ export class TabNameGenerationService {
 
   static async generateUniqueTabName(
     projectId: number,
-    tabData: Partial<ProjectTabState>,
+    tabData: Partial<ProjectTabMetadata>,
     existingTabNames: string[]
   ): Promise<TabNameGenerationResult> {
     const result = await this.generateTabName(projectId, tabData)

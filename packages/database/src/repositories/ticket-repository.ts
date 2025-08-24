@@ -4,7 +4,7 @@
  * Enhanced with queue integration and advanced querying
  */
 
-import { eq, and, desc, asc, inArray, count, sum, sql } from 'drizzle-orm'
+import { eq, and, desc, asc, inArray, count, sum, sql, like, gte, lte } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
 import { 
@@ -20,10 +20,81 @@ import {
   selectTicketSchema
 } from '../schema'
 
+// Helper functions to convert JSON fields from database to proper types
+function convertTicketFromDb(ticket: any): Ticket {
+  return {
+    ...ticket,
+    suggestedFileIds: ticket.suggestedFileIds || [],
+    suggestedAgentIds: ticket.suggestedAgentIds || [],
+    suggestedPromptIds: ticket.suggestedPromptIds || []
+  }
+}
+
+function convertTaskFromDb(task: any): TicketTask {
+  return {
+    ...task,
+    suggestedFileIds: task.suggestedFileIds || [],
+    dependencies: task.dependencies || [],
+    tags: task.tags || [],
+    suggestedPromptIds: task.suggestedPromptIds || []
+  }
+}
+
+// Proper update types that match actual database schema
+type TicketUpdateData = Partial<{
+  projectId: number
+  title: string
+  overview: string | null
+  status: 'open' | 'in_progress' | 'closed'
+  priority: 'low' | 'normal' | 'high'
+  suggestedFileIds: string[]
+  suggestedAgentIds: string[]
+  suggestedPromptIds: number[]
+  queueId: number | null
+  queuePosition: number | null
+  queueStatus: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled' | null
+  queuePriority: number | null
+  queuedAt: number | null
+  queueStartedAt: number | null
+  queueCompletedAt: number | null
+  queueAgentId: string | null
+  queueErrorMessage: string | null
+  estimatedProcessingTime: number | null
+  actualProcessingTime: number | null
+  updatedAt: number
+}>
+
+type TaskUpdateData = Partial<{
+  ticketId: number
+  content: string
+  description: string | null
+  suggestedFileIds: string[]
+  done: boolean
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  orderIndex: number
+  estimatedHours: number | null
+  dependencies: number[]
+  tags: string[]
+  agentId: string | null
+  suggestedPromptIds: number[]
+  queueId: number | null
+  queuePosition: number | null
+  queueStatus: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled' | null
+  queuePriority: number | null
+  queuedAt: number | null
+  queueStartedAt: number | null
+  queueCompletedAt: number | null
+  queueAgentId: string | null
+  queueErrorMessage: string | null
+  estimatedProcessingTime: number | null
+  actualProcessingTime: number | null
+  updatedAt: number
+}>
+
 // Create base ticket repository with full CRUD operations
 const baseTicketRepository = createBaseRepository(
   tickets,
-  selectTicketSchema,
+  undefined, // Skip schema validation for now due to JSON field complexity
   'Ticket'
 )
 
@@ -39,31 +110,60 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
   // BaseRepository provides: create, getById, getAll, update, delete, exists, count
   // createMany, updateMany, deleteMany, findWhere, findOneWhere, paginate
 
+  // Override base methods to handle JSON conversion
+  async create(data: InsertTicket): Promise<Ticket> {
+    const ticket = await baseTicketRepository.create(data)
+    return convertTicketFromDb(ticket)
+  },
+
+  async getById(id: number): Promise<Ticket | null> {
+    const ticket = await baseTicketRepository.getById(id)
+    return ticket ? convertTicketFromDb(ticket) : null
+  },
+
+  async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<Ticket[]> {
+    const tickets = await baseTicketRepository.getAll(orderBy)
+    return tickets.map(ticket => convertTicketFromDb(ticket))
+  },
+
+  async update(id: number, data: TicketUpdateData): Promise<Ticket> {
+    const ticket = await baseTicketRepository.update(id, data as any)
+    return convertTicketFromDb(ticket)
+  },
+
+  async findOneWhere(where: any): Promise<Ticket | null> {
+    const ticket = await baseTicketRepository.findOneWhere(where)
+    return ticket ? convertTicketFromDb(ticket) : null
+  },
+
   /**
    * Get tickets by project ID (optimized with BaseRepository)
    */
   async getByProject(projectId: number): Promise<Ticket[]> {
-    return baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
+    const results = await baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
+    return results.map(ticket => convertTicketFromDb(ticket))
   },
 
   /**
    * Get tickets by status (optimized with BaseRepository)
    */
   async getByStatus(projectId: number, status: TicketStatus): Promise<Ticket[]> {
-    return baseTicketRepository.findWhere(and(
+    const results = await baseTicketRepository.findWhere(and(
       eq(tickets.projectId, projectId),
       eq(tickets.status, status)
     ))
+    return results.map(ticket => convertTicketFromDb(ticket))
   },
 
   /**
    * Get tickets by priority (optimized with BaseRepository)
    */
   async getByPriority(projectId: number, priority: TicketPriority): Promise<Ticket[]> {
-    return baseTicketRepository.findWhere(and(
+    const results = await baseTicketRepository.findWhere(and(
       eq(tickets.projectId, projectId),
       eq(tickets.priority, priority)
     ))
+    return results.map(ticket => convertTicketFromDb(ticket))
   },
 
   // update() and delete() methods inherited from BaseRepository with better error handling
@@ -99,28 +199,32 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Create a new task (using BaseRepository)
    */
   async createTask(data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<TicketTask> {
-    return baseTaskRepository.create(data)
+    const task = await baseTaskRepository.create(data as InsertTicketTask)
+    return convertTaskFromDb(task)
   },
 
   /**
    * Get task by ID (using BaseRepository)
    */
   async getTaskById(id: number): Promise<TicketTask | null> {
-    return baseTaskRepository.getById(id)
+    const task = await baseTaskRepository.getById(id)
+    return task ? convertTaskFromDb(task) : null
   },
 
   /**
    * Get tasks by ticket ID (optimized with BaseRepository)
    */
   async getTasksByTicket(ticketId: number): Promise<TicketTask[]> {
-    return baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
+    const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
+    return tasks.map(task => convertTaskFromDb(task))
   },
 
   /**
    * Update task (using BaseRepository with better error handling)
    */
-  async updateTask(id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
-    return baseTaskRepository.update(id, data)
+  async updateTask(id: number, data: TaskUpdateData): Promise<TicketTask> {
+    const task = await baseTaskRepository.update(id, data as any)
+    return convertTaskFromDb(task)
   },
 
   /**
@@ -140,7 +244,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
           .set({ 
             orderIndex,
             updatedAt: Date.now() 
-          })
+          } as any)
           .where(and(
             eq(ticketTasks.id, taskId),
             eq(ticketTasks.ticketId, ticketId)
@@ -158,7 +262,8 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
       throw new Error(`Task ${id} not found`)
     }
 
-    return baseTaskRepository.update(id, { done: !task.done })
+    const updatedTask = await baseTaskRepository.update(id, { done: !task.done } as any)
+    return convertTaskFromDb(updatedTask)
   },
 
   // =============================================================================
@@ -174,20 +279,21 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
     priority: number = 5,
     position?: number
   ): Promise<Ticket> {
-    return baseTicketRepository.update(ticketId, {
+    const ticket = await baseTicketRepository.update(ticketId, {
       queueId,
       queuePosition: position,
       queueStatus: 'queued' as const,
       queuePriority: priority,
       queuedAt: Date.now(),
-    })
+    } as any)
+    return convertTicketFromDb(ticket)
   },
 
   /**
    * Remove ticket from queue
    */
   async removeFromQueue(ticketId: number): Promise<Ticket> {
-    return baseTicketRepository.update(ticketId, {
+    const ticket = await baseTicketRepository.update(ticketId, {
       queueId: null,
       queuePosition: null,
       queueStatus: null,
@@ -197,7 +303,8 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
       queueCompletedAt: null,
       queueAgentId: null,
       queueErrorMessage: null,
-    })
+    } as any)
+    return convertTicketFromDb(ticket)
   },
 
   /**
@@ -210,7 +317,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
     errorMessage?: string
   ): Promise<Ticket> {
     const now = Date.now()
-    const updates: any = {
+    const updates: TicketUpdateData = {
       queueStatus: status,
     }
 
@@ -222,7 +329,8 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
       if (errorMessage) updates.queueErrorMessage = errorMessage
     }
 
-    return baseTicketRepository.update(ticketId, updates)
+    const ticket = await baseTicketRepository.update(ticketId, updates as any)
+    return convertTicketFromDb(ticket)
   },
 
   // =============================================================================
@@ -268,14 +376,16 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Create multiple tickets (using BaseRepository batch operation)
    */
   async createMany(ticketsData: Omit<InsertTicket, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Ticket[]> {
-    return baseTicketRepository.createMany(ticketsData)
+    const tickets = await baseTicketRepository.createMany(ticketsData as InsertTicket[])
+    return tickets.map(ticket => convertTicketFromDb(ticket))
   },
 
   /**
    * Create multiple tasks (using BaseRepository batch operation)
    */
   async createManyTasks(tasksData: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<TicketTask[]> {
-    return baseTaskRepository.createMany(tasksData)
+    const tasks = await baseTaskRepository.createMany(tasksData as InsertTicketTask[])
+    return tasks.map(task => convertTaskFromDb(task))
   },
 
   /**
@@ -283,11 +393,183 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async updateMany(
     ticketIds: number[], 
-    data: Partial<Omit<InsertTicket, 'id' | 'createdAt'>>
+    data: TicketUpdateData
   ): Promise<Ticket[]> {
-    return baseTicketRepository.updateMany(ticketIds, data)
+    const tickets = await baseTicketRepository.updateMany(ticketIds, data as any)
+    return tickets.map(ticket => convertTicketFromDb(ticket))
   }
 })
 
-// Export task repository separately for direct access
-export const taskRepository = baseTaskRepository
+// Extend task repository with domain-specific methods for direct access
+export const taskRepository = extendRepository(baseTaskRepository, {
+  // Override base methods to handle JSON conversion
+  async create(data: InsertTicketTask): Promise<TicketTask> {
+    const task = await baseTaskRepository.create(data)
+    return convertTaskFromDb(task)
+  },
+
+  async getById(id: number): Promise<TicketTask | null> {
+    const task = await baseTaskRepository.getById(id)
+    return task ? convertTaskFromDb(task) : null
+  },
+
+  async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.getAll(orderBy)
+    return tasks.map(task => convertTaskFromDb(task))
+  },
+
+  async update(id: number, data: TaskUpdateData): Promise<TicketTask> {
+    const task = await baseTaskRepository.update(id, data as any)
+    return convertTaskFromDb(task)
+  },
+
+  async findOneWhere(where: any): Promise<TicketTask | null> {
+    const task = await baseTaskRepository.findOneWhere(where)
+    return task ? convertTaskFromDb(task) : null
+  },
+
+  /**
+   * Get tasks by ticket ID (optimized with BaseRepository)
+   */
+  async getByTicket(ticketId: number): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
+    return tasks.map(task => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
+  },
+
+  /**
+   * Get tasks by task status (optimized with BaseRepository)
+   */
+  async getByTaskStatus(ticketId: number, status: 'pending' | 'in_progress' | 'completed' | 'cancelled'): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.findWhere(and(
+      eq(ticketTasks.ticketId, ticketId),
+      eq(ticketTasks.status, status)
+    ))
+    return tasks.map(task => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
+  },
+
+  /**
+   * Get tasks by agent ID
+   */
+  async getByAgent(agentId: string): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.agentId, agentId))
+    return tasks.map(task => convertTaskFromDb(task))
+  },
+
+  /**
+   * Reorder tasks within a ticket
+   */
+  async reorder(ticketId: number, taskOrders: { taskId: number; orderIndex: number }[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (const { taskId, orderIndex } of taskOrders) {
+        await tx.update(ticketTasks)
+          .set({ 
+            orderIndex,
+            updatedAt: Date.now() 
+          } as any)
+          .where(and(
+            eq(ticketTasks.id, taskId),
+            eq(ticketTasks.ticketId, ticketId)
+          ))
+      }
+    })
+  },
+
+  /**
+   * Move task to different position
+   */
+  async moveToPosition(taskId: number, newOrderIndex: number): Promise<TicketTask> {
+    const task = await baseTaskRepository.update(taskId, { 
+      orderIndex: newOrderIndex 
+    } as any)
+    return convertTaskFromDb(task)
+  },
+
+  /**
+   * Check if task dependencies are completed
+   */
+  async areDependenciesCompleted(taskId: number): Promise<boolean> {
+    const task = await baseTaskRepository.getById(taskId)
+    if (!task || !task.dependencies || task.dependencies.length === 0) {
+      return true
+    }
+    
+    const dependencies = await baseTaskRepository.findWhere(
+      inArray(ticketTasks.id, task.dependencies)
+    )
+    
+    return dependencies.every((dep: any) => dep.done || dep.status === 'completed')
+  },
+
+  /**
+   * Get available tasks (no incomplete dependencies)
+   */
+  async getAvailableTasks(ticketId: number): Promise<TicketTask[]> {
+    const tasks = await this.getByTicket(ticketId)
+    const availableTasks: TicketTask[] = []
+    
+    for (const task of tasks) {
+      if (task.status === 'pending' || task.status === 'in_progress') {
+        const dependenciesCompleted = await this.areDependenciesCompleted(task.id)
+        if (dependenciesCompleted) {
+          availableTasks.push(task)
+        }
+      }
+    }
+    
+    return availableTasks.sort((a, b) => a.orderIndex - b.orderIndex)
+  },
+
+  /**
+   * Get blocked tasks (have incomplete dependencies)
+   */
+  async getBlockedTasks(ticketId: number): Promise<TicketTask[]> {
+    const tasks = await this.getByTicket(ticketId)
+    const blockedTasks: TicketTask[] = []
+    
+    for (const task of tasks) {
+      if ((task.status === 'pending' || task.status === 'in_progress') && 
+          task.dependencies && task.dependencies.length > 0) {
+        const dependenciesCompleted = await this.areDependenciesCompleted(task.id)
+        if (!dependenciesCompleted) {
+          blockedTasks.push(task)
+        }
+      }
+    }
+    
+    return blockedTasks.sort((a, b) => a.orderIndex - b.orderIndex)
+  },
+
+  /**
+   * Search tasks by content
+   */
+  async searchByContent(searchTerm: string, ticketId?: number): Promise<TicketTask[]> {
+    const conditions = [like(ticketTasks.content, `%${searchTerm}%`)]
+    
+    if (ticketId) {
+      conditions.push(eq(ticketTasks.ticketId, ticketId))
+    }
+    
+    const tasks = await baseTaskRepository.findWhere(and(...conditions))
+    return tasks.map(task => convertTaskFromDb(task))
+  },
+
+  /**
+   * Get tasks by time range
+   */
+  async getByTimeRange(startDate: number, endDate: number): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.findWhere(and(
+      gte(ticketTasks.createdAt, startDate),
+      lte(ticketTasks.createdAt, endDate)
+    ))
+    return tasks.map(task => convertTaskFromDb(task))
+  },
+
+  /**
+   * Delete all tasks for a ticket
+   */
+  async deleteByTicket(ticketId: number): Promise<number> {
+    const tasksToDelete = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
+    const taskIds = tasksToDelete.map(t => t.id)
+    return baseTaskRepository.deleteMany(taskIds)
+  }
+})

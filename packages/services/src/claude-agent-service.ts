@@ -1,13 +1,16 @@
 import { claudeAgentRepository } from '@promptliano/database'
 import {
   type ClaudeAgent,
-  type InsertClaudeAgent as CreateClaudeAgentBody,
-  type InsertClaudeAgent as UpdateClaudeAgentBody,
+  type InsertClaudeAgent,
   selectClaudeAgentSchema as ClaudeAgentSchema,
   claudeAgents
 } from '@promptliano/database'
 import { eq } from 'drizzle-orm'
 import { db } from '@promptliano/database/src/db'
+// Agent creation/update types
+export type CreateClaudeAgentBody = Pick<InsertClaudeAgent, 'name' | 'description' | 'instructions' | 'model'>
+export type UpdateClaudeAgentBody = Partial<Pick<InsertClaudeAgent, 'name' | 'description' | 'instructions' | 'model' | 'isActive'>>
+
 // AI generation schemas - define locally for now until schemas package is updated
 import { z } from 'zod'
 
@@ -113,11 +116,13 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const getAgentById = async (agentId: string): Promise<ClaudeAgent> => {
+  const getAgentById = async (agentId: string | number): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
-        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
-        assertExists(agent, 'Agent', agentId)
+        // Convert number ID to string since agent IDs are strings
+        const id = String(agentId)
+        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, id)).limit(1)
+        assertExists(agent, 'Agent', id)
         return agent as ClaudeAgent
       },
       { entity: 'Agent', action: 'getById', id: agentId }
@@ -146,12 +151,15 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const updateAgent = async (agentId: string, data: Partial<UpdateClaudeAgentBody>): Promise<ClaudeAgent> => {
+  const updateAgent = async (agentId: string | number, data: UpdateClaudeAgentBody): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
+        // Convert number ID to string since agent IDs are strings
+        const id = String(agentId)
+        
         // Verify agent exists
-        const [existing] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
-        assertExists(existing, 'Agent', agentId)
+        const [existing] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, id)).limit(1)
+        assertExists(existing, 'Agent', id)
         
         // Prepare update data to match current schema
         const updateData: Partial<UpdateClaudeAgentBody> = {
@@ -172,13 +180,13 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         // Update agent in database
         const [updatedAgent] = await db.update(claudeAgents)
           .set({ ...updateData, updatedAt: Date.now() })
-          .where(eq(claudeAgents.id, agentId))
+          .where(eq(claudeAgents.id, id))
           .returning()
         
         // Update markdown file if instructions changed
         if (data.instructions !== undefined) {
           const agentsDir = getAgentsDir(projectPath)
-          const filePath = path.join(agentsDir, `${agentId}.md`)
+          const filePath = path.join(agentsDir, `${id}.md`)
           
           if (data.instructions) {
             await writeAgentFile(filePath, data.instructions)
@@ -199,25 +207,28 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const deleteAgent = async (agentId: string): Promise<boolean> => {
+  const deleteAgent = async (agentId: string | number): Promise<boolean> => {
     return withErrorContext(
       async () => {
+        // Convert number ID to string since agent IDs are strings
+        const id = String(agentId)
+        
         // Verify agent exists
-        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
+        const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, id)).limit(1)
         if (!agent) {
           return false
         }
 
         // Delete from database
         const result = await db.delete(claudeAgents)
-          .where(eq(claudeAgents.id, agentId))
+          .where(eq(claudeAgents.id, id))
           .run() as unknown as { changes: number }
         
         const success = result.changes > 0
         
         // Delete markdown file if it exists
         const agentsDir = getAgentsDir(projectPath)
-        const filePath = path.join(agentsDir, `${agentId}.md`)
+        const filePath = path.join(agentsDir, `${id}.md`)
         
         try {
           await fs.unlink(filePath)
@@ -483,3 +494,6 @@ export const {
   suggest: suggestAgents,
   suggestForTask: suggestAgentForTask
 } = claudeAgentService
+
+// Add backward compatibility alias
+export const getAgentsByProjectId = getAgentsByProject

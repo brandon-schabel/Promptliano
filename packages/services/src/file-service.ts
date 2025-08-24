@@ -17,13 +17,16 @@ import { ErrorFactory } from '@promptliano/shared'
 import { fileRepository } from '@promptliano/database'
 import { 
   type File as ProjectFile, 
-  type CreateFile as CreateProjectFileBody, 
-  type UpdateFile as UpdateProjectFileBody,
-  FileSchema as ProjectFileSchema
+  type InsertFile as CreateProjectFileBody,
+  selectFileSchema as ProjectFileSchema
 } from '@promptliano/database'
+
 import { resolvePath } from '@promptliano/shared'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+
+// Update type for file updates
+type UpdateProjectFileBody = Partial<Omit<CreateProjectFileBody, 'id' | 'createdAt' | 'updatedAt'>>
 
 // Dependencies interface for dependency injection
 export interface FileServiceDeps {
@@ -47,7 +50,6 @@ export interface FileSystemAdapter {
 export interface FileSyncData {
   path: string
   name: string
-  extension: string
   content: string
   size: number
   checksum: string
@@ -65,13 +67,63 @@ export function createFileService(deps: FileServiceDeps = {}) {
     fs: fileSystem = fs
   } = deps
 
-  // Base CRUD operations using the service factory
-  const baseService = createCrudService<ProjectFile, CreateProjectFileBody, UpdateProjectFileBody>({
-    entityName: 'File',
-    repository,
-    schema: ProjectFileSchema,
-    logger
-  })
+  // File entities use string IDs, so we can't use the standard CRUD service
+  // Instead, we'll create our own base operations that work with string IDs
+  const baseService = {
+    async create(data: CreateProjectFileBody): Promise<ProjectFile> {
+      return withErrorContext(
+        async () => {
+          // Remove createdAt/updatedAt as repository will handle them
+          const { createdAt, updatedAt, ...createData } = data
+          return await repository.create(createData)
+        },
+        { entity: 'File', action: 'create' }
+      )
+    },
+
+    async getById(id: string): Promise<ProjectFile | null> {
+      return withErrorContext(
+        async () => {
+          return await repository.getById(id)
+        },
+        { entity: 'File', action: 'getById', id }
+      )
+    },
+
+    async update(id: string, data: UpdateProjectFileBody): Promise<ProjectFile> {
+      return withErrorContext(
+        async () => {
+          return await repository.update(id, data)
+        },
+        { entity: 'File', action: 'update', id }
+      )
+    },
+
+    async delete(id: string): Promise<boolean> {
+      return withErrorContext(
+        async () => {
+          return await repository.delete(id)
+        },
+        { entity: 'File', action: 'delete', id }
+      )
+    },
+
+    async getAll(): Promise<ProjectFile[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.getAll()
+        },
+        { entity: 'File', action: 'getAll' }
+      )
+    }
+  }
+
+  // Helper function for checksum calculation
+  const calculateChecksum = (content: string): string => {
+    // Simple checksum using content length and hash
+    const crypto = require('crypto')
+    return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16)
+  }
 
   // Extended domain operations
   const extensions = {
@@ -163,7 +215,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
 
           // Process filesystem files
           const filesToCreate: FileSyncData[] = []
-          const filesToUpdate: Array<{ fileId: number; data: FileSyncData }> = []
+          const filesToUpdate: Array<{ fileId: string; data: FileSyncData }> = []
 
           for (const fsFile of fileSystemFiles) {
             const relativePath = path.relative(resolvedPath, fsFile.fullPath)
@@ -177,7 +229,6 @@ export function createFileService(deps: FileServiceDeps = {}) {
                   data: {
                     path: relativePath,
                     name: fsFile.name,
-                    extension: fsFile.extension,
                     content: fsFile.content,
                     size: fsFile.size,
                     checksum: fsFile.checksum,
@@ -192,7 +243,6 @@ export function createFileService(deps: FileServiceDeps = {}) {
               filesToCreate.push({
                 path: relativePath,
                 name: fsFile.name,
-                extension: fsFile.extension,
                 content: fsFile.content,
                 size: fsFile.size,
                 checksum: fsFile.checksum,
@@ -239,7 +289,6 @@ export function createFileService(deps: FileServiceDeps = {}) {
     }): Promise<Array<{
       fullPath: string
       name: string
-      extension: string
       content: string
       size: number
       checksum: string
@@ -281,12 +330,11 @@ export function createFileService(deps: FileServiceDeps = {}) {
                   
                   try {
                     const content = await fileSystem.readFile(fullPath, 'utf8')
-                    const checksum = this.calculateChecksum(content)
+                    const checksum = calculateChecksum(content)
                     
                     files.push({
                       fullPath,
                       name: path.basename(fullPath),
-                      extension,
                       content,
                       size: stat.size,
                       checksum,
@@ -311,28 +359,18 @@ export function createFileService(deps: FileServiceDeps = {}) {
     },
 
     /**
-     * Calculate file checksum for change detection
-     */
-    calculateChecksum(content: string): string {
-      // Simple checksum using content length and hash
-      const crypto = require('crypto')
-      return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16)
-    },
-
-    /**
      * Update file content and metadata
      */
-    async updateContent(projectId: number, fileId: number, content: string): Promise<ProjectFile> {
+    async updateContent(projectId: number, fileId: string, content: string): Promise<ProjectFile> {
       return withErrorContext(
         async () => {
           const size = Buffer.byteLength(content, 'utf8')
-          const checksum = this.calculateChecksum(content)
+          const checksum = calculateChecksum(content)
           
           return await baseService.update(fileId, {
             content,
             size,
-            checksum,
-            updatedAt: new Date()
+            checksum
           } as UpdateProjectFileBody)
         },
         { entity: 'File', action: 'updateContent', id: fileId }
@@ -352,20 +390,28 @@ export function createFileService(deps: FileServiceDeps = {}) {
             if (filesToCreate.length === 0) return []
             
             const filesData = filesToCreate.map(fileData => ({
+              id: fileData.path, // Use path as ID for files
               projectId,
               name: fileData.name,
               path: fileData.path,
-              extension: fileData.extension,
               size: fileData.size,
               content: fileData.content,
               checksum: fileData.checksum,
               imports: fileData.imports,
-              exports: fileData.exports,
-              createdAt: new Date(),
-              updatedAt: new Date()
+              exports: fileData.exports
             }))
             
-            return await repository.createMany(filesData)
+            // Create files individually since repository doesn't have createMany
+            const results = await Promise.allSettled(
+              filesData.map(fileData => repository.create(fileData))
+            )
+            
+            const successful = results
+              .filter((r): r is PromiseFulfilledResult<ProjectFile> => r.status === 'fulfilled')
+              .map(r => r.value)
+            
+            logger.info(`Batch created ${successful.length}/${filesData.length} files`)
+            return successful
           },
           { entity: 'File', action: 'batchCreate' }
         )
@@ -374,7 +420,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
       /**
        * Update multiple files at once
        */
-      updateFiles: async (projectId: number, updates: Array<{ fileId: number; data: FileSyncData }>): Promise<ProjectFile[]> => {
+      updateFiles: async (projectId: number, updates: Array<{ fileId: string; data: FileSyncData }>): Promise<ProjectFile[]> => {
         return withErrorContext(
           async () => {
             if (updates.length === 0) return []
@@ -386,8 +432,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
                   size: data.size,
                   checksum: data.checksum,
                   imports: data.imports,
-                  exports: data.exports,
-                  updatedAt: new Date()
+                  exports: data.exports
                 } as UpdateProjectFileBody)
               )
             )
@@ -406,7 +451,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
       /**
        * Delete multiple files at once
        */
-      deleteFiles: async (projectId: number, fileIds: number[]): Promise<number> => {
+      deleteFiles: async (projectId: number, fileIds: string[]): Promise<number> => {
         return withErrorContext(
           async () => {
             if (fileIds.length === 0) return 0

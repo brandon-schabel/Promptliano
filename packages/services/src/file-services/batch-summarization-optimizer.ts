@@ -132,7 +132,7 @@ export class BatchSummarizationOptimizer {
       }
 
       // Check if file was modified after last summarization
-      if (file.updated > (file.summaryLastUpdated || 0)) {
+      if (file.updatedAt > (file.summaryLastUpdated || 0)) {
         needsSummarization.push(file)
       }
     }
@@ -178,7 +178,7 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: fileId,
             targetFileId: importedFile.id,
-            type: FileRelationshipTypeEnum.enum.imports,
+            type: FileRelationshipTypeEnum.imports,
             strength: 1.0
           })
         }
@@ -205,7 +205,7 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: otherId,
             targetFileId: fileId,
-            type: FileRelationshipTypeEnum.enum.imports,
+            type: FileRelationshipTypeEnum.imports,
             strength: 1.0 // Default strength for import relationships
           })
         }

@@ -14,7 +14,9 @@ import { ticketService } from '@promptliano/services'
 import {
   TicketSchema,
   CreateTicketSchema,
-  UpdateTicketSchema,
+  UpdateTicketSchema
+} from '@promptliano/database'
+import {
   TicketIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

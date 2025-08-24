@@ -10,7 +10,7 @@ import {
   type TicketTask, 
   type InsertTicketTask, 
   type TaskStatus 
-} from '@promptliano/database/schema'
+} from '@promptliano/database'
 
 // Export types for external use
 export type { TicketTask, InsertTicketTask, TaskStatus }
@@ -25,23 +25,77 @@ export interface TaskServiceDependencies {
  */
 export function createTaskService(deps: TaskServiceDependencies = {}) {
   const repository = deps.repository || taskRepository
-  const createError = deps.errorFactory || ErrorFactory.createDomainError
+  // ErrorFactory provides all necessary methods for standardized error handling
 
   return {
+    /**
+     * List all tasks (route factory compatible)
+     */
+    async list(): Promise<TicketTask[]> {
+      try {
+        return await repository.getAll()
+      } catch (error) {
+        throw ErrorFactory.operationFailed('list tasks', String(error))
+      }
+    },
+
+    /**
+     * Get task by ID (route factory compatible)
+     */
+    async getById(id: number | string): Promise<TicketTask> {
+      try {
+        const task = await repository.getById(Number(id))
+        if (!task) {
+          throw ErrorFactory.notFound('Task', id)
+        }
+        return task
+      } catch (error) {
+        throw ErrorFactory.operationFailed('fetch task', String(error))
+      }
+    },
+
+    /**
+     * Create task (route factory compatible)
+     */
+    async create(data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<TicketTask> {
+      return this.createTask(data)
+    },
+
+    /**
+     * Update task (route factory compatible)
+     */
+    async update(id: number | string, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
+      return this.updateTask(Number(id), data)
+    },
+
+    /**
+     * Delete task (route factory compatible)
+     */
+    async delete(id: number | string): Promise<boolean> {
+      try {
+        return await repository.delete(Number(id))
+      } catch (error) {
+        throw ErrorFactory.operationFailed('delete task', String(error))
+      }
+    },
+
     /**
      * Create a new task with proper TaskStatus handling
      */
     async createTask(data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<TicketTask> {
       try {
-        // Ensure status is properly typed as TaskStatus, not string
+        const now = Date.now()
+        // Ensure status is properly typed as TaskStatus, not string and add timestamps
         const taskData = {
           ...data,
-          status: (data.status || 'pending') as TaskStatus
+          status: (data.status || 'pending') as TaskStatus,
+          createdAt: now,
+          updatedAt: now
         }
 
         return await repository.create(taskData)
       } catch (error) {
-        throw createError('Task', 'CREATE_FAILED', `Failed to create task: ${error}`)
+        throw ErrorFactory.operationFailed('create task', String(error))
       }
     },
 
@@ -57,7 +111,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
 
         return await repository.update(id, updateData)
       } catch (error) {
-        throw createError('Task', 'UPDATE_FAILED', `Failed to update task ${id}: ${error}`)
+        throw ErrorFactory.operationFailed('update task', String(error))
       }
     },
 
@@ -68,7 +122,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.update(id, { status })
       } catch (error) {
-        throw createError('Task', 'UPDATE_STATUS_FAILED', `Failed to update task ${id} status: ${error}`)
+        throw ErrorFactory.operationFailed('update task status', String(error))
       }
     },
 
@@ -79,7 +133,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getById(id)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch task ${id}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch task', String(error))
       }
     },
 
@@ -90,7 +144,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getByTicket(ticketId)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch tasks for ticket', String(error))
       }
     },
 
@@ -101,7 +155,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getByTaskStatus(ticketId, status)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch ${status} tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch tasks by status', String(error))
       }
     },
 
@@ -144,7 +198,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
           done: true
         })
       } catch (error) {
-        throw createError('Task', 'COMPLETE_FAILED', `Failed to complete task ${id}: ${error}`)
+        throw ErrorFactory.operationFailed('complete task', String(error))
       }
     },
 
@@ -162,7 +216,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.delete(id)
       } catch (error) {
-        throw createError('Task', 'DELETE_FAILED', `Failed to delete task ${id}: ${error}`)
+        throw ErrorFactory.operationFailed('delete task', String(error))
       }
     },
 
@@ -173,7 +227,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getByAgent(agentId)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch tasks for agent ${agentId}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch tasks for agent', String(error))
       }
     },
 
@@ -184,7 +238,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         const task = await repository.getById(id)
         if (!task) {
-          throw createError('Task', 'NOT_FOUND', `Task ${id} not found`)
+          throw ErrorFactory.notFound('Task', id)
         }
 
         // Sync done flag with status
@@ -194,8 +248,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
           status: newStatus
         })
       } catch (error) {
-        if (error.code) throw error // Re-throw domain errors
-        throw createError('Task', 'TOGGLE_FAILED', `Failed to toggle task ${id}: ${error}`)
+        if (error instanceof Error && (error as any).code) throw error // Re-throw domain errors
+        throw ErrorFactory.operationFailed('toggle task', error instanceof Error ? error.message : String(error))
       }
     },
 
@@ -204,15 +258,18 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async createTasks(tasksData: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<TicketTask[]> {
       try {
-        // Ensure all tasks have properly typed status
+        const now = Date.now()
+        // Ensure all tasks have properly typed status and required timestamps
         const typedTasksData = tasksData.map(data => ({
           ...data,
-          status: (data.status || 'pending') as TaskStatus
+          status: (data.status || 'pending') as TaskStatus,
+          createdAt: now,
+          updatedAt: now
         }))
 
         return await repository.createMany(typedTasksData)
       } catch (error) {
-        throw createError('Task', 'BATCH_CREATE_FAILED', `Failed to create ${tasksData.length} tasks: ${error}`)
+        throw ErrorFactory.operationFailed('batch create tasks', String(error))
       }
     },
 
@@ -240,7 +297,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
             Math.round(((stats.inProgress + stats.pending) / stats.total) * 100) : 0
         }
       } catch (error) {
-        throw createError('Task', 'STATS_FAILED', `Failed to get statistics for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('get task statistics', String(error))
       }
     },
 
@@ -251,7 +308,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.reorder(ticketId, taskOrders)
       } catch (error) {
-        throw createError('Task', 'REORDER_FAILED', `Failed to reorder tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('reorder tasks', String(error))
       }
     },
 
@@ -262,7 +319,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.moveToPosition(taskId, newOrderIndex)
       } catch (error) {
-        throw createError('Task', 'MOVE_FAILED', `Failed to move task ${taskId}: ${error}`)
+        throw ErrorFactory.operationFailed('move task', String(error))
       }
     },
 
@@ -273,7 +330,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.areDependenciesCompleted(taskId)
       } catch (error) {
-        throw createError('Task', 'DEPENDENCY_CHECK_FAILED', `Failed to check dependencies for task ${taskId}: ${error}`)
+        throw ErrorFactory.operationFailed('check task dependencies', String(error))
       }
     },
 
@@ -284,7 +341,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getAvailableTasks(ticketId)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch available tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch available tasks', String(error))
       }
     },
 
@@ -295,7 +352,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getBlockedTasks(ticketId)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch blocked tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('fetch blocked tasks', String(error))
       }
     },
 
@@ -306,7 +363,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.searchByContent(searchTerm, ticketId)
       } catch (error) {
-        throw createError('Task', 'SEARCH_FAILED', `Failed to search tasks: ${error}`)
+        throw ErrorFactory.operationFailed('search tasks', String(error))
       }
     },
 
@@ -317,7 +374,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.getByTimeRange(startDate, endDate)
       } catch (error) {
-        throw createError('Task', 'FETCH_FAILED', `Failed to fetch tasks by time range: ${error}`)
+        throw ErrorFactory.operationFailed('fetch tasks by time range', String(error))
       }
     },
 
@@ -328,7 +385,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         return await repository.deleteByTicket(ticketId)
       } catch (error) {
-        throw createError('Task', 'BATCH_DELETE_FAILED', `Failed to delete tasks for ticket ${ticketId}: ${error}`)
+        throw ErrorFactory.operationFailed('batch delete tasks', String(error))
       }
     }
   }

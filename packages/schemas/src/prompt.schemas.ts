@@ -67,8 +67,8 @@ export const PromptListResponseSchema = z
 export type CreatePromptBody = z.infer<typeof CreatePromptBodySchema>
 export type UpdatePromptBody = z.infer<typeof UpdatePromptBodySchema>
 export type PromptIdParams = z.infer<typeof PromptIdParamsSchema>
-export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema>
 export type ProjectAndPromptIdParams = z.infer<typeof ProjectAndPromptIdParamsSchema>
+// Note: ProjectIdParams is exported from project.schemas.ts to avoid conflicts
 
 // --- Request Body Schema ---
 export const OptimizeUserInputRequestSchema = z

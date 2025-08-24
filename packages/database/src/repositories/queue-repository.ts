@@ -79,7 +79,8 @@ export const queueRepository = extendRepository(baseQueueRepository, {
    * Add item to queue (optimized with BaseRepository)
    */
   async addItem(data: Omit<InsertQueueItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<QueueItem> {
-    return baseQueueItemRepository.create(data)
+    // BaseRepository.create expects the data without timestamps and handles adding them
+    return baseQueueItemRepository.create(data as any)
   },
 
   /**
@@ -91,6 +92,20 @@ export const queueRepository = extendRepository(baseQueueRepository, {
       conditions.push(eq(queueItems.status, status))
     }
     return baseQueueItemRepository.findWhere(and(...conditions))
+  },
+
+  /**
+   * Get queue item by ID (required by queue service)
+   */
+  async getItemById(id: number): Promise<QueueItem | null> {
+    return baseQueueItemRepository.getById(id)
+  },
+
+  /**
+   * Remove queue item (required by queue service)
+   */
+  async removeItem(id: number): Promise<boolean> {
+    return baseQueueItemRepository.delete(id)
   },
 
   /**
@@ -142,9 +157,38 @@ export const queueRepository = extendRepository(baseQueueRepository, {
    * Batch operations (using BaseRepository optimized methods)
    */
   async createManyItems(itemsData: Omit<InsertQueueItem, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<QueueItem[]> {
-    return baseQueueItemRepository.createMany(itemsData)
+    // BaseRepository.createMany expects the data without timestamps and handles adding them
+    return baseQueueItemRepository.createMany(itemsData as any)
   }
 })
 
-// Export queue items repository separately for direct access
-export const queueItemRepository = baseQueueItemRepository
+// Export queue items repository separately for direct access with extended methods
+export const queueItemRepository = extendRepository(baseQueueItemRepository, {
+  /**
+   * Get queue item by ID
+   */
+  async getById(id: number): Promise<QueueItem | null> {
+    return baseQueueItemRepository.getById(id)
+  },
+
+  /**
+   * Remove queue item (alias for delete)
+   */
+  async removeItem(id: number): Promise<boolean> {
+    return baseQueueItemRepository.delete(id)
+  },
+
+  /**
+   * Get items by queue ID
+   */
+  async getByQueue(queueId: number): Promise<QueueItem[]> {
+    return baseQueueItemRepository.findWhere(eq(queueItems.queueId, queueId))
+  },
+
+  /**
+   * Get items by status
+   */
+  async getByStatus(status: QueueStatus): Promise<QueueItem[]> {
+    return baseQueueItemRepository.findWhere(eq(queueItems.status, status))
+  }
+})

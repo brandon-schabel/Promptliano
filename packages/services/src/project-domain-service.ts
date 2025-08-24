@@ -75,8 +75,8 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
               projectId: project.id,
               name: 'Default Queue',
               description: 'Default task processing queue',
-              status: 'active',
-              maxParallelItems: 3
+              maxParallelItems: 3,
+              isActive: true
             })
             results.queue = queue
             logger.info('Created default queue', { queueId: queue.id })
@@ -86,8 +86,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
           if (data.createChat) {
             const { chat } = await services.chats.createSession({
               projectId: project.id,
-              name: 'Project Chat',
-              metadata: { default: true },
+              title: 'Project Chat',
               initialMessage: `Started working on project: ${project.name}`
             })
             results.chat = chat
@@ -154,8 +153,8 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
           ])
           
           // Calculate additional metrics
-          const openTickets = ticketsWithStats.filter(t => t.status !== 'closed' && t.status !== 'archived')
-          const blockedTickets = ticketsWithStats.filter(t => t.status === 'blocked')
+          const openTickets = ticketsWithStats.filter(t => t.status !== 'closed')
+          const inProgressTickets = ticketsWithStats.filter(t => t.status === 'in_progress')
           const totalProgress = ticketsWithStats.length > 0 
             ? ticketsWithStats.reduce((sum, ticket) => sum + ticket.progress, 0) / ticketsWithStats.length 
             : 0
@@ -163,7 +162,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
           // Get queue processing summary
           const queueSummary = {
             totalQueues: queuesWithStats.length,
-            activeQueues: queuesWithStats.filter(q => q.queue.status === 'active').length,
+            activeQueues: queuesWithStats.filter(q => q.queue.isActive).length,
             totalQueuedItems: queuesWithStats.reduce((sum, q) => sum + q.stats.queuedItems, 0),
             totalInProgressItems: queuesWithStats.reduce((sum, q) => sum + q.stats.inProgressItems, 0),
             totalCompletedItems: queuesWithStats.reduce((sum, q) => sum + q.stats.completedItems, 0)
@@ -175,13 +174,13 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
               ...projectStats,
               totalProgress: Math.round(totalProgress),
               openTickets: openTickets.length,
-              blockedTickets: blockedTickets.length,
+              inProgressTickets: inProgressTickets.length,
               avgTicketProgress: Math.round(totalProgress)
             },
             tickets: {
               total: ticketsWithStats.length,
               open: openTickets.length,
-              blocked: blockedTickets.length,
+              inProgress: inProgressTickets.length,
               recent: ticketsWithStats.slice(0, 10)
             },
             queues: {
@@ -210,7 +209,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
             clearedQueueItems
           ] = await Promise.all([
             services.tickets.archiveOldTickets(beforeDate),
-            services.chats.archiveOldChats(beforeDate),
+            services.chats.archiveOldChats(projectId, beforeDate),
             // Clear completed items from all project queues
             services.queues.getByProject(projectId).then(async (queues) => {
               let totalCleared = 0
@@ -247,7 +246,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
       return withErrorContext(
         async () => {
           const queues = await services.queues.getByProject(projectId)
-          const activeQueues = queues.filter(q => q.status === 'active')
+          const activeQueues = queues.filter(q => q.isActive)
           
           if (activeQueues.length === 0) {
             return { success: false, reason: 'No active queues found' }
@@ -262,14 +261,14 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
                 queueId: queue.id,
                 itemId: item.id,
                 agentId,
-                type: item.type
+                type: item.itemType
               })
               
               return {
                 success: true,
                 queue,
                 item,
-                message: `Assigned ${item.type} "${item.title}" to agent ${agentId}`
+                message: `Assigned ${item.itemType} (ID: ${item.itemId}) to agent ${agentId}`
               }
             }
           }
@@ -320,7 +319,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
           } else {
             // Try to find and use default queue
             const queues = await services.queues.getByProject(projectId)
-            const defaultQueue = queues.find(q => q.status === 'active')
+            const defaultQueue = queues.find(q => q.isActive)
             
             if (defaultQueue) {
               queueItem = await services.queues.enqueue(defaultQueue.id, {

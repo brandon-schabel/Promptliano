@@ -518,5 +518,3 @@ export function useAIChatV2({ chatId, provider, model, systemMessage }: {
   }
 }
 
-// Export query keys for external use
-export { CHAT_KEYS, GEN_AI_KEYS }

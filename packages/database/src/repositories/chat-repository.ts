@@ -26,12 +26,7 @@ const baseChatRepository = createBaseRepository(
   'Chat'
 )
 
-// Create base message repository
-const baseMessageRepository = createBaseRepository(
-  chatMessages,
-  undefined, // Will use default validation
-  'ChatMessage'
-)
+// ChatMessages don't have updatedAt field, so custom implementation needed
 
 // Extend with domain-specific methods
 export const chatRepository = extendRepository(baseChatRepository, {
@@ -64,29 +59,75 @@ export const chatRepository = extendRepository(baseChatRepository, {
   // =============================================================================
 
   /**
-   * Add message to chat (optimized with BaseRepository)
+   * Add message to chat
    */
   async addMessage(data: Omit<InsertChatMessage, 'id' | 'createdAt'>): Promise<ChatMessage> {
-    // Update chat's updatedAt timestamp using BaseRepository
+    // Update chat's updatedAt timestamp
     await baseChatRepository.update(data.chatId, {})
 
-    return baseMessageRepository.create(data)
+    // Create message with only createdAt (no updatedAt)
+    const now = Date.now()
+    const [message] = await db.insert(chatMessages).values({
+      ...data,
+      createdAt: now
+    }).returning()
+    
+    if (!message) {
+      throw new Error('Failed to create chat message')
+    }
+    
+    return message
   },
 
   /**
-   * Get messages by chat ID (optimized with BaseRepository)
+   * Get messages by chat ID
    */
   async getMessages(chatId: number): Promise<ChatMessage[]> {
-    return baseMessageRepository.findWhere(eq(chatMessages.chatId, chatId))
+    return db.select()
+      .from(chatMessages)
+      .where(eq(chatMessages.chatId, chatId))
+      .orderBy(asc(chatMessages.createdAt))
   },
 
   /**
-   * Delete message (using BaseRepository)
+   * Delete message
    */
   async deleteMessage(id: number): Promise<boolean> {
-    return baseMessageRepository.delete(id)
+    const result = await db.delete(chatMessages)
+      .where(eq(chatMessages.id, id))
+      .run() as unknown as { changes: number }
+    return result.changes > 0
   }
 })
 
 // Export message repository separately for direct access
-export const messageRepository = baseMessageRepository
+export const messageRepository = {
+  async create(data: Omit<InsertChatMessage, 'id' | 'createdAt'>): Promise<ChatMessage> {
+    const now = Date.now()
+    const [message] = await db.insert(chatMessages).values({
+      ...data,
+      createdAt: now
+    }).returning()
+    
+    if (!message) {
+      throw new Error('Failed to create chat message')
+    }
+    
+    return message
+  },
+
+  async getById(id: number): Promise<ChatMessage | null> {
+    const [message] = await db.select()
+      .from(chatMessages)
+      .where(eq(chatMessages.id, id))
+      .limit(1)
+    return message ?? null
+  },
+
+  async delete(id: number): Promise<boolean> {
+    const result = await db.delete(chatMessages)
+      .where(eq(chatMessages.id, id))
+      .run() as unknown as { changes: number }
+    return result.changes > 0
+  }
+}

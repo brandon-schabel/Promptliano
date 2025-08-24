@@ -70,14 +70,14 @@ export const queueProcessorTool: MCPToolDefinition = {
             const validQueueId = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const agentId = data?.agentId as string | undefined
 
-            const response = await getNextTaskFromQueue(validQueueId, agentId)
+            const response = await getNextTaskFromQueue(validQueueId)
 
-            if (response.type === 'none' || !response.item) {
+            if (!response) {
               return {
                 content: [
                   {
                     type: 'text',
-                    text: response.message || 'No tasks available in the queue'
+                    text: 'No tasks available in the queue'
                   }
                 ]
               }
@@ -85,7 +85,7 @@ export const queueProcessorTool: MCPToolDefinition = {
 
             let taskDetails = `Next task from queue:\n`
 
-            if (response.type === 'task') {
+            if (response && typeof response === 'object' && 'type' in response && response.type === 'task' && 'item' in response && response.item) {
               // Task within a ticket
               const task = response.item as any // TicketTask
               taskDetails += `
@@ -97,7 +97,7 @@ ${task.suggestedFileIds?.length > 0 ? `Suggested Files: ${task.suggestedFileIds.
 ${task.agentId ? `Recommended Agent: ${task.agentId}` : ''}
 ${task.estimatedHours ? `Estimated Hours: ${task.estimatedHours}` : ''}
 ${task.tags?.length > 0 ? `Tags: ${task.tags.join(', ')}` : ''}`
-            } else if (response.type === 'ticket') {
+            } else if (response && typeof response === 'object' && 'type' in response && response.type === 'ticket' && 'item' in response && response.item) {
               // Entire ticket
               const ticket = response.item as any // Ticket
               taskDetails += `
@@ -108,6 +108,9 @@ Status: ${ticket.status}
 Priority: ${ticket.priority}
 ${ticket.suggestedFileIds?.length > 0 ? `Suggested Files: ${ticket.suggestedFileIds.join(', ')}` : ''}
 ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAgentIds.join(', ')}` : ''}`
+            } else {
+              // Placeholder implementation
+              taskDetails += `Queue ID: ${validQueueId}\nAgent: ${agentId || 'Unassigned'}\n\nNote: Queue processing is not fully implemented yet.`
             }
 
             return {
@@ -163,7 +166,7 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
             const completionNotes = data?.completionNotes as string | undefined
 
             try {
-              await completeQueueItem(itemType, itemId, ticketId)
+              await completeQueueItem(itemType, itemId)
 
               return {
                 content: [
@@ -191,7 +194,7 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
               itemType === 'task' ? validateDataField<number>(data, 'ticketId', 'number', '456') : undefined
 
             try {
-              await failQueueItem(itemType, itemId, errorMessage, ticketId)
+              await failQueueItem(itemType, itemId, errorMessage)
 
               return {
                 content: [
@@ -215,19 +218,20 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
             const validQueueId = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const stats = await getQueueStats(validQueueId)
 
-            const hasWork = stats.queuedItems > 0
+            const hasWork = stats.items.filter(item => item.status === 'queued').length > 0
+            const queuedItems = stats.items.filter(item => item.status === 'queued').length
             const workload = hasWork
-              ? `${stats.queuedItems} task${stats.queuedItems > 1 ? 's' : ''} waiting`
+              ? `${queuedItems} task${queuedItems > 1 ? 's' : ''} waiting`
               : 'No tasks waiting'
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Queue "${stats.queueName}" status:
+                  text: `Queue "${stats.queue.name}" status:
 ${workload}
-${stats.inProgressItems} in progress
-${stats.completedItems} completed
+${stats.items.filter(item => item.status === 'in_progress').length} in progress
+${stats.items.filter(item => item.status === 'completed').length} completed
 ${hasWork ? '\nTasks are available for processing!' : '\nQueue is empty - no tasks to process.'}`
                 }
               ]

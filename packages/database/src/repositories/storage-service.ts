@@ -10,14 +10,14 @@ import { ticketRepository, taskRepository } from './ticket-repository'
 import { chatRepository, messageRepository } from './chat-repository'
 import { promptRepository } from './prompt-repository'
 import { queueRepository, queueItemRepository } from './queue-repository'
-import { fileRepository, selectedFileRepository } from './file-repository'
+import { fileRepository } from './file-repository'
 import { 
   claudeAgentRepository, 
   claudeCommandRepository, 
   claudeHookRepository 
 } from './claude-repository'
 import { providerKeyRepository } from './provider-key-repository'
-import { activeTabRepository } from './app-state-repository'
+import { activeTabRepository, selectedFileRepository } from './app-state-repository'
 import { mcpServerRepository } from './mcp-server-repository'
 import { 
   projects,
@@ -189,8 +189,15 @@ export class StorageService {
 
     await Promise.all(repositories.map(async ({ name, repo }) => {
       try {
-        await repo.count()
-        repositoryChecks[name] = true
+        // Type assertion to ensure count method is available
+        const repositoryWithCount = repo as any
+        if (typeof repositoryWithCount.count === 'function') {
+          await repositoryWithCount.count()
+          repositoryChecks[name] = true
+        } else {
+          repositoryChecks[name] = false
+          errors.push(`${name}: count method not available`)
+        }
       } catch (error) {
         repositoryChecks[name] = false
         errors.push(`${name}: ${error instanceof Error ? error.message : String(error)}`)

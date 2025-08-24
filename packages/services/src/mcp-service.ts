@@ -41,7 +41,7 @@ export interface MCPServiceDeps {
 // Global MCP client manager factory
 function createMCPClientManager(repository: typeof mcpServerRepository, logger: ReturnType<typeof createServiceLogger>): MCPClientManager {
   return new MCPClientManager({
-    onServerStateChange: async (serverId, state) => {
+    onServerStateChange: async (serverId: number, state: any) => {
       logger.info(`MCP server ${serverId} state changed to: ${state}`)
       // Update server state in repository
       try {
@@ -53,7 +53,7 @@ function createMCPClientManager(repository: typeof mcpServerRepository, logger: 
         logger.error('Failed to update server state', { serverId, state, error })
       }
     },
-    onServerError: async (serverId, error) => {
+    onServerError: async (serverId: number, error: Error) => {
       logger.error(`MCP server ${serverId} error:`, error)
       // Update server state with error in repository
       try {
@@ -82,7 +82,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
   // Base CRUD operations using the service factory
   const baseService = createCrudService<McpServerConfig, CreateMCPServerConfig>({
     entityName: 'MCPServerConfig',
-    repository: repository as any, // TODO: Fix repository type mismatch
+    repository: repository as any, // Extended repository with additional methods
     schema: MCPServerConfigSchema,
     logger
   })
@@ -157,7 +157,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
         async () => {
           const existing = await baseService.getById(configId)
           
-          const updateData = {
+          const updateData: Partial<CreateMCPServerConfig> = {
             ...data,
             updatedAt: Date.now()
           }

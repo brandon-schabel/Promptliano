@@ -1,0 +1,337 @@
+import { z } from '@hono/zod-openapi'
+import {
+  TicketSchema,
+  ChatSchema,
+  QueueSchema,
+  ClaudeCommandSchema,
+  ClaudeHookSchema,
+  SelectedFileSchema,
+  ActiveTabSchema
+} from '@promptliano/database'
+
+// =============================================================================
+// MISSING RESPONSE SCHEMAS FOR AUTO-GENERATED ROUTES
+// =============================================================================
+// These schemas are imported by auto-generated routes but were missing from the codebase.
+// They provide standard response formats for various API operations.
+
+// Task List Response Schema
+export const TaskListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(z.object({
+      id: z.number(),
+      ticketId: z.number(),
+      title: z.string(),
+      description: z.string().nullable(),
+      status: z.enum(['pending', 'in_progress', 'completed']),
+      priority: z.enum(['low', 'normal', 'high']),
+      assignedTo: z.string().nullable(),
+      createdAt: z.number(),
+      updatedAt: z.number()
+    }))
+  })
+  .openapi('TaskListResponse')
+
+// Chat Message Create Schema
+export const ChatMessageCreateSchema = z
+  .object({
+    chatId: z.number().int().positive(),
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().min(1),
+    metadata: z.record(z.any()).optional().default({})
+  })
+  .openapi('ChatMessageCreate')
+
+// Chat Message Response Schema
+export const ChatMessageResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      id: z.number(),
+      chatId: z.number(),
+      role: z.enum(['user', 'assistant', 'system']),
+      content: z.string(),
+      metadata: z.record(z.any()).nullable(),
+      createdAt: z.number()
+    })
+  })
+  .openapi('ChatMessageResponse')
+
+// Chat Message List Response Schema
+export const ChatMessageListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(z.object({
+      id: z.number(),
+      chatId: z.number(),
+      role: z.enum(['user', 'assistant', 'system']),
+      content: z.string(),
+      metadata: z.record(z.any()).nullable(),
+      createdAt: z.number()
+    }))
+  })
+  .openapi('ChatMessageListResponse')
+
+// Chat Response Schema
+export const ChatResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      id: z.number(),
+      projectId: z.number(),
+      name: z.string(),
+      createdAt: z.number(),
+      updatedAt: z.number()
+    })
+  })
+  .openapi('ChatResponse')
+
+// Hook API Response Schema
+export const HookApiResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      id: z.number(),
+      projectId: z.number().nullable(),
+      name: z.string(),
+      event: z.string(),
+      command: z.string(),
+      enabled: z.boolean(),
+      createdAt: z.number(),
+      updatedAt: z.number()
+    })
+  })
+  .openapi('HookApiResponse')
+
+// Hook List Response Schema
+export const HookListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(z.object({
+      id: z.number(),
+      projectId: z.number().nullable(),
+      name: z.string(),
+      event: z.string(),
+      command: z.string(),
+      enabled: z.boolean(),
+      createdAt: z.number(),
+      updatedAt: z.number()
+    }))
+  })
+  .openapi('HookListResponse')
+
+// Create Hook Request Schema
+export const CreateHookRequestSchema = z
+  .object({
+    name: z.string().min(1),
+    event: z.string(),
+    command: z.string(),
+    enabled: z.boolean().default(true),
+    projectId: z.number().nullable().optional()
+  })
+  .openapi('CreateHookRequest')
+
+// Update Hook Request Schema
+export const UpdateHookRequestSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    event: z.string().optional(),
+    command: z.string().optional(),
+    enabled: z.boolean().optional()
+  })
+  .openapi('UpdateHookRequest')
+
+// Hook Event Schema
+export const HookEventSchema = z
+  .enum(['user-prompt-submit', 'tool-call', 'file-change'])
+  .openapi('HookEvent')
+
+// Hook Generation Request Schema
+export const HookGenerationRequestSchema = z
+  .object({
+    event: HookEventSchema,
+    description: z.string().min(1),
+    projectId: z.number().optional()
+  })
+  .openapi('HookGenerationRequest')
+
+// Hook Generation Response Schema
+export const HookGenerationResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      name: z.string(),
+      command: z.string(),
+      description: z.string()
+    })
+  })
+  .openapi('HookGenerationResponse')
+
+// Hook Test Request Schema
+export const HookTestRequestSchema = z
+  .object({
+    command: z.string(),
+    testData: z.record(z.any()).optional()
+  })
+  .openapi('HookTestRequest')
+
+// Hook Test Response Schema
+export const HookTestResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      exitCode: z.number(),
+      stdout: z.string(),
+      stderr: z.string(),
+      executionTime: z.number()
+    })
+  })
+  .openapi('HookTestResponse')
+
+// Queue Item Create Schema
+export const QueueItemCreateSchema = z
+  .object({
+    queueId: z.number().int().positive(),
+    type: z.string().min(1),
+    data: z.record(z.any()),
+    priority: z.number().int().min(0).max(10).default(5),
+    scheduledFor: z.number().optional(),
+    maxRetries: z.number().int().min(0).default(3)
+  })
+  .openapi('QueueItemCreate')
+
+// Queue Item Response Schema
+export const QueueItemResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      id: z.number(),
+      queueId: z.number(),
+      type: z.string(),
+      data: z.record(z.any()),
+      status: z.enum(['pending', 'processing', 'completed', 'failed']),
+      priority: z.number(),
+      scheduledFor: z.number().nullable(),
+      startedAt: z.number().nullable(),
+      completedAt: z.number().nullable(),
+      error: z.string().nullable(),
+      retryCount: z.number(),
+      maxRetries: z.number(),
+      createdAt: z.number(),
+      updatedAt: z.number()
+    })
+  })
+  .openapi('QueueItemResponse')
+
+// Queue Stats Response Schema
+export const QueueStatsResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      queueId: z.number(),
+      name: z.string(),
+      stats: z.object({
+        totalItems: z.number(),
+        pendingItems: z.number(),
+        processingItems: z.number(),
+        completedItems: z.number(),
+        failedItems: z.number(),
+        averageProcessingTime: z.number(),
+        throughputPerHour: z.number(),
+        errorRate: z.number(),
+        oldestPendingItem: z.number().nullable(),
+        lastProcessedItem: z.number().nullable()
+      })
+    })
+  })
+  .openapi('QueueStatsResponse')
+
+// =============================================================================
+// MISSING LIST RESPONSE SCHEMAS
+// =============================================================================
+
+// Ticket List Response Schema
+export const TicketListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(TicketSchema)
+  })
+  .openapi('TicketListResponse')
+
+// Chat List Response Schema  
+export const ChatListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ChatSchema)
+  })
+  .openapi('ChatListResponse')
+
+// Queue List Response Schema
+export const QueueListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(QueueSchema)
+  })
+  .openapi('QueueListResponse')
+
+// Claude Command List Response Schema
+export const ClaudeCommandListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ClaudeCommandSchema)
+  })
+  .openapi('ClaudeCommandListResponse')
+
+// Claude Hook List Response Schema
+export const ClaudeHookListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ClaudeHookSchema)
+  })
+  .openapi('ClaudeHookListResponse')
+
+// Selected File List Response Schema
+export const SelectedFileListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(SelectedFileSchema)
+  })
+  .openapi('SelectedFileListResponse')
+
+// Active Tab List Response Schema
+export const ActiveTabListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ActiveTabSchema)
+  })
+  .openapi('ActiveTabListResponse')
+
+// =============================================================================
+// TYPE EXPORTS
+// =============================================================================
+
+export type TaskListResponse = z.infer<typeof TaskListResponseSchema>
+export type ChatMessageCreate = z.infer<typeof ChatMessageCreateSchema>
+export type ChatMessageResponse = z.infer<typeof ChatMessageResponseSchema>
+export type ChatMessageListResponse = z.infer<typeof ChatMessageListResponseSchema>
+export type ChatResponse = z.infer<typeof ChatResponseSchema>
+export type HookApiResponse = z.infer<typeof HookApiResponseSchema>
+export type HookListResponse = z.infer<typeof HookListResponseSchema>
+export type CreateHookRequest = z.infer<typeof CreateHookRequestSchema>
+export type UpdateHookRequest = z.infer<typeof UpdateHookRequestSchema>
+export type HookEvent = z.infer<typeof HookEventSchema>
+export type HookGenerationRequest = z.infer<typeof HookGenerationRequestSchema>
+export type HookGenerationResponse = z.infer<typeof HookGenerationResponseSchema>
+export type HookTestRequest = z.infer<typeof HookTestRequestSchema>
+export type HookTestResponse = z.infer<typeof HookTestResponseSchema>
+export type QueueItemCreate = z.infer<typeof QueueItemCreateSchema>
+export type QueueItemResponse = z.infer<typeof QueueItemResponseSchema>
+export type QueueStatsResponse = z.infer<typeof QueueStatsResponseSchema>
+export type TicketListResponse = z.infer<typeof TicketListResponseSchema>
+export type ChatListResponse = z.infer<typeof ChatListResponseSchema>
+export type QueueListResponse = z.infer<typeof QueueListResponseSchema>
+export type ClaudeCommandListResponse = z.infer<typeof ClaudeCommandListResponseSchema>
+export type ClaudeHookListResponse = z.infer<typeof ClaudeHookListResponseSchema>
+export type SelectedFileListResponse = z.infer<typeof SelectedFileListResponseSchema>
+export type ActiveTabListResponse = z.infer<typeof ActiveTabListResponseSchema>

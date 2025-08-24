@@ -14,7 +14,9 @@ import { queueitemServiceV2 } from '@promptliano/services'
 import {
   QueueItemSchema,
   CreateQueueItemSchema,
-  UpdateQueueItemSchema,
+  UpdateQueueItemSchema
+} from '@promptliano/database'
+import {
   QueueItemIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,

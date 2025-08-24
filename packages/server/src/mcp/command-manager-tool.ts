@@ -12,11 +12,13 @@ import {
   suggestCommands,
   generateCommand,
   getProjectById,
-  type CreateClaudeCommandBody,
-  type UpdateClaudeCommandBody,
   type SearchCommandsQuery,
   type CommandGenerationRequest
 } from '@promptliano/services'
+import {
+  type InsertClaudeCommand as CreateClaudeCommandBody,
+  type InsertClaudeCommand as UpdateClaudeCommandBody
+} from '@promptliano/database'
 
 // Action enum
 export enum CommandManagerAction {
@@ -112,7 +114,7 @@ export const commandManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get/update/delete/execute: { commandName: "review-code", namespace: "analysis" }. For create: { name: "test-runner", content: "Run tests for: $ARGUMENTS", frontmatter: { description: "Run tests" } }. For search: { query: "security", scope: "project", includeGlobal: true }. For suggest: { context: "I need help with testing", limit: 5 }. For execute: { commandName: "review", arguments: "src/auth" }'
+          'Action-specific data. For get/update/delete/execute: { commandName: "review-code" }. For create: { name: "test-runner", command: "Run tests for: $ARGUMENTS", description: "Run tests", args: {} }. For search: { query: "security", includeGlobal: true }. For suggest: { context: "I need help with testing", limit: 5 }. For execute: { commandName: "review", arguments: { file: "src/auth" } }'
       }
     },
     required: ['action', 'projectId']
@@ -130,12 +132,10 @@ export const commandManagerTool: MCPToolDefinition = {
         switch (action) {
           case CommandManagerAction.LIST: {
             const query: SearchCommandsQuery = data || {}
-            const commands = await listCommands(project.path, query)
+            const commands = await listCommands(validProjectId, query)
             const commandList = commands
               .map((cmd) => {
-                const prefix = cmd.scope === 'user' ? '[USER] ' : ''
-                const ns = cmd.namespace ? `${cmd.namespace}:` : ''
-                return `${prefix}${ns}${cmd.name} - ${cmd.description || 'No description'}`
+                return `${cmd.name} - ${cmd.description || 'No description'}`
               })
               .join('\n')
             return {
@@ -145,19 +145,14 @@ export const commandManagerTool: MCPToolDefinition = {
 
           case CommandManagerAction.GET: {
             const commandName = validateDataField<string>(data, 'commandName', 'string', 'review-code')
-            const namespace = data?.namespace as string | undefined
-            const command = await getCommandByName(project.path, commandName, namespace)
+            const command = await getCommandByName(validProjectId, commandName)
             const details = `Command: ${command.name}
-Scope: ${command.scope}
-Namespace: ${command.namespace || 'root'}
 Description: ${command.description || 'No description'}
-File: ${command.filePath}
+Active: ${command.isActive}
+Args: ${JSON.stringify(command.args, null, 2)}
 
-Frontmatter:
-${JSON.stringify(command.frontmatter, null, 2)}
-
-Content:
-${command.content}`
+Command Content:
+${command.command}`
             return {
               content: [{ type: 'text', text: details }]
             }
@@ -165,22 +160,25 @@ ${command.content}`
 
           case CommandManagerAction.CREATE: {
             const name = validateDataField<string>(data, 'name', 'string', 'test-runner')
-            const content = validateDataField<string>(data, 'content', 'string', 'Run tests for: $ARGUMENTS')
+            const command = validateDataField<string>(data, 'command', 'string', 'Run tests for: $ARGUMENTS')
 
             const createData: CreateClaudeCommandBody = {
               name,
-              content,
-              namespace: data.namespace,
-              scope: data.scope || 'project',
-              frontmatter: data.frontmatter || {}
+              command,
+              description: data.description,
+              args: data.args || {},
+              projectId: validProjectId,
+              isActive: true,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
             }
 
-            const command = await createCommand(project.path, createData)
+            const createdCommand = await createCommand(validProjectId, createData)
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Command created successfully: ${command.name} (Scope: ${command.scope}, Namespace: ${command.namespace || 'root'})`
+                  text: `Command created successfully: ${createdCommand.name}`
                 }
               ]
             }
@@ -188,14 +186,16 @@ ${command.content}`
 
           case CommandManagerAction.UPDATE: {
             const commandName = validateDataField<string>(data, 'commandName', 'string', 'review-code')
-            const namespace = data?.namespace as string | undefined
 
-            const updateData: UpdateClaudeCommandBody = {}
-            if (data.content !== undefined) updateData.content = data.content
-            if (data.frontmatter !== undefined) updateData.frontmatter = data.frontmatter
-            if (data.newNamespace !== undefined) updateData.namespace = data.newNamespace
+            const updateData: Partial<UpdateClaudeCommandBody> = {
+              updatedAt: Date.now()
+            }
+            if (data.command !== undefined) updateData.command = data.command
+            if (data.description !== undefined) updateData.description = data.description
+            if (data.args !== undefined) updateData.args = data.args
+            if (data.isActive !== undefined) updateData.isActive = data.isActive
 
-            const command = await updateCommand(project.path, commandName, updateData, namespace)
+            const command = await updateCommand(validProjectId, commandName, updateData)
             return {
               content: [{ type: 'text', text: `Command updated successfully: ${command.name}` }]
             }
@@ -203,9 +203,8 @@ ${command.content}`
 
           case CommandManagerAction.DELETE: {
             const commandName = validateDataField<string>(data, 'commandName', 'string', 'review-code')
-            const namespace = data?.namespace as string | undefined
 
-            await deleteCommand(project.path, commandName, namespace)
+            await deleteCommand(validProjectId, commandName)
             return {
               content: [{ type: 'text', text: `Command '${commandName}' deleted successfully` }]
             }
@@ -213,10 +212,9 @@ ${command.content}`
 
           case CommandManagerAction.EXECUTE: {
             const commandName = validateDataField<string>(data, 'commandName', 'string', 'review-code')
-            const namespace = data?.namespace as string | undefined
-            const args = data?.arguments as string | undefined
+            const args = data?.arguments as Record<string, any> | undefined
 
-            const result = await executeCommand(project.path, commandName, args, namespace)
+            const result = await executeCommand(validProjectId, commandName, args)
             return {
               content: [{ type: 'text', text: result.result }]
             }
@@ -224,12 +222,10 @@ ${command.content}`
 
           case CommandManagerAction.SEARCH: {
             const query: SearchCommandsQuery = data || {}
-            const commands = await listCommands(project.path, query)
+            const commands = await listCommands(validProjectId, query)
             const results = commands
               .map((cmd) => {
-                const prefix = cmd.scope === 'user' ? '[USER] ' : ''
-                const ns = cmd.namespace ? `${cmd.namespace}:` : ''
-                return `${prefix}${ns}${cmd.name} - ${cmd.description || 'No description'}`
+                return `${cmd.name} - ${cmd.description || 'No description'}`
               })
               .join('\n')
             return {
@@ -241,10 +237,10 @@ ${command.content}`
             const context = data?.context || ''
             const limit = data?.limit || 5
             const suggestions = await suggestCommands(validProjectId, context, limit)
-            const suggestionList = suggestions.commands
+            const suggestionList = suggestions.suggestions
               .map(
-                (cmd, idx) =>
-                  `${idx + 1}. ${cmd.name} (${cmd.namespace || 'root'})\n   Description: ${cmd.description}\n   Relevance: ${cmd.relevanceScore.toFixed(2)}\n   Rationale: ${cmd.rationale}`
+                (cmd: any, idx: number) =>
+                  `${idx + 1}. ${cmd.name}\n   Description: ${cmd.description}\n   Category: ${cmd.category}\n   Use Case: ${cmd.useCase}\n   Difficulty: ${cmd.difficulty}`
               )
               .join('\n\n')
             return {
@@ -273,7 +269,7 @@ ${command.content}`
               name,
               description,
               userIntent,
-              namespace: data?.namespace,
+              category: data?.category || 'general',
               scope: data?.scope || 'project',
               context: data?.context
             }
@@ -285,15 +281,8 @@ ${command.content}`
             let response = `Generated Command: ${generatedCommand.name}\n\n`
             response += `Description: ${generatedCommand.description}\n\n`
             response += `Content:\n${generatedCommand.content}\n\n`
-            response += `Frontmatter:\n${JSON.stringify(generatedCommand.frontmatter, null, 2)}\n\n`
-            response += `Rationale: ${generatedCommand.rationale}\n`
-
-            if (generatedCommand.suggestedVariations && generatedCommand.suggestedVariations.length > 0) {
-              response += `\nSuggested Variations:\n`
-              generatedCommand.suggestedVariations.forEach((variation, idx) => {
-                response += `${idx + 1}. ${variation.name}: ${variation.description}\n   Changes: ${variation.changes}\n`
-              })
-            }
+            response += `Category: ${generatedCommand.category}\n\n`
+            response += `Reasoning: ${generatedCommand.reasoning}\n`
 
             return {
               content: [{ type: 'text', text: response }]

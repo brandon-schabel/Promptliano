@@ -25,20 +25,23 @@ export const providerKeyRepository = extendRepository(baseProviderKeyRepository,
    * Get provider key by name
    */
   async getByName(name: string): Promise<ProviderKey | null> {
-    return baseProviderKeyRepository.findOneWhere(eq(providerKeys.name, name))
+    const result = await baseProviderKeyRepository.findOneWhere(eq(providerKeys.name, name))
+    return result as ProviderKey | null
   },
 
   /**
    * Get all active provider keys
    */
   async getActive(): Promise<ProviderKey[]> {
-    return baseProviderKeyRepository.findWhere(eq(providerKeys.isActive, true))
+    const results = await baseProviderKeyRepository.findWhere(eq(providerKeys.isActive, true))
+    return results as ProviderKey[]
   },
 
   /**
    * Get keys by provider type
    */
   async getByProvider(provider: string): Promise<ProviderKey[]> {
-    return baseProviderKeyRepository.findWhere(eq(providerKeys.provider, provider))
+    const results = await baseProviderKeyRepository.findWhere(eq(providerKeys.provider, provider))
+    return results as ProviderKey[]
   }
 })

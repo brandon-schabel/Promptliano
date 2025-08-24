@@ -151,19 +151,27 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
     ]
 
     // Add individual file resources (limit to first 20 for performance)
-    const fileResources = (files || []).slice(0, 20).map((file) => ({
-      uri: `promptliano://projects/${projectId}/files/${file.id}`,
-      name: file.name,
-      description: `File: ${file.path} (${file.size} bytes)`,
-      mimeType:
-        file.extension === '.json'
-          ? 'application/json'
-          : file.extension === '.md'
-            ? 'text/markdown'
-            : file.extension.match(/\.(js|ts|jsx|tsx)$/)
-              ? 'text/javascript'
-              : 'text/plain'
-    }))
+    const fileResources = (files || []).slice(0, 20).map((file) => {
+      // Extract extension from file path
+      const extension = file.extension || (() => {
+        const pathParts = file.path.split('.')
+        return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+      })()
+      
+      return {
+        uri: `promptliano://projects/${projectId}/files/${file.id}`,
+        name: file.name,
+        description: `File: ${file.path} (${file.size} bytes)`,
+        mimeType:
+          extension === '.json'
+            ? 'application/json'
+            : extension === '.md'
+              ? 'text/markdown'
+              : extension.match(/\.(js|ts|jsx|tsx)$/)
+                ? 'text/javascript'
+                : 'text/plain'
+      }
+    })
 
     resources.push(...fileResources)
 
@@ -274,16 +282,22 @@ For more information, visit: https://github.com/Ejb503/promptliano`
             throw new Error(`File not found with ID: ${fileId}`)
           }
 
+          // Extract extension from file path
+          const extension = file.extension || (() => {
+            const pathParts = file.path.split('.')
+            return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+          })()
+
           return {
             contents: [
               {
                 uri,
                 mimeType:
-                  file.extension === '.json'
+                  extension === '.json'
                     ? 'application/json'
-                    : file.extension === '.md'
+                    : extension === '.md'
                       ? 'text/markdown'
-                      : file.extension.match(/\.(js|ts|jsx|tsx)$/)
+                      : extension.match(/\.(js|ts|jsx|tsx)$/)
                         ? 'text/javascript'
                         : 'text/plain',
                 text: file.content

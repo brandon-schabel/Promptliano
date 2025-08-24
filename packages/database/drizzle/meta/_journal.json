@@ -15,6 +15,13 @@
       "when": 1755966433598,
       "tag": "0001_orange_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1756000305345,
+      "tag": "0002_deep_husk",
+      "breakpoints": true
     }
   ]
 }

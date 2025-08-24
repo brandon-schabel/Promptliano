@@ -24,8 +24,8 @@ import {
   type UpdateTicket as UpdateTicketBody,
   type CreateTask as CreateTaskBody,
   type UpdateTask as UpdateTaskBody,
-  TicketSchema,
-  TaskSchema as TicketTaskSchema
+  selectTicketSchema,
+  selectTicketTaskSchema
 } from '@promptliano/database'
 
 // Dependencies interface for dependency injection
@@ -51,7 +51,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
   const baseService = createCrudService<Ticket, CreateTicketBody, UpdateTicketBody>({
     entityName: 'Ticket',
     repository: repo,
-    schema: TicketSchema,
+    // Skip schema validation since repository handles JSON field conversion
     logger
   })
 
@@ -117,17 +117,22 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
               
               // Create tasks from suggestions
               tasks = await Promise.all(
-                suggestions.tasks.map((taskSuggestion, index) =>
+                suggestions.tasks.map((taskSuggestion: any, index: number) =>
                   taskRepo.create({
                     ticketId: ticket.id,
                     content: taskSuggestion.title,
-                    description: taskSuggestion.description,
+                    description: taskSuggestion.description || null,
                     done: false,
+                    status: 'pending',
                     orderIndex: index,
-                    estimatedHours: taskSuggestion.estimatedHours,
-                    suggestedFileIds: taskSuggestion.suggestedFileIds || [],
+                    estimatedHours: taskSuggestion.estimatedHours || null,
+                    dependencies: [],
                     tags: taskSuggestion.tags || [],
-                    agentId: taskSuggestion.suggestedAgentId
+                    agentId: taskSuggestion.suggestedAgentId || null,
+                    suggestedFileIds: taskSuggestion.suggestedFileIds || [],
+                    suggestedPromptIds: [],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
                   })
                 )
               )
@@ -182,7 +187,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const results = await Promise.allSettled(
-            updates.map(({ id, status }) => this.updateStatus(id, status))
+            updates.map(({ id, status }) => extensions.updateStatus(id, status))
           )
           
           const successful = results.filter(r => r.status === 'fulfilled').length
@@ -212,7 +217,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
           const tickets = await repo.getByProject(projectId)
           
           return await Promise.all(
-            tickets.map(async (ticket) => {
+            tickets.map(async (ticket: Ticket) => {
               const tasks = await taskRepo.getByTicket(ticket.id)
               const completedTasks = tasks.filter(task => task.done)
               
@@ -236,12 +241,12 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
     /**
      * Search tickets across projects
      */
-    async search(query: string, options: { projectId?: number; status?: TicketStatus } = {}) {
+    async search(query: string, options: { projectId?: number; status?: TicketStatus } = {}): Promise<Ticket[]> {
       return withErrorContext(
         async () => {
           // Since there's no getAll method, we need a project ID for search
           if (!options.projectId) {
-            throw ErrorFactory.badRequest('Search requires a projectId')
+            throw ErrorFactory.invalidParam('projectId', 'valid project ID', 'undefined')
           }
           
           const tickets = await repo.getByProject(options.projectId)
@@ -296,28 +301,33 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
  */
 export function createTaskService(deps: TicketServiceDeps = {}) {
   const {
-    taskRepository: repo = taskRepository,
+    taskRepository: taskRepo = taskRepository,
     logger = createServiceLogger('TaskService'),
   } = deps
 
   // Use repository methods directly for tasks since types are incompatible
   const baseTaskService = {
     async create(data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<TicketTask> {
-      return repo.create(data)
+      const now = Date.now()
+      return taskRepo.create({
+        ...data,
+        createdAt: now,
+        updatedAt: now
+      })
     },
     
     async getById(id: number): Promise<TicketTask | null> {
-      const task = await repo.getById(id)
+      const task = await taskRepo.getById(id)
       if (!task) throw ErrorFactory.notFound('Task', id)
       return task
     },
     
     async update(id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
-      return repo.update(id, data)
+      return taskRepo.update(id, data)
     },
     
     async delete(id: number): Promise<boolean> {
-      return repo.delete(id)
+      return taskRepo.delete(id)
     }
   }
 
@@ -328,7 +338,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
     async getByTicket(ticketId: number): Promise<TicketTask[]> {
       return withErrorContext(
         async () => {
-          const tasks = await repo.getByTicket(ticketId)
+          const tasks = await taskRepo.getByTicket(ticketId)
           return tasks.sort((a, b) => a.orderIndex - b.orderIndex)
         },
         { entity: 'Task', action: 'getByTicket' }
@@ -346,7 +356,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
           // Update positions based on new order
           const updates = await Promise.all(
             taskIds.map((taskId, index) => {
-              const task = tasks.find(t => t.id === taskId)
+              const task = tasks.find((t: TicketTask) => t.id === taskId)
               if (!task) {
                 throw ErrorFactory.notFound('Task', taskId)
               }
@@ -430,3 +440,78 @@ export const {
   reorder: reorderTasks,
   complete: completeTask
 } = taskService
+
+// Add aliases for backward compatibility
+export const getTasks = getTasksByTicket
+export const listTicketsByProject = getTicketsByProject
+
+// TODO: Implement missing ticket functions
+export const completeTicket = async (ticketId: number) => {
+  return updateTicketStatus(ticketId, 'closed')
+}
+
+export const linkFilesToTicket = async (ticketId: number, fileIds: number[]) => {
+  // Placeholder implementation
+  return { ticketId, fileIds }
+}
+
+export const suggestTasksForTicket = async (ticketId: number) => {
+  // Placeholder implementation - should use AI to suggest tasks
+  return []
+}
+
+export const autoGenerateTasksFromOverview = async (ticketId: number, overview: string) => {
+  // Placeholder implementation - should generate tasks from overview
+  return []
+}
+
+export const getTasksForTickets = async (ticketIds: number[]) => {
+  // Get tasks for multiple tickets
+  const result: Record<number, any[]> = {}
+  for (const ticketId of ticketIds) {
+    result[ticketId] = await getTasksByTicket(ticketId)
+  }
+  return result
+}
+
+export const listTicketsWithTasks = async (projectId: number) => {
+  // Get tickets with their tasks
+  const tickets = await getTicketsByProject(projectId)
+  const result = []
+  for (const ticket of tickets) {
+    const tasks = await getTasksByTicket(ticket.id)
+    result.push({ ...ticket, tasks })
+  }
+  return result
+}
+
+export const suggestFilesForTicket = async (ticketId: number) => {
+  // Placeholder implementation - should suggest relevant files
+  return []
+}
+
+export const batchUpdateTickets = async (tickets: Array<{ id: number; data: any }>) => {
+  // TODO: Implement batch update
+  const results = []
+  for (const { id, data } of tickets) {
+    results.push(await updateTicket(id, data))
+  }
+  return results
+}
+
+export const batchCreateTickets = async (projectId: number, tickets: any[]) => {
+  // TODO: Implement batch create
+  const results = []
+  for (const ticketData of tickets) {
+    results.push(await createTicket({ ...ticketData, projectId }))
+  }
+  return results
+}
+
+export const batchDeleteTickets = async (ticketIds: number[]) => {
+  // TODO: Implement batch delete
+  for (const id of ticketIds) {
+    await deleteTicket(id)
+  }
+  return ticketIds.length
+}

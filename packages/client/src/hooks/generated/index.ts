@@ -491,19 +491,20 @@ export function useChatMessages(chatId: number) {
   })
 }
 
-export function useStreamChat() {
-  const client = useApiClient()
-  
-  return useMutation({
-    mutationFn: (data: any) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.chats.streamChat(data)
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to start chat stream')
-    }
-  })
-}
+// Moved to ai-chat-hooks.ts to avoid duplicate export
+// export function useStreamChat() {
+//   const client = useApiClient()
+//   
+//   return useMutation({
+//     mutationFn: (data: any) => {
+//       if (!client) throw new Error('API client not initialized')
+//       return client.chats.streamChat(data)
+//     },
+//     onError: (error: any) => {
+//       toast.error(error.message || 'Failed to start chat stream')
+//     }
+//   })
+// }
 
 /**
  * Enhanced Queue Hooks with Stats and Items
@@ -535,25 +536,26 @@ export function useQueueItems(queueId: number, status?: string) {
   })
 }
 
-export function useEnqueueTicket(queueId: number) {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: ({ ticketId, priority }: { ticketId: number; priority?: number }) => {
-      if (!client) throw new Error('API client not initialized')
-      return client.queues.enqueueTicket(queueId, ticketId, priority).then(r => r.data)
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.items(queueId) })
-      queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.stats(queueId) })
-      toast.success(`${data.length} tasks enqueued successfully`)
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to enqueue ticket')
-    }
-  })
-}
+// Moved to flow-hooks.ts to avoid duplicate export
+// export function useEnqueueTicket(queueId: number) {
+//   const client = useApiClient()
+//   const queryClient = useQueryClient()
+//   
+//   return useMutation({
+//     mutationFn: ({ ticketId, priority }: { ticketId: number; priority?: number }) => {
+//       if (!client) throw new Error('API client not initialized')
+//       return client.queues.enqueueTicket(queueId, ticketId, priority).then(r => r.data)
+//     },
+//     onSuccess: (data) => {
+//       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.items(queueId) })
+//       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.stats(queueId) })
+//       toast.success(`${data.length} tasks enqueued successfully`)
+//     },
+//     onError: (error: any) => {
+//       toast.error(error.message || 'Failed to enqueue ticket')
+//     }
+//   })
+// }
 
 // ============================================================================
 // Exported Hook Collections with Backward Compatibility

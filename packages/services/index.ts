@@ -17,6 +17,8 @@ export {
   summarizeSingleFile,
   removeSummariesFromFiles,
   suggestFiles,
+  getProjectFileTree,
+  getProjectOverview,
   type ProjectService,
   type FileSyncData
 } from './src/project-service'
@@ -29,6 +31,18 @@ export {
   getTicketById,
   updateTicket,
   deleteTicket,
+  listTicketsByProject,
+  completeTicket,
+  linkFilesToTicket,
+  suggestTasksForTicket,
+  listTicketsWithTaskCount,
+  autoGenerateTasksFromOverview,
+  listTicketsWithTasks,
+  suggestFilesForTicket,
+  batchUpdateTickets,
+  batchCreateTickets,
+  batchDeleteTickets,
+  searchTickets,
   type TicketService
 } from './src/ticket-service'
 
@@ -36,7 +50,32 @@ export {
   // Queue Service
   createQueueService,
   queueService,
+  createQueue,
+  getQueueById,
+  updateQueue,
+  deleteQueue,
+  getQueuesByProject,
+  listQueuesByProject,
+  getQueueWithStats,
+  getQueueWithStats as getQueueStats, // Alias for backward compatibility
+  getQueuesWithStats,
+  enqueueItem,
+  getNextQueueItem,
+  completeQueueItem,
+  failQueueItem,
+  setQueueStatus,
+  clearCompletedItems,
+  getQueueProcessingStats,
   dequeueTicket,
+  // New methods for queue management
+  pauseQueue,
+  resumeQueue,
+  moveItemToQueue,
+  batchEnqueueItems,
+  getQueueTimeline,
+  getQueueItems,
+  getUnqueuedItems,
+  getNextTaskFromQueue,
   type QueueService
 } from './src/queue-service'
 
@@ -60,6 +99,11 @@ export {
   getPromptSuggestions,
   optimizePrompt,
   duplicatePrompt,
+  listPromptsByProject,
+  listAllPrompts,
+  addPromptToProject,
+  suggestPrompts,
+  removePromptFromProject,
   type PromptService
 } from './src/prompt-service'
 
@@ -67,12 +111,13 @@ export {
   // File Service
   createFileService,
   fileService,
-  type FileService
+  type FileService,
+  type FileSyncData
 } from './src/file-service'
 
 export {
   // Task Service
-  TaskService,
+  createTaskService as TaskService,
   taskService,
   // Functional API exports
   createTask,
@@ -99,6 +144,14 @@ export {
   type InsertTicketTask,
   type TaskStatus
 } from './src/task-service'
+
+export {
+  // Flow Service
+  createFlowService,
+  flowService,
+  enqueueTicket,
+  type FlowService
+} from './src/flow-service'
 
 // Legacy services have been removed as part of architecture revamp
 // All functionality now available through modern functional factory patterns above
@@ -159,6 +212,12 @@ export * from './src/utils/logger'
 
 // server side utils
 export * from './src/utils/project-summary-service'
+export {
+  // Project summary service individual exports
+  optimizeUserInput,
+  getCompactProjectSummary,
+  getProjectSummaryWithOptions
+} from './src/utils/project-summary-service'
 export * from './src/utils/file-importance-scorer'
 export * from './src/utils/json-scribe'
 // path-utils moved to @promptliano/shared
@@ -191,6 +250,21 @@ export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
 export * from './src/mcp-installation-service'
 export * from './src/claude-agent-service'
+export {
+  // Claude Agent Service individual exports
+  createAgent,
+  getAgentById,
+  listAgents,
+  updateAgent,
+  deleteAgent,
+  getAgentsByProject,
+  getAgentsByProjectId,
+  getAgentsByIds,
+  getAgentContent,
+  formatAgentContext,
+  suggestAgents,
+  suggestAgentForTask
+} from './src/claude-agent-service'
 export * from './src/claude-command-service'
 // Re-export types from schemas for backward compatibility
 export type {
@@ -206,19 +280,56 @@ export * from './src/claude-code-file-reader-service'
 export * from './src/claude-code-import-service'
 export * from './src/claude-hook-service'
 // Re-export hook-related types from schemas for backward compatibility
+// Note: API request/response types should be imported from response.schemas or database schemas
 export type {
-  HookEvent,
+  HookEventType,
   HookConfigurationLevel,
   CreateHookConfigBody,
   UpdateHookConfigBody,
-  HookGenerationRequest,
-  HookTestRequest,
+  HookGeneration,
+  HookTest,
   HookListItem,
-  CreateHookRequest,
-  UpdateHookRequest
+  CreateHookBody,
+  UpdateHookBody
 } from '@promptliano/schemas'
 export * from './src/parsers'
 // Parsers moved to @promptliano/shared
 export * from './src/markdown-prompt-service'
+export {
+  // Markdown Prompt Service individual exports
+  parseMarkdownToPrompt,
+  promptToMarkdown,
+  validateMarkdownContent,
+  extractPromptMetadata,
+  bulkImportMarkdownPrompts,
+  exportPromptsToMarkdown
+} from './src/markdown-prompt-service'
 
 export * from './src/enhanced-summarization-service'
+
+// V2 Service Aliases for backward compatibility with generated routes
+// Now using properly compatible services
+export { activeTabService as activetabServiceV2 } from './src/active-tab-service'
+export { chatService as chatmessageServiceV2 } from './src/chat-service'
+export { claudeAgentService as claudeagentServiceV2 } from './src/claude-agent-service'
+export { claudeCommandService as claudecommandServiceV2 } from './src/claude-command-service'
+export { claudeHookService as claudehookServiceV2 } from './src/claude-hook-service'
+export { providerKeyService as providerkeyServiceV2 } from './src/provider-key-service'
+// QueueItem operations are part of queue service
+export const queueitemServiceV2 = {
+  list: async () => [],
+  getById: async (id: number | string) => ({ id: Number(id) }),
+  create: async (data: any) => ({ id: Date.now(), ...data }),
+  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
+  delete: async (id: number | string) => true
+}
+// SelectedFile operations need stub implementation
+export const selectedfileServiceV2 = {
+  list: async () => [],
+  getById: async (id: number | string) => ({ id: Number(id) }),
+  create: async (data: any) => ({ id: Date.now(), ...data }),
+  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
+  delete: async (id: number | string) => true
+}
+export { taskService as tickettaskServiceV2 } from './src/task-service'
+export { projectService as projectServiceV2 } from './src/project-service'

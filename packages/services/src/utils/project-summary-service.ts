@@ -12,12 +12,23 @@ import type {
   SummaryVersion,
   SummaryMetrics,
   EnhancedProjectSummaryResponse,
-  ProjectFile
 } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 import { getProjectFiles } from '../project-service'
 import { generateSingleText } from '../gen-ai-services'
 import { LOW_MODEL_CONFIG } from '@promptliano/config'
 import { sortFilesByImportance, getTopImportantFiles, filterByImportance } from './file-importance-scorer'
+
+// Convert database File to legacy ProjectFile for compatibility
+function convertFileToLegacyFormat(file: ProjectFile): any {
+  return {
+    ...file,
+    created: file.createdAt,
+    updated: file.updatedAt,
+    extension: file.path.split('.').pop() || '',
+    // All other properties match
+  }
+}
 
 // Cache for project summaries with TTL
 interface CachedSummary {
@@ -32,9 +43,9 @@ const SUMMARY_CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
 
 // Summary model configuration optimized for token efficiency
 export const SUMMARY_MODEL_CONFIG = {
-  ...LOW_MODEL_CONFIG,
-  temperature: 0.3, // Lower for consistent summaries
-  maxTokens: 1000 // Reduced from 20000
+  temperature: 0.3,
+  maxTokens: 1000,
+  model: 'gemini-1.5-flash' // Default model
 }
 
 // Helper function to get cache key
@@ -104,7 +115,7 @@ export async function getProjectSummaryWithOptions(
   switch (options.strategy) {
     case 'fast':
       // No AI processing, just structured data
-      summary = buildProjectSummaryWithFormat(selectedFiles, options.format, options)
+      summary = buildProjectSummaryWithFormat(selectedFiles.map(convertFileToLegacyFormat), options.format, options)
       break
 
     case 'balanced':
@@ -183,20 +194,20 @@ async function filterFilesForSummary(files: ProjectFile[], options: SummaryOptio
   switch (options.depth) {
     case 'minimal':
       // Only include most important files
-      filtered = filterByImportance(filtered, 2.0)
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 2.0).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
       break
     case 'standard':
       // Include moderately important files
-      filtered = filterByImportance(filtered, 1.0)
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 1.0).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
       break
     case 'detailed':
       // Include all files except very low importance
-      filtered = filterByImportance(filtered, 0.5)
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 0.5).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
       break
   }
 
   // Sort by importance for better organization
-  filtered = sortFilesByImportance(filtered)
+  filtered = sortFilesByImportance(filtered.map(convertFileToLegacyFormat)).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
 
   return filtered
 }
@@ -210,7 +221,8 @@ async function generateAISummary(
   useHighQuality = false
 ): Promise<string> {
   // Build structured summary
-  const structuredSummary = buildProjectSummaryWithFormat(files, 'xml', options)
+  const legacyFiles = files.map(convertFileToLegacyFormat)
+  const structuredSummary = buildProjectSummaryWithFormat(legacyFiles, 'xml', options)
 
   // Ensure the summary doesn't exceed character limits based on depth
   const truncationResult = truncateForSummarization(structuredSummary, options.depth || 'standard')
@@ -244,7 +256,7 @@ async function generateAISummary(
     // Fallback to structured summary if AI fails
     console.error(`[ProjectSummary] AI service failed:`, error)
     return buildProjectSummaryWithFormat(
-      files.slice(0, 50), // Limit files for fallback
+      files.slice(0, 50).map(convertFileToLegacyFormat), // Limit files for fallback
       options.format,
       options
     )
@@ -308,9 +320,9 @@ function estimateTokenCount(text: string): number {
 
 // High quality model config for thorough summaries
 const HIGH_QUALITY_SUMMARY_CONFIG = {
-  ...SUMMARY_MODEL_CONFIG,
+  temperature: 0.5,
   maxTokens: 2000,
-  temperature: 0.5
+  model: 'gemini-1.5-pro'
 }
 
 // Legacy functions for backward compatibility
@@ -344,4 +356,17 @@ export async function getCompactProjectSummary(projectId: number): Promise<strin
     contextWindow: 4000
   })
   return result.summary
+}
+
+// Alias for backward compatibility
+export const getProjectCompactSummary = getCompactProjectSummary
+
+// TODO: Implement user input optimization
+export async function optimizeUserInput(input: string, projectId?: number): Promise<string> {
+  // Placeholder implementation - should optimize user input for AI processing
+  // Could include:
+  // - Removing redundant information
+  // - Adding relevant context from project
+  // - Structuring the input better
+  return input
 }

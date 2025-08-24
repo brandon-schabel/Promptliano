@@ -14,7 +14,9 @@ import { projectService } from '@promptliano/services'
 import {
   ProjectSchema,
   CreateProjectSchema,
-  UpdateProjectSchema,
+  UpdateProjectSchema
+} from '@promptliano/database'
+import {
   ProjectIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -44,7 +46,7 @@ const projectConfig: EntityConfig = {
     entity: ProjectSchema,
     create: CreateProjectSchema,
     update: UpdateProjectSchema,
-    id: ProjectIdParamsSchema.shape.id
+    id: ProjectIdParamsSchema.shape.projectId
   },
   service: projectService,
   options: {

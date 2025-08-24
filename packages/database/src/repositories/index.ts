@@ -10,7 +10,7 @@ export * from './ticket-repository' // Also exports taskRepository
 export * from './chat-repository' // Also exports messageRepository
 export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
-export * from './file-repository' // Also exports selectedFileRepository
+export * from './file-repository'
 
 // Claude-specific repositories
 export * from './claude-repository' // Exports claudeAgentRepository, claudeCommandRepository, claudeHookRepository

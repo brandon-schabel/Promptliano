@@ -24,7 +24,9 @@ import {
   searchTickets,
   batchCreateTickets,
   batchUpdateTickets,
-  batchDeleteTickets
+  batchDeleteTickets,
+  type Ticket,
+  type TicketTask
 } from '@promptliano/services'
 import type { CreateTicketBody, UpdateTicketBody } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
@@ -66,7 +68,7 @@ export const ticketManagerTool: MCPToolDefinition = {
             const tickets = await listTicketsByProject(validProjectId, status)
             const ticketList = tickets
               .map(
-                (t) =>
+                (t: Ticket) =>
                   `${t.id}: ${t.title} [${t.status}/${t.priority}] - ${(t.overview || '').substring(0, 50)}${(t.overview || '').length > 50 ? '...' : ''}`
               )
               .join('\n')
@@ -147,7 +149,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
             const tickets = await listTicketsWithTaskCount(validProjectId, status)
             const ticketList = tickets
               .map(
-                (t) => `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
+                (t: any) => `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
               )
               .join('\n')
             return {
@@ -159,7 +161,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
             const userContext = data?.userContext as string | undefined
             const suggestions = await suggestTasksForTicket(ticketId, userContext)
-            const suggestionList = suggestions.map((task, idx) => `${idx + 1}. ${task}`).join('\n')
+            const suggestionList = suggestions.map((task: string, idx: number) => `${idx + 1}. ${task}`).join('\n')
             return {
               content: [{ type: 'text', text: suggestionList || 'No task suggestions generated' }]
             }
@@ -170,7 +172,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
             try {
               const tasks = await autoGenerateTasksFromOverview(ticketId)
-              const taskList = tasks.map((t) => `${t.id}: ${t.content}`).join('\n')
+              const taskList = tasks.map((t: TicketTask) => `${t.id}: ${t.content}`).join('\n')
               return {
                 content: [{ type: 'text', text: `Generated ${tasks.length} tasks:\n${taskList}` }]
               }
@@ -251,7 +253,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
                 })
               }
 
-              const ticketList = result.tickets.map((t) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
+              const ticketList = result.tickets.map((t: Ticket) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
 
               return {
                 content: [
@@ -296,7 +298,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
                   text:
                     `Batch create completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
                     (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f) => `- ${JSON.stringify(f.item)}: ${f.error}`).join('\n')}`
+                      ? `Failures:\n${result.failed.map((f: any) => `- ${JSON.stringify(f.item)}: ${f.error}`).join('\n')}`
                       : '')
                 }
               ]
@@ -333,7 +335,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
                   text:
                     `Batch update completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
                     (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f) => `- Ticket ${f.item.ticketId}: ${f.error}`).join('\n')}`
+                      ? `Failures:\n${result.failed.map((f: any) => `- Ticket ${f.item.ticketId}: ${f.error}`).join('\n')}`
                       : '')
                 }
               ]
@@ -364,7 +366,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
                   type: 'text',
                   text:
                     `Batch delete completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0 ? `Failed IDs: ${result.failed.map((f) => f.item).join(', ')}` : '')
+                    (result.failed.length > 0 ? `Failed IDs: ${result.failed.map((f: any) => f.item).join(', ')}` : '')
                 }
               ]
             }

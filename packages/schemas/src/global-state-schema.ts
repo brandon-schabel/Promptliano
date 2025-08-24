@@ -1,9 +1,23 @@
 import { z } from 'zod'
-import { providerSchema, type APIProviders } from './provider-key.schemas'
+import { type APIProviders } from '@promptliano/database'
 import { idSchemaSpec, idArraySchemaSpec } from './schema-utils'
 import { DEFAULT_MODEL_EXAMPLES } from './model-defaults'
 
 const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
+
+// Provider schema based on APIProviders type from database
+export const providerSchema = z.enum([
+  'openai',
+  'openrouter', 
+  'lmstudio',
+  'ollama',
+  'xai',
+  'google_gemini',
+  'anthropic',
+  'groq',
+  'together',
+  'custom'
+])
 
 export const EDITOR_OPTIONS = [
   { value: 'vscode', label: 'VS Code' },

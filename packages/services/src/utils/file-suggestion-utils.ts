@@ -311,7 +311,7 @@ export class SuggestionMetricsTracker {
     if (!metrics) return undefined
 
     const endTime = Date.now()
-    const { savings: tokensSaved } = calculateTokenSavings(files)
+    const { savings: tokensSaved } = calculateTokenSavings(files as any)
 
     const finalMetrics: any = {
       ...metrics,

@@ -789,7 +789,7 @@ export const projectRoutes = new OpenAPIHono()
 
     for (const update of updates) {
       try {
-        const updatedFile = await updateFileContent(projectId, update.fileId, update.content)
+        const updatedFile = await updateFileContent(projectId, update.fileId.toString(), update.content)
         updatedFiles.push(updatedFile)
       } catch (error) {
         console.error(`Failed to update file ${update.fileId}:`, error)
@@ -804,7 +804,7 @@ export const projectRoutes = new OpenAPIHono()
     const { projectId, fileId } = c.req.valid('param')
     const { content } = c.req.valid('json')
 
-    const updatedFile = await updateFileContent(projectId, fileId, content)
+    const updatedFile = await updateFileContent(projectId, fileId.toString(), content)
 
     return c.json(successResponse(updatedFile), 200)
   })

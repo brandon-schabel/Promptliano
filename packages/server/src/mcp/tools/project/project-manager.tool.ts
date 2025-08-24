@@ -353,6 +353,7 @@ Version Info:
               )
             }
 
+            // Use file.id (which is the path) directly now that service layer is fixed
             await updateFileContent(validProjectId, file.id, content)
             return {
               content: [{ type: 'text', text: `File ${filePath} updated successfully` }]

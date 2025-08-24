@@ -1,27 +1,72 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { ApiError } from '@promptliano/shared'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse, createSuccessResponseSchema, createListResponseSchema } from '../utils/route-helpers'
 import {
-  type ProviderKey
+  type ProviderKey,
+  ProviderKeySchema,
+  CreateProviderKeySchema,
+  UpdateProviderKeySchema
 } from '@promptliano/database'
 import {
-  CreateProviderKeyBodySchema,
-  UpdateProviderKeyBodySchema,
   ProviderKeyIdParamsSchema,
-  ProviderKeyResponseSchema,
-  ProviderKeyListResponseSchema,
   TestProviderRequestSchema,
-  TestProviderApiResponseSchema,
   BatchTestProviderRequestSchema,
-  BatchTestProviderApiResponseSchema,
-  ProviderHealthStatusListResponseSchema,
   ValidateCustomProviderRequestSchema,
   ValidateCustomProviderResponseSchema
 } from '@promptliano/schemas'
 import { providerKeyService, validateCustomProvider } from '@promptliano/services'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { updateProviderSettings } from '@promptliano/services'
+
+// Create response schemas using helper functions
+const ProviderKeyResponseSchema = createSuccessResponseSchema(ProviderKeySchema, 'ProviderKeyResponse')
+const ProviderKeyListResponseSchema = createListResponseSchema(ProviderKeySchema, 'ProviderKeyListResponse')
+
+// Provider testing response schemas
+const TestProviderApiResponseSchema = createSuccessResponseSchema(
+  z.object({
+    success: z.boolean(),
+    providerId: z.number(),
+    provider: z.string(),
+    model: z.string().optional(),
+    latency: z.number(),
+    error: z.string().optional(),
+    response: z.string().optional()
+  }),
+  'TestProviderApiResponse'
+)
+
+const BatchTestProviderApiResponseSchema = createSuccessResponseSchema(
+  z.object({
+    results: z.array(z.object({
+      success: z.boolean(),
+      providerId: z.number(),
+      provider: z.string(),
+      model: z.string().optional(),
+      latency: z.number(),
+      error: z.string().optional(),
+      response: z.string().optional()
+    })),
+    summary: z.object({
+      total: z.number(),
+      successful: z.number(),
+      failed: z.number(),
+      averageLatency: z.number().optional()
+    })
+  }),
+  'BatchTestProviderApiResponse'
+)
+
+const ProviderHealthStatusListResponseSchema = createListResponseSchema(
+  z.object({
+    status: z.enum(['healthy', 'degraded', 'down', 'unknown']),
+    latency: z.number().optional(),
+    lastChecked: z.number(),
+    error: z.string().optional()
+  }),
+  'ProviderHealthStatusListResponse'
+)
 
 const createProviderKeyRoute = createRoute({
   method: 'post',
@@ -30,7 +75,7 @@ const createProviderKeyRoute = createRoute({
   summary: 'Add a new API key for an AI provider',
   request: {
     body: {
-      content: { 'application/json': { schema: CreateProviderKeyBodySchema } },
+      content: { 'application/json': { schema: CreateProviderKeySchema } },
       required: true
     }
   },
@@ -47,7 +92,7 @@ const listProviderKeysRoute = createRoute({
 
 const getProviderKeyByIdRoute = createRoute({
   method: 'get',
-  path: '/api/keys/{keyId}',
+  path: '/api/keys/{id}',
   tags: ['Provider Keys'],
   summary: 'Get a specific provider key by ID (including secret)',
   request: {
@@ -58,13 +103,13 @@ const getProviderKeyByIdRoute = createRoute({
 
 const updateProviderKeyRoute = createRoute({
   method: 'patch',
-  path: '/api/keys/{keyId}',
+  path: '/api/keys/{id}',
   tags: ['Provider Keys'],
   summary: "Update a provider key's details",
   request: {
     params: ProviderKeyIdParamsSchema,
     body: {
-      content: { 'application/json': { schema: UpdateProviderKeyBodySchema } },
+      content: { 'application/json': { schema: UpdateProviderKeySchema } },
       required: true
     }
   },
@@ -73,7 +118,7 @@ const updateProviderKeyRoute = createRoute({
 
 const deleteProviderKeyRoute = createRoute({
   method: 'delete',
-  path: '/api/keys/{keyId}',
+  path: '/api/keys/{id}',
   tags: ['Provider Keys'],
   summary: 'Delete a provider key',
   request: {
@@ -179,8 +224,8 @@ export const providerKeyRoutes = new OpenAPIHono()
   })
 
   .openapi(getProviderKeyByIdRoute, async (c) => {
-    const { keyId } = c.req.valid('param')
-    const key = await providerKeyService.getKeyById(keyId)
+    const { id } = c.req.valid('param')
+    const key = await providerKeyService.getKeyById(id)
     if (!key) {
       throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
     }
@@ -188,15 +233,15 @@ export const providerKeyRoutes = new OpenAPIHono()
   })
 
   .openapi(updateProviderKeyRoute, async (c) => {
-    const { keyId } = c.req.valid('param')
+    const { id } = c.req.valid('param')
     const body = c.req.valid('json')
-    const updatedKey = await providerKeyService.updateKey(keyId, body)
+    const updatedKey = await providerKeyService.updateKey(id, body)
     return c.json(successResponse(updatedKey), 200)
   })
 
   .openapi(deleteProviderKeyRoute, async (c) => {
-    const { keyId } = c.req.valid('param')
-    await providerKeyService.deleteKey(keyId)
+    const { id } = c.req.valid('param')
+    await providerKeyService.deleteKey(id)
     return c.json(operationSuccessResponse('Key deleted successfully.'), 200)
   })
 
