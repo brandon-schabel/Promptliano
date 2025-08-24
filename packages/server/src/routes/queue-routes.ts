@@ -164,8 +164,8 @@ const deleteQueueRoute = createRoute({
 
 queueRoutesApp.openapi(deleteQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
-  await deleteQueue(queueId)
-  return c.json(successResponse({ deleted: true }))
+  const deleted = await deleteQueue(queueId)
+  return c.json(successResponse({ deleted }))
 })
 
 // Enqueue ticket
@@ -199,8 +199,10 @@ queueRoutesApp.openapi(enqueueTicketRoute, async (c) => {
   const { queueId, priority, includeTasks } = c.req.valid('json')
 
   if (includeTasks) {
-    const result = await enqueueTicketWithAllTasks(ticketId, queueId, priority)
-    return c.json(successResponse(result.ticket))
+    const tasksCount = await enqueueTicketWithAllTasks(ticketId, queueId, priority)
+    // Since enqueueTicketWithAllTasks returns a number, we need to get the ticket separately
+    const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
+    return c.json(successResponse(ticket))
   } else {
     const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
     return c.json(successResponse(ticket))

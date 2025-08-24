@@ -118,6 +118,7 @@ export const projectManagerTool: MCPToolDefinition = {
               })
             }
 
+            if (!deleteProject) throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete project service unavailable')
             const success = await deleteProject(validProjectId)
             return {
               content: [

@@ -8,7 +8,7 @@ import {
   gitResetRequestSchema,
   ApiErrorResponseSchema
 } from '@promptliano/schemas'
-import * as gitService from '@promptliano/services'
+import { getRemotes, push, fetch, pull, getTags, createTag, stash, stashList, stashApply, reset } from '@promptliano/services'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Define reusable response schemas
@@ -55,7 +55,7 @@ const getRemotesRoute = createRoute({
 
 gitAdvancedRoutes.openapi(getRemotesRoute, async (c) => {
   const { projectId } = c.req.valid('param')
-  const remotes = await gitService.getRemotes(projectId)
+  const remotes = await getRemotes(projectId)
   return c.json(successResponse(remotes))
 })
 
@@ -84,7 +84,7 @@ gitAdvancedRoutes.openapi(pushRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const { remote, branch, force, setUpstream } = c.req.valid('json')
 
-  await gitService.push(projectId, remote || 'origin', branch, { force, setUpstream })
+  await push(projectId, remote || 'origin', branch, { force, setUpstream })
 
   return c.json(operationSuccessResponse(
     `Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`
@@ -153,7 +153,7 @@ gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { remote, prune } = c.req.valid('json')
 
-    await gitService.fetch(projectId, remote || 'origin', { prune })
+    await fetch(projectId, remote || 'origin', { prune })
 
     return c.json({
       success: true,
@@ -243,7 +243,7 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { remote, branch, rebase } = c.req.valid('json')
 
-    await gitService.pull(projectId, remote || 'origin', branch, { rebase })
+    await pull(projectId, remote || 'origin', branch, { rebase })
 
     return c.json({
       success: true,
@@ -290,7 +290,7 @@ const getTagsRoute = createRoute({
 
 gitAdvancedRoutes.openapi(getTagsRoute, async (c) => {
   const { projectId } = c.req.valid('param')
-  const tags = await gitService.getTags(projectId)
+  const tags = await getTags(projectId)
   return c.json(successResponse(tags))
 })
 
@@ -357,7 +357,7 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { name, message, ref } = c.req.valid('json')
 
-    await gitService.createTag(projectId, name, { message, ref })
+    await createTag(projectId, name, { message, ref })
 
     return c.json({
       success: true,
@@ -449,7 +449,7 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { message } = c.req.valid('json')
 
-    await gitService.stash(projectId, message)
+    await stash(projectId, message)
 
     return c.json({
       success: true,
@@ -492,7 +492,7 @@ const getStashListRoute = createRoute({
 
 gitAdvancedRoutes.openapi(getStashListRoute, async (c) => {
   const { projectId } = c.req.valid('param')
-  const stashes = await gitService.stashList(projectId)
+  const stashes = await stashList(projectId)
   return c.json(successResponse(stashes))
 })
 
@@ -557,7 +557,7 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { ref } = c.req.valid('json')
 
-    await gitService.stashApply(projectId, ref || 'stash@{0}')
+    await stashApply(projectId, ref || 'stash@{0}')
 
     return c.json({
       success: true,
@@ -647,7 +647,7 @@ gitAdvancedRoutes.openapi(resetRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { ref, mode } = c.req.valid('json')
 
-    await gitService.reset(projectId, ref, mode || 'mixed')
+    await reset(projectId, ref, mode || 'mixed')
 
     return c.json({
       success: true,

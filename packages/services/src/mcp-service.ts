@@ -13,12 +13,13 @@ import { createCrudService, extendService, withErrorContext, createServiceLogger
 import { ErrorFactory } from '@promptliano/shared'
 import { mcpServerRepository } from '@promptliano/database'
 import {
-  type McpServerConfig,
+  type McpServerConfig as DatabaseMcpServerConfig,
   type InsertMcpServerConfig as CreateMCPServerConfig,
-  insertMcpServerConfigSchema as MCPServerConfigSchema,
-  type MCPServerConfiguration
+  insertMcpServerConfigSchema as InsertMCPServerConfigSchema,
+  selectMcpServerConfigSchema as MCPServerConfigSchema
 } from '@promptliano/database'
 import {
+  type MCPServerConfig,
   type MCPServerState,
   type MCPTool,
   type MCPResource,
@@ -36,6 +37,26 @@ export interface MCPServiceDeps {
   logger?: ReturnType<typeof createServiceLogger>
   projectService?: any // To avoid circular dependency
   clientManager?: MCPClientManager
+}
+
+// Type adapters to convert between database and API schemas
+function databaseToApiConfig(dbConfig: DatabaseMcpServerConfig): MCPServerConfig {
+  return {
+    id: dbConfig.id,
+    projectId: dbConfig.projectId,
+    name: dbConfig.name,
+    command: dbConfig.command,
+    args: dbConfig.args || [],
+    env: dbConfig.env || {},
+    enabled: dbConfig.enabled,
+    autoStart: dbConfig.autoStart,
+    created: dbConfig.createdAt,
+    updated: dbConfig.updatedAt
+  }
+}
+
+function databaseToApiConfigs(dbConfigs: DatabaseMcpServerConfig[]): MCPServerConfig[] {
+  return dbConfigs.map(databaseToApiConfig)
 }
 
 // Global MCP client manager factory
@@ -79,11 +100,11 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     clientManager = createMCPClientManager(repository, logger)
   } = deps
 
-  // Base CRUD operations using the service factory
-  const baseService = createCrudService<McpServerConfig, CreateMCPServerConfig>({
+  // Base CRUD operations using the service factory  
+  const baseService = createCrudService<DatabaseMcpServerConfig, CreateMCPServerConfig>({
     entityName: 'MCPServerConfig',
     repository: repository as any, // Extended repository with additional methods
-    schema: MCPServerConfigSchema,
+    schema: InsertMCPServerConfigSchema as any, // Schema compatibility handled by type adapters
     logger
   })
 
@@ -95,7 +116,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     async createForProject(
       projectId: number,
       data: Omit<CreateMCPServerConfig, 'projectId'>
-    ): Promise<McpServerConfig> {
+    ): Promise<DatabaseMcpServerConfig> {
       return withErrorContext(
         async () => {
           // Verify project exists
@@ -113,7 +134,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
           // Auto-start if enabled and autoStart is true
           if (config.enabled && config.autoStart) {
             try {
-              await clientManager.startServer(config as MCPServerConfiguration)
+              await clientManager.startServer(databaseToApiConfig(config))
             } catch (error) {
               logger.error(`Failed to auto-start MCP server ${config.name}`, error)
             }
@@ -128,14 +149,14 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     /**
      * Get MCP server config by ID (alias for base getById)
      */
-    async getConfigById(configId: number): Promise<McpServerConfig> {
+    async getConfigById(configId: number): Promise<DatabaseMcpServerConfig> {
       return baseService.getById(configId)
     },
 
     /**
      * List MCP server configs for a project
      */
-    async listForProject(projectId: number): Promise<McpServerConfig[]> {
+    async listForProject(projectId: number): Promise<DatabaseMcpServerConfig[]> {
       return withErrorContext(
         async () => {
           // Verify project exists
@@ -152,15 +173,15 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     async updateConfig(
       configId: number,
       data: Partial<CreateMCPServerConfig>
-    ): Promise<McpServerConfig> {
+    ): Promise<DatabaseMcpServerConfig> {
       return withErrorContext(
         async () => {
           const existing = await baseService.getById(configId)
           
-          const updateData: Partial<CreateMCPServerConfig> = {
+          const updateData = {
             ...data,
             updatedAt: Date.now()
-          }
+          } as Partial<CreateMCPServerConfig>
           
           const updated = await baseService.update(configId, updateData)
 
@@ -170,10 +191,10 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
             await clientManager.stopServer(configId)
           } else if (!existing.enabled && updated.enabled && updated.autoStart) {
             // Server was enabled with autoStart, start it
-            await clientManager.startServer(updated as MCPServerConfiguration)
+            await clientManager.startServer(databaseToApiConfig(updated))
           } else if (existing.enabled && updated.enabled) {
             // Server config changed while enabled, restart it
-            await clientManager.restartServer(updated as MCPServerConfiguration)
+            await clientManager.restartServer(databaseToApiConfig(updated))
           }
 
           return updated
@@ -192,7 +213,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
           await clientManager.stopServer(configId)
           
           // Delete from repository
-          return await baseService.delete(configId)
+          return await baseService.delete!(configId)
         },
         { entity: 'MCPServerConfig', action: 'deleteConfig', id: configId }
       )
@@ -211,7 +232,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
             throw ErrorFactory.businessRuleViolation('Cannot start disabled MCP server')
           }
 
-          await clientManager.startServer(config as MCPServerConfiguration)
+          await clientManager.startServer(databaseToApiConfig(config))
           return clientManager.getServerState(configId)
         },
         { entity: 'MCPServer', action: 'start', id: configId }
@@ -359,7 +380,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const configs = await repository.getAutoStartByProject(projectId)
-          await clientManager.autoStartProjectServers(configs as MCPServerConfiguration[])
+          await clientManager.autoStartProjectServers(databaseToApiConfigs(configs))
         },
         { entity: 'MCPServer', action: 'autoStartProject', id: projectId }
       )
@@ -392,7 +413,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     /**
      * Get enabled servers for a project
      */
-    async getEnabledForProject(projectId: number): Promise<McpServerConfig[]> {
+    async getEnabledForProject(projectId: number): Promise<DatabaseMcpServerConfig[]> {
       return withErrorContext(
         async () => {
           await injectedProjectService.getById(projectId)
@@ -420,28 +441,26 @@ export type MCPService = ReturnType<typeof createMCPService>
 export const mcpService = createMCPService()
 
 // Export individual functions for tree-shaking and backward compatibility
-export const {
-  create,
-  getById,
-  update,
-  delete: deleteMCPConfig,
-  createForProject,
-  getConfigById,
-  listForProject,
-  updateConfig,
-  deleteConfig,
-  startServer,
-  stopServer,
-  getServerState,
-  listTools,
-  executeTool,
-  listResources,
-  readResource,
-  autoStartProjectServers,
-  cleanupProjectServers,
-  getEnabledForProject,
-  getClientManager
-} = mcpService
+export const create = mcpService.create
+export const getById = mcpService.getById
+export const update = mcpService.update
+export const deleteMCPConfig = mcpService.delete ?? mcpService.deleteConfig
+export const createForProject = mcpService.createForProject
+export const getConfigById = mcpService.getConfigById
+export const listForProject = mcpService.listForProject
+export const updateConfig = mcpService.updateConfig
+export const deleteConfig = mcpService.deleteConfig
+export const startServer = mcpService.startServer
+export const stopServer = mcpService.stopServer
+export const getServerState = mcpService.getServerState
+export const listTools = mcpService.listTools
+export const executeTool = mcpService.executeTool
+export const listResources = mcpService.listResources
+export const readResource = mcpService.readResource
+export const autoStartProjectServers = mcpService.autoStartProjectServers
+export const cleanupProjectServers = mcpService.cleanupProjectServers
+export const getEnabledForProject = mcpService.getEnabledForProject
+export const getClientManager = mcpService.getClientManager
 
 // Legacy exports for backward compatibility (avoid name conflicts)
 export const createMCPServerConfig = mcpService.createForProject

@@ -67,6 +67,20 @@ export const ClaudeAgentIdParamsSchema = z
   })
   .openapi('ClaudeAgentIdParams')
 
+// Agent ID Parameters (backward compatibility alias)
+export const AgentIdParamsSchema = z
+  .object({
+    agentId: z.string().openapi({ param: { name: 'agentId', in: 'path' } })
+  })
+  .openapi('AgentIdParams')
+
+// Command Name Parameters
+export const CommandNameParamsSchema = z
+  .object({
+    commandName: z.string().openapi({ param: { name: 'commandName', in: 'path' } })
+  })
+  .openapi('CommandNameParams')
+
 // Claude Command ID Parameters
 export const ClaudeCommandIdParamsSchema = z
   .object({
@@ -117,6 +131,8 @@ export type QueueItemIdParams = z.infer<typeof QueueItemIdParamsSchema>
 export type TicketTaskIdParams = z.infer<typeof TicketTaskIdParamsSchema>
 export type FileIdParams = z.infer<typeof FileIdParamsSchema>
 export type ClaudeAgentIdParams = z.infer<typeof ClaudeAgentIdParamsSchema>
+export type AgentIdParams = z.infer<typeof AgentIdParamsSchema>
+export type CommandNameParams = z.infer<typeof CommandNameParamsSchema>
 export type ClaudeCommandIdParams = z.infer<typeof ClaudeCommandIdParamsSchema>
 export type ClaudeHookIdParams = z.infer<typeof ClaudeHookIdParamsSchema>
 export type ProviderKeyIdParams = z.infer<typeof ProviderKeyIdParamsSchema>

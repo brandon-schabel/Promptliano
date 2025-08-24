@@ -11,6 +11,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
+import { nullToUndefined, jsonToStringArray, jsonToNumberArray } from './utils/file-utils'
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository, queueRepository, tickets, ticketTasks } from '@promptliano/database'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -22,7 +23,9 @@ import type {
   InsertTicketTask
 } from '@promptliano/database'
 import type {
-  TicketWithTasks,
+  TicketWithTasks
+} from '@promptliano/database'
+import type {
   CreateTicketBody,
   UpdateTicketBody,
   CreateTaskBody,
@@ -86,12 +89,12 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     async createTicket(data: CreateTicketBody): Promise<Ticket> {
       return withErrorContext(
         async () => {
-          const ticket = await ticketRepo.create({
-            projectId: data.projectId,
+          const ticketData = {
+            projectId: data.projectId as number,
             title: data.title,
             overview: data.overview ?? null,
-            status: data.status ?? 'open',
-            priority: data.priority ?? 'normal',
+            status: (data.status ?? 'open') as 'open' | 'in_progress' | 'closed',
+            priority: (data.priority ?? 'normal') as 'low' | 'normal' | 'high',
             suggestedFileIds: (data.suggestedFileIds ?? []) as string[],
             suggestedAgentIds: (data.suggestedAgentIds ?? []) as string[],
             suggestedPromptIds: (data.suggestedPromptIds ?? []) as number[],
@@ -107,7 +110,8 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             queueErrorMessage: null,
             estimatedProcessingTime: null,
             actualProcessingTime: null
-          } as InsertTicket)
+          }
+          const ticket = await ticketRepo.create(ticketData as any)
   
           logger.info('Created ticket with queue initialization', { ticketId: ticket.id })
           return ticket
@@ -139,10 +143,16 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             throw ErrorFactory.notFound('Ticket', ticketId)
           }
 
-          const updatedTicket = await ticketRepo.update(ticketId, {
+          // Convert Json arrays to appropriate types for updates
+          const convertedUpdates = {
             ...updates,
+            suggestedFileIds: updates.suggestedFileIds ? jsonToStringArray(updates.suggestedFileIds) : undefined,
+            suggestedAgentIds: updates.suggestedAgentIds ? jsonToStringArray(updates.suggestedAgentIds) : undefined,
+            suggestedPromptIds: updates.suggestedPromptIds ? jsonToNumberArray(updates.suggestedPromptIds) : undefined,
             updatedAt: Date.now()
-          })
+          }
+          
+          const updatedTicket = await ticketRepo.update(ticketId, convertedUpdates)
           
           logger.info('Updated ticket', { ticketId })
           return updatedTicket
@@ -178,13 +188,13 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
           const tasks = await ticketRepo.getTasksByTicket(ticketId)
           const maxOrder = Math.max(0, ...tasks.map((t: any) => t.orderIndex))
 
-          const task = await ticketRepo.createTask({
+          const taskData = {
             ticketId,
             content: data.content,
             description: data.description ?? null,
             suggestedFileIds: (data.suggestedFileIds ?? []) as string[],
             done: false,
-            status: 'pending',
+            status: 'pending' as 'pending' | 'in_progress' | 'completed' | 'cancelled',
             orderIndex: maxOrder + 1,
             estimatedHours: data.estimatedHours ?? null,
             dependencies: (data.dependencies ?? []) as number[],
@@ -203,7 +213,8 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             queueErrorMessage: null,
             estimatedProcessingTime: null,
             actualProcessingTime: null
-          } as InsertTicketTask)
+          }
+          const task = await ticketRepo.createTask(taskData as any)
 
           logger.info('Created task with queue initialization', { taskId: task.id, ticketId })
           return task
@@ -504,7 +515,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
           // Organize tickets and tasks by queue status
           for (const ticketWithTasks of ticketsWithTasks) {
-            const ticket = ticketWithTasks.ticket
+            const ticket = ticketWithTasks
             const tasks = ticketWithTasks.tasks
 
             // Process ticket
@@ -653,7 +664,10 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             // Use state machine to validate and apply transition
             try {
               const updatedTicket = QueueStateMachine.transition(ticket, 'in_progress', { agentId })
-              await ticketRepo.update(itemId, updatedTicket as any)
+              await ticketRepo.update(itemId, {
+                ...updatedTicket,
+                updatedAt: Date.now()
+              })
               logger.info('Started processing ticket', { ticketId: itemId, agentId })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Ticket', error.message, 'start processing')
@@ -665,7 +679,10 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             // Use state machine to validate and apply transition
             try {
               const updatedTask = QueueStateMachine.transition(task, 'in_progress', { agentId })
-              await ticketRepo.updateTask(itemId, updatedTask as any)
+              await ticketRepo.updateTask(itemId, {
+                ...updatedTask,
+                updatedAt: Date.now()
+              })
               logger.info('Started processing task', { taskId: itemId, agentId })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Task', error.message, 'start processing')
@@ -688,12 +705,12 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
             // Use state machine to validate and apply transition
             try {
-              const updatedTicket = QueueStateMachine.transition(ticket, 'completed') as any
-              // Add processing time if provided
-              if (processingTime) {
-                updatedTicket.actualProcessingTime = processingTime
-              }
-              await ticketRepo.update(itemId, updatedTicket)
+              const updatedTicket = QueueStateMachine.transition(ticket, 'completed')
+              await ticketRepo.update(itemId, {
+                ...updatedTicket,
+                actualProcessingTime: processingTime || updatedTicket.actualProcessingTime,
+                updatedAt: Date.now()
+              })
               logger.info('Completed processing ticket', { ticketId: itemId, processingTime })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Ticket', error.message, 'complete processing')
@@ -704,14 +721,13 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
             // Use state machine to validate and apply transition
             try {
-              const updatedTask = QueueStateMachine.transition(task, 'completed') as any
-              // Add processing time if provided
-              if (processingTime) {
-                updatedTask.actualProcessingTime = processingTime
-              }
-              // Mark task as done when completed
-              updatedTask.done = true
-              await ticketRepo.updateTask(itemId, updatedTask)
+              const updatedTask = QueueStateMachine.transition(task, 'completed')
+              await ticketRepo.updateTask(itemId, {
+                ...updatedTask,
+                done: true,
+                actualProcessingTime: processingTime || updatedTask.actualProcessingTime,
+                updatedAt: Date.now()
+              })
               logger.info('Completed processing task', { taskId: itemId, processingTime })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Task', error.message, 'complete processing')
@@ -735,7 +751,10 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             // Use state machine to validate and apply transition
             try {
               const updatedTicket = QueueStateMachine.transition(ticket, 'failed', { errorMessage })
-              await ticketRepo.update(itemId, updatedTicket as any)
+              await ticketRepo.update(itemId, {
+                ...updatedTicket,
+                updatedAt: Date.now()
+              })
               logger.info('Failed processing ticket', { ticketId: itemId, errorMessage })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Ticket', error.message, 'fail processing')
@@ -747,7 +766,10 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             // Use state machine to validate and apply transition
             try {
               const updatedTask = QueueStateMachine.transition(task, 'failed', { errorMessage })
-              await ticketRepo.updateTask(itemId, updatedTask as any)
+              await ticketRepo.updateTask(itemId, {
+                ...updatedTask,
+                updatedAt: Date.now()
+              })
               logger.info('Failed processing task', { taskId: itemId, errorMessage })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Task', error.message, 'fail processing')
@@ -774,7 +796,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
       // Transform to TicketWithTasks format
       return results.map(({ ticket, tasks }) => ({
-        ticket,
+        ...ticket,
         tasks
       }))
     },
@@ -787,12 +809,12 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
         id: `ticket-${ticket.id}`,
         type: 'ticket',
         title: ticket.title,
-        description: ticket.overview,
+        description: nullToUndefined(ticket.overview),
         ticket,
-        queueId: ticket.queueId ?? null,
-        queuePosition: ticket.queuePosition ?? null,
-        queueStatus: ticket.queueStatus ?? null,
-        queuePriority: ticket.queuePriority,
+        queueId: nullToUndefined(ticket.queueId),
+        queuePosition: nullToUndefined(ticket.queuePosition),
+        queueStatus: nullToUndefined(ticket.queueStatus),
+        queuePriority: nullToUndefined(ticket.queuePriority),
         created: ticket.createdAt,
         updated: ticket.updatedAt
       }

@@ -75,7 +75,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     await fs.writeFile(agentPath, content, 'utf-8')
   }
 
-  const createAgent = async (data: CreateClaudeAgentBody): Promise<ClaudeAgent> => {
+  const createAgent = async (projectPath: string, data: CreateClaudeAgentBody): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
         // Generate unique agent ID
@@ -105,7 +105,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         
         // Write markdown file if instructions provided
         if (data.instructions) {
-          const agentsDir = getAgentsDir(projectPath)
+          const agentsDir = getAgentsDir(projectPath || process.cwd())
           const filePath = path.join(agentsDir, `${agentId}.md`)
           await writeAgentFile(filePath, data.instructions)
         }
@@ -116,7 +116,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const getAgentById = async (agentId: string | number): Promise<ClaudeAgent> => {
+  const getAgentById = async (projectPath: string, agentId: string | number): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
         // Convert number ID to string since agent IDs are strings
@@ -129,7 +129,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const listAgents = async (): Promise<ClaudeAgent[]> => {
+  const listAgents = async (projectPath?: string): Promise<ClaudeAgent[]> => {
     return withErrorContext(
       async () => {
         const agents = await db.select().from(claudeAgents).orderBy(claudeAgents.name)
@@ -151,7 +151,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const updateAgent = async (agentId: string | number, data: UpdateClaudeAgentBody): Promise<ClaudeAgent> => {
+  const updateAgent = async (projectPath: string, agentId: string | number, data: UpdateClaudeAgentBody): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
         // Convert number ID to string since agent IDs are strings
@@ -185,7 +185,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         
         // Update markdown file if instructions changed
         if (data.instructions !== undefined) {
-          const agentsDir = getAgentsDir(projectPath)
+          const agentsDir = getAgentsDir(projectPath || process.cwd())
           const filePath = path.join(agentsDir, `${id}.md`)
           
           if (data.instructions) {
@@ -207,7 +207,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
     )
   }
 
-  const deleteAgent = async (agentId: string | number): Promise<boolean> => {
+  const deleteAgent = async (projectPath: string, agentId: string | number): Promise<boolean> => {
     return withErrorContext(
       async () => {
         // Convert number ID to string since agent IDs are strings
@@ -227,7 +227,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         const success = result.changes > 0
         
         // Delete markdown file if it exists
-        const agentsDir = getAgentsDir(projectPath)
+        const agentsDir = getAgentsDir(projectPath || process.cwd())
         const filePath = path.join(agentsDir, `${id}.md`)
         
         try {
@@ -307,14 +307,14 @@ Based on this project's structure and the user's context, suggest ${limit} speci
     )
   }
 
-  const getAgentContent = async (agentId: string): Promise<string | null> => {
+  const getAgentContent = async (projectPath: string, agentId: string): Promise<string | null> => {
     return withErrorContext(
       async () => {
         try {
-          const agent = await getAgentById(agentId)
+          const agent = await getAgentById(projectPath, agentId)
           
           // Try to read content from markdown file first
-          const agentsDir = getAgentsDir(projectPath)
+          const agentsDir = getAgentsDir(projectPath || process.cwd())
           const filePath = path.join(agentsDir, `${agentId}.md`)
           
           try {
@@ -335,12 +335,12 @@ Based on this project's structure and the user's context, suggest ${limit} speci
     )
   }
 
-  const formatAgentContext = async (agentId: string): Promise<string> => {
+  const formatAgentContext = async (projectPath: string, agentId: string): Promise<string> => {
     return withErrorContext(
       async () => {
         try {
-          const agent = await getAgentById(agentId)
-          const content = await getAgentContent(agentId)
+          const agent = await getAgentById(projectPath, agentId)
+          const content = await getAgentContent(projectPath, agentId)
           
           return `## Agent: ${agent.name}
 
@@ -372,7 +372,7 @@ This agent could not be loaded. Please proceed with general knowledge.
         
         for (const agentId of agentIds) {
           try {
-            const agent = await getAgentById(agentId)
+            const agent = await getAgentById(deps.projectPath || process.cwd(), agentId)
             agents.push(agent)
           } catch (error) {
             logger?.warn(`Could not get agent ${agentId}: ${error instanceof Error ? error.message : String(error)}`)
@@ -454,19 +454,19 @@ This agent could not be loaded. Please proceed with general knowledge.
   // Return service interface
   return {
     // Core CRUD operations
-    create: createAgent,
-    getById: getAgentById,
-    list: listAgents,
-    update: updateAgent,
-    delete: deleteAgent,
+    create: (data: CreateClaudeAgentBody) => createAgent(projectPath, data),
+    getById: (agentId: string | number) => getAgentById(projectPath, agentId),
+    list: () => listAgents(projectPath),
+    update: (agentId: string | number, data: UpdateClaudeAgentBody) => updateAgent(projectPath, agentId, data),
+    delete: (agentId: string | number) => deleteAgent(projectPath, agentId),
     
     // Query operations
     getByProject: getAgentsByProject,
     getByIds: getAgentsByIds,
     
     // Content operations
-    getContent: getAgentContent,
-    formatContext: formatAgentContext,
+    getContent: (agentId: string) => getAgentContent(projectPath, agentId),
+    formatContext: (agentId: string) => formatAgentContext(projectPath, agentId),
     
     // AI-powered operations
     suggest: suggestAgents,

@@ -274,7 +274,7 @@ For more information, visit: https://github.com/Ejb503/promptliano`
           }
         } else if (urlParts[2] === 'files' && urlParts[3]) {
           // Individual file resource
-          const fileId = parseInt(urlParts[3])
+          const fileId = urlParts[3] // File ID is the file path, keep as string
           const files = await getProjectFiles(projectId)
           const file = files?.find((f) => f.id === fileId)
 

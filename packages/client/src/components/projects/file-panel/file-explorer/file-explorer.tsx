@@ -19,8 +19,8 @@ import { NoResultsScreen } from './no-results-screen'
 import { EmptyProjectScreen } from './empty-project-screen'
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'
 import { useQueryClient } from '@tanstack/react-query'
-import { useGetProjectFiles, useGetProject, useUpdateFileContent } from '@/hooks/api-hooks'
-import { ProjectFile } from '@promptliano/schemas'
+import { useProjectFiles, useGetProject, useUpdateFileContent } from '@/hooks/api-hooks'
+import type { ProjectFile } from '@promptliano/schemas'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useProjectGitStatus } from '@/hooks/api-hooks'
 import { GitPullRequest, GitBranch } from 'lucide-react'
@@ -50,7 +50,7 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
   const selectedProjectId = activeProjectTabState?.selectedProjectId
   const queryClient = useQueryClient()
 
-  const { data: fileDataResponse, isLoading: filesLoading } = useGetProjectFiles(
+  const { data: fileDataResponse, isLoading: filesLoading } = useProjectFiles(
     activeProjectTabState?.selectedProjectId || -1
   )
   const fileDataArray = useMemo(() => fileDataResponse || [], [fileDataResponse])
@@ -104,11 +104,11 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
     const trimmed = (localFileSearch || '').trim().toLowerCase()
     if (!trimmed) return projectFiles
     if (searchByContent) {
-      return projectFiles.filter((f) => {
+      return projectFiles.filter((f: ProjectFile) => {
         return f.path.toLowerCase().includes(trimmed) || (f.content && f.content.toLowerCase().includes(trimmed))
       })
     }
-    return projectFiles.filter((f) => f.path.toLowerCase().includes(trimmed))
+    return projectFiles.filter((f: ProjectFile) => f.path.toLowerCase().includes(trimmed))
   }, [projectFiles, localFileSearch, searchByContent])
 
   const fileTree = useMemo(() => {
@@ -244,8 +244,8 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
             {/* Select All Files */}
             <DropdownMenuItem
               onClick={() => {
-                const allFileIds = projectFiles.map((file) => file.id)
-                selectFiles(allFileIds)
+                const allFilePaths = projectFiles.map((file: ProjectFile) => file.path)
+                selectFiles(allFilePaths)
               }}
             >
               <Files className='h-4 w-4 mr-2' />
@@ -279,10 +279,10 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                       onClick={() => {
                         const filesWithChanges = changedFiles
                           .map((file: any) => {
-                            const projectFile = projectFiles.find((pf) => pf.path === file.path)
-                            return projectFile?.id
+                            const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
+                            return projectFile?.path
                           })
-                          .filter((id: any): id is number => id !== undefined)
+                          .filter((path: any): path is string => path !== undefined)
 
                         if (filesWithChanges.length > 0) {
                           selectFiles([...new Set([...selectedFiles, ...filesWithChanges])])
@@ -300,15 +300,15 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                     {stagedFiles.length > 0 && (
                       <DropdownMenuItem
                         onClick={() => {
-                          const stagedFileIds = stagedFiles
+                          const stagedFilePaths = stagedFiles
                             .map((file: any) => {
-                              const projectFile = projectFiles.find((pf) => pf.path === file.path)
-                              return projectFile?.id
+                              const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
+                              return projectFile?.path
                             })
-                            .filter((id: any): id is number => id !== undefined)
+                            .filter((path: any): path is string => path !== undefined)
 
-                          if (stagedFileIds.length > 0) {
-                            selectFiles([...new Set([...selectedFiles, ...stagedFileIds])])
+                          if (stagedFilePaths.length > 0) {
+                            selectFiles([...new Set([...selectedFiles, ...stagedFilePaths])])
                           }
                         }}
                       >
@@ -324,15 +324,15 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                     {unstagedFiles.length > 0 && (
                       <DropdownMenuItem
                         onClick={() => {
-                          const unstagedFileIds = unstagedFiles
+                          const unstagedFilePaths = unstagedFiles
                             .map((file: any) => {
-                              const projectFile = projectFiles.find((pf) => pf.path === file.path)
-                              return projectFile?.id
+                              const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
+                              return projectFile?.path
                             })
-                            .filter((id: any): id is number => id !== undefined)
+                            .filter((path: any): path is string => path !== undefined)
 
-                          if (unstagedFileIds.length > 0) {
-                            selectFiles([...new Set([...selectedFiles, ...unstagedFileIds])])
+                          if (unstagedFilePaths.length > 0) {
+                            selectFiles([...new Set([...selectedFiles, ...unstagedFilePaths])])
                           }
                         }}
                       >
@@ -392,7 +392,7 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
             <li className='px-2 py-1.5 text-sm text-muted-foreground bg-muted border-b border-border'>
               Press Enter{allowSpacebarToSelect && ' or Spacebar'} to add highlighted file; Right arrow to preview
             </li>
-            {suggestions.map((file, index) => {
+            {suggestions.map((file: ProjectFile, index: number) => {
               const isHighlighted = index === autocompleteIndex
               const isSelected = selectedFiles.includes(file.id)
               return (

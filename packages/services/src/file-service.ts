@@ -70,6 +70,19 @@ export function createFileService(deps: FileServiceDeps = {}) {
   // File entities use string IDs, so we can't use the standard CRUD service
   // Instead, we'll create our own base operations that work with string IDs
   const baseService = {
+    async list(): Promise<ProjectFile[]> {
+      return withErrorContext(
+        async () => {
+          return await repository.getAll()
+        },
+        { entity: 'File', action: 'list' }
+      )
+    },
+
+    async getAll(): Promise<ProjectFile[]> {
+      return this.list()
+    },
+
     async create(data: CreateProjectFileBody): Promise<ProjectFile> {
       return withErrorContext(
         async () => {
@@ -81,39 +94,30 @@ export function createFileService(deps: FileServiceDeps = {}) {
       )
     },
 
-    async getById(id: string): Promise<ProjectFile | null> {
+    async getById(id: string | number): Promise<ProjectFile | null> {
       return withErrorContext(
         async () => {
-          return await repository.getById(id)
+          return await repository.getById(String(id))
         },
         { entity: 'File', action: 'getById', id }
       )
     },
 
-    async update(id: string, data: UpdateProjectFileBody): Promise<ProjectFile> {
+    async update(id: string | number, data: UpdateProjectFileBody): Promise<ProjectFile> {
       return withErrorContext(
         async () => {
-          return await repository.update(id, data)
+          return await repository.update(String(id), data)
         },
         { entity: 'File', action: 'update', id }
       )
     },
 
-    async delete(id: string): Promise<boolean> {
+    async delete(id: string | number): Promise<boolean> {
       return withErrorContext(
         async () => {
-          return await repository.delete(id)
+          return await repository.delete(String(id))
         },
         { entity: 'File', action: 'delete', id }
-      )
-    },
-
-    async getAll(): Promise<ProjectFile[]> {
-      return withErrorContext(
-        async () => {
-          return await repository.getAll()
-        },
-        { entity: 'File', action: 'getAll' }
       )
     }
   }

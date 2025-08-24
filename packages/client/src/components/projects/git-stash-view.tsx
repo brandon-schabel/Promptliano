@@ -45,15 +45,15 @@ export function GitStashView({ projectId }: GitStashViewProps) {
 
   const stashList = stashResponse?.data || []
   const hasChanges =
-    gitStatus?.success && gitStatus.data.files.some((f) => f.status !== 'unchanged' && f.status !== 'ignored')
+    gitStatus?.success && gitStatus.data.files.some((f: any) => f.status !== 'unchanged' && f.status !== 'ignored')
 
   // Calculate stash statistics
   const trackedChanges = gitStatus?.success
-    ? gitStatus.data.files.filter((f) => f.status !== 'unchanged' && f.status !== 'ignored' && f.status !== 'untracked')
+    ? gitStatus.data.files.filter((f: any) => f.status !== 'unchanged' && f.status !== 'ignored' && f.status !== 'untracked')
     : []
-  const stagedCount = trackedChanges.filter((f) => f.staged).length
-  const unstagedCount = trackedChanges.filter((f) => !f.staged).length
-  const untrackedCount = gitStatus?.success ? gitStatus.data.files.filter((f) => f.status === 'untracked').length : 0
+  const stagedCount = trackedChanges.filter((f: any) => f.staged).length
+  const unstagedCount = trackedChanges.filter((f: any) => !f.staged).length
+  const untrackedCount = gitStatus?.success ? gitStatus.data.files.filter((f: any) => f.status === 'untracked').length : 0
 
   const handleCreateStash = async () => {
     await createStash.mutateAsync(stashMessage || undefined)
@@ -200,7 +200,7 @@ export function GitStashView({ projectId }: GitStashViewProps) {
             </Card>
           ) : (
             <div className='space-y-2'>
-              {stashList.map((stash) => (
+              {stashList.map((stash: GitStash) => (
                 <Card key={stash.index} className='hover:bg-accent/50 transition-colors'>
                   <CardContent className='p-4'>
                     <div className='flex items-start justify-between gap-4'>

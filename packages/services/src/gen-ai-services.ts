@@ -8,7 +8,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createChatService } from './chat-service'
 import { createProviderKeyService } from './provider-key-service'
 import { chatRepository } from '@promptliano/database'
-import type { APIProviders, ProviderKey, AiChatStreamRequest, AiSdkOptions } from '@promptliano/database'
+import type { APIProviders, ProviderKey } from '@promptliano/database'
 import { LOW_MODEL_CONFIG, getProvidersConfig } from '@promptliano/config'
 import { structuredDataSchemas } from '@promptliano/schemas' // AI generation schemas - may remain in schemas package
 
@@ -19,6 +19,7 @@ import { retryOperation } from './utils/bulk-operations'
 import { getProviderUrl } from './provider-settings-service'
 import { LMStudioProvider } from './providers/lmstudio-provider'
 import { mergeHeaders } from './utils/header-sanitizer'
+import { nullToUndefined } from './utils/file-utils'
 
 const providersConfig = getProvidersConfig()
 
@@ -31,14 +32,14 @@ interface AiSdkCompatibleOptions {
   presencePenalty?: number | null
   topK?: number | null
   responseFormat?: any | null
-  provider?: string
+  provider?: string | APIProviders
   model?: string
   ollamaUrl?: string
   lmstudioUrl?: string
 }
 
-// Extended type for chat streaming requests
-interface AiChatRequest extends AiSdkCompatibleOptions {
+// Stream request interface for chat handling
+interface AiChatStreamRequest {
   chatId: number
   userMessage: string
   options?: AiSdkCompatibleOptions
@@ -47,6 +48,9 @@ interface AiChatRequest extends AiSdkCompatibleOptions {
   debug?: boolean
   enableChatAutoNaming?: boolean
 }
+
+// Extended type for chat streaming requests  
+type AiChatRequest = AiChatStreamRequest
 
 // Provider capabilities map - which providers support structured output via generateObject
 // Note: LM Studio now uses a custom provider that supports native structured outputs
@@ -143,7 +147,7 @@ export async function handleChatMessage({
 }: AiChatRequest): Promise<ReturnType<typeof streamText>> {
   let finalAssistantMessageId: number | undefined
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
   const chatService = createChatService()
   const modelInstance = await getProviderLanguageModelInterface(finalOptions.provider as APIProviders, finalOptions)
   let messagesToProcess: CoreMessage[] = []
@@ -170,7 +174,7 @@ export async function handleChatMessage({
 
   messagesToProcess.push({ role: 'user', content: userMessage })
 
-  await chatService.update(chatId, { updatedAt: Date.now() })
+  // Update timestamp will be handled by the repository automatically
 
   const initialAssistantMessage = await chatService.addMessage(chatId, {
     role: 'assistant',
@@ -289,7 +293,7 @@ async function getKey(provider: APIProviders, debug: boolean): Promise<string | 
       `[UnifiedProviderService] API key for provider "${provider}" not found in DB. SDK might check environment variables.`
     )
   }
-  return keyEntry?.key
+  return nullToUndefined(keyEntry?.key)
 }
 
 /**
@@ -445,7 +449,7 @@ async function getProviderLanguageModelInterface(
       }
       
       // Merge with sanitized custom headers
-      const sanitizedHeaders = mergeHeaders(baseHeaders, customKey.customHeaders)
+      const sanitizedHeaders = mergeHeaders(baseHeaders, nullToUndefined(customKey.customHeaders))
       
       // Remove the Authorization header since OpenAI SDK handles it separately
       const { Authorization, ...customHeaders } = sanitizedHeaders
@@ -506,7 +510,7 @@ export async function generateSingleText({
   debug?: boolean
 }): Promise<string> {
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'generateSingleText')
   }
@@ -587,7 +591,7 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
 }> {
   // Return structure from generateObject
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
 
   const model = finalOptions.model
 
@@ -596,8 +600,9 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
   }
 
   // Check if provider supports structured output
-  const supportsStructuredOutput = PROVIDER_CAPABILITIES[provider]?.structuredOutput ?? true
-  const useCustomProvider = PROVIDER_CAPABILITIES[provider]?.useCustomProvider ?? false
+  const providerKey = provider as keyof typeof PROVIDER_CAPABILITIES
+  const supportsStructuredOutput = PROVIDER_CAPABILITIES[providerKey]?.structuredOutput ?? true
+  const useCustomProvider = PROVIDER_CAPABILITIES[providerKey]?.useCustomProvider ?? false
 
   if (debug) {
     console.log(
@@ -612,15 +617,26 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
     }
 
     try {
-      const lmstudioProvider = new LMStudioProvider({ ...finalOptions, debug })
+      // Convert null values to undefined for LMStudio provider
+      const convertedOptions = {
+        ...finalOptions,
+        temperature: nullToUndefined(finalOptions.temperature),
+        maxTokens: nullToUndefined(finalOptions.maxTokens),
+        topP: nullToUndefined(finalOptions.topP),
+        topK: nullToUndefined(finalOptions.topK),
+        frequencyPenalty: nullToUndefined(finalOptions.frequencyPenalty),
+        presencePenalty: nullToUndefined(finalOptions.presencePenalty),
+        debug
+      }
+      const lmstudioProvider = new LMStudioProvider(convertedOptions)
       const result = await lmstudioProvider.generateObject(schema, prompt, {
         model: model,
         systemMessage,
-        temperature: finalOptions.temperature,
-        maxTokens: finalOptions.maxTokens,
-        topP: finalOptions.topP,
-        frequencyPenalty: finalOptions.frequencyPenalty,
-        presencePenalty: finalOptions.presencePenalty,
+        temperature: nullToUndefined(finalOptions.temperature),
+        maxTokens: nullToUndefined(finalOptions.maxTokens),
+        topP: nullToUndefined(finalOptions.topP),
+        frequencyPenalty: nullToUndefined(finalOptions.frequencyPenalty),
+        presencePenalty: nullToUndefined(finalOptions.presencePenalty),
         debug
       })
 
@@ -852,7 +868,7 @@ export async function genTextStream({
   debug?: boolean
 }): Promise<ReturnType<typeof streamText>> {
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
 
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'genTextStream')

@@ -259,7 +259,7 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
   const importMutation = useMutation({
     mutationFn: async () => {
       if (!sessionId) throw new Error('No session ID')
-      const response = await client?.claudeCode.importSession(projectId, sessionId)
+      const response = await client?.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId)
       return response?.data
     },
     onSuccess: (chat) => {

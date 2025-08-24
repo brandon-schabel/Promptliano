@@ -4,7 +4,7 @@
  */
 
 import { ErrorFactory, withErrorContext } from '@promptliano/shared'
-import { activeTabRepository, type ActiveTab, type InsertActiveTab, selectActiveTabSchema } from '@promptliano/database'
+import { activeTabRepository, type ActiveTab, type InsertActiveTab, selectActiveTabSchema, db, activeTabs as activeTabsTable } from '@promptliano/database'
 import { getProjectById } from './project-service'
 
 // Legacy interface compatibility
@@ -194,7 +194,8 @@ export function createActiveTabService(deps = {}) {
       // Get all active tabs from the repository
       return withErrorContext(
         async () => {
-          const allTabs = await activeTabRepository.getAll()
+          // Get all tabs across all projects since getAll() doesn't exist
+          const allTabs = await db.select().from(activeTabsTable)
           return allTabs.map(mapToLegacyFormat)
         },
         { entity: 'ActiveTab', action: 'list' }

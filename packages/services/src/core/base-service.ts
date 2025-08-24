@@ -210,7 +210,8 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
       return withErrorContext(
         async () => {
           // Verify entity exists first
-          await this.getById(id)
+          const entity = await repository.getById(id)
+          assertExists(entity, entityName, id)
           
           const success = await repository.delete(id)
           if (success) {

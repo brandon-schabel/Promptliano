@@ -435,7 +435,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
         if (query.search) {
           const searchLower = query.search.toLowerCase()
           sessions = sessions.filter(s => 
-            s.sessionId.toLowerCase().includes(searchLower) ||
+            s.id.toLowerCase().includes(searchLower) ||
             s.gitBranch?.toLowerCase().includes(searchLower) ||
             s.cwd?.toLowerCase().includes(searchLower)
           )

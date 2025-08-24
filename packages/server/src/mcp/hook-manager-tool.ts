@@ -5,13 +5,9 @@ import { trackMCPToolExecution } from '@promptliano/services'
 import {
   claudeHookService,
   getProjectById,
-  type HookEvent,
-  type HookConfigurationLevel,
-  type CreateHookConfigBody,
-  type UpdateHookConfigBody,
-  type HookGenerationRequest,
-  type HookTestRequest
+  type HookEvent
 } from '@promptliano/services'
+import type { ClaudeHook, CreateClaudeHook } from '@promptliano/database'
 
 // Action enum
 export enum HookManagerAction {
@@ -94,7 +90,7 @@ export const hookManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get/update/delete: { level: "project", eventName: "PreToolUse", matcherIndex: 0 }. For create: { level: "project", eventName: "PreToolUse", matcher: "^Bash", command: "echo $TOOL_NAME", matcherType: "tool_name_regex" }. For generate: { description: "Block rm -rf commands", context: { eventName: "PreToolUse" } }. For test: { event: "PreToolUse", matcher: "^Bash", command: "echo test", testData: { toolName: "Bash" } }. For search: { query: "bash" }'
+          'Action-specific data. For get/update/delete: { hookId: 123 }. For create: { name: "My Hook", triggerEvent: "PreToolUse", script: "echo $TOOL_NAME", description: "Optional description", hookType: "pre", isActive: true }. For generate: { description: "Block rm -rf commands", context: { suggestedEvent: "PreToolUse" } }. For test: { hookId: 123, sampleToolName: "Bash" }. For search: { query: "bash" }'
       }
     },
     required: ['action', 'projectId']
@@ -111,10 +107,10 @@ export const hookManagerTool: MCPToolDefinition = {
 
         switch (action) {
           case HookManagerAction.LIST: {
-            const hooks = await claudeHookService.listHooks(project.path)
+            const hooks = await claudeHookService.listHooks(validProjectId)
             const hookList = hooks
               .map((hook) => {
-                return `Event: ${hook.event}\n  Matcher [${hook.matcherIndex}]: ${hook.matcher} → ${hook.command}`
+                return `Event: ${hook.triggerEvent}\n  Name: ${hook.name}\n  Script: ${hook.script}\n  Active: ${hook.isActive}`
               })
               .join('\n\n')
             return {
@@ -123,107 +119,119 @@ export const hookManagerTool: MCPToolDefinition = {
           }
 
           case HookManagerAction.GET: {
-            const eventName = validateDataField<HookEvent>(data, 'eventName', 'string', 'PreToolUse')
-            const matcherIndex = validateDataField<number>(data, 'matcherIndex', 'number', '0')
+            const hookId = validateDataField<number>(data, 'hookId', 'number', '123')
 
-            const hook = await claudeHookService.getHook(project.path, eventName, matcherIndex)
+            const hook = await claudeHookService.getById(hookId)
             if (!hook) {
-              throw createMCPError(MCPErrorCode.RESOURCE_NOT_FOUND, `Hook not found: ${eventName}[${matcherIndex}]`, {
+              throw createMCPError(MCPErrorCode.RESOURCE_NOT_FOUND, `Hook not found: ${hookId}`, {
                 projectId: validProjectId
               })
             }
             const details = `Hook Details:
-Event: ${hook.event}
-Matcher Index: ${hook.matcherIndex}
-Matcher: ${hook.matcher}
-Command: ${hook.command}`
+ID: ${hook.id}
+Name: ${hook.name}
+Event: ${hook.triggerEvent}
+Script: ${hook.script}
+Active: ${hook.isActive}
+Description: ${hook.description || 'N/A'}`
             return {
               content: [{ type: 'text', text: details }]
             }
           }
 
           case HookManagerAction.CREATE: {
-            const hookData = validateDataField<CreateHookConfigBody>(
-              data,
-              'hookData',
-              'object',
-              '{ event: "PreToolUse", matcher: "^rm", command: "echo Blocked" }'
-            )
+            const name = validateDataField<string>(data, 'name', 'string', 'Block rm commands')
+            const triggerEvent = validateDataField<string>(data, 'triggerEvent', 'string', 'PreToolUse')
+            const script = validateDataField<string>(data, 'script', 'string', 'echo "Tool blocked"')
+            const description = data.description as string | undefined
+            const isActive = data.isActive !== undefined ? Boolean(data.isActive) : true
 
-            const createdHook = await claudeHookService.createHook(project.path, hookData)
+            const hookData = {
+              name,
+              triggerEvent,
+              script,
+              description,
+              isActive,
+              hookType: (data.hookType || 'pre') as 'pre' | 'post' | 'error'
+            } as any // Work around service type mismatch
+
+            const createdHook = await claudeHookService.create(validProjectId, hookData)
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Hook created successfully: ${createdHook.event} with matcher "${createdHook.matcher}"`
+                  text: `Hook created successfully: "${createdHook.name}" for event "${createdHook.triggerEvent}"`
                 }
               ]
             }
           }
 
           case HookManagerAction.UPDATE: {
-            const eventName = validateDataField<HookEvent>(data, 'eventName', 'string', 'PreToolUse')
-            const matcherIndex = validateDataField<number>(data, 'matcherIndex', 'number', '0')
+            const hookId = validateDataField<number>(data, 'hookId', 'number', '123')
 
-            const updateData: UpdateHookConfigBody = {
-              event: eventName,
-              matcherIndex
-            }
-            if (data.matcher !== undefined) updateData.matcher = data.matcher
-            if (data.command !== undefined) updateData.command = data.command
-            if (data.timeout !== undefined) updateData.timeout = data.timeout
+            const updateData: any = {}
+            if (data.name !== undefined) updateData.name = data.name
+            if (data.triggerEvent !== undefined) updateData.triggerEvent = data.triggerEvent
+            if (data.script !== undefined) updateData.script = data.script
+            if (data.description !== undefined) updateData.description = data.description
+            if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive)
+            if (data.hookType !== undefined) updateData.hookType = data.hookType
 
-            const updatedHook = await claudeHookService.updateHook(project.path, eventName, matcherIndex, updateData)
+            const updatedHook = await claudeHookService.update(hookId, updateData)
             return {
               content: [
-                { type: 'text', text: `Hook updated successfully: ${updatedHook?.event || eventName} at index ${matcherIndex}` }
+                { type: 'text', text: `Hook updated successfully: "${updatedHook.name}" (ID: ${updatedHook.id})` }
               ]
             }
           }
 
           case HookManagerAction.DELETE: {
-            const eventName = validateDataField<HookEvent>(data, 'eventName', 'string', 'PreToolUse')
-            const matcherIndex = validateDataField<number>(data, 'matcherIndex', 'number', '0')
+            const hookId = validateDataField<number>(data, 'hookId', 'number', '123')
 
-            await claudeHookService.deleteHook(project.path, eventName, matcherIndex)
+            const success = await claudeHookService.delete(hookId)
+            if (!success) {
+              throw createMCPError(MCPErrorCode.OPERATION_FAILED, `Failed to delete hook: ${hookId}`, {
+                projectId: validProjectId
+              })
+            }
             return {
-              content: [{ type: 'text', text: `Hook deleted successfully: ${eventName} at index ${matcherIndex}` }]
+              content: [{ type: 'text', text: `Hook deleted successfully: ID ${hookId}` }]
             }
           }
 
           case HookManagerAction.GENERATE: {
             const description = validateDataField<string>(data, 'description', 'string', 'Block all rm -rf commands')
-            const context = data.context as HookGenerationRequest['context']
+            const context = data.context as { projectId?: number; suggestedEvent?: HookEvent; examples?: string[] }
 
-            const generatedHook = await claudeHookService.generateHookFromDescription(description, context)
+            const generatedHook = await claudeHookService.generateHookFromDescription(description, {
+              ...context,
+              projectId: validProjectId
+            })
             const details = `Generated Hook:
 Event: ${generatedHook.event}
 Matcher: ${generatedHook.matcher}
 Command: ${generatedHook.command}
+Description: ${generatedHook.description}
 
 To create this hook, use:
 action: "create"
-data: ${JSON.stringify({ level: 'project', ...generatedHook }, null, 2)}`
+data: {
+  "name": "Generated Hook",
+  "triggerEvent": "${generatedHook.event}",
+  "script": "${generatedHook.command}",
+  "description": "${generatedHook.description}"
+}`
             return {
               content: [{ type: 'text', text: details }]
             }
           }
 
           case HookManagerAction.TEST: {
-            const event = validateDataField<HookEvent>(data, 'event', 'string', 'PreToolUse')
-            const matcher = validateDataField<string>(data, 'matcher', 'string', '^Bash')
-            const command = validateDataField<string>(data, 'command', 'string', 'echo test')
-            const testData = data.testData || {}
+            const hookId = validateDataField<number>(data, 'hookId', 'number', '123')
+            const sampleToolName = data.sampleToolName as string | undefined
 
-            const testRequest: HookTestRequest = {
-              event,
-              matcher,
-              command,
-              timeout: data.timeout
-            }
-
-            const result = await claudeHookService.testHook(project.path, event, matcher, command, data.timeout, data.sampleToolName)
-            const resultText = `Hook Test Results:\n${result.message}`
+            const result = await claudeHookService.testHook(hookId, sampleToolName)
+            const resultText = `Hook Test Results:\n${result.message}\n\nHook Details:\nName: ${result.hook.name}\nEvent: ${result.hook.triggerEvent}\nScript: ${result.hook.script}`
             return {
               content: [{ type: 'text', text: resultText }]
             }
@@ -231,12 +239,12 @@ data: ${JSON.stringify({ level: 'project', ...generatedHook }, null, 2)}`
 
           case HookManagerAction.SEARCH: {
             const query = data?.query || ''
-            const hooks = await claudeHookService.searchHooks(project.path, query)
+            const hooks = await claudeHookService.searchHooks(validProjectId, query)
             const results = hooks
               .map((hook) => {
-                return `${hook.event}[${hook.matcherIndex}]: ${hook.matcher} → ${hook.command}`
+                return `ID: ${hook.id} | ${hook.name} | Event: ${hook.triggerEvent}\n  Script: ${hook.script}\n  Active: ${hook.isActive}`
               })
-              .join('\n')
+              .join('\n\n')
             return {
               content: [{ type: 'text', text: results || 'No hooks found matching search criteria' }]
             }

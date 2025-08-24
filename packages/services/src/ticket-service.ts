@@ -511,7 +511,9 @@ export const batchCreateTickets = async (projectId: number, tickets: any[]) => {
 export const batchDeleteTickets = async (ticketIds: number[]) => {
   // TODO: Implement batch delete
   for (const id of ticketIds) {
-    await deleteTicket(id)
+    if (deleteTicket) {
+      await deleteTicket(id)
+    }
   }
   return ticketIds.length
 }

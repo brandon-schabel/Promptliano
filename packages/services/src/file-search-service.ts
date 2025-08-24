@@ -768,6 +768,7 @@ export class FileSearchService {
         projectId: ftsData.project_id,
         path: ftsData.path,
         name: ftsData.name,
+        extension: ftsData.extension || null,
         size: metadata?.file_size || null,
         lastModified: null,
         contentType: null,

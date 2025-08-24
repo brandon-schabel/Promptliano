@@ -6,8 +6,21 @@ import { createLogger } from './utils/logger'
 import { getProjectById } from './project-service'
 import { createHash } from 'crypto'
 import { claudeCodeFileReaderService } from './claude-code-file-reader-service'
-import type { ClaudeSession, ClaudeMessage, ClaudeSessionMetadata } from '@promptliano/database'
-import type { ClaudeProjectData } from '@promptliano/schemas'
+// Import database types for return values
+import type { 
+  ClaudeSession as DbClaudeSession, 
+  ClaudeMessage as DbClaudeMessage, 
+  ClaudeSessionMetadata as DbClaudeSessionMetadata,
+  TokenUsage as DbTokenUsage
+} from '@promptliano/database'
+// Import file-based types from schemas for Claude Code file reading
+import type { 
+  ClaudeSession as FileClaudeSession,
+  ClaudeMessage as FileClaudeMessage,
+  ClaudeSessionMetadata as FileClaudeSessionMetadata,
+  ClaudeProjectData,
+  TokenUsage as FileTokenUsage
+} from '@promptliano/schemas'
 
 const logger = createLogger('ClaudeCodeMCPService')
 
@@ -54,6 +67,132 @@ export interface ClaudeCodeMCPStatus {
   }
   projectId: string
   installCommand: string
+}
+
+/**
+ * Type conversion functions to bridge file-based types and database types
+ */
+class TypeConverter {
+  /**
+   * Convert file-based ClaudeSession to database ClaudeSession
+   */
+  static fileSessionToDbSession(fileSession: FileClaudeSession, projectId: number): DbClaudeSession {
+    const now = Date.now()
+    return {
+      id: fileSession.sessionId, // sessionId as primary key in database
+      projectId: projectId,
+      projectPath: fileSession.projectPath,
+      startTime: fileSession.startTime,
+      lastUpdate: fileSession.lastUpdate,
+      messageCount: fileSession.messageCount,
+      gitBranch: fileSession.gitBranch || null,
+      cwd: fileSession.cwd || null,
+      tokenUsage: fileSession.tokenUsage ? this.fileTokenUsageToDbTokenUsage(fileSession.tokenUsage) : null,
+      serviceTiers: fileSession.serviceTiers || [],
+      totalTokensUsed: fileSession.totalTokensUsed || null,
+      totalCostUsd: fileSession.totalCostUsd || null,
+      createdAt: now,
+      updatedAt: now
+    }
+  }
+
+  /**
+   * Convert file-based ClaudeMessage to database ClaudeMessage
+   */
+  static fileMessageToDbMessage(fileMessage: FileClaudeMessage, projectId: number): DbClaudeMessage {
+    const now = Date.now()
+    
+    // Generate a numeric ID from UUID, timestamp, or current time
+    let numericId = now
+    if (fileMessage.uuid) {
+      // Try to extract numeric part from UUID or hash it
+      const match = fileMessage.uuid.match(/\d+/)
+      if (match) {
+        numericId = parseInt(match[0])
+      } else {
+        // Simple hash of UUID to get a number
+        numericId = fileMessage.uuid.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      }
+    } else if (fileMessage.timestamp) {
+      // Use timestamp as ID
+      const timestampNum = new Date(fileMessage.timestamp).getTime()
+      numericId = timestampNum
+    }
+    
+    return {
+      id: numericId,
+      projectId: projectId,
+      type: fileMessage.type as 'user' | 'assistant' | 'result' | 'system' | 'summary',
+      message: fileMessage.message || null,
+      timestamp: fileMessage.timestamp,
+      sessionId: fileMessage.sessionId,
+      uuid: fileMessage.uuid || null,
+      parentUuid: fileMessage.parentUuid || null,
+      requestId: fileMessage.requestId || null,
+      userType: fileMessage.userType || null,
+      isSidechain: fileMessage.isSidechain || null,
+      cwd: fileMessage.cwd || null,
+      version: fileMessage.version || null,
+      gitBranch: fileMessage.gitBranch || null,
+      toolUseResult: fileMessage.toolUseResult || null,
+      content: fileMessage.content || null,
+      isMeta: fileMessage.isMeta || null,
+      toolUseID: fileMessage.toolUseID || null,
+      level: fileMessage.level || null,
+      tokensUsed: fileMessage.tokensUsed || null,
+      costUsd: fileMessage.costUsd || null,
+      durationMs: fileMessage.durationMs || null,
+      model: fileMessage.model || null,
+      createdAt: new Date(fileMessage.timestamp).getTime(),
+      updatedAt: new Date(fileMessage.timestamp).getTime()
+    }
+  }
+
+  /**
+   * Convert file-based ClaudeSessionMetadata to database ClaudeSessionMetadata
+   */
+  static fileSessionMetadataToDbSessionMetadata(fileMetadata: FileClaudeSessionMetadata): DbClaudeSessionMetadata {
+    const now = Date.now()
+    return {
+      id: now, // Generate a unique ID
+      sessionId: fileMetadata.sessionId,
+      projectPath: fileMetadata.projectPath,
+      startTime: fileMetadata.startTime,
+      lastUpdate: fileMetadata.lastUpdate,
+      messageCount: fileMetadata.messageCount,
+      fileSize: fileMetadata.fileSize,
+      hasGitBranch: fileMetadata.hasGitBranch,
+      hasCwd: fileMetadata.hasCwd,
+      firstMessagePreview: fileMetadata.firstMessagePreview || null,
+      lastMessagePreview: fileMetadata.lastMessagePreview || null,
+      createdAt: now,
+      updatedAt: now
+    }
+  }
+
+  /**
+   * Convert file-based TokenUsage to database TokenUsage
+   */
+  private static fileTokenUsageToDbTokenUsage(fileTokenUsage: any): DbTokenUsage {
+    // Handle both the nested tokenUsage object and direct properties
+    if (fileTokenUsage.totalInputTokens !== undefined) {
+      return {
+        input_tokens: fileTokenUsage.totalInputTokens,
+        cache_creation_input_tokens: fileTokenUsage.totalCacheCreationTokens,
+        cache_read_input_tokens: fileTokenUsage.totalCacheReadTokens,
+        output_tokens: fileTokenUsage.totalOutputTokens,
+        service_tier: undefined // Not available in file format
+      }
+    }
+    // Handle direct token usage format (from individual messages)
+    return {
+      input_tokens: fileTokenUsage.input_tokens,
+      cache_creation_input_tokens: fileTokenUsage.cache_creation_input_tokens,
+      cache_read_input_tokens: fileTokenUsage.cache_read_input_tokens,
+      output_tokens: fileTokenUsage.output_tokens,
+      service_tier: fileTokenUsage.service_tier
+    }
+  }
 }
 
 export class ClaudeCodeMCPService {
@@ -278,7 +417,7 @@ export class ClaudeCodeMCPService {
   /**
    * Get all Claude Code sessions for a project (metadata only for performance)
    */
-  async getSessions(projectId: number): Promise<ClaudeSession[]> {
+  async getSessions(projectId: number): Promise<DbClaudeSession[]> {
     const project = await getProjectById(projectId)
 
     try {
@@ -297,7 +436,12 @@ export class ClaudeCodeMCPService {
       }
 
       // Use optimized method that returns lightweight sessions without loading full message data
-      return await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, 50)
+      const fileSessions = await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, 50)
+      
+      // Convert file-based sessions to database-compatible sessions
+      return fileSessions.map(fileSession => 
+        TypeConverter.fileSessionToDbSession(fileSession, projectId)
+      )
     } catch (error) {
       logger.error('Failed to get Claude sessions:', error)
       return []
@@ -307,7 +451,7 @@ export class ClaudeCodeMCPService {
   /**
    * Get recent Claude Code sessions for a project (optimized for performance)
    */
-  async getRecentSessions(projectId: number, limit: number = 10): Promise<ClaudeSession[]> {
+  async getRecentSessions(projectId: number, limit: number = 10): Promise<DbClaudeSession[]> {
     const project = await getProjectById(projectId)
 
     try {
@@ -325,7 +469,12 @@ export class ClaudeCodeMCPService {
         return []
       }
 
-      return await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, limit)
+      const fileSessions = await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, limit)
+      
+      // Convert file-based sessions to database-compatible sessions
+      return fileSessions.map(fileSession => 
+        TypeConverter.fileSessionToDbSession(fileSession, projectId)
+      )
     } catch (error) {
       logger.error('Failed to get recent Claude sessions:', error)
       return []
@@ -339,7 +488,7 @@ export class ClaudeCodeMCPService {
     projectId: number,
     offset: number = 0,
     limit: number = 20
-  ): Promise<{ sessions: ClaudeSession[]; total: number; hasMore: boolean }> {
+  ): Promise<{ sessions: DbClaudeSession[]; total: number; hasMore: boolean }> {
     const project = await getProjectById(projectId)
 
     try {
@@ -357,7 +506,18 @@ export class ClaudeCodeMCPService {
         return { sessions: [], total: 0, hasMore: false }
       }
 
-      return await claudeCodeFileReaderService.getSessionsPaginated(claudeProjectPath, { offset, limit })
+      const result = await claudeCodeFileReaderService.getSessionsPaginated(claudeProjectPath, { offset, limit })
+      
+      // Convert file-based sessions to database-compatible sessions
+      const dbSessions = result.sessions.map(fileSession => 
+        TypeConverter.fileSessionToDbSession(fileSession, projectId)
+      )
+      
+      return {
+        sessions: dbSessions,
+        total: result.total,
+        hasMore: result.hasMore
+      }
     } catch (error) {
       logger.error('Failed to get paginated Claude sessions:', error)
       return { sessions: [], total: 0, hasMore: false }
@@ -367,7 +527,7 @@ export class ClaudeCodeMCPService {
   /**
    * Get Claude Code sessions metadata only (fastest, no message loading)
    */
-  async getSessionsMetadata(projectId: number): Promise<ClaudeSessionMetadata[]> {
+  async getSessionsMetadata(projectId: number): Promise<DbClaudeSessionMetadata[]> {
     const project = await getProjectById(projectId)
 
     try {
@@ -385,7 +545,12 @@ export class ClaudeCodeMCPService {
         return []
       }
 
-      return await claudeCodeFileReaderService.getSessionsMetadata(claudeProjectPath)
+      const fileMetadata = await claudeCodeFileReaderService.getSessionsMetadata(claudeProjectPath)
+      
+      // Convert file-based metadata to database-compatible metadata
+      return fileMetadata.map(fileMeta => 
+        TypeConverter.fileSessionMetadataToDbSessionMetadata(fileMeta)
+      )
     } catch (error) {
       logger.error('Failed to get Claude sessions metadata:', error)
       return []
@@ -395,7 +560,7 @@ export class ClaudeCodeMCPService {
   /**
    * Get full session data with all messages (use sparingly, loads all message data)
    */
-  async getFullSession(projectId: number, sessionId: string): Promise<ClaudeSession | null> {
+  async getFullSession(projectId: number, sessionId: string): Promise<DbClaudeSession | null> {
     const project = await getProjectById(projectId)
 
     try {
@@ -423,11 +588,23 @@ export class ClaudeCodeMCPService {
         if (gitBranch && cwd) break
       }
 
-      return {
-        sessionId, projectPath: claudeProjectPath, startTime: firstMessage.timestamp,
-        lastUpdate: lastMessage.timestamp, messageCount: messages.length, gitBranch, cwd,
-        tokenUsage: undefined, serviceTiers: undefined, totalTokensUsed: undefined, totalCostUsd: undefined
+      // Create a file-based session first
+      const fileSession: FileClaudeSession = {
+        sessionId, 
+        projectPath: claudeProjectPath, 
+        startTime: firstMessage.timestamp,
+        lastUpdate: lastMessage.timestamp, 
+        messageCount: messages.length, 
+        gitBranch: gitBranch || undefined,
+        cwd: cwd || undefined,
+        tokenUsage: undefined, 
+        serviceTiers: undefined, 
+        totalTokensUsed: undefined, 
+        totalCostUsd: undefined
       }
+      
+      // Convert to database-compatible session
+      return TypeConverter.fileSessionToDbSession(fileSession, projectId)
     } catch (error) {
       logger.error('Failed to get full session:', error)
       return null
@@ -438,7 +615,7 @@ export class ClaudeCodeMCPService {
    * Get messages for a specific Claude Code session
    * Note: Returns ClaudeMessage array from file reader, which has different structure than database ClaudeMessage
    */
-  async getSessionMessages(projectId: number, sessionId: string): Promise<ClaudeMessage[]> {
+  async getSessionMessages(projectId: number, sessionId: string): Promise<DbClaudeMessage[]> {
     const project = await getProjectById(projectId)
 
     try {
@@ -451,14 +628,9 @@ export class ClaudeCodeMCPService {
       const fileMessages = await claudeCodeFileReaderService.getSessionMessages(claudeProjectPath, sessionId)
       
       // Convert file messages to database-compatible format
-      return fileMessages.map(msg => ({
-        ...msg,
-        // Add required database fields (these are not stored in Claude Code files)
-        id: `${sessionId}-${msg.uuid || msg.timestamp}`, // Use composite key as string ID
-        projectId: projectId,
-        createdAt: new Date(msg.timestamp).getTime(),
-        updatedAt: new Date(msg.timestamp).getTime()
-      })) as ClaudeMessage[]
+      return fileMessages.map(fileMessage => 
+        TypeConverter.fileMessageToDbMessage(fileMessage, projectId)
+      )
     } catch (error) {
       logger.error('Failed to get session messages:', error)
       return []
@@ -487,7 +659,7 @@ export class ClaudeCodeMCPService {
   /**
    * Watch for Claude Code chat updates
    */
-  watchChatHistory(projectId: number, onUpdate: (messages: ClaudeMessage[]) => void): () => void {
+  watchChatHistory(projectId: number, onUpdate: (messages: DbClaudeMessage[]) => void): () => void {
     let cleanup: (() => void) | null = null
 
     // Async initialization
@@ -497,14 +669,9 @@ export class ClaudeCodeMCPService {
           // Wrap the callback to convert file messages to database format
           cleanup = claudeCodeFileReaderService.watchChatHistory(claudeProjectPath, (fileMessages) => {
             // Convert file messages to database-compatible format
-            const dbMessages = fileMessages.map(msg => ({
-              ...msg,
-              // Add required database fields
-              id: `${msg.sessionId}-${msg.uuid || msg.timestamp}`, // Use composite key as string ID
-              projectId: projectId,
-              createdAt: new Date(msg.timestamp).getTime(),
-              updatedAt: new Date(msg.timestamp).getTime()
-            })) as ClaudeMessage[]
+            const dbMessages = fileMessages.map(fileMessage => 
+              TypeConverter.fileMessageToDbMessage(fileMessage, projectId)
+            )
             onUpdate(dbMessages)
           })
         }

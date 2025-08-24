@@ -348,7 +348,9 @@ function createClaudeCommandService(deps: {
       // List all commands across all projects
       return withErrorContext(
         async () => {
-          return await repository.getAll()
+          const results = await repository.getAll()
+          // Cast to ensure proper type with JSON fields
+          return results as ClaudeCommand[]
         },
         { entity: 'ClaudeCommand', action: 'list' }
       )
@@ -361,7 +363,7 @@ function createClaudeCommandService(deps: {
           if (!command) {
             throw ErrorFactory.notFound('ClaudeCommand', id)
           }
-          return command
+          return command as ClaudeCommand
         },
         { entity: 'ClaudeCommand', action: 'getById', id }
       )

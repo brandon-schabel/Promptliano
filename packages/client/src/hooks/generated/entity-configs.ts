@@ -12,50 +12,76 @@ import type {
 } from '../factories/crud-hook-factory'
 import { 
   PROJECT_ENHANCED_KEYS,
-  TICKET_ENHANCED_KEYS, 
-  TASKS_KEYS,
+  TICKET_ENHANCED_KEYS,
   CHAT_ENHANCED_KEYS,
   PROMPT_ENHANCED_KEYS,
   AGENT_ENHANCED_KEYS,
-  FILE_ENHANCED_KEYS,
   QUEUE_ENHANCED_KEYS,
-  PROVIDER_KEYS_KEYS,
-  USER_ENHANCED_KEYS,
-  WORKSPACE_ENHANCED_KEYS,
-  COMMANDS_KEYS,
-  FLOW_ENHANCED_KEYS,
-  GIT_ENHANCED_KEYS,
-  PROVIDERS_KEYS,
-  ANALYTICS_KEYS,
-  MCP_ENHANCED_KEYS
+  PROVIDER_KEYS_KEYS
 } from './query-keys'
 import type {
-  Project,
-  CreateProjectBody,
-  UpdateProjectBody,
-  Ticket,
-  CreateTicketBody,
-  UpdateTicketBody,
-  TicketTask,
-  CreateTaskBody,
-  UpdateTaskBody,
-  Chat,
-  CreateChatBody,
-  UpdateChatBody,
-  Prompt,
-  CreatePromptBody,
-  UpdatePromptBody,
-  ClaudeAgent,
-  CreateClaudeAgentBody,
-  UpdateClaudeAgentBody,
-  ProjectFile,
-  TaskQueue,
-  CreateQueueBody,
-  UpdateQueueBody,
-  ProviderKey,
-  CreateProviderKeyBody,
-  UpdateProviderKeyBody
-} from '@promptliano/schemas'
+  ProjectSchema,
+  CreateProject,
+  UpdateProject,
+  TicketSchema,
+  CreateTicket,
+  UpdateTicket,
+  TaskSchema,
+  CreateTask,
+  UpdateTask,
+  ChatSchema,
+  CreateChat,
+  UpdateChat,
+  PromptSchema,
+  CreatePrompt,
+  UpdatePrompt,
+  ClaudeAgentSchema,
+  CreateClaudeAgent,
+  UpdateClaudeAgent,
+  QueueSchema,
+  CreateQueue,
+  UpdateQueue,
+  ProviderKeySchema,
+  CreateProviderKey,
+  UpdateProviderKey
+} from '@promptliano/database'
+
+// Extract proper TypeScript types from schemas
+type Project = typeof ProjectSchema._type
+type CreateProjectBody = CreateProject
+type UpdateProjectBody = UpdateProject
+type Ticket = typeof TicketSchema._type
+type CreateTicketBody = CreateTicket
+type UpdateTicketBody = UpdateTicket
+type TicketTask = typeof TaskSchema._type
+type CreateTaskBody = CreateTask
+type UpdateTaskBody = UpdateTask
+type Chat = typeof ChatSchema._type
+type CreateChatBody = CreateChat
+type UpdateChatBody = UpdateChat
+type Prompt = typeof PromptSchema._type
+type CreatePromptBody = CreatePrompt
+type UpdatePromptBody = UpdatePrompt
+type ClaudeAgent = typeof ClaudeAgentSchema._type
+type CreateClaudeAgentBody = CreateClaudeAgent
+type UpdateClaudeAgentBody = UpdateClaudeAgent
+type TaskQueue = typeof QueueSchema._type
+type CreateQueueBody = CreateQueue
+type UpdateQueueBody = UpdateQueue
+// Import the proper ProviderKey type that handles JSON fields correctly  
+import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
+type ProviderKey = DatabaseProviderKey
+type CreateProviderKeyBody = CreateProviderKey
+type UpdateProviderKeyBody = UpdateProviderKey
+// Import additional types that we need
+export type ProjectFile = {
+  id: number
+  name: string
+  path: string
+  projectId: number
+  content?: string
+  summary?: string
+}
 
 // ============================================================================
 // Entity Type Definitions

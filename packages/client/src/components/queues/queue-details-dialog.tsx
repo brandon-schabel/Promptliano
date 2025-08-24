@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
@@ -22,9 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@promptliano/ui'
-import { QueueWithStats, QueueItem, ItemQueueStatus } from '@promptliano/schemas'
+import type { QueueItem, TaskQueue, QueueWithStats } from '@/hooks/generated/types'
 import { toast } from 'sonner'
-import { useGetQueueItems } from '@/hooks/api-hooks'
+import { useGetFlowData } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { safeFormatDate, ensureArray, normalizeQueueItem } from '@/utils/queue-item-utils'
@@ -41,11 +41,12 @@ import {
   Users,
   ListTodo,
   FileText,
+  MessageCircle,
   Hash
 } from 'lucide-react'
 
 interface QueueDetailsDialogProps {
-  queue: QueueWithStats
+  queue: TaskQueue
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -58,7 +59,7 @@ interface QueueItemWithDetails {
 
 interface QueueItemRowProps {
   itemData: QueueItemWithDetails
-  onStatusChange: (itemId: number, status: ItemQueueStatus) => void
+  onStatusChange: (itemId: number, status: string) => void
   onDelete: (itemId: number) => void
   onRetry: (itemId: number) => void
 }
@@ -92,19 +93,13 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
 
           {/* Secondary info - IDs and type */}
           <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-            {item.ticketId && (
-              <div className='flex items-center gap-1'>
-                <ListTodo className='h-3 w-3' />
-                <span>Ticket #{item.ticketId}</span>
-              </div>
-            )}
-            {item.taskId && (
-              <div className='flex items-center gap-1'>
-                <FileText className='h-3 w-3' />
-                <span>Task #{item.taskId}</span>
-                {ticket && <span className='text-muted-foreground'>• {ticket.title}</span>}
-              </div>
-            )}
+            <div className='flex items-center gap-1'>
+              {item.itemType === 'ticket' && <ListTodo className='h-3 w-3' />}
+              {item.itemType === 'task' && <FileText className='h-3 w-3' />}
+              {item.itemType === 'chat' && <MessageCircle className='h-3 w-3' />}
+              <span>{item.itemType} #{item.itemId}</span>
+              {ticket && <span className='text-muted-foreground'>• {ticket.title}</span>}
+            </div>
             <Badge variant='outline' className='text-xs'>
               Priority {item.priority}
             </Badge>
@@ -112,7 +107,7 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
         </div>
 
         <div className='flex items-center gap-4 text-xs text-muted-foreground'>
-          <span>Added {safeFormatDate(item.created)}</span>
+          <span>Added {safeFormatDate(item.createdAt)}</span>
           {item.agentId && (
             <div className='flex items-center gap-1'>
               <User className='h-3 w-3' />
@@ -174,15 +169,54 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
 }
 
 export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDialogProps) {
-  const [activeTab, setActiveTab] = useState<ItemQueueStatus | 'all'>('all')
+  const [activeTab, setActiveTab] = useState<string | 'all'>('all')
   const [itemToDelete, setItemToDelete] = useState<number | null>(null)
 
   // API hooks
-  const { data: items, isLoading } = useGetQueueItems(queue.queue.id, activeTab === 'all' ? undefined : activeTab)
+  const { data: flowData, isLoading } = useGetFlowData(queue.projectId)
+  
+  // Extract queue items from flow data
+  const items: QueueItemWithDetails[] = useMemo(() => {
+    if (!flowData?.queues?.[queue.id]) return []
+    const queueData = flowData.queues[queue.id]
+    const queueItems: QueueItemWithDetails[] = []
+    
+    // Add tickets as queue items
+    queueData.tickets?.forEach((ticket, index) => {
+      queueItems.push({
+        queueItem: {
+          id: ticket.id,
+          queueId: queue.id,
+          ticketId: ticket.id,
+          priority: index,
+          status: 'pending',
+          createdAt: ticket.createdAt
+        },
+        ticket
+      })
+    })
+    
+    // Add tasks as queue items
+    queueData.tasks?.forEach((task, index) => {
+      queueItems.push({
+        queueItem: {
+          id: task.id,
+          queueId: queue.id,
+          taskId: task.id,
+          priority: (queueData.tickets?.length || 0) + index,
+          status: 'pending',
+          createdAt: task.createdAt
+        },
+        task
+      })
+    })
+    
+    return activeTab === 'all' ? queueItems : queueItems.filter(item => item.queueItem.status === activeTab)
+  }, [flowData, queue.id, activeTab])
   // Note: Direct queue item operations are no longer supported.
   // Items are now managed through their parent tickets/tasks via the flow service.
 
-  const handleStatusChange = async (itemId: number, status: ItemQueueStatus) => {
+  const handleStatusChange = async (itemId: number, status: string) => {
     // Direct queue item status changes are no longer supported
     // Status should be managed through their parent ticket/task
     toast.error('Direct item status changes are no longer supported. Please use the ticket/task management interface.')
@@ -207,7 +241,7 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
           .filter((item) => item.queueItem.status === 'queued')
           .map((item) => ({
             itemId: item.queueItem.id,
-            data: { status: 'cancelled' as ItemQueueStatus }
+            data: { status: 'cancelled' }
           }))
       : []
 

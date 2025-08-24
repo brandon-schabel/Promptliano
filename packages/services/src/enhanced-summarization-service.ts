@@ -1,6 +1,5 @@
 import {
     type ProjectFile,
-    type FileGroup,
     type GroupSummary,
     type EnhancedFileSummary,
     type BatchSummaryOptions,
@@ -8,7 +7,7 @@ import {
     type SummaryOptions,
     type SummaryProgress
 } from '@promptliano/schemas'
-import type { File } from '@promptliano/database'
+import type { File, FileGroup } from '@promptliano/database'
 import { z } from 'zod'
 import { ApiError, ErrorFactory, promptsMap } from '@promptliano/shared'
 import { generateStructuredData } from './gen-ai-services'
@@ -70,13 +69,22 @@ function convertFileToProjectFile(file: File): ProjectFile {
     }, 0));
     
     return {
-        ...file,
         id: numericId,
-        // Ensure all required ProjectFile fields are present
-        extension: file.path.split('.').pop() || '',
+        projectId: file.projectId,
+        name: file.name,
+        path: file.path,
+        extension: file.extension || file.path.split('.').pop() || '',
         size: file.size || 0,
-        lastModified: file.lastModified || 0
-    } as unknown as ProjectFile;
+        content: file.content,
+        summary: file.summary,
+        summaryLastUpdated: file.summaryLastUpdated,
+        meta: file.meta,
+        checksum: file.checksum,
+        imports: file.imports || null,
+        exports: file.exports || null,
+        created: file.createdAt,
+        updated: file.updatedAt
+    };
 }
 
 export class EnhancedSummarizationService {
@@ -178,16 +186,8 @@ export class EnhancedSummarizationService {
                 return
             }
 
-            // Convert database Files to ProjectFiles for the grouping service and create mapping
-            const idMapping = new Map<number, string>() // Maps numeric ID to string ID
-            const projectFiles = filesToProcess.map(file => {
-                const projectFile = convertFileToProjectFile(file)
-                idMapping.set(projectFile.id, file.id)
-                return projectFile
-            })
-            
-            // Group files
-            const groups = fileGroupingService.groupFilesByStrategy(projectFiles, options.strategy, {
+            // Group files using database File objects
+            const groups = fileGroupingService.groupFilesByStrategy(filesToProcess, options.strategy, projectId, {
                 maxGroupSize: options.maxGroupSize,
                 priorityThreshold: options.priorityThreshold
             })
@@ -195,14 +195,9 @@ export class EnhancedSummarizationService {
             // Optimize groups for token limits
             const optimizedGroups = fileGroupingService.optimizeGroupsForTokenLimit(
                 groups,
-                projectFiles,
+                filesToProcess,
                 options.maxTokensPerGroup
             )
-            
-            // Convert group fileIds back to string IDs
-            optimizedGroups.forEach(group => {
-                (group as any).fileIds = (group.fileIds as unknown as number[]).map(numId => idMapping.get(numId) || String(numId))
-            })
 
             // Sort groups by priority
             optimizedGroups.sort((a, b) => b.priority - a.priority)

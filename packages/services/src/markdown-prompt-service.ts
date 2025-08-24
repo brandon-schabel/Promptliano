@@ -11,6 +11,7 @@
  */
 
 import { withErrorContext, createServiceLogger, type ServiceLogger } from './core/base-service'
+import { addTimestamps, convertNullsToUndefined, jsonToStringArray, nullToUndefined } from './utils/file-utils'
 import { ErrorFactory } from '@promptliano/shared'
 import {
   type ParsedMarkdownPrompt,
@@ -505,12 +506,19 @@ async function performBulkImport(
 
       try {
         // Check if a prompt with this name already exists in the project
-        let existingPrompts: Prompt[]
+        let existingPromptsRaw: any[]
         if (projectId) {
-          existingPrompts = await promptService.getByProject(projectId)
+          existingPromptsRaw = await promptService.getByProject(projectId)
         } else {
-          existingPrompts = await promptService.getAll()
+          existingPromptsRaw = await promptService.getAll()
         }
+        
+        // Convert database results to proper Prompt type
+        const existingPrompts: Prompt[] = existingPromptsRaw.map(prompt => ({
+          ...prompt,
+          description: nullToUndefined(prompt.description),
+          tags: jsonToStringArray(prompt.tags)
+        }))
 
           const existingPrompt = existingPrompts.find((p) => p.title === parsedPrompt.frontmatter.name)
 
@@ -532,11 +540,11 @@ async function performBulkImport(
             throw ErrorFactory.missingRequired('projectId', 'prompt creation')
           }
           
-          const newPrompt = await promptService.create({
+          const newPrompt = await promptService.create(addTimestamps({
             title: parsedPrompt.frontmatter.name,
             content: parsedPrompt.content,
             projectId
-          })
+          }))
 
           importResult.success = true
           importResult.promptId = newPrompt.id

@@ -85,8 +85,9 @@ export function RecentAssetsView({ projectId, projectName = 'Project' }: RecentA
     // First create the prompt
     createPrompt(
       {
-        name: promptName,
-        content: savePromptDialog.content
+        title: promptName,
+        content: savePromptDialog.content,
+        projectId: projectId
       },
       {
         onSuccess: (response) => {

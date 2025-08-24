@@ -63,10 +63,10 @@ export const app = new OpenAPIHono({
           error: {
             message: validationError.message,
             code: validationError.code,
-            details: validationError.details
+            details: validationError.details as Record<string, any> | undefined
           }
         } satisfies z.infer<typeof ApiErrorResponseSchema>,
-        validationError.status
+        validationError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
       )
     }
   }
@@ -109,6 +109,7 @@ const generalLimiter = rateLimiter({
       Math.floor(RATE_LIMIT_WINDOW_MS / 1000)
     )
     
+    const rateLimitDetails = rateLimitError.details as Record<string, any> || {}
     return c.json(
       {
         success: false,
@@ -116,12 +117,12 @@ const generalLimiter = rateLimiter({
           message: rateLimitError.message,
           code: rateLimitError.code,
           details: {
-            ...rateLimitError.details,
+            ...rateLimitDetails,
             resetAt: Date.now() + RATE_LIMIT_WINDOW_MS
           }
         }
       } satisfies z.infer<typeof ApiErrorResponseSchema>,
-      rateLimitError.status
+      rateLimitError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
     )
   }
 })
@@ -140,6 +141,7 @@ const aiLimiter = rateLimiter({
       Math.floor(AI_RATE_LIMIT_WINDOW_MS / 1000)
     )
     
+    const aiRateLimitDetails = aiRateLimitError.details as Record<string, any> || {}
     return c.json(
       {
         success: false,
@@ -147,12 +149,12 @@ const aiLimiter = rateLimiter({
           message: `AI endpoint ${aiRateLimitError.message.toLowerCase()}`,
           code: `AI_${aiRateLimitError.code}`,
           details: {
-            ...aiRateLimitError.details,
+            ...aiRateLimitDetails,
             resetAt: Date.now() + AI_RATE_LIMIT_WINDOW_MS
           }
         }
       } satisfies z.infer<typeof ApiErrorResponseSchema>,
-      aiRateLimitError.status
+      aiRateLimitError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
     )
   }
 })
@@ -257,7 +259,7 @@ app.onError((err, c) => {
     }
   }
 
-  return c.json(responseBody, apiError.status as any)
+  return c.json(responseBody, apiError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500)
 })
 
 // server swagger ui at /swagger

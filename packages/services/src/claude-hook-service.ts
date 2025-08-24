@@ -84,6 +84,49 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
 
   const errors = ErrorFactory.forEntity('ClaudeHook')
 
+  // Define service methods first
+  const getById = async (hookId: number): Promise<ClaudeHook> => {
+    return withErrorContext(
+      async () => {
+        const hook = await repository.getById(hookId)
+        assertExists(hook, 'ClaudeHook', hookId)
+        return hook
+      },
+      { entity: 'ClaudeHook', action: 'getById', hookId }
+    )
+  }
+
+  const listHooks = async (projectId: number): Promise<ClaudeHook[]> => {
+    return withErrorContext(
+      async () => {
+        return await repository.getByProject(projectId)
+      },
+      { entity: 'ClaudeHook', action: 'listHooks', projectId }
+    )
+  }
+
+  const update = async (hookId: number, data: Partial<UpdateClaudeHookBody>): Promise<ClaudeHook> => {
+    return withErrorContext(
+      async () => {
+        // Verify hook exists
+        await getById(hookId)
+        
+        const validated = ClaudeHookSchema.partial().parse({
+          ...data,
+          updatedAt: Date.now(),
+        })
+        
+        const result = await repository.update(hookId, validated)
+        if (!result) {
+          throw errors.updateFailed(hookId)
+        }
+        
+        return result
+      },
+      { entity: 'ClaudeHook', action: 'update', hookId }
+    )
+  }
+
   return {
     /**
      * List all hooks (route factory compatible)
@@ -100,28 +143,12 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     /**
      * List all hooks for a project
      */
-    async listHooks(projectId: number): Promise<ClaudeHook[]> {
-      return withErrorContext(
-        async () => {
-          return await repository.getByProject(projectId)
-        },
-        { entity: 'ClaudeHook', action: 'listHooks', projectId }
-      )
-    },
+    listHooks,
 
     /**
      * Get a specific hook by ID
      */
-    async getById(hookId: number): Promise<ClaudeHook> {
-      return withErrorContext(
-        async () => {
-          const hook = await repository.getById(hookId)
-          assertExists(hook, 'ClaudeHook', hookId)
-          return hook
-        },
-        { entity: 'ClaudeHook', action: 'getById', hookId }
-      )
-    },
+    getById,
 
     /**
      * Create a new hook
@@ -144,27 +171,7 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     /**
      * Update an existing hook
      */
-    async update(hookId: number, data: Partial<UpdateClaudeHookBody>): Promise<ClaudeHook> {
-      return withErrorContext(
-        async () => {
-          // Verify hook exists
-          await this.getById(hookId)
-          
-          const validated = ClaudeHookSchema.partial().parse({
-            ...data,
-            updatedAt: Date.now(),
-          })
-          
-          const result = await repository.update(hookId, validated)
-          if (!result) {
-            throw errors.updateFailed(hookId)
-          }
-          
-          return result
-        },
-        { entity: 'ClaudeHook', action: 'update', hookId }
-      )
-    },
+    update,
 
     /**
      * Delete a hook
@@ -173,7 +180,7 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Verify hook exists
-          await this.getById(hookId)
+          await getById(hookId)
           
           const result = await repository.delete(hookId)
           if (!result) {
@@ -204,7 +211,7 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     async searchHooks(projectId: number, query: string): Promise<ClaudeHook[]> {
       return withErrorContext(
         async () => {
-          const allHooks = await this.listHooks(projectId)
+          const allHooks = await listHooks(projectId)
 
           if (!query) return allHooks
 
@@ -299,7 +306,7 @@ Return a safe, practical hook configuration.`
     ): Promise<{ message: string; hook: ClaudeHook }> {
       return withErrorContext(
         async () => {
-          const hook = await this.getById(hookId)
+          const hook = await getById(hookId)
           
           // Claude Code handles hook execution, we just return a message with hook data
           return {
@@ -315,7 +322,7 @@ Return a safe, practical hook configuration.`
      * Enable/disable a hook
      */
     async toggleActive(hookId: number, isActive: boolean): Promise<ClaudeHook> {
-      return await this.update(hookId, { isActive })
+      return await update(hookId, { isActive })
     },
 
     // Legacy method support for backward compatibility

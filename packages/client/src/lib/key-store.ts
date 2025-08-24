@@ -1,4 +1,4 @@
-import { ProviderKey } from '@promptliano/schemas'
+import type { ProviderKey } from '@promptliano/database'
 
 // Re-define or import a simplified StoredKey type if ProviderKey is too complex or has API-specific parts
 // For now, let's assume ProviderKey can be stored directly or we'll adapt it.

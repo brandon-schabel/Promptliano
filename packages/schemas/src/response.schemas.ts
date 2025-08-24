@@ -5,6 +5,7 @@ import {
   QueueSchema,
   ClaudeCommandSchema,
   ClaudeHookSchema,
+  ClaudeAgentSchema,
   SelectedFileSchema,
   ActiveTabSchema
 } from '@promptliano/database'
@@ -80,7 +81,7 @@ export const ChatResponseSchema = z
     data: z.object({
       id: z.number(),
       projectId: z.number(),
-      name: z.string(),
+      title: z.string(), // Changed from 'name' to 'title' to match database schema
       createdAt: z.number(),
       updatedAt: z.number()
     })
@@ -291,6 +292,78 @@ export const ClaudeHookListResponseSchema = z
   })
   .openapi('ClaudeHookListResponse')
 
+// Claude Agent Response Schema
+export const ClaudeAgentResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ClaudeAgentSchema
+  })
+  .openapi('ClaudeAgentResponse')
+
+// Claude Agent List Response Schema
+export const ClaudeAgentListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ClaudeAgentSchema)
+  })
+  .openapi('ClaudeAgentListResponse')
+
+// Claude Command Response Schema
+export const ClaudeCommandResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ClaudeCommandSchema
+  })
+  .openapi('ClaudeCommandResponse')
+
+// Command Execution Response Schema
+export const CommandExecutionResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      result: z.string(),
+      usage: z.object({
+        inputTokens: z.number(),
+        outputTokens: z.number(),
+        totalTokens: z.number()
+      }).optional(),
+      model: z.string().optional(),
+      sessionId: z.string().optional()
+    })
+  })
+  .openapi('CommandExecutionResponse')
+
+// Agent Suggestions Response Schema
+export const AgentSuggestionsResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(z.object({
+      name: z.string(),
+      description: z.string(),
+      path: z.string(),
+      relevanceScore: z.number()
+    }))
+  })
+  .openapi('AgentSuggestionsResponse')
+
+// Command Suggestions Response Schema
+export const CommandSuggestionsResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      suggestions: z.array(z.object({
+        name: z.string(),
+        description: z.string(),
+        content: z.string(),
+        category: z.string(),
+        useCase: z.string(),
+        difficulty: z.enum(['easy', 'medium', 'hard'])
+      })),
+      reasoning: z.string()
+    })
+  })
+  .openapi('CommandSuggestionsResponse')
+
 // Selected File List Response Schema
 export const SelectedFileListResponseSchema = z
   .object({
@@ -333,5 +406,11 @@ export type ChatListResponse = z.infer<typeof ChatListResponseSchema>
 export type QueueListResponse = z.infer<typeof QueueListResponseSchema>
 export type ClaudeCommandListResponse = z.infer<typeof ClaudeCommandListResponseSchema>
 export type ClaudeHookListResponse = z.infer<typeof ClaudeHookListResponseSchema>
+export type ClaudeAgentResponse = z.infer<typeof ClaudeAgentResponseSchema>
+export type ClaudeAgentListResponse = z.infer<typeof ClaudeAgentListResponseSchema>
+export type ClaudeCommandResponse = z.infer<typeof ClaudeCommandResponseSchema>
+export type CommandExecutionResponse = z.infer<typeof CommandExecutionResponseSchema>
+export type AgentSuggestionsResponse = z.infer<typeof AgentSuggestionsResponseSchema>
+export type CommandSuggestionsResponse = z.infer<typeof CommandSuggestionsResponseSchema>
 export type SelectedFileListResponse = z.infer<typeof SelectedFileListResponseSchema>
 export type ActiveTabListResponse = z.infer<typeof ActiveTabListResponseSchema>

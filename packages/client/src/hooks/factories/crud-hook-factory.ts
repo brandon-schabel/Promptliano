@@ -16,6 +16,7 @@ import {
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApiError } from '@promptliano/shared'
+import { useApiClient } from '../api/use-api-client'
 
 // ============================================================================
 // Types and Interfaces
@@ -198,56 +199,73 @@ export function createCrudHooks<
   // ============================================================================
 
   function useList(params?: TListParams, options?: UseQueryOptions<TEntity[], ApiError>) {
+    const client = useApiClient()
     const pollingConfig = polling.list
     
-    return useQuery({
+    const queryOptions: UseQueryOptions<TEntity[], ApiError> = {
       queryKey: queryKeys.list(params),
-      queryFn: ({ signal }) => apiClient.list(undefined, params), // Will be wrapped with client
+      queryFn: ({ signal }) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.list(client, params)
+      },
+      enabled: !!client && (options?.enabled !== false),
       staleTime,
       gcTime: cacheTime,
       // Apply polling configuration
       ...(pollingConfig?.enabled && {
         refetchInterval: typeof pollingConfig.interval === 'function'
-          ? (data) => pollingConfig.interval(data)
+          ? pollingConfig.interval as ((data: any) => number)
           : pollingConfig.interval,
         refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
       }),
       ...options
-    })
+    }
+    
+    return useQuery(queryOptions)
   }
 
   function useGetById(id: number, options?: UseQueryOptions<TEntity, ApiError>) {
+    const client = useApiClient()
     const pollingConfig = polling.detail
     
-    return useQuery({
+    const queryOptions: UseQueryOptions<TEntity, ApiError> = {
       queryKey: queryKeys.detail(id),
-      queryFn: ({ signal }) => apiClient.getById(undefined, id),
-      enabled: !!id && id > 0,
+      queryFn: ({ signal }) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.getById(client, id)
+      },
+      enabled: !!client && !!id && id > 0 && (options?.enabled !== false),
       staleTime,
       gcTime: cacheTime,
       // Apply polling configuration
       ...(pollingConfig?.enabled && {
         refetchInterval: typeof pollingConfig.interval === 'function'
-          ? (data) => pollingConfig.interval(data)
+          ? pollingConfig.interval as ((data: any) => number)
           : pollingConfig.interval,
         refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
       }),
       ...options
-    })
+    }
+    
+    return useQuery(queryOptions)
   }
 
   function useInfiniteList(
     params?: TListParams,
     options?: UseInfiniteQueryOptions<PaginatedResponse<TEntity>, ApiError>
   ) {
+    const client = useApiClient()
+    
     if (!apiClient.listPaginated) {
       throw new Error(`Infinite queries not supported for ${entityName}. Provide listPaginated in apiClient.`)
     }
 
-    return useInfiniteQuery({
+    const queryOptions: UseInfiniteQueryOptions<PaginatedResponse<TEntity>, ApiError> = {
       queryKey: queryKeys.infinite?.(params) || [...queryKeys.list(params), 'infinite'],
-      queryFn: ({ pageParam = 1, signal }) =>
-        apiClient.listPaginated!(undefined, { ...params, page: pageParam as number } as any),
+      queryFn: ({ pageParam = 1, signal }) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.listPaginated!(client, { ...params, page: pageParam as number } as any)
+      },
       getNextPageParam: (lastPage) => {
         if (lastPage.hasMore) {
           return lastPage.page + 1
@@ -255,10 +273,13 @@ export function createCrudHooks<
         return undefined
       },
       initialPageParam: 1,
+      enabled: !!client && (options?.enabled !== false),
       staleTime,
       gcTime: cacheTime,
       ...options
-    })
+    }
+    
+    return useInfiniteQuery(queryOptions)
   }
 
   // ============================================================================
@@ -267,9 +288,13 @@ export function createCrudHooks<
 
   function useCreate(options?: UseMutationOptions<TEntity, ApiError, TCreate>) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     return useMutation({
-      mutationFn: (data: TCreate) => apiClient.create(undefined, data),
+      mutationFn: (data: TCreate) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.create(client, data)
+      },
       onMutate: optimistic.enabled
         ? async (data) => {
             // Cancel any outgoing refetches
@@ -340,9 +365,13 @@ export function createCrudHooks<
 
   function useUpdate(options?: UseMutationOptions<TEntity, ApiError, { id: number; data: TUpdate }>) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     return useMutation({
-      mutationFn: ({ id, data }) => apiClient.update(undefined, id, data),
+      mutationFn: ({ id, data }) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.update(client, id, data)
+      },
       onMutate: optimistic.enabled
         ? async ({ id, data }) => {
             // Cancel queries for this entity
@@ -406,9 +435,13 @@ export function createCrudHooks<
 
   function useDelete(options?: UseMutationOptions<void | boolean, ApiError, number>) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     return useMutation({
-      mutationFn: (id: number) => apiClient.delete(undefined, id),
+      mutationFn: (id: number) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.delete(client, id)
+      },
       onMutate: optimistic.enabled
         ? async (id) => {
             await queryClient.cancelQueries({ queryKey: queryKeys.lists() })
@@ -469,13 +502,17 @@ export function createCrudHooks<
 
   function useBatchCreate(options?: UseMutationOptions<TEntity[], ApiError, TCreate[]>) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     if (!apiClient.batchCreate) {
       throw new Error(`Batch create not supported for ${entityName}`)
     }
 
     return useMutation({
-      mutationFn: (data: TCreate[]) => apiClient.batchCreate!(undefined, data),
+      mutationFn: (data: TCreate[]) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.batchCreate!(client, data)
+      },
       onSuccess: (entities) => {
         // Add all entities to cache
         entities.forEach(entity => {
@@ -497,13 +534,17 @@ export function createCrudHooks<
     options?: UseMutationOptions<TEntity[], ApiError, Array<{ id: number; data: TUpdate }>>
   ) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     if (!apiClient.batchUpdate) {
       throw new Error(`Batch update not supported for ${entityName}`)
     }
 
     return useMutation({
-      mutationFn: (updates) => apiClient.batchUpdate!(undefined, updates),
+      mutationFn: (updates) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.batchUpdate!(client, updates)
+      },
       onSuccess: (entities) => {
         entities.forEach(entity => {
           queryClient.setQueryData(queryKeys.detail(entity.id), entity)
@@ -522,13 +563,17 @@ export function createCrudHooks<
 
   function useBatchDelete(options?: UseMutationOptions<void, ApiError, number[]>) {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     if (!apiClient.batchDelete) {
       throw new Error(`Batch delete not supported for ${entityName}`)
     }
 
     return useMutation({
-      mutationFn: (ids: number[]) => apiClient.batchDelete!(undefined, ids),
+      mutationFn: (ids: number[]) => {
+        if (!client) throw new Error('API client not initialized')
+        return apiClient.batchDelete!(client, ids)
+      },
       onSuccess: (_, ids) => {
         ids.forEach(id => {
           queryClient.removeQueries({ queryKey: queryKeys.detail(id) })
@@ -551,33 +596,37 @@ export function createCrudHooks<
 
   function usePrefetch() {
     const queryClient = useQueryClient()
+    const client = useApiClient()
 
     return {
       prefetchList: (params?: TListParams) => {
+        if (!client) return Promise.resolve()
         return queryClient.prefetchQuery({
           queryKey: queryKeys.list(params),
-          queryFn: () => apiClient.list(undefined, params),
+          queryFn: () => apiClient.list(client, params),
           staleTime: prefetch.prefetchStaleTime || staleTime
         })
       },
       prefetchById: (id: number) => {
+        if (!client) return Promise.resolve()
         return queryClient.prefetchQuery({
           queryKey: queryKeys.detail(id),
-          queryFn: () => apiClient.getById(undefined, id),
+          queryFn: () => apiClient.getById(client, id),
           staleTime: prefetch.prefetchStaleTime || staleTime
         })
       },
       prefetchOnHover: (id: number) => {
-        if (!prefetch.enabled || !prefetch.prefetchOnHover) return () => {}
+        if (!prefetch.enabled || !prefetch.prefetchOnHover || !client) return () => {}
 
         let timeoutId: NodeJS.Timeout
 
         return {
           onMouseEnter: () => {
             timeoutId = setTimeout(() => {
+              if (!client) return
               queryClient.prefetchQuery({
                 queryKey: queryKeys.detail(id),
-                queryFn: () => apiClient.getById(undefined, id),
+                queryFn: () => apiClient.getById(client, id),
                 staleTime: prefetch.prefetchStaleTime || staleTime
               })
             }, prefetch.prefetchDelay || 200)
@@ -638,11 +687,17 @@ export function createCrudHooks<
     const operationPolling = polling.custom?.[operation] || options?.polling
     
     return (...args: any[]) => {
+      const client = useApiClient()
+      
       return useQuery({
         queryKey: options?.queryKey
           ? options.queryKey(...args)
           : [...queryKeys.all, operation, ...args].filter(Boolean),
-        queryFn: ({ signal }) => queryFn(undefined, ...args),
+        queryFn: ({ signal }) => {
+          if (!client) throw new Error('API client not initialized')
+          return queryFn(client, ...args)
+        },
+        enabled: !!client,
         staleTime: options?.staleTime ?? staleTime,
         gcTime: cacheTime,
         // Apply polling configuration

@@ -10,39 +10,89 @@ import { useApiClient } from '../api/use-api-client'
 import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type {
-  GitStatusResult,
-  GitBranch,
-  GitLogEntry,
-  GitRemote,
-  GitTag,
-  GitStash,
-  GitLogEnhancedRequest,
-  GitLogEnhancedResponse,
-  GitBranchListEnhancedResponse,
-  GitCommitDetailResponse
-} from '@promptliano/api-client'
+// Define Git types locally to avoid import issues
+export type GitStatusResult = {
+  branch: string
+  ahead: number
+  behind: number
+  staged: string[]
+  modified: string[]
+  untracked: string[]
+}
+
+export type GitBranch = {
+  name: string
+  current: boolean
+  ahead?: number
+  behind?: number
+}
+
+export type GitLogEntry = {
+  hash: string
+  message: string
+  author: string
+  date: string
+}
+
+export type GitRemote = {
+  name: string
+  url: string
+}
+
+export type GitTag = {
+  name: string
+  hash: string
+  message?: string
+}
+
+export type GitStash = {
+  index: number
+  message: string
+  branch: string
+}
+
+export type GitLogEnhancedRequest = {
+  branch?: string
+  limit?: number
+  offset?: number
+}
+
+export type GitLogEnhancedResponse = {
+  entries: GitLogEntry[]
+  total: number
+  hasMore: boolean
+}
+
+export type GitBranchListEnhancedResponse = {
+  branches: GitBranch[]
+  current: string
+}
+
+export type GitCommitDetailResponse = {
+  commit: GitLogEntry
+  files: any[]
+}
 
 // ============================================================================
 // Query Keys (enhanced from original)
 // ============================================================================
 
-export const GIT_ENHANCED_KEYS = {
+export const GIT_KEYS = {
   all: ['git'] as const,
-  project: (projectId: number) => [...GIT_ENHANCED_KEYS.all, 'project', projectId] as const,
-  status: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'status'] as const,
-  branches: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'branches'] as const,
-  branchesEnhanced: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'branches', 'enhanced'] as const,
-  log: (projectId: number, options?: any) => [...GIT_ENHANCED_KEYS.project(projectId), 'log', options] as const,
-  logEnhanced: (projectId: number, params?: any) => [...GIT_ENHANCED_KEYS.project(projectId), 'log', 'enhanced', params] as const,
+  project: (projectId: number) => [...GIT_KEYS.all, 'project', projectId] as const,
+  status: (projectId: number) => [...GIT_KEYS.project(projectId), 'status'] as const,
+  branches: (projectId: number) => [...GIT_KEYS.project(projectId), 'branches'] as const,
+  branchesEnhanced: (projectId: number) => [...GIT_KEYS.project(projectId), 'branches', 'enhanced'] as const,
+  log: (projectId: number, options?: any) => [...GIT_KEYS.project(projectId), 'log', options] as const,
+  logEnhanced: (projectId: number, params?: any) => [...GIT_KEYS.project(projectId), 'log', 'enhanced', params] as const,
   commitDetail: (projectId: number, hash: string, includeFiles?: boolean) => 
-    [...GIT_ENHANCED_KEYS.project(projectId), 'commits', hash, { includeFileContents: includeFiles }] as const,
+    [...GIT_KEYS.project(projectId), 'commits', hash, { includeFileContents: includeFiles }] as const,
   diff: (projectId: number, filePath: string, options?: any) => 
-    [...GIT_ENHANCED_KEYS.project(projectId), 'diff', filePath, options] as const,
-  remotes: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'remotes'] as const,
-  tags: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'tags'] as const,
-  stash: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'stash'] as const,
-  worktrees: (projectId: number) => [...GIT_ENHANCED_KEYS.project(projectId), 'worktrees'] as const
+    [...GIT_KEYS.project(projectId), 'diff', filePath, options] as const,
+  remotes: (projectId: number) => [...GIT_KEYS.project(projectId), 'remotes'] as const,
+  tags: (projectId: number) => [...GIT_KEYS.project(projectId), 'tags'] as const,
+  stash: (projectId: number) => [...GIT_KEYS.project(projectId), 'stash'] as const,
+  worktrees: (projectId: number) => [...GIT_KEYS.project(projectId), 'worktrees'] as const
 }
 
 // ============================================================================
@@ -917,4 +967,8 @@ export type {
 }
 
 // Export query keys for external use
+export { GIT_KEYS }
+
+// Alias for backward compatibility
+export const GIT_ENHANCED_KEYS = GIT_KEYS
 export { GIT_ENHANCED_KEYS as GIT_KEYS }

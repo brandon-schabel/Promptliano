@@ -19,8 +19,7 @@ export {
   suggestFiles,
   getProjectFileTree,
   getProjectOverview,
-  type ProjectService,
-  type FileSyncData
+  type ProjectService
 } from './src/project-service'
 
 export {
@@ -137,7 +136,6 @@ export {
   // Queue integration functions
   enqueueTask,
   dequeueTask,
-  getNextTaskFromQueue,
   enqueueTicketWithAllTasks,
   // Types
   type TicketTask,
@@ -236,7 +234,7 @@ export * from './src/tab-name-generation-service'
 export * from './src/agent-instruction-service'
 export * from './src/agent-file-detection-service'
 // Explicit re-export to avoid VSCodeSettings ambiguity with parsers
-export { MCPInstallationService } from './src/mcp-installation-service'
+export { MCPInstallationService, mcpInstallationService } from './src/mcp-installation-service'
 export type {
   MCPInstallationOptions,
   MCPInstallationResult,
@@ -248,7 +246,6 @@ export * from './src/mcp-config-manager'
 export * from './src/mcp-project-config-service'
 export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
-export * from './src/mcp-installation-service'
 export * from './src/claude-agent-service'
 export {
   // Claude Agent Service individual exports
@@ -292,7 +289,6 @@ export type {
   CreateHookBody,
   UpdateHookBody
 } from '@promptliano/schemas'
-export * from './src/parsers'
 // Parsers moved to @promptliano/shared
 export * from './src/markdown-prompt-service'
 export {

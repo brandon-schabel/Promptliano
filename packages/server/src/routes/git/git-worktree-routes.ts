@@ -189,7 +189,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
     lockWorktreeRoute,
     (createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
-        await gitService.lockWorktree(
+        await lockWorktree(
           params!.projectId,
           body!.path,
           body!.reason
@@ -202,7 +202,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
     unlockWorktreeRoute,
     (createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
       async ({ params, body }): Promise<any> => {
-        await gitService.unlockWorktree(params!.projectId, body!.worktreePath)
+        await unlockWorktree(params!.projectId, body!.worktreePath)
         return operationSuccessResponse('Worktree unlocked successfully')
       }
     ) as any)
@@ -212,7 +212,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
     (createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
       async ({ params, query }): Promise<any> => {
         const { dryRun = false } = query || {}
-        const prunedPaths = await gitService.pruneWorktrees(params!.projectId, dryRun)
+        const prunedPaths = await pruneWorktrees(params!.projectId, dryRun)
         
         const message = dryRun
           ? `Would prune ${prunedPaths.length} worktree(s)`

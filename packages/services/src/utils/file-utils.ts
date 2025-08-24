@@ -82,3 +82,83 @@ export function isDocumentationFile(filePath: string): boolean {
   const docExtensions = ['md', 'rst', 'txt', 'adoc', 'org']
   return isFileType(filePath, docExtensions)
 }
+
+/**
+ * Type Conversion Utilities
+ * Handles database null values vs TypeScript undefined values
+ */
+
+/**
+ * Convert null to undefined for optional fields
+ * @param value - Value that might be null or undefined
+ * @returns Value or undefined (never null)
+ */
+export function nullToUndefined<T>(value: T | null | undefined): T | undefined {
+  return value === null ? undefined : value
+}
+
+/**
+ * Convert database object with null fields to undefined
+ * @param obj - Object from database with potentially null fields
+ * @returns Object with null values converted to undefined
+ */
+export function convertNullsToUndefined<T extends Record<string, any>>(obj: T): {
+  [K in keyof T]: T[K] extends null ? undefined : T[K] extends null | infer U ? U | undefined : T[K]
+} {
+  const result = {} as any
+  for (const [key, value] of Object.entries(obj)) {
+    result[key] = nullToUndefined(value)
+  }
+  return result
+}
+
+/**
+ * Add timestamps to create operations
+ * @param data - Base data object
+ * @returns Data with createdAt and updatedAt timestamps
+ */
+export function addTimestamps<T extends Record<string, any>>(data: T): T & { createdAt: number; updatedAt: number } {
+  const now = Date.now()
+  return {
+    ...data,
+    createdAt: now,
+    updatedAt: now
+  }
+}
+
+/**
+ * Update timestamp for update operations
+ * @param data - Base data object
+ * @returns Data with updated updatedAt timestamp
+ */
+export function updateTimestamp<T extends Record<string, any>>(data: T): T & { updatedAt: number } {
+  return {
+    ...data,
+    updatedAt: Date.now()
+  }
+}
+
+/**
+ * Convert database Json field to string array, handling null values
+ * @param value - Json value that could be string[], null, or undefined
+ * @returns string[] or empty array
+ */
+export function jsonToStringArray(value: any): string[] {
+  if (!value || value === null) return []
+  if (Array.isArray(value)) return value.filter(item => typeof item === 'string')
+  return []
+}
+
+/**
+ * Convert database Json field to number array, handling null values
+ * @param value - Json value that could be number[], null, or undefined
+ * @returns number[] or empty array
+ */
+export function jsonToNumberArray(value: any): number[] {
+  if (!value || value === null) return []
+  if (Array.isArray(value)) {
+    return value.filter(item => typeof item === 'number' || !isNaN(Number(item)))
+                .map(item => typeof item === 'number' ? item : Number(item))
+  }
+  return []
+}

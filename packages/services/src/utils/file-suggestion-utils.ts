@@ -1,5 +1,16 @@
-import type { ProjectFile, RelevanceScore } from '@promptliano/schemas'
+import type { File } from '@promptliano/database'
 import { calculateTokenSavings } from './compact-file-formatter'
+
+// Local interface for relevance scoring (separate from database schema)
+interface RelevanceScoreResult {
+  fileId: string
+  totalScore: number
+  keywordScore: number
+  pathScore: number
+  typeScore: number
+  recencyScore: number
+  importScore: number
+}
 
 /**
  * Extract keywords from text, filtering out common stop words
@@ -162,25 +173,26 @@ export function calculateTextRelevance(text1: string, text2: string): number {
 export function mergeFileSuggestions(
   suggestions: Array<{
     fileIds: number[]
-    scores?: RelevanceScore[]
+    scores?: RelevanceScoreResult[]
     source: string
   }>
 ): {
-  mergedFileIds: number[]
-  mergedScores: Map<number, RelevanceScore>
+  mergedFileIds: string[]
+  mergedScores: Map<string, RelevanceScoreResult>
 } {
-  const fileScoreMap = new Map<number, { score: RelevanceScore; sources: string[] }>()
+  const fileScoreMap = new Map<string, { score: RelevanceScoreResult; sources: string[] }>()
 
   for (const suggestion of suggestions) {
     suggestion.fileIds.forEach((fileId, index) => {
-      const existing = fileScoreMap.get(fileId)
+      const fileIdStr = String(fileId)  // Convert number to string
+      const existing = fileScoreMap.get(fileIdStr)
       const score = suggestion.scores?.[index]
 
       if (existing) {
         // Average the scores if we have multiple
         if (score) {
           existing.score = {
-            fileId,
+            fileId: fileIdStr,
             totalScore: (existing.score.totalScore + score.totalScore) / 2,
             keywordScore: (existing.score.keywordScore + score.keywordScore) / 2,
             pathScore: (existing.score.pathScore + score.pathScore) / 2,
@@ -191,15 +203,15 @@ export function mergeFileSuggestions(
         }
         existing.sources.push(suggestion.source)
       } else if (score) {
-        fileScoreMap.set(fileId, {
+        fileScoreMap.set(fileIdStr, {
           score,
           sources: [suggestion.source]
         })
       } else {
         // Create default score if none provided
-        fileScoreMap.set(fileId, {
+        fileScoreMap.set(fileIdStr, {
           score: {
-            fileId,
+            fileId: fileIdStr,
             totalScore: 0.5,
             keywordScore: 0,
             pathScore: 0,
@@ -230,12 +242,12 @@ export function mergeFileSuggestions(
  * Filter files by path patterns
  */
 export function filterFilesByPattern(
-  files: ProjectFile[],
+  files: File[],
   patterns: {
     include?: string[]
     exclude?: string[]
   }
-): ProjectFile[] {
+): File[] {
   let filtered = files
 
   // Apply include patterns
@@ -258,8 +270,8 @@ export function filterFilesByPattern(
 /**
  * Group files by directory
  */
-export function groupFilesByDirectory(files: ProjectFile[]): Map<string, ProjectFile[]> {
-  const groups = new Map<string, ProjectFile[]>()
+export function groupFilesByDirectory(files: File[]): Map<string, File[]> {
+  const groups = new Map<string, File[]>()
 
   for (const file of files) {
     const dir = file.path.substring(0, file.path.lastIndexOf('/')) || '/'
@@ -306,7 +318,7 @@ export class SuggestionMetricsTracker {
     }
   }
 
-  finishTracking(id: string, filesAnalyzed: number, files: ProjectFile[]): SuggestionMetrics | undefined {
+  finishTracking(id: string, filesAnalyzed: number, files: File[]): SuggestionMetrics | undefined {
     const metrics = this.metrics.get(id)
     if (!metrics) return undefined
 
@@ -373,7 +385,7 @@ export const suggestionMetricsTracker = new SuggestionMetricsTracker()
 /**
  * Get file type category based on extension and path
  */
-export function getFileCategory(file: ProjectFile): string {
+export function getFileCategory(file: File): string {
   const ext = file.extension?.toLowerCase() || ''
   const path = file.path.toLowerCase()
 

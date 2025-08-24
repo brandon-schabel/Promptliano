@@ -235,7 +235,12 @@ export const providerKeyRoutes = new OpenAPIHono()
   .openapi(updateProviderKeyRoute, async (c) => {
     const { id } = c.req.valid('param')
     const body = c.req.valid('json')
-    const updatedKey = await providerKeyService.updateKey(id, body)
+    // Ensure customHeaders is properly typed for service compatibility
+    const updateData = {
+      ...body,
+      customHeaders: body.customHeaders as Record<string, string> | undefined
+    }
+    const updatedKey = await providerKeyService.updateKey(id, updateData)
     return c.json(successResponse(updatedKey), 200)
   })
 

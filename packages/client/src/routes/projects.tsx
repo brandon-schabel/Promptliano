@@ -212,7 +212,7 @@ export function ProjectsPage() {
   const handleSelectProject = async (id: number) => {
     // If no tabs exist, create a new tab first
     if (noTabsYet) {
-      const project = projects.find((p) => p.id === id)
+      const project = projects.find((p: any) => p.id === id)
       const newTabId = createProjectTabFromHook({
         displayName: project?.name || `Tab ${Date.now().toString().slice(-4)}`,
         selectedProjectId: id,

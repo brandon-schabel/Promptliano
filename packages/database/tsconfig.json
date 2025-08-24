@@ -6,6 +6,8 @@
     "declaration": true,
     "declarationMap": true,
     "composite": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,

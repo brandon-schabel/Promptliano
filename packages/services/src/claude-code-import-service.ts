@@ -65,7 +65,7 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
           const messages = await mcpService.getSessionMessages(projectId, sessionId)
 
           if (!messages || messages.length === 0) {
-            ErrorFactory.invalidInput('Claude Code session contains no messages')
+            throw ErrorFactory.invalidInput('sessionId', 'must contain messages', sessionId)
           }
 
           // Generate a title from the first user message
@@ -244,16 +244,36 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
             ErrorFactory.notFound('Chat', chatId)
           }
           
-          return chatWithMessages.messages.map((message, index) => ({
-            timestamp: new Date(message.createdAt).toISOString(),
+          // Ensure chatWithMessages is not null after the error check
+          const messages = chatWithMessages!.messages
+          
+          return messages.map((message, index) => ({
+            id: message.id,
+            projectId: chatWithMessages!.projectId,
+            type: message.role,
             message: {
               role: message.role,
               content: message.content
             },
-            metadata: {
-              ...message.metadata,
-              exportOrder: index
-            }
+            timestamp: new Date(message.createdAt).toISOString(),
+            sessionId: `chat-${chatId}`,
+            uuid: `msg-${message.id}`,
+            parentUuid: null,
+            requestId: null,
+            userType: null,
+            isSidechain: false,
+            cwd: null,
+            version: null,
+            gitBranch: null,
+            toolUseResult: null,
+            content: message.metadata || null,
+            isMeta: false,
+            toolUseID: null,
+            level: null,
+            tokensUsed: null,
+            durationMs: null,
+            createdAt: message.createdAt,
+            updatedAt: message.createdAt  // ChatMessage doesn't have updatedAt, use createdAt
           })) as ClaudeMessage[]
         },
         { entity: 'Chat', action: 'exportToClaude', id: chatId }

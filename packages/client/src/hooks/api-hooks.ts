@@ -55,7 +55,7 @@ export {
   useForkChat,
   useForkChatFromMessage,
   useDeleteMessage,
-  useAIChatV2,
+  useStreamChat,
   useInvalidateAIChats,
   
   usePrompts,
@@ -94,16 +94,12 @@ export {
   useProjectFiles,
   useProjectSync,
   useTicketTasks,
-  useCreateTask,
   useCompleteTicket,
   useChatMessages,
-  useQueueStats,
-  useQueueItems,
   
   // Utility hooks
   useBatchOperations,
-  useRealtimeSync,
-  useHookAnalytics
+  useRealtimeSync
 } from './generated'
 
 // Phase 2 Migrated Hooks
@@ -269,29 +265,7 @@ export {
   MCP_KEYS
 } from './generated/mcp-hooks'
 
-// Queue and Task Management Hooks (need to add to centralized exports)
-export {
-  useGetQueuesWithStats,
-  useGetQueue,
-  useGetQueueStats,
-  useGetQueueItems,
-  useCreateQueue,
-  useUpdateQueue,
-  useDeleteQueue,
-  useGetQueueTimeline
-} from './generated/index'
-
-// Additional Task Management Hooks
-export {
-  useGetTasks,
-  useGetTicketsWithTasks,
-  useUpdateTask,
-  useDeleteTask,
-  useReorderTasks,
-  useAutoGenerateTasks,
-  useGetProjectAgents,
-  useGetAllAgents
-} from './generated/index'
+// Remove duplicate exports - these are already exported from generated/index above
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from './api/use-api-client'
@@ -308,7 +282,6 @@ import type {
   MarkdownExportRequest,
   BatchExportRequest,
   MarkdownContentValidation,
-  AiChatStreamRequest,
   ProjectFile
 } from '@promptliano/schemas'
 
@@ -356,7 +329,8 @@ export function useGetProjectFilesWithoutContent(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.filesWithoutContent(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectFilesWithoutContent(projectId).then(r => r.data)
+      // Use getProjectFiles method instead as getProjectFilesWithoutContent may not exist
+      return client.projects.getProjectFiles(projectId).then(r => r.data)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000, // 5 minutes for file metadata
@@ -392,7 +366,7 @@ export function useUpdateFileContent() {
       if (!client) throw new Error('API client not initialized')
 
       // Update the file content
-      const result = await client.projects.updateFileContent(projectId, fileId, content)
+      const result = await client.typeSafeClient.updateProjectsByProjectIdFilesByFileId(projectId, fileId, { content })
 
       // Sync the project to ensure file system and data store are synchronized
       await client.projects.syncProject(projectId)
@@ -831,6 +805,20 @@ export function useValidateMarkdownFile() {
 // ============================================================================
 // BACKWARD COMPATIBILITY ALIASES
 // ============================================================================
+
+// Import hooks first so they can be re-exported as aliases
+import {
+  useProjects,
+  useProject,
+  usePrompts,
+  usePrompt,
+  useAgents,
+  useAgent,
+  useQueues,
+  useQueue,
+  useKeys,
+  useKey
+} from './generated'
 
 // Provide aliases for existing hook names to ensure backward compatibility
 export const useGetProjects = useProjects

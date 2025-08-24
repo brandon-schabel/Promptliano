@@ -195,7 +195,7 @@ export class RouteValidator {
         // Check for TypeScript errors (basic)
         if (content.includes('any') && !content.includes('z.any()')) {
           result.warnings.push({
-            type: 'type_error',
+            type: 'best_practice',
             entity: entity.name,
             message: 'Possible use of any type without proper Zod schema',
             suggestion: 'Review type safety in generated routes'

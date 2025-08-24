@@ -22,7 +22,7 @@ import {
 } from '@promptliano/schemas'
 
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { type APIProviders, type ProviderKey } from '@promptliano/schemas'
+import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import { stream } from 'hono/streaming'
 
 const chatService = createChatService()
@@ -284,7 +284,7 @@ export const chatRoutes = new OpenAPIHono()
     }, {
       entity: 'Chat',
       action: 'ai_stream',
-      correlationId: chatId,
+      correlationId: String(chatId),
       metadata: { provider, model, tempId }
     })
   })

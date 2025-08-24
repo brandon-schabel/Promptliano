@@ -22,11 +22,11 @@ import {
   useUpdateProjectTabById
 } from '@/hooks/use-kv-local-storage'
 import { toast } from 'sonner'
-import { useGetProjects, useGetProjectFiles } from '@/hooks/api-hooks'
+import { useGetProjects, useProjectFiles } from '@/hooks/api-hooks'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGenerateTabName } from '@/hooks/api/use-tab-naming'
 import { Sparkles } from 'lucide-react'
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File } from '@promptliano/database'
 
 export type ProjectsTabManagerProps = {
   className?: string
@@ -171,7 +171,7 @@ export function ProjectsTabManager({ className }: ProjectsTabManagerProps) {
 
     // Auto-generate name for the new tab
     if (currentProjectId && projects) {
-      const project = projects.find((p) => p.id === currentProjectId)
+      const project = projects.find((p: any) => p.id === currentProjectId)
       if (project) {
         try {
           const generatedName = await generateTabNameMutation.mutateAsync({
@@ -229,19 +229,19 @@ export function ProjectsTabManager({ className }: ProjectsTabManagerProps) {
     setDialogEditingName('')
   }
 
-  const handleGenerateTabName = async (tabId: number, projectFiles?: ProjectFile[]) => {
+  const handleGenerateTabName = async (tabId: number, projectFiles?: File[]) => {
     const tabData = tabs?.[tabId]
     if (!tabData) return
 
-    const project = projects?.find((p) => p.id === tabData.selectedProjectId)
+    const project = projects?.find((p: any) => p.id === tabData.selectedProjectId)
     if (!project) return
 
     try {
-      // Get file names from the selected file IDs
+      // Get file names from the selected file paths
       const selectedFileNames =
-        tabData.selectedFiles?.map((fileId) => {
-          const file = projectFiles?.find((f) => f.id === fileId)
-          return file?.path || file?.name || `file_${fileId}`
+        tabData.selectedFilePaths?.map((filePath) => {
+          const file = projectFiles?.find((f) => f.path === filePath)
+          return file?.path || file?.name || filePath
         }) || []
 
       const generatedName = await generateTabNameMutation.mutateAsync({
@@ -270,7 +270,7 @@ export function ProjectsTabManager({ className }: ProjectsTabManagerProps) {
   function getTabStats(tabId: number): string {
     const tabData = tabs?.[tabId]
     if (!tabData) return 'No data'
-    const fileCount = tabData.selectedFiles?.length ?? 0
+    const fileCount = tabData.selectedFilePaths?.length ?? 0
     const promptCount = tabData.selectedPrompts?.length ?? 0
     const userPromptLength = tabData.userPrompt?.length ?? 0
     return `Files: ${fileCount} | Prompts: ${promptCount} | User Input: ${userPromptLength}`

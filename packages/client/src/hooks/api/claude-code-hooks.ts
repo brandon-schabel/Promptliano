@@ -10,6 +10,12 @@ import type {
   ClaudeSessionMetadata,
   ClaudeMessage,
   ClaudeProjectData,
+  ClaudeSessionQuery,
+  ClaudeMessageQuery,
+  ClaudeSessionCursor,
+  ClaudeSessionsPaginatedResponse
+} from '@promptliano/schemas'
+import {
   ClaudeSessionQuerySchema,
   ClaudeMessageQuerySchema,
   ClaudeSessionCursorSchema,
@@ -24,20 +30,20 @@ import { useCallback, useEffect, useRef, useMemo } from 'react'
 export const CLAUDE_CODE_KEYS = {
   all: ['claude-code'] as const,
   sessions: (projectId: number) => [...CLAUDE_CODE_KEYS.all, 'sessions', projectId] as const,
-  sessionsWithQuery: (projectId: number, query?: z.infer<typeof ClaudeSessionQuerySchema>) =>
+  sessionsWithQuery: (projectId: number, query?: ClaudeSessionQuery) =>
     [...CLAUDE_CODE_KEYS.sessions(projectId), 'legacy', query] as const,
-  sessionsPaginated: (projectId: number, query?: z.infer<typeof ClaudeSessionCursorSchema>) =>
+  sessionsPaginated: (projectId: number, query?: ClaudeSessionCursor) =>
     [...CLAUDE_CODE_KEYS.sessions(projectId), 'paginated', query] as const,
-  sessionsMetadata: (projectId: number, query?: z.infer<typeof ClaudeSessionCursorSchema>) =>
+  sessionsMetadata: (projectId: number, query?: ClaudeSessionCursor) =>
     [...CLAUDE_CODE_KEYS.sessions(projectId), 'metadata', query] as const,
   sessionsRecent: (projectId: number) => [...CLAUDE_CODE_KEYS.sessions(projectId), 'recent'] as const,
-  sessionsInfinite: (projectId: number, query?: Omit<z.infer<typeof ClaudeSessionCursorSchema>, 'cursor'>) =>
+  sessionsInfinite: (projectId: number, query?: Omit<ClaudeSessionCursor, 'cursor'>) =>
     [...CLAUDE_CODE_KEYS.sessions(projectId), 'infinite', query] as const,
   sessionsTable: (projectId: number, tableState?: any) =>
     [...CLAUDE_CODE_KEYS.sessions(projectId), 'table', tableState] as const,
   messages: (projectId: number, sessionId: string) =>
     [...CLAUDE_CODE_KEYS.all, 'messages', projectId, sessionId] as const,
-  messagesWithQuery: (projectId: number, sessionId: string, query?: z.infer<typeof ClaudeMessageQuerySchema>) =>
+  messagesWithQuery: (projectId: number, sessionId: string, query?: ClaudeMessageQuery) =>
     [...CLAUDE_CODE_KEYS.messages(projectId, sessionId), query] as const,
   projectData: (projectId: number) => [...CLAUDE_CODE_KEYS.all, 'project-data', projectId] as const
 }
@@ -50,7 +56,7 @@ export function createClaudeCodeSessionHooks() {
      */
     useClaudeSessions: (
       projectId: number | undefined,
-      query?: z.infer<typeof ClaudeSessionQuerySchema>,
+      query?: ClaudeSessionQuery,
       options?: {
         enabled?: boolean
         refetchInterval?: number | false
@@ -79,7 +85,7 @@ export function createClaudeCodeSessionHooks() {
      */
     useClaudeSessionsMetadata: (
       projectId: number | undefined,
-      query?: z.infer<typeof ClaudeSessionCursorSchema>,
+      query?: ClaudeSessionCursor,
       options?: {
         enabled?: boolean
         refetchInterval?: number | false
@@ -143,7 +149,7 @@ export function createClaudeCodeSessionHooks() {
      */
     useClaudeSessionsInfinite: (
       projectId: number | undefined,
-      query?: Omit<z.infer<typeof ClaudeSessionCursorSchema>, 'cursor'>,
+      query?: Omit<ClaudeSessionCursor, 'cursor'>,
       options?: {
         enabled?: boolean
         staleTime?: number
@@ -158,7 +164,7 @@ export function createClaudeCodeSessionHooks() {
           if (!projectId) throw new Error('Project ID is required')
           if (!client) throw new Error('API client not initialized')
           
-          const cursorQuery: z.infer<typeof ClaudeSessionCursorSchema> = {
+          const cursorQuery: ClaudeSessionCursor = {
             sortBy: (query?.sortBy as 'lastUpdate' | 'startTime' | 'messageCount' | 'fileSize') || 'lastUpdate',
             sortOrder: (query?.sortOrder as 'asc' | 'desc') || 'desc',
             limit: query?.limit || 20,
@@ -223,7 +229,7 @@ export function createClaudeCodeSessionHooks() {
       const queryClient = useQueryClient()
 
       // Build optimized query from table state
-      const query = useMemo((): z.infer<typeof ClaudeSessionCursorSchema> => {
+      const query = useMemo((): ClaudeSessionCursor => {
         const { pagination, sorting, columnFilters, globalFilter } = tableOptions
         
         // Map table sorting to API sorting
@@ -353,7 +359,7 @@ export function createClaudeCodeSessionHooks() {
      */
     useClaudeSessionsProgressive: (
       projectId: number | undefined,
-      query?: z.infer<typeof ClaudeSessionCursorSchema>,
+      query?: ClaudeSessionCursor,
       options?: {
         enabled?: boolean
         loadFullData?: boolean
@@ -431,7 +437,7 @@ export function createClaudeCodeMessageHooks() {
     useClaudeMessages: (
       projectId: number | undefined,
       sessionId: string | undefined,
-      query?: z.infer<typeof ClaudeMessageQuerySchema>,
+      query?: ClaudeMessageQuery,
       options?: {
         enabled?: boolean
         refetchInterval?: number | false
@@ -734,7 +740,7 @@ export function createClaudeCodeAdvancedHooks() {
         },
         
         // Reset infinite query
-        resetInfiniteQuery: (projectId: number, query?: Omit<z.infer<typeof ClaudeSessionCursorSchema>, 'cursor'>) => {
+        resetInfiniteQuery: (projectId: number, query?: Omit<ClaudeSessionCursor, 'cursor'>) => {
           queryClient.resetQueries({ queryKey: CLAUDE_CODE_KEYS.sessionsInfinite(projectId, query) })
         },
         

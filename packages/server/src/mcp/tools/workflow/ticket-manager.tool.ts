@@ -25,9 +25,9 @@ import {
   batchCreateTickets,
   batchUpdateTickets,
   batchDeleteTickets,
-  type Ticket,
   type TicketTask
 } from '@promptliano/services'
+import type { Ticket } from '@promptliano/database'
 import type { CreateTicketBody, UpdateTicketBody } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 
@@ -64,7 +64,7 @@ export const ticketManagerTool: MCPToolDefinition = {
         switch (action) {
           case TicketManagerAction.LIST: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
-            const status = data?.status as string | undefined
+            const status = data?.status as 'open' | 'in_progress' | 'closed' | undefined
             const tickets = await listTicketsByProject(validProjectId, status)
             const ticketList = tickets
               .map(
@@ -88,8 +88,8 @@ Overview: ${ticket.overview}
 Suggested Files: ${ticket.suggestedFileIds?.join(', ') || 'None'}
 Suggested Agents: ${ticket.suggestedAgentIds?.join(', ') || 'None'}
 Suggested Prompts: ${ticket.suggestedPromptIds?.join(', ') || 'None'}
-Created: ${new Date(ticket.created).toLocaleString()}
-Updated: ${new Date(ticket.updated).toLocaleString()}`
+Created: ${new Date(ticket.createdAt).toLocaleString()}
+Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }
@@ -137,6 +137,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
           case TicketManagerAction.DELETE: {
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
+            if (!deleteTicket) throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete ticket service unavailable')
             await deleteTicket(ticketId)
             return {
               content: [{ type: 'text', text: `Ticket ${ticketId} deleted successfully` }]
@@ -146,8 +147,10 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
           case TicketManagerAction.LIST_WITH_TASK_COUNT: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
             const status = data?.status as string | undefined
-            const tickets = await listTicketsWithTaskCount(validProjectId, status)
-            const ticketList = tickets
+            const tickets = await listTicketsWithTaskCount(validProjectId)
+            // Apply status filter if provided
+            const filteredTickets = status ? tickets.filter((t: any) => t.status === status) : tickets
+            const ticketList = filteredTickets
               .map(
                 (t: any) => `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
               )
@@ -160,7 +163,7 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
           case TicketManagerAction.SUGGEST_TASKS: {
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
             const userContext = data?.userContext as string | undefined
-            const suggestions = await suggestTasksForTicket(ticketId, userContext)
+            const suggestions = await suggestTasksForTicket(ticketId)
             const suggestionList = suggestions.map((task: string, idx: number) => `${idx + 1}. ${task}`).join('\n')
             return {
               content: [{ type: 'text', text: suggestionList || 'No task suggestions generated' }]
@@ -171,7 +174,11 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
 
             try {
-              const tasks = await autoGenerateTasksFromOverview(ticketId)
+              // Get the ticket to access its overview
+              const ticket = await getTicketById(ticketId)
+              if (!ticket) throw createMCPError(MCPErrorCode.TICKET_NOT_FOUND, `Ticket ${ticketId} not found`)
+              
+              const tasks = await autoGenerateTasksFromOverview(ticketId, ticket.overview || '')
               const taskList = tasks.map((t: TicketTask) => `${t.id}: ${t.content}`).join('\n')
               return {
                 content: [{ type: 'text', text: `Generated ${tasks.length} tasks:\n${taskList}` }]
@@ -206,12 +213,12 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
             const extraUserInput = data?.extraUserInput as string | undefined
 
             try {
-              const result = await suggestFilesForTicket(ticketId, { extraUserInput })
+              const result = await suggestFilesForTicket(ticketId)
               return {
                 content: [
                   {
                     type: 'text',
-                    text: `Suggested files: ${result.recommendedFileIds.join(', ') || 'None'}\n${result.message || ''}`
+                    text: `Suggested files: ${result.length > 0 ? result.join(', ') : 'None - feature not yet implemented'}`
                   }
                 ]
               }
@@ -242,33 +249,29 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
           case TicketManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
-            const searchOptions = data || {}
+            const query = data?.query as string || ''
+            const status = data?.status as 'open' | 'in_progress' | 'closed' | undefined
 
             try {
-              const result = await searchTickets(validProjectId, searchOptions)
+              const result = await searchTickets(query, { projectId: validProjectId, status })
 
-              if (result.tickets.length === 0) {
-                throw createMCPError(MCPErrorCode.NO_SEARCH_RESULTS, 'No tickets found matching your search criteria', {
-                  searchOptions
-                })
+              if (result.length === 0) {
+                throw createMCPError(MCPErrorCode.NO_SEARCH_RESULTS, 'No tickets found matching your search criteria')
               }
 
-              const ticketList = result.tickets.map((t: Ticket) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
+              const ticketList = result.map((t: Ticket) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
 
               return {
                 content: [
                   {
                     type: 'text',
-                    text: `Found ${result.total} tickets (showing ${result.tickets.length}):\n${ticketList}`
+                    text: `Found ${result.length} tickets:\n${ticketList}`
                   }
                 ]
               }
             } catch (error) {
               if (error instanceof MCPError) throw error
-              throw createMCPError(MCPErrorCode.SEARCH_FAILED, 'Search operation failed', {
-                searchOptions,
-                originalError: error instanceof Error ? error.message : String(error)
-              })
+              throw createMCPError(MCPErrorCode.SEARCH_FAILED, 'Search operation failed')
             }
           }
 
@@ -285,21 +288,15 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
             const result = await batchCreateTickets(validProjectId, tickets)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            if (result.length === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'No tickets were created in batch operation')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch create completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f: any) => `- ${JSON.stringify(f.item)}: ${f.error}`).join('\n')}`
-                      : '')
+                  text: `Batch create completed: ${result.length} tickets created successfully`
                 }
               ]
             }
@@ -322,21 +319,15 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
             const result = await batchUpdateTickets(updates)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            if (result.length === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'No tickets were updated in batch operation')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch update completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f: any) => `- Ticket ${f.item.ticketId}: ${f.error}`).join('\n')}`
-                      : '')
+                  text: `Batch update completed: ${result.length} tickets updated successfully`
                 }
               ]
             }
@@ -354,19 +345,15 @@ Updated: ${new Date(ticket.updated).toLocaleString()}`
 
             const result = await batchDeleteTickets(ticketIds)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            if (result === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'No tickets were deleted in batch operation')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch delete completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0 ? `Failed IDs: ${result.failed.map((f: any) => f.item).join(', ')}` : '')
+                  text: `Batch delete completed: ${result} tickets deleted successfully`
                 }
               ]
             }

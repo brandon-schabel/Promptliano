@@ -3,6 +3,10 @@
  * Provides request/response/error interception capabilities for fetch requests
  */
 
+// DOM types for Node.js environments
+type RequestCredentials = 'same-origin' | 'include' | 'omit'
+type RequestInfo = string | Request
+
 export interface ClientInterceptorConfig {
   /** Whether the interceptor system is enabled */
   enabled: boolean

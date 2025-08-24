@@ -45,6 +45,10 @@ export function useActiveTabSync(projectId: number | undefined) {
     queryFn: async () => {
       if (!projectId || projectId === -1) return null
       if (!client) return null // Return null instead of undefined
+      if (!client.projects.getActiveTab) {
+        // Method not available in this API version, return null
+        return null
+      }
       const response = await client.projects.getActiveTab(projectId)
       return response.data
     },
@@ -66,6 +70,10 @@ export function useActiveTabSync(projectId: number | undefined) {
       tabMetadata?: ReturnType<typeof getTabMetadata>
     }) => {
       if (!client) return
+      if (!client.projects.setActiveTab) {
+        // Method not available, skip sync
+        return null
+      }
       return await client.projects.setActiveTab(projectId, { tabId, tabMetadata })
     },
     onSuccess: () => {
@@ -139,6 +147,10 @@ export function useActiveTabSync(projectId: number | undefined) {
   const clearActiveTab = useMutation({
     mutationFn: async (projectId: number) => {
       if (!client) return
+      if (!client.projects.clearActiveTab) {
+        // Method not available, skip clear
+        return null
+      }
       return await client.projects.clearActiveTab(projectId)
     },
     onSuccess: () => {

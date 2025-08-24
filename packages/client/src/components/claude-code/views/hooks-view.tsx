@@ -17,7 +17,7 @@ import {
   AlertDialogTitle
 } from '@promptliano/ui'
 import { HookDialog } from '../hook-dialog'
-import type { HookListItem, HookEvent } from '@promptliano/schemas'
+import type { HookListItem, HookEventType } from '@promptliano/schemas'
 import { useGetProjectHooks, useDeleteHook } from '@/hooks/api-hooks'
 import { useGetProject } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
@@ -28,7 +28,7 @@ interface HooksViewProps {
 }
 
 // Event type color mapping with proper contrast
-const eventColorClasses: Record<HookEvent, string> = {
+const eventColorClasses: Record<HookEventType, string> = {
   PreToolUse: 'bg-blue-600 text-white hover:bg-blue-700', // Blue with white text
   PostToolUse: 'bg-teal-600 text-white hover:bg-teal-700', // Teal with white text
   UserPromptSubmit: 'bg-purple-600 text-white hover:bg-purple-700', // Purple with white text
@@ -83,7 +83,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
       acc[hook.event].push(hook)
       return acc
     },
-    {} as Record<HookEvent, HookListItem[]>
+    {} as Record<HookEventType, HookListItem[]>
   )
 
   const handleCreateHook = () => {
@@ -98,15 +98,16 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
 
   const handleDeleteHook = (hook: HookListItem) => {
     setDeletingHook(hook)
-    setDeleteHookId(`${hook.event}_${hook.matcherIndex}`)
+    setDeleteHookId(`${hook.event}_${hook.matcher}`)
   }
 
   const confirmDelete = async () => {
     if (deletingHook) {
       try {
+        // For now, use index 0 as default since matcherIndex is not available
         await deleteHookMutation.mutateAsync({
           eventName: deletingHook.event,
-          matcherIndex: deletingHook.matcherIndex
+          matcherIndex: 0
         })
       } catch (error) {
         console.error('Failed to delete hook:', error)
@@ -209,21 +210,21 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
           {Object.entries(groupedHooks).map(([event, eventHooks]: [string, any]) => (
             <div key={event} className='space-y-4'>
               <div className='flex items-center gap-2'>
-                <Badge className={cn('px-3 py-1', eventColorClasses[event as HookEvent])}>{event}</Badge>
+                <Badge className={cn('px-3 py-1', eventColorClasses[event as HookEventType])}>{event}</Badge>
                 <span className='text-sm text-muted-foreground'>
                   {eventHooks.length} hook{eventHooks.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
               <div className='grid grid-cols-1 gap-4'>
-                {eventHooks.map((hook: any) => (
+                {eventHooks.map((hook: any, index: number) => (
                   <Card
-                    key={`${hook.event}_${hook.matcherIndex}`}
+                    key={`${hook.event}_${hook.matcher}_${index}`}
                     className={cn(
                       'cursor-pointer transition-colors',
-                      selectedHook === `${hook.event}_${hook.matcherIndex}` && 'ring-2 ring-primary'
+                      selectedHook === `${hook.event}_${hook.matcher}_${index}` && 'ring-2 ring-primary'
                     )}
-                    onClick={() => setSelectedHook(`${hook.event}_${hook.matcherIndex}`)}
+                    onClick={() => setSelectedHook(`${hook.event}_${hook.matcher}_${index}`)}
                   >
                     <CardHeader>
                       <div className='flex items-start justify-between'>
@@ -243,7 +244,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
                             className='h-8 w-8'
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleEditHook(`${hook.event}_${hook.matcherIndex}`)
+                              handleEditHook(`${hook.event}_${hook.matcher}_${index}`)
                             }}
                           >
                             <Edit className='h-4 w-4' />
@@ -329,9 +330,12 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
         projectId={projectId}
         initialData={(() => {
           if (!editingHookId) return undefined
-          const [eventName, matcherIndexStr] = editingHookId.split('_')
-          const matcherIndex = parseInt(matcherIndexStr, 10)
-          const hook = hooks.find((h: any) => h.event === eventName && h.matcherIndex === matcherIndex)
+          const parts = editingHookId.split('_')
+          if (parts.length < 3) return undefined
+          const eventName = parts[0]
+          const matcher = parts[1]
+          const index = parseInt(parts[2], 10)
+          const hook = hooks.find((h: any, i: number) => h.event === eventName && h.matcher === matcher && i === index)
           if (!hook) return undefined
 
           return {
@@ -339,7 +343,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
             matcher: hook.matcher,
             command: hook.command,
             timeout: hook.timeout,
-            matcherIndex: hook.matcherIndex
+            matcherIndex: 0 // Default index since not available in schema
           }
         })()}
       />

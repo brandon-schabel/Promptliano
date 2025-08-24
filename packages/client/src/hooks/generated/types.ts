@@ -10,89 +10,275 @@ import type {
   UseInfiniteQueryOptions,
   QueryClient
 } from '@tanstack/react-query'
+
+// Import ApiError from shared package to avoid conflicts
 import type { ApiError } from '@promptliano/shared'
 
 // ============================================================================
 // Re-export all entity types from schemas
 // ============================================================================
 
-export type {
-  // Core Entities
-  Project,
-  CreateProjectBody,
-  UpdateProjectBody,
-  ProjectFile,
-  ProjectSummary,
-  ProjectStatistics,
+// Import database types using type-only imports to prevent bundling issues
+import type {
+  // Core Entities - using proper zod-inferred types
+  ProjectSchema,
+  CreateProject,
+  UpdateProject,
   
   // Tickets & Tasks
-  Ticket,
-  CreateTicketBody,
-  UpdateTicketBody,
-  TicketTask,
-  CreateTaskBody,
-  UpdateTaskBody,
-  TicketWithTasks,
-  TicketWithTaskCount,
-  ReorderTasksBody,
+  TicketSchema,
+  CreateTicket,
+  UpdateTicket,
+  TaskSchema,
+  CreateTask,
+  UpdateTask,
   
-  // Chats & Messages
-  Chat,
-  CreateChatBody,
-  UpdateChatBody,
-  ChatMessage,
-  AiChatStreamRequest,
-  
-  // Prompts
-  Prompt,
-  CreatePromptBody,
-  UpdatePromptBody,
-  OptimizePromptRequest,
+  // Chats & Messages  
+  ChatSchema,
+  CreateChat,
+  UpdateChat,
+  ChatMessageSchema,
   
   // Agents
-  ClaudeAgent,
-  CreateClaudeAgentBody,
-  UpdateClaudeAgentBody,
+  ClaudeAgentSchema,
+  CreateClaudeAgent,
+  UpdateClaudeAgent,
+  
+  // Prompts
+  PromptSchema,
+  CreatePrompt,
+  UpdatePrompt,
   
   // Queues
-  TaskQueue,
-  CreateQueueBody,
-  UpdateQueueBody,
-  QueueItem,
-  QueueStats,
-  QueueWithStats,
-  EnqueueItemBody,
-  BatchEnqueueBody,
-  GetNextTaskResponse,
+  QueueSchema,
+  CreateQueue,
+  UpdateQueue,
   
   // Provider Keys
-  ProviderKey,
-  CreateProviderKeyBody,
-  UpdateProviderKeyBody,
-  
-  // Files & Content
-  FileRelevance,
-  FileSummarization,
-  SummaryOptions,
-  
-  // Markdown Import/Export
-  MarkdownImportRequest,
-  MarkdownExportRequest,
-  BatchExportRequest,
-  BulkImportResponse,
-  MarkdownExportResponse,
-  MarkdownContentValidation,
-  
-  // Git Operations
-  GitBranch,
-  GitStatus,
-  GitCommit,
-  GitDiff,
-  
-  // Common Types
-  DataResponseSchema,
-  PaginatedResponse
-} from '@promptliano/schemas'
+  ProviderKeySchema,
+  CreateProviderKey,
+  UpdateProviderKey
+} from '@promptliano/database'
+
+// Re-export as proper TypeScript types
+export type Project = typeof ProjectSchema._type
+export type CreateProjectBody = CreateProject
+export type UpdateProjectBody = UpdateProject
+
+export type Ticket = typeof TicketSchema._type
+export type CreateTicketBody = CreateTicket
+export type UpdateTicketBody = UpdateTicket
+
+export type TicketTask = typeof TaskSchema._type
+export type CreateTaskBody = CreateTask
+export type UpdateTaskBody = UpdateTask
+
+export type Chat = typeof ChatSchema._type
+export type CreateChatBody = CreateChat
+export type UpdateChatBody = UpdateChat
+
+export type ChatMessage = typeof ChatMessageSchema._type
+
+export type ClaudeAgent = typeof ClaudeAgentSchema._type
+export type CreateClaudeAgentBody = CreateClaudeAgent
+export type UpdateClaudeAgentBody = UpdateClaudeAgent
+
+export type Prompt = typeof PromptSchema._type
+export type CreatePromptBody = CreatePrompt
+export type UpdatePromptBody = UpdatePrompt
+
+export type TaskQueue = typeof QueueSchema._type
+export type CreateQueueBody = CreateQueue
+export type UpdateQueueBody = UpdateQueue
+
+// Import the proper ProviderKey type that handles JSON fields correctly
+import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
+export type ProviderKey = DatabaseProviderKey
+export type CreateProviderKeyBody = CreateProviderKey
+export type UpdateProviderKeyBody = UpdateProviderKey
+
+// Define types that were previously imported from schemas
+export type ProjectFile = {
+  id: number
+  name: string
+  path: string
+  projectId: number
+  content?: string
+  summary?: string
+  size?: number
+  lastModified?: number
+}
+
+export type AiChatStreamRequest = {
+  messages: any[]
+  model?: string
+  provider?: string
+  stream?: boolean
+}
+
+// Files & Content  
+export type FileRelevance = {
+  file: string
+  relevance: number
+  reason: string
+}
+
+export type FileSummarizationStats = {
+  totalFiles: number
+  summarizedFiles: number
+  avgSummaryLength: number
+}
+
+export type SummaryOptions = {
+  maxLength?: number
+  includeCode?: boolean
+  focusAreas?: string[]
+}
+
+// Markdown Import/Export
+export type MarkdownImportRequest = {
+  content: string
+  projectId: number
+  fileName?: string
+}
+
+export type MarkdownExportRequest = {
+  projectId: number
+  includeFiles?: boolean
+  format?: 'markdown' | 'html'
+}
+
+export type BatchExportRequest = {
+  projectIds: number[]
+  format: 'markdown' | 'html' | 'json'
+}
+
+// Git Operations
+export type GitBranch = {
+  name: string
+  current: boolean
+  remote?: boolean
+}
+
+// Common Types
+export type DataResponse<T = any> = {
+  success: true
+  data: T
+}
+
+export type PaginatedResponse<T = any> = {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  hasMore: boolean
+}
+
+// Additional types that may be from database or computed
+export type ProjectSummary = {
+  id: number
+  name: string
+  fileCount: number
+  totalSizeBytes: number
+}
+
+export type ProjectStatistics = {
+  fileCount: number
+  totalSizeBytes: number
+  lastSyncedAt: number | null
+}
+
+export type TicketWithTasks = Ticket & {
+  tasks: TicketTask[]
+}
+
+export type TicketWithTaskCount = Ticket & {
+  taskCount: number
+}
+
+export type ReorderTasksBody = {
+  taskIds: number[]
+}
+
+export type OptimizePromptRequest = {
+  content: string
+  context?: string
+}
+
+export type QueueItem = {
+  id: number
+  queueId: number
+  ticketId?: number
+  taskId?: number
+  priority: number
+  status: string
+  createdAt: number
+}
+
+export type QueueStats = {
+  total: number
+  pending: number
+  processing: number
+  completed: number
+  failed: number
+}
+
+export type QueueWithStats = TaskQueue & {
+  stats: QueueStats
+}
+
+export type EnqueueItemBody = {
+  ticketId?: number
+  taskId?: number
+  priority?: number
+}
+
+export type BatchEnqueueBody = {
+  items: EnqueueItemBody[]
+}
+
+export type GetNextTaskResponse = {
+  item: QueueItem | null
+  hasMore: boolean
+}
+
+export type BulkImportResponse = {
+  imported: number
+  skipped: number
+  errors: string[]
+}
+
+export type MarkdownExportResponse = {
+  content: string
+  metadata: Record<string, any>
+}
+
+export type MarkdownContentValidation = {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+export type GitStatus = {
+  branch: string
+  ahead: number
+  behind: number
+  staged: string[]
+  modified: string[]
+  untracked: string[]
+}
+
+export type GitCommit = {
+  hash: string
+  message: string
+  author: string
+  date: string
+}
+
+export type GitDiff = {
+  file: string
+  hunks: any[]
+}
 
 // ============================================================================
 // Hook Return Type Definitions
@@ -455,4 +641,3 @@ export type {
   QueryClient
 } from '@tanstack/react-query'
 
-export type { ApiError } from '@promptliano/shared'

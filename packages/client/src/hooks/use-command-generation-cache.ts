@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useLocalStorage } from './utility-hooks/use-local-storage'
-import type { ClaudeCommand, CommandGenerationRequest } from '@promptliano/schemas'
+import type { ClaudeCommand } from '@promptliano/database'
+import type { CommandGenerationRequest } from '@promptliano/schemas'
 
 interface CommandGenerationCache {
   request: CommandGenerationRequest

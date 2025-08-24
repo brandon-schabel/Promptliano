@@ -319,7 +319,7 @@ function SessionDetailsPanel({ session, projectId, isOpen, onClose }: SessionDet
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-muted-foreground">Service Tiers</h3>
                 <div className="flex flex-wrap gap-2">
-                  {displaySession.serviceTiers.map((tier, index) => (
+                  {displaySession.serviceTiers.map((tier: string, index: number) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {tier}
                     </Badge>
@@ -676,7 +676,7 @@ export function SessionsTableView({
       // Headers
       'Session ID,Start Time,Duration,Messages,Total Tokens,Git Branch,Cost',
       // Data rows
-      ...sessions.map(session => {
+      ...sessions.map((session: any) => {
         const duration = new Date(session.lastUpdate).getTime() - new Date(session.startTime).getTime()
         const hours = Math.floor(duration / (1000 * 60 * 60))
         const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60))

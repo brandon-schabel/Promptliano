@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TicketWithTasks, TicketTask } from '@promptliano/schemas'
+import type { TicketWithTasks, TicketTask } from '@/hooks/generated/types'
 import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@promptliano/ui'
@@ -43,20 +43,19 @@ import {
   MessageSquare
 } from 'lucide-react'
 import {
-  useUpdateTask,
-  useCompleteTicket,
-  useGetTicket,
   useUpdateTicket,
-  useGetTasks,
   useDeleteTicket,
-  useDeleteTask,
-  useAutoGenerateTasks
+  useCompleteTicket,
+  useTicketTasks,
+  useDequeueTicket, 
+  useDequeueTask, 
+  useMoveItem, 
+  useGetFlowData,
+  useInvalidateTickets,
+  useQueue,
+  useProject
 } from '@/hooks/api-hooks'
-import { useDequeueTicket, useDequeueTask, useMoveItem, useGetFlowData } from '@/hooks/api-hooks'
-import { useInvalidateTickets } from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
-import { useGetQueue } from '@/hooks/api-hooks'
-import { useGetProject } from '@/hooks/api-hooks'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { toast } from 'sonner'
 import { TicketDialog } from './ticket-dialog'
@@ -135,7 +134,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
     const temp = merged[index]
     merged[index] = merged[target]
     merged[target] = temp
-    const res = await client.flow.reorderQueueItems({
+    const res = await client.createFlowReorder({
       queueId: ticket.ticket.queueId,
       items: merged.map((it) => ({ itemType: it.itemType, itemId: it.itemId, ticketId: (it as any).ticketId }))
     })

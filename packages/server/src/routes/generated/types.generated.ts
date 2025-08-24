@@ -25,7 +25,6 @@ export interface ProjectRoutes {
   getSelectedFiles: string
   getActiveTabs: string
   sync: string
-  getFiles: string
   getSummary: string
 }
 

@@ -5,7 +5,7 @@ import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Plus, Search, Edit, Trash2, Terminal, Calendar, Loader2, FolderOpen, User, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetProjectCommands, useDeleteCommand } from '@/hooks/api-hooks'
+import { useGetProjectCommands, useDeleteCommand } from '@/hooks/api/use-commands-api'
 import { Skeleton } from '@promptliano/ui'
 import {
   AlertDialog,
@@ -19,7 +19,7 @@ import {
 } from '@promptliano/ui'
 import { CommandDialog } from '../command-dialog'
 import { CommandGenerationDialog } from '../command-generation-dialog'
-import type { ClaudeCommand, ClaudeCommandFrontmatter } from '@promptliano/schemas'
+import type { ClaudeCommand } from '@promptliano/database'
 
 interface CommandsViewProps {
   projectId: number
@@ -46,8 +46,7 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
     return (
       command.name.toLowerCase().includes(searchLower) ||
       command.description?.toLowerCase().includes(searchLower) ||
-      command.namespace?.toLowerCase().includes(searchLower) ||
-      command.content.toLowerCase().includes(searchLower)
+      command.command.toLowerCase().includes(searchLower)
     )
   })
 
@@ -58,13 +57,13 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
   }
 
   const handleEditCommand = (command: ClaudeCommand) => {
-    setEditingCommand({ name: command.name, namespace: command.namespace })
+    setEditingCommand({ name: command.name })
     setGeneratedCommand(null)
     setCommandDialogOpen(true)
   }
 
   const handleDeleteCommand = (command: ClaudeCommand) => {
-    setDeleteCommand({ name: command.name, namespace: command.namespace })
+    setDeleteCommand({ name: command.name })
   }
 
   const confirmDelete = () => {
@@ -91,8 +90,7 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
     content: string
     description: string
     rationale: string
-    frontmatter: ClaudeCommandFrontmatter
-    namespace?: string
+    args: Record<string, any>
     suggestedVariations?: Array<{
       name: string
       description: string
@@ -103,10 +101,9 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
     // Create a partial ClaudeCommand with available fields
     const partialCommand: Partial<ClaudeCommand> = {
       name: command.name,
-      content: command.content,
+      command: command.content,
       description: command.description,
-      frontmatter: command.frontmatter,
-      namespace: command.namespace
+      args: command.args
     }
     setEditingCommand(null)
     setGeneratedCommand(partialCommand as ClaudeCommand)
@@ -198,12 +195,10 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {namespaceCommands.map((command: any) => (
                   <Card
-                    key={`${command.scope}:${command.namespace || 'root'}:${command.name}`}
+                    key={`${command.name}`}
                     className={cn(
                       'cursor-pointer transition-colors',
-                      selectedCommand?.name === command.name &&
-                        selectedCommand?.namespace === command.namespace &&
-                        'ring-2 ring-primary'
+                      selectedCommand?.name === command.name && 'ring-2 ring-primary'
                     )}
                     onClick={() => setSelectedCommand(command)}
                   >
@@ -244,25 +239,9 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
 
                       {/* Badges for scope and frontmatter */}
                       <div className='flex flex-wrap gap-2 mb-3'>
-                        <Badge variant={command.scope === 'user' ? 'secondary' : 'default'}>
-                          {command.scope === 'user' ? <User className='h-3 w-3 mr-1' /> : null}
-                          {command.scope}
+                        <Badge variant='default'>
+                          Command
                         </Badge>
-                        {command.frontmatter?.['allowed-tools'] && (
-                          <Badge variant='outline' className='text-xs'>
-                            Tools: {command.frontmatter['allowed-tools'].split(',').length}
-                          </Badge>
-                        )}
-                        {command.frontmatter?.model && (
-                          <Badge variant='outline' className='text-xs'>
-                            {command.frontmatter.model.split('-').slice(0, 2).join('-')}
-                          </Badge>
-                        )}
-                        {command.frontmatter?.['output-format'] && (
-                          <Badge variant='outline' className='text-xs'>
-                            {command.frontmatter['output-format']}
-                          </Badge>
-                        )}
                       </div>
 
                       <div className='flex items-center gap-4 text-xs text-muted-foreground'>

@@ -12,7 +12,8 @@ import {
   UpdateMCPServerConfigBodySchema,
   MCPServerConfigListResponseSchema,
   MCPServerConfigResponseSchema,
-  ProjectIdParamsSchema
+  ProjectIdParamsSchema,
+  type MCPServerConfig
 } from '@promptliano/schemas'
 import {
   createMCPServerConfig,
@@ -22,14 +23,59 @@ import {
   deleteMCPServerConfig
 } from '@promptliano/services'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import type { McpServerConfig, InsertMcpServerConfig } from '@promptliano/database'
+
+// Transform database model to API model
+function transformMcpServerConfig(config: McpServerConfig): MCPServerConfig {
+  return {
+    id: config.id,
+    projectId: config.projectId,
+    name: config.name,
+    command: config.command,
+    args: config.args || [],
+    env: config.env || {},
+    enabled: config.enabled,
+    autoStart: config.autoStart,
+    created: config.createdAt,
+    updated: config.updatedAt
+  }
+}
+
+// Transform API request body to database-compatible structure  
+function transformCreateRequestBody(body: any): Omit<InsertMcpServerConfig, 'projectId'> {
+  return {
+    name: body.name,
+    command: body.command,
+    args: body.args,
+    env: body.env,
+    enabled: body.enabled ?? true,
+    autoStart: body.autoStart ?? false,
+    // These will be overridden by the service, but need to be present for type compatibility
+    createdAt: 0,
+    updatedAt: 0
+  }
+}
+
+// Transform API request body for updates
+function transformUpdateRequestBody(body: any): Partial<InsertMcpServerConfig> {
+  const result: any = {}
+  if (body.name !== undefined) result.name = body.name
+  if (body.command !== undefined) result.command = body.command
+  if (body.args !== undefined) result.args = body.args
+  if (body.env !== undefined) result.env = body.env
+  if (body.enabled !== undefined) result.enabled = body.enabled
+  if (body.autoStart !== undefined) result.autoStart = body.autoStart
+  // Note: updatedAt will be set by the service
+  return result
+}
 
 // Parameter schemas
 const MCPServerIdParamsSchema = z.object({
-  serverId: z.string()
+  serverId: z.coerce.number().int().positive()
 })
 
 const ProjectMCPServerParamsSchema = ProjectIdParamsSchema.extend({
-  serverId: z.string()
+  serverId: z.coerce.number().int().positive()
 })
 
 // Create MCP server config
@@ -111,28 +157,30 @@ export const mcpConfigRoutes = new OpenAPIHono()
   .openapi(createMCPServerConfigRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    const config = await createMCPServerConfig(parseInt(projectId), body)
-    return c.json(successResponse(config), 201)
+    const transformedBody = transformCreateRequestBody(body)
+    const config = await createMCPServerConfig(projectId, transformedBody)
+    return c.json(successResponse(transformMcpServerConfig(config)), 201)
   })
   .openapi(listMCPServerConfigsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
-    const configs = await listMCPServerConfigs(parseInt(projectId))
-    return c.json(successResponse(configs))
+    const configs = await listMCPServerConfigs(projectId)
+    return c.json(successResponse(configs.map(transformMcpServerConfig)))
   })
   .openapi(getMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
-    const config = await getMCPServerConfigById(parseInt(serverId))
-    return c.json(successResponse(config))
+    const config = await getMCPServerConfigById(serverId)
+    return c.json(successResponse(transformMcpServerConfig(config)))
   })
   .openapi(updateMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
     const body = c.req.valid('json')
-    const config = await updateMCPServerConfig(parseInt(serverId), body)
-    return c.json(successResponse(config))
+    const transformedBody = transformUpdateRequestBody(body)
+    const config = await updateMCPServerConfig(serverId, transformedBody)
+    return c.json(successResponse(transformMcpServerConfig(config)))
   })
   .openapi(deleteMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
-    await deleteMCPServerConfig(parseInt(serverId))
+    await deleteMCPServerConfig(serverId)
     return c.json(operationSuccessResponse('MCP server configuration deleted successfully'))
   })
 

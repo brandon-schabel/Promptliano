@@ -14,7 +14,7 @@ import {
   useUnstageAll,
   useCommitChanges
 } from '@/hooks/api-hooks'
-import type { GitFileStatus } from '@promptliano/schemas'
+import type { GitFileStatus } from '@promptliano/database'
 import { getGitStatusColor, getGitStatusLabel, getFileName } from '@/lib/git-utils'
 
 interface GitOperationsPanelProps {
@@ -54,7 +54,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
 
   const { data } = gitStatus
   const allFiles = data.files || []
-  const uniqueFiles = Array.from(new Map(allFiles.map((f) => [f.path, f])).values())
+  const uniqueFiles = Array.from(new Map(allFiles.map((f: GitFileStatus) => [f.path, f])).values())
 
   const handleToggleFile = (path: string) => {
     const newSelected = new Set(selectedFiles)
@@ -70,7 +70,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
     if (selectedFiles.size === uniqueFiles.length) {
       setSelectedFiles(new Set())
     } else {
-      setSelectedFiles(new Set(uniqueFiles.map((f) => f.path)))
+      setSelectedFiles(new Set(uniqueFiles.map((f) => (f as GitFileStatus).path)))
     }
   }
 
@@ -119,7 +119,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
             {data.ahead > 0 && <span className='text-sm text-muted-foreground'>↑{data.ahead}</span>}
             {data.behind > 0 && <span className='text-sm text-muted-foreground'>↓{data.behind}</span>}
           </div>
-          {data.files?.some((f) => f.staged) && (
+          {data.files?.some((f: GitFileStatus) => f.staged) && (
             <Button size='sm' onClick={() => setShowCommitForm(!showCommitForm)} disabled={commitChanges.isPending}>
               <GitCommit className='h-3 w-3 mr-1' />
               Commit
@@ -129,11 +129,11 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
 
         <div className='flex flex-wrap gap-4 text-sm'>
           <div className='flex items-center gap-1'>
-            <span className='text-green-600'>{data.files?.filter((f) => f.staged).length || 0} staged</span>
+            <span className='text-green-600'>{data.files?.filter((f: GitFileStatus) => f.staged).length || 0} staged</span>
           </div>
           <div className='flex items-center gap-1'>
             <span className='text-yellow-600'>
-              {data.files?.filter((f) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored').length || 0}{' '}
+              {data.files?.filter((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored').length || 0}{' '}
               unstaged
             </span>
           </div>
@@ -146,7 +146,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
             variant='outline'
             onClick={handleStageAll}
             disabled={
-              !data.files?.some((f) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored') ||
+              !data.files?.some((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored') ||
               stageFiles.isPending
             }
           >
@@ -157,7 +157,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
             size='sm'
             variant='outline'
             onClick={handleUnstageAll}
-            disabled={!data.files?.some((f) => f.staged) || unstageFiles.isPending}
+            disabled={!data.files?.some((f: GitFileStatus) => f.staged) || unstageFiles.isPending}
           >
             <Minus className='h-3 w-3 mr-1' />
             Unstage All
@@ -177,7 +177,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
         </div>
 
         {/* Commit Form */}
-        {showCommitForm && data.files?.some((f) => f.staged) && (
+        {showCommitForm && data.files?.some((f: GitFileStatus) => f.staged) && (
           <div className='space-y-2 pt-2 border-t'>
             <Textarea
               placeholder='Enter commit message...'
@@ -207,8 +207,8 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
               </Button>
             </div>
             <p className='text-xs text-muted-foreground'>
-              {data.files.filter((f) => f.staged).length} file
-              {data.files.filter((f) => f.staged).length !== 1 ? 's' : ''} will be committed
+              {data.files.filter((f: GitFileStatus) => f.staged).length} file
+              {data.files.filter((f: GitFileStatus) => f.staged).length !== 1 ? 's' : ''} will be committed
             </p>
           </div>
         )}
@@ -233,24 +233,25 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
               </div>
 
               {uniqueFiles.map((file) => {
-                const isStaged = file.staged
+                const gitFile = file as GitFileStatus
+                const isStaged = gitFile.staged
                 return (
-                  <div key={file.path} className='flex items-center gap-2 py-1.5 px-2 hover:bg-accent rounded-md'>
+                  <div key={gitFile.path} className='flex items-center gap-2 py-1.5 px-2 hover:bg-accent rounded-md'>
                     <Checkbox
-                      checked={selectedFiles.has(file.path)}
-                      onCheckedChange={() => handleToggleFile(file.path)}
+                      checked={selectedFiles.has(gitFile.path)}
+                      onCheckedChange={() => handleToggleFile(gitFile.path)}
                     />
                     <FileText className='h-3.5 w-3.5 flex-shrink-0' />
                     <div className='flex-1 min-w-0'>
-                      <span className='text-sm truncate block' title={file.path}>
-                        {getFileName(file.path)}
+                      <span className='text-sm truncate block' title={gitFile.path}>
+                        {getFileName(gitFile.path)}
                       </span>
-                      <span className='text-xs text-muted-foreground truncate block' title={file.path}>
-                        {file.path}
+                      <span className='text-xs text-muted-foreground truncate block' title={gitFile.path}>
+                        {gitFile.path}
                       </span>
                     </div>
-                    <span className={cn('text-xs uppercase', getGitStatusColor(file.status, file.staged))}>
-                      {getGitStatusLabel(file.status, file.staged)}
+                    <span className={cn('text-xs uppercase', getGitStatusColor(gitFile.status, gitFile.staged))}>
+                      {getGitStatusLabel(gitFile.status, gitFile.staged)}
                     </span>
                     <div className='flex gap-1'>
                       {!isStaged && (
@@ -258,7 +259,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
                           size='sm'
                           variant='ghost'
                           className='h-6 px-2'
-                          onClick={() => stageFiles.mutate([file.path])}
+                          onClick={() => stageFiles.mutate([gitFile.path])}
                           disabled={stageFiles.isPending}
                         >
                           <Plus className='h-3 w-3' />
@@ -269,7 +270,7 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
                           size='sm'
                           variant='ghost'
                           className='h-6 px-2'
-                          onClick={() => unstageFiles.mutate([file.path])}
+                          onClick={() => unstageFiles.mutate([gitFile.path])}
                           disabled={unstageFiles.isPending}
                         >
                           <Minus className='h-3 w-3' />

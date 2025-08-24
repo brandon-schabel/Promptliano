@@ -27,13 +27,13 @@ async function testTypeSafeClient(): Promise<void> {
     // Test type inference - TypeScript should provide full IntelliSense
     if (projects.data.length > 0) {
       const firstProject = projects.data[0]
-      console.log(`📁 First project: ${firstProject.name} (ID: ${firstProject.id})`)
+      console.log(`📁 First project: ${firstProject?.name} (ID: ${firstProject?.id})`)
       // TypeScript should know these properties exist and their types
     }
     
     // Test creating a project
     console.log('🏗️ Testing project creation...')
-    const newProject = await client.createProjects({
+    const newProject = await client.createProject({
       name: `Test Project ${Date.now()}`,
       path: '/tmp/test',
       description: 'Generated API client test project'

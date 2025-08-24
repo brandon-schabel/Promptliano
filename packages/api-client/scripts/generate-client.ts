@@ -94,14 +94,14 @@ function pathToMethodName(path: string, method: string): string {
   
   // Check if this is a simple CRUD operation
   const isSingleResourceCrud = pathSegments.length === 2 && 
-    (pathSegments[1].startsWith('{') || pathSegments[1].startsWith(':'))
+    (pathSegments[1]?.startsWith('{') || pathSegments[1]?.startsWith(':'))
   
   const isCollectionCrud = pathSegments.length === 1
   
   // For CRUD operations, use clean method names
   if (isSingleResourceCrud || isCollectionCrud) {
     const entityName = pathSegments[0]
-    const cleanEntityName = entityName
+    const cleanEntityName = entityName ?? 'unknown'
       .split('-')
       .map((word, index) => 
         index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()

@@ -6,9 +6,8 @@ import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Separator } from '@promptliano/ui'
-import { QueueItem } from '@promptliano/schemas'
-import { useGetTicket, useGetTasks } from '@/hooks/api-hooks'
-import { useGetProjectFiles } from '@/hooks/api-hooks'
+import type { QueueItem } from '@/hooks/generated/types'
+import { useTicket, useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { safeFormatDate } from '@/utils/queue-item-utils'
@@ -39,13 +38,11 @@ interface QueueItemDetailsDialogProps {
 export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: QueueItemDetailsDialogProps) {
   const [activeTab, setActiveTab] = useState('details')
 
-  // Fetch ticket and task details
-  const { data: ticket } = useGetTicket(item.ticketId || 0)
-  const { data: tasks } = useGetTasks(item.ticketId || 0)
-  const task = tasks?.find((t) => t.id === item.taskId)
+  // Fetch ticket details if this is a ticket item
+  const { data: ticket } = useTicket(item.ticketId || 0, { enabled: !!item.ticketId })
 
   // Fetch files for the project
-  const { data: files } = useGetProjectFiles(projectId)
+  const { data: files } = useGetProjectFilesWithoutContent(projectId)
 
   // Get file details from IDs
   const getFileDetails = (fileIds: string[]) => {
@@ -169,7 +166,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                   <div className='grid grid-cols-2 gap-4 text-sm'>
                     <div>
                       <p className='text-muted-foreground'>Created</p>
-                      <p className='font-medium'>{safeFormatDate(item.created)}</p>
+                      <p className='font-medium'>{safeFormatDate(item.createdAt)}</p>
                     </div>
                     <div>
                       <p className='text-muted-foreground'>Priority</p>
@@ -245,8 +242,8 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                       <div className='flex-1'>
                         <p className='font-medium'>Created</p>
                         <p className='text-sm text-muted-foreground'>
-                          {item.created && item.created > 0
-                            ? new Date(item.created * 1000).toLocaleString()
+                          {item.createdAt && item.createdAt > 0
+                            ? new Date(item.createdAt * 1000).toLocaleString()
                             : 'Unknown'}
                         </p>
                       </div>

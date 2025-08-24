@@ -53,7 +53,7 @@ function GlobalCommandPalette() {
   })
 
   const filteredProjects = (projectsData ?? [])
-    .filter((project) => {
+    .filter((project: any) => {
       const searchLower = debouncedSearch.toLowerCase()
       return (
         project.name.toLowerCase().includes(searchLower) || project.description?.toLowerCase().includes(searchLower)

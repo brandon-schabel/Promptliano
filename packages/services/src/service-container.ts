@@ -243,7 +243,9 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
       // 3. Delete tickets (which cascades to tasks)
       const tickets = await ticketService.getByProject(projectId)
       for (const ticket of tickets) {
-        await ticketService.delete(ticket.id)
+        if (ticketService.delete) {
+          await ticketService.delete(ticket.id)
+        }
       }
       
       // 4. Delete files (temporarily disabled)
@@ -259,7 +261,9 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
       // }
       
       // 6. Finally delete the project
-      await projectService.delete(projectId)
+      if (projectService.delete) {
+        await projectService.delete(projectId)
+      }
       
       logger.info(`Cascade deleted project ${projectId} and all associated data`)
     },

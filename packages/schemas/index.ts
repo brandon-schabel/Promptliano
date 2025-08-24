@@ -59,6 +59,12 @@ export * from './src/id-params.schemas'
 // Response Schemas (for auto-generated routes)
 export * from './src/response.schemas'
 
+// Chat Request Schemas
+export * from './src/chat-request.schemas'
+
+// Active Tab Request Schemas
+export * from './src/active-tab-request.schemas'
+
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
 export * from './src/parser-config.schemas'

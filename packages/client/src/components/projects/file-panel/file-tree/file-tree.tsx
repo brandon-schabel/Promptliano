@@ -904,7 +904,7 @@ export const FileTree = forwardRef<FileTreeRef, FileTreeProps>(function FileTree
   const gitStatusMap = useMemo(() => {
     const map = new Map<string, GitFileStatus>()
     if (gitStatus?.success && gitStatus.data.files) {
-      gitStatus.data.files.forEach((file) => {
+      gitStatus.data.files.forEach((file: any) => {
         map.set(file.path, file)
       })
     }

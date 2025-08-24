@@ -6,9 +6,9 @@ import type {
   HookGenerationRequest,
   HookTestRequest,
   HookEvent
-} from '@promptliano/schemas'
+} from '@promptliano/api-client'
 import { toast } from 'sonner'
-import { createCrudHooks } from '../factories/crud-hook-factory'
+// Note: createCrudHooks import removed as it's not being used
 
 const CLAUDE_HOOKS_KEYS = {
   all: ['claude-hooks'] as const,

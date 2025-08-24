@@ -630,7 +630,6 @@ export const {
   create: createQueue,
   getById: getQueueById,
   update: updateQueue,
-  delete: deleteQueue,
   getByProject: getQueuesByProject,
   getWithStats: getQueueWithStats,
   getQueuesWithStats,
@@ -651,6 +650,9 @@ export const {
   getQueueItems,
   getUnqueuedItems
 } = queueService
+
+// Export delete function explicitly since it can be optional in the interface
+export const deleteQueue = queueService.delete!
 
 // Add aliases for backward compatibility
 export const listQueuesByProject = getQueuesByProject

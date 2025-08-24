@@ -22,6 +22,7 @@ import {
   removePromptFromProject,
   suggestPrompts
 } from '@promptliano/services'
+import { addTimestamps } from '@promptliano/services/src/utils/file-utils'
 import type { CreatePromptBody, UpdatePromptBody } from '@promptliano/schemas'
 import type { Prompt } from '@promptliano/database'
 
@@ -87,7 +88,7 @@ export const promptManagerTool: MCPToolDefinition = {
             )
             // Ensure projectId is provided (required by database schema)
             const validProjectId = projectId || validateDataField<number>(createData, 'projectId', 'number', '1754713756748')
-            const prompt = await createPrompt({ ...createData, projectId: validProjectId })
+            const prompt = await createPrompt(addTimestamps({ ...createData, projectId: validProjectId }))
 
             // Auto-associate with project if projectId is provided
             if (projectId) {
@@ -133,6 +134,7 @@ export const promptManagerTool: MCPToolDefinition = {
 
           case PromptManagerAction.DELETE: {
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
+            if (!deletePrompt) throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete prompt service unavailable')
             const success = await deletePrompt(promptId)
             return {
               content: [

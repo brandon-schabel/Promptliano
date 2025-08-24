@@ -22,7 +22,7 @@ import {
   providerKeyService,
   updateProviderSettings
 } from '@promptliano/services' // Import the service instance
-import { type APIProviders, type ProviderKey } from '@promptliano/schemas'
+import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import {
   type ProviderKeysConfig,
   ModelFetcherService
@@ -273,12 +273,12 @@ export const genAiRoutes = new OpenAPIHono()
     const { provider } = c.req.valid('query')
 
     // Check if this is a custom provider with format "custom_<keyId>"
-    if (provider.startsWith('custom_')) {
+    if (provider && provider.startsWith('custom_')) {
       const keyId = parseInt(provider.replace('custom_', ''), 10)
       if (!isNaN(keyId)) {
         // Get the specific custom provider key
         const customKey = await providerKeyService.getKeyById(keyId)
-        if (customKey && customKey.provider === 'custom' && customKey.baseUrl) {
+        if (customKey && customKey.provider === 'custom' && customKey.baseUrl && customKey.key) {
           const modelFetcherService = new ModelFetcherService({})
           
           try {

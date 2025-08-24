@@ -173,7 +173,7 @@ export const taskManagerTool: MCPToolDefinition = {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const taskWithContext = await getTaskWithContext(taskId)
             if (!taskWithContext) {
-              throw createMCPError(MCPErrorCode.NOT_FOUND, `Task ${taskId} not found`)
+              throw createMCPError(MCPErrorCode.RESOURCE_NOT_FOUND, `Task ${taskId} not found`)
             }
             const contextInfo = {
               task: taskWithContext.content,
@@ -197,15 +197,18 @@ export const taskManagerTool: MCPToolDefinition = {
           case TaskManagerAction.ANALYZE_COMPLEXITY: {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const analysis = await analyzeTaskComplexity(taskId)
+            
+            if (!analysis) {
+              throw createMCPError(MCPErrorCode.RESOURCE_NOT_FOUND, `Task analysis not found for task ${taskId}`)
+            }
+            
             return {
               content: [
                 {
                   type: 'text',
                   text: `Task Complexity Analysis:
 - Complexity: ${analysis.complexity}
-- Estimated Hours: ${analysis.estimatedHours}
-- Required Skills: ${analysis.requiredSkills.join(', ')}
-- Suggested Approach: ${analysis.suggestedApproach}`
+- Factors: ${analysis.factors.join(', ')}`
                 }
               ]
             }
@@ -217,16 +220,16 @@ export const taskManagerTool: MCPToolDefinition = {
 
             const result = await filterTasks(projectId, filterOptions)
 
-            if (result.tasks.length === 0) {
+            if (result.length === 0) {
               throw createMCPError(MCPErrorCode.NO_SEARCH_RESULTS, 'No tasks found matching your filter criteria', {
                 filterOptions
               })
             }
 
-            const taskList = result.tasks
+            const taskList = result
               .map(
                 (t) =>
-                  `${t.id}: [${t.done ? 'x' : ' '}] ${t.content} (${t.ticketTitle}) ${t.estimatedHours ? `- ${t.estimatedHours}h` : ''}`
+                  `${t.id}: [${t.done ? 'x' : ' '}] ${t.content} ${t.estimatedHours ? `- ${t.estimatedHours}h` : ''}`
               )
               .join('\n')
 
@@ -234,7 +237,7 @@ export const taskManagerTool: MCPToolDefinition = {
               content: [
                 {
                   type: 'text',
-                  text: `Found ${result.total} tasks (showing ${result.tasks.length}):\n${taskList}`
+                  text: `Found ${result.length} tasks:\n${taskList}`
                 }
               ]
             }
@@ -251,25 +254,19 @@ export const taskManagerTool: MCPToolDefinition = {
               )
             }
 
-            const result = await batchCreateTasks(validTicketId, tasks)
+            const result = await batchCreateTasks(tasks)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
-            }
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text:
-                    `Batch create completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f) => `- ${f.item.content}: ${f.error}`).join('\n')}`
-                      : '')
-                }
-              ]
+            if (Array.isArray(result)) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Batch create completed: ${result.length} tasks created successfully`
+                  }
+                ]
+              }
+            } else {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'Batch create operation failed')
             }
           }
 
@@ -290,21 +287,15 @@ export const taskManagerTool: MCPToolDefinition = {
 
             const result = await batchUpdateTasks(updates)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            if (result.length === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'No tasks were updated in batch operation')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch update completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f) => `- Task ${f.item.taskId}: ${f.error}`).join('\n')}`
-                      : '')
+                  text: `Batch update completed: ${result.length} tasks updated successfully`
                 }
               ]
             }
@@ -322,21 +313,18 @@ export const taskManagerTool: MCPToolDefinition = {
 
             const result = await batchDeleteTasks(deletes)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            const successCount = result.filter(Boolean).length
+            const failureCount = result.length - successCount
+
+            if (failureCount > 0 && successCount === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All delete operations failed')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch delete completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failed task IDs: ${result.failed.map((f) => f.item.taskId).join(', ')}`
-                      : '')
+                  text: `Batch delete completed: ${successCount} succeeded, ${failureCount} failed`
                 }
               ]
             }
@@ -359,21 +347,15 @@ export const taskManagerTool: MCPToolDefinition = {
 
             const result = await batchMoveTasks(moves)
 
-            if (result.failureCount > 0 && result.successCount === 0) {
-              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'All items in batch operation failed', {
-                failures: result.failed
-              })
+            if (result.length === 0) {
+              throw createMCPError(MCPErrorCode.BATCH_OPERATION_FAILED, 'No tasks were moved in batch operation')
             }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text:
-                    `Batch move completed: ${result.successCount} succeeded, ${result.failureCount} failed\n` +
-                    (result.failed.length > 0
-                      ? `Failures:\n${result.failed.map((f) => `- Task ${f.item.taskId}: ${f.error}`).join('\n')}`
-                      : '')
+                  text: `Batch move completed: ${result.length} tasks moved successfully`
                 }
               ]
             }

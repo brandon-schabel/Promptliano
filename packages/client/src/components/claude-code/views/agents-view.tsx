@@ -5,7 +5,7 @@ import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Plus, Search, Edit, Trash2, FileText, Calendar, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetProjectAgents, useDeleteAgent } from '@/hooks/api-hooks'
+import { useGetAllAgents, useDeleteAgent } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 import {
   AlertDialog,
@@ -24,16 +24,6 @@ interface AgentsViewProps {
   projectName?: string
 }
 
-const colorClasses = {
-  blue: 'bg-secondary', // Brand Blue for file types/links
-  green: 'bg-accent', // Brand Teal for success/online
-  purple: 'bg-primary', // Brand Purple for AI/prompt features
-  red: 'bg-destructive', // Semantic red for errors
-  yellow: 'bg-warning', // Semantic warning yellow
-  cyan: 'bg-info', // Semantic info blue
-  orange: 'bg-orange-500', // Orange for summaries/highlights
-  pink: 'bg-pink-500' // Pink for service architecture
-}
 
 export function AgentsView({ projectId, projectName }: AgentsViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -43,12 +33,12 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
 
   // Fetch agents for this specific project
-  const { data: agentsResponse, isLoading, error } = useGetProjectAgents(projectId)
+  const { data: agentsResponse, isLoading, error } = useGetAllAgents()
   const deleteAgentMutation = useDeleteAgent()
 
   console.log({ agentsResponse })
 
-  const agents = agentsResponse?.data || []
+  const agents = agentsResponse || []
 
   const filteredAgents = agents.filter(
     (agent: any) =>
@@ -72,7 +62,7 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
 
   const confirmDelete = () => {
     if (deleteAgentId) {
-      deleteAgentMutation.mutate(deleteAgentId, {
+      deleteAgentMutation.mutate(parseInt(deleteAgentId), {
         onSuccess: () => {
           setDeleteAgentId(null)
           if (selectedAgent === deleteAgentId) {
@@ -147,9 +137,7 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
               <CardHeader>
                 <div className='flex items-start justify-between'>
                   <div className='flex items-center gap-3'>
-                    <div
-                      className={cn('h-3 w-3 rounded-full', colorClasses[agent.color as keyof typeof colorClasses])}
-                    />
+                    <div className='h-3 w-3 rounded-full bg-primary' />
                     <CardTitle className='text-lg'>{agent.name}</CardTitle>
                   </div>
                   <div className='flex gap-1'>

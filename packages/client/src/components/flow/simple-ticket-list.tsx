@@ -1,5 +1,5 @@
 import React from 'react'
-import { TicketWithTasks } from '@promptliano/schemas'
+import type { TicketWithTasks } from '@promptliano/database'
 import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
@@ -61,16 +61,16 @@ export function SimpleTicketList({
     <ScrollArea className='h-full'>
       <div className='p-2'>
         {tickets.map((ticketWithTasks) => {
-          const ticket = ticketWithTasks.ticket
+          // ticketWithTasks is a flat structure with ticket properties + tasks array
           const tasks = ticketWithTasks.tasks || []
           const completedTasks = tasks.filter((t) => t.done).length
           const totalTasks = tasks.length
-          const StatusIcon = STATUS_ICONS[ticket.status || 'open'] || AlertCircle
-          const isSelected = selectedTicket?.ticket.id === ticket.id
+          const StatusIcon = STATUS_ICONS[ticketWithTasks.status || 'open'] || AlertCircle
+          const isSelected = selectedTicket?.id === ticketWithTasks.id
 
           return (
             <div
-              key={ticket.id}
+              key={ticketWithTasks.id}
               onClick={() => onSelectTicket(ticketWithTasks)}
               className={cn(
                 'p-3 mb-2 rounded-lg cursor-pointer transition-all',
@@ -79,21 +79,21 @@ export function SimpleTicketList({
               )}
             >
               <div className='flex items-start justify-between mb-2'>
-                <h4 className='font-medium text-sm line-clamp-2 flex-1'>{ticket.title}</h4>
+                <h4 className='font-medium text-sm line-clamp-2 flex-1'>{ticketWithTasks.title}</h4>
                 <StatusIcon className='h-4 w-4 text-muted-foreground ml-2 flex-shrink-0' />
               </div>
 
-              {ticket.overview && <p className='text-xs text-muted-foreground line-clamp-2 mb-2'>{ticket.overview}</p>}
+              {ticketWithTasks.overview && <p className='text-xs text-muted-foreground line-clamp-2 mb-2'>{ticketWithTasks.overview}</p>}
 
               <div className='flex items-center gap-2 flex-wrap'>
-                {ticket.queueId && <QueueBadge item={ticket} projectId={projectId} size='sm' clickable={false} />}
-                <Badge variant='secondary' className={cn('text-xs', STATUS_COLORS[ticket.status || 'open'])}>
-                  {(ticket.status || 'open').replace('_', ' ')}
+                {ticketWithTasks.queueId && <QueueBadge item={ticketWithTasks} projectId={projectId} size='sm' clickable={false} />}
+                <Badge variant='secondary' className={cn('text-xs', STATUS_COLORS[ticketWithTasks.status || 'open'])}>
+                  {(ticketWithTasks.status || 'open').replace('_', ' ')}
                 </Badge>
 
-                {ticket.priority && ticket.priority !== 'normal' && (
-                  <Badge variant='secondary' className={cn('text-xs', PRIORITY_COLORS[ticket.priority])}>
-                    {ticket.priority}
+                {ticketWithTasks.priority && ticketWithTasks.priority !== 'normal' && (
+                  <Badge variant='secondary' className={cn('text-xs', PRIORITY_COLORS[ticketWithTasks.priority])}>
+                    {ticketWithTasks.priority}
                   </Badge>
                 )}
 

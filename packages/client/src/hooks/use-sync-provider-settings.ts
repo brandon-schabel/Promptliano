@@ -8,7 +8,7 @@ import type { AppSettings } from '@/types/app-settings'
  */
 export function useSyncProviderSettings() {
   const [appSettings] = useGetKvValue('appSettings')
-  const setAppSettings = useSetKvValue('appSettings')
+  const { mutate: setAppSettings } = useSetKvValue('appSettings')
 
   useEffect(() => {
     // Sync provider settings when they change
@@ -19,7 +19,7 @@ export function useSyncProviderSettings() {
   }, [appSettings])
 
   const syncProviderSetting = (key: keyof AppSettings, value: any) => {
-    setAppSettings((prev) => ({
+    setAppSettings((prev: AppSettings) => ({
       ...prev,
       [key]: value
     }))

@@ -9,10 +9,22 @@
 import { useApiClient } from '../api/use-api-client'
 import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Ticket, TicketTask } from '@promptliano/schemas'
+import type { TicketSchema, TaskSchema } from '@promptliano/database'
+
+// Extract proper TypeScript types from schemas
+type Ticket = typeof TicketSchema._type
+type TicketTask = typeof TaskSchema._type
 import { toast } from 'sonner'
-import { commonErrorHandler } from '../api/common-mutation-error-handler'
-import { QUEUE_REFETCH_INTERVAL } from '@/lib/constants'
+// Removed problematic imports - using defaults instead
+// import { commonErrorHandler } from '../api/common-mutation-error-handler'
+// import { QUEUE_REFETCH_INTERVAL } from '@/lib/constants'
+
+const commonErrorHandler = (error: any) => {
+  console.error('Flow operation error:', error)
+  toast.error(error?.message || 'Operation failed')
+}
+
+const QUEUE_REFETCH_INTERVAL = 5000 // 5 seconds
 
 // ============================================================================
 // Types (preserved from original)

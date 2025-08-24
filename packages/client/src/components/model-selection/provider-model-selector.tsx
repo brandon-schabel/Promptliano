@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { APIProviders } from '@promptliano/schemas'
+import type { APIProviders, ProviderKey } from '@promptliano/database'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { useGetModels, useGetProviders } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
+import { 
+  isValidProviderKey,
+  isValidModelsResponse,
+  validateModelsArray,
+  type ValidatedModelData,
+  extractErrorMessage
+} from '@/utils/type-guards'
+
+// Reuse validated types from type guards
+interface ComboboxOption {
+  value: string
+  label: string
+}
 
 export interface ProviderModelSelectorProps {
   provider: APIProviders | string // Allow custom provider IDs like "custom_123"
@@ -18,7 +31,7 @@ export interface ProviderModelSelectorProps {
   providerClassName?: string
   modelClassName?: string
   filterProviders?: APIProviders[]
-  filterModels?: (model: { id: string; name: string }) => boolean
+  filterModels?: (model: ValidatedModelData) => boolean
 }
 
 export function ProviderModelSelector({
@@ -66,36 +79,56 @@ export function ProviderModelSelector({
       ]
     }
     
-    const allProviders = providersData.data.map((p: any) => ({
-      value: p.id,
-      label: p.name
-    }))
+    // Validate and transform provider data with type safety
+    const allProviders = providersData.data
+      .filter(isValidProviderKey)
+      .map((p: ProviderKey): ComboboxOption => ({
+        value: p.id?.toString() || p.provider,
+        label: p.name || p.provider
+      }))
     
     // Apply filter if specified
     if (filterProviders && filterProviders.length > 0) {
-      return allProviders.filter((option: any) => filterProviders.includes(option.value as APIProviders))
+      return allProviders.filter((option: ComboboxOption) => filterProviders.includes(option.value as APIProviders))
     }
     
     return allProviders
   }, [providersData, filterProviders])
 
-  // Prepare model options with optional filtering
-  const comboboxOptions = useMemo(() => {
-    let filteredModels = modelsData?.data ?? []
-
-    if (filterModels) {
-      filteredModels = filteredModels.filter(filterModels)
+  // Prepare model options with comprehensive validation
+  const comboboxOptions = useMemo((): ComboboxOption[] => {
+    if (!modelsData?.data || !Array.isArray(modelsData.data)) {
+      return []
     }
 
-    return filteredModels.map((m: any) => ({
-      value: m.id,
-      label: m.name
-    }))
+    try {
+      // Use comprehensive validation with detailed error handling
+      const validationResult = validateModelsArray(modelsData.data)
+      
+      if (!validationResult.success) {
+        console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)
+        return []
+      }
+
+      let filteredModels = validationResult.data
+
+      if (filterModels) {
+        filteredModels = filteredModels.filter(filterModels)
+      }
+
+      return filteredModels.map((m: ValidatedModelData): ComboboxOption => ({
+        value: m.id,
+        label: m.name
+      }))
+    } catch (error) {
+      console.error('Error processing model data:', extractErrorMessage(error))
+      return []
+    }
   }, [modelsData, filterModels])
 
   // Auto-select first model when provider changes or current model is invalid
   useEffect(() => {
-    const isCurrentModelValid = comboboxOptions.some((model: any) => model.value === currentModel)
+    const isCurrentModelValid = comboboxOptions.some((model: ComboboxOption) => model.value === currentModel)
     if ((!currentModel || !isCurrentModelValid) && comboboxOptions.length > 0) {
       onModelChange(comboboxOptions[0].value)
     }
@@ -129,7 +162,7 @@ export function ProviderModelSelector({
           <SelectValue placeholder='Select provider' />
         </SelectTrigger>
         <SelectContent>
-          {availableProviders.map((option: any) => (
+          {availableProviders.map((option: ComboboxOption) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

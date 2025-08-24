@@ -5,7 +5,8 @@ import { mcpProjectConfigService } from './mcp-project-config-service'
 import { getMCPClientManager } from './mcp-service'
 import { createLogger } from './utils/logger'
 import { getProjectById } from './project-service'
-import type { McpServerConfig as MCPServerConfig } from '@promptliano/database'
+import type { McpServerConfig as DatabaseMcpServerConfig } from '@promptliano/database'
+import type { MCPServerConfig } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 
 const logger = createLogger('MCPProjectServerManager')
@@ -55,9 +56,10 @@ class MCPProjectServerManager {
       // Start each configured server
       for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
         try {
-          // Create an MCPServerConfig from the project config
-          const mcpConfig: MCPServerConfig = {
-            id: this.serverIdCounter++,
+          // Create a database MCP config and convert to API format for client manager
+          const serverId = this.serverIdCounter++
+          const dbConfig: DatabaseMcpServerConfig = {
+            id: serverId,
             projectId,
             name: serverName,
             command: serverConfig.command,
@@ -69,11 +71,25 @@ class MCPProjectServerManager {
             autoStart: true
           }
 
+          // Convert to API format for client manager
+          const apiConfig: MCPServerConfig = {
+            id: dbConfig.id,
+            projectId: dbConfig.projectId,
+            name: dbConfig.name,
+            command: dbConfig.command,
+            args: dbConfig.args || [],
+            env: dbConfig.env || {},
+            enabled: dbConfig.enabled,
+            autoStart: dbConfig.autoStart,
+            created: dbConfig.createdAt,
+            updated: dbConfig.updatedAt
+          }
+
           // Store the mapping
-          serverInfo.servers.set(serverName, mcpConfig.id)
+          serverInfo.servers.set(serverName, serverId)
 
           // Start the server
-          await manager.startServer(mcpConfig)
+          await manager.startServer(apiConfig)
           logger.info(`Started MCP server "${serverName}" for project ${projectId}`)
         } catch (error) {
           logger.error(`Failed to start server "${serverName}":`, error)
@@ -103,7 +119,7 @@ class MCPProjectServerManager {
 
     const manager = getMCPClientManager()
 
-    for (const [serverName, configId] of serverInfo.servers) {
+    for (const [serverName, configId] of Array.from(serverInfo.servers)) {
       try {
         await manager.stopServer(configId)
         logger.info(`Stopped MCP server "${serverName}" for project ${projectId}`)
@@ -150,7 +166,7 @@ class MCPProjectServerManager {
   async cleanup(): Promise<void> {
     const stopPromises: Promise<void>[] = []
 
-    for (const projectId of this.projectServers.keys()) {
+    for (const projectId of Array.from(this.projectServers.keys())) {
       stopPromises.push(this.stopProjectServers(projectId))
     }
 

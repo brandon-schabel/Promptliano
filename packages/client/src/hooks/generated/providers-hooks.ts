@@ -11,9 +11,18 @@ import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type {
-  CreateProviderKeyBody,
-  UpdateProviderKeyBody,
-  ProviderKey,
+  CreateProviderKey,
+  UpdateProviderKey,
+  ProviderKeySchema
+} from '@promptliano/database'
+
+// Extract proper TypeScript types from schemas
+type CreateProviderKeyBody = CreateProviderKey
+type UpdateProviderKeyBody = UpdateProviderKey
+// Import the proper ProviderKey type that handles JSON fields correctly
+import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
+type ProviderKey = DatabaseProviderKey
+import type {
   TestProviderRequest,
   TestProviderResponse,
   BatchTestProviderRequest,
@@ -178,6 +187,9 @@ export function useTestProvider() {
       if (!client) {
         throw new Error('API client not connected. Please check your connection to the Promptliano server.')
       }
+      if (!client.keys.testProvider) {
+        throw new Error('Provider testing not supported by this version of the API')
+      }
       return client.keys.testProvider(data)
     },
     onSuccess: (response: DataResponseSchema<TestProviderResponse>) => {
@@ -212,6 +224,9 @@ export function useBatchTestProviders() {
     mutationFn: async (data: BatchTestProviderRequest): Promise<DataResponseSchema<BatchTestProviderResponse>> => {
       if (!client) {
         throw new Error('API client not connected. Please check your connection to the Promptliano server.')
+      }
+      if (!client.keys.batchTestProviders) {
+        throw new Error('Batch provider testing not supported by this version of the API')
       }
       return client.keys.batchTestProviders(data)
     },

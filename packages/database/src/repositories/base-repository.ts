@@ -7,7 +7,7 @@ import { eq, ne, gt, gte, lt, lte, like, notLike, isNull, isNotNull, and, or, no
 import { SQLiteTable, SQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { db, type DrizzleDb, type DrizzleTransaction } from '../db'
 import { z } from 'zod'
-import { ErrorFactory, assertExists, assertDatabaseOperation, createErrorHandler } from '@promptliano/shared/src/error/error-factory'
+import { ErrorFactory, assertExists, assertDatabaseOperation, createErrorHandler } from '@promptliano/shared'
 
 export type BaseEntity<TId = number> = {
   id: TId

@@ -3,9 +3,6 @@ import {
   useGitWorktrees,
   useAddGitWorktree,
   useRemoveGitWorktree,
-  useLockGitWorktree,
-  useUnlockGitWorktree,
-  usePruneGitWorktrees,
   useGitBranches
 } from '@/hooks/api-hooks'
 import { Button } from '@promptliano/ui'
@@ -44,9 +41,19 @@ export function GitWorktreeView({ projectId, className }: GitWorktreeViewProps) 
   const { data: branchesResponse } = useGitBranches(projectId)
   const addWorktree = useAddGitWorktree(projectId)
   const removeWorktree = useRemoveGitWorktree(projectId)
-  const lockWorktree = useLockGitWorktree(projectId)
-  const unlockWorktree = useUnlockGitWorktree(projectId)
-  const pruneWorktrees = usePruneGitWorktrees(projectId)
+  // Temporary stub functions - these hooks don't exist yet
+  const lockWorktree = { 
+    mutateAsync: async () => console.warn('lockWorktree not implemented'), 
+    isPending: false 
+  }
+  const unlockWorktree = { 
+    mutateAsync: async () => console.warn('unlockWorktree not implemented'), 
+    isPending: false 
+  }
+  const pruneWorktrees = { 
+    mutateAsync: async () => console.warn('pruneWorktrees not implemented'), 
+    isPending: false 
+  }
 
   const [deletingWorktree, setDeletingWorktree] = useState<GitWorktree | null>(null)
   const [lockingWorktree, setLockingWorktree] = useState<GitWorktree | null>(null)

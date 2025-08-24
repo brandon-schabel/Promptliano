@@ -22,10 +22,11 @@ import {
   History,
   X
 } from 'lucide-react'
-import { useGenerateCommand } from '@/hooks/api-hooks'
+import { useGenerateCommand } from '@/hooks/api/use-commands-api'
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { useCommandGenerationCache } from '@/hooks/use-command-generation-cache'
-import type { CommandGenerationRequest, ClaudeCommand, ClaudeCommandFrontmatter } from '@promptliano/schemas'
+import type { CommandGenerationRequest } from '@promptliano/schemas'
+import type { ClaudeCommand } from '@promptliano/database'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@promptliano/ui'
 import { ChevronDown } from 'lucide-react'
 import { Checkbox } from '@promptliano/ui'
@@ -39,13 +40,11 @@ const commandGenerationFormSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Name must be lowercase letters, numbers, and hyphens only'),
   description: z.string().min(1, 'Description is required').max(500, 'Description is too long'),
   userIntent: z.string().min(1, 'Intent is required').max(1000, 'Intent is too long'),
-  namespace: z
+  category: z
     .string()
-    .max(50, 'Namespace is too long')
-    .regex(/^[a-z0-9-\\/]*$/, 'Namespace must be lowercase letters, numbers, hyphens, and slashes only')
-    .optional()
-    .transform((val) => (val === '' ? undefined : val)),
-  scope: z.enum(['project', 'user'] as const),
+    .max(50, 'Category is too long')
+    .default('general'),
+  scope: z.enum(['global', 'project', 'file'] as const),
   // Context options
   includeProjectSummary: z.boolean(),
   includeFileStructure: z.boolean(),
@@ -65,8 +64,8 @@ interface CommandGenerationDialogProps {
     content: string
     description: string
     rationale: string
-    frontmatter: ClaudeCommandFrontmatter
-    namespace?: string
+    args: Record<string, any>
+    category?: string
     suggestedVariations?: Array<{
       name: string
       description: string
@@ -113,7 +112,7 @@ export function CommandGenerationDialog({
       name: '',
       description: '',
       userIntent: '',
-      namespace: '',
+      category: 'general',
       scope: 'project',
       includeProjectSummary: true,
       includeFileStructure: true,
@@ -131,7 +130,7 @@ export function CommandGenerationDialog({
         name: formValues.name,
         description: formValues.description || '',
         userIntent: formValues.userIntent || '',
-        namespace: formValues.namespace,
+        category: formValues.category,
         scope: formValues.scope,
         context: {
           includeProjectSummary: formValues.includeProjectSummary,
@@ -156,7 +155,7 @@ export function CommandGenerationDialog({
       name: data.name,
       description: data.description,
       userIntent: data.userIntent,
-      namespace: data.namespace,
+      category: data.category,
       scope: data.scope,
       context: {
         includeProjectSummary: data.includeProjectSummary,
@@ -189,13 +188,14 @@ export function CommandGenerationDialog({
       // Create a ClaudeCommand object for caching - needs all required fields
       const commandForCache: ClaudeCommand = {
         id: Date.now(), // Generate temporary ID for cache
+        projectId: projectId || 0,
         name: generatedCommand.name,
-        content: generatedCommand.content,
-        created: Date.now(),
-        updated: Date.now(),
-        filePath: '', // Not available from generation, will be set when saved
-        scope: request.scope,
-        frontmatter: generatedCommand.frontmatter || {}
+        description: generatedCommand.description,
+        command: generatedCommand.content,
+        args: {},
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       }
 
       // Cache the generated command with full ClaudeCommand structure
@@ -306,11 +306,10 @@ export function CommandGenerationDialog({
                         // Extract only the properties expected by the callback
                         onCommandGenerated({
                           name: cachedCommand.name,
-                          content: cachedCommand.content,
+                          content: cachedCommand.command,
                           description: cachedCommand.description || '',
                           rationale: 'Using cached command',
-                          frontmatter: cachedCommand.frontmatter,
-                          namespace: cachedCommand.namespace
+                          args: cachedCommand.args
                         })
                       }
                       onOpenChange(false)
@@ -352,7 +351,7 @@ export function CommandGenerationDialog({
                         form.setValue('name', item.request.name)
                         form.setValue('description', item.request.description)
                         form.setValue('userIntent', item.request.userIntent)
-                        form.setValue('namespace', item.request.namespace || '')
+                        form.setValue('category', item.request.category || 'general')
                         form.setValue('scope', item.request.scope)
                         setShowRecentCommands(false)
                       }}
@@ -372,11 +371,10 @@ export function CommandGenerationDialog({
                             if (onCommandGenerated && item.generatedCommand) {
                               onCommandGenerated({
                                 name: item.generatedCommand.name,
-                                content: item.generatedCommand.content,
+                                content: item.generatedCommand.command,
                                 description: item.generatedCommand.description || '',
                                 rationale: 'Using cached command',
-                                frontmatter: item.generatedCommand.frontmatter,
-                                namespace: item.generatedCommand.namespace
+                                args: item.generatedCommand.args
                               })
                             }
                             onOpenChange(false)
@@ -451,14 +449,14 @@ export function CommandGenerationDialog({
             <div className='grid grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
-                name='namespace'
+                name='category'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Namespace (Optional)</FormLabel>
+                    <FormLabel>Category</FormLabel>
                     <FormControl>
-                      <Input placeholder='testing' {...field} disabled={isGenerating} />
+                      <Input placeholder='general' {...field} disabled={isGenerating} />
                     </FormControl>
-                    <FormDescription>Group related commands together</FormDescription>
+                    <FormDescription>Categorize your command</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

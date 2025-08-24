@@ -47,7 +47,7 @@ export class PromptlianoClient {
   private typeSafe: TypeSafeApiClient
 
   constructor(config: ApiConfig) {
-    this.typeSafe = new TypeSafeApiClient(config.baseUrl)
+    this.typeSafe = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
 
   // DIRECT ACCESS to all 228 generated methods
@@ -58,47 +58,59 @@ export class PromptlianoClient {
   // BACKWARD-COMPATIBLE service namespaces (core methods only)
   public readonly projects = {
     listProjects: () => this.typeSafe.getProjects(),
-    createProject: (data: any) => this.typeSafe.createProjects(data),
-    getProject: (projectId: number) => this.typeSafe.listProjectsByProjectId(projectId),
-    updateProject: (projectId: number, data: any) => this.typeSafe.updateProjectsByProjectId(projectId, data),
-    deleteProject: (projectId: number) => this.typeSafe.deleteProjectsByProjectId(projectId),
+    createProject: (data: any) => this.typeSafe.createProject(data),
+    getProject: (projectId: number) => this.typeSafe.getProject(projectId),
+    updateProject: (projectId: number, data: any) => this.typeSafe.updateProject(projectId, data),
+    deleteProject: (projectId: number) => this.typeSafe.deleteProject(projectId),
     getProjectFiles: (projectId: number) => this.typeSafe.listProjectsByProjectIdFiles(projectId),
+    getProjectTickets: (projectId: number) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
     syncProject: (projectId: number) => this.typeSafe.createProjectsByProjectIdSync(projectId),
     refreshProject: (projectId: number) => this.typeSafe.createProjectsByProjectIdRefresh(projectId),
     getProjectSummary: (projectId: number) => this.typeSafe.listProjectsByProjectIdSummary(projectId),
     getProjectStatistics: (projectId: number) => this.typeSafe.listProjectsByProjectIdStatistics(projectId),
+    // ActiveTab methods (for backward compatibility - also available at root level)
+    getActiveTab: (projectId: number, clientId?: string) => {
+      const query = clientId ? { clientId } : undefined
+      return this.typeSafe.listProjectsByProjectIdActiveTab(projectId, query)
+    },
+    setActiveTab: (projectId: number, data: any) => {
+      return this.typeSafe.createProjectsByProjectIdActiveTab(projectId, data)
+    },
+    clearActiveTab: (projectId: number, clientId?: string) => {
+      const query = clientId ? { clientId } : undefined
+      return this.typeSafe.deleteProjectsByProjectIdActiveTab(projectId, query)
+    },
   }
 
   public readonly chats = {
     getChats: () => this.typeSafe.getChats(),
-    createChat: (data: any) => this.typeSafe.createChats(data),
-    updateChat: (chatId: number, data: any) => this.typeSafe.updateChatsByChatId(chatId, data),
-    deleteChat: (chatId: number) => this.typeSafe.deleteChatsByChatId(chatId),
+    createChat: (data: any) => this.typeSafe.createChat(data),
+    updateChat: (chatId: number, data: any) => this.typeSafe.updateChat(chatId, data),
+    deleteChat: (chatId: number) => this.typeSafe.deleteChat(chatId),
     getChatMessages: (chatId: number) => this.typeSafe.listChatsByChatIdMessages(chatId),
   }
 
   public readonly tickets = {
-    getTickets: () => this.typeSafe.getTickets(),
-    createTicket: (data: any) => this.typeSafe.createTickets(data),
-    getTicket: (ticketId: number) => this.typeSafe.listTicketsByTicketId(ticketId),
-    updateTicket: (ticketId: number, data: any) => this.typeSafe.updateTicketsByTicketId(ticketId, data),
-    deleteTicket: (ticketId: number) => this.typeSafe.deleteTicketsByTicketId(ticketId),
+    createTicket: (data: any) => this.typeSafe.createTicket(data),
+    getTicket: (ticketId: number) => this.typeSafe.getTicket(ticketId),
+    updateTicket: (ticketId: number, data: any) => this.typeSafe.updateTicket(ticketId, data),
+    deleteTicket: (ticketId: number) => this.typeSafe.deleteTicket(ticketId),
+    // listTickets by project (router loader compatibility)
+    listTickets: (projectId: number) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
   }
 
   public readonly prompts = {
     getPrompts: () => this.typeSafe.getPrompts(),
-    createPrompt: (data: any) => this.typeSafe.createPrompts(data),
-    getPrompt: (promptId: number) => this.typeSafe.listPromptsByPromptId(promptId),
-    updatePrompt: (promptId: number, data: any) => this.typeSafe.updatePromptsByPromptId(promptId, data),
-    deletePrompt: (promptId: number) => this.typeSafe.deletePromptsByPromptId(promptId),
+    createPrompt: (data: any) => this.typeSafe.createPrompt(data),
+    getPrompt: (promptId: number) => this.typeSafe.getPrompt(promptId),
+    updatePrompt: (promptId: number, data: any) => this.typeSafe.updatePrompt(promptId, data),
+    deletePrompt: (promptId: number) => this.typeSafe.deletePrompt(promptId),
   }
 
   public readonly queues = {
-    getQueues: () => this.typeSafe.getQueues(),
-    createQueue: (data: any) => this.typeSafe.createQueues(data),
-    getQueue: (queueId: number) => this.typeSafe.listQueuesByQueueId(queueId),
-    updateQueue: (queueId: number, data: any) => this.typeSafe.updateQueuesByQueueId(queueId, data),
-    deleteQueue: (queueId: number) => this.typeSafe.deleteQueuesByQueueId(queueId),
+    // Note: Queue endpoints are not available as standalone entities in the generated client
+    // Use flow/task methods instead via typeSafeClient for full queue management
+    // Available methods: this.typeSafeClient.createFlowTicketsByTicketIdEnqueue, etc.
   }
 
   public readonly git = {
@@ -109,14 +121,66 @@ export class PromptlianoClient {
 
   public readonly keys = {
     getKeys: () => this.typeSafe.getKeys(),
-    createKey: (data: any) => this.typeSafe.createKeys(data),
-    getKey: (keyId: number) => this.typeSafe.listKeysByKeyId(keyId),
-    updateKey: (keyId: number, data: any) => this.typeSafe.updateKeysByKeyId(keyId, data),
-    deleteKey: (keyId: number) => this.typeSafe.deleteKeysByKeyId(keyId),
+    createKey: (data: any) => this.typeSafe.createKey(data),
+    getKey: (keyId: number) => this.typeSafe.getKey(keyId),
+    updateKey: (keyId: number, data: any) => this.typeSafe.updateKey(keyId, data),
+    deleteKey: (keyId: number) => this.typeSafe.deleteKey(keyId),
+    // Provider testing methods (placeholder - not implemented in generated client yet)
+    testProvider: (data: any) => {
+      // This would need to be implemented in the generated client
+      throw new Error('Provider testing not yet implemented in generated client')
+    },
+    batchTestProviders: (data: any) => {
+      // This would need to be implemented in the generated client  
+      throw new Error('Batch provider testing not yet implemented in generated client')
+    },
   }
 
   public readonly ai = {
     streamChat: (data: any) => this.typeSafe.createAiChat(data),
+  }
+
+  // Claude Code methods
+  public readonly claudeCode = {
+    getMcpStatus: (projectId: number) => this.typeSafe.listClaudeCodeMcpStatusByProjectId(projectId),
+    getSessionsMetadata: (projectId: number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectIdMetadata(projectId, query),
+    getRecentSessions: (projectId: number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectIdRecent(projectId, query),
+    getPaginatedSessions: (projectId: number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectIdPaginated(projectId, query),
+    getSessionFull: (projectId: number, sessionId: string | number) => this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionIdFull(projectId, sessionId),
+    getSession: (projectId: number, sessionId: string | number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionId(projectId, sessionId, query),
+    getSessions: (projectId: number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectId(projectId, query),
+    getProjectData: (projectId: number) => this.typeSafe.listClaudeCodeProjectDataByProjectId(projectId),
+    importSession: (projectId: number, sessionId: string | number) => this.typeSafe.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId),
+  }
+
+  // GenAI methods
+  public readonly genAi = {
+    stream: (data: any) => this.typeSafe.createGenAiStream(data),
+    generateText: (data: any) => this.typeSafe.createGenAiText(data),
+    getModels: (provider?: string) => {
+      const query = provider ? { provider } : undefined
+      return this.typeSafe.getModels(query)
+    },
+  }
+
+  // ActiveTab methods - note: these require projectId
+  getActiveTab = (projectId: number, clientId?: string) => {
+    const query = clientId ? { clientId } : undefined
+    return this.typeSafe.listProjectsByProjectIdActiveTab(projectId, query)
+  }
+
+  setActiveTab = (projectId: number, data: any) => {
+    return this.typeSafe.createProjectsByProjectIdActiveTab(projectId, data)
+  }
+
+  clearActiveTab = (projectId: number, clientId?: string) => {
+    const query = clientId ? { clientId } : undefined
+    return this.typeSafe.deleteProjectsByProjectIdActiveTab(projectId, query)
+  }
+
+  // Convenience method for claudeCode import session (matches the error pattern)
+  createClaudeCodeImportSessionByProjectIdBySessionId = (projectId: number, sessionId: string | number) => {
+    return this.typeSafe.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId)
   }
 }
 
@@ -134,12 +198,12 @@ export class ProjectClient {
   private client: TypeSafeApiClient
   
   constructor(config: ApiConfig) {
-    this.client = new TypeSafeApiClient(config.baseUrl)
+    this.client = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
   
   listProjects = () => this.client.getProjects()
-  createProject = (data: any) => this.client.createProjects(data)
-  getProject = (projectId: number) => this.client.listProjectsByProjectId(projectId)
+  createProject = (data: any) => this.client.createProject(data)
+  getProject = (projectId: number) => this.client.getProject(projectId)
   syncProject = (projectId: number) => this.client.createProjectsByProjectIdSync(projectId)
   getProjectFiles = (projectId: number) => this.client.listProjectsByProjectIdFiles(projectId)
 }
@@ -148,11 +212,11 @@ export class ChatClient {
   private client: TypeSafeApiClient
   
   constructor(config: ApiConfig) {
-    this.client = new TypeSafeApiClient(config.baseUrl)
+    this.client = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
   
   getChats = () => this.client.getChats()
-  createChat = (data: any) => this.client.createChats(data)
+  createChat = (data: any) => this.client.createChat(data)
   getChatMessages = (chatId: number) => this.client.listChatsByChatIdMessages(chatId)
 }
 
@@ -160,7 +224,7 @@ export class GitClient {
   private client: TypeSafeApiClient
   
   constructor(config: ApiConfig) {
-    this.client = new TypeSafeApiClient(config.baseUrl)
+    this.client = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
   
   getGitStatus = (projectId: number) => this.client.listProjectsByProjectIdGitStatus(projectId)

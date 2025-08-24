@@ -85,9 +85,9 @@ export const queueProcessorTool: MCPToolDefinition = {
 
             let taskDetails = `Next task from queue:\n`
 
-            if (response && typeof response === 'object' && 'type' in response && response.type === 'task' && 'item' in response && response.item) {
+            if (response && typeof response === 'object' && 'type' in response && (response as any).type === 'task' && 'item' in response && (response as any).item) {
               // Task within a ticket
-              const task = response.item as any // TicketTask
+              const task = (response as any).item // TicketTask
               taskDetails += `
 Type: Task
 Task #${task.id}: ${task.content}
@@ -97,9 +97,9 @@ ${task.suggestedFileIds?.length > 0 ? `Suggested Files: ${task.suggestedFileIds.
 ${task.agentId ? `Recommended Agent: ${task.agentId}` : ''}
 ${task.estimatedHours ? `Estimated Hours: ${task.estimatedHours}` : ''}
 ${task.tags?.length > 0 ? `Tags: ${task.tags.join(', ')}` : ''}`
-            } else if (response && typeof response === 'object' && 'type' in response && response.type === 'ticket' && 'item' in response && response.item) {
+            } else if (response && typeof response === 'object' && 'type' in response && (response as any).type === 'ticket' && 'item' in response && (response as any).item) {
               // Entire ticket
-              const ticket = response.item as any // Ticket
+              const ticket = (response as any).item // Ticket
               taskDetails += `
 Type: Ticket
 Ticket #${ticket.id}: ${ticket.title}
@@ -166,7 +166,7 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
             const completionNotes = data?.completionNotes as string | undefined
 
             try {
-              await completeQueueItem(itemType, itemId)
+              await completeQueueItem(itemId, { success: true, metadata: { completionNotes } })
 
               return {
                 content: [
@@ -194,7 +194,7 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
               itemType === 'task' ? validateDataField<number>(data, 'ticketId', 'number', '456') : undefined
 
             try {
-              await failQueueItem(itemType, itemId, errorMessage)
+              await failQueueItem(itemId, errorMessage)
 
               return {
                 content: [

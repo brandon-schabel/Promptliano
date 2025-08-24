@@ -18,9 +18,18 @@ import {
   type ChatMessage,
   type CreateChat as CreateChatBody, 
   type UpdateChat as UpdateChatBody,
+  type InsertChatMessage,
   ChatSchema,
   MessageSchema as ChatMessageSchema
 } from '@promptliano/database'
+
+// Message creation data type (includes metadata field)
+export interface CreateMessageData {
+  chatId: number
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  metadata?: Record<string, any> | null
+}
 
 // Dependencies interface for dependency injection
 export interface ChatServiceDeps {
@@ -38,17 +47,213 @@ export function createChatService(deps: ChatServiceDeps = {}) {
     chatRepository: repo = chatRepository,
     logger = createServiceLogger('ChatService'),
   } = deps
+  
+  // Ensure logger is never undefined
+  const safeLogger = logger!
 
   // Base CRUD operations for chats
   const baseService = createCrudService<Chat, CreateChatBody, UpdateChatBody>({
     entityName: 'Chat',
     repository: repo,
     schema: ChatSchema,
-    logger
+    logger: safeLogger
   })
 
   // Extended chat operations
   const extensions = {
+    /**
+     * Get all chats (for user)
+     */
+    async getAllChats(): Promise<Chat[]> {
+      return withErrorContext(
+        async () => {
+          const chats = await repo.getAll()
+          return chats.sort((a, b) => b.updatedAt - a.updatedAt)
+        },
+        { entity: 'Chat', action: 'getAllChats' }
+      )
+    },
+
+    /**
+     * Create chat with title and options
+     */
+    async createChat(
+      title: string, 
+      options: { copyExisting?: boolean; currentChatId?: number } = {}
+    ): Promise<Chat> {
+      return withErrorContext(
+        async () => {
+          let chatData: any = { title }
+          
+          if (options.copyExisting && options.currentChatId) {
+            // Copy existing chat configuration
+            const existingChat = await baseService.getById(options.currentChatId)
+            chatData.projectId = existingChat.projectId
+          }
+          
+          return await baseService.create(chatData)
+        },
+        { entity: 'Chat', action: 'createChat' }
+      )
+    },
+
+    /**
+     * Get chat messages
+     */
+    async getChatMessages(chatId: number): Promise<ChatMessage[]> {
+      return withErrorContext(
+        async () => {
+          await baseService.getById(chatId) // Verify chat exists
+          const messages = await repo.getMessages(chatId)
+          return messages.sort((a, b) => a.createdAt - b.createdAt)
+        },
+        { entity: 'Chat', action: 'getChatMessages', id: chatId }
+      )
+    },
+
+    /**
+     * Fork chat (duplicate with some message filtering)
+     */
+    async forkChat(chatId: number, excludedMessageIds: number[] = []): Promise<Chat> {
+      return withErrorContext(
+        async () => {
+          const originalChat = await baseService.getById(chatId)
+          const originalMessages = await repo.getMessages(chatId)
+          
+          // Create new chat
+          const newChat = await baseService.create({
+            title: `${originalChat.title} (Fork)`,
+            projectId: originalChat.projectId
+          })
+          
+          // Copy messages except excluded ones
+          const messagesToCopy = originalMessages.filter(
+            msg => !excludedMessageIds.includes(msg.id)
+          )
+          
+          for (const message of messagesToCopy) {
+            await repo.addMessage({
+              chatId: newChat.id,
+              role: message.role,
+              content: message.content,
+              metadata: message.metadata || null
+            } as CreateMessageData)
+          }
+          
+          logger.info('Forked chat', { 
+            originalChatId: chatId, 
+            newChatId: newChat.id,
+            messagesCopied: messagesToCopy.length
+          })
+          
+          return newChat
+        },
+        { entity: 'Chat', action: 'forkChat', id: chatId }
+      )
+    },
+
+    /**
+     * Fork chat from specific message
+     */
+    async forkChatFromMessage(
+      chatId: number, 
+      messageId: number, 
+      excludedMessageIds: number[] = []
+    ): Promise<Chat> {
+      return withErrorContext(
+        async () => {
+          const originalChat = await baseService.getById(chatId)
+          const originalMessages = await repo.getMessages(chatId)
+          
+          // Find the target message
+          const targetMessageIndex = originalMessages.findIndex(msg => msg.id === messageId)
+          if (targetMessageIndex === -1) {
+            throw ErrorFactory.notFound('Message', messageId)
+          }
+          
+          // Create new chat
+          const newChat = await baseService.create({
+            title: `${originalChat.title} (From Message)`,
+            projectId: originalChat.projectId
+          })
+          
+          // Copy messages up to and including the target message
+          const messagesToCopy = originalMessages
+            .slice(0, targetMessageIndex + 1)
+            .filter(msg => !excludedMessageIds.includes(msg.id))
+          
+          for (const message of messagesToCopy) {
+            await repo.addMessage({
+              chatId: newChat.id,
+              role: message.role,
+              content: message.content,
+              metadata: message.metadata || null
+            } as CreateMessageData)
+          }
+          
+          logger.info('Forked chat from message', { 
+            originalChatId: chatId, 
+            newChatId: newChat.id,
+            fromMessageId: messageId,
+            messagesCopied: messagesToCopy.length
+          })
+          
+          return newChat
+        },
+        { entity: 'Chat', action: 'forkChatFromMessage', id: chatId }
+      )
+    },
+
+    /**
+     * Delete message from chat
+     */
+    async deleteMessage(chatId: number, messageId: number): Promise<void> {
+      return withErrorContext(
+        async () => {
+          await baseService.getById(chatId) // Verify chat exists
+          await repo.deleteMessage(messageId)
+          
+          // Update chat's updatedAt timestamp (handled by base service)
+          
+          logger.info('Deleted message from chat', { chatId, messageId })
+        },
+        { entity: 'Chat', action: 'deleteMessage', id: chatId }
+      )
+    },
+
+    /**
+     * Update chat (title)
+     */
+    async updateChat(chatId: number, title: string): Promise<Chat> {
+      return withErrorContext(
+        async () => {
+          return await baseService.update(chatId, { title })
+        },
+        { entity: 'Chat', action: 'updateChat', id: chatId }
+      )
+    },
+
+    /**
+     * Delete chat and all messages
+     */
+    async deleteChat(chatId: number): Promise<void> {
+      return withErrorContext(
+        async () => {
+          // Delete all messages first
+          const messages = await repo.getMessages(chatId)
+          for (const message of messages) {
+            await repo.deleteMessage(message.id)
+          }
+          
+          // Delete the chat
+          await baseService.delete?.(chatId)
+          
+          safeLogger.info('Deleted chat and all messages', { chatId, messageCount: messages.length })
+        },
+        { entity: 'Chat', action: 'deleteChat', id: chatId }
+      )
+    },
+
     /**
      * Get chats by project ID
      */
@@ -115,11 +320,10 @@ export function createChatService(deps: ChatServiceDeps = {}) {
             chatId,
             role: message.role,
             content: message.content,
-            metadata: message.metadata
-          })
+            metadata: message.metadata || null
+          } as CreateMessageData)
           
-          // Update chat's updatedAt timestamp
-          await baseService.update(chatId, { updatedAt: Date.now() })
+          // Update chat's updatedAt timestamp (handled by base service)
           
           logger.info('Added message to chat', { 
             chatId, 
@@ -152,7 +356,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
           
           // Add initial message if provided
           if (data.initialMessage) {
-            message = await this.addMessage(chat.id, {
+            message = await extensions.addMessage(chat.id, {
               role: 'user',
               content: data.initialMessage,
               metadata: { initial: true }
@@ -186,7 +390,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Add user message
-          const userMsg = await this.addMessage(chatId, {
+          const userMsg = await extensions.addMessage(chatId, {
             role: 'user',
             content: userMessage
           })
@@ -197,7 +401,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
           if (deps.aiService) {
             try {
               // Get chat context for AI
-              const chatWithMessages = await this.getWithMessages(chatId, { limit: 20 })
+              const chatWithMessages = await extensions.getWithMessages(chatId, { limit: 20 })
               
               // Include project context if requested
               let projectContext = ''
@@ -216,7 +420,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
                 temperature: options.temperature
               })
               
-              assistantMessage = await this.addMessage(chatId, {
+              assistantMessage = await extensions.addMessage(chatId, {
                 role: 'assistant',
                 content: response.content,
                 metadata: {
@@ -235,10 +439,10 @@ export function createChatService(deps: ChatServiceDeps = {}) {
               logger.warn('Failed to generate AI response', { chatId, error })
               
               // Add error message
-              assistantMessage = await this.addMessage(chatId, {
+              assistantMessage = await extensions.addMessage(chatId, {
                 role: 'assistant',
                 content: 'I apologize, but I encountered an error generating a response. Please try again.',
-                metadata: { error: true, errorMessage: error.message }
+                metadata: { error: true, errorMessage: (error as Error).message }
               })
             }
           }
@@ -262,11 +466,11 @@ export function createChatService(deps: ChatServiceDeps = {}) {
           // Note: Chat table doesn't have metadata or archive fields
           // For now, we just delete old chats
           for (const chat of oldChats) {
-            await baseService.delete(chat.id)
+            await baseService.delete?.(chat.id)
             archivedCount++
           }
           
-          logger.info(`Archived ${archivedCount} old chats`)
+          safeLogger.info(`Archived ${archivedCount} old chats`)
           return archivedCount
         },
         { entity: 'Chat', action: 'archiveOldChats' }
@@ -366,10 +570,18 @@ export const chatService = createChatService()
 
 // Export individual functions for tree-shaking
 export const {
-  create: createChat,
+  create: createChatLegacy,
   getById: getChatById,
-  update: updateChat,
-  delete: deleteChat,
+  update: updateChatLegacy,
+  delete: deleteChatLegacy,
+  getAllChats,
+  createChat,
+  getChatMessages,
+  forkChat,
+  forkChatFromMessage,
+  deleteMessage,
+  updateChat,
+  deleteChat,
   getByProject: getChatsByProject,
   getWithMessages: getChatWithMessages,
   addMessage: addChatMessage,

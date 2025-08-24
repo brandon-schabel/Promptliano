@@ -5,7 +5,7 @@ import { createLogger } from '../utils/logger'
 const logger = createLogger('SummarizationCache')
 
 export interface CachedSummary {
-  fileId: number
+  fileId: string
   fileHash: string
   summary: string
   timestamp: number

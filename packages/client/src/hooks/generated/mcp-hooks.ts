@@ -10,15 +10,62 @@ import { useApiClient } from '../api/use-api-client'
 import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type {
-  MCPExecutionQuery,
-  MCPAnalyticsRequest,
-  MCPAnalyticsOverview,
-  MCPToolExecution,
-  MCPToolStatistics,
-  MCPExecutionTimeline,
-  MCPToolPattern
-} from '@promptliano/schemas'
+// Define MCP types locally to avoid import issues
+export type MCPExecutionQuery = {
+  projectId?: number
+  toolName?: string
+  startDate?: string
+  endDate?: string
+  status?: 'success' | 'error'
+  limit?: number
+  offset?: number
+}
+
+export type MCPAnalyticsRequest = {
+  projectId?: number
+  timeRange?: '1h' | '24h' | '7d' | '30d'
+  toolNames?: string[]
+}
+
+export type MCPAnalyticsOverview = {
+  totalExecutions: number
+  successRate: number
+  avgExecutionTime: number
+  topTools: Array<{ name: string; count: number }>
+  errorPatterns: Array<{ pattern: string; count: number }>
+  timeline: Array<{ timestamp: string; count: number }>
+}
+
+export type MCPToolExecution = {
+  id: string
+  toolName: string
+  projectId: number
+  status: 'success' | 'error'
+  duration: number
+  timestamp: string
+  error?: string
+}
+
+export type MCPToolStatistics = {
+  toolName: string
+  totalExecutions: number
+  successCount: number
+  errorCount: number
+  avgDuration: number
+  lastExecution: string
+}
+
+export type MCPExecutionTimeline = {
+  timestamp: string
+  executions: number
+  errors: number
+}
+
+export type MCPToolPattern = {
+  pattern: string
+  count: number
+  percentage: number
+}
 
 // ============================================================================
 // Types (from original files)

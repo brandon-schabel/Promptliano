@@ -380,7 +380,13 @@ export const promptRoutes = new OpenAPIHono()
   })
   .openapi(deletePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
-    await deletePrompt(promptId)
+    if (!deletePrompt) {
+      throw new Error('Delete prompt function not available')
+    }
+    const deleted = await deletePrompt(promptId)
+    if (!deleted) {
+      throw new Error('Failed to delete prompt')
+    }
     return c.json(operationSuccessResponse('Prompt deleted successfully.'))
   })
 

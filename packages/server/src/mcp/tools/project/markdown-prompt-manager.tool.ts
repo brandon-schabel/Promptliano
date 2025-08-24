@@ -25,6 +25,7 @@ import {
   type ExportOptions
 } from '@promptliano/services'
 import { addPromptToProject } from '@promptliano/services'
+import { addTimestamps } from '@promptliano/services/src/utils/file-utils'
 
 export const markdownPromptManagerTool: MCPToolDefinition = {
   name: 'markdown_prompt_manager',
@@ -81,11 +82,11 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
                 )
               }
               
-              const newPrompt = await createPrompt({
+              const newPrompt = await createPrompt(addTimestamps({
                 title: parsedPrompt.frontmatter.name,
                 content: parsedPrompt.content,
                 projectId
-              })
+              }))
 
               // Auto-associate with project if projectId is provided and not already set
               if (projectId && !newPrompt.projectId) {

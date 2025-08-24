@@ -7,10 +7,9 @@ import { Badge } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { ConfiguredDataTable, createDataTableColumns, type DataTableColumnsConfig } from '@promptliano/ui'
-import { QueueItem, ItemQueueStatus } from '@promptliano/schemas'
+import type { QueueItem, TaskQueue } from '@/hooks/generated/types'
 import { toast } from 'sonner'
-import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api-hooks'
-import { useGetTicketsWithTasks } from '@/hooks/api-hooks'
+import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
 import { formatDistanceToNow } from 'date-fns'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
 import {
@@ -40,19 +39,48 @@ interface QueueItemsViewProps {
 }
 
 export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: QueueItemsViewProps) {
-  const [statusFilter, setStatusFilter] = useState<ItemQueueStatus | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<string | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
 
-  const { data: queuesWithStats } = useGetQueuesWithStats(projectId)
-  const { data: items, isLoading } = useGetQueueItems(
-    selectedQueueId || 0,
-    statusFilter === 'all' ? undefined : statusFilter
-  )
-  const { data: ticketsWithTasks } = useGetTicketsWithTasks(projectId)
+  const { data: queues } = useQueues({ projectId })
+  const { data: flowData, isLoading } = useGetFlowData(projectId)
+  
+  // Extract queue items from flow data
+  const items: QueueItem[] = useMemo(() => {
+    if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
+    const queueData = flowData.queues[selectedQueueId]
+    const queueItems: QueueItem[] = []
+    
+    // Add tickets as queue items
+    queueData.tickets?.forEach((ticket, index) => {
+      queueItems.push({
+        id: ticket.id,
+        queueId: selectedQueueId,
+        ticketId: ticket.id,
+        priority: index,
+        status: 'pending',
+        createdAt: ticket.createdAt
+      })
+    })
+    
+    // Add tasks as queue items
+    queueData.tasks?.forEach((task, index) => {
+      queueItems.push({
+        id: task.id,
+        queueId: selectedQueueId,
+        taskId: task.id,
+        priority: (queueData.tickets?.length || 0) + index,
+        status: 'pending',
+        createdAt: task.createdAt
+      })
+    })
+    
+    return queueItems
+  }, [flowData, selectedQueueId])
 
   // Find selected queue
-  const selectedQueue = queuesWithStats?.find((q) => q.queue.id === selectedQueueId)
+  const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
@@ -62,8 +90,8 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
     const query = searchQuery.toLowerCase()
     return safeItems.filter((itemWithRelations: any) => {
       const item = itemWithRelations.queueItem
-      if (item.ticketId && item.ticketId.toString().includes(query)) return true
-      if (item.taskId && item.taskId.toString().includes(query)) return true
+      if (item.itemId && item.itemId.toString().includes(query)) return true
+      if (item.itemType && item.itemType.toLowerCase().includes(query)) return true
       if (item.agentId?.toLowerCase().includes(query)) return true
       if (item.errorMessage?.toLowerCase().includes(query)) return true
       return false
@@ -72,11 +100,21 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
 
   // Get task details for an item
   const getTaskDetails = (item: QueueItem) => {
-    if (!item.ticketId || !item.taskId || !ticketsWithTasks) return null
-    const ticket = ticketsWithTasks.find((t) => t.ticket.id === item.ticketId)
-    if (!ticket) return null
-    const task = ticket.tasks.find((t) => t.id === item.taskId)
-    return task ? { ticket: ticket.ticket, task } : null
+    if (item.itemType !== 'ticket' && item.itemType !== 'task' || !ticketsWithTasks) return null
+    if (item.itemType === 'ticket') {
+      const ticket = ticketsWithTasks.find((t) => t.id === item.itemId)
+      return ticket ? { ticket, task: null } : null
+    }
+    if (item.itemType === 'task') {
+      // Find the ticket that contains this task
+      for (const ticket of ticketsWithTasks) {
+        const task = ticket.tasks.find((t) => t.id === item.itemId)
+        if (task) {
+          return { ticket, task }
+        }
+      }
+    }
+    return null
   }
 
   const handleStatusChange = async (item: QueueItem, status: ItemQueueStatus) => {
@@ -129,13 +167,13 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         type: 'custom',
         column: {
           header: 'Task',
-          accessorFn: (item: QueueItem) => item.ticketId || item.taskId || item.id,
+          accessorFn: (item: QueueItem) => item.itemId || item.id,
           cell: ({ row }) => {
             const item = row.original
             const details = getTaskDetails(item)
             if (!details) {
               return (
-                <div className='text-muted-foreground'>{item.ticketId ? `Ticket #${item.ticketId}` : 'Unknown task'}</div>
+                <div className='text-muted-foreground'>{item.itemType} #{item.itemId}</div>
               )
             }
 
@@ -201,11 +239,11 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         type: 'custom',
         column: {
           header: 'Time',
-          accessorFn: (item: QueueItem) => item.created,
+          accessorFn: (item: QueueItem) => item.createdAt,
           cell: ({ row }) => {
             const item = row.original
             if (item.completedAt && item.completedAt > 0) {
-              const startTime = item.startedAt && item.startedAt > 0 ? item.startedAt : item.created
+              const startTime = item.startedAt && item.startedAt > 0 ? item.startedAt : item.createdAt
               const duration = item.completedAt - startTime
               return <span>{Math.round(duration / 1000)}s</span>
             }
@@ -216,9 +254,9 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
                 return <span>Started recently</span>
               }
             }
-            if (item.created && item.created > 0) {
+            if (item.createdAt && item.createdAt > 0) {
               try {
-                return <span>Added {safeFormatDate(item.created)}</span>
+                return <span>Added {safeFormatDate(item.createdAt)}</span>
               } catch (e) {
                 return <span>Added recently</span>
               }

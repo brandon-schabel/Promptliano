@@ -5,7 +5,9 @@ import {
   useUpdateActiveProjectTab,
   useUpdateProjectTabById
 } from '@/hooks/use-kv-local-storage'
-import { useGetProjectFilesWithoutContent, useProjectFiles } from '@/hooks/api-hooks'
+import { useProjectFiles } from '@/hooks/generated'
+// Remove the non-existent import
+// import { useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
 import { useMemo } from 'react'
 import { buildProjectFileMapWithoutContent, buildProjectFileMap } from '@promptliano/shared'
 import { useClaudeMdDetection } from './use-claude-md-detection'
@@ -34,14 +36,19 @@ export const useProjectFileMapWithoutContent = (projectId: number) => {
   // Add validation to prevent calling with invalid project IDs
   const isValidProjectId = projectId && projectId !== -1 && projectId > 0
 
-  // useGetProjectFilesWithoutContent already has built-in validation for projectId
-  const { data: fileData } = useGetProjectFilesWithoutContent(projectId)
+  // Use the existing useProjectFiles hook instead
+  const { data: fileData } = useProjectFiles(projectId)
 
   return useMemo(() => {
     if (!isValidProjectId) {
       return new Map()
     }
-    return buildProjectFileMapWithoutContent(fileData ?? [])
+    // Convert files with content to files without content format for backward compatibility
+    const filesWithoutContent = (fileData ?? []).map(file => ({
+      ...file,
+      content: undefined // Remove content to match expected format
+    }))
+    return buildProjectFileMapWithoutContent(filesWithoutContent)
   }, [fileData, isValidProjectId])
 }
 
@@ -49,9 +56,9 @@ export const useProjectFileMap = (projectId: number) => {
   // Add validation to prevent calling with invalid project IDs
   const isValidProjectId = projectId && projectId !== -1 && projectId > 0
 
-  // useGetProjectFiles already has built-in validation for projectId
+  // useProjectFiles already has built-in validation for projectId
   // It won't fetch if projectId is invalid
-  const { data: fileData } = useGetProjectFiles(projectId)
+  const { data: fileData } = useProjectFiles(projectId)
 
   return useMemo(() => {
     if (!isValidProjectId) {
@@ -92,7 +99,7 @@ export function useSelectedFiles({
   const projectFileMap = useProjectFileMap(projectId)
 
   // Get all project files for CLAUDE.md detection
-  const { data: projectFilesData } = useGetProjectFiles(projectId)
+  const { data: projectFilesData } = useProjectFiles(projectId)
   const projectFiles = projectFilesData ?? []
 
   // Initialize CLAUDE.md detection (kept for backward compatibility)

@@ -122,7 +122,7 @@ export function MCPExecutionsTable({ projectId, defaultPageSize = 20 }: MCPExecu
         ]
       })
 
-      const csv = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n')
+      const csv = [headers.join(','), ...rows.map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(','))].join('\n')
 
       const blob = new Blob([csv], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)

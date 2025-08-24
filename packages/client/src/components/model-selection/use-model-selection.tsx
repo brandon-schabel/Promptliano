@@ -1,8 +1,13 @@
-import { useCallback, useState, useEffect } from 'react'
-import { APIProviders } from '@promptliano/schemas'
+import { useCallback, useState, useEffect, useMemo } from 'react'
+import type { APIProviders } from '@promptliano/database'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { useGetModels } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
+import { 
+  validateModelsArray,
+  type ValidatedModelData,
+  extractErrorMessage
+} from '@/utils/type-guards'
 
 export interface UseModelSelectionOptions {
   defaultProvider?: APIProviders
@@ -18,7 +23,7 @@ export interface UseModelSelectionReturn {
   setProvider: (provider: APIProviders) => void
   setModel: (model: string) => void
   isLoadingModels: boolean
-  availableModels: Array<{ id: string; name: string }>
+  availableModels: ValidatedModelData[]
 }
 
 /**
@@ -48,16 +53,30 @@ export function useModelSelection(options: UseModelSelectionOptions = {}): UseMo
   // Fetch available models for the current provider
   const { data: modelsData, isLoading: isLoadingModels } = useGetModels(provider, urlOptions)
 
-  const availableModels =
-    modelsData?.data.map((m: any) => ({
-      id: m.id,
-      name: m.name
-    })) ?? []
+  const availableModels: ValidatedModelData[] = useMemo(() => {
+    if (!modelsData?.data || !Array.isArray(modelsData.data)) {
+      return []
+    }
+    
+    try {
+      const validationResult = validateModelsArray(modelsData.data)
+      
+      if (!validationResult.success) {
+        console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)
+        return []
+      }
+      
+      return validationResult.data
+    } catch (error) {
+      console.error('Error validating model data:', extractErrorMessage(error))
+      return []
+    }
+  }, [modelsData?.data])
 
   // Auto-select first model when provider changes
   useEffect(() => {
     if (availableModels.length > 0) {
-      const isCurrentModelValid = availableModels.some((m: any) => m.id === model)
+      const isCurrentModelValid = availableModels.some((m: ValidatedModelData) => m.id === model)
       if (!model || !isCurrentModelValid) {
         const firstModelId = availableModels[0].id
         setModelInternal(firstModelId)

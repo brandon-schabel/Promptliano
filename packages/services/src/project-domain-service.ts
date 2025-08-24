@@ -208,8 +208,8 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
             archivedChats,
             clearedQueueItems
           ] = await Promise.all([
-            services.tickets.archiveOldTickets(beforeDate),
-            services.chats.archiveOldChats(projectId, beforeDate),
+            services.tickets.archiveOldTickets(projectId, beforeDate),
+            services.chats.archiveOldChats(beforeDate),
             // Clear completed items from all project queues
             services.queues.getByProject(projectId).then(async (queues) => {
               let totalCleared = 0

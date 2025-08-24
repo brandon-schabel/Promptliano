@@ -4,13 +4,12 @@ import { Badge } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Alert, AlertDescription } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
-import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api-hooks'
-import { useGetTicketsWithTasks } from '@/hooks/api-hooks'
+import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
 import { format, addMinutes } from 'date-fns'
 import { Clock, AlertCircle, CheckCircle2, XCircle, Play, Pause, ListTodo, FileText, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
-import { QueueItem, ItemQueueStatus } from '@promptliano/schemas'
+import type { QueueItem, TaskQueue } from '@/hooks/generated/types'
 
 interface QueueTimelineViewProps {
   projectId: number
@@ -27,13 +26,45 @@ interface TimelineItem {
 }
 
 export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineViewProps) {
-  const { data: queuesWithStats } = useGetQueuesWithStats(projectId)
-  const { data: items, isLoading } = useGetQueueItems(selectedQueueId || 0)
-  const { data: ticketsWithTasks } = useGetTicketsWithTasks(projectId)
+  const { data: queues } = useQueues({ projectId })
+  const { data: flowData, isLoading } = useGetFlowData(projectId)
 
   // Find selected queue
-  const selectedQueue = queuesWithStats?.find((q) => q.queue.id === selectedQueueId)
-  const avgProcessingTime = selectedQueue?.stats.averageProcessingTime || 300000 // Default 5 minutes
+  const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
+  const avgProcessingTime = 300000 // Default 5 minutes
+  
+  // Extract queue items from flow data
+  const items: QueueItem[] = useMemo(() => {
+    if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
+    const queueData = flowData.queues[selectedQueueId]
+    const queueItems: QueueItem[] = []
+    
+    // Add tickets as queue items
+    queueData.tickets?.forEach((ticket, index) => {
+      queueItems.push({
+        id: ticket.id,
+        queueId: selectedQueueId,
+        ticketId: ticket.id,
+        priority: index,
+        status: 'pending',
+        createdAt: ticket.createdAt
+      })
+    })
+    
+    // Add tasks as queue items
+    queueData.tasks?.forEach((task, index) => {
+      queueItems.push({
+        id: task.id,
+        queueId: selectedQueueId,
+        taskId: task.id,
+        priority: (queueData.tickets?.length || 0) + index,
+        status: 'pending',
+        createdAt: task.createdAt
+      })
+    })
+    
+    return queueItems
+  }, [flowData, selectedQueueId])
 
   // Calculate timeline items
   const timelineItems = useMemo(() => {
@@ -113,13 +144,23 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
 
   // Get task details
   const getTaskDetails = (item: QueueItem) => {
-    if (!item.ticketId || !item.taskId || !ticketsWithTasks) return null
-
-    const ticket = ticketsWithTasks.find((t) => t.ticket.id === item.ticketId)
-    if (!ticket) return null
-
-    const task = ticket.tasks.find((t) => t.id === item.taskId)
-    return task ? { ticket: ticket.ticket, task } : null
+    if (item.itemType !== 'ticket' && item.itemType !== 'task' || !ticketsWithTasks) return null
+    
+    if (item.itemType === 'ticket') {
+      const ticket = ticketsWithTasks.find((t) => t.id === item.itemId)
+      return ticket ? { ticket, task: null } : null
+    }
+    
+    if (item.itemType === 'task') {
+      // Find the ticket that contains this task
+      for (const ticket of ticketsWithTasks) {
+        const task = ticket.tasks.find((t) => t.id === item.itemId)
+        if (task) {
+          return { ticket, task }
+        }
+      }
+    }
+    return null
   }
 
   const statusConfig = {

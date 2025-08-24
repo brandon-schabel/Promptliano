@@ -123,3 +123,34 @@ export const UpdateClaudeCommandBodySchema = z.object({
   isActive: z.boolean().optional()
 })
 export type UpdateClaudeCommandBody = z.infer<typeof UpdateClaudeCommandBodySchema>
+
+// Execute Command Body Schema
+export const ExecuteClaudeCommandBodySchema = z.object({
+  arguments: z.record(z.any()).optional().default({})
+})
+export type ExecuteClaudeCommandBody = z.infer<typeof ExecuteClaudeCommandBodySchema>
+
+// Suggest Agents Request Schema
+export const SuggestAgentsRequestSchema = z.object({
+  userContext: z.string().min(1),
+  limit: z.number().int().positive().max(10).optional().default(5)
+})
+export type SuggestAgentsRequest = z.infer<typeof SuggestAgentsRequestSchema>
+
+// Create Claude Agent Body Schema
+export const CreateClaudeAgentBodySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  instructions: z.string().min(1),
+  model: z.string().optional().default('claude-3-sonnet')
+})
+export type CreateClaudeAgentBody = z.infer<typeof CreateClaudeAgentBodySchema>
+
+// Update Claude Agent Body Schema
+export const UpdateClaudeAgentBodySchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  instructions: z.string().min(1).optional(),
+  model: z.string().optional()
+})
+export type UpdateClaudeAgentBody = z.infer<typeof UpdateClaudeAgentBodySchema>

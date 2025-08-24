@@ -30,7 +30,15 @@ import {
   QueueItemCreateSchema,
   QueueItemResponseSchema,
   QueueStatsResponseSchema,
-  OptimizePromptResponseSchema
+  OptimizePromptResponseSchema,
+  TicketListResponseSchema,
+  ChatListResponseSchema,
+  PromptListResponseSchema,
+  QueueListResponseSchema,
+  ClaudeCommandListResponseSchema,
+  ClaudeHookListResponseSchema,
+  SelectedFileListResponseSchema,
+  ActiveTabListResponseSchema
 } from '@promptliano/schemas'
 import { z } from '@hono/zod-openapi'
 
@@ -106,8 +114,8 @@ const projectConfig: EntityConfig = {
     {
       method: 'get',
       path: '/{id}/files',
-      summary: 'Get File for Project',
-      description: 'Retrieve all File associated with this Project',
+      summary: 'Get project files',
+      description: 'Get all files in the project',
       handlerName: 'getFiles',
       response: FileListResponseSchema,
     },
@@ -134,14 +142,6 @@ const projectConfig: EntityConfig = {
       description: 'Trigger a manual sync of project files',
       handlerName: 'sync',
       response: OperationSuccessResponseSchema,
-    },
-    {
-      method: 'get',
-      path: '/{id}/files',
-      summary: 'Get project files',
-      description: 'Get all files in the project',
-      handlerName: 'getFiles',
-      response: FileListResponseSchema,
     },
     {
       method: 'get',
@@ -190,7 +190,6 @@ export const projectRoutes = {
   getSelectedFiles: `GET /api/projects/{id}/selectedfiles`,
   getActiveTabs: `GET /api/projects/{id}/activetabs`,
   sync: `POST /api/projects/{id}/sync`,
-  getFiles: `GET /api/projects/{id}/files`,
   getSummary: `GET /api/projects/{id}/summary`
 } as const
 
