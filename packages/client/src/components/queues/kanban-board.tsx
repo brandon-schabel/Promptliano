@@ -96,7 +96,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
   const dequeueTaskMutation = useDequeueTask()
   const moveItemMutation = useMoveItem()
   const bulkMoveMutation = useBulkMoveItems()
-  const createQueueMutation = useCreateQueue()
+  const createQueueMutation = useCreateQueue(projectId)
 
   // Process flow data from unified system (no need for separate queue queries)
 
@@ -260,8 +260,8 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
   }, [flowData])
 
   const { data: openTicketData } = useTicket(openTicketId || 0)
-  const openTicketWithTasks: TicketWithTasks | null = useMemo(
-    () => (openTicketData ? { ...openTicketData, tasks: [] } : null),
+  const openTicketWithTasks: import('@/hooks/generated/types').TicketWithTasksNested | null = useMemo(
+    () => (openTicketData ? { ticket: openTicketData, tasks: [] } : null),
     [openTicketData]
   )
 
@@ -546,7 +546,17 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
               return (
                 <KanbanColumn
                   key={queueWithStats.id}
-                  queue={{ ...queueWithStats, stats: { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 } }}
+                  queue={{ ...queueWithStats, stats: { 
+                    total: 0, 
+                    pending: 0, 
+                    processing: 0, 
+                    completed: 0, 
+                    failed: 0,
+                    currentAgents: [],
+                    completedItems: 0,
+                    totalItems: 0,
+                    averageProcessingTime: undefined
+                  } }}
                   items={itemsByQueue[queueWithStats.id.toString()] || []}
                   onPauseQueue={() => handlePauseQueue(queueWithStats)}
                   onResumeQueue={() => handleResumeQueue(queueWithStats)}

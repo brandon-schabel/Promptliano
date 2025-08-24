@@ -82,7 +82,11 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
       pending: total, // All items in queue are pending
       processing: 0,
       completed: 0,
-      failed: 0
+      failed: 0,
+      currentAgents: [], // No agents currently processing items
+      completedItems: 0,
+      totalItems: total,
+      averageProcessingTime: undefined
     }
   }, [flowData, queueId])
   
@@ -97,8 +101,10 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
         id: ticket.id,
         queueId: queueId,
         ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
         priority: index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: ticket.createdAt
       })
     })
@@ -109,8 +115,10 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
         id: task.id,
         queueId: queueId,
         taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
         priority: (queueData.tickets?.length || 0) + index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: task.createdAt
       })
     })
@@ -278,24 +286,24 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
       <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
         <MetricCard 
           label='Queued' 
-          value={stats.queuedItems} 
+          value={stats.pending} 
           icon={Package} 
         />
         <MetricCard
           label='In Progress'
-          value={stats.inProgressItems}
+          value={stats.processing}
           icon={Activity}
           color='orange'
         />
         <MetricCard
           label='Completed'
-          value={stats.completedItems}
+          value={stats.completed}
           icon={CheckCircle2}
           color='green'
         />
         <MetricCard
           label='Failed'
-          value={stats.failedItems}
+          value={stats.failed}
           icon={XCircle}
           color='red'
         />
@@ -325,12 +333,12 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
             />
             <MetricItem
               label='Created'
-              value={format(new Date(queue.created), 'MMM d, yyyy')}
+              value={format(new Date(queue.createdAt), 'MMM d, yyyy')}
               icon={<Clock className='h-4 w-4' />}
             />
             <MetricItem
               label='Last Updated'
-              value={formatDistanceToNow(new Date(queue.updated), { addSuffix: true })}
+              value={formatDistanceToNow(new Date(queue.updatedAt), { addSuffix: true })}
               icon={<RefreshCw className='h-4 w-4' />}
             />
           </div>
@@ -379,11 +387,11 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
                 <TableBody>
                   {filteredItems.map((item) => (
                     <QueueItemRow
-                      key={item.queueItem.id}
-                      item={item.queueItem}
+                      key={item.id}
+                      item={item}
                       onRemove={handleRemoveItem}
                       onRetry={handleRetryItem}
-                      onSelect={() => setSelectedItem(item.queueItem)}
+                      onSelect={() => setSelectedItem(item)}
                     />
                   ))}
                 </TableBody>

@@ -55,7 +55,7 @@ export function CommandDialog({
     shouldFetch ? commandName : '',
     shouldFetch ? namespace || undefined : undefined
   )
-  const command = initialData || commandResponse?.data
+  const command = initialData || commandResponse
 
   // Mutations
   const createCommandMutation = useCreateCommand(projectId)
@@ -73,7 +73,7 @@ export function CommandDialog({
 
   // Update form when command data is loaded
   useEffect(() => {
-    if (command && isEditing) {
+    if (command && isEditing && typeof command === 'object' && 'name' in command) {
       form.reset({
         name: command.name,
         description: command.description || '',

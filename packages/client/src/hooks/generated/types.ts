@@ -87,7 +87,10 @@ export type Prompt = typeof PromptSchema._type
 export type CreatePromptBody = CreatePrompt
 export type UpdatePromptBody = UpdatePrompt
 
-export type TaskQueue = typeof QueueSchema._type
+export type TaskQueue = typeof QueueSchema._type & {
+  status?: 'active' | 'paused' | 'completed'
+  isActive?: boolean
+}
 export type CreateQueueBody = CreateQueue
 export type UpdateQueueBody = UpdateQueue
 
@@ -188,6 +191,13 @@ export type ProjectStatistics = {
   lastSyncedAt: number | null
 }
 
+// New nested structure for TicketDetailView
+export type TicketWithTasksNested = {
+  ticket: Ticket
+  tasks: TicketTask[]
+}
+
+// Keep the old flat structure for backwards compatibility
 export type TicketWithTasks = Ticket & {
   tasks: TicketTask[]
 }
@@ -210,8 +220,14 @@ export type QueueItem = {
   queueId: number
   ticketId?: number
   taskId?: number
+  itemType: 'ticket' | 'task'
+  itemId: number
   priority: number
-  status: string
+  status: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled' | 'pending'
+  agentId?: string
+  startedAt?: number
+  completedAt?: number
+  errorMessage?: string
   createdAt: number
 }
 
@@ -221,6 +237,10 @@ export type QueueStats = {
   processing: number
   completed: number
   failed: number
+  currentAgents: string[]
+  completedItems: number
+  totalItems: number
+  averageProcessingTime?: number
 }
 
 export type QueueWithStats = TaskQueue & {

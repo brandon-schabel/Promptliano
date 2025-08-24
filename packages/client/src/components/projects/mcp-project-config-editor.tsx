@@ -257,7 +257,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
       await client.mcp.saveProjectConfigToLocation(
         projectId,
         location.path,
-        defaultConfigResult.data.config
+        defaultConfigResult.data
       )
     },
     onSuccess: (_, location) => {

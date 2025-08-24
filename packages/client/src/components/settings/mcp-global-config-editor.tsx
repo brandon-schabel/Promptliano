@@ -201,14 +201,14 @@ export function MCPGlobalConfigEditor() {
       </CardHeader>
       <CardContent className='space-y-6'>
         {/* Status Overview */}
-        {status && (
+        {status && typeof status === 'object' && 'configExists' in status && (
           <Alert>
             <AlertDescription className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
-                {status.installed ? (
+                {status.configExists ? (
                   <>
                     <CheckCircle2 className='h-4 w-4 text-green-500' />
-                    <span>Global MCP configuration is active</span>
+                    <span>Global MCP configuration is active {'totalInstallations' in status && status.totalInstallations ? `(${status.totalInstallations} tools installed)` : ''}</span>
                   </>
                 ) : (
                   <>
@@ -217,7 +217,7 @@ export function MCPGlobalConfigEditor() {
                   </>
                 )}
               </div>
-              {status.configPath && (
+              {'configPath' in status && status.configPath && (
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <FolderOpen className='h-3 w-3' />
                   <code className='text-xs'>{status.configPath}</code>
@@ -410,9 +410,9 @@ export function MCPGlobalConfigEditor() {
             </TabsContent>
 
             <TabsContent value='installations' className='space-y-4'>
-              {installations?.installations && installations.installations.length > 0 ? (
+              {installations && installations.length > 0 ? (
                 <div className='space-y-3'>
-                  {installations.installations.map((installation: Installation) => (
+                  {installations.map((installation: Installation) => (
                     <div key={installation.tool} className='p-4 bg-muted rounded-md space-y-2'>
                       <div className='flex items-center justify-between'>
                         <h5 className='font-medium'>{SUPPORTED_TOOLS[installation.tool]?.name || installation.tool}</h5>

@@ -1262,7 +1262,7 @@ export const projectRoutes = new OpenAPIHono()
       }
 
       // Group files
-      const groups = fileGroupingService.groupFilesByStrategy(filesToGroup, strategy, { maxGroupSize })
+      const groups = fileGroupingService.groupFilesByStrategy(filesToGroup, strategy, projectId, { maxGroupSize })
 
       // Estimate tokens
       let totalTokens = 0

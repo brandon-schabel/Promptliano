@@ -56,6 +56,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
 
   const statusConfig = {
     queued: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Queued' },
+    pending: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Pending' },
     in_progress: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'In Progress' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100', label: 'Completed' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', label: 'Failed' },

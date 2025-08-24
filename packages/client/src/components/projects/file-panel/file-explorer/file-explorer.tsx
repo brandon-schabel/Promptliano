@@ -53,11 +53,23 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
   const { data: fileDataResponse, isLoading: filesLoading } = useProjectFiles(
     activeProjectTabState?.selectedProjectId || -1
   )
-  const fileDataArray = useMemo(() => fileDataResponse || [], [fileDataResponse])
+  const fileDataArray = useMemo(() => {
+    // Handle array response directly
+    if (Array.isArray(fileDataResponse)) {
+      return fileDataResponse
+    }
+    return []
+  }, [fileDataResponse])
 
   const { data: projectDataResponse } = useGetProject(activeProjectTabState?.selectedProjectId || -1)
 
-  const projectFiles = useMemo(() => fileDataResponse || [], [fileDataResponse])
+  const projectFiles = useMemo(() => {
+    // Handle array response directly
+    if (Array.isArray(fileDataResponse)) {
+      return fileDataResponse
+    }
+    return []
+  }, [fileDataResponse])
   const project = useMemo(() => projectDataResponse, [projectDataResponse])
 
   const [viewedFile, setViewedFile] = useState<ProjectFile | null>(null)
@@ -244,8 +256,8 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
             {/* Select All Files */}
             <DropdownMenuItem
               onClick={() => {
-                const allFilePaths = projectFiles.map((file: ProjectFile) => file.path)
-                selectFiles(allFilePaths)
+                const allFileIds = projectFiles.map((file: ProjectFile) => file.id)
+                selectFiles(allFileIds)
               }}
             >
               <Files className='h-4 w-4 mr-2' />
@@ -280,9 +292,9 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                         const filesWithChanges = changedFiles
                           .map((file: any) => {
                             const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
-                            return projectFile?.path
+                            return projectFile?.id
                           })
-                          .filter((path: any): path is string => path !== undefined)
+                          .filter((id: any): id is number => id !== undefined)
 
                         if (filesWithChanges.length > 0) {
                           selectFiles([...new Set([...selectedFiles, ...filesWithChanges])])
@@ -300,15 +312,15 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                     {stagedFiles.length > 0 && (
                       <DropdownMenuItem
                         onClick={() => {
-                          const stagedFilePaths = stagedFiles
+                          const stagedFileIds = stagedFiles
                             .map((file: any) => {
                               const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
-                              return projectFile?.path
+                              return projectFile?.id
                             })
-                            .filter((path: any): path is string => path !== undefined)
+                            .filter((id: any): id is number => id !== undefined)
 
-                          if (stagedFilePaths.length > 0) {
-                            selectFiles([...new Set([...selectedFiles, ...stagedFilePaths])])
+                          if (stagedFileIds.length > 0) {
+                            selectFiles([...new Set([...selectedFiles, ...stagedFileIds])])
                           }
                         }}
                       >
@@ -324,15 +336,15 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
                     {unstagedFiles.length > 0 && (
                       <DropdownMenuItem
                         onClick={() => {
-                          const unstagedFilePaths = unstagedFiles
+                          const unstagedFileIds = unstagedFiles
                             .map((file: any) => {
                               const projectFile = projectFiles.find((pf: ProjectFile) => pf.path === file.path)
-                              return projectFile?.path
+                              return projectFile?.id
                             })
-                            .filter((path: any): path is string => path !== undefined)
+                            .filter((id: any): id is number => id !== undefined)
 
-                          if (unstagedFilePaths.length > 0) {
-                            selectFiles([...new Set([...selectedFiles, ...unstagedFilePaths])])
+                          if (unstagedFileIds.length > 0) {
+                            selectFiles([...new Set([...selectedFiles, ...unstagedFileIds])])
                           }
                         }}
                       >

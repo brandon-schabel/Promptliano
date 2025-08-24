@@ -83,7 +83,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import type { ProviderKey, CreateProviderKey } from '@promptliano/database'
+import type { CreateProviderKey } from '@promptliano/database'
+import type { ProviderKey } from '@/hooks/generated/providers-hooks'
 
 // TODO: Move this to database schema
 type ProviderHealthStatus = {

@@ -132,6 +132,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
   // Status configuration for badges
   const statusConfig = {
     queued: { icon: AlertCircle, color: 'text-muted-foreground', variant: 'secondary' as const },
+    pending: { icon: AlertCircle, color: 'text-muted-foreground', variant: 'secondary' as const },
     in_progress: { icon: Clock, color: 'text-blue-600', variant: 'default' as const },
     completed: { icon: CheckCircle2, color: 'text-green-600', variant: 'default' as const },
     failed: { icon: XCircle, color: 'text-red-600', variant: 'destructive' as const },

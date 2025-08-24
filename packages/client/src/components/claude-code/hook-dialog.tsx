@@ -98,10 +98,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
     })
 
     if (result) {
-      setEventName(result.event)
-      setMatcher(result.matcher)
       setCommand(result.command)
-      setTimeout(result.timeout?.toString() || '')
       setActiveTab('manual')
       toast.success('Hook generated successfully')
     }

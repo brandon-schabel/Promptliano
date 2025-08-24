@@ -1,8 +1,8 @@
 import React from 'react'
 import { DataTable } from '@promptliano/ui'
 import { mcpExecutionsColumns, defaultColumnVisibility } from './mcp-executions-columns'
-import { useGetMCPExecutions } from '@/hooks/api-hooks'
-import type { MCPExecutionQuery, MCPToolExecution, MCPExecutionStatus } from '@promptliano/schemas'
+import { useGetMCPExecutions, type MCPExecutionQuery, type MCPToolExecution } from '@/hooks/api-hooks'
+import type { MCPExecutionStatus } from '@promptliano/schemas'
 import type { PaginationState, SortingState, ColumnFiltersState } from '@tanstack/react-table'
 import { RefreshCw, Download, FileJson } from 'lucide-react'
 import { Button } from '@promptliano/ui'
@@ -99,7 +99,7 @@ export function MCPExecutionsTable({ projectId, defaultPageSize = 20 }: MCPExecu
     } else {
       // CSV export
       const headers = ['Tool', 'Action', 'Status', 'Started At', 'Duration (ms)', 'Output Size', 'Error']
-      const rows = dataToExport.map((exec: ExportRowData) => {
+      const rows = (dataToExport as ExportRowData[]).map((exec) => {
         const action = exec.inputParams
           ? (() => {
               try {
@@ -140,7 +140,7 @@ export function MCPExecutionsTable({ projectId, defaultPageSize = 20 }: MCPExecu
   return (
     <div className='h-full flex flex-col'>
       <DataTable
-        columns={mcpExecutionsColumns}
+        columns={mcpExecutionsColumns as any}
         data={data?.executions || []}
         pageCount={Math.ceil((data?.total || 0) / pagination.pageSize)}
         // Pagination

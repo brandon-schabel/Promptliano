@@ -634,10 +634,11 @@ export function batchInvalidate(
 // Export Types
 // ============================================================================
 
-export type {
-  EntityRelationship,
-  InvalidationRule,
-  InvalidationTarget,
-  InvalidationEvent,
-  InvalidationStats
-}
+// Types already declared above, no need to re-export
+// export type {
+//   EntityRelationship,
+//   InvalidationRule,
+//   InvalidationTarget,
+//   InvalidationEvent,
+//   InvalidationStats
+// }

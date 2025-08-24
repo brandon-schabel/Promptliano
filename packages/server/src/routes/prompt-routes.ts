@@ -335,10 +335,13 @@ const validateMarkdownRoute = createRoute({
 export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
+    const now = Date.now()
     const createdPrompt = await createPrompt({
       title: body.title,
       content: body.content,
-      projectId: body.projectId
+      projectId: body.projectId,
+      createdAt: now,
+      updatedAt: now
     })
     return c.json(successResponse(createdPrompt), 201)
   }) as any)
@@ -450,7 +453,12 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(exportPromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
-    const markdownContent = await promptToMarkdown(prompt)
+    // Ensure tags are properly typed for the promptToMarkdown function
+    const promptForMarkdown = {
+      ...prompt,
+      tags: Array.isArray(prompt.tags) ? prompt.tags.filter((tag): tag is string => typeof tag === 'string') : []
+    }
+    const markdownContent = await promptToMarkdown(promptForMarkdown)
 
     const filename = `${prompt.title
       .toLowerCase()

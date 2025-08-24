@@ -73,6 +73,21 @@ export type GitCommitDetailResponse = {
   files: any[]
 }
 
+export type GitDiffResponse = {
+  files: {
+    path: string
+    type: 'added' | 'modified' | 'deleted' | 'renamed'
+    additions: number
+    deletions: number
+    binary: boolean
+    oldPath?: string
+  }[]
+  additions: number
+  deletions: number
+  content?: string
+  diff?: string // Add support for diff property
+}
+
 // ============================================================================
 // Query Keys (enhanced from original)
 // ============================================================================
@@ -99,41 +114,8 @@ export const GIT_KEYS = {
 // Factory Configuration for Git Operations
 // ============================================================================
 
-const GIT_CONFIG = {
-  entityName: 'Git',
-  queryKeys: GIT_ENHANCED_KEYS,
-  apiClient: {
-    // Git doesn't have standard CRUD operations, we'll use custom hooks
-    list: () => Promise.resolve([]),
-    getById: () => Promise.resolve(null as any),
-    create: () => Promise.resolve(null as any),
-    update: () => Promise.resolve(null as any),
-    delete: () => Promise.resolve(undefined)
-  },
-  staleTime: 4000, // Default 4s stale time (as used for status)
-  polling: {
-    custom: {
-      status: {
-        enabled: true,
-        interval: 5000, // 5s polling for git status (preserved from original)
-        refetchInBackground: true
-      },
-      branchesEnhanced: {
-        enabled: true,
-        interval: 30000, // 30s polling for branches (preserved from original)
-        refetchInBackground: true
-      }
-    }
-  },
-  invalidation: {
-    onCreate: 'all' as const,
-    onUpdate: 'all' as const,
-    onDelete: 'all' as const
-  }
-}
-
-// Create base git hooks (for utilities)
-const gitHooks = createCrudHooks(GIT_CONFIG)
+// Git operations don't follow standard CRUD patterns, so we'll skip the factory
+// and use custom hooks for all operations
 
 // ============================================================================
 // Core Git Query Hooks (migrated with polling preserved)
@@ -146,15 +128,16 @@ export function useProjectGitStatus(projectId: number | undefined, enabled = tru
   const client = useApiClient()
   
   return useQuery({
-    queryKey: GIT_ENHANCED_KEYS.status(projectId!),
+    queryKey: GIT_KEYS.status(projectId!),
     queryFn: async () => {
       if (!projectId) throw new Error('Project ID is required')
       if (!client) throw new Error('API client not initialized')
       const response = await client.git.getProjectGitStatus(projectId)
-      if (!response.success || !response.data) {
-        throw new Error(response.message || 'Failed to fetch git status')
+      // Handle both wrapped and unwrapped responses
+      if (response && typeof response === 'object' && 'success' in response && !(response as any).success) {
+        throw new Error((response as any).error?.message || (response as any).message || 'Failed to fetch git status')
       }
-      return response.data
+      return response?.data || response
     },
     enabled: !!client && enabled && !!projectId,
     refetchInterval: 5000, // 5s polling preserved
@@ -169,11 +152,17 @@ export function useProjectGitStatus(projectId: number | undefined, enabled = tru
 export function useGitFilesWithChanges(projectId: number | undefined) {
   const { data: gitStatus } = useProjectGitStatus(projectId)
 
-  if (!gitStatus || !gitStatus.success || !gitStatus.data) {
+  if (!gitStatus) {
     return []
   }
 
-  return gitStatus.data.files.filter((file) => file.status !== 'unchanged' && file.status !== 'ignored')
+  // Handle both wrapped and unwrapped responses  
+  const statusData = (gitStatus as any)?.data || gitStatus
+  if (!statusData || typeof statusData !== 'object' || !('files' in statusData)) {
+    return []
+  }
+
+  return statusData.files.filter((file: any) => file.status !== 'unchanged' && file.status !== 'ignored')
 }
 
 /**
@@ -188,15 +177,21 @@ export function useFileDiff(
   const client = useApiClient()
 
   return useQuery({
-    queryKey: GIT_ENHANCED_KEYS.diff(projectId!, filePath!, options),
+    queryKey: GIT_KEYS.diff(projectId!, filePath!, options),
     queryFn: async () => {
       if (!projectId || !filePath) throw new Error('Project ID and file path are required')
       if (!client) throw new Error('API client not initialized')
       const response = await client.git.getFileDiff(projectId, filePath, options)
-      if (!response.success || !response.data) {
-        throw new Error(response.message || 'Failed to fetch file diff')
+      // Handle both wrapped and unwrapped responses
+      if (response && typeof response === 'object' && 'success' in response && !(response as any).success) {
+        throw new Error((response as any).error?.message || (response as any).message || 'Failed to fetch file diff')
       }
-      return response.data
+      const diffData = response?.data || response
+      // Ensure diff property is available for backward compatibility
+      if (diffData && typeof diffData === 'object' && 'content' in diffData && !('diff' in diffData)) {
+        (diffData as any).diff = diffData.content
+      }
+      return diffData
     },
     enabled: !!client && enabled && !!projectId && !!filePath,
     staleTime: 30000 // 30s stale time preserved
@@ -585,7 +580,7 @@ export function useCreateBranch(projectId: number | undefined) {
     mutationFn: async ({ name, startPoint }: { name: string; startPoint?: string }) => {
       if (!projectId) throw new Error('Project ID is required')
       if (!client) throw new Error('API client not initialized')
-      return client.git.createBranch(projectId, name, startPoint)
+      return client.git.createBranch(projectId, { name, startPoint })
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: GIT_ENHANCED_KEYS.branches(projectId!) })
@@ -942,33 +937,26 @@ export function useRemoveGitWorktree(projectId: number | undefined) {
 }
 
 // ============================================================================
-// Factory-Based Invalidation Utilities
+// Invalidation Utilities
 // ============================================================================
 
 export function useInvalidateGit() {
-  return gitHooks.useInvalidate()
+  const queryClient = useQueryClient()
+  
+  return {
+    invalidateAll: () => queryClient.invalidateQueries({ queryKey: GIT_KEYS.all }),
+    invalidateProject: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.project(projectId) }),
+    invalidateStatus: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.status(projectId) }),
+    invalidateBranches: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.branches(projectId) }),
+    invalidateWorktrees: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.worktrees(projectId) })
+  }
 }
 
 // ============================================================================
 // Type Exports
 // ============================================================================
 
-export type {
-  GitStatusResult,
-  GitBranch,
-  GitLogEntry,
-  GitRemote,
-  GitTag,
-  GitStash,
-  GitLogEnhancedRequest,
-  GitLogEnhancedResponse,
-  GitBranchListEnhancedResponse,
-  GitCommitDetailResponse
-}
-
-// Export query keys for external use
-export { GIT_KEYS }
+// Types are exported inline where defined
 
 // Alias for backward compatibility
 export const GIT_ENHANCED_KEYS = GIT_KEYS
-export { GIT_ENHANCED_KEYS as GIT_KEYS }

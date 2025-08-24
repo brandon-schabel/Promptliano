@@ -94,8 +94,23 @@ export {
   useProjectFiles,
   useProjectSync,
   useTicketTasks,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+  useAutoGenerateTasks,
   useCompleteTicket,
   useChatMessages,
+  
+  // Queue hooks
+  useQueueStats,
+  useQueueItems,
+  
+  // Convenience aliases (defined at bottom of file to avoid conflicts)
+  // useGetTicket,
+  // useGetTasks,
+  // useGetQueue,
+  // useGetProject,
+  useInvalidateTicketsEnhanced,
   
   // Utility hooks
   useBatchOperations,
@@ -262,7 +277,14 @@ export {
   useInvalidateMCP,
   
   // Query Keys & Types
-  MCP_KEYS
+  MCP_KEYS,
+  
+  // Type exports
+  type MCPExecutionQuery,
+  type MCPToolExecution,
+  type MCPAnalyticsOverview,
+  type GlobalMCPConfig,
+  type GlobalMCPStatus
 } from './generated/mcp-hooks'
 
 // Remove duplicate exports - these are already exported from generated/index above
@@ -294,6 +316,79 @@ import type {
  * These extend beyond basic CRUD and provide specialized functionality
  */
 
+// Alias for backward compatibility
+export const useSyncProject = useProjectSync
+
+export function useSyncProjectWithProgress() {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+
+  return {
+    syncWithProgress: async (
+      projectId: number,
+      onProgress?: (event: any) => void,
+      abortSignal?: AbortSignal
+    ) => {
+      if (!client) throw new Error('API client not initialized')
+
+      try {
+        // Start SSE sync with progress tracking
+        const eventSource = new EventSource(
+          `${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/sync/stream`,
+          { withCredentials: true }
+        )
+
+        return new Promise((resolve, reject) => {
+          // Handle abort signal
+          if (abortSignal) {
+            abortSignal.addEventListener('abort', () => {
+              eventSource.close()
+              reject(new Error('Sync cancelled'))
+            })
+          }
+
+          eventSource.onmessage = (event) => {
+            try {
+              const progressEvent = JSON.parse(event.data)
+              onProgress?.(progressEvent)
+
+              // Check if sync is complete
+              if (progressEvent.type === 'complete') {
+                eventSource.close()
+                
+                // Invalidate queries on completion
+                queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(projectId) })
+                queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.detail(projectId) })
+                
+                resolve(progressEvent.data)
+              } else if (progressEvent.type === 'error') {
+                eventSource.close()
+                reject(new Error(progressEvent.message || 'Sync failed'))
+              }
+            } catch (parseError) {
+              eventSource.close()
+              reject(new Error('Failed to parse sync progress'))
+            }
+          }
+
+          eventSource.onerror = (error) => {
+            eventSource.close()
+            reject(new Error('Sync connection failed'))
+          }
+
+          // Timeout after 5 minutes
+          setTimeout(() => {
+            eventSource.close()
+            reject(new Error('Sync timeout'))
+          }, 5 * 60 * 1000)
+        })
+      } catch (error) {
+        throw new Error(`Failed to start sync: ${error}`)
+      }
+    }
+  }
+}
+
 export function useGetProjectSummary(projectId: number) {
   const client = useApiClient()
 
@@ -301,7 +396,7 @@ export function useGetProjectSummary(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.summary(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectSummary(projectId).then(r => r.data)
+      return client.projects.getProjectSummary(projectId).then(r => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 10 * 60 * 1000 // 10 minutes for summary
@@ -315,7 +410,7 @@ export function useGetProjectStatistics(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.statistics(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectStatistics(projectId).then(r => r.data)
+      return client.projects.getProjectStatistics(projectId).then(r => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000 // 5 minutes cache for statistics
@@ -330,7 +425,7 @@ export function useGetProjectFilesWithoutContent(projectId: number) {
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
       // Use getProjectFiles method instead as getProjectFilesWithoutContent may not exist
-      return client.projects.getProjectFiles(projectId).then(r => r.data)
+      return client.projects.getProjectFiles(projectId).then(r => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000, // 5 minutes for file metadata
@@ -390,7 +485,7 @@ export function useSuggestFiles() {
     mutationFn: async ({ projectId, prompt, limit = 10 }: { projectId: number; prompt: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.projects.suggestFiles(projectId, { prompt, limit })
-      return response.data
+      return response?.data || response
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to suggest files')
@@ -414,7 +509,7 @@ export function useSummarizeProjectFiles() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.projects.summarizeFiles(projectId, { fileIds, force })
-      return response.data
+      return response?.data || response
     },
     onSuccess: (data, variables) => {
       // Invalidate project files to refresh summaries
@@ -435,7 +530,7 @@ export function useRemoveSummariesFromFiles() {
     mutationFn: async ({ projectId, fileIds }: { projectId: number; fileIds: number[] }) => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.projects.removeSummariesFromFiles(projectId, { fileIds })
-      return response.data
+      return response?.data || response
     },
     onSuccess: (data, variables) => {
       // Invalidate project files to refresh summaries
@@ -459,7 +554,7 @@ export function useGetProjectPrompts(projectId: number) {
     queryKey: PROMPT_ENHANCED_KEYS.projectPrompts(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.getProjectPrompts(projectId).then(r => r.data)
+      return client.prompts.getProjectPrompts(projectId).then(r => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000
@@ -537,7 +632,7 @@ export function useSuggestPrompts() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.prompts.suggestPrompts(projectId, { userInput, limit })
-      return response.data.prompts
+      return response?.data?.prompts || response?.prompts || response
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to suggest prompts')
@@ -821,15 +916,18 @@ import {
 } from './generated'
 
 // Provide aliases for existing hook names to ensure backward compatibility
+// Moved convenience aliases here to avoid conflicts with generated exports
 export const useGetProjects = useProjects
 export const useGetProject = useProject
+export const useGetTicket = useTicket
+export const useGetTasks = useTicketTasks
+export const useGetQueue = useQueue
 // Note: useGetChats and useGetChat are already exported from generated hooks (line 46-47)
 export const useGetAllPrompts = usePrompts
 export const useGetPrompt = usePrompt
 export const useGetAllAgents = useAgents
 export const useGetAgent = useAgent
 export const useGetQueues = useQueues
-export const useGetQueue = useQueue
 export const useGetKeys = useKeys
 export const useGetKey = useKey
 

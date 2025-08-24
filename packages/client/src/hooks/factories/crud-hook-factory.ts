@@ -211,11 +211,9 @@ export function createCrudHooks<
       enabled: !!client && (options?.enabled !== false),
       staleTime,
       gcTime: cacheTime,
-      // Apply polling configuration
-      ...(pollingConfig?.enabled && {
-        refetchInterval: typeof pollingConfig.interval === 'function'
-          ? pollingConfig.interval as ((data: any) => number)
-          : pollingConfig.interval,
+      // Apply polling configuration - simplified for type safety
+      ...(pollingConfig?.enabled && typeof pollingConfig.interval === 'number' && {
+        refetchInterval: pollingConfig.interval,
         refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
       }),
       ...options
@@ -237,11 +235,9 @@ export function createCrudHooks<
       enabled: !!client && !!id && id > 0 && (options?.enabled !== false),
       staleTime,
       gcTime: cacheTime,
-      // Apply polling configuration
-      ...(pollingConfig?.enabled && {
-        refetchInterval: typeof pollingConfig.interval === 'function'
-          ? pollingConfig.interval as ((data: any) => number)
-          : pollingConfig.interval,
+      // Apply polling configuration - simplified for type safety
+      ...(pollingConfig?.enabled && typeof pollingConfig.interval === 'number' && {
+        refetchInterval: pollingConfig.interval,
         refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
       }),
       ...options
@@ -296,7 +292,7 @@ export function createCrudHooks<
         return apiClient.create(client, data)
       },
       onMutate: optimistic.enabled
-        ? async (data) => {
+        ? async (data: TCreate) => {
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: queryKeys.lists() })
 
@@ -306,7 +302,7 @@ export function createCrudHooks<
             // Create optimistic entity
             const optimisticEntity = optimistic.createOptimisticEntity
               ? optimistic.createOptimisticEntity(data)
-              : ({ ...data, id: -Date.now() } as TEntity)
+              : ({ ...data, id: -Date.now() } as unknown as TEntity)
 
             // Update all list queries optimistically
             queryClient.setQueriesData(
@@ -320,10 +316,10 @@ export function createCrudHooks<
             return { previousLists, optimisticEntity }
           }
         : undefined,
-      onError: (error, _, context) => {
+      onError: (error, variables, context: any) => {
         // Rollback optimistic updates on error
         if (context?.previousLists) {
-          context.previousLists.forEach(([queryKey, data]) => {
+          context.previousLists.forEach(([queryKey, data]: [readonly unknown[], unknown]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }
@@ -333,7 +329,7 @@ export function createCrudHooks<
           : resolvedMessages.createError
         toast.error(message)
       },
-      onSuccess: (entity, _, context) => {
+      onSuccess: (entity, variables, context: any) => {
         // Replace optimistic entity with real one
         if (context?.optimisticEntity) {
           queryClient.setQueriesData(
@@ -368,12 +364,12 @@ export function createCrudHooks<
     const client = useApiClient()
 
     return useMutation({
-      mutationFn: ({ id, data }) => {
+      mutationFn: ({ id, data }: { id: number; data: TUpdate }) => {
         if (!client) throw new Error('API client not initialized')
         return apiClient.update(client, id, data)
       },
       onMutate: optimistic.enabled
-        ? async ({ id, data }) => {
+        ? async ({ id, data }: { id: number; data: TUpdate }) => {
             // Cancel queries for this entity
             await queryClient.cancelQueries({ queryKey: queryKeys.detail(id) })
 
@@ -402,13 +398,14 @@ export function createCrudHooks<
             return { previousEntity, previousLists }
           }
         : undefined,
-      onError: (error, { id }, context) => {
+      onError: (error, variables: any, context: any) => {
+        const { id } = variables
         // Rollback
         if (context?.previousEntity) {
           queryClient.setQueryData(queryKeys.detail(id), context.previousEntity)
         }
         if (context?.previousLists) {
-          context.previousLists.forEach(([queryKey, data]) => {
+          context.previousLists.forEach(([queryKey, data]: [readonly unknown[], unknown]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }
@@ -418,7 +415,8 @@ export function createCrudHooks<
           : resolvedMessages.updateError
         toast.error(message)
       },
-      onSuccess: (entity, { id }) => {
+      onSuccess: (entity, variables: any) => {
+        const { id } = variables
         queryClient.setQueryData(queryKeys.detail(id), entity)
 
         const message = typeof resolvedMessages.updateSuccess === 'function'
@@ -426,7 +424,8 @@ export function createCrudHooks<
           : resolvedMessages.updateSuccess
         toast.success(message)
       },
-      onSettled: (_, __, { id }) => {
+      onSettled: (data, error, variables: any) => {
+        const { id } = variables
         invalidateQueries(queryClient, invalidation.onUpdate, queryKeys, id)
       },
       ...options
@@ -443,7 +442,7 @@ export function createCrudHooks<
         return apiClient.delete(client, id)
       },
       onMutate: optimistic.enabled
-        ? async (id) => {
+        ? async (id: number) => {
             await queryClient.cancelQueries({ queryKey: queryKeys.lists() })
 
             const previousLists = queryClient.getQueriesData({ queryKey: queryKeys.lists() })
@@ -472,10 +471,10 @@ export function createCrudHooks<
             return { previousLists, deletedId: id }
           }
         : undefined,
-      onError: (error, id, context) => {
+      onError: (error, variables: any, context: any) => {
         // Rollback
         if (context?.previousLists) {
-          context.previousLists.forEach(([queryKey, data]) => {
+          context.previousLists.forEach(([queryKey, data]: [readonly unknown[], unknown]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }
@@ -485,7 +484,8 @@ export function createCrudHooks<
           : resolvedMessages.deleteError
         toast.error(message)
       },
-      onSuccess: (_, id) => {
+      onSuccess: (data, variables: any) => {
+        const id = variables
         queryClient.removeQueries({ queryKey: queryKeys.detail(id) })
         toast.success(resolvedMessages.deleteSuccess)
       },
@@ -700,11 +700,9 @@ export function createCrudHooks<
         enabled: !!client,
         staleTime: options?.staleTime ?? staleTime,
         gcTime: cacheTime,
-        // Apply polling configuration
-        ...(operationPolling?.enabled && {
-          refetchInterval: typeof operationPolling.interval === 'function'
-            ? (data) => operationPolling.interval(data)
-            : operationPolling.interval,
+        // Apply polling configuration - simplified for type safety
+        ...(operationPolling?.enabled && typeof operationPolling.interval === 'number' && {
+          refetchInterval: operationPolling.interval,
           refetchIntervalInBackground: operationPolling.refetchInBackground ?? false
         })
       })

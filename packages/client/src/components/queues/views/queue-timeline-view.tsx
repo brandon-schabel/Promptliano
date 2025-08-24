@@ -165,6 +165,7 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
 
   const statusConfig = {
     queued: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    pending: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
     in_progress: { icon: Play, color: 'text-green-600', bgColor: 'bg-green-100' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },

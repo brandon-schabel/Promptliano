@@ -109,7 +109,7 @@ export function MarkdownImportDialog({ open, onOpenChange, projectId, onSuccess 
 
         try {
           const fileContent = await fileStatus.file.text()
-          const validation = await validateMutation.mutateAsync(fileContent)
+          const validation = await validateMutation.mutateAsync(fileStatus.file)
 
           // Update with validation results
           setFiles((prev) =>

@@ -155,7 +155,7 @@ Description: ${hook.description || 'N/A'}`
               hookType: (data.hookType || 'pre') as 'pre' | 'post' | 'error'
             } as any // Work around service type mismatch
 
-            const createdHook = await claudeHookService.create(validProjectId, hookData)
+            const createdHook = await claudeHookService.create({ ...hookData, projectId: validProjectId })
             return {
               content: [
                 {

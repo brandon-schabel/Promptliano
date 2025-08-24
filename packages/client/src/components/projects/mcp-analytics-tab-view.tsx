@@ -187,7 +187,7 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
             {/* Universal MCP Installation Button */}
             {!isGlobalLoading && (
               <div className='flex items-center gap-1'>
-                {globalStatus && !globalStatus.installed ? (
+                {globalStatus && typeof globalStatus === 'object' && 'configExists' in globalStatus && !globalStatus.configExists ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button size='sm' variant='outline' onClick={handleInstallUniversalMCP} disabled={isInstalling}>
@@ -344,7 +344,7 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                         <p className='text-sm mt-1'>Try selecting a different time range</p>
                       </div>
                     ) : (
-                      topToolsData.map((tool: MCPToolSummary | ToolStatisticsData) => {
+                      (topToolsData as (MCPToolSummary | ToolStatisticsData)[]).map((tool) => {
                         const isToolSummary = isMCPToolSummary(tool)
                         const isStatistics = isToolStatisticsData(tool)
                         
@@ -450,7 +450,7 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                         <p>No errors in the selected period</p>
                       </div>
                     ) : (
-                      overviewData.recentErrors.map((error: MCPToolExecution) => (
+                      (overviewData.recentErrors as MCPToolExecution[]).map((error) => (
                         <div
                           key={error.id}
                           className='p-3 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/20'

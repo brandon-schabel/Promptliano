@@ -42,10 +42,11 @@ export function GitDiffDialog({
   const { data: diffData, isLoading, error } = useFileDiff(projectId, filePath, { staged: viewMode === 'staged' }, open)
 
   const handleCopyDiff = async () => {
-    if (!diffData?.diff) return
+    const diff = (diffData as any)?.diff || diffData?.content || diffData
+    if (!diff) return
 
     try {
-      await navigator.clipboard.writeText(diffData.diff)
+      await navigator.clipboard.writeText(typeof diff === 'string' ? diff : JSON.stringify(diff))
       toast.success('Diff copied to clipboard')
     } catch (error) {
       toast.error('Failed to copy diff')
@@ -93,7 +94,7 @@ export function GitDiffDialog({
           <DialogTitle className='flex items-center justify-between'>
             <span className='text-sm truncate'>{filePath}</span>
             <div className='flex items-center gap-2'>
-              <Button variant='ghost' size='sm' onClick={handleCopyDiff} disabled={!diffData?.diff}>
+              <Button variant='ghost' size='sm' onClick={handleCopyDiff} disabled={!((diffData as any)?.diff || diffData?.content || diffData)}>
                 <Copy className='h-4 w-4' />
               </Button>
               <Button variant='ghost' size='sm' onClick={() => onOpenChange(false)}>
@@ -127,12 +128,13 @@ export function GitDiffDialog({
 
             {error && <div className='text-red-500 p-4'>Failed to load diff: {error.message}</div>}
 
-            {diffData?.diff && !isLoading && !error && (
+            {((diffData as any)?.diff || diffData?.content || diffData) && !isLoading && !error && (
               <>
                 {diffViewType === 'monaco' ? (
                   <div className='h-[400px]'>
                     {(() => {
-                      const { original, modified } = parseDiff(diffData.diff)
+                      const diff = (diffData as any)?.diff || diffData?.content || diffData
+                      const { original, modified } = parseDiff(diff)
                       return (
                         <LazyMonacoDiffViewer
                           original={original}
@@ -145,13 +147,13 @@ export function GitDiffDialog({
                   </div>
                 ) : (
                   <div className='max-h-[400px] overflow-auto'>
-                    <pre className='text-xs p-2 bg-muted rounded font-mono'>{diffData.diff}</pre>
+                    <pre className='text-xs p-2 bg-muted rounded font-mono'>{(diffData as any)?.diff || diffData?.content || diffData}</pre>
                   </div>
                 )}
               </>
             )}
 
-            {diffData?.diff === '' && !isLoading && !error && (
+            {!((diffData as any)?.diff || diffData?.content || diffData) && !isLoading && !error && (
               <div className='text-muted-foreground p-4 text-center'>No changes in {viewMode} area</div>
             )}
           </div>

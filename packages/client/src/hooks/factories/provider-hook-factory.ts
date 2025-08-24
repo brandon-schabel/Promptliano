@@ -9,7 +9,7 @@
  * - Advanced type guards with validation
  */
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { APIProviders } from '@promptliano/database'
 import { 
@@ -117,7 +117,7 @@ export function createProviderHookFactory<T extends APIProviders>(
         isLoading: query.isLoading,
         error: query.error,
         refetch: query.refetch,
-        validateModel: providerInstance.validateModel
+        validateModel: (model: string): model is ModelNamePattern<T> => providerInstance.validateModel(model)
       }
     },
     
@@ -139,7 +139,7 @@ export function createProviderHookFactory<T extends APIProviders>(
             throw new TypeError(`Invalid model "${model}" for provider "${provider}"`)
           }
         },
-        validateModel: providerInstance.validateModel
+        validateModel: (model: string): model is ModelNamePattern<T> => providerInstance.validateModel(model)
       }), [models, selectedModel])
     },
     
@@ -262,7 +262,7 @@ export function useProviderManager<T extends readonly APIProviders[]>(
     for (const provider of providers) {
       // This would need actual config loading logic
       const config = {} as ProviderConfig<typeof provider>
-      factories[provider] = createProviderHookFactory(provider, config)
+      factories[provider as T[number]] = createProviderHookFactory(provider as T[number], config)
     }
     
     return factories
@@ -292,7 +292,7 @@ export function useModelComparison<T extends APIProviders[]>(
     }> = []
     
     for (const provider of providers) {
-      const factory = providerFactories[provider]
+      const factory = providerFactories[provider as T[number]]
       const { capabilities } = factory.useProviderConfig()
       const { models } = factory.useProviderModels()
       
@@ -371,6 +371,3 @@ class TypeSafeProviderRegistry {
 }
 
 export const providerRegistry = new TypeSafeProviderRegistry()
-
-// Missing import for useState
-import { useState } from 'react'

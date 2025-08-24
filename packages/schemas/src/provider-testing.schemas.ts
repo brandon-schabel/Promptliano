@@ -19,6 +19,7 @@ export const ProviderHealthStatusEnum = z.enum([
   'healthy',
   'degraded',
   'down',
+  'unhealthy', // Add unhealthy as alias for down
   'unknown'
 ])
 
@@ -26,6 +27,8 @@ export const ProviderHealthStatusEnum = z.enum([
 export const ProviderHealthStatusSchema = z.object({
   status: ProviderHealthStatusEnum,
   latency: z.number().optional(),
+  averageResponseTime: z.number().optional(),
+  modelCount: z.number().optional(),
   lastChecked: z.number(),
   error: z.string().optional()
 })
@@ -34,6 +37,7 @@ export const ProviderHealthStatusSchema = z.object({
 export const ProviderModelSchema = z.object({
   id: z.string(),
   name: z.string(),
+  description: z.string().optional(),
   provider: z.string(),
   contextLength: z.number().optional(),
   maxTokens: z.number().optional(),
@@ -55,7 +59,8 @@ export const TestProviderResponseSchema = z.object({
   model: z.string().optional(),
   latency: z.number(),
   error: z.string().optional(),
-  response: z.string().optional()
+  response: z.string().optional(),
+  models: z.array(ProviderModelSchema).optional()
 })
 
 // Batch test provider request schema

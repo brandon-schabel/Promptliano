@@ -162,14 +162,14 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
     switch (ticketSort) {
       case 'created_asc':
         return arr.sort((a, b) => {
-          const aTime = a.ticket.created
-          const bTime = b.ticket.created
+          const aTime = a.ticket.createdAt
+          const bTime = b.ticket.createdAt
           return aTime - bTime
         })
       case 'created_desc':
         return arr.sort((a, b) => {
-          const aTime = a.ticket.created
-          const bTime = b.ticket.created
+          const aTime = a.ticket.createdAt
+          const bTime = b.ticket.createdAt
           return bTime - aTime
         })
       case 'status':

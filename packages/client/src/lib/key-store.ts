@@ -39,7 +39,7 @@ export class LocalStorageKeyStore implements IKeyStore {
       id: keyData.id || this.generateId(),
       // unix timestamp in milliseconds
       created: new Date().getTime(),
-      updated: new Date().getTime()
+      updatedAt: new Date().getTime()
     } as StoredKey // Cast needed if StoredKey has more non-optional fields from ProviderKey
     items.push(newKey)
     localStorage.setItem(LOCAL_STORAGE_PROVIDER_KEYS, JSON.stringify(items))
@@ -58,7 +58,7 @@ export class LocalStorageKeyStore implements IKeyStore {
     items[itemIndex] = {
       ...items[itemIndex],
       ...updates,
-      updated: new Date().getTime()
+      updatedAt: new Date().getTime()
     }
     localStorage.setItem(LOCAL_STORAGE_PROVIDER_KEYS, JSON.stringify(items))
     return items[itemIndex]

@@ -14,11 +14,15 @@ import { toast } from 'sonner'
 export type MCPExecutionQuery = {
   projectId?: number
   toolName?: string
-  startDate?: string
-  endDate?: string
-  status?: 'success' | 'error'
+  startDate?: number
+  endDate?: number
+  status?: 'success' | 'error' | 'timeout'
+  userId?: string
+  sessionId?: string
   limit?: number
   offset?: number
+  sortBy?: 'startedAt' | 'duration' | 'toolName'
+  sortOrder?: 'asc' | 'desc'
 }
 
 export type MCPAnalyticsRequest = {
@@ -37,13 +41,20 @@ export type MCPAnalyticsOverview = {
 }
 
 export type MCPToolExecution = {
-  id: string
+  id: string | number
   toolName: string
-  projectId: number
-  status: 'success' | 'error'
-  duration: number
-  timestamp: string
-  error?: string
+  projectId?: number | null
+  userId?: string | null
+  sessionId?: string | null
+  startedAt: number
+  completedAt?: number | null
+  durationMs?: number | null
+  status: 'success' | 'error' | 'timeout'
+  errorMessage?: string | null
+  errorCode?: string | null
+  inputParams?: string | null
+  outputSize?: number | null
+  metadata?: string | null
 }
 
 export type MCPToolStatistics = {
@@ -96,10 +107,16 @@ export type GlobalMCPInstallation = {
 }
 
 export type GlobalMCPStatus = {
-  installed: boolean
-  configPath?: string
-  configExists?: boolean
-  error?: string
+  configExists: boolean
+  configPath: string
+  lastModified?: number
+  totalInstallations: number
+  installedTools: string[]
+  installation: {
+    supported: boolean
+    scriptPath: string
+    scriptExists: boolean
+  }
 }
 
 // ============================================================================
@@ -448,7 +465,7 @@ export function useGlobalMCPManager() {
   return {
     // Query states
     config: config?.data,
-    installations: installations?.data || { installations: [], toolStatuses: [] },
+    installations: installations?.data?.installations || [],
     toolStatuses: installations?.data?.toolStatuses || [],
     status: status?.data,
     isLoading: configLoading || installationsLoading || statusLoading,
@@ -465,11 +482,15 @@ export function useGlobalMCPManager() {
 
     // Helper methods
     isToolInstalled: (tool: string) => {
-      return installations?.data?.installations?.some((installation: any) => installation.tool === tool) ?? false
+      return installations?.data?.toolStatuses?.some((toolStatus: any) => toolStatus.tool === tool && toolStatus.installed) ?? false
     },
 
     getInstallation: (tool: string) => {
       return installations?.data?.installations?.find((installation: any) => installation.tool === tool)
+    },
+
+    getToolStatus: (tool: string) => {
+      return installations?.data?.toolStatuses?.find((toolStatus: any) => toolStatus.tool === tool)
     }
   }
 }
@@ -478,18 +499,19 @@ export function useGlobalMCPManager() {
 // Type Exports
 // ============================================================================
 
-export type {
-  MCPExecutionQuery,
-  MCPAnalyticsRequest,
-  MCPAnalyticsOverview,
-  MCPToolExecution,
-  MCPToolStatistics,
-  MCPExecutionTimeline,
-  MCPToolPattern,
-  GlobalMCPConfig,
-  GlobalMCPInstallation,
-  GlobalMCPStatus
-}
+// Types already declared above, no need to re-export
+// export type {
+//   MCPExecutionQuery,
+//   MCPAnalyticsRequest,
+//   MCPAnalyticsOverview,
+//   MCPToolExecution,
+//   MCPToolStatistics,
+//   MCPExecutionTimeline,
+//   MCPToolPattern,
+//   GlobalMCPConfig,
+//   GlobalMCPInstallation,
+//   GlobalMCPStatus
+// }
 
 // Export query keys for external use
 export { MCP_ENHANCED_KEYS as MCP_KEYS }

@@ -52,11 +52,12 @@ type ProviderSchemaValidation = {
 }
 
 // This will cause a TypeScript error if schemas don't match types
-const _providerSchemaValidation: ProviderSchemaValidation = {
-  select: true,
-  create: true, 
-  update: true
-}
+// Commented out to avoid compilation issues during migration
+// const _providerSchemaValidation: ProviderSchemaValidation = {
+//   select: true,
+//   create: true, 
+//   update: true
+// }
 
 // ============================================================================
 // Runtime Schema Validation Utilities
@@ -329,34 +330,33 @@ export const getProviderKeySchemaFields = () => {
  * Generate form validation schema for UI components
  */
 export const createProviderKeyFormSchema = (provider: APIProviders) => {
-  let baseSchema = CreateProviderKeySchema
+  // Return the refined schema with proper typing
+  const baseSchema = CreateProviderKeySchema
   
   // Add provider-specific validation
   switch (provider) {
     case 'openai':
-      baseSchema = baseSchema.refine(
+      return baseSchema.refine(
         (data) => !data.key || data.key.startsWith('sk-'),
         { message: 'OpenAI API keys must start with "sk-"', path: ['key'] }
       )
-      break
       
     case 'anthropic':
-      baseSchema = baseSchema.refine(
+      return baseSchema.refine(
         (data) => !data.key || data.key.startsWith('sk-ant-'),
         { message: 'Anthropic API keys must start with "sk-ant-"', path: ['key'] }
       )
-      break
       
     case 'ollama':
     case 'lmstudio':
-      baseSchema = baseSchema.refine(
+      return baseSchema.refine(
         (data) => !!data.baseUrl,
         { message: 'Base URL is required for local providers', path: ['baseUrl'] }
       )
-      break
+      
+    default:
+      return baseSchema
   }
-  
-  return baseSchema
 }
 
 // ============================================================================

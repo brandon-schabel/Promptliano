@@ -69,9 +69,17 @@ export function FlowTabWithSidebar({
   }, [rawTickets])
 
   // Derive selected ticket from selectedTicketId and tickets data
-  const selectedTicket = React.useMemo(() => {
+  const selectedTicket: import('@/hooks/generated/types').TicketWithTasksNested | null = React.useMemo(() => {
     if (!selectedTicketId || !tickets) return null
-    return tickets.find(t => t.id === selectedTicketId) || null
+    const ticket = tickets.find(t => t.id === selectedTicketId)
+    if (!ticket) return null
+    
+    // Convert the flat TicketWithTasks to the nested structure expected by TicketDetailView
+    const { tasks, ...ticketData } = ticket
+    return {
+      ticket: ticketData as any, // Cast to the base Ticket type
+      tasks: tasks || []
+    }
   }, [selectedTicketId, tickets])
 
   // Filter tickets based on status and queue
@@ -115,7 +123,9 @@ export function FlowTabWithSidebar({
 
   // Handle ticket selection
   const handleSelectTicket = (ticket: TicketWithTasks) => {
-    onTicketSelect(ticket.id)
+    // Handle both flat and nested ticket structures
+    const ticketId = (ticket as any)?.ticket?.id || (ticket as any)?.id
+    onTicketSelect(ticketId)
   }
 
   const renderContent = () => {
@@ -191,7 +201,7 @@ export function FlowTabWithSidebar({
                   ) : (
                     <SimpleTicketList
                       tickets={filteredTickets}
-                      selectedTicket={selectedTicket}
+                      selectedTicket={selectedTicket as any}
                       onSelectTicket={handleSelectTicket}
                       loading={isLoading}
                       projectId={projectId}

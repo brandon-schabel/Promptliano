@@ -1,4 +1,4 @@
-import { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 export type ModelProvider = {
   id: APIProviders

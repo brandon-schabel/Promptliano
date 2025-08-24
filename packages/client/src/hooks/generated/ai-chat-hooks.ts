@@ -146,7 +146,7 @@ export function useGetMessages(chatId: number) {
       if (!client) throw new Error('API client not initialized')
       // Use the correct method name from PromptlianoClient
       if (client.chats?.getChatMessages) {
-        return client.chats.getChatMessages(chatId).then((r: any) => r.data || r)
+        return client.chats.getChatMessages(chatId).then((r: any) => r?.data || r)
       }
       return Promise.resolve([]) // Fallback for missing method
     },

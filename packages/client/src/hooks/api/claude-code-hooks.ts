@@ -880,11 +880,17 @@ export const useCopyToClipboard = utilityHooks.useCopyToClipboard
 export const useFormatClaudeMessage = utilityHooks.useFormatClaudeMessage
 export const useSessionDuration = utilityHooks.useSessionDuration
 
-// Export factories for advanced usage
-export {
-  createClaudeCodeSessionHooks,
-  createClaudeCodeMessageHooks,
-  createClaudeCodeProjectHooks,
-  createClaudeCodeAdvancedHooks,
-  createClaudeCodeUtilityHooks
+// Export factories for advanced usage (removing duplicate exports)
+// Note: Factories are already declared above, no need to redeclare
+
+// Export types
+export type {
+  ClaudeSession,
+  ClaudeSessionMetadata,
+  ClaudeMessage,
+  ClaudeProjectData,
+  ClaudeSessionQuery,
+  ClaudeMessageQuery,
+  ClaudeSessionCursor,
+  ClaudeSessionsPaginatedResponse
 }

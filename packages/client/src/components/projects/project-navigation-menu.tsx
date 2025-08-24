@@ -100,7 +100,7 @@ export function ProjectNavigationMenu({
     }
   })
 
-  const hasProjectMcpConfig = !!mcpConfigData?.config
+  const hasProjectMcpConfig = !!mcpConfigData
 
   // Git pull mutation
   const pullMutation = useMutation({

@@ -415,7 +415,6 @@ export type {
   ProviderConfig,
   ProviderCapabilities,
   ProviderType,
-  ProviderOperations,
   ModelSelectionConstraint,
   InferProviderFromConfig
 }

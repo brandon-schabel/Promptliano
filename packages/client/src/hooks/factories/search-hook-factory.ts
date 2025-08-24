@@ -101,7 +101,7 @@ export function createSearchHooks<
       enabled: debouncedQuery.length >= minQueryLength || debouncedQuery.length === 0,
       staleTime,
       gcTime: cacheTime,
-      keepPreviousData: true, // Keep previous results while loading new ones
+      placeholderData: (prev) => prev, // Keep previous results while loading new ones
       ...options
     })
 
@@ -325,16 +325,16 @@ export function createSearchHooks<
       enabled: debouncedQuery.length >= minQueryLength || debouncedQuery.length === 0,
       staleTime,
       gcTime: cacheTime,
-      keepPreviousData: true
+      placeholderData: (prev) => prev
     })
 
     const facetsResult = useFacets(state.filters, {
-      enabled: enableFacets && Object.keys(state.filters).length > 0
-    })
+      enabled: enableFacets && Object.keys(state.filters as object).length > 0
+    } as any)
 
     const suggestionsResult = useSuggestions(state.query, {
       enabled: enableSuggestions && state.query.length >= minQueryLength
-    })
+    } as any)
 
     const updateState = useCallback((updates: Partial<typeof state>) => {
       setState(prev => ({

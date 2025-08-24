@@ -33,15 +33,15 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
 
   const [searchTerm, setSearchTerm] = useState('')
 
-  const allPrompts = allPromptsResponse?.data ?? []
-  const projectPrompts = projectPromptData?.data ?? []
+  const allPrompts = allPromptsResponse ?? []
+  const projectPrompts = projectPromptData ?? []
 
   // Filter & sort
   const filteredPrompts = useMemo(() => {
     const lower = searchTerm.toLowerCase()
     return allPrompts
-      .filter((p) => p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((p: any) => (p.title || p.name)?.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower))
+      .sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name))
   }, [allPrompts, searchTerm])
 
   // Check if a prompt is in the project
@@ -101,7 +101,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
               return (
                 <div key={prompt.id} className='flex items-center justify-between gap-2 p-1 hover:bg-muted/50 rounded'>
                   <div className='flex flex-col'>
-                    <span className='font-medium text-sm'>{prompt.name}</span>
+                    <span className='font-medium text-sm'>{prompt.title}</span>
                     <span className='text-xs text-muted-foreground line-clamp-2'>
                       {prompt.content.slice(0, 100)}...
                     </span>

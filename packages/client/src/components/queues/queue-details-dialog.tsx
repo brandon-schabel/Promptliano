@@ -70,6 +70,7 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
 
   const statusConfig = {
     queued: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted' },
+    pending: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted' },
     in_progress: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
@@ -96,7 +97,7 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
             <div className='flex items-center gap-1'>
               {item.itemType === 'ticket' && <ListTodo className='h-3 w-3' />}
               {item.itemType === 'task' && <FileText className='h-3 w-3' />}
-              {item.itemType === 'chat' && <MessageCircle className='h-3 w-3' />}
+              {(item.itemType as string) === 'chat' && <MessageCircle className='h-3 w-3' />}
               <span>{item.itemType} #{item.itemId}</span>
               {ticket && <span className='text-muted-foreground'>• {ticket.title}</span>}
             </div>
@@ -188,8 +189,10 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
           id: ticket.id,
           queueId: queue.id,
           ticketId: ticket.id,
+          itemType: 'ticket' as const,
+          itemId: ticket.id,
           priority: index,
-          status: 'pending',
+          status: 'pending' as const,
           createdAt: ticket.createdAt
         },
         ticket
@@ -203,8 +206,10 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
           id: task.id,
           queueId: queue.id,
           taskId: task.id,
+          itemType: 'task' as const,
+          itemId: task.id,
           priority: (queueData.tickets?.length || 0) + index,
-          status: 'pending',
+          status: 'pending' as const,
           createdAt: task.createdAt
         },
         task
@@ -274,11 +279,13 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
         <DialogContent className='max-w-4xl max-h-[80vh]'>
           <DialogHeader>
             <DialogTitle className='flex items-center gap-2'>
-              {queue.queue.name}
-              <Badge variant={queue.queue.status === 'active' ? 'default' : 'secondary'}>{queue.queue.status}</Badge>
+              {queue.name}
+              <Badge variant={queue.status === 'active' || queue.isActive ? 'default' : 'secondary'}>
+                {queue.status || (queue.isActive ? 'active' : 'paused')}
+              </Badge>
             </DialogTitle>
             <DialogDescription>
-              {queue.queue.description || 'Manage queue items and monitor processing progress'}
+              {queue.description || 'Manage queue items and monitor processing progress'}
             </DialogDescription>
           </DialogHeader>
 
@@ -286,18 +293,16 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
             <div className='flex items-center gap-4 text-sm text-muted-foreground'>
               <div className='flex items-center gap-1'>
                 <Hash className='h-3 w-3' />
-                <span>{queue.stats.totalItems} total items</span>
+                <span>{items.length} total items</span>
               </div>
               <div className='flex items-center gap-1'>
                 <Users className='h-3 w-3' />
-                <span>Max {queue.queue.maxParallelItems} parallel</span>
+                <span>Max {queue.maxParallelItems} parallel</span>
               </div>
-              {queue.stats.averageProcessingTime && (
-                <div className='flex items-center gap-1'>
-                  <Clock className='h-3 w-3' />
-                  <span>{Math.round(queue.stats.averageProcessingTime / 1000)}s avg</span>
-                </div>
-              )}
+              <div className='flex items-center gap-1'>
+                <Clock className='h-3 w-3' />
+                <span>Processing time: N/A</span>
+              </div>
             </div>
 
             {tabCounts.queued > 0 && (

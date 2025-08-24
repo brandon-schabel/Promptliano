@@ -168,7 +168,7 @@ const queueHooks = createCrudHooks<TaskQueue, CreateQueueBody, UpdateQueueBody, 
 /**
  * Provider Key Hooks - Complete CRUD + Validation
  */
-const keyHooks = createCrudHooks<ProviderKey, CreateProviderKeyBody, UpdateProviderKeyBody>({
+const keyHooks = createCrudHooks<DatabaseProviderKey, any, any>({
   ...KEY_CONFIG,
   messages: ENTITY_MESSAGES.key
 })
@@ -187,7 +187,7 @@ export function useProjectFiles(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.files(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.listProjectsByProjectIdFiles(projectId)
+      return client.listProjectsByProjectIdFiles(projectId).then(r => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 2 * 60 * 1000 // 2 minutes for files
@@ -224,7 +224,7 @@ export function useTicketTasks(ticketId: number) {
     queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.getTasks(ticketId).then(r => r.data)
+      return client.tickets.getTasks(ticketId).then(r => r?.data || r)
     },
     enabled: !!client && !!ticketId,
     staleTime: 1 * 60 * 1000 // 1 minute for tasks
@@ -238,7 +238,7 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: ({ ticketId, data }: { ticketId: number; data: CreateTaskBody }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.createTask(ticketId, data).then(r => r.data)
+      return client.tickets.createTask(ticketId, data).then(r => r?.data || r)
     },
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(task.ticketId) })
@@ -251,6 +251,104 @@ export function useCreateTask() {
   })
 }
 
+export function useUpdateTask() {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ ticketId, taskId, data }: { ticketId: number; taskId: number; data: UpdateTaskBody }) => {
+      if (!client) throw new Error('API client not initialized')
+      return client.tickets.updateTask(ticketId, taskId, data).then(r => r?.data || r)
+    },
+    onSuccess: (task) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(task.ticketId) })
+      invalidateWithRelationships(queryClient, 'tickets')
+      toast.success('Task updated successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update task')
+    }
+  })
+}
+
+export function useDeleteTask() {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ ticketId, taskId }: { ticketId: number; taskId: number }) => {
+      if (!client) throw new Error('API client not initialized')
+      return client.tickets.deleteTask(ticketId, taskId).then(r => r?.data || r)
+    },
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
+      invalidateWithRelationships(queryClient, 'tickets')
+      toast.success('Task deleted successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete task')
+    }
+  })
+}
+
+export function useAutoGenerateTasks() {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (ticketId: number) => {
+      if (!client) throw new Error('API client not initialized')
+      return client.tickets.autoGenerateTasks(ticketId).then(r => r?.data || r)
+    },
+    onSuccess: (tasks, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
+      invalidateWithRelationships(queryClient, 'tickets')
+      toast.success(`Generated ${tasks?.length || 0} tasks successfully`)
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to generate tasks')
+    }
+  })
+}
+
+// Aliases moved to api-hooks.ts to avoid conflicts
+// export function useGetTicket(ticketId: number) {
+//   return useTicket(ticketId)
+// }
+
+// export function useGetTasks(ticketId: number) {
+//   return useTicketTasks(ticketId)
+// }
+
+// export function useGetQueue(queueId: number) {
+//   return useQueue(queueId)
+// }
+
+// export function useGetProject(projectId: number) {
+//   return useProject(projectId)
+// }
+
+/**
+ * Enhanced invalidation methods for tickets
+ */
+export function useInvalidateTicketsEnhanced() {
+  const baseInvalidate = useInvalidateTickets()
+  
+  return {
+    ...baseInvalidate,
+    invalidateTicketData: (ticketId: number) => {
+      baseInvalidate.invalidateDetail(ticketId)
+    },
+    invalidateProjectTickets: (projectId: number) => {
+      baseInvalidate.invalidateLists()
+    },
+    invalidateTicketTasks: (ticketId: number) => {
+      // This would need to be implemented in the query system
+      console.log(`Invalidating tasks for ticket ${ticketId}`)
+    }
+  }
+}
+
 export function useCompleteTicket() {
   const client = useApiClient()
   const queryClient = useQueryClient()
@@ -258,7 +356,7 @@ export function useCompleteTicket() {
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.completeTicket(ticketId).then(r => r.data)
+      return client.tickets.completeTicket(ticketId).then(r => r?.data || r)
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.detail(result.ticket.id) })
@@ -283,7 +381,7 @@ export function useChatMessages(chatId: number) {
     queryKey: CHAT_ENHANCED_KEYS.messages(chatId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.chats.getMessages(chatId).then(r => r.data)
+      return client.chats.getMessages(chatId).then(r => r?.data || r)
     },
     enabled: !!client && !!chatId,
     staleTime: 30 * 1000 // 30 seconds for messages
@@ -315,7 +413,7 @@ export function useQueueStats(queueId: number) {
     queryKey: QUEUE_ENHANCED_KEYS.stats(queueId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueStats(queueId).then(r => r.data)
+      return client.queues.getQueueStats(queueId).then(r => r?.data || r)
     },
     enabled: !!client && !!queueId,
     refetchInterval: 5000 // Auto-refresh every 5 seconds
@@ -329,7 +427,7 @@ export function useQueueItems(queueId: number, status?: string) {
     queryKey: QUEUE_ENHANCED_KEYS.items(queueId, status),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueItems(queueId, status).then(r => r.data)
+      return client.queues.getQueueItems(queueId, status).then(r => r?.data || r)
     },
     enabled: !!client && !!queueId
   })
@@ -444,7 +542,7 @@ export function useCreateQueue(projectId: number) {
   return useMutation({
     mutationFn: (data: Omit<CreateQueueBody, 'projectId'>) => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.createQueue(projectId, data).then(r => r.data)
+      return client.queues.createQueue(projectId, data).then(r => r?.data || r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })
@@ -727,32 +825,8 @@ export function useEnhancedChats(options?: {
 // Type Exports for External Use
 // ============================================================================
 
-export type {
-  Project,
-  CreateProject as CreateProjectBody,
-  UpdateProject as UpdateProjectBody,
-  Ticket,
-  CreateTicket as CreateTicketBody,
-  UpdateTicket as UpdateTicketBody,
-  TicketTask,
-  CreateTask as CreateTaskBody,
-  UpdateTask as UpdateTaskBody,
-  Chat,
-  CreateChat as CreateChatBody,
-  UpdateChat as UpdateChatBody,
-  Prompt,
-  CreatePrompt as CreatePromptBody,
-  UpdatePrompt as UpdatePromptBody,
-  ClaudeAgent,
-  CreateClaudeAgent as CreateClaudeAgentBody,
-  UpdateClaudeAgent as UpdateClaudeAgentBody,
-  Queue as TaskQueue,
-  CreateQueue as CreateQueueBody,
-  UpdateQueue as UpdateQueueBody,
-  ProviderKey,
-  CreateProviderKey as CreateProviderKeyBody,
-  UpdateProviderKey as UpdateProviderKeyBody
-} from '@promptliano/database'
+// Type exports moved to prevent conflicts
+// These types are already exported from @promptliano/database directly
 
 // Export hook factory for creating custom entity hooks
 export { createCrudHooks } from '../factories/crud-hook-factory'
@@ -963,9 +1037,7 @@ export {
   // Query Keys & Types (Legacy compatibility)
   PROVIDER_KEYS,
   providerKeys,
-  type CreateProviderKeyBody,
-  type UpdateProviderKeyBody,
-  type ProviderKey,
+  // Provider types are now exported from generated/providers-hooks
   type TestProviderRequest,
   type TestProviderResponse,
   type BatchTestProviderRequest,

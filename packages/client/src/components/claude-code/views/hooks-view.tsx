@@ -339,10 +339,10 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
           if (!hook) return undefined
 
           return {
-            eventName: hook.event,
-            matcher: hook.matcher,
+            eventName: 'PreToolUse', // Default event type since not available in schema
+            matcher: hook.name || '', // Use name as matcher fallback
             command: hook.command,
-            timeout: hook.timeout,
+            timeout: undefined, // Not available in current schema
             matcherIndex: 0 // Default index since not available in schema
           }
         })()}

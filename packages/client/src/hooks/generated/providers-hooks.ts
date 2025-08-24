@@ -21,7 +21,27 @@ type CreateProviderKeyBody = CreateProviderKey
 type UpdateProviderKeyBody = UpdateProviderKey
 // Import the proper ProviderKey type that handles JSON fields correctly
 import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
-type ProviderKey = DatabaseProviderKey
+// Create a simplified type that matches API responses
+type ProviderKey = {
+  id: number
+  name: string | null
+  provider: string
+  key: string | null
+  encrypted: boolean
+  iv?: string | null
+  tag?: string | null
+  salt?: string | null
+  baseUrl?: string | null
+  customHeaders?: Record<string, string>
+  isDefault: boolean
+  isActive: boolean
+  environment: string
+  description?: string | null
+  expiresAt?: number | null
+  lastUsed?: number | null
+  created: number
+  updated: number
+}
 import type {
   TestProviderRequest,
   TestProviderResponse,
@@ -56,25 +76,21 @@ const PROVIDERS_CONFIG = {
     list: () => {
       const client = useApiClient()
       if (!client) throw new Error('API client not initialized')
-      return client.keys.listKeys().then(r => r.data)
+      return client.keys.listKeys().then((r: any) => r.data)
     },
-    getById: (_, id: number) => {
-      const client = useApiClient()
+    getById: (client: any, id: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.keys.getKey(id).then(r => r.data)
+      return client.keys.getKey(id).then((r: any) => r.data)
     },
-    create: (_, data: CreateProviderKeyBody) => {
-      const client = useApiClient()
+    create: (client: any, data: CreateProviderKeyBody) => {
       if (!client) throw new Error('API client not initialized')
-      return client.keys.createKey(data).then(r => r.data)
+      return client.keys.createKey(data).then((r: any) => r.data)
     },
-    update: (_, id: number, data: UpdateProviderKeyBody) => {
-      const client = useApiClient()
+    update: (client: any, id: number, data: UpdateProviderKeyBody) => {
       if (!client) throw new Error('API client not initialized')
-      return client.keys.updateKey(id, data).then(r => r.data)
+      return client.keys.updateKey(id, data).then((r: any) => r.data)
     },
-    delete: (_, id: number) => {
-      const client = useApiClient()
+    delete: (client: any, id: number) => {
       if (!client) throw new Error('API client not initialized')
       return client.keys.deleteKey(id).then(() => undefined)
     }
@@ -190,7 +206,24 @@ export function useTestProvider() {
       if (!client.keys.testProvider) {
         throw new Error('Provider testing not supported by this version of the API')
       }
-      return client.keys.testProvider(data)
+      const response = await client.keys.testProvider(data)
+      
+      // Map API response to expected schema format
+      return {
+        ...response,
+        data: {
+          ...response.data,
+          latency: response.data.responseTime || 0,
+          providerId: data.providerId,
+          models: response.data.models?.map(model => ({
+            ...model,
+            provider: response.data.provider,
+            contextLength: undefined,
+            maxTokens: undefined,
+            capabilities: undefined
+          }))
+        }
+      }
     },
     onSuccess: (response: DataResponseSchema<TestProviderResponse>) => {
       if (!isValidTestProviderResponse(response)) {
@@ -228,7 +261,32 @@ export function useBatchTestProviders() {
       if (!client.keys.batchTestProviders) {
         throw new Error('Batch provider testing not supported by this version of the API')
       }
-      return client.keys.batchTestProviders(data)
+      const response = await client.keys.batchTestProviders(data)
+      
+      // Map API response to expected schema format
+      return {
+        ...response,
+        data: {
+          results: response.data.results.map((result: any) => ({
+            ...result,
+            latency: result.responseTime || 0,
+            providerId: result.providerId || 0,
+            models: result.models?.map((model: any) => ({
+              ...model,
+              provider: result.provider,
+              contextLength: undefined,
+              maxTokens: undefined,
+              capabilities: undefined
+            }))
+          })),
+          summary: {
+            total: response.data.results.length,
+            successful: response.data.summary.connected || 0,
+            failed: (response.data.summary.disconnected || 0) + (response.data.summary.error || 0),
+            averageLatency: response.data.totalTime / response.data.results.length
+          }
+        }
+      }
     },
     onSuccess: (response: DataResponseSchema<BatchTestProviderResponse>) => {
       if (!isValidBatchTestProviderResponse(response)) {

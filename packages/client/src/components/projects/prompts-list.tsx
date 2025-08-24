@@ -82,12 +82,12 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
 
   const prompts = useMemo(() => {
     return (
-      promptData?.data.map((prompt) => ({
+      promptData?.map((prompt) => ({
         ...prompt,
         id: Number(prompt.id)
       })) || []
     )
-  }, [promptData?.data])
+  }, [promptData])
 
   const sortedPrompts = useMemo(() => {
     let sortedPrompts = [...prompts]
@@ -105,7 +105,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
     if (!selectedPrompts.length) return
     const allPrompts = selectedPrompts
       .map((id) => {
-        const p = promptData?.data?.find((x: { id: number }) => x.id === id)
+        const p = promptData?.find((x: { id: number }) => x.id === id)
         return p ? `# ${p.name}\n${p.content}\n` : ''
       })
       .join('\n')
@@ -128,8 +128,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
   const [markdownImportDialogOpen, setMarkdownImportDialogOpen] = useState(false)
 
   // Our form for creating/updating
-  const promptForm = useForm<z.infer<typeof PromptSchema>>({
-    resolver: zodResolver(PromptSchema),
+  const promptForm = useForm({
     defaultValues: {
       name: '',
       content: ''
@@ -196,8 +195,8 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
       path: prompt.name,
       extension: '.txt',
       projectId: prompt.projectId || selectedProjectId,
-      created: new Date(prompt.created).getTime(),
-      updated: new Date(prompt.updated).getTime(),
+      created: prompt.created,
+      updated: prompt.updated,
       size: prompt.content?.length || 0,
       meta: null,
       summary: null,

@@ -44,7 +44,7 @@ export const useProjectFileMapWithoutContent = (projectId: number) => {
       return new Map()
     }
     // Convert files with content to files without content format for backward compatibility
-    const filesWithoutContent = (fileData ?? []).map(file => ({
+    const filesWithoutContent = (fileData?.data ?? []).map(file => ({
       ...file,
       content: undefined // Remove content to match expected format
     }))
@@ -65,7 +65,7 @@ export const useProjectFileMap = (projectId: number) => {
       return new Map()
     }
 
-    const files = fileData ?? []
+    const files = fileData?.data ?? []
     const map = buildProjectFileMap(files)
     return map
   }, [fileData, isValidProjectId])
@@ -100,7 +100,7 @@ export function useSelectedFiles({
 
   // Get all project files for CLAUDE.md detection
   const { data: projectFilesData } = useProjectFiles(projectId)
-  const projectFiles = projectFilesData ?? []
+  const projectFiles = projectFilesData?.data ?? []
 
   // Initialize CLAUDE.md detection (kept for backward compatibility)
   const { getClaudeMdForFile } = useClaudeMdDetection(projectFiles)

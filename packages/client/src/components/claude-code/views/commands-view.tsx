@@ -39,7 +39,7 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
   const { data: commandsResponse, isLoading, error } = useGetProjectCommands(projectId)
   const deleteCommandMutation = useDeleteCommand(projectId)
 
-  const commands = commandsResponse?.data || []
+  const commands = Array.isArray(commandsResponse) ? commandsResponse : []
 
   const filteredCommands = commands.filter((command: any) => {
     const searchLower = searchQuery.toLowerCase()

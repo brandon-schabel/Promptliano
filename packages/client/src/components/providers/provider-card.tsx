@@ -42,7 +42,8 @@ import {
   Database,
   Cpu
 } from 'lucide-react'
-import type { ProviderKey, ProviderHealthStatus } from '@promptliano/schemas'
+import type { ProviderKey } from '@/hooks/generated/providers-hooks'
+import type { ProviderHealthStatus } from '@promptliano/schemas'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { useGetModels } from '@/hooks/api-hooks'
@@ -84,7 +85,9 @@ export function ProviderCard({
   const { data: modelsResponse, isLoading: modelsLoading } = useGetModels(provider.provider, {})
 
   const handleCopyKey = () => {
-    copyToClipboard(provider.key, 'API key copied to clipboard')
+    if (provider.key) {
+      copyToClipboard(provider.key, 'API key copied to clipboard')
+    }
   }
 
   const getStatusColor = () => {
@@ -291,7 +294,7 @@ export function ProviderCard({
             </p>
             <div className='flex items-center gap-2'>
               <code className='text-xs bg-muted/50 px-2 py-1.5 rounded flex-1 truncate font-mono'>
-                {provider.key.substring(0, 12)}
+                {provider.key ? provider.key.substring(0, 12) : 'No key'}
                 {'•'.repeat(8)}
               </code>
               <TooltipProvider>

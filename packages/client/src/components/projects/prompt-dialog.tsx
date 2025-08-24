@@ -40,8 +40,8 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
 
   // Populate form when editing
   useEffect(() => {
-    if (editPromptId && promptData?.data) {
-      const prompt = promptData.data.find((p) => p.id === editPromptId)
+    if (editPromptId && promptData) {
+      const prompt = promptData.find((p) => p.id === editPromptId)
       if (prompt) {
         promptForm.setValue('name', prompt.name)
         promptForm.setValue('content', prompt.content)
@@ -49,7 +49,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     } else {
       promptForm.reset()
     }
-  }, [editPromptId, promptData?.data, promptForm])
+  }, [editPromptId, promptData, promptForm])
 
   const handleFormKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.target instanceof HTMLTextAreaElement) {
@@ -61,7 +61,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     try {
       const result = await createPromptMutation.mutateAsync({
         projectId,
-        name: values.name,
+        title: values.name,
         content: values.content
       })
 
@@ -73,7 +73,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
       try {
         await addPromptToProjectMutation.mutateAsync({
           projectId,
-          promptId: result.data.id
+          promptId: result.id
         })
       } catch (e) {
         toast.error('Failed to add prompt to project')
@@ -92,9 +92,9 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
 
     try {
       await updatePromptMutation.mutateAsync({
-        promptId: editPromptId,
+        id: editPromptId,
         data: {
-          name: values.name,
+          title: values.name,
           content: values.content
         }
       })

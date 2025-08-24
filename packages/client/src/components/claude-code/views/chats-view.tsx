@@ -434,10 +434,18 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
                 }}
               >
                 <MessageBubble
-                  message={message}
+                  message={{
+                    ...message,
+                    content: typeof message.content === 'string' ? message.content : 
+                             message.content ? JSON.stringify(message.content) : ''
+                  }}
                   isLast={index === messages.length - 1}
                   onJumpToMessage={handleJumpToMessage}
-                  allMessages={messages}
+                  allMessages={messages.map((m: any) => ({
+                    ...m,
+                    content: typeof m.content === 'string' ? m.content : 
+                             m.content ? JSON.stringify(m.content) : ''
+                  }))}
                 />
               </div>
             ))}

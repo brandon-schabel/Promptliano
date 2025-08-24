@@ -306,7 +306,20 @@ export const claudeHookRoutesSimple = new OpenAPIHono()
 
     try {
       const mappedEvent = mapSchemaEventToServiceEvent(eventName)
-      const hook = await claudeHookService.updateHookLegacy(decodedPath, mappedEvent, matcherIndex, body)
+      // Transform body to match service interface
+      const serviceBody: Partial<{event: HookEvent; matcher: string; command: string; timeout: number}> = {}
+      
+      if (body.event) {
+        serviceBody.event = mapSchemaEventToServiceEvent(body.event)
+      }
+      if (body.name) {
+        serviceBody.matcher = body.name // Map name to matcher
+      }
+      if (body.command) {
+        serviceBody.command = body.command
+      }
+      
+      const hook = await claudeHookService.updateHookLegacy(decodedPath, mappedEvent, matcherIndex, serviceBody)
 
       if (!hook) {
         throw new ApiError(404, `Hook not found for event ${eventName} at index ${matcherIndex}`)

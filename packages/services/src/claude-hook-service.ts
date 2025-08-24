@@ -85,10 +85,10 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
   const errors = ErrorFactory.forEntity('ClaudeHook')
 
   // Define service methods first
-  const getById = async (hookId: number): Promise<ClaudeHook> => {
+  const getById = async (hookId: number | string): Promise<ClaudeHook> => {
     return withErrorContext(
       async () => {
-        const hook = await repository.getById(hookId)
+        const hook = await repository.getById(typeof hookId === 'string' ? parseInt(hookId, 10) : hookId)
         assertExists(hook, 'ClaudeHook', hookId)
         return hook
       },
@@ -105,18 +105,19 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     )
   }
 
-  const update = async (hookId: number, data: Partial<UpdateClaudeHookBody>): Promise<ClaudeHook> => {
+  const update = async (hookId: number | string, data: Partial<UpdateClaudeHookBody>): Promise<ClaudeHook> => {
     return withErrorContext(
       async () => {
         // Verify hook exists
         await getById(hookId)
         
+        const id = typeof hookId === 'string' ? parseInt(hookId, 10) : hookId
         const validated = ClaudeHookSchema.partial().parse({
           ...data,
           updatedAt: Date.now(),
         })
         
-        const result = await repository.update(hookId, validated)
+        const result = await repository.update(id, validated)
         if (!result) {
           throw errors.updateFailed(hookId)
         }
@@ -153,18 +154,17 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     /**
      * Create a new hook
      */
-    async create(projectId: number, data: CreateClaudeHookBody): Promise<ClaudeHook> {
+    async create(data: CreateClaudeHookBody): Promise<ClaudeHook> {
       return withErrorContext(
         async () => {
           const validated = ClaudeHookSchema.parse({
             ...data,
-            projectId,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           })
           return await repository.create(validated)
         },
-        { entity: 'ClaudeHook', action: 'create', projectId }
+        { entity: 'ClaudeHook', action: 'create', projectId: data.projectId }
       )
     },
 
@@ -176,13 +176,14 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
     /**
      * Delete a hook
      */
-    async delete(hookId: number): Promise<boolean> {
+    async delete(hookId: number | string): Promise<boolean> {
       return withErrorContext(
         async () => {
           // Verify hook exists
           await getById(hookId)
           
-          const result = await repository.delete(hookId)
+          const id = typeof hookId === 'string' ? parseInt(hookId, 10) : hookId
+          const result = await repository.delete(id)
           if (!result) {
             throw errors.deleteFailed(hookId)
           }
