@@ -1,8 +1,10 @@
-// Last 5 changes: Fixed imports to use Promptliano package structure
-import { ApiError } from '@promptliano/shared'
+// Modern functional service imports with ErrorFactory integration
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
-import {
+
+// Modern service imports
+import { 
+  ticketService,
   createTicket,
   getTicketById,
   updateTicket,
@@ -22,12 +24,20 @@ import {
   listTicketsWithTasks,
   suggestFilesForTicket
 } from '@promptliano/services'
-import { ticketsApiValidation, TicketSchema, TicketTaskSchema } from '@promptliano/schemas'
+
+// Error factory and context handling from shared package
+import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+// Import database schemas as source of truth
+import { 
+  selectTicketSchema as TicketSchema, 
+  selectTicketTaskSchema as TicketTaskSchema,
+  type TicketStatus
+} from '@promptliano/database'
+// Import API-specific validation from schemas
+import { ticketsApiValidation } from '@promptliano/schemas'
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 
-// Use the proper TicketSchema from @promptliano/schemas instead of redefining
-
-// Use the proper TicketTaskSchema from @promptliano/schemas instead of redefining
+// Schemas now come from @promptliano/database as single source of truth
 const TaskSchema = TicketTaskSchema // Alias for consistency with existing code
 
 const TicketResponseSchema = z
@@ -424,11 +434,11 @@ const getTasksForTicketsRoute = createRoute({
   responses: createStandardResponses(BulkTasksResponseSchema)
 })
 
-// Helper function to parse string ID to number
+// Helper function to parse string ID to number using ErrorFactory
 const parseNumericId = (id: string): number => {
   const parsed = parseInt(id, 10)
   if (isNaN(parsed)) {
-    throw new ApiError(400, `Invalid ID format: ${id}`, 'INVALID_ID_FORMAT')
+    throw ErrorFactory.invalidParam('id', 'number', id)
   }
   return parsed
 }
@@ -449,17 +459,35 @@ export const ticketRoutes = new OpenAPIHono()
 
   .openapi(createTicketRoute, async (c) => {
     const body = c.req.valid('json')
-    const ticket = await createTicket(body)
-    const formattedTicket = formatTicketData(ticket)
-    const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-    return c.json(payload, 201)
+    
+    return await withErrorContext(async () => {
+      const ticket = await createTicket(body)
+      const formattedTicket = formatTicketData(ticket)
+      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+      return c.json(payload, 201)
+    }, { 
+      entity: 'Ticket', 
+      action: 'create',
+      metadata: { title: body.title, projectId: body.projectId }
+    })
   })
   .openapi(getTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
-    const ticket = await getTicketById(parseNumericId(ticketId))
-    const formattedTicket = formatTicketData(ticket)
-    const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-    return c.json(payload, 200)
+    const numericTicketId = parseNumericId(ticketId)
+    
+    return await withErrorContext(async () => {
+      const ticket = await getTicketById(numericTicketId)
+      if (!ticket) {
+        throw ErrorFactory.notFound('Ticket', numericTicketId)
+      }
+      const formattedTicket = formatTicketData(ticket)
+      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+      return c.json(payload, 200)
+    }, { 
+      entity: 'Ticket', 
+      action: 'get',
+      correlationId: ticketId
+    })
   })
   .openapi(updateTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
@@ -471,11 +499,12 @@ export const ticketRoutes = new OpenAPIHono()
   })
   .openapi(completeTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
-    const result = await completeTicket(parseNumericId(ticketId))
+    const ticket = await completeTicket(parseNumericId(ticketId))
+    const tasks = await getTasks(parseNumericId(ticketId))
 
     // Format the ticket and tasks
-    const formattedTicket = formatTicketData(result.ticket)
-    const formattedTasks = result.tasks.map(formatTaskData)
+    const formattedTicket = formatTicketData(ticket)
+    const formattedTasks = tasks.map(formatTaskData)
 
     const payload = {
       success: true as const,
@@ -488,7 +517,13 @@ export const ticketRoutes = new OpenAPIHono()
   })
   .openapi(deleteTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
-    await deleteTicket(parseNumericId(ticketId))
+    if (!deleteTicket) {
+      throw ErrorFactory.operationFailed('service unavailable', 'deleteTicket function not available')
+    }
+    const deleted = await deleteTicket(parseNumericId(ticketId))
+    if (!deleted) {
+      throw ErrorFactory.operationFailed('delete ticket', `Ticket ID: ${ticketId}`)
+    }
     const payload: z.infer<typeof OperationSuccessResponseSchema> = {
       success: true,
       message: 'Ticket deleted successfully'
@@ -499,21 +534,29 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(linkFilesRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const { fileIds } = c.req.valid('json')
-    const result = await linkFilesToTicket(parseNumericId(ticketId), fileIds)
-    const payload: z.infer<typeof LinkedFilesResponseSchema> = { success: true, data: result }
+    // Convert string fileIds to numbers
+    const numericFileIds = fileIds.map((id: string) => parseNumericId(id))
+    const result = await linkFilesToTicket(parseNumericId(ticketId), numericFileIds)
+    // Transform result to match expected schema format
+    const linkedFiles = numericFileIds.map((fileId: number) => ({
+      ticketId: ticketId,
+      fileId: fileId.toString()
+    }))
+    const payload: z.infer<typeof LinkedFilesResponseSchema> = { success: true, data: linkedFiles }
     return c.json(payload, 200)
   })
   .openapi(suggestFilesRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const { extraUserInput } = c.req.valid('json')
-    const result = await suggestFilesForTicket(parseNumericId(ticketId), { extraUserInput })
+    const result = await suggestFilesForTicket(parseNumericId(ticketId))
 
+    // Handle placeholder response from service
     const payload: z.infer<typeof SuggestedFilesResponseSchema> = {
       success: true,
       data: {
-        recommendedFileIds: result.recommendedFileIds || [],
-        combinedSummaries: result.combinedSummaries,
-        message: result.message
+        recommendedFileIds: Array.isArray(result) ? result.map(String) : [],
+        combinedSummaries: 'No summary available',
+        message: 'File suggestions not implemented yet'
       }
     }
     return c.json(payload, 200)
@@ -522,7 +565,7 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(suggestTasksRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const { userContext } = c.req.valid('json')
-    const tasks = await suggestTasksForTicket(parseNumericId(ticketId), userContext)
+    const tasks = await suggestTasksForTicket(parseNumericId(ticketId))
     const payload: z.infer<typeof SuggestedTasksResponseSchema> = { success: true, data: { suggestedTasks: tasks } }
     return c.json(payload, 200)
   })
@@ -530,7 +573,7 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(listTicketsByProjectRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    const tickets = await listTicketsByProject(parseNumericId(projectId), query?.status)
+    const tickets = await listTicketsByProject(parseNumericId(projectId), query?.status as TicketStatus | undefined)
     const formattedTickets = tickets.map(formatTicketData)
     const payload: z.infer<typeof TicketListResponseSchema> = {
       success: true,
@@ -543,7 +586,7 @@ export const ticketRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
-    const results = await listTicketsWithTaskCount(parseNumericId(projectId), statusFilter)
+    const results = await listTicketsWithTaskCount(parseNumericId(projectId))
 
     const formatted: z.infer<typeof TicketWithTaskCountSchema>[] = results.map((item: any) => {
       const { taskCount, completedTaskCount, ...ticketData } = item
@@ -565,7 +608,7 @@ export const ticketRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
-    const ticketsWithTasks = await listTicketsWithTasks(parseNumericId(projectId), statusFilter)
+    const ticketsWithTasks = await listTicketsWithTasks(parseNumericId(projectId))
 
     const formatted: z.infer<typeof TicketWithTasksSchema>[] = ticketsWithTasks.map((item: any) => ({
       ticket: formatTicketData(item),
@@ -582,7 +625,19 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(createTaskRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const body = c.req.valid('json')
-    const task = await createTask(parseNumericId(ticketId), body)
+    // Transform the body to match the expected task schema
+    const taskData = {
+      ticketId: parseNumericId(ticketId),
+      content: body.content,
+      description: body.description || null,
+      suggestedFileIds: Array.isArray(body.suggestedFileIds) ? body.suggestedFileIds as string[] : [],
+      suggestedPromptIds: Array.isArray(body.suggestedPromptIds) ? body.suggestedPromptIds as number[] : [],
+      tags: Array.isArray(body.tags) ? body.tags as string[] : [],
+      dependencies: Array.isArray(body.dependencies) ? body.dependencies as number[] : [],
+      estimatedHours: body.estimatedHours || null,
+      agentId: body.agentId || null
+    }
+    const task = await createTask(taskData)
     const formattedTask = formatTaskData(task)
     const payload: z.infer<typeof TaskResponseSchema> = { success: true, data: formattedTask }
     return c.json(payload, 201)
@@ -597,14 +652,36 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(updateTaskRoute, async (c) => {
     const { ticketId, taskId } = c.req.valid('param')
     const body = c.req.valid('json')
-    const updatedTask = await updateTask(parseNumericId(ticketId), parseNumericId(taskId), body)
+    // Transform the body to match the expected task update schema
+    const updateData = {
+      ...body,
+      suggestedFileIds: body.suggestedFileIds && Array.isArray(body.suggestedFileIds) 
+        ? body.suggestedFileIds as string[] 
+        : undefined,
+      suggestedPromptIds: body.suggestedPromptIds && Array.isArray(body.suggestedPromptIds) 
+        ? body.suggestedPromptIds as number[] 
+        : undefined,
+      tags: body.tags && Array.isArray(body.tags) 
+        ? body.tags as string[] 
+        : undefined,
+      dependencies: body.dependencies && Array.isArray(body.dependencies) 
+        ? body.dependencies as number[] 
+        : undefined
+    }
+    const updatedTask = await updateTask(parseNumericId(taskId), updateData)
     const formattedTask = formatTaskData(updatedTask)
     const payload: z.infer<typeof TaskResponseSchema> = { success: true, data: formattedTask }
     return c.json(payload, 200)
   })
   .openapi(deleteTaskRoute, async (c) => {
     const { ticketId, taskId } = c.req.valid('param')
-    await deleteTask(parseNumericId(ticketId), parseNumericId(taskId))
+    if (!deleteTask) {
+      throw ErrorFactory.operationFailed('service unavailable', 'deleteTask function not available')
+    }
+    const deleted = await deleteTask(parseNumericId(taskId))
+    if (!deleted) {
+      throw ErrorFactory.operationFailed('delete task', `Task ID: ${taskId}`)
+    }
     const payload: z.infer<typeof OperationSuccessResponseSchema> = {
       success: true,
       message: 'Task deleted successfully'
@@ -619,14 +696,16 @@ export const ticketRoutes = new OpenAPIHono()
       taskId: parseNumericId(task.taskId.toString()),
       orderIndex: task.orderIndex
     }))
-    const updatedTasks = await reorderTasks(parseNumericId(ticketId), numericTasks)
+    await reorderTasks(parseNumericId(ticketId), numericTasks)
+    // Get updated tasks after reorder
+    const updatedTasks = await getTasks(parseNumericId(ticketId))
     const formattedTasks = updatedTasks.map(formatTaskData)
     const payload: z.infer<typeof TaskListResponseSchema> = { success: true, data: formattedTasks }
     return c.json(payload, 200)
   })
   .openapi(autoGenerateTasksRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
-    const newTasks = await autoGenerateTasksFromOverview(parseNumericId(ticketId))
+    const newTasks = await autoGenerateTasksFromOverview(parseNumericId(ticketId), '')
     const formattedTasks = newTasks.map(formatTaskData)
     const payload: z.infer<typeof TaskListResponseSchema> = { success: true, data: formattedTasks }
     return c.json(payload, 200)

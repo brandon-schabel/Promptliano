@@ -1,4 +1,4 @@
-import type { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 import {
   GEMINI_BASE_URL,
   GROQ_BASE_URL,

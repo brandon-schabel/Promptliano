@@ -21,13 +21,13 @@ import {
 } from './queue-service'
 import { createProject, deleteProject } from './project-service'
 import { createTicket, updateTicket, deleteTicket, createTask, updateTask } from './ticket-service'
-import { DatabaseManager } from '@promptliano/storage'
-import { clearAllData, resetTestDatabase, resetDatabaseInstance } from '@promptliano/storage/src/test-utils'
+import { db } from '@promptliano/database'
+// TODO: Implement test utilities with Drizzle
 import { randomBytes } from 'crypto'
 
 describe('Queue Service - Flow System', () => {
   let testProjectId: number
-  let db: DatabaseManager
+  // Database connection already imported
   let testResources: Array<{ type: 'project' | 'ticket' | 'task' | 'queue', id: number }> = []
   
   // Generate unique test identifier for this suite
@@ -41,8 +41,8 @@ describe('Queue Service - Flow System', () => {
     testResources = []
     
     // Complete database reset for isolation
-    await resetTestDatabase()
-    db = DatabaseManager.getInstance()
+    // TODO: Implement test database reset with Drizzle
+    // db is already imported and available
 
     // Add small delay in CI to prevent race conditions
     if (isCI) {
@@ -86,7 +86,7 @@ describe('Queue Service - Flow System', () => {
   })
 
   afterAll(async () => {
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
     resetDatabaseInstance()
   })
 

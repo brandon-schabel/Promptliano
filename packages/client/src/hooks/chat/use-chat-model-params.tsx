@@ -1,7 +1,8 @@
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { AiSdkOptions } from '@promptliano/schemas'
 import { useCallback, useMemo } from 'react'
-import { APIProviders, modelsTempNotAllowed } from '@promptliano/schemas'
+import { APIProviders } from '@promptliano/database'
+import { modelsTempNotAllowed } from '@promptliano/schemas'
 
 type ModelParamMutationFn = (value: number) => void
 

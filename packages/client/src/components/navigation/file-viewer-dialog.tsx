@@ -13,8 +13,8 @@ import { Switch } from '@promptliano/ui'
 import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 import { ProjectFile } from '@promptliano/schemas'
 import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
-import { useUpdateFileContent } from '@/hooks/api/use-projects-api'
-import { useProjectGitStatus, useFileDiff } from '@/hooks/api/use-git-api'
+import { useUpdateFileContent } from '@/hooks/api-hooks'
+import { useProjectGitStatus, useFileDiff } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 
 type FileViewerDialogProps = {
@@ -331,15 +331,16 @@ export function FileViewerDialog({
                     variant='outline'
                     size='sm'
                     onClick={async () => {
-                      if (!diffData?.diff) return
+                      const diffContent = (diffData as any)?.diff || diffData?.content
+                      if (!diffContent) return
                       try {
-                        await navigator.clipboard.writeText(diffData.diff)
+                        await navigator.clipboard.writeText(typeof diffContent === 'string' ? diffContent : JSON.stringify(diffContent))
                         toast.success('Diff copied to clipboard')
                       } catch (error) {
                         toast.error('Failed to copy diff')
                       }
                     }}
-                    disabled={!diffData?.diff}
+                    disabled={!((diffData as any)?.diff || diffData?.content)}
                   >
                     <Copy className='h-4 w-4 mr-2' />
                     Copy Diff
@@ -351,7 +352,7 @@ export function FileViewerDialog({
 
                   {diffError && <div className='text-red-500 p-4'>Failed to load diff: {diffError.message}</div>}
 
-                  {diffData?.diff && !diffLoading && !diffError && (
+                  {diffData?.content && !diffLoading && !diffError && (
                     <>
                       {diffViewType === 'monaco' ? (
                         <div className='h-full'>
@@ -386,7 +387,8 @@ export function FileViewerDialog({
                                 modified: modified.join('\n')
                               }
                             }
-                            const { original, modified } = parseDiff(diffData.diff)
+                            const diff = (diffData as any)?.diff || diffData?.content || diffData
+                            const { original, modified } = parseDiff(diff || '')
                             return (
                               <div className='relative h-full'>
                                 <Button
@@ -417,13 +419,13 @@ export function FileViewerDialog({
                         </div>
                       ) : (
                         <div className='max-h-full overflow-auto'>
-                          <pre className='text-xs p-2 bg-muted rounded font-mono'>{diffData.diff}</pre>
+                          <pre className='text-xs p-2 bg-muted rounded font-mono'>{(diffData as any)?.diff || diffData?.content || (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))}</pre>
                         </div>
                       )}
                     </>
                   )}
 
-                  {diffData?.diff === '' && !diffLoading && !diffError && (
+                  {diffData?.content === '' && !diffLoading && !diffError && (
                     <div className='text-muted-foreground p-4 text-center'>No changes in {diffViewMode} area</div>
                   )}
                 </div>

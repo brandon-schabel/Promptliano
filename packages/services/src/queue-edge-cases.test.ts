@@ -11,17 +11,17 @@ import {
 } from './queue-service'
 import { createProject } from './project-service'
 import { createTicket, updateTicket } from './ticket-service'
-import { DatabaseManager } from '@promptliano/storage'
-import { clearAllData, resetTestDatabase } from '@promptliano/storage/src/test-utils'
+import { db } from '@promptliano/database'
+// TODO: Implement test utilities with Drizzle
 
 describe('Queue System Edge Cases', () => {
   let testProjectId: number
   let testQueueId: number
-  let db: DatabaseManager
+  // Database connection already imported
 
   beforeEach(async () => {
-    await resetTestDatabase()
-    db = DatabaseManager.getInstance()
+    // TODO: Implement test database reset with Drizzle
+    // db is already imported and available
 
     const project = await createProject({
       name: 'Edge Case Test Project',
@@ -42,7 +42,7 @@ describe('Queue System Edge Cases', () => {
   })
 
   afterAll(async () => {
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
   })
 
   describe.skip('Race Conditions', () => {

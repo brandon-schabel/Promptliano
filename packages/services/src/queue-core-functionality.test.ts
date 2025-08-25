@@ -17,8 +17,8 @@ import {
 } from './queue-service'
 import { createProject, deleteProject } from './project-service'
 import { createTicket, createTask, getTicketById, updateTicket, updateTask, getTasks } from './ticket-service'
-import { clearAllData, resetTestDatabase, resetDatabaseInstance } from '@promptliano/storage/src/test-utils'
-import { ticketStorage } from '@promptliano/storage'
+// TODO: Implement test utilities with Drizzle
+import { storageService } from '@promptliano/database'
 import { randomBytes } from 'crypto'
 
 describe('Queue Core Functionality', () => {
@@ -36,7 +36,7 @@ describe('Queue Core Functionality', () => {
     testResources = []
     
     // Complete database reset for isolation
-    await resetTestDatabase()
+    // TODO: Implement test database reset with Drizzle
 
     // Add small delay in CI to prevent race conditions
     if (isCI) {
@@ -77,7 +77,7 @@ describe('Queue Core Functionality', () => {
   })
 
   afterAll(async () => {
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
     resetDatabaseInstance()
   })
 

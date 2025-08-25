@@ -41,7 +41,7 @@ import {
   useClaudeSessionsRecent,
   useClaudeSessionsProgressive,
   useSessionDuration 
-} from '@/hooks/api/use-claude-code-api'
+} from '@/hooks/api-hooks'
 import { SessionsTableView } from './sessions-table-view'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'

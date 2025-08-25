@@ -1,6 +1,9 @@
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { ApiError } from '@promptliano/shared'
+import { ApiError, ErrorFactory } from '@promptliano/shared'
+// Import generated routes
+import { registerAllGeneratedRoutes } from './routes/generated/index.generated'
+// Revert to manual routes temporarily while fixing generated route issues - KEEPING BOTH FOR NOW
 import { chatRoutes } from './routes/chat-routes'
 import { genAiRoutes } from './routes/gen-ai-routes'
 import { projectRoutes } from './routes/project-routes'
@@ -50,16 +53,20 @@ export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
     if (!result.success) {
       console.error('Validation Error:', JSON.stringify(result.error.issues, null, 2))
+      
+      // Use ErrorFactory for consistent validation error handling
+      const validationError = ErrorFactory.validationFailed(result.error)
+      
       return c.json(
         {
           success: false,
           error: {
-            message: 'Validation Failed',
-            code: 'VALIDATION_ERROR',
-            details: formatZodErrors(result.error)
+            message: validationError.message,
+            code: validationError.code,
+            details: validationError.details as Record<string, any> | undefined
           }
         } satisfies z.infer<typeof ApiErrorResponseSchema>,
-        422
+        validationError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
       )
     }
   }
@@ -95,18 +102,27 @@ const generalLimiter = rateLimiter({
   standardHeaders: 'draft-6', // Return rate limit info in headers
   keyGenerator: getClientIP,
   handler: (c) => {
+    // Use ErrorFactory for consistent rate limit error handling
+    const rateLimitError = ErrorFactory.rateLimitExceeded(
+      RATE_LIMIT_MAX_REQUESTS,
+      `${RATE_LIMIT_WINDOW_MS / 1000 / 60} minutes`,
+      Math.floor(RATE_LIMIT_WINDOW_MS / 1000)
+    )
+    
+    const rateLimitDetails = rateLimitError.details as Record<string, any> || {}
     return c.json(
       {
         success: false,
         error: {
-          message: 'Too many requests. Please try again later.',
-          code: 'RATE_LIMIT_EXCEEDED',
+          message: rateLimitError.message,
+          code: rateLimitError.code,
           details: {
+            ...rateLimitDetails,
             resetAt: Date.now() + RATE_LIMIT_WINDOW_MS
           }
         }
       } satisfies z.infer<typeof ApiErrorResponseSchema>,
-      429
+      rateLimitError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
     )
   }
 })
@@ -118,18 +134,27 @@ const aiLimiter = rateLimiter({
   standardHeaders: 'draft-6',
   keyGenerator: getClientIP,
   handler: (c) => {
+    // Use ErrorFactory for consistent AI rate limit error handling
+    const aiRateLimitError = ErrorFactory.rateLimitExceeded(
+      AI_RATE_LIMIT_MAX_REQUESTS,
+      `${AI_RATE_LIMIT_WINDOW_MS / 1000 / 60} minutes`,
+      Math.floor(AI_RATE_LIMIT_WINDOW_MS / 1000)
+    )
+    
+    const aiRateLimitDetails = aiRateLimitError.details as Record<string, any> || {}
     return c.json(
       {
         success: false,
         error: {
-          message: 'AI endpoint rate limit exceeded. Please try again later.',
-          code: 'AI_RATE_LIMIT_EXCEEDED',
+          message: `AI endpoint ${aiRateLimitError.message.toLowerCase()}`,
+          code: `AI_${aiRateLimitError.code}`,
           details: {
+            ...aiRateLimitDetails,
             resetAt: Date.now() + AI_RATE_LIMIT_WINDOW_MS
           }
         }
       } satisfies z.infer<typeof ApiErrorResponseSchema>,
-      429
+      aiRateLimitError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500
     )
   }
 })
@@ -175,99 +200,66 @@ app.use('/api/projects/*/mcp*', async (c, next) => {
 
 app.get('/api/health', (c) => c.json({ success: true }))
 
-// register all hono routes
-app.route('/', chatRoutes)
-app.route('/', projectRoutes)
-app.route('/', providerKeyRoutes)
-app.route('/', promptRoutes)
-app.route('/', ticketRoutes)
-app.route('/', queueRoutes)
+// Register generated routes (CRUD operations for all entities)
+registerAllGeneratedRoutes(app)
+
+// Register manual routes (complex operations only - no CRUD conflicts)
+// COMMENTED OUT: Basic CRUD routes (now handled by generated routes)
+// app.route('/', chatRoutes)        // Basic CRUD -> Generated
+// app.route('/', projectRoutes)     // Basic CRUD -> Generated  
+// app.route('/', providerKeyRoutes) // Basic CRUD -> Generated
+// app.route('/', promptRoutes)      // Basic CRUD -> Generated
+// app.route('/', ticketRoutes)      // Basic CRUD -> Generated
+// app.route('/', queueRoutes)       // Basic CRUD -> Generated
+// app.route('/', claudeAgentRoutes) // Basic CRUD -> Generated
+// app.route('/', claudeCommandRoutes) // Basic CRUD -> Generated
+// app.route('/', activeTabRoutes)   // Basic CRUD -> Generated
+
+// KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)
 app.route('/', genAiRoutes)
 app.route('/', browseDirectoryRoutes)
 app.route('/', mcpRoutes)
 app.route('/', gitRoutes)
 app.route('/', gitAdvancedRoutes)
-app.route('/', activeTabRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
-app.route('/', claudeAgentRoutes)
-app.route('/', claudeCommandRoutes)
 app.route('/', claudeCodeRoutes)
 app.route('/', claudeHookRoutesSimple)
 app.route('/', mcpInstallationRoutes)
 app.route('/', mcpProjectConfigApp)
 app.route('/', mcpGlobalConfigRoutes)
 
-// Global error handler
+// NOTE: These route files have been replaced by generated routes:
+// - chatRoutes -> /api/chats CRUD via generated routes
+// - projectRoutes -> /api/projects CRUD via generated routes  
+// - providerKeyRoutes -> /api/providerkeys CRUD via generated routes
+// - promptRoutes -> /api/prompts CRUD via generated routes
+// - ticketRoutes -> /api/tickets CRUD via generated routes
+// - queueRoutes -> /api/queues CRUD via generated routes
+// - claudeAgentRoutes -> /api/claudeagents CRUD via generated routes
+// - claudeCommandRoutes -> /api/claudecommands CRUD via generated routes
+// - activeTabRoutes -> /api/activetabs CRUD via generated routes
+
+// Global error handler with ErrorFactory integration
 app.onError((err, c) => {
   console.error('[ErrorHandler]', err)
 
-  let statusCode = 500
-  let responseBody: z.infer<typeof ApiErrorResponseSchema>
+  // Use ErrorFactory.wrap to handle all error types consistently
+  const apiError = ErrorFactory.wrap(err, 'Global error handler')
 
-  if (err instanceof ApiError) {
-    console.error(`[ErrorHandler] ApiError: ${err.status} - ${err.code} - ${err.message}`)
-    statusCode = err.status
-    responseBody = {
-      success: false,
-      error: {
-        message: err.message,
-        code: err.code || 'API_ERROR',
-        details: err.details as Record<string, any> | undefined
-      }
-    }
-  } else if (err instanceof z.ZodError) {
-    console.error('[ErrorHandler] ZodError (fallback):', err.issues)
-    statusCode = 422
-    responseBody = {
-      success: false,
-      error: {
-        message: 'Invalid Data Provided',
-        code: 'VALIDATION_ERROR',
-        details: formatZodErrors(err)
-      }
-    }
-  } else if (err instanceof Error) {
-    console.error(`[ErrorHandler] Generic Error: ${err.message}`)
-    // Handle not found errors
-    if (
-      err.message.includes('not found') ||
-      err.message.toLowerCase().includes('does not exist') ||
-      err.message.toLowerCase().includes('cannot find')
-    ) {
-      statusCode = 404
-      responseBody = {
-        success: false,
-        error: {
-          message: err.message,
-          code: 'NOT_FOUND'
-        }
-      }
-    } else {
-      // Default internal server error
-      responseBody = {
-        success: false,
-        error: {
-          message: 'Internal Server Error',
-          code: 'INTERNAL_SERVER_ERROR',
-          details: { env: process.env.NODE_ENV !== 'production' ? err.stack : undefined }
-        }
-      }
-    }
-  } else {
-    // Non-Error object thrown
-    console.error('[ErrorHandler] Unknown throwable:', err)
-    responseBody = {
-      success: false,
-      error: {
-        message: 'An unexpected error occurred',
-        code: 'UNKNOWN_ERROR'
-      }
+  console.error(`[ErrorHandler] Processed Error: ${apiError.status} - ${apiError.code} - ${apiError.message}`)
+
+  const responseBody: z.infer<typeof ApiErrorResponseSchema> = {
+    success: false,
+    error: {
+      message: apiError.message,
+      code: apiError.code,
+      details: apiError.details as Record<string, any> | undefined
     }
   }
 
-  return c.json(responseBody, statusCode as any)
+  return c.json(responseBody, apiError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500)
 })
 
 // server swagger ui at /swagger

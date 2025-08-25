@@ -80,7 +80,7 @@ export function TicketDataTable({
       {
         type: 'date',
         config: {
-          accessorKey: 'created',
+          accessorKey: 'createdAt',
           header: 'Created',
           format: 'relative',
           enableSorting: true

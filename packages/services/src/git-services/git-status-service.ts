@@ -120,6 +120,22 @@ export class GitStatusService extends BaseGitService {
         data: gitStatus
       }
     } catch (error) {
+      // Re-throw ApiError to let it propagate
+      if (error instanceof ApiError) {
+        // Check if it's a missing path error from getGitInstance
+        if (error.code === 'NO_PROJECT_PATH') {
+          return {
+            success: false,
+            error: {
+              type: 'not_a_repo',
+              message: 'Project does not have a path associated with it'
+            }
+          }
+        }
+        // Let other ApiErrors propagate (e.g., PROJECT_NOT_FOUND)
+        throw error
+      }
+
       const errorMessage = error instanceof Error ? error.message : String(error)
 
       if (errorMessage.includes('not a git repository')) {

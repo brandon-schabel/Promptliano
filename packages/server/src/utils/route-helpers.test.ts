@@ -289,7 +289,7 @@ describe('Route Helpers', () => {
         } catch (e) {
           expect(e).toBeInstanceOf(ApiError)
           expect((e as ApiError).status).toBe(500)
-          expect((e as ApiError).message).toBe('Something went wrong')
+          expect((e as ApiError).message).toBe('Route handler: Something went wrong')
           expect((e as ApiError).code).toBe('INTERNAL_ERROR')
         }
       })
@@ -303,7 +303,7 @@ describe('Route Helpers', () => {
         } catch (e) {
           expect(e).toBeInstanceOf(ApiError)
           expect((e as ApiError).status).toBe(500)
-          expect((e as ApiError).message).toBe('An unexpected error occurred')
+          expect((e as ApiError).message).toBe('Route handler: string error')
           expect((e as ApiError).code).toBe('INTERNAL_ERROR')
         }
       })
@@ -378,8 +378,8 @@ describe('Route Helpers', () => {
           validateRouteParam(mockContext, 'id')
         } catch (e) {
           expect((e as ApiError).status).toBe(400)
-          expect((e as ApiError).message).toBe('Missing required parameter: id')
-          expect((e as ApiError).code).toBe('MISSING_PARAM')
+          expect((e as ApiError).message).toBe('Missing required field: id in route parameter')
+          expect((e as ApiError).code).toBe('MISSING_REQUIRED_FIELD')
         }
       })
       
@@ -399,8 +399,8 @@ describe('Route Helpers', () => {
           validateRouteParam(mockContext, 'id', 'number')
         } catch (e) {
           expect((e as ApiError).status).toBe(400)
-          expect((e as ApiError).message).toBe('Invalid id: must be a number')
-          expect((e as ApiError).code).toBe('INVALID_PARAM')
+          expect((e as ApiError).message).toBe("Invalid parameter 'id': expected number, got string")
+          expect((e as ApiError).code).toBe('INVALID_PARAMETER')
         }
       })
       
@@ -554,8 +554,8 @@ describe('Route Helpers', () => {
           await validateEntities(entities, validator, 'item')
         } catch (e) {
           expect((e as ApiError).status).toBe(400)
-          expect((e as ApiError).message).toBe('Validation failed for 1 item(s)')
-          expect((e as ApiError).code).toBe('BATCH_VALIDATION_ERROR')
+          expect((e as ApiError).message).toBe('Validation failed')
+          expect((e as ApiError).code).toBe('VALIDATION_ERROR')
           expect((e as ApiError).details).toHaveProperty('failures')
           expect((e as ApiError).details?.failures).toHaveLength(1)
         }
@@ -568,7 +568,7 @@ describe('Route Helpers', () => {
         try {
           await validateEntities(entities, validator, 'product')
         } catch (e) {
-          expect((e as ApiError).message).toBe('Validation failed for 2 product(s)')
+          expect((e as ApiError).message).toBe('Validation failed')
           expect((e as ApiError).details?.failures).toHaveLength(2)
           expect((e as ApiError).details?.failures[0].index).toBe(0)
           expect((e as ApiError).details?.failures[1].index).toBe(2)
@@ -585,7 +585,7 @@ describe('Route Helpers', () => {
         try {
           await validateEntities(entities, validator, 'item')
         } catch (e) {
-          expect((e as ApiError).message).toBe('Validation failed for 1 item(s)')
+          expect((e as ApiError).message).toBe('Validation failed')
           expect((e as ApiError).details?.failures[0].error).toBeDefined()
         }
       })
@@ -625,7 +625,7 @@ describe('Route Helpers', () => {
         it('should return single entity when found', async () => {
           const routes = createCrudRoutes('user', mockService)
           const mockContext = createMockContext({
-            req: { valid: mock(() => ({ id: '1' })) },
+            req: { param: mock(() => '1'), valid: mock(() => ({ id: '1' })) },
             json: mock(data => data)
           } as any)
           
@@ -637,7 +637,7 @@ describe('Route Helpers', () => {
         it('should throw ApiError when entity not found', async () => {
           const routes = createCrudRoutes('user', mockService)
           const mockContext = createMockContext({
-            req: { valid: mock(() => ({ id: '999' })) },
+            req: { param: mock(() => '999'), valid: mock(() => ({ id: '999' })) },
             json: mock(data => data)
           } as any)
           
@@ -647,7 +647,7 @@ describe('Route Helpers', () => {
             await routes.get(mockContext)
           } catch (e) {
             expect((e as ApiError).status).toBe(404)
-            expect((e as ApiError).message).toBe('user not found')
+            expect((e as ApiError).message).toBe('user with ID 999 not found')
             expect((e as ApiError).code).toBe('USER_NOT_FOUND')
           }
         })
@@ -674,6 +674,7 @@ describe('Route Helpers', () => {
           const updateData = { name: 'updated user' }
           const mockContext = createMockContext({
             req: { 
+              param: mock(() => '1'),
               valid: mock((type: string) => {
                 if (type === 'param') return { id: '1' }
                 return updateData
@@ -692,7 +693,7 @@ describe('Route Helpers', () => {
         it('should delete entity and return success message', async () => {
           const routes = createCrudRoutes('user', mockService)
           const mockContext = createMockContext({
-            req: { valid: mock(() => ({ id: '1' })) },
+            req: { param: mock(() => '1'), valid: mock(() => ({ id: '1' })) },
             json: mock(data => data)
           } as any)
           
@@ -704,7 +705,7 @@ describe('Route Helpers', () => {
         it('should throw ApiError when entity not found for deletion', async () => {
           const routes = createCrudRoutes('user', mockService)
           const mockContext = createMockContext({
-            req: { valid: mock(() => ({ id: '999' })) },
+            req: { param: mock(() => '999'), valid: mock(() => ({ id: '999' })) },
             json: mock(data => data)
           } as any)
           
@@ -714,7 +715,7 @@ describe('Route Helpers', () => {
             await routes.delete(mockContext)
           } catch (e) {
             expect((e as ApiError).status).toBe(404)
-            expect((e as ApiError).message).toBe('user not found')
+            expect((e as ApiError).message).toBe('user with ID 999 not found')
             expect((e as ApiError).code).toBe('USER_NOT_FOUND')
           }
         })
@@ -870,7 +871,7 @@ describe('Route Helpers', () => {
         
         results.forEach(result => {
           expect(result).toBeInstanceOf(ApiError)
-          expect((result as ApiError).message).toBe('Concurrent error')
+          expect((result as ApiError).message).toBe('Route handler: Concurrent error')
         })
       })
     })

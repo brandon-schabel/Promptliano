@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useBranchesEnhanced } from '@/hooks/api/use-git-api'
+import { useBranchesEnhanced } from '@/hooks/api-hooks'
 import type { GitBranchEnhanced } from '@promptliano/schemas'
 import {
   Command,

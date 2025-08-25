@@ -75,7 +75,7 @@ export const projectManagerTool: MCPToolDefinition = {
           case ProjectManagerAction.GET: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
             const project = await getProjectById(validProjectId)
-            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.created).toLocaleString()}\nUpdated: ${new Date(project.updated).toLocaleString()}`
+            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.createdAt).toLocaleString()}\nUpdated: ${new Date(project.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }
@@ -118,6 +118,7 @@ export const projectManagerTool: MCPToolDefinition = {
               })
             }
 
+            if (!deleteProject) throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete project service unavailable')
             const success = await deleteProject(validProjectId)
             return {
               content: [
@@ -353,6 +354,7 @@ Version Info:
               )
             }
 
+            // Use file.id (which is the path) directly now that service layer is fixed
             await updateFileContent(validProjectId, file.id, content)
             return {
               content: [{ type: 'text', text: `File ${filePath} updated successfully` }]

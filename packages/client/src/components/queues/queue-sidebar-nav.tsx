@@ -5,7 +5,7 @@ import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Plus, ListOrdered, TrendingUp, Clock, LayoutGrid, Pause, Play, AlertCircle } from 'lucide-react'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats } from '@/hooks/api-hooks'
 import { type QueueView } from '@/lib/search-schemas'
 
 interface QueueSidebarNavProps {

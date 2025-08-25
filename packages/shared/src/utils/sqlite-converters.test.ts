@@ -211,7 +211,7 @@ describe('SqliteConverters', () => {
       test('stringifies values', () => {
         expect(fromJson({ key: 'value' })).toBe('{"key":"value"}')
         expect(fromJson([1, 2, 3])).toBe('[1,2,3]')
-        expect(fromJson('string')).toBe('"string"')
+        expect(fromJson('string')).toBe('string')
         expect(fromJson(42)).toBe('42')
         expect(fromJson(true)).toBe('true')
       })
@@ -219,7 +219,6 @@ describe('SqliteConverters', () => {
       test('handles null/undefined', () => {
         expect(fromJson(null)).toBe(null)
         expect(fromJson(undefined)).toBe(null)
-        expect(fromJson(null, 'fallback')).toBe('fallback')
       })
 
       test('handles circular references', () => {

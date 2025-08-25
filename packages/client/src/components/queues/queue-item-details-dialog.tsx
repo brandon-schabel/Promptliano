@@ -6,9 +6,8 @@ import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Separator } from '@promptliano/ui'
-import { QueueItem } from '@promptliano/schemas'
-import { useGetTicket, useGetTasks } from '@/hooks/api/use-tickets-api'
-import { useGetProjectFiles } from '@/hooks/api/use-projects-api'
+import type { QueueItem } from '@/hooks/generated/types'
+import { useTicket, useGetProjectFilesWithoutContent, useTicketTasks } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { safeFormatDate } from '@/utils/queue-item-utils'
@@ -39,13 +38,16 @@ interface QueueItemDetailsDialogProps {
 export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: QueueItemDetailsDialogProps) {
   const [activeTab, setActiveTab] = useState('details')
 
-  // Fetch ticket and task details
-  const { data: ticket } = useGetTicket(item.ticketId || 0)
-  const { data: tasks } = useGetTasks(item.ticketId || 0)
-  const task = tasks?.find((t) => t.id === item.taskId)
+  // Fetch ticket details if this is a ticket item  
+  // TODO: Re-enable conditional fetching once type issues are resolved
+  const { data: ticket } = useTicket(item.ticketId || 0)
+
+  // Fetch task details if this is a task item
+  const { data: ticketTasks } = useTicketTasks(item.ticketId || 0)
+  const task = ticketTasks?.find((t: any) => t.id === item.taskId)
 
   // Fetch files for the project
-  const { data: files } = useGetProjectFiles(projectId)
+  const { data: files } = useGetProjectFilesWithoutContent(projectId)
 
   // Get file details from IDs
   const getFileDetails = (fileIds: string[]) => {
@@ -59,11 +61,11 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
 
   const statusConfig = {
     queued: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Queued' },
+    pending: { icon: AlertCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Pending' },
     in_progress: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'In Progress' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100', label: 'Completed' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', label: 'Failed' },
-    cancelled: { icon: XCircle, color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Cancelled' },
-    timeout: { icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-100', label: 'Timeout' }
+    cancelled: { icon: XCircle, color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Cancelled' }
   }
 
   const config = statusConfig[item.status]
@@ -131,7 +133,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                           <div>
                             <p className='text-muted-foreground mb-1'>Tags</p>
                             <div className='flex flex-wrap gap-1'>
-                              {task.tags.map((tag, idx) => (
+                              {task.tags.map((tag: string, idx: number) => (
                                 <Badge key={idx} variant='secondary' className='text-xs'>
                                   {tag}
                                 </Badge>
@@ -169,7 +171,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                   <div className='grid grid-cols-2 gap-4 text-sm'>
                     <div>
                       <p className='text-muted-foreground'>Created</p>
-                      <p className='font-medium'>{safeFormatDate(item.created)}</p>
+                      <p className='font-medium'>{safeFormatDate(item.createdAt)}</p>
                     </div>
                     <div>
                       <p className='text-muted-foreground'>Priority</p>
@@ -245,8 +247,8 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                       <div className='flex-1'>
                         <p className='font-medium'>Created</p>
                         <p className='text-sm text-muted-foreground'>
-                          {item.created && item.created > 0
-                            ? new Date(item.created * 1000).toLocaleString()
+                          {item.createdAt && item.createdAt > 0
+                            ? new Date(item.createdAt * 1000).toLocaleString()
                             : 'Unknown'}
                         </p>
                       </div>

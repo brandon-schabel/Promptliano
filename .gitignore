@@ -213,3 +213,8 @@ packages/storage/var
 packages/services/src/data/**
 data/**
 test-data
+
+/packages/database/data
+/packages/client/playwright-report-basic
+/packages/client/test-results
+/packages/client/test-results.json

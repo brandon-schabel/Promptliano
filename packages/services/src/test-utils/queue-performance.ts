@@ -1,4 +1,4 @@
-import type { QueueItem } from '@promptliano/schemas'
+import type { QueueItem } from '@promptliano/database'
 
 // Performance metrics collection
 export class QueuePerformanceMonitor {

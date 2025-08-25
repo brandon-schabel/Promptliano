@@ -11,7 +11,7 @@ import {
   stageFilesRequestSchema as StageFilesBodySchema,
   unstageFilesRequestSchema as UnstageFilesBodySchema
 } from '@promptliano/schemas'
-import * as gitService from '@promptliano/services'
+import { clearGitStatusCache, getProjectGitStatus, stageFiles, unstageFiles, stageAll, unstageAll } from '@promptliano/services'
 import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas using factories
@@ -116,10 +116,10 @@ export const gitStatusRoutes = new OpenAPIHono()
       
       // Clear cache if refresh requested
       if (refresh) {
-        gitService.clearGitStatusCache(projectId)
+        clearGitStatusCache(projectId)
       }
       
-      const status = await gitService.getProjectGitStatus(projectId)
+      const status = await getProjectGitStatus(projectId)
       return c.json(successResponse(status))
     }) as any
   )
@@ -128,8 +128,8 @@ export const gitStatusRoutes = new OpenAPIHono()
     (async (c: any): Promise<any> => {
       const { projectId } = c.req.valid('param')
       const body = c.req.valid('json')
-      await gitService.stageFiles(projectId, body.filePaths)
-      gitService.clearGitStatusCache(projectId)
+      await stageFiles(projectId, body.filePaths)
+      clearGitStatusCache(projectId)
       return c.json(operationSuccessResponse('Files staged successfully'))
     }) as any
   )
@@ -138,8 +138,8 @@ export const gitStatusRoutes = new OpenAPIHono()
     (async (c: any): Promise<any> => {
       const { projectId } = c.req.valid('param')
       const body = c.req.valid('json')
-      await gitService.unstageFiles(projectId, body.filePaths)
-      gitService.clearGitStatusCache(projectId)
+      await unstageFiles(projectId, body.filePaths)
+      clearGitStatusCache(projectId)
       return c.json(operationSuccessResponse('Files unstaged successfully'))
     }) as any
   )
@@ -147,8 +147,8 @@ export const gitStatusRoutes = new OpenAPIHono()
     stageAllRoute,
     (async (c: any): Promise<any> => {
       const { projectId } = c.req.valid('param')
-      await gitService.stageAll(projectId)
-      gitService.clearGitStatusCache(projectId)
+      await stageAll(projectId)
+      clearGitStatusCache(projectId)
       return c.json(operationSuccessResponse('All changes staged successfully'))
     }) as any
   )
@@ -156,8 +156,8 @@ export const gitStatusRoutes = new OpenAPIHono()
     unstageAllRoute,
     (async (c: any): Promise<any> => {
       const { projectId } = c.req.valid('param')
-      await gitService.unstageAll(projectId)
-      gitService.clearGitStatusCache(projectId)
+      await unstageAll(projectId)
+      clearGitStatusCache(projectId)
       return c.json(operationSuccessResponse('All changes unstaged successfully'))
     }) as any
   )

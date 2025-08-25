@@ -49,15 +49,12 @@ import {
 import { formatDistanceToNow, format } from 'date-fns'
 import { toast } from 'sonner'
 import {
-  useGetQueue,
-  useGetQueueStats,
-  useGetQueueItems,
+  useQueue,
   useUpdateQueue,
   useDeleteQueue,
-  useGetQueueTimeline
-} from '@/hooks/api/use-queue-api'
-import { useGetFlowData } from '@/hooks/api/use-flow-api'
-import type { QueueItem, QueueStats, TaskQueue } from '@promptliano/schemas'
+  useGetFlowData
+} from '@/hooks/api-hooks'
+import type { TaskQueue, QueueStats, QueueItem } from '@/hooks/generated/types'
 
 interface QueueDashboardProps {
   queueId: number
@@ -72,23 +69,71 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
 
   // Fetch queue data
-  const { data: queue, isLoading: isLoadingQueue } = useGetQueue(queueId)
-  const { data: stats, isLoading: isLoadingStats } = useGetQueueStats(queueId)
-  const { data: items, isLoading: isLoadingItems } = useGetQueueItems(
-    queueId,
-    selectedStatus === 'all' ? undefined : selectedStatus
-  )
+  const { data: queue, isLoading: isLoadingQueue } = useQueue(queueId)
   const { data: flowData } = useGetFlowData(projectId)
-  const { data: timeline } = useGetQueueTimeline(queueId)
+  
+  // Extract queue stats and items from flow data
+  const stats: QueueStats | undefined = useMemo(() => {
+    if (!flowData?.queues?.[queueId]) return undefined
+    const queueData = flowData.queues[queueId]
+    const total = (queueData.tickets?.length || 0) + (queueData.tasks?.length || 0)
+    return {
+      total,
+      pending: total, // All items in queue are pending
+      processing: 0,
+      completed: 0,
+      failed: 0,
+      currentAgents: [], // No agents currently processing items
+      completedItems: 0,
+      totalItems: total,
+      averageProcessingTime: undefined
+    }
+  }, [flowData, queueId])
+  
+  const items: QueueItem[] = useMemo(() => {
+    if (!flowData?.queues?.[queueId]) return []
+    const queueData = flowData.queues[queueId]
+    const queueItems: QueueItem[] = []
+    
+    // Add tickets as queue items
+    queueData.tickets?.forEach((ticket, index) => {
+      queueItems.push({
+        id: ticket.id,
+        queueId: queueId,
+        ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
+        priority: index,
+        status: 'pending' as const,
+        createdAt: ticket.createdAt
+      })
+    })
+    
+    // Add tasks as queue items
+    queueData.tasks?.forEach((task, index) => {
+      queueItems.push({
+        id: task.id,
+        queueId: queueId,
+        taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
+        priority: (queueData.tickets?.length || 0) + index,
+        status: 'pending' as const,
+        createdAt: task.createdAt
+      })
+    })
+    
+    return selectedStatus === 'all' ? queueItems : queueItems.filter(item => item.status === selectedStatus)
+  }, [flowData, queueId, selectedStatus])
 
   // Mutations
-  const updateQueueMutation = useUpdateQueue(queueId)
+  const updateQueueMutation = useUpdateQueue()
   const deleteQueueMutation = useDeleteQueue()
   // Note: Direct queue item operations are no longer supported.
   // Items are now managed through their parent tickets/tasks via the flow service.
 
   // Loading state
-  if (isLoadingQueue || isLoadingStats || isLoadingItems) {
+  if (isLoadingQueue) {
     return <QueueDashboardSkeleton />
   }
 
@@ -102,19 +147,20 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
     )
   }
 
-  const isActive = queue.status === 'active'
-  const totalItems = stats.totalItems || 0
-  const processedItems = stats.completedItems + stats.failedItems + stats.cancelledItems
+  const isActive = queue.isActive
+  const totalItems = stats?.total || 0
+  const processedItems = (stats?.completed || 0) + (stats?.failed || 0)
   const progressPercentage = totalItems > 0 ? (processedItems / totalItems) * 100 : 0
 
   const handleToggleStatus = async () => {
-    await updateQueueMutation.mutateAsync({
-      status: isActive ? 'paused' : 'active'
+    updateQueueMutation.mutate({
+      id: queueId,
+      data: { isActive: !isActive }
     })
   }
 
   const handleDeleteQueue = async () => {
-    await deleteQueueMutation.mutateAsync({ queueId, projectId })
+    await deleteQueueMutation.mutateAsync(queueId)
     setIsDeleteDialogOpen(false)
     onClose?.()
   }
@@ -144,7 +190,7 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   const filteredItems = useMemo(() => {
     if (!items) return []
     if (selectedStatus === 'all') return items
-    return items.filter((item) => item.queueItem.status === selectedStatus)
+    return items.filter((item) => item.status === selectedStatus)
   }, [items, selectedStatus])
 
   return (
@@ -240,24 +286,24 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
       <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
         <MetricCard 
           label='Queued' 
-          value={stats.queuedItems} 
+          value={stats.pending} 
           icon={Package} 
         />
         <MetricCard
           label='In Progress'
-          value={stats.inProgressItems}
+          value={stats.processing}
           icon={Activity}
           color='orange'
         />
         <MetricCard
           label='Completed'
-          value={stats.completedItems}
+          value={stats.completed}
           icon={CheckCircle2}
           color='green'
         />
         <MetricCard
           label='Failed'
-          value={stats.failedItems}
+          value={stats.failed}
           icon={XCircle}
           color='red'
         />
@@ -287,12 +333,12 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
             />
             <MetricItem
               label='Created'
-              value={format(new Date(queue.created), 'MMM d, yyyy')}
+              value={format(new Date(queue.createdAt), 'MMM d, yyyy')}
               icon={<Clock className='h-4 w-4' />}
             />
             <MetricItem
               label='Last Updated'
-              value={formatDistanceToNow(new Date(queue.updated), { addSuffix: true })}
+              value={formatDistanceToNow(new Date(queue.updatedAt), { addSuffix: true })}
               icon={<RefreshCw className='h-4 w-4' />}
             />
           </div>
@@ -341,11 +387,11 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
                 <TableBody>
                   {filteredItems.map((item) => (
                     <QueueItemRow
-                      key={item.queueItem.id}
-                      item={item.queueItem}
+                      key={item.id}
+                      item={item}
                       onRemove={handleRemoveItem}
                       onRetry={handleRetryItem}
-                      onSelect={() => setSelectedItem(item.queueItem)}
+                      onSelect={() => setSelectedItem(item)}
                     />
                   ))}
                 </TableBody>
@@ -453,12 +499,12 @@ function QueueItemRow({ item, onRemove, onRetry, onSelect }: QueueItemRowProps) 
 
   return (
     <TableRow className='cursor-pointer hover:bg-muted/50' onClick={onSelect}>
-      <TableCell>{item.position}</TableCell>
+      <TableCell>{item.priority}</TableCell>
       <TableCell>
-        <Badge variant='outline'>{item.ticketId ? 'Ticket' : 'Task'}</Badge>
+        <Badge variant='outline'>{item.itemType === 'ticket' ? 'Ticket' : item.itemType === 'task' ? 'Task' : item.itemType}</Badge>
       </TableCell>
       <TableCell className='font-medium max-w-[200px] truncate'>
-        {item.ticketId ? `Ticket #${item.ticketId}` : `Task #${item.taskId}`}
+        {item.itemType} #{item.itemId}
       </TableCell>
       <TableCell>
         <div className='flex items-center gap-2'>
@@ -482,7 +528,7 @@ function QueueItemRow({ item, onRemove, onRetry, onSelect }: QueueItemRowProps) 
         )}
       </TableCell>
       <TableCell className='text-muted-foreground text-sm'>
-        {formatDistanceToNow(new Date(item.created), { addSuffix: true })}
+        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
       </TableCell>
       <TableCell className='text-right'>
         <div className='flex items-center justify-end gap-1'>

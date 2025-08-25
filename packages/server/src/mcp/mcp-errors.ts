@@ -412,8 +412,8 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
 
       if (prompts.length > 0) {
         errorText = `Error: ${error.message}\n\nAvailable prompts:\n`
-        prompts.slice(0, 10).forEach((p) => {
-          errorText += `  ${p.id}: ${p.name}\n`
+        prompts.slice(0, 10).forEach((p: any) => {
+          errorText += `  ${p.id}: ${p.title}\n`
         })
         if (prompts.length > 10) {
           errorText += `  ... and ${prompts.length - 10} more prompts\n`
@@ -433,7 +433,7 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
       const projectId = error.context?.projectId
       if (projectId) {
         const project = await getProjectById(projectId as number)
-        const agents = await listAgents(project.path)
+        const agents = await listAgents()
 
         if (agents.length > 0) {
           errorText = `Error: ${error.message}\n\nAvailable agents in project ${projectId}:\n`

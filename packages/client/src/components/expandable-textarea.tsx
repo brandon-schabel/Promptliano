@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { formatShortcut } from '@/lib/shortcuts'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useOptimizeUserInput } from '@/hooks/api/use-projects-api'
+import { useOptimizeUserInput } from '@/hooks/api-hooks'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 
 type ExpandableTextareaProps = {
@@ -42,10 +42,10 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
         return
       }
       optimizeUserInput.mutate(
-        { projectId: projectId ?? -1, data: { userContext: expandedValue } },
+        { projectId: projectId ?? -1, userContext: expandedValue },
         {
-          onSuccess: (resp) => {
-            if (resp.optimizedPrompt) {
+          onSuccess: (resp: any) => {
+            if (resp?.optimizedPrompt) {
               setOptimizedPrompt(resp.optimizedPrompt)
               setPromptimizeDialogOpen(true)
             } else {

@@ -4,7 +4,7 @@ import { Checkbox } from '@promptliano/ui'
 import { DataTableColumnHeader } from '@promptliano/ui'
 import { formatDistanceToNow } from 'date-fns'
 import { CheckCircle, XCircle, Timer, AlertCircle } from 'lucide-react'
-import type { MCPToolExecution } from '@promptliano/schemas'
+import type { MCPToolExecution } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 
 // Helper function to extract action from input params
@@ -33,7 +33,7 @@ function formatBytes(bytes: number | null | undefined): string {
   return `${(bytes / 1024).toFixed(1)} KB`
 }
 
-export const mcpExecutionsColumns: ColumnDef<MCPToolExecution>[] = [
+export const mcpExecutionsColumns: ColumnDef<MCPToolExecution, any>[] = [
   {
     id: 'select',
     header: ({ table }) => (

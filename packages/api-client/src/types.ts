@@ -2,146 +2,160 @@
 export type { ApiConfig, DataResponseSchema } from './base-client'
 export { PromptlianoError } from './base-client'
 
-// Import and re-export commonly used types from schemas
+// Import and re-export commonly used types from database schemas
 export type { 
-  CreateChatBody, 
-  UpdateChatBody, 
-  AiChatStreamRequest, 
-  Chat, 
-  ChatMessage 
-} from '@promptliano/schemas'
+  CreateChat as CreateChatBody,
+  UpdateChat as UpdateChatBody,
+  CreateChatMessage,
+  UpdateChatMessage
+} from '@promptliano/database'
+
+// Use schema types for entities
+import type { ChatSchema, ChatMessageSchema } from '@promptliano/database'
+export type Chat = typeof ChatSchema._type
+export type ChatMessage = typeof ChatMessageSchema._type
+
+// Note: AiChatStreamRequest moved to API types
 
 export type {
-  CreateProjectBody,
-  Project,
-  ProjectFile,
-  UpdateProjectBody,
-  ProjectStatistics
-} from '@promptliano/schemas'
+  CreateProject as CreateProjectBody,
+  UpdateProject as UpdateProjectBody,
+  CreateFile as ProjectFile
+} from '@promptliano/database'
+
+// Use schema types for entities
+import type { ProjectSchema, FileSchema } from '@promptliano/database'
+export type Project = typeof ProjectSchema._type
+export type File = typeof FileSchema._type
+
+// Note: ProjectStatistics available via API types
 
 export type { 
-  CreatePromptBody, 
-  UpdatePromptBody, 
-  OptimizePromptRequest, 
-  Prompt 
-} from '@promptliano/schemas'
+  CreatePrompt as CreatePromptBody,
+  UpdatePrompt as UpdatePromptBody
+} from '@promptliano/database'
+
+// Use schema type for entity
+import type { PromptSchema } from '@promptliano/database'
+export type Prompt = typeof PromptSchema._type
+
+// Note: OptimizePromptRequest available via API types
 
 export type { 
-  CreateProviderKeyBody, 
-  ProviderKey, 
-  UpdateProviderKeyBody 
-} from '@promptliano/schemas'
+  CreateProviderKey as CreateProviderKeyBody,
+  UpdateProviderKey as UpdateProviderKeyBody
+} from '@promptliano/database'
+
+// Use schema type for entity
+import type { ProviderKeySchema } from '@promptliano/database'
+export type ProviderKey = typeof ProviderKeySchema._type
 
 export type { 
-  CreateClaudeAgentBody, 
-  UpdateClaudeAgentBody, 
-  ClaudeAgent 
-} from '@promptliano/schemas'
+  CreateClaudeAgent as CreateClaudeAgentBody,
+  UpdateClaudeAgent as UpdateClaudeAgentBody
+} from '@promptliano/database'
+
+// Use schema type for entity
+import type { ClaudeAgentSchema } from '@promptliano/database'
+export type ClaudeAgent = typeof ClaudeAgentSchema._type
 
 // Claude Command types
 export type {
-  ClaudeCommand,
-  ClaudeCommandFrontmatter,
-  CreateClaudeCommandBody,
-  UpdateClaudeCommandBody,
-  ExecuteClaudeCommandBody,
-  CommandSuggestions,
-  SearchCommandsQuery,
-  CommandScope,
-  CommandGenerationRequest,
-  CommandGenerationResponse
-} from '@promptliano/schemas'
+  CreateClaudeCommand as CreateClaudeCommandBody,
+  UpdateClaudeCommand as UpdateClaudeCommandBody
+} from '@promptliano/database'
 
-export type {
-  TestProviderRequest,
-  TestProviderResponse,
-  BatchTestProviderRequest,
-  BatchTestProviderResponse,
-  ProviderHealthStatus,
-  ValidateCustomProviderRequest,
-  CustomProviderFeatures,
-  ProviderModel
-} from '@promptliano/schemas'
+// Use schema type for entity
+import type { ClaudeCommandSchema } from '@promptliano/database'
+export type ClaudeCommand = typeof ClaudeCommandSchema._type
 
-export type {
-  AiGenerateTextRequest,
-  UnifiedModel
-} from '@promptliano/schemas'
+// Note: Other command types available via API types
 
-// Claude Code types
-export type {
-  ClaudeSession,
-  ClaudeSessionMetadata,
-  ClaudeSessionCursor,
-  ClaudeMessage,
-  ClaudeProjectData,
-  ClaudeSessionsResponse,
-  ClaudeSessionsPaginatedResponse,
-  ClaudeSessionsMetadataResponse,
-  ClaudeMessagesResponse,
-  ClaudeProjectDataResponse,
-  ClaudeSessionQuery,
-  ClaudeMessageQuery
-} from '@promptliano/schemas'
+// Provider testing types available via API types
+// export type {
+//   TestProviderRequest,
+//   TestProviderResponse,
+//   BatchTestProviderRequest,
+//   BatchTestProviderResponse,
+//   ProviderHealthStatus,
+//   ValidateCustomProviderRequest,
+//   CustomProviderFeatures,
+//   ProviderModel
+// } from '@promptliano/schemas'
 
-// Git-related types
-export type {
-  GitBranch,
-  GitCommit,
-  GitStatus,
-  GitStash,
-  GitWorktree,
-  GitFileDiff,
-  GitDiff,
-  GitRemote,
-  GitTag,
-  GitBlame,
-  GitLogEntry,
-  GitDiffResponse,
-  GitOperationResponse,
-  GitStatusResult,
-  GetProjectGitStatusResponse,
-  GitBranchListResponse,
-  GitLogResponse,
-  GitCommitDetailResponse,
-  GitWorktreeListResponse,
-  GitWorktreePruneResponse,
-  GitLogEnhancedRequest,
-  GitLogEnhancedResponse,
-  GitBranchListEnhancedResponse,
-  GitCompareCommitsResponse
-} from '@promptliano/schemas'
+// AI generation types available via API types
+// export type {
+//   AiGenerateTextRequest,
+//   UnifiedModel
+// } from '@promptliano/schemas'
+
+// Claude Code types available via API types
+// export type {
+//   ClaudeSession,
+//   ClaudeSessionMetadata,
+//   ClaudeSessionCursor,
+//   ClaudeMessage,
+//   ClaudeProjectData,
+//   ClaudeSessionsResponse,
+//   ClaudeSessionsPaginatedResponse,
+//   ClaudeSessionsMetadataResponse,
+//   ClaudeMessagesResponse,
+//   ClaudeProjectDataResponse,
+//   ClaudeSessionQuery,
+//   ClaudeMessageQuery
+// } from '@promptliano/schemas'
+
+// Git-related types available via API types
+// export type {
+//   GitBranch,
+//   GitCommit,
+//   GitStatus,
+//   GitStash,
+//   GitWorktree,
+//   GitFileDiff,
+//   GitDiff,
+//   GitRemote,
+//   GitTag,
+//   GitBlame,
+//   GitLogEntry,
+//   GitDiffResponse,
+//   GitOperationResponse,
+//   GitStatusResult,
+//   GetProjectGitStatusResponse,
+//   GitBranchListResponse,
+//   GitLogResponse,
+//   GitCommitDetailResponse,
+//   GitWorktreeListResponse,
+//   GitWorktreePruneResponse,
+//   GitLogEnhancedRequest,
+//   GitLogEnhancedResponse,
+//   GitBranchListEnhancedResponse,
+//   GitCompareCommitsResponse
+// } from '@promptliano/schemas'
 
 // Ticket and Queue types
 export type {
-  Ticket,
-  TicketTask,
-  CreateTicketBody,
-  UpdateTicketBody,
-  CreateTaskBody,
-  UpdateTaskBody,
-  TicketWithTasks,
-  CreateQueueBody,
-  UpdateQueueBody,
-  QueueItem,
-  QueueStats,
-  EnqueueItemBody,
-  QueueWithStats
-} from '@promptliano/schemas'
+  CreateTicket as CreateTicketBody,
+  UpdateTicket as UpdateTicketBody,
+  CreateTask as CreateTaskBody,
+  UpdateTask as UpdateTaskBody,
+  CreateQueue,
+  UpdateQueue,
+  CreateQueueItem,
+  UpdateQueueItem
+} from '@promptliano/database'
 
-// Import types that will be redefined locally to avoid conflicts
-import type {
-  GetNextTaskResponse as SchemaGetNextTaskResponse,
-  QueueTimeline as SchemaQueueTimeline,
-  TicketWithTaskCount as SchemaTicketWithTaskCount,
-  TicketTask
-} from '@promptliano/schemas'
+// Use schema types for entities
+import type { TicketSchema, TaskSchema, QueueSchema, QueueItemSchema } from '@promptliano/database'
+export type Ticket = typeof TicketSchema._type
+export type TicketTask = typeof TaskSchema._type
+export type Queue = typeof QueueSchema._type
+export type QueueItem = typeof QueueItemSchema._type
 
-// Define Task alias for backwards compatibility
-export type Task = TicketTask
+// Note: Complex types like TicketWithTasks, QueueStats available via API types
 
-// Use the schema-derived TaskQueue type instead of redefining
-export type { TaskQueue as Queue } from '@promptliano/schemas'
+// Define Task alias for backwards compatibility using schema type
+export type Task = typeof TaskSchema._type
 
 // Missing types needed by queue client
 export type CompleteTaskBody = {
@@ -158,32 +172,30 @@ export type FailTaskBody = {
   errorMessage: string
 }
 
-// Re-export types from schemas to avoid conflicts
-export type GetNextTaskResponse = SchemaGetNextTaskResponse
-export type QueueTimeline = SchemaQueueTimeline
-export type TicketWithTaskCount = SchemaTicketWithTaskCount
+// Re-export complex types from API generated types
+// These are available via the generated TypeSafe client
 
 
-// MCP types (using basic types from schemas, complex ones defined in client)
-export type {
-  MCPServerConfig,
-  MCPServerConfigResponse,
-  MCPToolExecutionRequest,
-  MCPToolExecutionResult,
-  MCPServerState,
-  MCPTool,
-  MCPResource,
-  CreateMCPServerConfigBody,
-  UpdateMCPServerConfigBody,
-  MCPAnalyticsOverview,
-  MCPAnalyticsRequest,
-  MCPExecutionQuery,
-  MCPExecutionTimeline,
-  MCPToolStatistics,
-  MCPToolPattern,
-  MCPToolExecution,
-  MCPExecutionListResponse
-} from '@promptliano/schemas'
+// MCP types available via API types
+// export type {
+//   MCPServerConfig,
+//   MCPServerConfigResponse,
+//   MCPToolExecutionRequest,
+//   MCPToolExecutionResult,
+//   MCPServerState,
+//   MCPTool,
+//   MCPResource,
+//   CreateMCPServerConfigBody,
+//   UpdateMCPServerConfigBody,
+//   MCPAnalyticsOverview,
+//   MCPAnalyticsRequest,
+//   MCPExecutionQuery,
+//   MCPExecutionTimeline,
+//   MCPToolStatistics,
+//   MCPToolPattern,
+//   MCPToolExecution,
+//   MCPExecutionListResponse
+// } from '@promptliano/schemas'
 
 
 // Additional types that will be defined in individual client modules
@@ -388,12 +400,14 @@ export type GitDiffRequest = {
   staged?: boolean
 }
 
-// Claude Hooks types (imported from schemas)
+// Claude Hooks types available via database schemas
 export type {
-  CreateHookConfigBody,
-  UpdateHookConfigBody,
-  HookEvent,
-  HookGenerationRequest,
-  HookTestRequest,
-  HookListItem
-} from '@promptliano/schemas'
+  CreateClaudeHook,
+  UpdateClaudeHook
+} from '@promptliano/database'
+
+// Use schema type for entity
+import type { ClaudeHookSchema } from '@promptliano/database'
+export type ClaudeHook = typeof ClaudeHookSchema._type
+
+// Other hook types available via API types

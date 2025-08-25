@@ -5,8 +5,7 @@
  * items from being stuck indefinitely in the processing state.
  */
 
-import { checkAndHandleTimeouts } from './queue-service'
-import { listQueuesByProject } from './queue-service'
+import { getQueuesByProject, checkAndHandleTimeouts } from './queue-service'
 import { listProjects } from './project-service'
 import { createLogger } from './utils/logger'
 
@@ -89,8 +88,8 @@ export class QueueTimeoutService {
       for (const project of projects) {
         try {
           // Get all active queues for this project
-          const queues = await listQueuesByProject(project.id)
-          const activeQueues = queues.filter((q) => q.status === 'active')
+          const queues = await getQueuesByProject(project.id)
+          const activeQueues = queues.filter((q: any) => q.isActive)
 
           for (const queue of activeQueues) {
             try {

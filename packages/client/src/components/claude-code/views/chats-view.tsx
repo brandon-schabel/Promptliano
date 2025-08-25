@@ -29,7 +29,7 @@ import {
   useClaudeSessions,
   useFormatClaudeMessage,
   useSessionDuration
-} from '@/hooks/api/use-claude-code-api'
+} from '@/hooks/api-hooks'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { ClaudeMessage } from '@promptliano/schemas'
@@ -259,7 +259,7 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
   const importMutation = useMutation({
     mutationFn: async () => {
       if (!sessionId) throw new Error('No session ID')
-      const response = await client?.claudeCode.importSession(projectId, sessionId)
+      const response = await client?.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId)
       return response?.data
     },
     onSuccess: (chat) => {
@@ -434,10 +434,18 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
                 }}
               >
                 <MessageBubble
-                  message={message}
+                  message={{
+                    ...message,
+                    content: typeof message.content === 'string' ? message.content : 
+                             message.content ? JSON.stringify(message.content) : ''
+                  }}
                   isLast={index === messages.length - 1}
                   onJumpToMessage={handleJumpToMessage}
-                  allMessages={messages}
+                  allMessages={messages.map((m: any) => ({
+                    ...m,
+                    content: typeof m.content === 'string' ? m.content : 
+                             m.content ? JSON.stringify(m.content) : ''
+                  }))}
                 />
               </div>
             ))}

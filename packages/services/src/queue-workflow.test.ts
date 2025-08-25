@@ -1,35 +1,66 @@
-import { describe, test, expect, beforeEach, afterAll } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, afterAll } from 'bun:test'
+import { createTestDatabase, testFactories } from '@promptliano/database'
 import {
   createQueue,
-  enqueueTicket,
-  enqueueTask,
+  enqueueItem,
   getNextTaskFromQueue,
   completeQueueItem,
   failQueueItem,
-  enqueueTicketWithAllTasks,
+  batchEnqueueItems,
   getQueueStats
 } from './queue-service'
 import { createProject } from './project-service'
 import { createTicket, createTask, updateTicket, updateTask, getTicketById, getTasks } from './ticket-service'
-import { clearAllData, resetTestDatabase } from '@promptliano/storage/src/test-utils'
+
+// Helper functions to match old API signatures
+const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {
+  return await enqueueItem(queueId, {
+    type: 'ticket',
+    referenceId: ticketId,
+    title: `Ticket ${ticketId}`,
+    priority
+  })
+}
+
+const enqueueTask = async (ticketId: number, taskId: number, queueId: number, priority: number) => {
+  return await enqueueItem(queueId, {
+    type: 'task',
+    referenceId: taskId,
+    title: `Task ${taskId}`,
+    priority
+  })
+}
+
+const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number) => {
+  // Simplified version - enqueue ticket and its tasks
+  const tasks = await getTasks(ticketId)
+  const items = [
+    { ticketId, priority: 5 },
+    ...tasks.map(task => ({ taskId: task.id, priority: 5 }))
+  ]
+  return await batchEnqueueItems(queueId, items)
+}
 
 describe('Queue Workflows', () => {
   let testProjectId: number
+  let testDb: ReturnType<typeof createTestDatabase>
 
   beforeEach(async () => {
-    await resetTestDatabase()
+    // Create isolated test database
+    testDb = createTestDatabase()
 
-    const project = await createProject({
-      name: 'Workflow Test Project',
-      path: '/test/workflow-' + Date.now(),
-      created: Date.now(),
-      updated: Date.now()
-    })
+    const project = await createProject(
+      testFactories.project({
+        name: 'Workflow Test Project',
+        path: '/test/workflow-' + Date.now()
+      })
+    )
     testProjectId = project.id
   })
 
-  afterAll(async () => {
-    await clearAllData()
+  afterEach(async () => {
+    // Clean up test database
+    testDb?.close()
   })
 
   describe('Typical Ticket Workflow', () => {

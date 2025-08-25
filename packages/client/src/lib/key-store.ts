@@ -1,4 +1,4 @@
-import { ProviderKey } from '@promptliano/schemas'
+import type { ProviderKey } from '@promptliano/database'
 
 // Re-define or import a simplified StoredKey type if ProviderKey is too complex or has API-specific parts
 // For now, let's assume ProviderKey can be stored directly or we'll adapt it.
@@ -39,7 +39,7 @@ export class LocalStorageKeyStore implements IKeyStore {
       id: keyData.id || this.generateId(),
       // unix timestamp in milliseconds
       created: new Date().getTime(),
-      updated: new Date().getTime()
+      updatedAt: new Date().getTime()
     } as StoredKey // Cast needed if StoredKey has more non-optional fields from ProviderKey
     items.push(newKey)
     localStorage.setItem(LOCAL_STORAGE_PROVIDER_KEYS, JSON.stringify(items))
@@ -58,7 +58,7 @@ export class LocalStorageKeyStore implements IKeyStore {
     items[itemIndex] = {
       ...items[itemIndex],
       ...updates,
-      updated: new Date().getTime()
+      updatedAt: new Date().getTime()
     }
     localStorage.setItem(LOCAL_STORAGE_PROVIDER_KEYS, JSON.stringify(items))
     return items[itemIndex]

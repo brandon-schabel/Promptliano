@@ -7,7 +7,7 @@
  * @module QueueFieldUtils
  */
 
-import type { Ticket, TicketTask } from '@promptliano/schemas'
+import type { Ticket, TicketTask } from '@promptliano/database'
 
 /**
  * All queue-related fields that can be present on tickets and tasks.

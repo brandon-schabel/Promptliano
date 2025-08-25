@@ -21,7 +21,7 @@ import {
 } from '@promptliano/schemas'
 import { createLogger } from './utils/logger'
 import { ApiError } from '@promptliano/shared'
-import { ErrorFactory, withErrorContext, createEntityErrorFactory } from './utils/error-factory'
+import { ErrorFactory, withErrorContext, createEntityErrorFactory } from '@promptliano/shared'
 import { withCache } from './utils/service-helpers'
 
 const logger = createLogger('ClaudeCodeFileReaderService')

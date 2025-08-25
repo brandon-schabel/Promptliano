@@ -1,4 +1,4 @@
-import type { HookConfig, HookEvent } from '@promptliano/schemas'
+import type { HookConfig, HookEvent } from '@promptliano/database'
 
 export interface HookTemplate {
   id: string

@@ -6,7 +6,7 @@ import { Input } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { useRecentGenerations } from '@/hooks/use-recent-generations'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useCreatePrompt, useAddPromptToProject } from '@/hooks/api/use-prompts-api'
+import { useCreatePrompt, useAddPromptToProject } from '@/hooks/api-hooks'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -85,8 +85,9 @@ export function RecentAssetsView({ projectId, projectName = 'Project' }: RecentA
     // First create the prompt
     createPrompt(
       {
-        name: promptName,
-        content: savePromptDialog.content
+        title: promptName,
+        content: savePromptDialog.content,
+        projectId: projectId
       },
       {
         onSuccess: (response) => {

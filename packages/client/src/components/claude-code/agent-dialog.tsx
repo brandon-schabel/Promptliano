@@ -9,14 +9,14 @@ import { Textarea } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Loader2 } from 'lucide-react'
-import { useCreateAgent, useUpdateAgent, useGetAgent } from '@/hooks/api-hooks'
-import type { ClaudeAgent, AgentColor } from '@promptliano/schemas'
+import { useCreateAgent, useUpdateAgent, useAgent } from '@/hooks/api-hooks'
+import type { ClaudeAgent } from '@promptliano/database'
 
 const agentFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
   description: z.string().min(1, 'Description is required').max(500, 'Description is too long'),
-  content: z.string().min(1, 'Content is required'),
-  color: z.enum(['blue', 'green', 'red', 'yellow', 'purple', 'cyan', 'orange', 'pink'] as const)
+  instructions: z.string().min(1, 'Instructions are required'),
+  model: z.string().min(1, 'Model is required')
 })
 
 type AgentFormData = z.infer<typeof agentFormSchema>
@@ -28,15 +28,10 @@ interface AgentDialogProps {
   projectId?: number
 }
 
-const colorOptions: { value: AgentColor; label: string; className: string }[] = [
-  { value: 'blue', label: 'Blue', className: 'bg-blue-500' },
-  { value: 'green', label: 'Green', className: 'bg-green-500' },
-  { value: 'red', label: 'Red', className: 'bg-red-500' },
-  { value: 'yellow', label: 'Yellow', className: 'bg-yellow-500' },
-  { value: 'purple', label: 'Purple', className: 'bg-purple-500' },
-  { value: 'cyan', label: 'Cyan', className: 'bg-cyan-500' },
-  { value: 'orange', label: 'Orange', className: 'bg-orange-500' },
-  { value: 'pink', label: 'Pink', className: 'bg-pink-500' }
+const modelOptions = [
+  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+  { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' }
 ]
 
 export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDialogProps) {
@@ -44,20 +39,23 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
   const isEditing = !!agentId
 
   // Fetch agent data if editing
-  const { data: agentResponse, isLoading: isLoadingAgent } = useGetAgent(agentId || '')
-  const agent = agentResponse?.data
+  const { data: agentResponse, isLoading: isLoadingAgent } = useAgent(agentId ? parseInt(agentId) : 0)
+  const agent = agentResponse
 
   // Mutations
-  const createAgentMutation = useCreateAgent(projectId)
+  const createAgentMutation = useCreateAgent()
   const updateAgentMutation = useUpdateAgent()
+  
+  // Type assertion to help TypeScript understand the mutation signatures
+  const updateMutation = updateAgentMutation as any
 
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentFormSchema),
     defaultValues: {
       name: '',
       description: '',
-      content: '',
-      color: 'blue'
+      instructions: '',
+      model: 'claude-3-5-haiku-20241022'
     }
   })
 
@@ -66,9 +64,9 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
     if (agent && isEditing) {
       form.reset({
         name: agent.name,
-        description: agent.description,
-        content: agent.content,
-        color: agent.color
+        description: agent.description || '',
+        instructions: agent.instructions || '',
+        model: agent.model
       })
     }
   }, [agent, isEditing, form])
@@ -78,17 +76,14 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
 
     try {
       if (isEditing && agentId) {
-        await updateAgentMutation.mutateAsync({
-          agentId,
-          data
-        })
+        updateMutation.mutate({ id: parseInt(agentId), data })
       } else {
-        await createAgentMutation.mutateAsync({
-          ...data,
-          projectId
+        createAgentMutation.mutate({
+          ...data
         })
       }
 
+      // Close dialog after mutation is submitted (not necessarily completed)
       onOpenChange(false)
       form.reset()
     } finally {
@@ -150,28 +145,25 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
 
               <FormField
                 control={form.control}
-                name='color'
+                name='model'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Color</FormLabel>
+                    <FormLabel>Model</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder='Select a color' />
+                          <SelectValue placeholder='Select a model' />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {colorOptions.map((option) => (
+                        {modelOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            <div className='flex items-center gap-2'>
-                              <div className={`h-3 w-3 rounded-full ${option.className}`} />
-                              {option.label}
-                            </div>
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>Color for visual identification</FormDescription>
+                    <FormDescription>Claude model to use for this agent</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -179,7 +171,7 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
 
               <FormField
                 control={form.control}
-                name='content'
+                name='instructions'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Agent Instructions (Markdown)</FormLabel>

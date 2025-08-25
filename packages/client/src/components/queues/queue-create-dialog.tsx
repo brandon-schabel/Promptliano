@@ -5,7 +5,7 @@ import { Textarea } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { Loader2 } from 'lucide-react'
-import { useCreateQueue } from '@/hooks/api/use-queue-api'
+import { useCreateQueue } from '@/hooks/api-hooks'
 
 interface QueueCreateDialogProps {
   projectId: number

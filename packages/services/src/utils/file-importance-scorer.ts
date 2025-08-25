@@ -1,4 +1,5 @@
-import type { ProjectFile, FileImportance } from '@promptliano/schemas'
+import type { File } from '@promptliano/database'
+import type { FileImportance } from '@promptliano/schemas'
 
 // File type weights for importance scoring
 const FILE_TYPE_WEIGHTS: Record<string, number> = {
@@ -81,14 +82,14 @@ const DIRECTORY_WEIGHTS: Record<string, number> = {
 /**
  * Calculate importance score for a file based on multiple factors
  */
-export function getFileImportance(file: ProjectFile): FileImportance {
+export function getFileImportance(file: File): FileImportance {
   const factors = {
     type: getFileTypeScore(file.name),
     location: getLocationScore(file.path),
     imports: getImportScore(file.imports?.length || 0),
     exports: getExportScore(file.exports?.length || 0),
     size: getFileSizeScore(file.size || 0),
-    recency: getRecencyScore(file.updated)
+    recency: getRecencyScore(file.updatedAt)
   }
 
   // Calculate weighted total score
@@ -198,7 +199,7 @@ function getRecencyScore(lastUpdated: number): number {
 /**
  * Sort files by importance score (descending)
  */
-export function sortFilesByImportance(files: ProjectFile[]): ProjectFile[] {
+export function sortFilesByImportance(files: File[]): File[] {
   const filesWithScores = files.map((file) => ({
     file,
     importance: getFileImportance(file)
@@ -212,13 +213,13 @@ export function sortFilesByImportance(files: ProjectFile[]): ProjectFile[] {
 /**
  * Get top N most important files
  */
-export function getTopImportantFiles(files: ProjectFile[], topN: number): ProjectFile[] {
+export function getTopImportantFiles(files: File[], topN: number): File[] {
   return sortFilesByImportance(files).slice(0, topN)
 }
 
 /**
  * Filter files by minimum importance score
  */
-export function filterByImportance(files: ProjectFile[], minScore: number): ProjectFile[] {
+export function filterByImportance(files: File[], minScore: number): File[] {
   return files.filter((file) => getFileImportance(file).score >= minScore)
 }

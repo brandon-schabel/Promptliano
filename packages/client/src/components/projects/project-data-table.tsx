@@ -96,7 +96,7 @@ export function ProjectDataTable({
       {
         type: 'date',
         config: {
-          accessorKey: 'updated',
+          accessorKey: 'updatedAt',
           header: 'Last Updated',
           format: 'relative',
           enableSorting: true

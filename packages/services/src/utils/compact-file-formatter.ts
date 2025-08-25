@@ -1,9 +1,9 @@
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File } from '@promptliano/database'
 
 export type CompactLevel = 'ultra' | 'compact' | 'standard'
 
 export interface CompactFileRepresentation {
-  i: number // id
+  i: string // id (file path)
   p: string // path
   s?: string // summary snippet
   t?: string // type/extension
@@ -25,7 +25,7 @@ export class CompactFileFormatter {
    * Format files in ultra-compact mode (~50 chars/file)
    * Only includes id and path
    */
-  static ultraCompact(files: ProjectFile[]): string {
+  static ultraCompact(files: File[]): string {
     const data = files.map((f) => ({
       i: f.id,
       p: this.truncatePath(f.path, 50)
@@ -37,7 +37,7 @@ export class CompactFileFormatter {
    * Format files in compact mode (~100 chars/file)
    * Includes id, path, and brief summary
    */
-  static compact(files: ProjectFile[]): string {
+  static compact(files: File[]): string {
     const data = files.map((f) => ({
       i: f.id,
       p: this.truncatePath(f.path, 50),
@@ -50,13 +50,13 @@ export class CompactFileFormatter {
    * Format files in standard mode (~150 chars/file)
    * Includes id, path, summary, type, and modification time
    */
-  static standard(files: ProjectFile[]): string {
+  static standard(files: File[]): string {
     const data = files.map((f) => ({
       i: f.id,
       p: this.truncatePath(f.path, 60),
       s: this.truncateSummary(f.summary ?? undefined, 50),
-      t: f.extension,
-      m: f.updated
+      t: this.getFileExtension(f.path),
+      m: f.updatedAt
     }))
     return JSON.stringify(data)
   }
@@ -64,7 +64,7 @@ export class CompactFileFormatter {
   /**
    * Build a formatted summary based on the specified level
    */
-  static format(files: ProjectFile[], level: CompactLevel = 'compact'): CompactProjectSummary {
+  static format(files: File[], level: CompactLevel = 'compact'): CompactProjectSummary {
     let formattedFiles: CompactFileRepresentation[]
 
     switch (level) {
@@ -79,8 +79,8 @@ export class CompactFileFormatter {
           i: f.id,
           p: this.truncatePath(f.path, 60),
           s: this.truncateSummary(f.summary ?? undefined, 50),
-          t: f.extension,
-          m: f.updated
+          t: this.getFileExtension(f.path),
+          m: f.updatedAt
         }))
         break
       case 'compact':
@@ -102,7 +102,7 @@ export class CompactFileFormatter {
   /**
    * Create a human-readable summary for AI consumption
    */
-  static toAIPrompt(files: ProjectFile[], level: CompactLevel = 'compact'): string {
+  static toAIPrompt(files: File[], level: CompactLevel = 'compact'): string {
     const summary = this.format(files, level)
 
     let prompt = `Project contains ${summary.total} files:\n`
@@ -119,8 +119,8 @@ export class CompactFileFormatter {
   /**
    * Create a categorized summary grouping files by type
    */
-  static categorizedSummary(files: ProjectFile[]): string {
-    const categories = new Map<string, ProjectFile[]>()
+  static categorizedSummary(files: File[]): string {
+    const categories = new Map<string, File[]>()
 
     // Group files by extension/type
     for (const file of files) {
@@ -174,8 +174,14 @@ export class CompactFileFormatter {
     return path.split('/').pop() ?? path
   }
 
-  private static getFileCategory(file: ProjectFile): string {
-    const ext = file.extension?.toLowerCase() || ''
+  private static getFileExtension(path: string): string {
+    const filename = path.split('/').pop() ?? ''
+    const lastDot = filename.lastIndexOf('.')
+    return lastDot !== -1 ? filename.slice(lastDot + 1) : ''
+  }
+
+  private static getFileCategory(file: File): string {
+    const ext = this.getFileExtension(file.path).toLowerCase() || ''
     const path = file.path.toLowerCase()
 
     // Check for specific file patterns
@@ -210,7 +216,7 @@ export class CompactFileFormatter {
 /**
  * Compare token usage between old XML format and new compact format
  */
-export function calculateTokenSavings(files: ProjectFile[]): {
+export function calculateTokenSavings(files: File[]): {
   oldTokens: number
   newTokens: number
   savings: number
@@ -220,9 +226,9 @@ export function calculateTokenSavings(files: ProjectFile[]): {
   const oldChars = files.length * 500
   const oldTokens = Math.ceil(oldChars / 4)
 
-  // Calculate new format tokens
-  const compactSummary = CompactFileFormatter.compact(files)
-  const newChars = compactSummary.length
+  // Calculate new format tokens using the format method instead
+  const compactSummary = CompactFileFormatter.format(files, 'compact')
+  const newChars = JSON.stringify(compactSummary).length
   const newTokens = Math.ceil(newChars / 4)
 
   const savings = oldTokens - newTokens

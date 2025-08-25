@@ -8,11 +8,11 @@ import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Info, FileText } from 'lucide-react'
 import {
-  useGetProjectFiles,
+  useProjectFiles,
   useGetProjectSummary,
   useRemoveSummariesFromFiles,
   useSummarizeProjectFiles
-} from '@/hooks/api/use-projects-api'
+} from '@/hooks/api-hooks'
 import { buildCombinedFileSummariesXml } from '@promptliano/shared'
 
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'
@@ -96,7 +96,11 @@ export function ProjectSummarizationSettingsPage() {
   //   isError: summaryError
   // } = useGetProjectSummary(selectedProjectId ?? -1)
 
-  const { data, isLoading, isError } = useGetProjectFiles(selectedProjectId ?? -1)
+  // TODO: Re-implement when useGetProjectFiles hook is available
+  // const { data, isLoading, isError } = useGetProjectFiles(selectedProjectId ?? -1)
+  const data = null
+  const isLoading = false
+  const isError = false
 
   // Memoize project files to prevent unnecessary recalculations
   const projectFiles = useMemo(() => (data || []) as ProjectFile[], [data])

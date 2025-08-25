@@ -1,0 +1,346 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [ main, develop, architecture-revamp ]
+  pull_request:
+    branches: [ main, develop ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  BUN_VERSION: '1.1.34'
+
+jobs:
+  playwright-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ env.BUN_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.bun/install/cache
+          node_modules
+          */node_modules
+        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
+
+    - name: Install dependencies
+      run: bun install --frozen-lockfile
+
+    - name: Install Playwright browsers
+      run: |
+        cd packages/client
+        bunx playwright install --with-deps
+
+    - name: Build packages
+      run: |
+        # Build database package
+        cd packages/database && bun run build
+        cd ../..
+        
+        # Build schemas package
+        cd packages/schemas && bun run build
+        cd ../..
+        
+        # Build services package  
+        cd packages/services && bun run build
+        cd ../..
+        
+        # Build server package
+        cd packages/server && bun run build
+        cd ../..
+        
+        # Build client package
+        cd packages/client && bun run build
+        cd ../..
+
+    - name: Setup test database
+      run: |
+        # Create test database directory
+        mkdir -p /tmp/playwright-test-db
+        
+        # Initialize test database
+        cd packages/database
+        DATABASE_PATH=/tmp/playwright-test-db/test.db bun run db:push
+        cd ../..
+
+    - name: Start background services
+      run: |
+        # Start API server in background
+        cd packages/server
+        DATABASE_PATH=/tmp/playwright-test-db/test.db PORT=3147 bun run start &
+        SERVER_PID=$!
+        echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+        
+        # Wait for server to be ready
+        timeout 30 bash -c 'until curl -f http://localhost:3147/health; do sleep 1; done'
+        
+        # Start client dev server in background (for E2E tests)
+        cd ../client
+        VITE_API_URL=http://localhost:3147 bun run preview --port 1420 &
+        CLIENT_PID=$!
+        echo "CLIENT_PID=$CLIENT_PID" >> $GITHUB_ENV
+        
+        # Wait for client to be ready
+        timeout 30 bash -c 'until curl -f http://localhost:1420; do sleep 1; done'
+
+    - name: Run Playwright tests
+      run: |
+        cd packages/client
+        bunx playwright test --shard=${{ matrix.shard }}/4
+      env:
+        CI: true
+        DATABASE_PATH: /tmp/playwright-test-db/test.db
+        VITE_API_URL: http://localhost:3147
+
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-${{ matrix.shard }}
+        path: packages/client/playwright-report/
+        retention-days: 30
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.shard }}
+        path: packages/client/test-results.json
+        retention-days: 30
+
+    - name: Upload Screenshots
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-screenshots-${{ matrix.shard }}
+        path: packages/client/test-results/
+        retention-days: 7
+
+    - name: Cleanup background services
+      if: always()
+      run: |
+        # Kill background processes
+        if [ ! -z "$SERVER_PID" ]; then
+          kill $SERVER_PID || true
+        fi
+        if [ ! -z "$CLIENT_PID" ]; then
+          kill $CLIENT_PID || true
+        fi
+        
+        # Cleanup test database
+        rm -rf /tmp/playwright-test-db
+
+  # Combine test results from all shards
+  test-results:
+    if: always()
+    needs: [playwright-tests]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: test-results-*
+        merge-multiple: true
+        path: test-results
+
+    - name: Download all Playwright reports
+      uses: actions/download-artifact@v4
+      if: always()
+      with:
+        pattern: playwright-report-*
+        merge-multiple: true
+        path: playwright-reports
+
+    - name: Generate combined test report
+      if: always()
+      run: |
+        echo "## E2E Test Results Summary" > test-summary.md
+        echo "" >> test-summary.md
+        
+        # Count test files and results
+        total_files=$(find test-results -name "*.json" | wc -l)
+        echo "- **Total test result files**: $total_files" >> test-summary.md
+        
+        # Check if we have any test results
+        if [ "$total_files" -gt 0 ]; then
+          echo "- **Status**: Tests completed" >> test-summary.md
+        else
+          echo "- **Status**: ⚠️ No test results found" >> test-summary.md
+        fi
+        
+        echo "" >> test-summary.md
+        echo "### Artifacts" >> test-summary.md
+        echo "- Playwright HTML reports available in artifacts" >> test-summary.md
+        echo "- Screenshots (on failure) available in artifacts" >> test-summary.md
+        
+        cat test-summary.md
+
+    - name: Upload combined results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: combined-test-results
+        path: |
+          test-results/
+          playwright-reports/
+          test-summary.md
+        retention-days: 30
+
+  # Optional: Deploy test reports to GitHub Pages (if enabled)
+  deploy-reports:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [test-results]
+    runs-on: ubuntu-latest
+    # Uncomment if you want to enable GitHub Pages deployment
+    # permissions:
+    #   contents: read
+    #   pages: write
+    #   id-token: write
+    steps:
+    - name: Download combined results
+      uses: actions/download-artifact@v4
+      with:
+        name: combined-test-results
+        path: reports
+
+    - name: Prepare GitHub Pages
+      run: |
+        # Create index.html that links to all reports
+        mkdir -p public
+        cat > public/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Playwright Test Reports</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .report-link { display: block; margin: 10px 0; padding: 10px; background: #f5f5f5; text-decoration: none; border-radius: 4px; }
+                .report-link:hover { background: #e5e5e5; }
+            </style>
+        </head>
+        <body>
+            <h1>Playwright E2E Test Reports</h1>
+            <p>Latest test results from CI/CD pipeline</p>
+            
+            <h2>Reports by Shard</h2>
+            <div id="reports">
+                <!-- Reports will be generated based on available files -->
+            </div>
+            
+            <h2>Build Information</h2>
+            <ul>
+                <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+                <li><strong>Commit:</strong> ${{ github.sha }}</li>
+                <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
+                <li><strong>Generated:</strong> $(date)</li>
+            </ul>
+        </body>
+        </html>
+        EOF
+        
+        # Copy all reports
+        cp -r reports/* public/ || true
+
+    # Uncomment to enable GitHub Pages deployment
+    # - name: Setup Pages
+    #   uses: actions/configure-pages@v4
+    # 
+    # - name: Upload to Pages
+    #   uses: actions/upload-pages-artifact@v3
+    #   with:
+    #     path: public
+    # 
+    # - name: Deploy to Pages
+    #   uses: actions/deploy-pages@v4
+
+  # Notification step (optional)
+  notify-results:
+    if: always()
+    needs: [playwright-tests]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check test results
+      run: |
+        echo "E2E Tests completed"
+        echo "Status: ${{ needs.playwright-tests.result }}"
+        
+        # You can add Slack, Discord, or email notifications here
+        # Example for Slack:
+        # - name: Slack Notification
+        #   uses: 8398a7/action-slack@v3
+        #   with:
+        #     status: ${{ needs.playwright-tests.result }}
+        #     channel: '#ci-cd'
+        #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+# Job for running tests on pull requests with limited scope
+pr-tests:
+  if: github.event_name == 'pull_request'
+  timeout-minutes: 30
+  runs-on: ubuntu-latest
+  
+  steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+
+  - name: Setup Bun
+    uses: oven-sh/setup-bun@v2
+    with:
+      bun-version: ${{ env.BUN_VERSION }}
+
+  - name: Install dependencies
+    run: bun install --frozen-lockfile
+
+  - name: Install Playwright browsers
+    run: |
+      cd packages/client
+      bunx playwright install chromium --with-deps
+
+  - name: Build packages (minimal)
+    run: |
+      cd packages/database && bun run build
+      cd ../schemas && bun run build  
+      cd ../services && bun run build
+      cd ../server && bun run build
+      cd ../client && bun run build
+
+  - name: Run smoke tests only
+    run: |
+      cd packages/client
+      # Run only tests tagged with @smoke or basic functionality
+      bunx playwright test --grep "@smoke|should load.*page" --project=chromium
+    env:
+      CI: true
+
+  - name: Upload PR test results
+    uses: actions/upload-artifact@v4
+    if: always()
+    with:
+      name: pr-test-results
+      path: |
+        packages/client/playwright-report/
+        packages/client/test-results/
+      retention-days: 7

@@ -10,7 +10,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as os from 'os'
 import { z } from 'zod'
-import { ErrorFactory, assertExists, withErrorContext } from './utils/error-factory'
+import { ErrorFactory, assertExists, withErrorContext } from '@promptliano/shared'
 
 export const DetectedAgentFileSchema = z.object({
   type: z.string(),

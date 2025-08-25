@@ -1,27 +1,12 @@
 // Database utilities for services package
-import { DatabaseManager } from '@promptliano/storage'
+import { db } from '@promptliano/database'
 import type { Database } from 'bun:sqlite'
-import { runMigrations } from '@promptliano/storage/src/migrations/run-migrations'
-
-// Get database instance
-const dbManager = DatabaseManager.getInstance()
 
 // Export database instance for direct queries in tests
-export const db: Database = dbManager.getDatabase()
+export { db }
 
-// Initialize migrations for tests
-if (process.env.NODE_ENV === 'test') {
-  await runMigrations()
-}
-
-// Reset database function for tests
+// Reset database function for tests (TODO: Implement proper reset for Drizzle)
 export async function resetDatabase(): Promise<void> {
-  await dbManager.clearAllTables()
-  // Re-run migrations after clearing tables
-  if (process.env.NODE_ENV === 'test') {
-    await runMigrations()
-  }
+  // TODO: Implement database reset for Drizzle ORM
+  console.warn('Database reset not yet implemented for Drizzle ORM')
 }
-
-// Export database manager for advanced operations
-export { dbManager }

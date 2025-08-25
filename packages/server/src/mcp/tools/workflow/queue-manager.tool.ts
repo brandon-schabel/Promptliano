@@ -24,6 +24,7 @@ import {
   dequeueTask
 } from '@promptliano/services'
 import type { CreateQueueBody, UpdateQueueBody } from '@promptliano/schemas'
+import type { Queue } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 
 // Define action types
@@ -105,7 +106,7 @@ export const queueManagerTool: MCPToolDefinition = {
 ID: ${queue.id}
 Name: ${queue.name}
 Description: ${queue.description}
-Status: ${queue.status}
+Active: ${queue.isActive ? 'Yes' : 'No'}
 Max Parallel Items: ${queue.maxParallelItems}`
                 }
               ]
@@ -123,7 +124,7 @@ Max Parallel Items: ${queue.maxParallelItems}`
             }
 
             const queueList = queues
-              .map((q) => `${q.id}: ${q.name} [${q.status}] - ${q.description || 'No description'}`)
+              .map((q: Queue) => `${q.id}: ${q.name} [${q.isActive ? 'Active' : 'Inactive'}] - ${q.description || 'No description'}`)
               .join('\n')
 
             return {
@@ -143,11 +144,11 @@ Max Parallel Items: ${queue.maxParallelItems}`
 ID: ${queue.id}
 Name: ${queue.name}
 Description: ${queue.description}
-Status: ${queue.status}
+Active: ${queue.isActive ? 'Yes' : 'No'}
 Max Parallel Items: ${queue.maxParallelItems}
 Project ID: ${queue.projectId}
-Created: ${new Date(queue.created).toLocaleString()}
-Updated: ${new Date(queue.updated).toLocaleString()}`
+Created: ${new Date(queue.createdAt * 1000).toLocaleString()}
+Updated: ${new Date(queue.updatedAt * 1000).toLocaleString()}`
                 }
               ]
             }
@@ -214,7 +215,7 @@ Priority: ${ticket.queuePriority}`
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const priority = data?.priority || 5
 
-            const task = await enqueueTask(ticketId, taskId, validQueueId, priority)
+            const task = await enqueueTask(taskId, validQueueId, priority)
             return {
               content: [
                 {
@@ -234,12 +235,12 @@ Priority: ${task.queuePriority}`
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
             const priority = data?.priority || 5
 
-            const result = await enqueueTicketWithAllTasks(validQueueId, ticketId, priority)
+            const taskCount = await enqueueTicketWithAllTasks(ticketId, validQueueId, priority)
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Enqueued ticket with ${result.tasks.length} tasks to queue ${validQueueId}`
+                  text: `Enqueued ticket with ${taskCount} tasks to queue ${validQueueId}`
                 }
               ]
             }
@@ -260,9 +261,8 @@ Priority: ${task.queuePriority}`
           }
 
           case QueueManagerAction.DEQUEUE_TASK: {
-            const ticketId = validateDataField<number>(data, 'ticketId', 'number', '123')
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
-            await dequeueTask(ticketId, taskId)
+            await dequeueTask(taskId)
 
             return {
               content: [
@@ -282,15 +282,15 @@ Priority: ${task.queuePriority}`
               content: [
                 {
                   type: 'text',
-                  text: `Queue Statistics for "${stats.queueName}":
-Total Items: ${stats.totalItems}
-Queued: ${stats.queuedItems}
-In Progress: ${stats.inProgressItems}
-Completed: ${stats.completedItems}
-Failed: ${stats.failedItems}
-Cancelled: ${stats.cancelledItems}
-Average Processing Time: ${stats.averageProcessingTime ? `${Math.round(stats.averageProcessingTime / 1000)}s` : 'N/A'}
-Current Agents: ${stats.currentAgents.length > 0 ? stats.currentAgents.join(', ') : 'None'}`
+                  text: `Queue Statistics for "${stats.queue.name}":
+Total Items: ${stats.items.length}
+Queued: ${stats.items.filter(item => item.status === 'queued').length}
+In Progress: ${stats.items.filter(item => item.status === 'in_progress').length}
+Completed: ${stats.items.filter(item => item.status === 'completed').length}
+Failed: ${stats.items.filter(item => item.status === 'failed').length}
+Cancelled: ${stats.items.filter(item => item.status === 'cancelled').length}
+Average Processing Time: N/A
+Current Agents: ${stats.items.filter(item => item.status === 'in_progress' && item.agentId).map(item => item.agentId).join(', ') || 'None'}`
                 }
               ]
             }
@@ -308,8 +308,8 @@ Current Agents: ${stats.currentAgents.length > 0 ? stats.currentAgents.join(', '
 
             const statsSummary = allStats
               .map(
-                ({ queue, stats }) =>
-                  `${queue.name} [${queue.status}]:\n` +
+                ({ queue, stats }: { queue: Queue, stats: any }) =>
+                  `${queue.name} [${queue.isActive ? 'Active' : 'Inactive'}]:\n` +
                   `  Total: ${stats.totalItems} | Queued: ${stats.queuedItems} | ` +
                   `In Progress: ${stats.inProgressItems} | Completed: ${stats.completedItems}`
               )

@@ -17,7 +17,7 @@ import {
   createAgent,
   updateAgent,
   deleteAgent,
-  getAgentsByProjectId,
+  getAgentsByProject,
   suggestAgents
 } from '@promptliano/services'
 
@@ -45,7 +45,7 @@ export const agentManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For create: { name: "Code Reviewer", description: "Expert in code review", content: "# Code Reviewer\\n\\nYou are an expert...", color: "blue", filePath: "code-reviewer.md" }. For update: { name: "Updated Name", description: "New description", content: "Updated content", color: "green" }. For suggest_agents: { context: "help me with testing", limit: 5 (optional) }'
+          'Action-specific data. For create: { name: "Code Reviewer", description: "Expert in code review", instructions: "# Code Reviewer\\n\\nYou are an expert...", model: "claude-3-sonnet" }. For update: { name: "Updated Name", description: "New description", instructions: "Updated instructions", model: "claude-3-sonnet", isActive: true }. For suggest_agents: { context: "help me with testing", limit: 5 (optional) }'
       }
     },
     required: ['action']
@@ -57,11 +57,11 @@ export const agentManagerTool: MCPToolDefinition = {
         const { action, agentId, projectId, data } = args
         switch (action) {
           case AgentManagerAction.LIST: {
-            const agents = await listAgents(process.cwd())
+            const agents = await listAgents()
             const agentList = agents
               .map(
                 (a) =>
-                  `${a.id}: ${a.name} - ${a.description.substring(0, 100)}${a.description.length > 100 ? '...' : ''}`
+                  `${a.id}: ${a.name} - ${a.description != null ? a.description.substring(0, 100) + (a.description.length > 100 ? '...' : '') : 'No description'}`
               )
               .join('\n')
             return {
@@ -70,33 +70,28 @@ export const agentManagerTool: MCPToolDefinition = {
           }
           case AgentManagerAction.GET: {
             const validAgentId = validateRequiredParam(agentId, 'agentId', 'string', '"code-reviewer"')
-            const agent = await getAgentById(process.cwd(), validAgentId)
-            const details = `Name: ${agent.name}\nID: ${agent.id}\nDescription: ${agent.description}\nColor: ${agent.color}\nFile Path: ${agent.filePath}\nContent Preview:\n${agent.content.substring(0, 500)}${agent.content.length > 500 ? '...' : ''}\n\nCreated: ${new Date(agent.created).toLocaleString()}\nUpdated: ${new Date(agent.updated).toLocaleString()}`
+            const agent = await getAgentById(validAgentId)
+            const instructions = agent.instructions || 'No instructions available'
+            const details = `Name: ${agent.name}\nID: ${agent.id}\nDescription: ${agent.description || 'No description'}\nModel: ${agent.model}\nActive: ${agent.isActive ? 'Yes' : 'No'}\nInstructions Preview:\n${instructions.substring(0, 500)}${instructions.length > 500 ? '...' : ''}\n\nCreated: ${new Date(agent.createdAt).toLocaleString()}\nUpdated: ${new Date(agent.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }
           }
           case AgentManagerAction.CREATE: {
             const name = validateDataField<string>(data, 'name', 'string', '"Code Reviewer"')
-            const description = validateDataField<string>(
+            const description = data?.description || null
+            const instructions = validateDataField<string>(
               data,
-              'description',
-              'string',
-              '"Expert in code review and best practices"'
-            )
-            const content = validateDataField<string>(
-              data,
-              'content',
+              'instructions',
               'string',
               '"# Code Reviewer\\n\\nYou are an expert code reviewer..."'
             )
-            const color = data?.color || 'blue'
-            const agent = await createAgent(process.cwd(), {
+            const model = data?.model || 'claude-3-sonnet'
+            const agent = await createAgent({
               name,
               description,
-              content,
-              color,
-              filePath: data.filePath
+              instructions,
+              model
             })
             return {
               content: [{ type: 'text', text: `Agent created successfully: ${agent.name} (ID: ${agent.id})` }]
@@ -107,16 +102,17 @@ export const agentManagerTool: MCPToolDefinition = {
             const updateData: any = {}
             if (data.name !== undefined) updateData.name = data.name
             if (data.description !== undefined) updateData.description = data.description
-            if (data.content !== undefined) updateData.content = data.content
-            if (data.color !== undefined) updateData.color = data.color
-            const agent = await updateAgent(process.cwd(), validAgentId, updateData)
+            if (data.instructions !== undefined) updateData.instructions = data.instructions
+            if (data.model !== undefined) updateData.model = data.model
+            if (data.isActive !== undefined) updateData.isActive = data.isActive
+            const agent = await updateAgent(validAgentId, updateData)
             return {
               content: [{ type: 'text', text: `Agent updated successfully: ${agent.name} (ID: ${agent.id})` }]
             }
           }
           case AgentManagerAction.DELETE: {
             const validAgentId = validateRequiredParam(agentId, 'agentId', 'string', '"code-reviewer"')
-            const success = await deleteAgent(process.cwd(), validAgentId)
+            const success = await deleteAgent(validAgentId)
             return {
               content: [
                 {
@@ -130,11 +126,11 @@ export const agentManagerTool: MCPToolDefinition = {
           }
           case AgentManagerAction.LIST_BY_PROJECT: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
-            const agents = await getAgentsByProjectId(process.cwd(), validProjectId)
+            const agents = await getAgentsByProject(validProjectId)
             const agentList = agents
               .map(
                 (a) =>
-                  `${a.id}: ${a.name} - ${a.description.substring(0, 100)}${a.description.length > 100 ? '...' : ''}`
+                  `${a.id}: ${a.name} - ${a.description != null ? a.description.substring(0, 100) + (a.description.length > 100 ? '...' : '') : 'No description'}`
               )
               .join('\n')
             return {
@@ -157,10 +153,10 @@ export const agentManagerTool: MCPToolDefinition = {
             const context = data?.context || ''
             const limit = data?.limit || 5
             const suggestions = await suggestAgents(validProjectId, context, limit)
-            const agentList = suggestions.agents
+            const agentList = suggestions.suggestions
               .map(
                 (a) =>
-                  `${a.name}\n   Description: ${a.description}\n   Relevance: ${a.relevanceScore}/10\n   Reason: ${a.rationale}`
+                  `${a.name}\n   Description: ${a.description || 'No description'}\n   Model: ${a.model}\n   Instructions Preview: ${a.instructions.substring(0, 100)}${a.instructions.length > 100 ? '...' : ''}`
               )
               .join('\n\n')
             return {

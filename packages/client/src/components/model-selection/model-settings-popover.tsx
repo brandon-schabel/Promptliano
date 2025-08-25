@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Settings2Icon } from 'lucide-react'
-import { APIProviders, AiSdkOptions } from '@promptliano/schemas'
+import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { Button, Popover, PopoverContent, PopoverTrigger, Label, Slider } from '@promptliano/ui'
 import { ProviderModelSelector } from './provider-model-selector'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'

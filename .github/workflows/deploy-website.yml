@@ -50,7 +50,7 @@ jobs:
           cache-key-suffix: -website
 
       - name: Build website
-        run: bun run build:website
+        run: bun --filter @promptliano/website build
         env:
           NODE_ENV: production
           VITE_BASE_URL: ${{ github.event_name == 'pull_request' && format('/pr-preview/pr-{0}', github.event.pull_request.number) || '/' }}

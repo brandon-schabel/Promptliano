@@ -6,7 +6,7 @@ import { Button } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Pause, Play, Clock, AlertCircle, Plus } from 'lucide-react'
 import { KanbanCard } from './kanban-card'
-import { QueueWithStats } from '@promptliano/schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 
 interface KanbanItem {
   id: string
@@ -42,17 +42,17 @@ export function KanbanColumn({
   onItemCompleted,
   onOpenTicket
 }: KanbanColumnProps) {
-  const id = queue?.queue.id.toString() || 'unqueued'
+  const id = queue?.id?.toString() || 'unqueued'
   const { setNodeRef, isOver } = useDroppable({ id })
 
-  const title = isUnqueued ? 'Unqueued Items' : queue?.queue.name || 'Queue'
-  const isActive = (queue?.queue.status ?? 'active') === 'active'
+  const title = isUnqueued ? 'Unqueued Items' : queue?.name || 'Queue'
+  const isActive = queue?.isActive ?? true
   const stats = queue?.stats
 
-  // Calculate estimated time
+  // Calculate estimated time (simplified since stats structure changed)
   const estimatedTime =
-    stats?.inProgressItems && stats?.averageProcessingTime
-      ? Math.round((stats.queuedItems * (stats.averageProcessingTime / 1000)) / 60) // minutes
+    stats?.processing && stats?.total
+      ? Math.round((stats.pending * 5) / 60) // Simplified estimate: 5 minutes per item
       : null
 
   return (
@@ -104,9 +104,9 @@ export function KanbanColumn({
                   {isActive ? 'Active' : 'Paused'}
                 </Badge>
                 <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                  <span>{stats.queuedItems} queued</span>
-                  {stats.inProgressItems > 0 && (
-                    <span className='text-primary'>{stats.inProgressItems} in progress</span>
+                  <span>{stats.pending} pending</span>
+                  {stats.processing > 0 && (
+                    <span className='text-primary'>{stats.processing} processing</span>
                   )}
                 </div>
               </>

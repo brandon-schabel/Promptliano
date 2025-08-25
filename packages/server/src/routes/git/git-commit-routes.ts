@@ -28,7 +28,7 @@ const CommitLogQuerySchema = z.object({
   grep: z.string().optional(),
   branch: z.string().optional()
 })
-import * as gitService from '@promptliano/services'
+import { commitChanges, clearGitStatusCache, getCommitLog, getCommitLogEnhanced, getCommitDetail, getFileDiff } from '@promptliano/services'
 import { createStandardResponses, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
 
 // Response schemas
@@ -139,8 +139,8 @@ export const gitCommitRoutes = new OpenAPIHono()
   .openapi(commitRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    await gitService.commitChanges(projectId, body.message)
-    gitService.clearGitStatusCache(projectId)
+    await commitChanges(projectId, body.message)
+    clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Commit created successfully'))
   })
   .openapi(getCommitLogRoute, async (c) => {
@@ -148,7 +148,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
     
-    const commits = await gitService.getCommitLog(projectId, {
+    const commits = await getCommitLog(projectId, {
       limit: maxCount,
       skip,
       branch
@@ -161,7 +161,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
     
-    const result = await gitService.getCommitLogEnhanced(projectId, {
+    const result = await getCommitLogEnhanced(projectId, {
       page: Math.floor(skip / maxCount) + 1,
       perPage: maxCount,
       includeStats: true,
@@ -177,13 +177,13 @@ export const gitCommitRoutes = new OpenAPIHono()
   })
   .openapi(getCommitDetailRoute, async (c) => {
     const { projectId, commitHash } = c.req.valid('param')
-    const detail = await gitService.getCommitDetail(projectId, commitHash)
+    const detail = await getCommitDetail(projectId, commitHash)
     return c.json(successResponse(detail))
   })
   .openapi(getFileDiffRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const { filePath, cached = false } = c.req.valid('query')
-    const diff = await gitService.getFileDiff(projectId, filePath, { staged: cached })
+    const diff = await getFileDiff(projectId, filePath, { staged: cached })
     return c.json(successResponse(diff))
   })
 

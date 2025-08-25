@@ -131,6 +131,19 @@ const UnifiedModelSchema = z
 
 export { UnifiedModelSchema }
 
+export const ModelsQuerySchema = z
+  .object({
+    provider: z.string().optional().openapi({
+      description: 'Filter models by provider',
+      example: 'openai'
+    }),
+    includeDisabled: z.boolean().optional().openapi({
+      description: 'Include disabled models in the response',
+      example: false
+    })
+  })
+  .openapi('ModelsQuery')
+
 export const ModelsListResponseSchema = z
   .object({
     success: z.literal(true),

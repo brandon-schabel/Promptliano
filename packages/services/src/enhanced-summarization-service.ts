@@ -1,6 +1,5 @@
 import {
     type ProjectFile,
-    type FileGroup,
     type GroupSummary,
     type EnhancedFileSummary,
     type BatchSummaryOptions,
@@ -8,8 +7,9 @@ import {
     type SummaryOptions,
     type SummaryProgress
 } from '@promptliano/schemas'
+import type { File, FileGroup } from '@promptliano/database'
 import { z } from 'zod'
-import { ApiError, promptsMap } from '@promptliano/shared'
+import { ApiError, ErrorFactory, promptsMap } from '@promptliano/shared'
 import { generateStructuredData } from './gen-ai-services'
 import { fileSummarizationTracker } from './file-summarization-tracker'
 import { fileGroupingService } from './file-grouping-service'
@@ -33,27 +33,58 @@ export interface BatchProgress {
 
 export interface GroupContext {
     groupName: string
-    relatedFiles: Array<{ id: number; name: string; summary?: string }>
+    relatedFiles: Array<{ id: string; name: string; summary?: string }>
     relationships: Array<{ source: string; target: string; type: string }>
 }
 
-// Model configurations for different summary depths
+// Model configurations for different summary depths - compatible with AiSdkCompatibleOptions
 const MODEL_CONFIGS = {
     minimal: {
-        maxOutputTokens: 200,
+        maxTokens: 200,
         model: 'gemini-1.5-flash',
-        temperature: 0.3
+        temperature: 0.3,
+        provider: 'google_gemini'
     },
     standard: {
-        maxOutputTokens: 500,
+        maxTokens: 500,
         model: 'gemini-1.5-flash',
-        temperature: 0.5
+        temperature: 0.5,
+        provider: 'google_gemini'
     },
     detailed: {
-        maxOutputTokens: 1000,
+        maxTokens: 1000,
         model: 'gemini-1.5-flash',
-        temperature: 0.7
+        temperature: 0.7,
+        provider: 'google_gemini'
     }
+}
+
+// Helper function to convert database File to schema ProjectFile for grouping service
+function convertFileToProjectFile(file: File): ProjectFile {
+    // Convert string ID to number by using a hash or simply parseInt if it's numeric
+    // Since file.id in database is the file path, we'll use a simple hash
+    const numericId = Math.abs(file.id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a; // Convert to 32-bit integer
+    }, 0));
+    
+    return {
+        id: numericId,
+        projectId: file.projectId,
+        name: file.name,
+        path: file.path,
+        extension: file.extension || file.path.split('.').pop() || '',
+        size: file.size || 0,
+        content: file.content,
+        summary: file.summary,
+        summaryLastUpdated: file.summaryLastUpdated,
+        meta: file.meta,
+        checksum: file.checksum,
+        imports: file.imports || null,
+        exports: file.exports || null,
+        created: file.createdAt,
+        updated: file.updatedAt
+    };
 }
 
 export class EnhancedSummarizationService {
@@ -62,10 +93,10 @@ export class EnhancedSummarizationService {
     /**
      * Summarize a group of related files together
      */
-    async summarizeFileGroup(group: FileGroup, files: ProjectFile[], options: SummaryOptions): Promise<GroupSummary> {
+    async summarizeFileGroup(group: FileGroup, files: File[], options: SummaryOptions): Promise<GroupSummary> {
         const startTime = Date.now()
         const fileMap = new Map(files.map((f) => [f.id, f]))
-        const groupFiles = group.fileIds.map((id) => fileMap.get(id)).filter((f) => f !== undefined) as ProjectFile[]
+        const groupFiles = group.fileIds.map((id) => fileMap.get(id)).filter((f) => f !== undefined) as File[]
 
         if (groupFiles.length === 0) {
             throw new ApiError(400, 'No valid files in group', 'EMPTY_FILE_GROUP')
@@ -136,7 +167,7 @@ export class EnhancedSummarizationService {
                 : []
 
             // Combine and deduplicate
-            const fileMap = new Map<number, ProjectFile>()
+            const fileMap = new Map<string, File>()
             const allFiles = [...unsummarizedFiles, ...staleFiles]
             allFiles.forEach((f) => fileMap.set(f.id, f))
             const filesToProcess = Array.from(fileMap.values())
@@ -155,8 +186,8 @@ export class EnhancedSummarizationService {
                 return
             }
 
-            // Group files
-            const groups = fileGroupingService.groupFilesByStrategy(filesToProcess, options.strategy, {
+            // Group files using database File objects
+            const groups = fileGroupingService.groupFilesByStrategy(filesToProcess, options.strategy, projectId, {
                 maxGroupSize: options.maxGroupSize,
                 priorityThreshold: options.priorityThreshold
             })
@@ -224,7 +255,7 @@ export class EnhancedSummarizationService {
                     // Update file statuses
                     fileSummarizationTracker.updateSummarizationStatus(
                         projectId,
-                        group.fileIds.map((id) => ({ fileId: id, status: 'completed' }))
+                        group.fileIds.map((id) => ({ fileId: String(id), status: 'completed' }))
                     )
                 } catch (error) {
                     const errorMsg = `Failed to process group ${group.name}: ${error instanceof Error ? error.message : String(error)}`
@@ -235,7 +266,7 @@ export class EnhancedSummarizationService {
                     fileSummarizationTracker.updateSummarizationStatus(
                         projectId,
                         group.fileIds.map((id) => ({
-                            fileId: id,
+                            fileId: String(id),
                             status: 'failed',
                             error: errorMsg
                         }))
@@ -276,7 +307,7 @@ export class EnhancedSummarizationService {
      * Generate enhanced summary for a single file with group context
      */
     async generateEnhancedSummary(
-        file: ProjectFile,
+        file: File,
         context: GroupContext,
         options: SummaryOptions
     ): Promise<EnhancedFileSummary> {
@@ -291,9 +322,9 @@ export class EnhancedSummarizationService {
 
         try {
             const depth = options.depth || 'standard'
-            const modelConfig = MODEL_CONFIGS[depth]
+            const modelConfig = MODEL_CONFIGS[depth as keyof typeof MODEL_CONFIGS]
             if (!modelConfig) {
-                throw new Error(`Invalid depth option: ${depth}`)
+                throw ErrorFactory.invalidInput('depth', 'minimal, standard, or detailed', depth)
             }
 
             // Build context-aware prompt
@@ -331,8 +362,8 @@ export class EnhancedSummarizationService {
      */
     private buildGroupContext(
         group: FileGroup,
-        groupFiles: ProjectFile[],
-        allFilesMap: Map<number, ProjectFile>
+        groupFiles: File[],
+        allFilesMap: Map<string, File>
     ): GroupContext {
         const relatedFiles = groupFiles.map((f) => ({
             id: f.id,
@@ -397,11 +428,14 @@ Provide a concise overview that captures:
 `
 
         try {
+            const depth = options.depth || 'standard'
+            const modelConfig = MODEL_CONFIGS[depth as keyof typeof MODEL_CONFIGS]
+            
             const result = await generateStructuredData({
                 prompt,
                 schema: FileSummarizationRequestSchema,
                 systemMessage: 'You are an expert code analyst. Provide clear, concise summaries.',
-                options: MODEL_CONFIGS[options.depth || 'standard']
+                options: modelConfig
             })
 
             return result.object.summary
@@ -479,7 +513,7 @@ Provide a concise overview that captures:
      */
     private async processGroupWithConcurrency(
         group: FileGroup,
-        allFiles: ProjectFile[],
+        allFiles: File[],
         options: BatchSummaryOptions,
         signal: AbortSignal
     ): Promise<GroupSummary> {
@@ -502,7 +536,7 @@ Provide a concise overview that captures:
 
         const waitForSlot = async () => {
             while (running >= maxConcurrent) {
-                if (signal.aborted) throw new Error('Operation cancelled')
+                if (signal.aborted) throw ErrorFactory.operationFailed('batch-summarization', 'Operation cancelled by user')
                 await new Promise((resolve) => setTimeout(resolve, 100))
             }
         }
@@ -544,8 +578,9 @@ Provide summaries that are:
     /**
      * Build enhanced user prompt for summarization
      */
-    private buildEnhancedUserPrompt(file: ProjectFile, context: GroupContext, options: SummaryOptions): string {
-        let prompt = `Summarize this ${file.extension || 'code'} file:\n\n`
+    private buildEnhancedUserPrompt(file: File, context: GroupContext, options: SummaryOptions): string {
+        const extension = file.path.split('.').pop() || 'code'
+        let prompt = `Summarize this ${extension} file:\n\n`
         prompt += `File: ${file.path}\n`
 
         if (options.groupAware && context.relatedFiles.length > 1) {
@@ -593,11 +628,11 @@ Provide summaries that are:
      * Extract relationships from summary context
      */
     private extractRelationships(
-        file: ProjectFile,
+        file: File,
         context: GroupContext,
         summary: string
-    ): Array<{ relatedFileId: number; relationshipType: any; context?: string }> {
-        const relationships: Array<{ relatedFileId: number; relationshipType: any; context?: string }> = []
+    ): Array<{ relatedFileId: string; relationshipType: any; context?: string }> {
+        const relationships: Array<{ relatedFileId: string; relationshipType: any; context?: string }> = []
 
         // Add import relationships
         if (file.imports) {

@@ -10,10 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Loader2, Sparkles, FileText } from 'lucide-react'
-import { useCreateHook, useUpdateHook, useGenerateHook } from '@/hooks/api/use-claude-hooks'
-import { useGetProject } from '@/hooks/api/use-projects-api'
+import { useCreateHook, useUpdateHook, useGenerateHook } from '@/hooks/api-hooks'
+import { useGetProject } from '@/hooks/api-hooks'
 import { HOOK_TEMPLATES, getTemplatesByCategory, type HookTemplate } from '@promptliano/shared'
-import type { HookEvent, CreateHookConfigBody } from '@promptliano/schemas'
+import type { HookEventType, CreateHookConfigBody, UpdateHookConfigBody } from '@promptliano/schemas'
 import { toast } from 'sonner'
 
 interface HookDialogProps {
@@ -22,7 +22,7 @@ interface HookDialogProps {
   hookId: string | null
   projectId: number
   initialData?: {
-    eventName: HookEvent
+    eventName: HookEventType
     matcher: string
     command: string
     timeout?: number
@@ -30,7 +30,7 @@ interface HookDialogProps {
   }
 }
 
-const HOOK_EVENTS: { value: HookEvent; label: string; description: string }[] = [
+const HOOK_EVENTS: { value: HookEventType; label: string; description: string }[] = [
   { value: 'PreToolUse', label: 'Pre Tool Use', description: 'Before any tool is executed' },
   { value: 'PostToolUse', label: 'Post Tool Use', description: 'After any tool is executed' },
   { value: 'UserPromptSubmit', label: 'User Prompt Submit', description: 'When user submits a prompt' },
@@ -50,7 +50,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
   const [aiDescription, setAiDescription] = useState('')
 
   // Form state
-  const [eventName, setEventName] = useState<HookEvent>(initialData?.eventName || 'PreToolUse')
+  const [eventName, setEventName] = useState<HookEventType>(initialData?.eventName || 'PreToolUse')
   const [matcher, setMatcher] = useState(initialData?.matcher || '')
   const [command, setCommand] = useState(initialData?.command || '')
   const [timeout, setTimeout] = useState(initialData?.timeout?.toString() || '')
@@ -94,15 +94,15 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
     }
 
     const result = await generateHook.mutateAsync({
+      name: `Generated Hook ${Date.now()}`,
       description: aiDescription,
-      context: { suggestedEvent: eventName }
+      event: eventName || 'PreToolUse',
+      script: '',
+      isActive: true
     })
 
     if (result) {
-      setEventName(result.event)
-      setMatcher(result.matcher)
       setCommand(result.command)
-      setTimeout(result.timeout?.toString() || '')
       setActiveTab('manual')
       toast.success('Hook generated successfully')
     }
@@ -112,23 +112,21 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
     if (!projectPath) return
 
     const hookData: CreateHookConfigBody = {
-      event: eventName,
-      matcher,
       command,
-      timeout: timeout ? parseInt(timeout, 10) : undefined
+      timeout: timeout ? parseInt(timeout, 10) : undefined,
+      enabled: true
     }
 
     try {
       if (isEditing && initialData?.matcherIndex !== undefined) {
+        // Update hook with legacy API
         await updateHook.mutateAsync({
-          eventName,
+          eventName: eventName,
           matcherIndex: initialData.matcherIndex,
           data: {
-            event: eventName,
-            matcherIndex: initialData.matcherIndex,
-            matcher,
             command,
-            timeout: timeout ? parseInt(timeout, 10) : undefined
+            timeout: timeout ? parseInt(timeout, 10) : undefined,
+            enabled: true
           }
         })
       } else {
@@ -164,7 +162,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v: string) => setActiveTab(v as 'manual' | 'templates' | 'ai')}>
           <TabsList className='grid w-full grid-cols-3'>
             <TabsTrigger value='manual'>Manual</TabsTrigger>
             <TabsTrigger value='templates' disabled={isEditing}>
@@ -181,7 +179,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
             <div className='grid gap-4'>
               <div className='space-y-2'>
                 <Label>Event</Label>
-                <Select value={eventName} onValueChange={(v) => setEventName(v as HookEvent)} disabled={isEditing}>
+                <Select value={eventName} onValueChange={(v) => setEventName(v as HookEventType)} disabled={isEditing}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -295,7 +293,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
 
               <div className='space-y-2'>
                 <Label>Target Event</Label>
-                <Select value={eventName} onValueChange={(v) => setEventName(v as HookEvent)}>
+                <Select value={eventName} onValueChange={(v) => setEventName(v as HookEventType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

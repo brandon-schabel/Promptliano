@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Slider } from '@promptliano/ui'
-import { useSyncProject, useGetProject } from '@/hooks/api/use-projects-api'
+import { useSyncProject, useGetProject } from '@/hooks/api-hooks'
 import { useProjectTabField, useUpdateActiveProjectTab, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { useEffect } from 'react'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'

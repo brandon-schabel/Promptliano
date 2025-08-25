@@ -4,6 +4,8 @@
  * Manages valid state transitions for queue items
  */
 
+import { ErrorFactory } from '@promptliano/shared'
+
 export type QueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
 
 export interface StateTransition {
@@ -87,9 +89,10 @@ export class QueueStateMachine {
 
     if (!this.isValidTransition(currentStatus, newStatus)) {
       const validStates = this.getValidNextStates(currentStatus)
-      throw new Error(
-        `Invalid state transition from '${currentStatus}' to '${newStatus}'. ` +
-          `Valid transitions: ${validStates.length > 0 ? validStates.join(', ') : 'none (terminal state)'}`
+      throw ErrorFactory.invalidState(
+        'Queue item',
+        currentStatus,
+        `transition to '${newStatus}' (valid: ${validStates.length > 0 ? validStates.join(', ') : 'none - terminal state'})`
       )
     }
 

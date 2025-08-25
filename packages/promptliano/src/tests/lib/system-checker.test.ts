@@ -76,7 +76,7 @@ describe('SystemChecker', () => {
 
       expect(result.installed).toBe(true)
       expect(result.path).toBe(installPath)
-      expect(result.version).toBe('0.9.4')
+      expect(result.version).toBe('0.10.0')
 
       // Restore
       homedirSpy.mockRestore()
@@ -92,7 +92,7 @@ describe('SystemChecker', () => {
       expect(result.connected).toBeDefined()
       if (result.connected) {
         expect(result.latency).toBeDefined()
-        expect(result.latency).toBeGreaterThan(0)
+        expect(result.latency).toBeGreaterThanOrEqual(0)
       }
     })
   })

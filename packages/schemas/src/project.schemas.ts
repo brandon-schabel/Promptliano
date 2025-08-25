@@ -8,14 +8,21 @@ import {
 } from './schema-utils'
 import { createEntitySchemas, createResponseSchemas } from './schema-factories'
 
-// Project schemas using factory pattern
-const projectSchemas = createEntitySchemas('Project', {
-  name: z.string(),
-  description: z.string(),
-  path: z.string()
-})
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Project as DatabaseProject } from '@promptliano/database'
 
-export const ProjectSchema = projectSchemas.base
+// Recreate schema locally to avoid runtime imports from database package
+export const ProjectSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  path: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('Project')
+
+// Type verification to ensure schema matches database type
+const _projectTypeCheck: z.infer<typeof ProjectSchema> = {} as DatabaseProject
 
 // Import and Export info schemas
 export const ImportInfoSchema = z
@@ -46,6 +53,8 @@ export const ExportInfoSchema = z
   })
   .openapi('ExportInfo')
 
+// ProjectFile schema extends database File schema with client-specific analysis fields
+// Database File schema only has basic file metadata, this adds import/export analysis, content, etc.
 export const ProjectFileSchema = z
   .object({
     id: entityIdSchema,
@@ -73,20 +82,23 @@ export const ProjectIdParamsSchema = z
   })
   .openapi('ProjectIdParams')
 
-// Request Body Schemas - customized from factory base
-export const CreateProjectBodySchema = projectSchemas.create.extend({
+// API Request Body Schemas - derived from database schema
+export const CreateProjectBodySchema = ProjectSchema.pick({
+  name: true,
+  path: true,
+  description: true
+}).extend({
   name: z.string().min(1).openapi({ example: 'My Awesome Project' }),
   path: z.string().min(1).openapi({ example: '/path/to/project' }),
   description: z.string().optional().openapi({ example: 'Optional project description' })
 }).openapi('CreateProjectRequestBody')
 
-export const UpdateProjectBodySchema = projectSchemas.update.extend({
-  name: z.string().min(1).optional().openapi({ example: 'Updated Project Name' }),
-  path: z.string().min(1).optional().openapi({ example: '/new/path/to/project' }),
-  description: z.string().optional().openapi({ example: 'Updated description' })
-}).refine((data) => data.name || data.path || data.description, {
-  message: 'At least one field (name, path, description) must be provided for update'
-}).openapi('UpdateProjectRequestBody')
+export const UpdateProjectBodySchema = CreateProjectBodySchema.partial().refine(
+  (data) => data.name || data.path || data.description, 
+  {
+    message: 'At least one field (name, path, description) must be provided for update'
+  }
+).openapi('UpdateProjectRequestBody')
 
 export const SummarizeFilesBodySchema = z
   .object({
@@ -112,6 +124,22 @@ export const SuggestFilesBodySchema = z
   })
   .openapi('SuggestFilesRequestBody')
 
+export const SuggestFilesResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      suggestedFiles: z.array(z.object({
+        path: z.string(),
+        relevance: z.number().min(0).max(1),
+        reason: z.string(),
+        fileType: z.string()
+      })),
+      totalFiles: z.number(),
+      processingTime: z.number()
+    })
+  })
+  .openapi('SuggestFilesResponse')
+
 // Request Query Schemas
 export const RefreshQuerySchema = z
   .object({
@@ -126,7 +154,7 @@ export const RefreshQuerySchema = z
   })
   .openapi('RefreshQuery')
 
-// Response Schemas using factory pattern
+// Response Schemas using database schema
 const projectResponses = createResponseSchemas(ProjectSchema, 'Project')
 
 export const ProjectResponseSchema = projectResponses.single
@@ -260,6 +288,7 @@ export const ProjectFileMapWithoutContentSchema = z
   .openapi('ProjectFileMapWithoutContent')
 
 export type Project = z.infer<typeof ProjectSchema>
+export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema>
 export type ProjectFile = z.infer<typeof ProjectFileSchema>
 export type ProjectFileWithoutContent = z.infer<typeof ProjectFileWithoutContentSchema>
 export type CreateProjectBody = z.infer<typeof CreateProjectBodySchema>
@@ -280,6 +309,7 @@ export type FileResponse = z.infer<typeof FileResponseSchema>
 export type ProjectStatistics = z.infer<typeof ProjectStatisticsSchema>
 export type ProjectStatisticsResponse = z.infer<typeof ProjectStatisticsResponseSchema>
 export type ProjectSummaryResponse = z.infer<typeof ProjectSummaryResponseSchema>
+export type SuggestFilesResponse = z.infer<typeof SuggestFilesResponseSchema>
 
 // Sync Progress Schemas
 export const SyncProgressEventSchema = z

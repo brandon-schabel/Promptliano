@@ -91,7 +91,15 @@ export function CustomProviderDialog({ open, onOpenChange, onSuccess }: CustomPr
       })
 
       if (response.data) {
-        setValidationResult(response.data)
+        // Map the models to include required provider field
+        const mappedResult = {
+          ...response.data,
+          models: response.data.models.map(model => ({
+            ...model,
+            provider: form.getValues().name || 'custom'
+          }))
+        }
+        setValidationResult(mappedResult)
         if (response.data.compatible) {
           toast.success('Provider is OpenAI-compatible!')
         } else {

@@ -1,6 +1,6 @@
 {
   "name": "promptliano",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "description": "Setup and manage Promptliano - Your AI toolkit for context engineering",
   "bin": {
     "promptliano": "./dist/index.js"
@@ -9,10 +9,8 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node --format esm --external chalk --external commander --external inquirer --external ora --external simple-git --external tar --external adm-zip",
-    "build:types": "tsc --emitDeclarationOnly",
+    "build": "bun build src/index.ts --outdir dist --target node --format esm --external chalk --external commander --external inquirer --external ora --external simple-git --external tar --external adm-zip && tsc --emitDeclarationOnly",
     "dev": "bun run src/index.ts",
-    "prepublishOnly": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

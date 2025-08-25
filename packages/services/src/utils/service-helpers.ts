@@ -1,5 +1,5 @@
 import { ApiError } from '@promptliano/shared'
-import { ErrorFactory, withErrorContext, assertExists } from './error-factory'
+import { ErrorFactory, withErrorContext, assertExists } from '@promptliano/shared/src/error/error-factory'
 
 /**
  * Service layer helpers to reduce duplication
@@ -14,7 +14,7 @@ export function createServiceMethod<TArgs extends any[], TReturn>(
     entity: string
     action: string
   }
-) {
+): (...args: TArgs) => Promise<TReturn> {
   return async (...args: TArgs): Promise<TReturn> => {
     return withErrorContext(
       () => fn(...args),
@@ -48,9 +48,9 @@ export interface CrudServiceOptions<TEntity, TCreate, TUpdate> {
  * Create a complete CRUD service
  */
 export function createCrudService<
-  TEntity extends { id: number },
-  TCreate = Omit<TEntity, 'id' | 'created' | 'updated'>,
-  TUpdate = Partial<Omit<TEntity, 'id' | 'created' | 'updated'>>
+  TEntity extends { id: number; createdAt: number; updatedAt: number },
+  TCreate = Omit<TEntity, 'id' | 'createdAt' | 'updatedAt'>,
+  TUpdate = Partial<Omit<TEntity, 'id' | 'createdAt' | 'updatedAt'>>
 >(options: CrudServiceOptions<TEntity, TCreate, TUpdate>) {
   const { entityName, storage, generateId, transform = {} } = options
 
@@ -84,8 +84,8 @@ export function createCrudService<
           let entity: TEntity = {
             ...(transform.beforeCreate ? await transform.beforeCreate(data) : data),
             id: generateId(),
-            created: now,
-            updated: now
+            createdAt: now,
+            updatedAt: now
           } as TEntity
           
           const created = await storage.add(entity)
@@ -113,7 +113,7 @@ export function createCrudService<
           
           const updated = await storage.update(id, {
             ...updates,
-            updated: Date.now()
+            updatedAt: Date.now()
           })
           
           if (transform.afterUpdate) {
@@ -134,7 +134,7 @@ export function createCrudService<
           
           const success = await storage.delete(id)
           if (!success) {
-            ErrorFactory.operationFailed(`delete ${entityName}`)
+            throw ErrorFactory.operationFailed(`delete ${entityName}`)
           }
           
           return success

@@ -6,7 +6,10 @@ import { z } from 'zod'
 import { createPromptlianoClient, PromptlianoError } from '@promptliano/api-client'
 import type { PromptlianoClient } from '@promptliano/api-client'
 
-import { ProjectFileSchema, type Project, type ProjectFile } from '@promptliano/schemas'
+// Import database schemas as source of truth
+import { type Project, type File as ProjectFile } from '@promptliano/database'
+// Import application-level schemas
+import { ProjectFileSchema } from '@promptliano/schemas'
 import { TEST_API_URL } from './test-config'
 
 const BASE_URL = TEST_API_URL
@@ -128,7 +131,7 @@ describe('Project API Tests', () => {
       if (update.description) expect(result.data.description).toBe(update.description)
       else expect(result.data.description).toBe(project.description)
 
-      expect(result.data.updated).toBeGreaterThanOrEqual(project.updated)
+      expect(result.data.updatedAt).toBeGreaterThanOrEqual(project.updatedAt)
       testProjects[i] = result.data
     }
   })

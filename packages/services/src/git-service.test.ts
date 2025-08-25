@@ -2,7 +2,7 @@ import { describe, test, expect, spyOn, beforeEach, afterEach, Mock } from 'bun:
 import * as gitService from './git-service'
 import * as projectService from './project-service'
 import { simpleGit, type SimpleGit } from 'simple-git'
-import type { Project, GitStatus } from '@promptliano/schemas'
+import type { Project, GitStatus } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 
 // Mock simple-git

@@ -1,6 +1,6 @@
 import type {
-  GitLogEntry,
   GitCommit,
+  GitLogEntry,
   GitDiff,
   GitLogEnhancedRequest,
   GitLogEnhancedResponse,

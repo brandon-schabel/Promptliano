@@ -164,8 +164,8 @@ const deleteQueueRoute = createRoute({
 
 queueRoutesApp.openapi(deleteQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
-  await deleteQueue(queueId)
-  return c.json(successResponse({ deleted: true }))
+  const deleted = await deleteQueue(queueId)
+  return c.json(successResponse({ deleted }))
 })
 
 // Enqueue ticket
@@ -199,8 +199,10 @@ queueRoutesApp.openapi(enqueueTicketRoute, async (c) => {
   const { queueId, priority, includeTasks } = c.req.valid('json')
 
   if (includeTasks) {
-    const result = await enqueueTicketWithAllTasks(queueId, ticketId, priority)
-    return c.json(successResponse(result.ticket))
+    const tasksCount = await enqueueTicketWithAllTasks(ticketId, queueId, priority)
+    // Since enqueueTicketWithAllTasks returns a number, we need to get the ticket separately
+    const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
+    return c.json(successResponse(ticket))
   } else {
     const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
     return c.json(successResponse(ticket))
@@ -236,7 +238,7 @@ const enqueueTaskRoute = createRoute({
 queueRoutesApp.openapi(enqueueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
   const { queueId, priority } = c.req.valid('json')
-  const task = await enqueueTask(ticketId, taskId, queueId, priority || 0)
+  const task = await enqueueTask(taskId, queueId, priority || 0)
   return c.json(successResponse(task))
 })
 
@@ -279,7 +281,7 @@ const dequeueTaskRoute = createRoute({
 
 queueRoutesApp.openapi(dequeueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
-  const task = await dequeueTask(ticketId, taskId)
+  const task = await dequeueTask(taskId)
   return c.json(successResponse(task))
 })
 
@@ -450,7 +452,7 @@ const completeQueueItemRoute = createRoute({
 queueRoutesApp.openapi(completeQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { ticketId } = c.req.valid('json')
-  await completeQueueItem(itemType, itemId, ticketId)
+  await completeQueueItem(Number(itemId), { success: true, metadata: { ticketId } })
   return c.json(successResponse({ completed: true }))
 })
 
@@ -483,7 +485,7 @@ const failQueueItemRoute = createRoute({
 queueRoutesApp.openapi(failQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { errorMessage, ticketId } = c.req.valid('json')
-  await failQueueItem(itemType, itemId, errorMessage, ticketId)
+  await failQueueItem(Number(itemId), errorMessage, { retry: false })
   return c.json(successResponse({ failed: true }))
 })
 

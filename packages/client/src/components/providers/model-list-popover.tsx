@@ -2,9 +2,10 @@ import React from 'react'
 import { Button, Popover, PopoverContent, PopoverTrigger, ScrollArea, Badge, cn } from '@promptliano/ui'
 import { Cpu, Copy, Loader2, ChevronRight } from 'lucide-react'
 import { copyToClipboard } from '@/utils/clipboard'
+import type { ProviderModel } from '@promptliano/schemas'
 
 interface ModelListPopoverProps {
-  models: any[] | undefined
+  models: ProviderModel[] | undefined
   isLoading: boolean
   providerName: string
   isConnected?: boolean
@@ -21,7 +22,7 @@ export function ModelListPopover({
   children
 }: ModelListPopoverProps) {
   // Parse models data - now expecting an array directly
-  const modelArray: any[] = models || []
+  const modelArray: ProviderModel[] = models || []
 
   // Default trigger content if no children provided
   const defaultTrigger = (

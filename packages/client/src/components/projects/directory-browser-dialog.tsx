@@ -11,7 +11,7 @@ import {
   Separator
 } from '@promptliano/ui'
 import { ChevronRight, Folder, FolderOpen, Home, ChevronUp } from 'lucide-react'
-import { useBrowseDirectory } from '@/hooks/api/use-browse-directory'
+import { useBrowseDirectory } from '@/hooks/api-hooks'
 import type { DirectoryEntry, BrowseDirectoryResponse } from '@promptliano/schemas'
 import { cn } from '@/lib/utils'
 

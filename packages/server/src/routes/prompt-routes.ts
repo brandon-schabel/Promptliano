@@ -335,10 +335,13 @@ const validateMarkdownRoute = createRoute({
 export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
+    const now = Date.now()
     const createdPrompt = await createPrompt({
-      name: body.name,
+      title: body.title,
       content: body.content,
-      projectId: body.projectId
+      projectId: body.projectId,
+      createdAt: now,
+      updatedAt: now
     })
     return c.json(successResponse(createdPrompt), 201)
   }) as any)
@@ -353,7 +356,7 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(suggestPromptsRoute, async (c) => {
     const { projectId } = (c.req as any).valid('param')
     const { userInput, limit } = c.req.valid('json')
-    const suggestedPrompts = await suggestPrompts(projectId, userInput, limit)
+    const suggestedPrompts = await suggestPrompts(projectId, userInput)
     return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
@@ -364,7 +367,7 @@ export const promptRoutes = new OpenAPIHono()
   })
   .openapi(removePromptFromProjectRoute, async (c) => {
     const { promptId, projectId } = c.req.valid('param')
-    await removePromptFromProject(promptId, projectId)
+    await removePromptFromProject(promptId)
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
   .openapi(getPromptByIdRoute, async (c) => {
@@ -380,7 +383,13 @@ export const promptRoutes = new OpenAPIHono()
   })
   .openapi(deletePromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
-    await deletePrompt(promptId)
+    if (!deletePrompt) {
+      throw new Error('Delete prompt function not available')
+    }
+    const deleted = await deletePrompt(promptId)
+    if (!deleted) {
+      throw new Error('Failed to delete prompt')
+    }
     return c.json(operationSuccessResponse('Prompt deleted successfully.'))
   })
 
@@ -444,9 +453,14 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(exportPromptRoute, async (c) => {
     const { promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
-    const markdownContent = await promptToMarkdown(prompt)
+    // Ensure tags are properly typed for the promptToMarkdown function
+    const promptForMarkdown = {
+      ...prompt,
+      tags: Array.isArray(prompt.tags) ? prompt.tags.filter((tag): tag is string => typeof tag === 'string') : []
+    }
+    const markdownContent = await promptToMarkdown(promptForMarkdown)
 
-    const filename = `${prompt.name
+    const filename = `${prompt.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')}.md`

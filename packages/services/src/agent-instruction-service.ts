@@ -33,8 +33,7 @@ export interface AgentFileInfo {
   instructionVersion?: string
 }
 
-export class AgentInstructionService {
-  private getInstructionTemplate(options: AgentInstructionOptions): string {
+function getInstructionTemplate(options: AgentInstructionOptions): string {
     const { projectId, projectName, includeExamples, customInstructions } = options
 
     let template = `${INSTRUCTION_START_MARKER} v${INSTRUCTION_VERSION} -->
@@ -128,18 +127,18 @@ Project ID: ${projectId}
 ${INSTRUCTION_END_MARKER}`
 
     return template
-  }
+}
 
-  async updateAgentFile(
+async function updateAgentFile(
     filePath: string,
     options: AgentInstructionOptions
   ): Promise<{ success: boolean; message: string; backedUp?: boolean }> {
     try {
-      const fileExists = await this.fileExists(filePath)
+      const exists = await fileExists(filePath)
       let content = ''
       let backedUp = false
 
-      if (fileExists) {
+      if (exists) {
         content = await fs.readFile(filePath, 'utf-8')
 
         // Create backup
@@ -155,21 +154,21 @@ ${INSTRUCTION_END_MARKER}`
           // Replace existing instructions
           const before = content.substring(0, startIndex)
           const after = content.substring(endIndex + INSTRUCTION_END_MARKER.length)
-          content = before + this.getInstructionTemplate(options) + after
+          content = before + getInstructionTemplate(options) + after
         } else {
           // Append instructions
-          content = content.trimEnd() + '\n\n' + this.getInstructionTemplate(options) + '\n'
+          content = content.trimEnd() + '\n\n' + getInstructionTemplate(options) + '\n'
         }
       } else {
         // Create new file with instructions
-        content = this.getInstructionTemplate(options) + '\n'
+        content = getInstructionTemplate(options) + '\n'
       }
 
       await fs.writeFile(filePath, content, 'utf-8')
 
       return {
         success: true,
-        message: fileExists
+        message: exists
           ? 'Successfully updated agent instructions'
           : 'Successfully created agent file with instructions',
         backedUp
@@ -180,9 +179,9 @@ ${INSTRUCTION_END_MARKER}`
         message: `Failed to update agent file: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
-  }
+}
 
-  async detectAgentFiles(projectPath: string): Promise<AgentFileInfo[]> {
+async function detectAgentFiles(projectPath: string): Promise<AgentFileInfo[]> {
     const agentFiles: AgentFileInfo[] = []
 
     // Define common agent file patterns
@@ -198,7 +197,7 @@ ${INSTRUCTION_END_MARKER}`
 
     for (const pattern of patterns) {
       const fullPath = path.join(projectPath, pattern.path)
-      const exists = await this.fileExists(fullPath)
+      const exists = await fileExists(fullPath)
       let hasInstructions = false
       let instructionVersion: string | undefined
 
@@ -222,9 +221,9 @@ ${INSTRUCTION_END_MARKER}`
     }
 
     return agentFiles
-  }
+}
 
-  async removeInstructions(filePath: string): Promise<{ success: boolean; message: string }> {
+async function removeInstructions(filePath: string): Promise<{ success: boolean; message: string }> {
     try {
       const content = await fs.readFile(filePath, 'utf-8')
       const startIndex = content.indexOf(INSTRUCTION_START_MARKER)
@@ -253,25 +252,38 @@ ${INSTRUCTION_END_MARKER}`
         message: `Failed to remove instructions: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
-  }
+}
 
-  private async fileExists(filePath: string): Promise<boolean> {
+async function fileExists(filePath: string): Promise<boolean> {
     try {
       await fs.access(filePath)
       return true
     } catch {
       return false
     }
-  }
+}
 
-  isOutdated(version?: string): boolean {
-    if (!version) return true
-    return version !== INSTRUCTION_VERSION
-  }
+function isOutdated(version?: string): boolean {
+  if (!version) return true
+  return version !== INSTRUCTION_VERSION
+}
 
-  getCurrentVersion(): string {
-    return INSTRUCTION_VERSION
+function getCurrentVersion(): string {
+  return INSTRUCTION_VERSION
+}
+
+export interface AgentInstructionServiceDependencies {
+  // No dependencies for this service
+}
+
+export function createAgentInstructionService(deps: AgentInstructionServiceDependencies = {}) {
+  return {
+    updateAgentFile,
+    detectAgentFiles,
+    removeInstructions,
+    isOutdated,
+    getCurrentVersion
   }
 }
 
-export const agentInstructionService = new AgentInstructionService()
+export const agentInstructionService = createAgentInstructionService()

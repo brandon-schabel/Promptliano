@@ -9,7 +9,9 @@ import {
   ClaudeAgentResponseSchema,
   ClaudeAgentListResponseSchema,
   SuggestAgentsRequestSchema,
-  AgentSuggestionsResponseSchema
+  AgentSuggestionsResponseSchema,
+  ExecuteClaudeCommandBodySchema,
+  CommandExecutionResponseSchema
 } from '@promptliano/schemas'
 import {
   createAgent,
@@ -163,7 +165,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     const body = c.req.valid('json')
     const { projectId } = c.req.valid('query')
 
-    const effectiveProjectId = projectId || body.projectId
+    const effectiveProjectId = projectId
     if (!effectiveProjectId) {
       throw new ApiError(400, 'projectId is required either in query or body', 'PROJECT_ID_REQUIRED')
     }
@@ -173,7 +175,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    const createdAgent = await createAgent(project.path, { ...body, projectId: effectiveProjectId })
+    const createdAgent = await createAgent(body)
     return c.json({ success: true, data: createdAgent } satisfies z.infer<typeof ClaudeAgentResponseSchema>, 201)
   })
   .openapi(listAllClaudeAgentsRoute, async (c) => {
@@ -188,7 +190,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    const agents = await listAgents(project.path)
+    const agents = await listAgents()
     return c.json(successResponse(agents))
   })
   .openapi(getClaudeAgentByIdRoute, async (c) => {
@@ -204,7 +206,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    const agent = await getAgentById(project.path, agentId)
+    const agent = await getAgentById(agentId)
     return c.json(successResponse(agent))
   })
   .openapi(updateClaudeAgentRoute, async (c) => {
@@ -221,7 +223,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    const updatedAgent = await updateAgent(project.path, agentId, body)
+    const updatedAgent = await updateAgent(agentId, body)
     return c.json(successResponse(updatedAgent))
   })
   .openapi(deleteClaudeAgentRoute, async (c) => {
@@ -237,7 +239,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    await deleteAgent(project.path, agentId)
+    await deleteAgent(agentId)
     return c.json(operationSuccessResponse('Agent deleted successfully.'))
   })
   .openapi(listProjectClaudeAgentsRoute, async (c) => {
@@ -247,7 +249,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
     // Use listAgents to read all agents from the project's .claude/agents directory
-    const agents = await listAgents(project.path)
+    const agents = await listAgents()
     return c.json(successResponse(agents))
   })
   .openapi(suggestClaudeAgentsRoute, async (c) => {

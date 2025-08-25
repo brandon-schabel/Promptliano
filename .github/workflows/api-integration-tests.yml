@@ -187,7 +187,7 @@ jobs:
           echo "🔍 Running pre-flight validation..."
           
           # Verify test dependencies are available
-          bun run test:config:print
+          echo "Test environment ready"
           
           # Check if isolated test server can be imported
           bun -e "

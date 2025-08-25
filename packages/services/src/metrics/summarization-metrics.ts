@@ -1,10 +1,10 @@
 import { createLogger } from '../utils/logger'
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 
 const logger = createLogger('SummarizationMetrics')
 
 export interface SummarizationMetrics {
-  fileId: number
+  fileId: string // File path serves as ID in the new schema
   projectId: number
   tokensUsed: number
   tokensAvailable: number

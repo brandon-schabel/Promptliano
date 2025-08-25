@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
-import { DatabaseManager, resetTestDatabase, clearAllData } from '@promptliano/storage'
+import { db } from '@promptliano/database'
+// TODO: Implement test utilities with Drizzle
 import { fileSearchService } from './file-search-service'
 import { fileIndexingService } from './file-indexing-service'
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 
 describe('FileSearchService', () => {
   const testProjectId = 999999
@@ -10,10 +11,10 @@ describe('FileSearchService', () => {
 
   beforeAll(async () => {
     // Reset and initialize test database with migrations
-    await resetTestDatabase()
+    // TODO: Implement test database reset with Drizzle
     
     // Get database instance
-    db = DatabaseManager.getInstance().getDatabase()
+    // db is already imported and available.getDatabase()
   })
 
   beforeEach(async () => {
@@ -37,7 +38,7 @@ describe('FileSearchService', () => {
 
   afterAll(async () => {
     // Clean up all test data
-    await clearAllData()
+    // TODO: Implement clear all data with Drizzle
   })
 
   const createTestFile = (id: string, path: string, content: string): ProjectFile => ({
@@ -45,14 +46,20 @@ describe('FileSearchService', () => {
     projectId: testProjectId,
     path,
     name: path.split('/').pop() || '',
-    extension: path.split('.').pop() || '',
     content,
-    type: 'file',
     size: content.length,
-    created: Date.now(),
-    updated: Date.now(),
-    permissions: 'rw-r--r--',
-    depth: path.split('/').length - 1
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    summary: null,
+    summaryLastUpdated: null,
+    meta: null,
+    checksum: null,
+    imports: null,
+    exports: null,
+    isRelevant: null,
+    relevanceScore: null
   })
 
   // Skip in CI - database lifecycle issue causing "Cannot use a closed database" error
@@ -236,9 +243,9 @@ describe('FileSearchService', () => {
   test.skip('should apply different scoring methods', async () => {
     const now = Date.now()
     const files: ProjectFile[] = [
-      { ...createTestFile('1', 'old.ts', 'test content'), updated: now - 1000 * 60 * 60 * 24 * 30 }, // 30 days old
-      { ...createTestFile('2', 'recent.ts', 'test content'), updated: now - 1000 * 60 * 60 }, // 1 hour old
-      { ...createTestFile('3', 'frequent.ts', 'test test test test test'), updated: now - 1000 * 60 * 60 * 24 } // 1 day old
+      { ...createTestFile('1', 'old.ts', 'test content'), updatedAt: now - 1000 * 60 * 60 * 24 * 30 }, // 30 days old
+      { ...createTestFile('2', 'recent.ts', 'test content'), updatedAt: now - 1000 * 60 * 60 }, // 1 hour old
+      { ...createTestFile('3', 'frequent.ts', 'test test test test test'), updatedAt: now - 1000 * 60 * 60 * 24 } // 1 day old
     ]
 
     await fileIndexingService.indexFiles(files, true)
