@@ -336,21 +336,20 @@ describe('Interceptor Performance Benchmarks', () => {
       const result = await benchmark.runBenchmark(
         'Error Handling',
         async () => {
-          const system = new InterceptorSystem()
+          const app = createHonoAppWithInterceptors()
           
-          // Add error interceptor
+          // Add error interceptor to the global system
+          const { getGlobalInterceptorSystem } = require('../index')
+          const system = getGlobalInterceptorSystem()
           system.register({
-            name: 'error-interceptor',
+            name: 'test-error-interceptor',
             order: 10,
             phase: 'error',
             enabled: true,
             handler: async (c, ctx, next) => {
-              c.json({ error: 'Handled' }, 500)
+              return c.json({ error: 'Handled' }, 500)
             }
           })
-          
-          const app = new OpenAPIHono()
-          system.applyTo(app)
           
           app.get('/error', () => {
             throw new Error('Test error')

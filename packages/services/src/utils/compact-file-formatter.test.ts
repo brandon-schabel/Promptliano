@@ -116,18 +116,18 @@ describe('CompactFileFormatter', () => {
   describe('standard', () => {
     test('includes all fields', () => {
       const file = createTestFile({
-        id: 1,
+        id: '1',
         path: '/src/component.tsx',
         summary: 'React component',
         extension: 'tsx',
-        updated: 1609459200000
+        updatedAt: 1609459200000
       })
 
       const result = CompactFileFormatter.standard([file])
       const parsed = JSON.parse(result)
 
       expect(parsed[0]).toEqual({
-        i: 1,
+        i: '1',
         p: '/src/component.tsx',
         s: 'React component',
         t: 'tsx',

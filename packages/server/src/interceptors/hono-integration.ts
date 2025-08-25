@@ -114,10 +114,15 @@ export class HonoInterceptorBridge {
             // This does nothing - interceptors should not call next, they transform the request
           }
 
-          await interceptor.handler(c, interceptorContext, interceptorNext)
+          const result = await interceptor.handler(c, interceptorContext, interceptorNext)
           
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
+          
+          // If interceptor returned a Response object, it handled the request completely
+          if (result instanceof Response) {
+            return result
+          }
         } catch (error) {
           // If interceptor throws, it will be caught by error interceptors
           throw error
@@ -210,8 +215,9 @@ export class HonoInterceptorBridge {
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
           
-          // If interceptor handled the error (set a response), return early
-          if (c.res.status !== 404) { // 404 is Hono's default
+          // If interceptor handled the error by calling c.json() or c.status(), return early
+          // Check if the response was actually modified by the interceptor
+          if (c.finalized) {
             return c.res
           }
         } catch (interceptorError) {
@@ -266,8 +272,8 @@ export class HonoReplacementInterceptors {
           c.header('Access-Control-Max-Age', options.maxAge.toString())
         }
         
-        c.status(204)
-        return // Don't call next for preflight
+        // Return a proper 204 response for preflight
+        return c.body('', 204)
       }
 
       // Set CORS headers for actual requests

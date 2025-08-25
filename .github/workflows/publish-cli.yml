@@ -32,8 +32,8 @@ jobs:
       package-name: 'promptliano'
       build-command: 'bun run build'
       test-command: 'bun test'
-      generate-types: true
-      types-command: 'bun run build:types'
+      generate-types: false
+      # Types are generated as part of the build command
       npm-access: 'public'
       bun-version: 'latest'
       build-output-dir: 'dist'
