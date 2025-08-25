@@ -46,21 +46,29 @@ export function ProjectsPage() {
   const [hasMigrationNotified, setHasMigrationNotified] = useState(false)
 
   // Get dependencies first
-  const { data: allProjectsData, isLoading: projectsLoading, isFetching: projectsFetching, isSuccess: projectsQuerySuccess } = useGetProjects()
+  const {
+    data: allProjectsData,
+    isLoading: projectsLoading,
+    isFetching: projectsFetching,
+    isSuccess: projectsQuerySuccess
+  } = useGetProjects()
   const [tabs] = useGetProjectTabs()
   const updateActiveProjectTab = useUpdateActiveProjectTab()
   const projects = allProjectsData || []
 
+  console.log({
+    activeProjectTabState
+  })
 
   const selectedProjectId = activeProjectTabState?.selectedProjectId
-  console.log({selectedProjectId})
+  console.log({ selectedProjectId })
   // Get the selected project ID with fallback logic
   // const selectedProjectId = React.useMemo(() => {
   //   // Primary: Get from active tab state
   //   if (activeProjectTabState?.selectedProjectId) {
   //     return activeProjectTabState.selectedProjectId
   //   }
-    
+
   //   // Fallback: If we have tabs but no selected project, try to recover
   //   if (activeProjectTabId && tabs && tabs[activeProjectTabId]) {
   //     const currentTab = tabs[activeProjectTabId]
@@ -70,18 +78,19 @@ export function ProjectsPage() {
   //       return currentTab.selectedProjectId
   //     }
   //   }
-    
+
   //   // Last resort: If we have projects but no selection, select the first available project
   //   if (projects.length > 0 && activeProjectTabId) {
   //     const firstProject = projects[0]
   //     updateActiveProjectTab({ selectedProjectId: firstProject.id })
   //     return firstProject.id
   //   }
-    
+
   //   return undefined
   // }, [activeProjectTabState?.selectedProjectId, activeProjectTabId, tabs, projects, updateActiveProjectTab])
-  
-  const { data: projectData } = useGetProject(selectedProjectId!)
+
+  // Only fetch project when we have a valid selection
+  const { data: projectData } = useGetProject(selectedProjectId ?? -1)
 
   // Sync active tab with backend
   useActiveTabSync(selectedProjectId)
@@ -142,6 +151,15 @@ export function ProjectsPage() {
   const tabsArray = validTabKeys.map((key) => tabs[key])
   const tabsKeys = validTabKeys
   const { mutate: updateProjectTabs } = useSetKvValue('projectTabs')
+
+  // If the selected project no longer exists (or was an invalid default like 1), clear it
+  useEffect(() => {
+    if (!selectedProjectId || !projects?.length) return
+    const exists = projects.some((p: any) => p.id === selectedProjectId)
+    if (!exists) {
+      updateActiveProjectTab((prev) => ({ ...(prev || {}), selectedProjectId: undefined }))
+    }
+  }, [selectedProjectId, projects, updateActiveProjectTab])
 
   // Sync tab from URL on initial load
   useEffect(() => {

@@ -500,7 +500,8 @@ export const createInitialGlobalState = (): GlobalState => {
           // Set any other non-default initial values if needed
         })
       },
-      projectActiveTabId: 1, // Assuming project tabs remain
+  // No active project tab by default; will be set explicitly once a tab is created/selected
+  projectActiveTabId: -1, // Assuming project tabs remain
       activeChatId: -1,
       chatLinkSettings: {}
     }
@@ -575,7 +576,8 @@ export const createSafeGlobalState = (): GlobalState => ({
       }
     }
   },
-  projectActiveTabId: 1,
+  // -1 indicates no active project tab initially
+  projectActiveTabId: -1,
   activeChatId: -1,
   chatLinkSettings: {}
 })

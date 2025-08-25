@@ -49,7 +49,12 @@ UI Components (React + shadcn/ui)
 | **API Routes** | `hono-bun-api-architect` | Hono + OpenAPI + Zod |
 | **Frontend** | `promptliano-ui-architect` | React components + hook factories |
 | **Forms** | `promptliano-forms-architect` | Form validation + UX patterns |
-| **Testing** | `api-test-automation-expert` | Isolated test environments |
+| **E2E Testing** | `promptliano-playwright-expert` | **NEW** - Playwright E2E tests with MCP integration |
+| **API Testing** | `api-test-automation-expert` | Isolated test environments |
+| **Routing** | `tanstack-router-expert` | Type-safe routing with TanStack Router |
+| **Schemas** | `zod-schema-architect` | Data validation schemas |
+| **Type Safety** | `typescript-type-safety-auditor` | Remove 'any' types, ensure type safety |
+| **AI Features** | `vercel-ai-sdk-expert` | AI SDK integration and streaming |
 | **Code Review** | `staff-engineer-code-reviewer` | **MANDATORY after ALL work** |
 
 ### How to Load an Agent
