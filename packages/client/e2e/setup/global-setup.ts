@@ -1,6 +1,9 @@
 import { chromium, type FullConfig } from '@playwright/test'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { TestProjectHelpers } from '../utils/test-project-helpers'
+import { mkdir } from 'fs/promises'
+import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -11,6 +14,10 @@ async function globalSetup(config: FullConfig) {
   const { baseURL } = config.projects[0].use
   
   try {
+    // Setup test project infrastructure
+    console.log('📁 Setting up test project infrastructure...')
+    await setupTestProjectInfrastructure()
+    
     // Launch browser for setup
     const browser = await chromium.launch()
     const context = await browser.newContext()
@@ -43,6 +50,42 @@ async function globalSetup(config: FullConfig) {
     console.error('❌ Global setup failed:', error)
     throw error
   }
+}
+
+/**
+ * Setup test project infrastructure
+ */
+async function setupTestProjectInfrastructure() {
+  // Create base test projects directory
+  const testProjectsDir = '/tmp/e2e-test-projects'
+  
+  if (!existsSync(testProjectsDir)) {
+    await mkdir(testProjectsDir, { recursive: true })
+    console.log(`📂 Created test projects directory: ${testProjectsDir}`)
+  }
+
+  // Clear any existing test projects from previous runs
+  TestProjectHelpers.clearActiveProjects()
+  console.log('🧹 Cleared previous test project state')
+
+  // Pre-create common test project templates for faster tests
+  try {
+    console.log('🏗️ Pre-creating common test project templates...')
+    
+    // Create a simple project template that tests can copy
+    const simpleTemplate = await TestProjectHelpers.createSimpleProject()
+    console.log(`✅ Created simple project template: ${simpleTemplate.name}`)
+
+    // Create a web app template
+    const webAppTemplate = await TestProjectHelpers.createWebAppProject()
+    console.log(`✅ Created web app template: ${webAppTemplate.name}`)
+
+  } catch (error) {
+    console.warn('⚠️ Failed to pre-create project templates:', error.message)
+    // Don't fail global setup if template creation fails
+  }
+
+  console.log('✅ Test project infrastructure ready')
 }
 
 export default globalSetup

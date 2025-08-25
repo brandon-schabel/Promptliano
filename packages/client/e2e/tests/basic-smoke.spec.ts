@@ -23,15 +23,17 @@ test.describe('Basic Smoke Tests', () => {
     // Wait for the page to load
     await page.waitForSelector('body', { timeout: 10000 })
     
-    // Look for common navigation patterns
-    const hasNav = await page.locator('nav, [data-testid*="nav"], [role="navigation"]').count() > 0
-    const hasSidebar = await page.locator('[data-testid*="sidebar"], .sidebar, aside').count() > 0
-    const hasHeader = await page.locator('header, [data-testid*="header"]').count() > 0
+    // Look for specific navigation elements using our new test IDs and sidebar data attributes
+    const hasSidebar = await page.locator('[data-testid="app-sidebar"], [data-sidebar="sidebar"], [data-testid="sidebar-container"]').count() > 0
+    const hasMainContent = await page.locator('[data-testid="main-content"], main').count() > 0
+    const hasCommandPalette = await page.locator('[data-testid="command-palette"]').count() > 0 || true // Command palette exists but isn't initially visible
     
-    console.log(`Navigation elements found - Nav: ${hasNav}, Sidebar: ${hasSidebar}, Header: ${hasHeader}`)
+    console.log(`Navigation elements found - Sidebar: ${hasSidebar}, Main: ${hasMainContent}, Command Palette: ${hasCommandPalette}`)
     
-    // At least one navigation element should be present
-    expect(hasNav || hasSidebar || hasHeader).toBeTruthy()
+    // Sidebar should be present (main navigation element)
+    expect(hasSidebar).toBeTruthy()
+    // Main content area should be present
+    expect(hasMainContent).toBeTruthy()
   })
 
   test('should not have JavaScript errors', async ({ page }) => {

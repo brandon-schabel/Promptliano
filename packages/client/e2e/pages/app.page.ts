@@ -6,33 +6,45 @@ export class AppPage extends BasePage {
     super(page)
   }
 
-  // Navigation elements
+  // Navigation elements - updated with specific test IDs and data attributes
   get sidebar() {
-    return this.page.locator('[data-testid="sidebar"], .sidebar, aside')
+    return this.page.locator('[data-testid="app-sidebar"], [data-testid="sidebar-container"], [data-sidebar="sidebar"]')
   }
 
   get sidebarProjectsLink() {
-    return this.page.locator('a[href*="/projects"], nav a:has-text("Projects")')
+    return this.page.locator('[data-testid="sidebar-nav-projects"], a[href*="/projects"]:has-text("Projects")')
   }
 
   get sidebarPromptsLink() {
-    return this.page.locator('a[href*="/prompts"], nav a:has-text("Prompts")')
+    return this.page.locator('[data-testid="sidebar-nav-prompts"], a[href*="/prompts"]:has-text("Prompts")')
   }
 
   get sidebarTicketsLink() {
-    return this.page.locator('a[href*="/tickets"], nav a:has-text("Tickets")')
+    return this.page.locator('[data-testid="sidebar-nav-tickets"], a[href*="/tickets"]:has-text("Tickets")')
   }
 
   get sidebarQueueLink() {
-    return this.page.locator('a[href*="/queue"], nav a:has-text("Queue")')
+    return this.page.locator('[data-testid="sidebar-nav-queue"], a[href*="/queue"]:has-text("Queue")')
   }
 
   get sidebarChatLink() {
-    return this.page.locator('a[href*="/chat"], nav a:has-text("Chat")')
+    return this.page.locator('[data-testid="sidebar-nav-chat"], a[href*="/chat"]:has-text("Chat")')
   }
 
   get sidebarSettingsLink() {
-    return this.page.locator('a[href*="/settings"], nav a:has-text("Settings")')
+    return this.page.locator('[data-testid="sidebar-nav-settings"], a[href*="/settings"]:has-text("Settings")')
+  }
+
+  get sidebarProvidersLink() {
+    return this.page.locator('[data-testid="sidebar-nav-providers"], a[href*="/providers"]:has-text("Providers")')
+  }
+
+  get sidebarManageProjects() {
+    return this.page.locator('[data-testid="sidebar-manage-projects"]')
+  }
+
+  get sidebarRecentProjects() {
+    return this.page.locator('[data-testid="sidebar-recent-projects"]')
   }
 
   // Command palette
@@ -189,5 +201,40 @@ export class AppPage extends BasePage {
     })
     
     await this.waitForLoadingComplete()
+  }
+
+  /**
+   * Check if the page is responsive and functional
+   */
+  async isPageResponsive(): Promise<boolean> {
+    try {
+      // Check if main UI elements are still visible and interactable
+      const sidebar = this.sidebar
+      const mainContent = this.mainContent
+      
+      // Verify core elements are still present
+      await expect(sidebar.or(mainContent)).toBeVisible({ timeout: 5000 })
+      
+      // Check if page is responding to interactions
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete' && !document.querySelector('.loading')
+      }, { timeout: 3000 })
+      
+      // Verify no JavaScript errors
+      const errors = await this.page.evaluate(() => {
+        // Check for uncaught errors or performance issues
+        return (window as any).__testErrors || []
+      })
+      
+      if (errors.length > 0) {
+        console.warn('Page has JavaScript errors:', errors)
+        return false
+      }
+      
+      return true
+    } catch (error) {
+      console.warn('Page responsiveness check failed:', error.message)
+      return false
+    }
   }
 }

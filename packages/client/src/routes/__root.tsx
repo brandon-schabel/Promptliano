@@ -62,8 +62,8 @@ function GlobalCommandPalette() {
     .slice(0, 5)
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder='Type a command or search...' value={search} onValueChange={setSearch} />
+    <CommandDialog open={open} onOpenChange={setOpen} data-testid="command-palette">
+      <CommandInput placeholder='Type a command or search...' value={search} onValueChange={setSearch} data-testid="command-input" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading='Navigation'>
@@ -189,9 +189,9 @@ function RootComponent() {
         <div className='flex h-screen w-screen bg-background text-foreground'>
           {/* Ensure background and text colors are set */}
           <ComponentErrorBoundary componentName='Sidebar'>
-            <AppSidebar />
+            <AppSidebar data-testid="app-sidebar" />
           </ComponentErrorBoundary>
-          <main className='flex-1 min-h-0 overflow-auto relative'>
+          <main className='flex-1 min-h-0 overflow-auto relative' data-testid="main-content">
             {/* pt-[env(safe-area-inset-top)] can be added if needed */}
             {/* Example of a manual SidebarTrigger fixed in the content area */}
             {/* You might not need this if SidebarRail is sufficient */}

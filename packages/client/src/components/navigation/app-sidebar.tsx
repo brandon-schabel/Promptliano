@@ -48,14 +48,16 @@ const navigationSections = [
         title: 'Projects',
         href: '/projects',
         icon: FolderIcon,
-        routeIds: ['/projects']
+        routeIds: ['/projects'],
+        testId: 'sidebar-nav-projects'
       },
       { 
         id: 'chat', 
         title: 'Chat', 
         href: '/chat', 
         icon: MessageSquareIcon, 
-        routeIds: ['/chat']
+        routeIds: ['/chat'],
+        testId: 'sidebar-nav-chat'
       }
     ]
   },
@@ -67,20 +69,22 @@ const navigationSections = [
         title: 'Prompts', 
         href: '/prompts', 
         icon: LightbulbIcon, 
-        routeIds: ['/prompts'] 
+        routeIds: ['/prompts'],
+        testId: 'sidebar-nav-prompts'
       },
       { 
         id: 'providers', 
         title: 'Providers', 
         href: '/providers', 
         icon: Cloud, 
-        routeIds: ['/providers'] 
+        routeIds: ['/providers'],
+        testId: 'sidebar-nav-providers'
       }
     ]
   }
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const [openProjectListDialog, setOpenProjectListDialog] = useState(false)
   const [projectFormDialogOpen, setProjectFormDialogOpen] = useState(false)
   const [editProjectId, setEditProjectId] = useState<number | null>(null)
@@ -148,8 +152,8 @@ export function AppSidebar() {
   return (
     <ErrorBoundary>
       <>
-        <Sidebar collapsible='icon' side='left' variant='sidebar'>
-          <SidebarHeader className='p-2 flex-shrink-0'>
+        <Sidebar collapsible='icon' side='left' variant='sidebar' data-testid="sidebar-container" {...props}>
+          <SidebarHeader className='p-2 flex-shrink-0' data-testid="sidebar-header">
             <div className='flex items-center justify-center relative group-data-[collapsible=icon]:justify-center'>
               <Logo 
                 size='sm' 
@@ -173,7 +177,8 @@ export function AppSidebar() {
                   items: section.items.map(item => ({
                     ...item,
                     label: item.title,
-                    isActive: matches.some((match) => item.routeIds.includes(match.routeId))
+                    isActive: matches.some((match) => item.routeIds.includes(match.routeId)),
+                    'data-testid': item.testId
                   }))
                 }))}
                 onItemClick={(item: any) => {
@@ -184,7 +189,7 @@ export function AppSidebar() {
 
             {/* Recent Projects Section - Scrollable if needed */}
             {open && recentProjects.length > 0 && projectData && (
-              <div className='flex flex-col min-h-0 flex-1'>
+              <div className='flex flex-col min-h-0 flex-1' data-testid="sidebar-recent-projects">
                 <div className='px-3 py-2 mt-4 flex-shrink-0'>
                   <p className='text-xs font-medium text-muted-foreground'>Recent Projects</p>
                 </div>
@@ -231,14 +236,14 @@ export function AppSidebar() {
                   <ServerStatusIndicator />
                 </SidebarMenuItem>
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
-                  <SidebarMenuButton onClick={() => setOpenProjectListDialog(true)} tooltip='Manage Projects'>
+                  <SidebarMenuButton onClick={() => setOpenProjectListDialog(true)} tooltip='Manage Projects' data-testid="sidebar-manage-projects">
                     <FolderTreeIcon className='h-4 w-4 flex-shrink-0' />
                     <span className='truncate'>Manage Projects</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
                   <SidebarMenuButton asChild tooltip='Settings'>
-                    <Link to='/settings'>
+                    <Link to='/settings' data-testid="sidebar-nav-settings">
                       <SettingsIcon className='h-4 w-4 flex-shrink-0' />
                       <span className='truncate'>Settings</span>
                     </Link>
