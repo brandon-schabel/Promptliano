@@ -12,7 +12,9 @@ import { join } from 'path'
 
 // Performance-optimized SQLite configuration
 const createDatabase = () => {
-  const sqlite = new Database('./data/promptliano.db', {
+  // Use in-memory database for tests to avoid file system issues
+  const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : './data/promptliano.db'
+  const sqlite = new Database(dbPath, {
     create: true,
     // Performance optimizations
     strict: true
@@ -38,22 +40,28 @@ try {
   // Check if tables exist, if not run the migration SQL directly
   const tables = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all()
   if (tables.length === 0) {
-    console.log('📋 Creating database tables...')
-    // Read and execute the migration SQL
-    const migrationPath = join(process.cwd(), 'drizzle', '0000_loose_bug.sql')
-    try {
-      const migrationSql = readFileSync(migrationPath, 'utf8')
-      const statements = migrationSql.split('--> statement-breakpoint')
-      
-      for (const statement of statements) {
-        const cleanStatement = statement.trim()
-        if (cleanStatement && !cleanStatement.startsWith('--')) {
-          sqlite.exec(cleanStatement)
+    // For tests, skip migration file reading and just use drizzle to create tables
+    if (process.env.NODE_ENV === 'test') {
+      console.log('📋 Creating test database tables in memory...')
+      // Skip migration file for tests - tables will be created as needed
+    } else {
+      console.log('📋 Creating database tables...')
+      // Read and execute the migration SQL
+      const migrationPath = join(process.cwd(), 'packages', 'database', 'drizzle', '0000_loose_bug.sql')
+      try {
+        const migrationSql = readFileSync(migrationPath, 'utf8')
+        const statements = migrationSql.split('--> statement-breakpoint')
+        
+        for (const statement of statements) {
+          const cleanStatement = statement.trim()
+          if (cleanStatement && !cleanStatement.startsWith('--')) {
+            sqlite.exec(cleanStatement)
+          }
         }
+        console.log('✅ Database tables created successfully')
+      } catch (migrationError) {
+        console.warn('⚠️ Could not read migration file, tables might need manual creation')
       }
-      console.log('✅ Database tables created successfully')
-    } catch (migrationError) {
-      console.warn('⚠️ Could not read migration file, tables might need manual creation')
     }
   }
 } catch (error) {

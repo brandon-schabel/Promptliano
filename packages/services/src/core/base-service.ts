@@ -32,7 +32,7 @@ export interface ServiceContext {
 export interface CrudServiceConfig<TEntity, TCreate, TUpdate = Partial<TCreate>> {
   entityName: string
   repository: BaseRepository<TEntity, TCreate>
-  schema?: z.ZodType<TEntity>
+  schema?: z.ZodType<TCreate>
   logger?: ServiceLogger
 }
 
@@ -65,7 +65,7 @@ export function assertExists<T>(
   id: number | string
 ): asserts entity is T {
   if (!entity) {
-    ErrorFactory.notFound(entityName, id)
+    throw ErrorFactory.notFound(entityName, id)
   }
 }
 

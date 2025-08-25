@@ -7,17 +7,23 @@ import type { Prompt } from '@promptliano/schemas'
 const mockPrompts: Prompt[] = [
   {
     id: 1,
-    name: 'Prompt One',
+    projectId: 1,
+    title: 'Prompt One',
     content: 'This is prompt one content.',
-    created: Date.now(),
-    updated: Date.now()
+    description: null,
+    tags: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   },
   {
     id: 2,
-    name: 'Prompt Two',
+    projectId: 1,
+    title: 'Prompt Two',
     content: 'Prompt two: Some instructions here.',
-    created: Date.now(),
-    updated: Date.now()
+    description: null,
+    tags: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   }
 ]
 

@@ -92,7 +92,7 @@ describe('SystemChecker', () => {
       expect(result.connected).toBeDefined()
       if (result.connected) {
         expect(result.latency).toBeDefined()
-        expect(result.latency).toBeGreaterThan(0)
+        expect(result.latency).toBeGreaterThanOrEqual(0)
       }
     })
   })

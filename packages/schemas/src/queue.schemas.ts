@@ -7,15 +7,41 @@ import {
   entityIdNullableOptionalSchema
 } from './schema-utils'
 
-// Import database schemas as source of truth
-import { 
-  selectQueueSchema as DatabaseQueueSchema,
-  selectQueueItemSchema as DatabaseQueueItemSchema 
-} from '@promptliano/database'
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Queue as DatabaseQueue, QueueItem as DatabaseQueueItem } from '@promptliano/database'
 
-// Use database schemas as the base
-export const TaskQueueSchema = DatabaseQueueSchema  
-export const QueueItemSchema = DatabaseQueueItemSchema
+// Recreate schemas locally to avoid runtime imports from database package
+export const TaskQueueSchema = z.object({
+  id: z.number(),
+  projectId: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  maxParallelItems: z.number(),
+  isActive: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('TaskQueue')
+
+export const QueueItemSchema = z.object({
+  id: z.number(),
+  queueId: z.number(),
+  itemType: z.enum(['ticket', 'task', 'chat', 'prompt']),
+  itemId: z.number(),
+  priority: z.number(),
+  status: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']),
+  agentId: z.string().nullable(),
+  errorMessage: z.string().nullable(),
+  estimatedProcessingTime: z.number().nullable(),
+  actualProcessingTime: z.number().nullable(),
+  startedAt: z.number().nullable(),
+  completedAt: z.number().nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('QueueItem')
+
+// Type verification to ensure schemas match database types
+const _queueTypeCheck: z.infer<typeof TaskQueueSchema> = {} as DatabaseQueue
+const _queueItemTypeCheck: z.infer<typeof QueueItemSchema> = {} as DatabaseQueueItem
 
 // Queue status enums (keep for API validation)
 export const QueueStatusEnum = z.enum(['active', 'paused', 'inactive'])

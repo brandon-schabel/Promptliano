@@ -124,10 +124,13 @@ Content with mixed tags.`
     it('should convert prompt to markdown with frontmatter', async () => {
       const prompt: Prompt = {
         id: 1,
-        name: 'Test Prompt',
+        projectId: 123,
+        title: 'Test Prompt',
         content: 'This is test content.',
-        created: 1704067200000, // 2024-01-01T00:00:00Z
-        updated: 1704153600000 // 2024-01-02T00:00:00Z
+        description: null,
+        tags: [],
+        createdAt: 1704067200000, // 2024-01-01T00:00:00Z
+        updatedAt: 1704153600000 // 2024-01-02T00:00:00Z
       }
 
       const markdown = await promptToMarkdown(prompt)
@@ -143,10 +146,13 @@ Content with mixed tags.`
     it('should handle prompt without timestamps', async () => {
       const prompt: Prompt = {
         id: 1,
-        name: 'Simple Prompt',
+        projectId: 123,
+        title: 'Simple Prompt',
         content: 'Simple content.',
-        created: 0,
-        updated: 0
+        description: null,
+        tags: [],
+        createdAt: 0,
+        updatedAt: 0
       }
 
       const markdown = await promptToMarkdown(prompt)
@@ -159,7 +165,8 @@ Content with mixed tags.`
     it('should throw error for invalid prompt data', async () => {
       const invalidPrompt = {
         id: 'invalid-id', // Should be number
-        name: '',
+        projectId: 123,
+        title: '',
         content: 'Content'
       } as any
 
@@ -315,17 +322,23 @@ Content.`
     const samplePrompts: Prompt[] = [
       {
         id: 1,
-        name: 'Prompt A',
+        projectId: 123,
+        title: 'Prompt A',
         content: 'Content A',
-        created: 1704067200000, // 2024-01-01
-        updated: 1704153600000 // 2024-01-02
+        description: null,
+        tags: [],
+        createdAt: 1704067200000, // 2024-01-01
+        updatedAt: 1704153600000 // 2024-01-02
       },
       {
         id: 2,
-        name: 'Prompt B',
+        projectId: 123,
+        title: 'Prompt B',
         content: 'Content B',
-        created: 1704240000000, // 2024-01-03
-        updated: 1704326400000 // 2024-01-04
+        description: null,
+        tags: [],
+        createdAt: 1704240000000, // 2024-01-03
+        updatedAt: 1704326400000 // 2024-01-04
       }
     ]
 
@@ -395,10 +408,13 @@ Content.`
       const promptsWithConflicts: Prompt[] = [
         {
           id: 1,
-          name: 'Conflict Prompt',
+          projectId: 123,
+          title: 'Conflict Prompt',
           content: 'Content with\n---\nfrontmatter delimiter',
-          created: Date.now(),
-          updated: Date.now()
+          description: null,
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         }
       ]
 
@@ -417,7 +433,8 @@ Content.`
       const invalidPrompts = [
         {
           id: 'invalid',
-          name: '',
+          projectId: 123,
+          title: '',
           content: 'test'
         } as any
       ]
@@ -429,17 +446,23 @@ Content.`
       const promptsWithSpecialNames: Prompt[] = [
         {
           id: 1,
-          name: 'Special Characters!@#$%^&*()_+{}[]|\\:";\'<>?,./',
+          projectId: 123,
+          title: 'Special Characters!@#$%^&*()_+{}[]|\\:";\'<>?,./',
           content: 'Content',
-          created: Date.now(),
-          updated: Date.now()
+          description: null,
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         },
         {
           id: 2,
-          name: 'A very long prompt name that should be truncated to meet filename length limits and not cause filesystem issues',
+          projectId: 123,
+          title: 'A very long prompt name that should be truncated to meet filename length limits and not cause filesystem issues',
           content: 'Content',
-          created: Date.now(),
-          updated: Date.now()
+          description: null,
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         }
       ]
 

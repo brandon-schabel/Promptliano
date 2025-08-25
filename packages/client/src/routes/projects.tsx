@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import { projectsSearchSchema, type ProjectsSearch, type ProjectView } from '@/lib/search-schemas'
+import { projectsSearchSchema, type ProjectView } from '@/lib/search-schemas'
 import React, { useRef, useState, useEffect } from 'react'
 import { Button } from '@promptliano/ui'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@promptliano/ui'
@@ -51,32 +51,35 @@ export function ProjectsPage() {
   const updateActiveProjectTab = useUpdateActiveProjectTab()
   const projects = allProjectsData || []
 
+
+  const selectedProjectId = activeProjectTabState?.selectedProjectId
+  console.log({selectedProjectId})
   // Get the selected project ID with fallback logic
-  const selectedProjectId = React.useMemo(() => {
-    // Primary: Get from active tab state
-    if (activeProjectTabState?.selectedProjectId) {
-      return activeProjectTabState.selectedProjectId
-    }
+  // const selectedProjectId = React.useMemo(() => {
+  //   // Primary: Get from active tab state
+  //   if (activeProjectTabState?.selectedProjectId) {
+  //     return activeProjectTabState.selectedProjectId
+  //   }
     
-    // Fallback: If we have tabs but no selected project, try to recover
-    if (activeProjectTabId && tabs && tabs[activeProjectTabId]) {
-      const currentTab = tabs[activeProjectTabId]
-      if (currentTab?.selectedProjectId) {
-        // Update the active tab state to fix the inconsistency
-        updateActiveProjectTab({ selectedProjectId: currentTab.selectedProjectId })
-        return currentTab.selectedProjectId
-      }
-    }
+  //   // Fallback: If we have tabs but no selected project, try to recover
+  //   if (activeProjectTabId && tabs && tabs[activeProjectTabId]) {
+  //     const currentTab = tabs[activeProjectTabId]
+  //     if (currentTab?.selectedProjectId) {
+  //       // Update the active tab state to fix the inconsistency
+  //       updateActiveProjectTab({ selectedProjectId: currentTab.selectedProjectId })
+  //       return currentTab.selectedProjectId
+  //     }
+  //   }
     
-    // Last resort: If we have projects but no selection, select the first available project
-    if (projects.length > 0 && activeProjectTabId) {
-      const firstProject = projects[0]
-      updateActiveProjectTab({ selectedProjectId: firstProject.id })
-      return firstProject.id
-    }
+  //   // Last resort: If we have projects but no selection, select the first available project
+  //   if (projects.length > 0 && activeProjectTabId) {
+  //     const firstProject = projects[0]
+  //     updateActiveProjectTab({ selectedProjectId: firstProject.id })
+  //     return firstProject.id
+  //   }
     
-    return undefined
-  }, [activeProjectTabState?.selectedProjectId, activeProjectTabId, tabs, projects, updateActiveProjectTab])
+  //   return undefined
+  // }, [activeProjectTabState?.selectedProjectId, activeProjectTabId, tabs, projects, updateActiveProjectTab])
   
   const { data: projectData } = useGetProject(selectedProjectId!)
 

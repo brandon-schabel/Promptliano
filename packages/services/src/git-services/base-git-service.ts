@@ -56,7 +56,7 @@ export abstract class BaseGitService {
 
     throw new ApiError(
       500,
-      `Git ${operation} failed: ${errorMessage}`,
+      `Failed to ${operation}: ${errorMessage}`,
       `GIT_${operation.toUpperCase().replace(/ /g, '_')}_FAILED`
     )
   }

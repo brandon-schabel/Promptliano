@@ -24,6 +24,8 @@ import {
   type UpdateTicket as UpdateTicketBody,
   type CreateTask as CreateTaskBody,
   type UpdateTask as UpdateTaskBody,
+  CreateTicketSchema,
+  CreateTaskSchema,
   selectTicketSchema,
   selectTicketTaskSchema
 } from '@promptliano/database'
@@ -51,7 +53,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
   const baseService = createCrudService<Ticket, CreateTicketBody, UpdateTicketBody>({
     entityName: 'Ticket',
     repository: repo,
-    // Skip schema validation since repository handles JSON field conversion
+    // Skip schema validation - repository handles it
     logger
   })
 
@@ -516,4 +518,14 @@ export const batchDeleteTickets = async (ticketIds: number[]) => {
     }
   }
   return ticketIds.length
+}
+
+// Legacy function for backward compatibility - gets tickets with associated files
+export async function getTicketsWithFiles(projectId: number) {
+  const tickets = await getTicketsByProject(projectId)
+  // TODO: Implement proper file association
+  return tickets.map(ticket => ({
+    ...ticket,
+    files: [] // Placeholder for associated files
+  }))
 }

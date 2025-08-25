@@ -229,3 +229,6 @@ export const CreateSelectedFileSchema = insertSelectedFileSchema.omit({
 export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
 export type CreateSelectedFile = typeof CreateSelectedFileSchema._type
 export type UpdateSelectedFile = typeof UpdateSelectedFileSchema._type
+
+// Export test utilities
+export { createTestDatabase, testFactories } from './src/test-utils'

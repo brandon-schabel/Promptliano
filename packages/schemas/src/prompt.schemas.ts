@@ -8,11 +8,23 @@ import {
   entityIdCoercibleSchema
 } from './schema-utils'
 
-// Import database schemas as source of truth
-import { PromptSchema as DatabasePromptSchema } from '@promptliano/database'
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Prompt as DatabasePrompt } from '@promptliano/database'
 
-// Use database schema as the base
-export const PromptSchema = DatabasePromptSchema
+// Recreate schema locally to avoid runtime imports from database package
+export const PromptSchema = z.object({
+  id: z.number(),
+  projectId: z.number(),
+  title: z.string(),
+  content: z.string(),
+  description: z.string().nullable(),
+  tags: z.array(z.string()),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('Prompt')
+
+// Type verification to ensure schema matches database type
+const _promptTypeCheck: z.infer<typeof PromptSchema> = {} as DatabasePrompt
 
 // API Request Body Schemas - derived from database schema
 export const CreatePromptBodySchema = PromptSchema.pick({

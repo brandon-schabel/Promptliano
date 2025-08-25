@@ -105,6 +105,13 @@ const baseTaskRepository = createBaseRepository(
   'TicketTask'
 )
 
+// Store original methods before extending
+const originalCreate = baseTicketRepository.create.bind(baseTicketRepository)
+const originalGetById = baseTicketRepository.getById.bind(baseTicketRepository)
+const originalGetAll = baseTicketRepository.getAll.bind(baseTicketRepository)
+const originalUpdate = baseTicketRepository.update.bind(baseTicketRepository)
+const originalFindOneWhere = baseTicketRepository.findOneWhere.bind(baseTicketRepository)
+
 // Extend with domain-specific methods
 export const ticketRepository = extendRepository(baseTicketRepository, {
   // BaseRepository provides: create, getById, getAll, update, delete, exists, count
@@ -112,27 +119,27 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
 
   // Override base methods to handle JSON conversion
   async create(data: InsertTicket): Promise<Ticket> {
-    const ticket = await baseTicketRepository.create(data)
+    const ticket = await originalCreate(data)
     return convertTicketFromDb(ticket)
   },
 
   async getById(id: number): Promise<Ticket | null> {
-    const ticket = await baseTicketRepository.getById(id)
+    const ticket = await originalGetById(id)
     return ticket ? convertTicketFromDb(ticket) : null
   },
 
   async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<Ticket[]> {
-    const tickets = await baseTicketRepository.getAll(orderBy)
+    const tickets = await originalGetAll(orderBy)
     return tickets.map(ticket => convertTicketFromDb(ticket))
   },
 
   async update(id: number, data: TicketUpdateData): Promise<Ticket> {
-    const ticket = await baseTicketRepository.update(id, data as any)
+    const ticket = await originalUpdate(id, data as any)
     return convertTicketFromDb(ticket)
   },
 
   async findOneWhere(where: any): Promise<Ticket | null> {
-    const ticket = await baseTicketRepository.findOneWhere(where)
+    const ticket = await originalFindOneWhere(where)
     return ticket ? convertTicketFromDb(ticket) : null
   },
 

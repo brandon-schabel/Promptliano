@@ -894,3 +894,4 @@ export const {
 // Legacy export aliases for backward compatibility
 export const enqueueTicketToQueue = enqueueTicket
 export const dequeueTicketFromQueue = dequeueTicket
+export const enqueueTicketWithAllTasks = enqueueTicketWithTasks

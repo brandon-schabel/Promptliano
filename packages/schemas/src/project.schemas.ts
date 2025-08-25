@@ -8,11 +8,21 @@ import {
 } from './schema-utils'
 import { createEntitySchemas, createResponseSchemas } from './schema-factories'
 
-// Import database schemas as source of truth
-import { ProjectSchema as DatabaseProjectSchema } from '@promptliano/database'
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Project as DatabaseProject } from '@promptliano/database'
 
-// Use database schema as the base
-export const ProjectSchema = DatabaseProjectSchema
+// Recreate schema locally to avoid runtime imports from database package
+export const ProjectSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  path: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('Project')
+
+// Type verification to ensure schema matches database type
+const _projectTypeCheck: z.infer<typeof ProjectSchema> = {} as DatabaseProject
 
 // Import and Export info schemas
 export const ImportInfoSchema = z

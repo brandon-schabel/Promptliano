@@ -20,6 +20,7 @@ import {
   type CreateQueue as CreateQueueBody, 
   type UpdateQueue as UpdateQueueBody,
   QueueSchema as TaskQueueSchema,
+  CreateQueueSchema,
   selectQueueItemSchema as QueueItemSchema
 } from '@promptliano/database'
 
@@ -44,12 +45,41 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
   const baseService = createCrudService<Queue, CreateQueueBody, UpdateQueueBody>({
     entityName: 'Queue',
     repository: repo,
-    schema: TaskQueueSchema,
+    // Skip schema validation - repository handles it
     logger
   })
 
   // Extended queue operations
   const extensions = {
+    /**
+     * Override create to add status field for backward compatibility
+     */
+    async create(data: CreateQueueBody): Promise<Queue & { status?: 'active' | 'paused' }> {
+      return withErrorContext(
+        async () => {
+          const queue = await baseService.create(data)
+          // Add status field based on isActive for backward compatibility
+          return { ...queue, status: queue.isActive ? 'active' : 'paused' }
+        },
+        { entity: 'Queue', action: 'create' }
+      )
+    },
+
+    /**
+     * Override getById to add status field for backward compatibility
+     */
+    async getById(id: number): Promise<Queue & { status?: 'active' | 'paused' }> {
+      return withErrorContext(
+        async () => {
+          // Use base getById which will throw if not found
+          const queue = await baseService.getById(id)
+          // Add status field based on isActive for backward compatibility
+          return { ...queue, status: queue.isActive ? 'active' : 'paused' }
+        },
+        { entity: 'Queue', action: 'getById', id }
+      )
+    },
+
     /**
      * Get queues by project ID
      */
@@ -57,7 +87,10 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const queues = await repo.getByProject(projectId)
-          return queues.sort((a, b) => b.createdAt - a.createdAt)
+          // Add status field to each queue for backward compatibility
+          return queues
+            .map(q => ({ ...q, status: q.isActive ? 'active' : 'paused' } as Queue & { status?: 'active' | 'paused' }))
+            .sort((a, b) => b.createdAt - a.createdAt)
         },
         { entity: 'Queue', action: 'getByProject' }
       )
@@ -676,3 +709,11 @@ export async function checkAndHandleTimeouts(queueId: number) {
     errors: []
   }
 }
+
+// Re-export flow service functions for backward compatibility
+export { 
+  enqueueTicket, 
+  enqueueTask, 
+  dequeueTask,
+  enqueueTicketWithTasks as enqueueTicketWithAllTasks
+} from './flow-service'

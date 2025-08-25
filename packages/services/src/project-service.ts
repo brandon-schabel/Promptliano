@@ -19,7 +19,8 @@ import {
   type CreateProject as CreateProjectBody, 
   type UpdateProject as UpdateProjectBody,
   type File as ProjectFile,
-  ProjectSchema 
+  ProjectSchema,
+  CreateProjectSchema 
 } from '@promptliano/database'
 import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
@@ -59,7 +60,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
   const baseService = createCrudService<Project, CreateProjectBody, UpdateProjectBody>({
     entityName: 'Project',
     repository: repository as any, // TODO: Fix repository type mismatch
-    schema: ProjectSchema,
+    // Skip schema validation - repository handles it
     logger
   })
 
@@ -564,5 +565,11 @@ export const getProjectFileTree = async (projectId: number): Promise<any> => {
       content: f.content
     }))
   }
+}
+
+// Legacy function for backward compatibility
+export async function resummarizeAllFiles(projectId: number) {
+  // This is now handled by summarizeProjectFiles
+  return await summarizeProjectFiles(projectId)
 }
 

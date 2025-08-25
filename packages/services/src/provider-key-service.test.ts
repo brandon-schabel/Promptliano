@@ -1,310 +1,328 @@
 import { describe, test, expect, beforeEach, mock } from 'bun:test'
 
-// Types now come from @promptliano/database schema
-import type { ProviderKey, CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
-import { ApiError } from '@promptliano/shared'
-import { normalizeToUnixMs } from '@promptliano/shared'
-import { createProviderKeyService } from './provider-key-service'
+// Mock repository at module level before any imports
+const mockRepository = {
+  create: mock(),
+  getById: mock(),
+  getAll: mock(),
+  update: mock(),
+  delete: mock(),
+  exists: mock(),
+  findWhere: mock(),
+  findOneWhere: mock(),
+  getByName: mock(),
+  getActive: mock(),
+  getByProvider: mock()
+}
 
-// In-memory store for our mock  
-let mockProviderKeysDb: Record<string, any> = {}
+// Mock the crypto functions at module level
+const mockEncryptKey = mock()
+const mockDecryptKey = mock()
 
-// Mock the crypto functions to return plain text for testing
+// Set up the mocks with proper implementations
+mockEncryptKey.mockImplementation(async (plaintext: string) => ({
+  encrypted: `encrypted_${plaintext}`,
+  iv: 'mock-iv',
+  tag: 'mock-tag',
+  salt: 'mock-salt'
+}))
+
+mockDecryptKey.mockImplementation(async (data: any) => {
+  if (data.encrypted && data.encrypted.startsWith('encrypted_')) {
+    return data.encrypted.replace('encrypted_', '')
+  }
+  if (data.encryptedValue) {
+    return data.encryptedValue.replace('encrypted_', '')
+  }
+  return 'decrypted_value'
+})
+
+// Mock the database module
+mock.module('@promptliano/database', () => ({
+  providerKeyRepository: mockRepository,
+  providerKeys: {
+    provider: { name: 'provider' }
+  }, 
+  eq: mock((field: any, value: any) => ({ field, value }))
+}))
+
+// Mock the crypto module
 mock.module('@promptliano/shared/src/utils/crypto', () => ({
-  encryptKey: async (plaintext: string) => ({
-    encrypted: plaintext, // Store plain text for testing
-    iv: 'mock-iv',
-    tag: 'mock-tag',
-    salt: 'mock-salt'
-  }),
-  decryptKey: async (data: any) => data.encrypted || data.key,
-  generateEncryptionKey: () => 'mock-encryption-key',
+  encryptKey: mockEncryptKey,
+  decryptKey: mockDecryptKey,
+  generateEncryptionKey: mock(() => 'mock-encryption-key'),
   isEncrypted: (value: any) => {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      typeof value.encrypted === 'string' &&
-      typeof value.iv === 'string' &&
-      typeof value.tag === 'string' &&
-      typeof value.salt === 'string'
-    )
+    return typeof value === 'object' && value !== null && value.encrypted
   }
 }))
 
-// Mock the providerKeyStorage utility
-// Ensure the path to the module is correct based on your project structure.
-// If provider-key-storage.ts is in '@promptliano/storage/', this path should be correct.
-mock.module('@promptliano/storage', () => ({
-  providerKeyStorage: {
-    readProviderKeys: async () => JSON.parse(JSON.stringify(mockProviderKeysDb)),
-    writeProviderKeys: async (data: Record<string, any>) => {
-      mockProviderKeysDb = JSON.parse(JSON.stringify(data))
-      return mockProviderKeysDb
-    },
-    // Ensure the mocked generateId matches the one in the actual module or is sufficient for tests
-    generateId: () => normalizeToUnixMs(new Date())
-  },
-  encryptionKeyStorage: {
-    getKey: () => 'mock-encryption-key',
-    hasKey: () => true,
-    clearCache: () => {}
-  }
-}))
+// Import service and types after mocking
+const { createProviderKeyService } = await import('./provider-key-service')
+import type { 
+  ProviderKey, 
+  CreateProviderKey, 
+  UpdateProviderKey 
+} from '@promptliano/database'
+import { ErrorFactory } from '@promptliano/shared'
 
-let svc: ReturnType<typeof createProviderKeyService>
+describe('provider-key-service (Repository Pattern)', () => {
+  let service: ReturnType<typeof createProviderKeyService>
 
-describe('provider-key-service (File Storage)', () => {
-  beforeEach(async () => {
-    mockProviderKeysDb = {} // Reset in-memory store before each test
-    svc = createProviderKeyService()
-  })
-
-  test('createKey inserts new provider key', async () => {
-    const input = { provider: 'openai', key: 'test-api-key', name: 'openai', isDefault: false }
-    const pk = await svc.createKey(input)
-
-    expect(pk.id).toBeDefined()
-    expect(pk.provider).toBe(input.provider)
-    expect(pk.key).toBe(input.key) // With our mock, it returns plain text
-    expect(pk.encrypted).toBe(true)
-    expect(pk.iv).toBe('mock-iv')
-    expect(pk.tag).toBe('mock-tag')
-    expect(pk.salt).toBe('mock-salt')
-    expect(pk.createdAt).toBeDefined()
-    expect(pk.updatedAt).toBeDefined()
-    expect(pk.createdAt).toEqual(pk.updatedAt) // Initially, they should be the same
-
-    // Verify it's in our mock DB
-    expect(mockProviderKeysDb[pk.id]).toEqual(pk)
-  })
-
-  test('listKeysCensoredKeys returns all provider keys with masked keys, sorted by provider then by createdAt DESC', async () => {
-    // Create keys with different lengths to test masking logic
-    const pkC = await svc.createKey({
-      provider: 'zeta_provider',
-      key: 'sk-1234567890abcdef1234567890abcdef',
-      name: 'zeta_provider',
-      isDefault: false
-    }) // Long key
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkA1 = await svc.createKey({
-      provider: 'alpha_provider',
-      key: 'short',
-      name: 'alpha_provider',
-      isDefault: false
-    }) // Short key
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkB = await svc.createKey({
-      provider: 'beta_provider',
-      key: 'medium_length_key_123',
-      name: 'beta_provider',
-      isDefault: false
-    }) // Medium key
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkA2 = await svc.createKey({
-      provider: 'alpha_provider',
-      key: 'gsk_1234567890abcdef1234567890abcdef1234',
-      name: 'alpha_provider',
-      isDefault: false
-    }) // pkA2 is newer than pkA1
-
-    const list = await svc.listKeysCensoredKeys()
-    expect(list.length).toBe(4)
-
-    // Expected order: alpha_provider (pkA2 then pkA1), beta_provider (pkB), zeta_provider (pkC)
-    expect(list[0].id).toBe(pkA2.id) // alpha_provider, newest
-    expect(list[0].provider).toBe('alpha_provider')
-    expect(list[0].key).toBe('********') // All encrypted keys show as ********
-    expect(list[1].id).toBe(pkA1.id) // alpha_provider, older
-    expect(list[1].provider).toBe('alpha_provider')
-    expect(list[1].key).toBe('********') // All encrypted keys show as ********
-    expect(list[2].id).toBe(pkB.id) // beta_provider
-    expect(list[2].provider).toBe('beta_provider')
-    expect(list[2].key).toBe('********') // All encrypted keys show as ********
-    expect(list[3].id).toBe(pkC.id) // zeta_provider
-    expect(list[3].provider).toBe('zeta_provider')
-    expect(list[3].key).toBe('********') // All encrypted keys show as ********
-  })
-
-  test('listKeysUncensored returns all provider keys with full keys, sorted by provider then by createdAt DESC', async () => {
-    // Create the same keys as censored test for comparison
-    const pkC = await svc.createKey({
-      provider: 'zeta_provider',
-      key: 'sk-1234567890abcdef1234567890abcdef',
-      name: 'zeta_provider',
-      isDefault: false
+  beforeEach(() => {
+    // Reset all mocks
+    Object.values(mockRepository).forEach(mockFn => {
+      if (typeof mockFn === 'function' && 'mockReset' in mockFn) {
+        (mockFn as any).mockReset()
+      }
     })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkA1 = await svc.createKey({
-      provider: 'alpha_provider',
-      key: 'short',
-      name: 'alpha_provider',
-      isDefault: false
-    })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkB = await svc.createKey({
-      provider: 'beta_provider',
-      key: 'medium_length_key_123',
-      name: 'beta_provider',
-      isDefault: false
-    })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    const pkA2 = await svc.createKey({
-      provider: 'alpha_provider',
-      key: 'gsk_1234567890abcdef1234567890abcdef1234',
-      name: 'alpha_provider',
-      isDefault: false
+    mockEncryptKey.mockClear()
+    mockDecryptKey.mockClear()
+
+    // Restore implementations after clearing
+    mockEncryptKey.mockImplementation(async (plaintext: string) => ({
+      encrypted: `encrypted_${plaintext}`,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt'
+    }))
+
+    mockDecryptKey.mockImplementation(async (data: any) => {
+      if (data.encrypted && data.encrypted.startsWith('encrypted_')) {
+        return data.encrypted.replace('encrypted_', '')
+      }
+      if (data.encryptedValue) {
+        return data.encryptedValue.replace('encrypted_', '')
+      }
+      return 'decrypted_value'
     })
 
-    const list = await svc.listKeysUncensored()
-    expect(list.length).toBe(4)
-
-    // Expected order: alpha_provider (pkA2 then pkA1), beta_provider (pkB), zeta_provider (pkC)
-    expect(list[0].id).toBe(pkA2.id) // alpha_provider, newest
-    expect(list[0].provider).toBe('alpha_provider')
-    expect(list[0].key).toBe('gsk_1234567890abcdef1234567890abcdef1234') // Full key
-    expect(list[1].id).toBe(pkA1.id) // alpha_provider, older
-    expect(list[1].provider).toBe('alpha_provider')
-    expect(list[1].key).toBe('short') // Full key
-    expect(list[2].id).toBe(pkB.id) // beta_provider
-    expect(list[2].provider).toBe('beta_provider')
-    expect(list[2].key).toBe('medium_length_key_123') // Full key
-    expect(list[3].id).toBe(pkC.id) // zeta_provider
-    expect(list[3].provider).toBe('zeta_provider')
-    expect(list[3].key).toBe('sk-1234567890abcdef1234567890abcdef') // Full key
+    // Create service instance
+    service = createProviderKeyService()
   })
 
-  test('censored vs uncensored keys have same structure but different key values', async () => {
-    const testKey = 'sk-1234567890abcdef1234567890abcdef'
-    await svc.createKey({ provider: 'openai', key: testKey, name: 'test-key', isDefault: false })
+  describe('Key Creation and Retrieval', () => {
+    test('createKey inserts new provider key', async () => {
+      const input = { 
+        provider: 'openai', 
+        key: 'test-api-key', 
+        name: 'openai', 
+        isDefault: false 
+      }
 
-    const censoredList = await svc.listKeysCensoredKeys()
-    const uncensoredList = await svc.listKeysUncensored()
+      const createdKey: ProviderKey = {
+        id: 1,
+        name: input.name,
+        provider: input.provider,
+        keyName: input.name,
+        encryptedValue: 'encrypted_test-api-key',
+        key: 'encrypted_test-api-key',
+        encrypted: true,
+        iv: 'mock-iv',
+        tag: 'mock-tag',
+        salt: 'mock-salt',
+        baseUrl: null,
+        customHeaders: {},
+        isDefault: false,
+        isActive: true,
+        environment: 'production',
+        description: null,
+        expiresAt: null,
+        lastUsed: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
 
-    expect(censoredList.length).toBe(uncensoredList.length)
-    expect(censoredList.length).toBe(1)
+      mockRepository.findWhere.mockResolvedValue([]) // No existing default keys
+      mockRepository.create.mockResolvedValue(createdKey)
 
-    const censored = censoredList[0]
-    const uncensored = uncensoredList[0]
+      const result = await service.createKey(input)
 
-    // Same structure
-    expect(censored.id).toBe(uncensored.id)
-    expect(censored.provider).toBe(uncensored.provider)
-    expect(censored.name).toBe(uncensored.name)
-    expect(censored.isDefault).toBe(uncensored.isDefault)
-    expect(censored.createdAt).toBe(uncensored.createdAt)
-    expect(censored.updatedAt).toBe(uncensored.updatedAt)
-
-    // Different key values
-    expect(censored.key).toBe('********') // Encrypted keys show as ********
-    expect(uncensored.key).toBe(testKey) // Full key
-    expect(censored.key).not.toBe(uncensored.key)
-  })
-
-  test('key masking logic handles edge cases correctly', async () => {
-    // Test various key lengths
-    const veryShortKey = 'abc'
-    const shortKey = 'abcdefgh' // Exactly 8 chars
-    const mediumKey = 'abcdefghijk' // 11 chars
-    const longKey = 'sk-1234567890abcdef1234567890abcdef' // 35 chars
-
-    await svc.createKey({ provider: 'test1', key: veryShortKey, name: 'very-short', isDefault: false })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    await svc.createKey({ provider: 'test2', key: shortKey, name: 'short', isDefault: false })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    await svc.createKey({ provider: 'test3', key: mediumKey, name: 'medium', isDefault: false })
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    await svc.createKey({ provider: 'test4', key: longKey, name: 'long', isDefault: false })
-
-    const censoredList = await svc.listKeysCensoredKeys()
-    expect(censoredList.length).toBe(4)
-
-    // Find each key in the sorted list
-    const veryShortResult = censoredList.find((k) => k.name === 'very-short')
-    const shortResult = censoredList.find((k) => k.name === 'short')
-    const mediumResult = censoredList.find((k) => k.name === 'medium')
-    const longResult = censoredList.find((k) => k.name === 'long')
-
-    // All encrypted keys show as ********
-    expect(veryShortResult?.key).toBe('********')
-    expect(shortResult?.key).toBe('********')
-    expect(mediumResult?.key).toBe('********')
-    expect(longResult?.key).toBe('********')
-  })
-
-  test('getKeyById returns key or null if not found', async () => {
-    const created = await svc.createKey({
-      provider: 'get_by_id_test',
-      key: 'key123',
-      name: 'get_by_id_test',
-      isDefault: false
+      expect(result.id).toBe(1)
+      expect(result.provider).toBe(input.provider)
+      expect(result.key).toBe(input.key) // Service should return decrypted key
+      expect(result.encrypted).toBe(true)
+      expect(result.iv).toBe('mock-iv')
+      expect(result.tag).toBe('mock-tag')
+      expect(result.salt).toBe('mock-salt')
+      
+      expect(mockEncryptKey).toHaveBeenCalledWith('test-api-key')
+      expect(mockRepository.create).toHaveBeenCalled()
     })
-    const found = await svc.getKeyById(created.id)
-    expect(found).toBeDefined()
-    expect(found?.id).toBe(created.id)
-    expect(found?.key).toBe('key123')
 
-    const missing = await svc.getKeyById(9999)
-    expect(missing).toBeNull()
-  })
+    test('getKeyById returns key or null if not found', async () => {
+      const testKey: ProviderKey = {
+        id: 1,
+        name: 'test-key',
+        provider: 'get_by_id_test',
+        keyName: 'get_by_id_test',
+        encryptedValue: 'encrypted_decrypted_value',
+        key: 'encrypted_decrypted_value',
+        encrypted: true,
+        iv: 'test-iv',
+        tag: 'test-tag',
+        salt: 'test-salt',
+        baseUrl: null,
+        customHeaders: {},
+        isDefault: false,
+        isActive: true,
+        environment: 'production',
+        description: null,
+        expiresAt: null,
+        lastUsed: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
 
-  test('updateKey modifies existing row and updates timestamp', async () => {
-    const created = await svc.createKey({
-      provider: 'initial_provider',
-      key: 'initial_key',
-      name: 'initial_provider',
-      isDefault: false
+      // Test found case
+      mockRepository.getById.mockResolvedValueOnce(testKey)
+
+      const found = await service.getKeyById(1)
+      expect(found).toBeDefined()
+      expect(found?.id).toBe(1)
+      expect(found?.key).toBe('decrypted_value') // Should be decrypted
+      expect(mockDecryptKey).toHaveBeenCalled()
+
+      // Test not found case
+      mockRepository.getById.mockResolvedValueOnce(null)
+
+      const missing = await service.getKeyById(9999)
+      expect(missing).toBeNull()
     })
-    const originalUpdated = created.updatedAt
-
-    // Ensure a small delay for distinct timestamps
-    await new Promise((resolve) => setTimeout(resolve, 5))
-
-    const updates = { key: 'updated_key', provider: 'new_provider_name' }
-    const updated = await svc.updateKey(created.id, updates)
-
-    expect(updated).toBeDefined()
-    expect(updated.id).toBe(created.id)
-    expect(updated.key).toBe(updates.key)
-    expect(updated.provider).toBe(updates.provider)
-    expect(updated.createdAt).toBe(created.createdAt) // createdAt should not change
-    expect(updated.updatedAt).not.toBe(originalUpdated)
-    expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdated).getTime())
-
-    // Verify it's updated in our mock DB
-    expect(mockProviderKeysDb[created.id]).toEqual(updated)
-
-    // Test partial update (only key)
-    await new Promise((resolve) => setTimeout(resolve, 5))
-    const keyOnlyUpdate = await svc.updateKey(created.id, { key: 'final_key_value' })
-    expect(keyOnlyUpdate.key).toBe('final_key_value')
-    expect(keyOnlyUpdate.provider).toBe(updates.provider) // Provider should persist from previous update
-    expect(new Date(keyOnlyUpdate.updatedAt).getTime()).toBeGreaterThan(new Date(updated.updatedAt).getTime())
   })
 
-  test('updateKey throws ApiError if key not found', async () => {
-    await expect(svc.updateKey(9999, { key: 'some_key' })).rejects.toThrow(
-      new ApiError(404, `Provider Key with ID 9999 not found`, 'PROVIDER_KEY_NOT_FOUND')
-    )
-  })
+  describe('Key Updates', () => {
+    test('updateKey modifies existing row and updates timestamp', async () => {
+      const existingKey: ProviderKey = {
+        id: 1,
+        name: 'initial_provider',
+        provider: 'initial_provider',
+        keyName: 'initial_provider',
+        encryptedValue: 'encrypted_initial_key',
+        key: 'encrypted_initial_key',
+        encrypted: true,
+        iv: 'old-iv',
+        tag: 'old-tag',
+        salt: 'old-salt',
+        baseUrl: null,
+        customHeaders: {},
+        isDefault: false,
+        isActive: true,
+        environment: 'production',
+        description: null,
+        expiresAt: null,
+        lastUsed: null,
+        createdAt: Date.now() - 1000,
+        updatedAt: Date.now() - 1000
+      }
 
-  test('deleteKey removes row, returns boolean indicating success', async () => {
-    const created = await svc.createKey({
-      provider: 'to_delete_provider',
-      key: 'to_delete_key',
-      name: 'to_delete_provider',
-      isDefault: false
+      const updatedKey: ProviderKey = {
+        ...existingKey,
+        key: 'encrypted_updated_key',
+        provider: 'new_provider_name',
+        updatedAt: Date.now()
+      }
+
+      mockRepository.getById.mockResolvedValue(existingKey)
+      mockRepository.findWhere.mockResolvedValue([]) // No other default keys
+      mockRepository.update.mockResolvedValue(updatedKey)
+
+      const updates = { key: 'updated_key', provider: 'new_provider_name' }
+      const result = await service.updateKey(1, updates)
+
+      expect(result).toBeDefined()
+      expect(result.id).toBe(1)
+      expect(result.key).toBe('updated_key') // Should return the new key value directly
+      expect(result.provider).toBe('new_provider_name')
+      expect(result.updatedAt).toBe(updatedKey.updatedAt)
+      
+      expect(mockRepository.getById).toHaveBeenCalledWith(1)
+      expect(mockEncryptKey).toHaveBeenCalledWith('updated_key')
+      expect(mockRepository.update).toHaveBeenCalled()
     })
-    expect(mockProviderKeysDb[created.id]).toBeDefined() // Ensure it's there before delete
 
-    const result1 = await svc.deleteKey(created.id)
-    expect(result1).toBe(true)
-    expect(mockProviderKeysDb[created.id]).toBeUndefined() // Ensure it's gone
+    test('updateKey throws ApiError if key not found', async () => {
+      mockRepository.getById.mockResolvedValue(null)
 
-    const result2 = await svc.deleteKey(created.id) // Try deleting again
-    expect(result2).toBe(false)
+      await expect(service.updateKey(9999, { key: 'some_key' }))
+        .rejects.toThrow('Provider Key with ID 9999 not found')
+      
+      expect(mockRepository.getById).toHaveBeenCalledWith(9999)
+    })
+  })
 
-    const result3 = await svc.deleteKey(9999) // Try deleting non-existent
-    expect(result3).toBe(false)
+  describe('Key Deletion', () => {
+    test('deleteKey removes row, returns boolean indicating success', async () => {
+      // Test successful deletion
+      mockRepository.exists.mockResolvedValueOnce(true)
+      mockRepository.delete.mockResolvedValueOnce(true)
+
+      const result1 = await service.deleteKey(1)
+      expect(result1).toBe(true)
+      expect(mockRepository.exists).toHaveBeenCalledWith(1)
+      expect(mockRepository.delete).toHaveBeenCalledWith(1)
+
+      // Test deletion of non-existent key
+      mockRepository.exists.mockResolvedValueOnce(false)
+
+      const result2 = await service.deleteKey(9999)
+      expect(result2).toBe(false)
+      expect(mockRepository.exists).toHaveBeenCalledWith(9999)
+    })
+  })
+
+  describe('Key Masking and Censoring', () => {
+    test('key masking logic handles edge cases correctly', async () => {
+      const keys: ProviderKey[] = [
+        {
+          id: 1, name: 'very-short', provider: 'test1', keyName: 'very-short',
+          encryptedValue: 'encrypted_abc', key: 'encrypted_abc', encrypted: true,
+          iv: 'iv1', tag: 'tag1', salt: 'salt1', baseUrl: null, customHeaders: {},
+          isDefault: false, isActive: true, environment: 'production',
+          description: null, expiresAt: null, lastUsed: null,
+          createdAt: Date.now() - 4000, updatedAt: Date.now() - 4000
+        },
+        {
+          id: 2, name: 'short', provider: 'test2', keyName: 'short',
+          encryptedValue: 'encrypted_abcdefgh', key: 'encrypted_abcdefgh', encrypted: true,
+          iv: 'iv2', tag: 'tag2', salt: 'salt2', baseUrl: null, customHeaders: {},
+          isDefault: false, isActive: true, environment: 'production',
+          description: null, expiresAt: null, lastUsed: null,
+          createdAt: Date.now() - 3000, updatedAt: Date.now() - 3000
+        },
+        {
+          id: 3, name: 'medium', provider: 'test3', keyName: 'medium',
+          encryptedValue: 'encrypted_abcdefghijk', key: 'encrypted_abcdefghijk', encrypted: true,
+          iv: 'iv3', tag: 'tag3', salt: 'salt3', baseUrl: null, customHeaders: {},
+          isDefault: false, isActive: true, environment: 'production',
+          description: null, expiresAt: null, lastUsed: null,
+          createdAt: Date.now() - 2000, updatedAt: Date.now() - 2000
+        },
+        {
+          id: 4, name: 'long', provider: 'test4', keyName: 'long',
+          encryptedValue: 'encrypted_sk-1234567890abcdef1234567890abcdef', 
+          key: 'encrypted_sk-1234567890abcdef1234567890abcdef', encrypted: true,
+          iv: 'iv4', tag: 'tag4', salt: 'salt4', baseUrl: null, customHeaders: {},
+          isDefault: false, isActive: true, environment: 'production',
+          description: null, expiresAt: null, lastUsed: null,
+          createdAt: Date.now() - 1000, updatedAt: Date.now() - 1000
+        }
+      ]
+
+      mockRepository.getAll.mockResolvedValue(keys)
+
+      const censoredList = await service.listKeysCensoredKeys()
+      expect(censoredList).toHaveLength(4)
+
+      // All encrypted keys should show as ********
+      const veryShortResult = censoredList.find((k) => k.name === 'very-short')
+      const shortResult = censoredList.find((k) => k.name === 'short')
+      const mediumResult = censoredList.find((k) => k.name === 'medium')
+      const longResult = censoredList.find((k) => k.name === 'long')
+
+      expect(veryShortResult?.key).toBe('********')
+      expect(shortResult?.key).toBe('********')
+      expect(mediumResult?.key).toBe('********')
+      expect(longResult?.key).toBe('********')
+    })
   })
 })

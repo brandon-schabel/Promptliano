@@ -8,15 +8,49 @@ import {
   entityIdArraySchema
 } from './schema-utils'
 
-// Import database schemas as source of truth
-import { 
-  TicketSchema as DatabaseTicketSchema,
-  TaskSchema as DatabaseTaskSchema 
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { 
+  Ticket as DatabaseTicket,
+  TicketTask as DatabaseTicketTask
 } from '@promptliano/database'
 
-// Use database schemas as the base
-export const TicketSchema = DatabaseTicketSchema
-export const TicketTaskSchema = DatabaseTaskSchema
+// Recreate schemas locally to avoid runtime imports from database package
+// These must stay in sync with the database schemas
+export const TicketSchema = z.object({
+  id: z.number(),
+  projectId: z.number(),
+  title: z.string(),
+  overview: z.string().nullable(),
+  status: z.enum(['open', 'in_progress', 'closed']),
+  priority: z.enum(['low', 'normal', 'high']),
+  suggestedFileIds: z.array(z.string()),
+  suggestedAgentIds: z.array(z.string()),
+  suggestedPromptIds: z.array(z.number()),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('Ticket')
+
+export const TicketTaskSchema = z.object({
+  id: z.number(),
+  ticketId: z.number(),
+  content: z.string(),
+  description: z.string().nullable(),
+  done: z.boolean(),
+  orderIndex: z.number(),
+  suggestedFileIds: z.array(z.string()),
+  estimatedHours: z.number().nullable(),
+  dependencies: z.array(z.number()),
+  tags: z.array(z.string()),
+  agentId: z.string().nullable(),
+  suggestedPromptIds: z.array(z.number()),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).openapi('TicketTask')
+
+// Type verification to ensure our schemas match the database types
+// These will cause TypeScript errors if schemas drift out of sync
+const _ticketTypeCheck: z.infer<typeof TicketSchema> = {} as DatabaseTicket
+const _taskTypeCheck: z.infer<typeof TicketTaskSchema> = {} as DatabaseTicketTask
 
 // API Request Body Schemas - derived from database schemas  
 export const CreateTicketBodySchema = TicketSchema.pick({
@@ -30,7 +64,7 @@ export const CreateTicketBodySchema = TicketSchema.pick({
   suggestedPromptIds: true
 }).extend({
   title: z.string().min(1),
-  overview: z.string().default(''),
+  overview: z.string().nullable().default(null),
   status: z.enum(['open', 'in_progress', 'closed']).default('open'),
   priority: z.enum(['low', 'normal', 'high']).default('normal')
 }).openapi('CreateTicketBody')

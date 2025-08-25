@@ -103,6 +103,8 @@ export {
   addPromptToProject,
   suggestPrompts,
   removePromptFromProject,
+  getPromptsByIds,
+  getPromptProjects,
   type PromptService
 } from './src/prompt-service'
 

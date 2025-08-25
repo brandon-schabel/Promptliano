@@ -14,6 +14,7 @@ import {
   useExportPromptAsMarkdown
 } from '@/hooks/api-hooks'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
+import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,10 @@ export function PromptsPage() {
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'default' | 'size_asc' | 'size_desc'>('alphabetical')
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [selectedPrompts, setSelectedPrompts] = useState<Set<number>>(new Set())
+  
+  // Get active project from tab state
+  const [activeProjectTabState] = useActiveProjectTab()
+  const selectedProjectId = activeProjectTabState?.selectedProjectId
 
   const { data: promptsRes, isLoading, error, refetch } = useGetAllPrompts()
   const prompts = promptsRes as Prompt[]
@@ -220,7 +225,13 @@ export function PromptsPage() {
             // await updatePromptMutation.mutateAsync({ promptId: selectedPrompt.id, title: data.name, content: data.content })
             console.log('Prompt update not implemented yet')
           } else {
-            await createPromptMutation.mutateAsync({ title: data.name, content: data.content, projectId: 1 })
+            // Use the selected project ID, or fallback to -1 if no project is selected
+            const projectId = selectedProjectId || -1
+            if (projectId === -1) {
+              toast.error('Please select a project first')
+              return
+            }
+            await createPromptMutation.mutateAsync({ title: data.name, content: data.content, projectId })
           }
           setIsCreateDialogOpen(false)
           setSelectedPrompt(null)

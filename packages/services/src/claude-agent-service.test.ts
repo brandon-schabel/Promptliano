@@ -195,11 +195,11 @@ describe('Claude Agent Service', () => {
   describe('Modern Service Patterns', () => {
     test('exports individual functions for tree-shaking', async () => {
       const { 
-        create: createAgent,
-        getById: getAgentById,
-        list: listAgents,
-        update: updateAgent,
-        delete: deleteAgent
+        createAgent,
+        getAgentById,
+        listAgents,
+        updateAgent,
+        deleteAgent
       } = await import('./claude-agent-service')
 
       expect(typeof createAgent).toBe('function')

@@ -114,14 +114,14 @@ export class HonoInterceptorBridge {
             // This does nothing - interceptors should not call next, they transform the request
           }
 
-          const result = await interceptor.handler(c, interceptorContext, interceptorNext)
+          await interceptor.handler(c, interceptorContext, interceptorNext)
           
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
           
-          // If interceptor returned a Response object, it handled the request completely
-          if (result instanceof Response) {
-            return result
+          // Check if the interceptor set a response (finalized the context)
+          if (c.finalized) {
+            return c.res
           }
         } catch (error) {
           // If interceptor throws, it will be caught by error interceptors
@@ -273,7 +273,10 @@ export class HonoReplacementInterceptors {
         }
         
         // Return a proper 204 response for preflight
-        return c.body('', 204)
+        // Use body() with empty string to properly finalize the response
+        c.status(204)
+        c.body('')
+        return
       }
 
       // Set CORS headers for actual requests

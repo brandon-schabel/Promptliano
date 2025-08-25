@@ -263,13 +263,13 @@ async function convertPromptToMarkdown(prompt: Prompt): Promise<string> {
       name: prompt.title
     }
 
-    // Add created date if available
-    if (prompt.createdAt) {
+    // Add created date if available and not zero
+    if (prompt.createdAt && prompt.createdAt > 0) {
       frontmatter.created = new Date(prompt.createdAt).toISOString()
     }
 
-    // Add updated date if available
-    if (prompt.updatedAt) {
+    // Add updated date if available and not zero
+    if (prompt.updatedAt && prompt.updatedAt > 0) {
       frontmatter.updated = new Date(prompt.updatedAt).toISOString()
     }
 
@@ -669,10 +669,10 @@ async function performExportToMarkdown(
           : {}
 
         if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.createdAt) {
+          if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
             frontmatter.created = new Date(prompt.createdAt).toISOString()
           }
-          if (includeUpdatedDate && prompt.updatedAt) {
+          if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
             frontmatter.updated = new Date(prompt.updatedAt).toISOString()
           }
           if (includeTags) {
@@ -745,10 +745,10 @@ async function performExportToMarkdown(
           : {}
 
         if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.createdAt) {
+          if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
             frontmatter.created = new Date(prompt.createdAt).toISOString()
           }
-          if (includeUpdatedDate && prompt.updatedAt) {
+          if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
             frontmatter.updated = new Date(prompt.updatedAt).toISOString()
           }
           if (includeTags) {

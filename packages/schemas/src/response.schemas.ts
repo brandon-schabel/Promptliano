@@ -1,14 +1,26 @@
 import { z } from '@hono/zod-openapi'
-import {
-  TicketSchema,
-  ChatSchema,
-  QueueSchema,
-  ClaudeCommandSchema,
-  ClaudeHookSchema,
-  ClaudeAgentSchema,
-  SelectedFileSchema,
-  ActiveTabSchema
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type {
+  Ticket as DatabaseTicket,
+  Chat as DatabaseChat,
+  Queue as DatabaseQueue,
+  ClaudeCommand as DatabaseClaudeCommand,
+  ClaudeHook as DatabaseClaudeHook,
+  ClaudeAgent as DatabaseClaudeAgent,
+  SelectedFile as DatabaseSelectedFile,
+  ActiveTab as DatabaseActiveTab
 } from '@promptliano/database'
+
+// Recreate basic schemas locally to avoid runtime imports
+// These are used in response schemas but don't need full validation
+const TicketSchema = z.object({}).passthrough()
+const ChatSchema = z.object({}).passthrough()
+const QueueSchema = z.object({}).passthrough()  
+const ClaudeCommandSchema = z.object({}).passthrough()
+const ClaudeHookSchema = z.object({}).passthrough()
+const ClaudeAgentSchema = z.object({}).passthrough()
+const SelectedFileSchema = z.object({}).passthrough()
+const ActiveTabSchema = z.object({}).passthrough()
 
 // =============================================================================
 // MISSING RESPONSE SCHEMAS FOR AUTO-GENERATED ROUTES

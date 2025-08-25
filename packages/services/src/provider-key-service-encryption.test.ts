@@ -1,28 +1,102 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll } from 'bun:test'
-import { createProviderKeyService } from './provider-key-service'
-import { storageService } from '@promptliano/database'
-import type { ProviderKey } from '@promptliano/database'
+import { describe, test, expect, beforeEach, mock } from 'bun:test'
+
+// Mock repository at module level before any imports
+const mockRepository = {
+  create: mock(),
+  getById: mock(),
+  getAll: mock(),
+  update: mock(),
+  delete: mock(),
+  exists: mock(),
+  findWhere: mock(),
+  findOneWhere: mock(),
+  getByName: mock(),
+  getActive: mock(),
+  getByProvider: mock()
+}
+
+// Mock the crypto functions at module level
+const mockEncryptKey = mock()
+const mockDecryptKey = mock()
+
+// Set up the mocks with proper implementations
+mockEncryptKey.mockImplementation(async (plaintext: string) => ({
+  encrypted: `encrypted_${plaintext}`,
+  iv: 'mock-iv',
+  tag: 'mock-tag',
+  salt: 'mock-salt'
+}))
+
+mockDecryptKey.mockImplementation(async (data: any) => {
+  if (data.encrypted && data.encrypted.startsWith('encrypted_')) {
+    return data.encrypted.replace('encrypted_', '')
+  }
+  if (data.encryptedValue) {
+    return data.encryptedValue.replace('encrypted_', '')
+  }
+  return 'decrypted_value'
+})
+
+// Mock the database module
+mock.module('@promptliano/database', () => ({
+  providerKeyRepository: mockRepository,
+  providerKeys: {
+    provider: { name: 'provider' }
+  }, 
+  eq: mock((field: any, value: any) => ({ field, value }))
+}))
+
+// Mock the crypto module
+mock.module('@promptliano/shared/src/utils/crypto', () => ({
+  encryptKey: mockEncryptKey,
+  decryptKey: mockDecryptKey,
+  generateEncryptionKey: mock(() => 'mock-encryption-key'),
+  isEncrypted: (value: any) => {
+    return typeof value === 'object' && value !== null && value.encrypted
+  }
+}))
+
+// Import service and types after mocking
+const { createProviderKeyService } = await import('./provider-key-service')
+import type { 
+  ProviderKey, 
+  CreateProviderKey, 
+  UpdateProviderKey 
+} from '@promptliano/database'
+import { ErrorFactory } from '@promptliano/shared'
 
 describe('Provider Key Service Encryption', () => {
   let service: ReturnType<typeof createProviderKeyService>
-  const originalEnv = process.env.PROMPTLIANO_ENCRYPTION_KEY
 
-  beforeAll(() => {
-    // Clear env and cache for tests
-    delete process.env.PROMPTLIANO_ENCRYPTION_KEY
-    encryptionKeyStorage.clearCache()
-  })
+  beforeEach(() => {
+    // Reset all mocks
+    Object.values(mockRepository).forEach(mockFn => {
+      if (typeof mockFn === 'function' && 'mockReset' in mockFn) {
+        (mockFn as any).mockReset()
+      }
+    })
+    mockEncryptKey.mockClear()
+    mockDecryptKey.mockClear()
 
-  afterAll(() => {
-    // Restore original env if it existed
-    if (originalEnv) {
-      process.env.PROMPTLIANO_ENCRYPTION_KEY = originalEnv
-    }
-  })
+    // Restore implementations after clearing
+    mockEncryptKey.mockImplementation(async (plaintext: string) => ({
+      encrypted: `encrypted_${plaintext}`,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt'
+    }))
 
-  beforeEach(async () => {
-    // Clear all keys before each test
-    await providerKeyStorage.writeProviderKeys({})
+    mockDecryptKey.mockImplementation(async (data: any) => {
+      if (data.encrypted && data.encrypted.startsWith('encrypted_')) {
+        return data.encrypted.replace('encrypted_', '')
+      }
+      if (data.encryptedValue) {
+        return data.encryptedValue.replace('encrypted_', '')
+      }
+      return 'decrypted_value'
+    })
+
+    // Create service instance
     service = createProviderKeyService()
   })
 
@@ -33,22 +107,45 @@ describe('Provider Key Service Encryption', () => {
       key: 'sk-test-12345'
     }
 
-    const created = await service.createKey(keyData)
+    const createdKey: ProviderKey = {
+      id: 1,
+      name: keyData.name,
+      provider: keyData.provider,
+      keyName: keyData.name,
+      encryptedValue: 'encrypted_sk-test-12345',
+      key: 'encrypted_sk-test-12345',
+      encrypted: true,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt',
+      baseUrl: null,
+      customHeaders: {},
+      isDefault: false,
+      isActive: true,
+      environment: 'production',
+      description: null,
+      expiresAt: null,
+      lastUsed: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+
+    mockRepository.findWhere.mockResolvedValue([]) // No existing default keys
+    mockRepository.create.mockResolvedValue(createdKey)
+
+    const result = await service.createKey(keyData)
 
     // Check that the key is marked as encrypted
-    expect(created.encrypted).toBe(true)
-    expect(created.iv).toBeDefined()
-    expect(created.tag).toBeDefined()
-    expect(created.salt).toBeDefined()
+    expect(result.encrypted).toBe(true)
+    expect(result.iv).toBeDefined()
+    expect(result.tag).toBeDefined()
+    expect(result.salt).toBeDefined()
 
     // The API returns decrypted keys for developer convenience
-    // (even though they are stored encrypted)
-    expect(created.key).toBe(keyData.key)
+    expect(result.key).toBe(keyData.key)
 
-    // Read directly from storage to verify it's encrypted there too
-    const stored = await providerKeyStorage.getProviderKeyById(created.id)
-    expect(stored?.key).not.toBe(keyData.key)
-    expect(stored?.encrypted).toBe(true)
+    expect(mockEncryptKey).toHaveBeenCalledWith('sk-test-12345')
+    expect(mockRepository.create).toHaveBeenCalled()
   })
 
   test('getKeyById decrypts the API key', async () => {
@@ -58,11 +155,36 @@ describe('Provider Key Service Encryption', () => {
       key: 'sk-test-12345'
     }
 
-    const created = await service.createKey(keyData)
-    const retrieved = await service.getKeyById(created.id)
+    const storedKey: ProviderKey = {
+      id: 1,
+      name: keyData.name,
+      provider: keyData.provider,
+      keyName: keyData.name,
+      encryptedValue: 'encrypted_sk-test-12345',
+      key: 'encrypted_sk-test-12345',
+      encrypted: true,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt',
+      baseUrl: null,
+      customHeaders: {},
+      isDefault: false,
+      isActive: true,
+      environment: 'production',
+      description: null,
+      expiresAt: null,
+      lastUsed: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
 
-    expect(retrieved).not.toBeNull()
-    expect(retrieved?.key).toBe(keyData.key) // Should be decrypted
+    mockRepository.getById.mockResolvedValue(storedKey)
+
+    const result = await service.getKeyById(1)
+
+    expect(result).not.toBeNull()
+    expect(result?.key).toBe(keyData.key) // Should be decrypted
+    expect(mockDecryptKey).toHaveBeenCalled()
   })
 
   test('listKeysUncensored decrypts all keys', async () => {
@@ -72,17 +194,37 @@ describe('Provider Key Service Encryption', () => {
       { name: 'Key 3', provider: 'openrouter', key: 'or-333' }
     ]
 
-    // Create all keys
-    for (const keyData of keys) {
-      await service.createKey(keyData)
-    }
+    const storedKeys: ProviderKey[] = keys.map((keyData, index) => ({
+      id: index + 1,
+      name: keyData.name,
+      provider: keyData.provider,
+      keyName: keyData.name,
+      encryptedValue: `encrypted_${keyData.key}`,
+      key: `encrypted_${keyData.key}`,
+      encrypted: true,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt',
+      baseUrl: null,
+      customHeaders: {},
+      isDefault: false,
+      isActive: true,
+      environment: 'production',
+      description: null,
+      expiresAt: null,
+      lastUsed: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }))
 
-    // List uncensored should decrypt all
-    const listed = await service.listKeysUncensored()
-    expect(listed).toHaveLength(3)
+    mockRepository.getAll.mockResolvedValue(storedKeys)
+
+    const result = await service.listKeysUncensored()
+
+    expect(result).toHaveLength(3)
 
     for (let i = 0; i < keys.length; i++) {
-      const listedKey = listed.find((k) => k.name === keys[i].name)
+      const listedKey = result.find((k) => k.name === keys[i].name)
       expect(listedKey?.key).toBe(keys[i].key)
     }
   })
@@ -94,68 +236,153 @@ describe('Provider Key Service Encryption', () => {
       key: 'sk-test-12345678901234567890'
     }
 
-    await service.createKey(keyData)
-    const listed = await service.listKeysCensoredKeys()
+    const storedKey: ProviderKey = {
+      id: 1,
+      name: keyData.name,
+      provider: keyData.provider,
+      keyName: keyData.name,
+      encryptedValue: `encrypted_${keyData.key}`,
+      key: `encrypted_${keyData.key}`,
+      encrypted: true,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt',
+      baseUrl: null,
+      customHeaders: {},
+      isDefault: false,
+      isActive: true,
+      environment: 'production',
+      description: null,
+      expiresAt: null,
+      lastUsed: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
 
-    expect(listed).toHaveLength(1)
+    mockRepository.getAll.mockResolvedValue([storedKey])
+
+    const result = await service.listKeysCensoredKeys()
+
+    expect(result).toHaveLength(1)
     // Encrypted keys show generic mask
-    expect(listed[0].key).toBe('********')
-    expect(listed[0].key).not.toBe(keyData.key)
+    expect(result[0].key).toBe('********')
+    expect(result[0].key).not.toBe(keyData.key)
   })
 
   test('updateKey re-encrypts when key is changed', async () => {
     const originalKey = 'sk-test-original'
     const updatedKey = 'sk-test-updated'
 
-    const created = await service.createKey({
+    const existingKey: ProviderKey = {
+      id: 1,
       name: 'Test Key',
       provider: 'openai',
-      key: originalKey
-    })
+      keyName: 'Test Key',
+      encryptedValue: `encrypted_${originalKey}`,
+      key: `encrypted_${originalKey}`,
+      encrypted: true,
+      iv: 'old-iv',
+      tag: 'old-tag',
+      salt: 'old-salt',
+      baseUrl: null,
+      customHeaders: {},
+      isDefault: false,
+      isActive: true,
+      environment: 'production',
+      description: null,
+      expiresAt: null,
+      lastUsed: null,
+      createdAt: Date.now() - 1000,
+      updatedAt: Date.now() - 1000
+    }
 
-    // Update the key
-    const updated = await service.updateKey(created.id, {
+    const updatedKeyResult: ProviderKey = {
+      ...existingKey,
+      key: `encrypted_${updatedKey}`,
+      encryptedValue: `encrypted_${updatedKey}`,
+      iv: 'mock-iv',
+      tag: 'mock-tag',
+      salt: 'mock-salt',
+      updatedAt: Date.now()
+    }
+
+    mockRepository.getById.mockResolvedValue(existingKey)
+    mockRepository.findWhere.mockResolvedValue([]) // No other default keys
+    mockRepository.update.mockResolvedValue(updatedKeyResult)
+
+    const result = await service.updateKey(1, {
       key: updatedKey
     })
 
     // Should have new encryption parameters
-    expect(updated.encrypted).toBe(true)
-    expect(updated.iv).not.toBe(created.iv)
-    expect(updated.salt).not.toBe(created.salt)
+    expect(result.encrypted).toBe(true)
+    expect(result.iv).not.toBe('old-iv')
+    expect(result.salt).not.toBe('old-salt')
 
-    // Retrieve and verify the new key
-    const retrieved = await service.getKeyById(created.id)
-    expect(retrieved?.key).toBe(updatedKey)
+    // Should return decrypted key
+    expect(result.key).toBe(updatedKey)
+
+    expect(mockEncryptKey).toHaveBeenCalledWith(updatedKey)
+    expect(mockRepository.update).toHaveBeenCalled()
   })
 
   test('handles mixed encrypted and unencrypted keys gracefully', async () => {
-    // Manually insert an unencrypted key (simulating legacy data)
-    const unencryptedKey: ProviderKey = {
-      id: 1234567890,
-      name: 'Legacy Key',
-      provider: 'openai',
-      key: 'sk-plain-text-key',
-      encrypted: false,
-      isDefault: false,
-      created: Date.now(),
-      updated: Date.now()
-    }
+    // Mock keys with mixed encryption status
+    const mixedKeys: ProviderKey[] = [
+      {
+        id: 1,
+        name: 'Legacy Key',
+        provider: 'openai',
+        keyName: 'Legacy Key',
+        encryptedValue: 'sk-plain-text-key',
+        key: 'sk-plain-text-key',
+        encrypted: false,
+        iv: null,
+        tag: null,
+        salt: null,
+        baseUrl: null,
+        customHeaders: {},
+        isDefault: false,
+        isActive: true,
+        environment: 'production',
+        description: null,
+        expiresAt: null,
+        lastUsed: null,
+        createdAt: Date.now() - 2000,
+        updatedAt: Date.now() - 2000
+      },
+      {
+        id: 2,
+        name: 'New Key',
+        provider: 'anthropic',
+        keyName: 'New Key',
+        encryptedValue: 'encrypted_sk-encrypted-key',
+        key: 'encrypted_sk-encrypted-key',
+        encrypted: true,
+        iv: 'mock-iv',
+        tag: 'mock-tag',
+        salt: 'mock-salt',
+        baseUrl: null,
+        customHeaders: {},
+        isDefault: false,
+        isActive: true,
+        environment: 'production',
+        description: null,
+        expiresAt: null,
+        lastUsed: null,
+        createdAt: Date.now() - 1000,
+        updatedAt: Date.now() - 1000
+      }
+    ]
 
-    await providerKeyStorage.upsertProviderKey(unencryptedKey)
+    mockRepository.getAll.mockResolvedValue(mixedKeys)
 
-    // Create an encrypted key
-    await service.createKey({
-      name: 'New Key',
-      provider: 'anthropic',
-      key: 'sk-encrypted-key'
-    })
+    const result = await service.listKeysUncensored()
 
-    // List should handle both
-    const listed = await service.listKeysUncensored()
-    expect(listed).toHaveLength(2)
+    expect(result).toHaveLength(2)
 
-    const legacy = listed.find((k) => k.name === 'Legacy Key')
-    const newKey = listed.find((k) => k.name === 'New Key')
+    const legacy = result.find((k) => k.name === 'Legacy Key')
+    const newKey = result.find((k) => k.name === 'New Key')
 
     expect(legacy?.key).toBe('sk-plain-text-key')
     expect(newKey?.key).toBe('sk-encrypted-key')

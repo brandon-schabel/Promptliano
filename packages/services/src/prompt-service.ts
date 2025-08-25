@@ -354,3 +354,26 @@ export const removePromptFromProject = async (promptId: number) => {
   const prompt = await promptRepository.update(promptId, { projectId: undefined })
   return prompt
 }
+
+export const getPromptsByIds = async (promptIds: number[]): Promise<Prompt[]> => {
+  // Get multiple prompts by their IDs
+  const prompts = await Promise.all(
+    promptIds.map(async (id) => {
+      try {
+        return await promptRepository.getById(id)
+      } catch {
+        return null // Skip missing prompts
+      }
+    })
+  )
+  return prompts.filter((p): p is Prompt => p !== null)
+}
+
+export const getPromptProjects = async (promptId: number) => {
+  // Get project associations for a prompt (simplified for current schema)
+  const prompt = await promptRepository.getById(promptId)
+  if (prompt?.projectId) {
+    return [{ id: 1, promptId, projectId: prompt.projectId }]
+  }
+  return []
+}

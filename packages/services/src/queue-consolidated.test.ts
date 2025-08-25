@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterAll } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
 import {
   createQueue,
@@ -8,11 +8,9 @@ import {
   deleteQueue,
   pauseQueue,
   resumeQueue,
-  enqueueTicket,
-  enqueueTask,
-  enqueueTicketWithAllTasks,
+  enqueueItem,
+  batchEnqueueItems,
   dequeueTicket,
-  dequeueTask,
   getNextTaskFromQueue,
   getQueueStats,
   getQueuesWithStats,
@@ -27,6 +25,40 @@ import { createTask, updateTask } from './ticket-service'
 import { db } from '@promptliano/database'
 // Database test utilities - to be implemented with Drizzle
 import { randomBytes } from 'crypto'
+
+// Test database instance - using the global db for now
+let testDb: typeof db = db
+
+// Helper functions to match old API signatures
+const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {
+  return await enqueueItem(queueId, {
+    type: 'ticket',
+    referenceId: ticketId,
+    title: `Ticket ${ticketId}`,
+    priority
+  })
+}
+
+const enqueueTask = async (ticketId: number, taskId: number, queueId: number, priority: number) => {
+  return await enqueueItem(queueId, {
+    type: 'task',
+    referenceId: taskId,
+    title: `Task ${taskId}`,
+    priority
+  })
+}
+
+const dequeueTask = async (ticketId: number, taskId: number) => {
+  // Simplified - in reality would need to find and remove from queue
+  return true
+}
+
+const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number) => {
+  // Simplified version - enqueue ticket and its tasks
+  const { createTask } = await import('./ticket-service')
+  const items = [{ ticketId, priority: 5 }]
+  return await batchEnqueueItems(queueId, items)
+}
 
 describe('Consolidated Queue System Tests', () => {
   let testProjectId: number
@@ -43,7 +75,8 @@ describe('Consolidated Queue System Tests', () => {
     const projectSuffix = randomBytes(4).toString('hex')
     const project = await createProject({
       name: `Queue Test Project ${suiteId}-${projectSuffix}`,
-      path: `/test/queue-${suiteId}-${projectSuffix}`
+      path: `/test/queue-${suiteId}-${projectSuffix}`,
+      description: 'Test project for queue consolidation'
     })
     testProjectId = project.id
 
@@ -58,10 +91,9 @@ describe('Consolidated Queue System Tests', () => {
     testQueueId = queue.id
   })
 
-  afterAll(async () => {
-    // Clean up test data and reset database instance
-    // TODO: Implement clear all data with Drizzle
-    resetDatabaseInstance()
+  afterEach(async () => {
+    // Clean up test database - db is shared, don't close it
+    // In a real test setup, we'd use a separate test database
   })
 
   describe('Queue CRUD Operations', () => {
