@@ -257,7 +257,7 @@ export function ProviderCard({
           {isConnected && (
             <div className='grid grid-cols-3 gap-2 animate-in fade-in duration-300'>
               <ModelListPopover
-                models={modelsResponse?.data || []}
+                models={Array.isArray(modelsResponse) ? modelsResponse : []}
                 isLoading={modelsLoading}
                 providerName={meta?.name || provider.provider}
                 isConnected={isConnected}
@@ -268,7 +268,7 @@ export function ProviderCard({
                     {modelsLoading ? (
                       <Loader2 className='h-3 w-3 animate-spin' />
                     ) : (
-                      modelsResponse?.data?.length || health?.modelCount || '--'
+                      (Array.isArray(modelsResponse) ? modelsResponse.length : 0) || health?.modelCount || '--'
                     )}
                   </p>
                 </button>

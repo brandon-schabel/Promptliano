@@ -125,20 +125,26 @@ export type GlobalMCPStatus = {
 
 export const MCP_ENHANCED_KEYS = {
   all: ['mcp'] as const,
-  analytics: (projectId: number) => [...MCP_ENHANCED_KEYS.all, 'analytics', projectId] as const,
+  // Required QueryKeyFactory methods
+  lists: () => ['mcp', 'list'] as const,
+  list: () => ['mcp', 'list'] as const,
+  details: () => ['mcp', 'detail'] as const,
+  detail: (id: number) => ['mcp', 'detail', id] as const,
+  // MCP-specific query keys
+  analytics: (projectId: number) => ['mcp', 'analytics', projectId] as const,
   executions: (projectId: number, query?: MCPExecutionQuery) => 
-    [...MCP_ENHANCED_KEYS.analytics(projectId), 'executions', query] as const,
+    ['mcp', 'analytics', projectId, 'executions', query] as const,
   overview: (projectId: number, request?: MCPAnalyticsRequest) => 
-    [...MCP_ENHANCED_KEYS.analytics(projectId), 'overview', request] as const,
+    ['mcp', 'analytics', projectId, 'overview', request] as const,
   statistics: (projectId: number, request?: MCPAnalyticsRequest) => 
-    [...MCP_ENHANCED_KEYS.analytics(projectId), 'statistics', request] as const,
+    ['mcp', 'analytics', projectId, 'statistics', request] as const,
   timeline: (projectId: number, request?: MCPAnalyticsRequest) => 
-    [...MCP_ENHANCED_KEYS.analytics(projectId), 'timeline', request] as const,
+    ['mcp', 'analytics', projectId, 'timeline', request] as const,
   errorPatterns: (projectId: number, request?: MCPAnalyticsRequest) => 
-    [...MCP_ENHANCED_KEYS.analytics(projectId), 'error-patterns', request] as const,
-  global: () => [...MCP_ENHANCED_KEYS.all, 'global'] as const,
-  config: () => [...MCP_ENHANCED_KEYS.global(), 'config'] as const,
-  installations: () => [...MCP_ENHANCED_KEYS.global(), 'installations'] as const,
+    ['mcp', 'analytics', projectId, 'error-patterns', request] as const,
+  global: () => ['mcp', 'global'] as const,
+  config: () => ['mcp', 'global', 'config'] as const,
+  installations: () => ['mcp', 'global', 'installations'] as const,
   status: () => [...MCP_ENHANCED_KEYS.global(), 'status'] as const
 }
 
@@ -465,8 +471,8 @@ export function useGlobalMCPManager() {
   return {
     // Query states
     config: config?.data,
-    installations: installations?.data?.installations || [],
-    toolStatuses: installations?.data?.toolStatuses || [],
+    installations: (installations?.data as any)?.installations || [],
+    toolStatuses: (installations?.data as any)?.toolStatuses || [],
     status: status?.data,
     isLoading: configLoading || installationsLoading || statusLoading,
 
@@ -482,15 +488,15 @@ export function useGlobalMCPManager() {
 
     // Helper methods
     isToolInstalled: (tool: string) => {
-      return installations?.data?.toolStatuses?.some((toolStatus: any) => toolStatus.tool === tool && toolStatus.installed) ?? false
+      return (installations?.data as any)?.toolStatuses?.some((toolStatus: any) => toolStatus.tool === tool && toolStatus.installed) ?? false
     },
 
     getInstallation: (tool: string) => {
-      return installations?.data?.installations?.find((installation: any) => installation.tool === tool)
+      return (installations?.data as any)?.installations?.find((installation: any) => installation.tool === tool)
     },
 
     getToolStatus: (tool: string) => {
-      return installations?.data?.toolStatuses?.find((toolStatus: any) => toolStatus.tool === tool)
+      return (installations?.data as any)?.toolStatuses?.find((toolStatus: any) => toolStatus.tool === tool)
     }
   }
 }

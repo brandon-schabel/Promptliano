@@ -26,6 +26,10 @@ export interface EntityIdentifiable {
   id: number
 }
 
+export interface StringEntityIdentifiable {
+  id: string
+}
+
 export interface Timestamped {
   created?: number
   updated?: number
@@ -143,7 +147,7 @@ function createDefaultMessages(entityName: string): Required<EntityMessages> {
   }
 }
 
-function createDefaultOptimistic<TEntity extends EntityIdentifiable & Timestamped>(): OptimisticConfig<TEntity> {
+function createDefaultOptimistic<TEntity extends (EntityIdentifiable | StringEntityIdentifiable) & Timestamped>(): OptimisticConfig<TEntity> {
   return {
     enabled: true,
     createOptimisticEntity: (data) => ({
@@ -173,7 +177,7 @@ const DEFAULT_INVALIDATION: InvalidationStrategy = {
 // ============================================================================
 
 export function createCrudHooks<
-  TEntity extends EntityIdentifiable,
+  TEntity extends (EntityIdentifiable | StringEntityIdentifiable),
   TCreate = Omit<TEntity, 'id'>,
   TUpdate = Partial<Omit<TEntity, 'id'>>,
   TListParams = void
@@ -344,7 +348,7 @@ export function createCrudHooks<
         }
 
         // Set the detail query
-        queryClient.setQueryData(queryKeys.detail(entity.id), entity)
+        queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
 
         const message = typeof resolvedMessages.createSuccess === 'function'
           ? resolvedMessages.createSuccess(entity)
@@ -516,7 +520,7 @@ export function createCrudHooks<
       onSuccess: (entities) => {
         // Add all entities to cache
         entities.forEach(entity => {
-          queryClient.setQueryData(queryKeys.detail(entity.id), entity)
+          queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
         })
         toast.success(`Created ${entities.length} ${entityName}s`)
       },
@@ -547,7 +551,7 @@ export function createCrudHooks<
       },
       onSuccess: (entities) => {
         entities.forEach(entity => {
-          queryClient.setQueryData(queryKeys.detail(entity.id), entity)
+          queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
         })
         toast.success(`Updated ${entities.length} ${entityName}s`)
       },
@@ -660,7 +664,7 @@ export function createCrudHooks<
         queryClient.invalidateQueries({ queryKey: queryKeys.detail(id) })
       },
       setDetail: (entity: TEntity) => {
-        queryClient.setQueryData(queryKeys.detail(entity.id), entity)
+        queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
       },
       removeDetail: (id: number) => {
         queryClient.removeQueries({ queryKey: queryKeys.detail(id) })

@@ -217,12 +217,12 @@ export function MCPGlobalConfigEditor() {
                   </>
                 )}
               </div>
-              {'configPath' in status && status.configPath && (
+              {('configPath' in status && status.configPath) ? (
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <FolderOpen className='h-3 w-3' />
-                  <code className='text-xs'>{status.configPath}</code>
+                  <code className='text-xs'>{String(status.configPath)}</code>
                 </div>
-              )}
+              ) : null}
             </AlertDescription>
           </Alert>
         )}

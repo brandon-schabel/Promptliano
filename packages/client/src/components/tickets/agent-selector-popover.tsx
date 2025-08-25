@@ -37,12 +37,12 @@ export function AgentSelectorPopover({
   placeholder = 'Select agent...'
 }: AgentSelectorPopoverProps) {
   const [open, setOpen] = useState(false)
-  const { data: agentsResponse, isLoading, error } = useGetAllAgents(projectId)
+  const { data: agentsResponse, isLoading, error } = useGetAllAgents({ projectId })
 
   // Extract agents from response
   const agents = useMemo(() => {
-    if (!agentsResponse?.data) return []
-    return Array.isArray(agentsResponse.data) ? agentsResponse.data : []
+    if (!agentsResponse) return []
+    return Array.isArray(agentsResponse) ? agentsResponse : []
   }, [agentsResponse])
 
   // Find current agent details

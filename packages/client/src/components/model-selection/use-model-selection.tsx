@@ -54,12 +54,12 @@ export function useModelSelection(options: UseModelSelectionOptions = {}): UseMo
   const { data: modelsData, isLoading: isLoadingModels } = useGetModels(provider, urlOptions)
 
   const availableModels: ValidatedModelData[] = useMemo(() => {
-    if (!modelsData?.data || !Array.isArray(modelsData.data)) {
+    if (!modelsData || !Array.isArray(modelsData)) {
       return []
     }
     
     try {
-      const validationResult = validateModelsArray(modelsData.data)
+      const validationResult = validateModelsArray(modelsData)
       
       if (!validationResult.success) {
         console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)
@@ -71,7 +71,7 @@ export function useModelSelection(options: UseModelSelectionOptions = {}): UseMo
       console.error('Error validating model data:', extractErrorMessage(error))
       return []
     }
-  }, [modelsData?.data])
+  }, [modelsData])
 
   // Auto-select first model when provider changes
   useEffect(() => {

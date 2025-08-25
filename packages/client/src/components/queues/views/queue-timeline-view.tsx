@@ -4,7 +4,7 @@ import { Badge } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Alert, AlertDescription } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
-import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
+import { useQueues, useGetFlowData, useTickets } from '@/hooks/api-hooks'
 import { format, addMinutes } from 'date-fns'
 import { Clock, AlertCircle, CheckCircle2, XCircle, Play, Pause, ListTodo, FileText, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,7 @@ interface TimelineItem {
 export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineViewProps) {
   const { data: queues } = useQueues({ projectId })
   const { data: flowData, isLoading } = useGetFlowData(projectId)
+  const { data: ticketsWithTasks } = useTickets({ projectId })
 
   // Find selected queue
   const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
@@ -45,8 +46,10 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
         id: ticket.id,
         queueId: selectedQueueId,
         ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
         priority: index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: ticket.createdAt
       })
     })
@@ -57,8 +60,10 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
         id: task.id,
         queueId: selectedQueueId,
         taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
         priority: (queueData.tickets?.length || 0) + index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: task.createdAt
       })
     })
@@ -154,7 +159,8 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
     if (item.itemType === 'task') {
       // Find the ticket that contains this task
       for (const ticket of ticketsWithTasks) {
-        const task = ticket.tasks.find((t) => t.id === item.itemId)
+        const ticketTasks = (ticket as any).tasks || []
+        const task = ticketTasks.find((t: any) => t.id === item.itemId)
         if (task) {
           return { ticket, task }
         }
@@ -199,9 +205,9 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
               <SelectValue placeholder='Select a queue' />
             </SelectTrigger>
             <SelectContent>
-              {queuesWithStats?.map((q) => (
-                <SelectItem key={q.queue.id} value={q.queue.id.toString()}>
-                  {q.queue.name}
+              {queues?.map((q: TaskQueue) => (
+                <SelectItem key={q.id} value={q.id.toString()}>
+                  {q.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -214,12 +220,12 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
             <div className='space-y-1'>
               <p className='text-sm text-muted-foreground'>Queue Status</p>
               <div className='flex items-center gap-2'>
-                {selectedQueue.queue.status === 'active' ? (
+                {selectedQueue.isActive ? (
                   <Play className='h-4 w-4 text-green-600' />
                 ) : (
                   <Pause className='h-4 w-4 text-muted-foreground' />
                 )}
-                <p className='font-semibold capitalize'>{selectedQueue.queue.status}</p>
+                <p className='font-semibold capitalize'>{selectedQueue.isActive ? 'active' : 'inactive'}</p>
               </div>
             </div>
             <div className='space-y-1'>

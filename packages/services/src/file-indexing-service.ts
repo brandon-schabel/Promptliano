@@ -1,6 +1,6 @@
 import type { File as ProjectFile } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
-import { db } from '@promptliano/database'
+import { rawDb } from '@promptliano/database'
 import type { Database, Statement } from 'bun:sqlite'
 
 /**
@@ -8,7 +8,7 @@ import type { Database, Statement } from 'bun:sqlite'
  * Uses TF-IDF, keyword extraction, and FTS5 for sub-millisecond searches
  */
 export class FileIndexingService {
-  private db: any // Using any to avoid type conflicts between drizzle and bun:sqlite
+  private db: Database
   private insertFTSStmt!: Statement
   private insertMetadataStmt!: Statement
   private insertKeywordStmt!: Statement
@@ -54,7 +54,7 @@ export class FileIndexingService {
   ])
 
   constructor() {
-    this.db = db
+    this.db = rawDb
     this.ensureTables()
     this.initializeStatements()
   }

@@ -104,10 +104,7 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
   )
 
   // Load tickets with their tasks from the server
-  const { data, isLoading, error } = useGetTicketsWithTasks(
-    Number(projectId),
-    ticketStatus === 'all' ? undefined : ticketStatus === 'non_closed' ? undefined : ticketStatus
-  )
+  const { data, isLoading, error } = useGetTicketsWithTasks(Number(projectId))
   const tickets = (data ?? []) as TicketWithTasks[]
 
   // Apply client-side filtering for status and queue
@@ -212,10 +209,7 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
     if (!ticketToDelete) return
 
     try {
-      await deleteTicket.mutateAsync({
-        ticketId: ticketToDelete.ticket.id,
-        projectId: ticketToDelete.ticket.projectId
-      })
+      await deleteTicket.mutateAsync(ticketToDelete.ticket.id)
       toast.success('Ticket deleted successfully')
     } catch (err) {
       toast.error('Failed to delete ticket')

@@ -24,7 +24,7 @@ import { nanoid } from 'nanoid'
 // import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
 
 const SERVER_HTTP_ENDPOINT = 'http://localhost:3001' // Default fallback
-import { createEntityHooks } from '../factories/entity-hook-factory'
+import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import type { 
   ChatSchema, 
@@ -94,6 +94,7 @@ export const CHAT_KEYS = {
   all: ['chats'] as const,
   lists: () => [...CHAT_KEYS.all, 'list'] as const,
   list: () => [...CHAT_KEYS.all, 'list'] as const,
+  details: () => [...CHAT_KEYS.all, 'detail'] as const,
   detail: (chatId: number) => [...CHAT_KEYS.all, 'detail', chatId] as const,
   messages: (chatId: number) => [...CHAT_KEYS.all, 'messages', chatId] as const
 } as const
@@ -109,20 +110,16 @@ export const GEN_AI_KEYS = {
 // Core Chat CRUD Hooks (Factory Generated)
 // ============================================================================
 
-const baseChatHooks = createEntityHooks<Chat, CreateChatBody, UpdateChatBody>({
-  entityName: 'Chat',
-  clientPath: 'chats',
-  queryKeys: {
-    all: CHAT_KEYS.all,
-    lists: () => CHAT_KEYS.lists(),
-    list: () => CHAT_KEYS.list(),
-    detail: (id: number) => CHAT_KEYS.detail(id)
-  },
-  options: {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    optimistic: true
-  }
+// Import CHAT_CONFIG from entity-configs
+import { CHAT_CONFIG } from './entity-configs'
+
+const baseChatHooks = createCrudHooks<Chat, CreateChatBody, UpdateChatBody>({
+  ...CHAT_CONFIG,
+  queryKeys: CHAT_KEYS
 })
+
+// Add useCustomQuery convenience method
+const useCustomQuery = (options: any) => useQuery(options)
 
 // Export individual CRUD hooks for backward compatibility
 export const {
@@ -386,14 +383,14 @@ export function useAIChat({ chatId, provider, model, systemMessage, enableChatAu
         sdkOptions = { ...sdkOptions, lmstudioUrl: appSettings.lmStudioGlobalUrl }
       }
 
-      // Construct request body
+      // Construct request body with proper defaults
       const requestBody: AiChatStreamRequest = {
-        chatId: chatId,
-        userMessage: messageContent.trim(),
-        tempId: userMessageId,
-        ...(systemMessage && { systemMessage }),
-        ...(sdkOptions && { options: sdkOptions }),
-        enableChatAutoNaming: enableChatAutoNaming
+        messages: [
+          ...(systemMessage ? [{ role: 'system' as const, content: systemMessage }] : []),
+          { role: 'user' as const, content: messageContent.trim() }
+        ],
+        model: (sdkOptions as any)?.model || 'gpt-4',
+        provider: (sdkOptions as any)?.provider || provider || 'openai'
       }
 
       setInput('')
@@ -492,7 +489,7 @@ export function useStreamText() {
 export function useGetProviders() {
   const client = useApiClient()
 
-  return baseChatHooks.useCustomQuery({
+  return useCustomQuery({
     queryKey: GEN_AI_KEYS.providers(),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
@@ -506,7 +503,7 @@ export function useGetProviders() {
 export function useGetModels(provider: string, options?: { ollamaUrl?: string; lmstudioUrl?: string }) {
   const client = useApiClient()
 
-  return baseChatHooks.useCustomQuery({
+  return useCustomQuery({
     queryKey: GEN_AI_KEYS.models(provider, options),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
@@ -585,12 +582,10 @@ export function useAIChatV2({ chatId, provider, model, systemMessage }: {
         chatId,
         userMessage,
         systemMessage,
-        options: {
-          provider,
-          model,
-          ...options
-        }
-      })
+        provider,
+        model,
+        ...options
+      } as any)
       return stream
     } catch (error) {
       throw error

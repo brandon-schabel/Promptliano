@@ -66,6 +66,12 @@ export interface FlowData {
 
 export const FLOW_ENHANCED_KEYS = {
   all: ['flow'] as const,
+  // Required QueryKeyFactory methods
+  lists: () => [...FLOW_ENHANCED_KEYS.all, 'list'] as const,
+  list: () => [...FLOW_ENHANCED_KEYS.all, 'list'] as const,
+  details: () => [...FLOW_ENHANCED_KEYS.all, 'detail'] as const,
+  detail: (id: number) => [...FLOW_ENHANCED_KEYS.details(), id] as const,
+  // Flow-specific query keys
   data: (projectId: number) => [...FLOW_ENHANCED_KEYS.all, 'data', projectId] as const,
   items: (projectId: number) => [...FLOW_ENHANCED_KEYS.all, 'items', projectId] as const,
   unqueued: (projectId: number) => [...FLOW_ENHANCED_KEYS.all, 'unqueued', projectId] as const,
@@ -132,7 +138,7 @@ export function useGetFlowData(projectId: number, enabled = true) {
     queryFn: async () => {
       if (!client) throw new Error('API client not initialized')
       const data = await client.flow.getFlowData(projectId)
-      return (data?.data || data) as FlowData
+      return ((data as any)?.data || data) as FlowData
     },
     enabled: !!client && enabled && !!projectId,
     refetchInterval: QUEUE_REFETCH_INTERVAL, // 5s polling preserved
@@ -152,7 +158,7 @@ export function useGetFlowItems(projectId: number, enabled = true) {
     queryFn: async () => {
       if (!client) throw new Error('API client not initialized')
       const items = await client.flow.getFlowItems(projectId)
-      return (items?.data || items) as FlowItem[]
+      return ((items as any)?.data || items) as FlowItem[]
     },
     enabled: !!client && enabled && !!projectId,
     refetchInterval: QUEUE_REFETCH_INTERVAL, // 5s polling preserved
@@ -171,7 +177,7 @@ export function useGetUnqueuedItems(projectId: number, enabled = true) {
     queryFn: async () => {
       if (!client) throw new Error('API client not initialized')
       const items = await client.flow.getUnqueuedItems(projectId)
-      return (items?.data || items) as { tickets: Ticket[]; tasks: TicketTask[] }
+      return ((items as any)?.data || items) as { tickets: Ticket[]; tasks: TicketTask[] }
     },
     enabled: !!client && enabled && !!projectId,
     refetchInterval: QUEUE_REFETCH_INTERVAL, // 5s polling preserved
@@ -205,7 +211,7 @@ export function useEnqueueTicket() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.enqueueTicket(ticketId, { queueId, priority, includeTasks })
-      return (result?.data || result) as Ticket
+      return result as unknown as Ticket
     },
     onSuccess: (ticket) => {
       // Use factory-based invalidation
@@ -231,7 +237,7 @@ export function useEnqueueTask() {
     mutationFn: async ({ taskId, queueId, priority = 0 }: { taskId: number; queueId: number; priority?: number }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.enqueueTask(taskId, { queueId, priority })
-      return (result?.data || result) as TicketTask
+      return result as unknown as TicketTask
     },
     onSuccess: () => {
       invalidateAll()
@@ -258,7 +264,7 @@ export function useDequeueTicket() {
 
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.dequeueTicket(ticketId, { includeTasks })
-      return (result?.data || result) as Ticket
+      return result as unknown as Ticket
     },
     onSuccess: (ticket) => {
       invalidateAll()
@@ -282,7 +288,7 @@ export function useDequeueTask() {
     mutationFn: async (taskId: number) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.dequeueTask(taskId)
-      return (result?.data || result) as TicketTask
+      return result as unknown as TicketTask
     },
     onSuccess: (task) => {
       invalidateAll()
@@ -317,7 +323,7 @@ export function useMoveItem() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.moveItem({ itemType, itemId, targetQueueId, priority, includeTasks })
-      return (result?.data || result) as FlowItem
+      return result as FlowItem
     },
     onSuccess: () => {
       invalidateAll()
@@ -346,7 +352,7 @@ export function useBulkMoveItems() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.bulkMoveItems({ items, targetQueueId, priority })
-      return (result?.data || result) as { success: boolean; movedCount: number }
+      return result as { success: boolean; movedCount: number }
     },
     onSuccess: (result) => {
       invalidateAll()
@@ -376,7 +382,7 @@ export function useCompleteQueueItem() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.queues.completeQueueItem(itemType, itemId, ticketId)
-      return result?.data || result
+      return result
     },
     onSuccess: () => {
       // Invalidate all flow queries to refresh the board
@@ -417,7 +423,7 @@ export function useStartProcessing() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.startProcessingItem({ itemType, itemId, agentId })
-      return (result?.data || result) as { success: boolean }
+      return result as { success: boolean }
     },
     onSuccess: () => {
       invalidateAll()
@@ -446,7 +452,7 @@ export function useCompleteProcessing() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.completeProcessingItem({ itemType, itemId, processingTime })
-      return (result?.data || result) as { success: boolean }
+      return result as { success: boolean }
     },
     onSuccess: () => {
       invalidateAll()
@@ -475,7 +481,7 @@ export function useFailProcessing() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const result = await client.flow.failProcessingItem({ itemType, itemId, errorMessage })
-      return (result?.data || result) as { success: boolean }
+      return result as { success: boolean }
     },
     onSuccess: () => {
       invalidateAll()

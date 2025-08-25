@@ -7,11 +7,13 @@ import { Badge } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { ConfiguredDataTable, createDataTableColumns, type DataTableColumnsConfig } from '@promptliano/ui'
-import type { QueueItem, TaskQueue } from '@/hooks/generated/types'
+import type { QueueItem, TaskQueue, TicketWithTasks, TicketTask } from '@/hooks/generated/types'
 import { toast } from 'sonner'
-import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
+import { useQueues, useGetFlowData, useTickets } from '@/hooks/api-hooks'
 import { formatDistanceToNow } from 'date-fns'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
+
+type ItemQueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
 import {
   Search,
   Filter,
@@ -45,6 +47,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
 
   const { data: queues } = useQueues({ projectId })
   const { data: flowData, isLoading } = useGetFlowData(projectId)
+  const { data: ticketsWithTasks } = useTickets({ projectId })
   
   // Extract queue items from flow data
   const items: QueueItem[] = useMemo(() => {
@@ -58,8 +61,10 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         id: ticket.id,
         queueId: selectedQueueId,
         ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
         priority: index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: ticket.createdAt
       })
     })
@@ -70,8 +75,10 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         id: task.id,
         queueId: selectedQueueId,
         taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
         priority: (queueData.tickets?.length || 0) + index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: task.createdAt
       })
     })
@@ -99,16 +106,18 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
   }, [items, searchQuery])
 
   // Get task details for an item
-  const getTaskDetails = (item: QueueItem) => {
+  const getTaskDetails = (item: QueueItem): { ticket: any; task: TicketTask | null } | null => {
     if (item.itemType !== 'ticket' && item.itemType !== 'task' || !ticketsWithTasks) return null
     if (item.itemType === 'ticket') {
-      const ticket = ticketsWithTasks.find((t) => t.id === item.itemId)
+      const ticket = ticketsWithTasks.find((t: any) => t.id === item.itemId)
       return ticket ? { ticket, task: null } : null
     }
     if (item.itemType === 'task') {
       // Find the ticket that contains this task
       for (const ticket of ticketsWithTasks) {
-        const task = ticket.tasks.find((t) => t.id === item.itemId)
+        // Use type assertion since we know the structure might be different
+        const ticketTasks = (ticket as any).tasks || []
+        const task = ticketTasks.find((t: TicketTask) => t.id === item.itemId) || null
         if (task) {
           return { ticket, task }
         }
@@ -186,9 +195,9 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
                 </div>
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <FileText className='h-3 w-3' />
-                  <span className='truncate max-w-[300px]'>{details.task.content}</span>
+                  <span className='truncate max-w-[300px]'>{details.task?.content || 'Task not found'}</span>
                 </div>
-                {details.task.suggestedFileIds && details.task.suggestedFileIds.length > 0 && (
+                {details.task?.suggestedFileIds && Array.isArray(details.task.suggestedFileIds) && details.task.suggestedFileIds.length > 0 && (
                   <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                     <FileIcon className='h-3 w-3' />
                     <span>{details.task.suggestedFileIds.length} suggested files</span>
@@ -325,7 +334,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
           <div>
             <h2 className='text-2xl font-bold'>Queue Items</h2>
             <p className='text-muted-foreground'>
-              {selectedQueue ? `Managing items in ${selectedQueue.queue.name}` : 'Select a queue to view items'}
+              {selectedQueue ? `Managing items in ${selectedQueue.name}` : 'Select a queue to view items'}
             </p>
           </div>
 
@@ -338,9 +347,9 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
               <SelectValue placeholder='Select a queue' />
             </SelectTrigger>
             <SelectContent>
-              {queuesWithStats?.map((q) => (
-                <SelectItem key={q.queue.id} value={q.queue.id.toString()}>
-                  {q.queue.name} ({q.stats.queuedItems} queued)
+              {queues?.map((q: TaskQueue) => (
+                <SelectItem key={q.id} value={q.id.toString()}>
+                  {q.name}
                 </SelectItem>
               ))}
             </SelectContent>

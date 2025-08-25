@@ -187,7 +187,7 @@ export function useProjectFiles(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.files(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.listProjectsByProjectIdFiles(projectId).then(r => r?.data || r)
+      return client.projects.getProjectFiles(projectId).then((r: any) => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 2 * 60 * 1000 // 2 minutes for files
@@ -224,7 +224,7 @@ export function useTicketTasks(ticketId: number) {
     queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.getTasks(ticketId).then(r => r?.data || r)
+      return client.tickets.getTasks(ticketId).then((r: any) => r?.data || r)
     },
     enabled: !!client && !!ticketId,
     staleTime: 1 * 60 * 1000 // 1 minute for tasks
@@ -238,10 +238,10 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: ({ ticketId, data }: { ticketId: number; data: CreateTaskBody }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.createTask(ticketId, data).then(r => r?.data || r)
+      return client.tickets.createTask(ticketId, data).then(r => r)
     },
-    onSuccess: (task) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(task.ticketId) })
+    onSuccess: (task, variables) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks((task as any).data?.ticketId || (task as any).ticketId || variables.ticketId) })
       invalidateWithRelationships(queryClient, 'tickets')
       toast.success('Task created successfully')
     },
@@ -258,10 +258,10 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ ticketId, taskId, data }: { ticketId: number; taskId: number; data: UpdateTaskBody }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.updateTask(ticketId, taskId, data).then(r => r?.data || r)
+      return client.tickets.updateTask(ticketId, taskId, data).then((r: any) => r?.data || r)
     },
-    onSuccess: (task) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(task.ticketId) })
+    onSuccess: (task, variables) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks((task as any).data?.ticketId || (task as any).ticketId || variables.ticketId) })
       invalidateWithRelationships(queryClient, 'tickets')
       toast.success('Task updated successfully')
     },
@@ -278,7 +278,7 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: ({ ticketId, taskId }: { ticketId: number; taskId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.deleteTask(ticketId, taskId).then(r => r?.data || r)
+      return client.tickets.deleteTask(ticketId, taskId).then((r: any) => r?.data || r)
     },
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
@@ -298,12 +298,12 @@ export function useAutoGenerateTasks() {
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.autoGenerateTasks(ticketId).then(r => r?.data || r)
+      return client.tickets.autoGenerateTasks(ticketId).then(r => r)
     },
     onSuccess: (tasks, ticketId) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
       invalidateWithRelationships(queryClient, 'tickets')
-      toast.success(`Generated ${tasks?.length || 0} tasks successfully`)
+      toast.success(`Generated ${Array.isArray((tasks as any)?.data) ? (tasks as any).data.length : Array.isArray(tasks) ? tasks.length : 0} tasks successfully`)
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to generate tasks')
@@ -356,10 +356,10 @@ export function useCompleteTicket() {
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.completeTicket(ticketId).then(r => r?.data || r)
+      return client.tickets.completeTicket(ticketId).then(r => r)
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.detail(result.ticket.id) })
+    onSuccess: (result, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.detail((result as any)?.data?.ticket?.id || (result as any)?.ticket?.id || ticketId) })
       invalidateWithRelationships(queryClient, 'tickets')
       // Also invalidate queue queries since completion may dequeue
       queryClient.invalidateQueries({ queryKey: ['queues'] })
@@ -381,7 +381,7 @@ export function useChatMessages(chatId: number) {
     queryKey: CHAT_ENHANCED_KEYS.messages(chatId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.chats.getMessages(chatId).then(r => r?.data || r)
+      return client.chats.getMessages(chatId).then(r => r)
     },
     enabled: !!client && !!chatId,
     staleTime: 30 * 1000 // 30 seconds for messages
@@ -413,7 +413,7 @@ export function useQueueStats(queueId: number) {
     queryKey: QUEUE_ENHANCED_KEYS.stats(queueId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueStats(queueId).then(r => r?.data || r)
+      return client.queues.getQueueStats(queueId).then(r => r)
     },
     enabled: !!client && !!queueId,
     refetchInterval: 5000 // Auto-refresh every 5 seconds
@@ -427,9 +427,48 @@ export function useQueueItems(queueId: number, status?: string) {
     queryKey: QUEUE_ENHANCED_KEYS.items(queueId, status),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueItems(queueId, status).then(r => r?.data || r)
+      return client.queues.getQueueItems(queueId, status).then(r => r)
     },
     enabled: !!client && !!queueId
+  })
+}
+
+export function useGetQueuesWithStats(projectId: number) {
+  const client = useApiClient()
+  const { data: queues } = useQueues({ projectId })
+  const { data: flowData } = useQuery({
+    queryKey: ['flow', 'data', projectId],
+    queryFn: () => {
+      if (!client) throw new Error('API client not initialized')
+      return client.typeSafeClient.listProjectsByProjectIdFlow(projectId)
+    },
+    enabled: !!client && !!projectId && projectId !== -1,
+    staleTime: 30 * 1000
+  })
+  
+  return useQuery({
+    queryKey: QUEUE_ENHANCED_KEYS.listWithStats(projectId),
+    queryFn: () => {
+      if (!queues || !flowData) return []
+      
+      // Combine queue metadata with stats from flow data
+      return queues.map((queue: any) => ({
+        ...queue,
+        stats: {
+          total: 0,
+          pending: 0,
+          processing: 0,
+          completed: 0,
+          failed: 0,
+          currentAgents: [],
+          completedItems: 0,
+          totalItems: 0
+        }
+      }))
+    },
+    enabled: !!queues && !!flowData,
+    staleTime: 30 * 1000, // 30 seconds for queue stats
+    refetchInterval: 30 * 1000 // Auto-refresh every 30 seconds
   })
 }
 
@@ -542,12 +581,12 @@ export function useCreateQueue(projectId: number) {
   return useMutation({
     mutationFn: (data: Omit<CreateQueueBody, 'projectId'>) => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.createQueue(projectId, data).then(r => r?.data || r)
+      return client.queues.createQueue(projectId, data).then(r => r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })
-      queryClient.setQueryData(QUEUE_ENHANCED_KEYS.detail(queue.id), queue)
-      toast.success(`Queue "${queue.name}" created successfully`)
+      queryClient.setQueryData(QUEUE_ENHANCED_KEYS.detail(Number((queue as any)?.data?.id || (queue as any)?.id)), queue)
+      toast.success(`Queue "${(queue as any)?.data?.name || (queue as any)?.name || 'Unknown'}" created successfully`)
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create queue')
@@ -594,7 +633,7 @@ export const useRealtimeSync = () => {
   return {
     // Sync all project-related data with intelligent invalidation
     syncProjectData: (projectId: number) => {
-      invalidateWithRelationships(queryClient, 'projects', 'update', projectId)
+      invalidateWithRelationships(queryClient, 'projects')
     },
     
     // Global refresh for stale data
@@ -619,8 +658,8 @@ function useEntityTypeSubscription(entityType: string, options: any) {
 
 function useEntityWarming() {
   return {
-    warmProjectEcosystem: () => {},
-    warmEntity: () => {}
+    warmProjectEcosystem: (...args: any[]) => {},
+    warmEntity: (...args: any[]) => {}
   }
 }
 
@@ -631,9 +670,9 @@ function useEntityPresence(entityType: string, id: number) {
 
 function useOfflineFirst() {
   return {
-    createOffline: () => Date.now(),
-    updateOffline: () => Date.now(),
-    deleteOffline: () => Date.now()
+    createOffline: (...args: any[]) => Date.now(),
+    updateOffline: (...args: any[]) => Date.now(),
+    deleteOffline: (...args: any[]) => Date.now()
   }
 }
 
@@ -1052,9 +1091,8 @@ export {
 // Browse Directory Hooks (File System Navigation)
 export {
   useBrowseDirectory,
-  createBrowseDirectoryHooks,
-  type BrowseDirectoryRequest,
-  type DirectoryEntry
+  createBrowseDirectoryHooks
+  // Types not exported from the module, defined inline where needed
 } from '../api/browse-directory-hooks'
 
 // Claude Code Hooks (Claude Code Session Management)
@@ -1125,12 +1163,8 @@ export {
   createClaudeHooksCacheFactory,
   
   // Query Keys & Types
-  CLAUDE_HOOKS_KEYS,
-  type CreateHookConfigBody,
-  type UpdateHookConfigBody,
-  type HookGenerationRequest,
-  type HookTestRequest,
-  type HookEvent
+  CLAUDE_HOOKS_KEYS
+  // Types not exported from the module, defined inline where needed
 } from '../api/claude-hooks'
 
 // ============================================================================

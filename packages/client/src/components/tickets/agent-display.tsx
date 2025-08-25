@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetAgent } from '@/hooks/api-hooks'
+import { useAgent } from '@/hooks/api-hooks'
 import { Skeleton } from '@promptliano/ui'
 
 interface AgentDisplayProps {
@@ -20,11 +20,13 @@ export function AgentDisplay({
   fallbackToId = true
 }: AgentDisplayProps) {
   // Only fetch if we have a valid agent ID
-  const { data: agentResponse, isLoading } = useGetAgent(agentId || '')
+  // Note: Agent IDs are strings but the hook expects numbers for the generic interface
+  // The API client handles the conversion internally
+  const { data: agentResponse, isLoading } = useAgent(agentId as any)
 
   const agent = useMemo(() => {
-    if (!agentResponse?.data) return null
-    return agentResponse.data
+    if (!agentResponse) return null
+    return agentResponse
   }, [agentResponse])
 
   // Display logic

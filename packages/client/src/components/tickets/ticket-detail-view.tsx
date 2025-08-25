@@ -171,7 +171,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const tasks = liveTasks || ticket.tasks
-  const completedTasks = tasks.filter((task) => task.done).length
+  const completedTasks = tasks.filter((task: any) => task.done).length
   const totalTasks = tasks.length
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
@@ -263,7 +263,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
   const handleReopenTicket = async () => {
     try {
-      await updateTicket.mutateAsync({ ticketId: ticket!.ticket.id, data: { status: 'open' } })
+      await updateTicket.mutateAsync({ id: ticket!.ticket.id, data: { status: 'open' } })
       toast.success('Ticket reopened')
       onTicketUpdate?.()
     } catch (error) {
@@ -275,10 +275,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
     if (!ticket) return
 
     try {
-      await deleteTicket.mutateAsync({
-        ticketId: ticket.ticket.id,
-        projectId: ticket.ticket.projectId
-      })
+      await deleteTicket.mutateAsync(ticket.ticket.id)
       toast.success('Ticket deleted successfully')
       setIsDeleteDialogOpen(false)
       onTicketUpdate?.()
@@ -304,7 +301,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         <div className='flex items-start justify-between'>
           <div className='space-y-1'>
             <h1 className='text-2xl font-bold'>{ticket.ticket.title}</h1>
-            <p className='text-muted-foreground'>Created {formatDistanceToNow(new Date(ticket.ticket.created))} ago</p>
+            <p className='text-muted-foreground'>Created {formatDistanceToNow(new Date(ticket.ticket.createdAt))} ago</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -592,7 +589,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
               </div>
             ) : (
               <div className='space-y-3'>
-                {tasks.map((task) => (
+                {tasks.map((task: any) => (
                   <div
                     key={task.id}
                     className={cn('group flex items-start gap-3 p-3 rounded-lg border', task.done && 'bg-muted/50')}
@@ -666,7 +663,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                               <div className='space-y-2'>
                                 <div className='font-medium text-sm'>Tags</div>
                                 <div className='flex flex-wrap gap-1'>
-                                  {task.tags?.map((tag, index) => (
+                                  {task.tags?.map((tag: string, index: number) => (
                                     <Badge key={index} variant='secondary' className='text-xs'>
                                       {tag}
                                     </Badge>
@@ -689,7 +686,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                                 <div className='font-medium text-sm'>Associated Files</div>
                                 <ScrollArea className='h-[200px]'>
                                   <div className='space-y-1'>
-                                    {task.suggestedFileIds?.map((fileId, index) => (
+                                    {task.suggestedFileIds?.map((fileId: string, index: number) => (
                                       <div key={index} className='text-sm'>
                                         File ID: {fileId}
                                       </div>
@@ -801,21 +798,21 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                 <dt className='font-medium text-muted-foreground'>Created</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <CalendarDays className='h-3 w-3' />
-                  {new Date(ticket.ticket.created).toLocaleString()}
+                  {new Date(ticket.ticket.createdAt).toLocaleString()}
                 </dd>
               </div>
               <div>
                 <dt className='font-medium text-muted-foreground'>Last Updated</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <CalendarDays className='h-3 w-3' />
-                  {new Date(ticket.ticket.updated).toLocaleString()}
+                  {new Date(ticket.ticket.updatedAt).toLocaleString()}
                 </dd>
               </div>
               <div>
                 <dt className='font-medium text-muted-foreground'>Associated Files</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <FileText className='h-3 w-3' />
-                  {ticket.ticket.suggestedFileIds?.length || 0} files
+                  {Array.isArray(ticket.ticket.suggestedFileIds) ? ticket.ticket.suggestedFileIds.length : 0} files
                 </dd>
               </div>
               <div>
@@ -952,9 +949,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this task?
-              {deletingTaskId && tasks.find((t) => t.id === deletingTaskId) && (
+              {deletingTaskId && tasks.find((t: any) => t.id === deletingTaskId) && (
                 <div className='mt-3 p-3 rounded-md bg-muted'>
-                  <p className='font-medium text-sm'>{tasks.find((t) => t.id === deletingTaskId)?.content}</p>
+                  <p className='font-medium text-sm'>{tasks.find((t: any) => t.id === deletingTaskId)?.content}</p>
                 </div>
               )}
               <div className='mt-3 font-semibold'>This action cannot be undone.</div>

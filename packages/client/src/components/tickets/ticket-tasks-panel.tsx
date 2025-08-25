@@ -4,7 +4,6 @@ import {
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
-  useReorderTasks,
   useAutoGenerateTasks
 } from '@/hooks/api-hooks'
 import { Input } from '@promptliano/ui'
@@ -45,7 +44,6 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
   const createTaskMut = useCreateTask()
   const updateTaskMut = useUpdateTask()
   const deleteTaskMut = useDeleteTask()
-  const reorderMut = useReorderTasks()
   const autoGenMut = useAutoGenerateTasks()
 
   const [newTaskContent, setNewTaskContent] = useState('')
@@ -58,7 +56,7 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
     e?.preventDefault()
     e?.stopPropagation()
     if (!newTaskContent.trim()) return
-    await createTaskMut.mutateAsync({ ticketId: Number(ticketId), data: { content: newTaskContent } })
+    await createTaskMut.mutateAsync({ ticketId: Number(ticketId), data: { content: newTaskContent, ticketId: Number(ticketId) } })
     setNewTaskContent('')
   }
 
@@ -86,9 +84,15 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
     const temp = newOrder[idx]
     newOrder[idx] = newOrder[idx - 1]
     newOrder[idx - 1] = temp
-    reorderMut.mutate({
-      ticketId: Number(ticketId),
-      data: { tasks: newOrder.map((t, i) => ({ taskId: t.id, orderIndex: i })) }
+    // Update each task's order index individually
+    newOrder.forEach((task, index) => {
+      if (task.orderIndex !== index) {
+        updateTaskMut.mutate({
+          ticketId: Number(ticketId),
+          taskId: task.id,
+          data: { orderIndex: index }
+        })
+      }
     })
   }
 
@@ -100,9 +104,15 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
     const temp = newOrder[idx]
     newOrder[idx] = newOrder[idx + 1]
     newOrder[idx + 1] = temp
-    reorderMut.mutate({
-      ticketId: Number(ticketId),
-      data: { tasks: newOrder.map((t, i) => ({ taskId: t.id, orderIndex: i })) }
+    // Update each task's order index individually
+    newOrder.forEach((task, index) => {
+      if (task.orderIndex !== index) {
+        updateTaskMut.mutate({
+          ticketId: Number(ticketId),
+          taskId: task.id,
+          data: { orderIndex: index }
+        })
+      }
     })
   }
 
@@ -185,7 +195,7 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
             isGenerating={autoGenMut.isPending}
           />
         )}
-        {tasks.map((task, idx) => (
+        {tasks.map((task: TicketTask, idx: number) => (
           <div key={task.id}>
             <div className='flex items-center justify-between p-2 border rounded'>
               <div className='flex items-center space-x-3 overflow-hidden'>

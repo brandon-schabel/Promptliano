@@ -129,7 +129,7 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
       setOverview(ticketWithTasks.ticket.overview ?? '')
       setPriority(ticketWithTasks.ticket.priority as 'low' | 'normal' | 'high')
       setStatus(ticketWithTasks.ticket.status as 'open' | 'in_progress' | 'closed')
-      setSelectedFileIds(ticketWithTasks.ticket.suggestedFileIds || [])
+      setSelectedFileIds(Array.isArray(ticketWithTasks.ticket.suggestedFileIds) ? ticketWithTasks.ticket.suggestedFileIds as string[] : [])
     } else {
       resetForm()
     }
@@ -143,7 +143,7 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
     try {
       if (ticketWithTasks) {
         await updateTicket.mutateAsync({
-          ticketId: ticketWithTasks.ticket.id,
+          id: ticketWithTasks.ticket.id,
           data: {
             title,
             overview,

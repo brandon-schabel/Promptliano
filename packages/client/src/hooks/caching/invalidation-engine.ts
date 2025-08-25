@@ -408,7 +408,7 @@ export class InvalidationEngine {
     if (entityId && !target.exact) {
       // For non-exact matches, we might want to include the entity ID
       if (queryKey[1] === 'detail') {
-        queryKey = [queryKey[0], queryKey[1], entityId]
+        queryKey = [queryKey[0], queryKey[1], entityId.toString()]
       }
     }
 

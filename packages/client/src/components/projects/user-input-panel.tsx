@@ -23,15 +23,9 @@ import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { Binoculars, Bot, Copy, Check, FileText, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
 import { useGetProjectSummary, useSuggestFiles } from '@/hooks/api-hooks'
 import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api-hooks'
-// Using the actual hook return type instead of database schema
-type HookPrompt = {
-  id: number
-  name: string
-  content: string
-  projectId?: number
-  created: number
-  updated: number
-}
+// Import the correct Prompt type from database schema
+import type { PromptSchema } from '@promptliano/database'
+type Prompt = typeof PromptSchema._type
 import { useProjectFileTree } from '@/hooks/use-project-file-tree'
 import { buildTreeStructure } from './file-panel/file-tree/file-tree'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
@@ -68,7 +62,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const { data: selectedPrompts = [] } = useProjectTabField('selectedPrompts', activeProjectTabId ?? -1)
   const { data: globalUserPrompt = '' } = useProjectTabField('userPrompt', activeProjectTabId ?? -1)
   const [suggestedFiles, setSuggestedFiles] = useState<ProjectFile[]>([])
-  const [suggestedPrompts, setSuggestedPrompts] = useState<HookPrompt[]>([])
+  const [suggestedPrompts, setSuggestedPrompts] = useState<Prompt[]>([])
 
   // Keep a local copy of userPrompt so that typing is instantly reflected in the textarea
   const [localUserPrompt, setLocalUserPrompt] = useState(globalUserPrompt)
@@ -210,7 +204,18 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
       {
         onSuccess: (recommendedPrompts) => {
           if (recommendedPrompts && recommendedPrompts.length > 0) {
-            setSuggestedPrompts(recommendedPrompts)
+            // Convert HookPrompt objects to Prompt objects
+            const convertedPrompts: Prompt[] = recommendedPrompts.map((hookPrompt: any) => ({
+              id: hookPrompt.id,
+              title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
+              content: hookPrompt.content,
+              description: null, // HookPrompt doesn't have description
+              projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
+              tags: [], // HookPrompt doesn't have tags
+              createdAt: hookPrompt.created || Date.now(),
+              updatedAt: hookPrompt.updated || Date.now()
+            }))
+            setSuggestedPrompts(convertedPrompts)
             setShowPromptSuggestions(true)
           } else {
             toast.info('No relevant prompts found for your input')

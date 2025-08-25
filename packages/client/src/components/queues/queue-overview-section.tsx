@@ -4,6 +4,7 @@ import { Progress } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { useGetQueuesWithStats } from '@/hooks/api-hooks'
+import { QueueWithStats } from '@promptliano/schemas'
 import { AlertCircle, Clock, CheckCircle2, PlayCircle, ListPlus, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
@@ -50,13 +51,13 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
   }
 
   // Calculate totals
-  const totalQueued = queuesWithStats.reduce((sum, q) => sum + q.stats.queuedItems, 0)
-  const totalInProgress = queuesWithStats.reduce((sum, q) => sum + q.stats.inProgressItems, 0)
-  const totalCompleted = queuesWithStats.reduce((sum, q) => sum + q.stats.completedItems, 0)
-  const totalItems = queuesWithStats.reduce((sum, q) => sum + q.stats.totalItems, 0)
-  const totalTickets = queuesWithStats.reduce((sum, q) => sum + (q.stats.uniqueTickets || 0), 0)
-  const totalTasks = queuesWithStats.reduce((sum, q) => sum + (q.stats.taskCount || 0), 0)
-  const activeQueues = queuesWithStats.filter((q) => q.queue.status === 'active')
+  const totalQueued = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.queuedItems, 0)
+  const totalInProgress = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0)
+  const totalCompleted = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0)
+  const totalItems = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.totalItems, 0)
+  const totalTickets = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + (q.stats.uniqueTickets || 0), 0)
+  const totalTasks = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + (q.stats.taskCount || 0), 0)
+  const activeQueues = queuesWithStats.filter((q: QueueWithStats) => q.queue.isActive === true)
 
   const progressPercentage = totalItems > 0 ? (totalCompleted / totalItems) * 100 : 0
 

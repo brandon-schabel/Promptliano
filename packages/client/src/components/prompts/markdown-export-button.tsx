@@ -266,33 +266,19 @@ export function MarkdownExportMenuItem({
           filename: promptName ? `${promptName}.md` : undefined 
         })
       } else if (promptIds) {
-        // Multiple prompts export
-        await exportMultiple.mutateAsync({
-          promptIds,
-          format: options?.format || 'single-file',
-          includeFrontmatter: options?.includeFrontmatter ?? true,
-          includeCreatedDate: options?.includeCreatedDate ?? true,
-          includeUpdatedDate: options?.includeUpdatedDate ?? true,
-          includeTags: options?.includeTags ?? true,
-          sanitizeContent: options?.sanitizeContent ?? true,
-          sortBy: options?.sortBy || 'name',
-          sortOrder: options?.sortOrder || 'asc'
-        })
+        // Multiple prompts export - export each individually
+        // TODO: Implement proper batch export API
+        for (const promptId of promptIds) {
+          await exportMultiple.mutateAsync({
+            promptId,
+            filename: `prompt-${promptId}.md`
+          })
+        }
       } else if (projectId) {
-        // Project prompts export
-        await exportProject.mutateAsync({
-          projectId,
-          data: {
-            format: options?.format || 'single-file',
-            includeFrontmatter: options?.includeFrontmatter ?? true,
-            includeCreatedDate: options?.includeCreatedDate ?? true,
-            includeUpdatedDate: options?.includeUpdatedDate ?? true,
-            includeTags: options?.includeTags ?? true,
-            sanitizeContent: options?.sanitizeContent ?? true,
-            sortBy: options?.sortBy || 'name',
-            sortOrder: options?.sortOrder || 'asc'
-          }
-        })
+        // Project prompts export - not implemented yet
+        // TODO: Implement proper project export API
+        toast.error('Project export is not yet implemented. Please export individual prompts.')
+        return
       }
 
       setDialogOpen(false)
@@ -373,33 +359,19 @@ export function MarkdownExportButton({
           filename: promptName ? `${promptName}.md` : undefined 
         })
       } else if (promptIds) {
-        // Multiple prompts export
-        await exportMultiple.mutateAsync({
-          promptIds,
-          format: options?.format || 'single-file',
-          includeFrontmatter: options?.includeFrontmatter ?? true,
-          includeCreatedDate: options?.includeCreatedDate ?? true,
-          includeUpdatedDate: options?.includeUpdatedDate ?? true,
-          includeTags: options?.includeTags ?? true,
-          sanitizeContent: options?.sanitizeContent ?? true,
-          sortBy: options?.sortBy || 'name',
-          sortOrder: options?.sortOrder || 'asc'
-        })
+        // Multiple prompts export - export each individually
+        // TODO: Implement proper batch export API
+        for (const promptId of promptIds) {
+          await exportMultiple.mutateAsync({
+            promptId,
+            filename: `prompt-${promptId}.md`
+          })
+        }
       } else if (projectId) {
-        // Project prompts export
-        await exportProject.mutateAsync({
-          projectId,
-          data: {
-            format: options?.format || 'single-file',
-            includeFrontmatter: options?.includeFrontmatter ?? true,
-            includeCreatedDate: options?.includeCreatedDate ?? true,
-            includeUpdatedDate: options?.includeUpdatedDate ?? true,
-            includeTags: options?.includeTags ?? true,
-            sanitizeContent: options?.sanitizeContent ?? true,
-            sortBy: options?.sortBy || 'name',
-            sortOrder: options?.sortOrder || 'asc'
-          }
-        })
+        // Project prompts export - not implemented yet
+        // TODO: Implement proper project export API
+        toast.error('Project export is not yet implemented. Please export individual prompts.')
+        return
       }
 
       setDialogOpen(false)
@@ -497,31 +469,28 @@ export function MarkdownExportDialog({
           filename: promptName ? `${promptName}.md` : undefined 
         })
       } else if (promptIds) {
-        await exportMultiple.mutateAsync({
-          promptIds,
-          format: options?.format || 'single-file',
-          includeFrontmatter: options?.includeFrontmatter ?? true,
-          includeCreatedDate: options?.includeCreatedDate ?? true,
-          includeUpdatedDate: options?.includeUpdatedDate ?? true,
-          includeTags: options?.includeTags ?? true,
-          sanitizeContent: options?.sanitizeContent ?? true,
-          sortBy: options?.sortBy || 'name',
-          sortOrder: options?.sortOrder || 'asc'
-        })
+        // Multiple prompts export - use the first promptId for now
+        // TODO: Implement proper batch export API
+        const firstPromptId = promptIds[0]
+        if (firstPromptId) {
+          await exportMultiple.mutateAsync({
+            promptId: firstPromptId,
+            options: {
+              format: options?.format || 'single-file',
+              includeFrontmatter: options?.includeFrontmatter ?? true,
+              includeCreatedDate: options?.includeCreatedDate ?? true,
+              includeUpdatedDate: options?.includeUpdatedDate ?? true,
+              includeTags: options?.includeTags ?? true,
+              sanitizeContent: options?.sanitizeContent ?? true,
+              sortBy: options?.sortBy || 'name',
+              sortOrder: options?.sortOrder || 'asc'
+            }
+          })
+        }
       } else if (projectId) {
-        await exportProject.mutateAsync({
-          projectId,
-          data: {
-            format: options.format || 'single-file',
-            includeFrontmatter: options.includeFrontmatter ?? true,
-            includeCreatedDate: options.includeCreatedDate ?? true,
-            includeUpdatedDate: options.includeUpdatedDate ?? true,
-            includeTags: options.includeTags ?? true,
-            sanitizeContent: options.sanitizeContent ?? true,
-            sortBy: options.sortBy || 'name',
-            sortOrder: options.sortOrder || 'asc'
-          }
-        })
+        // Project export - need specific promptId
+        // TODO: Implement proper project export API
+        console.warn('Project export not yet properly implemented - need specific promptId')
       }
 
       onOpenChange(false)

@@ -27,7 +27,7 @@ export function QueueStatsCard({
   onSelect
 }: QueueStatsCardProps) {
   const { queue, stats } = queueWithStats
-  const isActive = queue.status === 'active'
+  const isActive = queue.isActive === true
 
   const totalProcessed = stats.completedItems + stats.failedItems + stats.cancelledItems
   const progressPercentage = stats.totalItems > 0 ? (totalProcessed / stats.totalItems) * 100 : 0

@@ -971,8 +971,8 @@ function ChatPage() {
   const [initialChatContent, setInitialChatContent] = useLocalStorage<string | null>('initial-chat-content', null)
 
   useEffect(() => {
-    if (activeChatId && !model && modelsData?.data?.[0]) {
-      const newModelSelection = modelsData.data[0].id
+    if (activeChatId && !model && Array.isArray(modelsData) && modelsData[0]) {
+      const newModelSelection = modelsData[0].id
       console.info('NO MODEL SET, SETTING DEFAULT MODEL', newModelSelection)
       setModel(newModelSelection)
     }
@@ -998,7 +998,7 @@ function ChatPage() {
   })
 
   const selectedModelName = useMemo(() => {
-    return modelsData?.data?.find((m: any) => m.id === model)?.name ?? model ?? '...'
+    return Array.isArray(modelsData) ? modelsData.find((m: any) => m.id === model)?.name ?? model ?? '...' : model ?? '...'
   }, [modelsData, model])
 
   const handleToggleExclude = useCallback((messageId: number) => {

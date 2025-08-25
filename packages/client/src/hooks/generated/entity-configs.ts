@@ -129,11 +129,13 @@ export interface PromptEntity extends BaseEntity {
   tags?: string[]
 }
 
-export interface AgentEntity extends BaseEntity {
+export interface AgentEntity extends Omit<BaseEntity, 'id'> {
   id: string // Agents use string IDs
   name: string
   description?: string
   capabilities?: string[]
+  createdAt?: number
+  updatedAt?: number
 }
 
 export interface FileEntity extends BaseEntity {
@@ -166,10 +168,10 @@ export interface KeyEntity extends BaseEntity {
  * Project API Client Configuration
  */
 export const projectApiClient: CrudApiClient<Project, CreateProjectBody, UpdateProjectBody> = {
-  list: (client) => client.projects.listProjects().then(r => r?.data || r),
-  getById: (client, id) => client.projects.getProject(id).then(r => r?.data || r),
-  create: (client, data) => client.projects.createProject(data).then(r => r?.data || r),
-  update: (client, id, data) => client.projects.updateProject(id, data).then(r => r?.data || r),
+  list: (client) => client.projects.listProjects().then((r: any) => r?.data || r),
+  getById: (client, id) => client.projects.getProject(id).then((r: any) => r?.data || r),
+  create: (client, data) => client.projects.createProject(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.projects.updateProject(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.projects.deleteProject(id).then(() => undefined)
 }
 
@@ -177,10 +179,10 @@ export const projectApiClient: CrudApiClient<Project, CreateProjectBody, UpdateP
  * Ticket API Client Configuration
  */
 export const ticketApiClient: CrudApiClient<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }> = {
-  list: (client, params) => client.tickets.listTickets(params?.projectId, params?.status).then(r => r?.data || r),
-  getById: (client, id) => client.tickets.getTicket(id).then(r => r?.data || r),
-  create: (client, data) => client.tickets.createTicket(data).then(r => r?.data || r),
-  update: (client, id, data) => client.tickets.updateTicket(id, data).then(r => r?.data || r),
+  list: (client, params) => client.tickets.listTickets(params?.projectId, params?.status).then((r: any) => r?.data || r),
+  getById: (client, id) => client.tickets.getTicket(id).then((r: any) => r?.data || r),
+  create: (client, data) => client.tickets.createTicket(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.tickets.updateTicket(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.tickets.deleteTicket(id).then(() => undefined)
 }
 
@@ -188,7 +190,7 @@ export const ticketApiClient: CrudApiClient<Ticket, CreateTicketBody, UpdateTick
  * Task API Client Configuration
  */
 export const taskApiClient: CrudApiClient<TicketTask, CreateTaskBody, UpdateTaskBody, { ticketId: number }> = {
-  list: (client, params) => client.tickets.getTasks(params!.ticketId).then(r => r?.data || r),
+  list: (client, params) => client.tickets.getTasks(params!.ticketId).then((r: any) => r?.data || r),
   getById: (client, id) => {
     // Tasks don't have direct getById, need to implement custom logic
     throw new Error('Task getById requires ticketId context')
@@ -211,10 +213,10 @@ export const taskApiClient: CrudApiClient<TicketTask, CreateTaskBody, UpdateTask
  * Chat API Client Configuration
  */
 export const chatApiClient: CrudApiClient<Chat, CreateChatBody, UpdateChatBody> = {
-  list: (client) => client.chats.listChats().then(r => r?.data || r),
-  getById: (client, id) => client.chats.getChat(id).then(r => r?.data || r),
-  create: (client, data) => client.chats.createChat(data).then(r => r?.data || r),
-  update: (client, id, data) => client.chats.updateChat(id, data).then(r => r?.data || r),
+  list: (client) => client.chats.listChats().then((r: any) => r?.data || r),
+  getById: (client, id) => client.chats.getChat(id).then((r: any) => r?.data || r),
+  create: (client, data) => client.chats.createChat(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.chats.updateChat(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.chats.deleteChat(id).then(() => undefined)
 }
 
@@ -224,13 +226,13 @@ export const chatApiClient: CrudApiClient<Chat, CreateChatBody, UpdateChatBody> 
 export const promptApiClient: CrudApiClient<Prompt, CreatePromptBody, UpdatePromptBody, { projectId?: number }> = {
   list: (client, params) => {
     if (params?.projectId) {
-      return client.prompts.getProjectPrompts(params.projectId).then(r => r?.data || r)
+      return client.prompts.getProjectPrompts(params.projectId).then((r: any) => r?.data || r)
     }
-    return client.prompts.listPrompts().then(r => r?.data || r)
+    return client.prompts.listPrompts().then((r: any) => r?.data || r)
   },
-  getById: (client, id) => client.prompts.getPrompt(id).then(r => r?.data || r),
-  create: (client, data) => client.prompts.createPrompt(data).then(r => r?.data || r),
-  update: (client, id, data) => client.prompts.updatePrompt(id, data).then(r => r?.data || r),
+  getById: (client, id) => client.prompts.getPrompt(id).then((r: any) => r?.data || r),
+  create: (client, data) => client.prompts.createPrompt(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.prompts.updatePrompt(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.prompts.deletePrompt(id).then(() => undefined)
 }
 
@@ -238,24 +240,24 @@ export const promptApiClient: CrudApiClient<Prompt, CreatePromptBody, UpdateProm
  * Agent API Client Configuration
  */
 export const agentApiClient: CrudApiClient<ClaudeAgent, CreateClaudeAgentBody, UpdateClaudeAgentBody, { projectId?: number }> = {
-  list: (client, params) => client.agents.listAgents(params?.projectId).then(r => r?.data || r),
-  getById: (client, id) => client.agents.getAgent(id.toString()).then(r => r?.data || r),
-  create: (client, data) => client.agents.createAgent(data).then(r => r?.data || r),
-  update: (client, id, data) => client.agents.updateAgent(id.toString(), data).then(r => r?.data || r),
-  delete: (client, id) => client.agents.deleteAgent(id.toString()).then(() => undefined)
+  list: (client, params) => client.agents.listAgents(params?.projectId).then((r: any) => r?.data || r),
+  getById: (client, id) => client.agents.getAgent(typeof id === 'string' ? id : id.toString()).then((r: any) => r?.data || r),
+  create: (client, data) => client.agents.createAgent(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.agents.updateAgent(typeof id === 'string' ? id : id.toString(), data).then((r: any) => r?.data || r),
+  delete: (client, id) => client.agents.deleteAgent(typeof id === 'string' ? id : id.toString()).then(() => undefined)
 }
 
 /**
  * Queue API Client Configuration
  */
 export const queueApiClient: CrudApiClient<TaskQueue, CreateQueueBody, UpdateQueueBody, { projectId: number }> = {
-  list: (client, params) => client.queues.listQueues(params!.projectId).then(r => r?.data || r),
-  getById: (client, id) => client.queues.getQueue(id).then(r => r?.data || r),
+  list: (client, params) => client.queues.listQueues(params!.projectId).then((r: any) => r?.data || r),
+  getById: (client, id) => client.queues.getQueue(id).then((r: any) => r?.data || r),
   create: (client, data) => {
     // Queues need projectId for creation, will be handled in wrapper
     throw new Error('Queue create requires projectId context')
   },
-  update: (client, id, data) => client.queues.updateQueue(id, data).then(r => r?.data || r),
+  update: (client, id, data) => client.queues.updateQueue(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.queues.deleteQueue(id).then(() => undefined)
 }
 
@@ -263,10 +265,10 @@ export const queueApiClient: CrudApiClient<TaskQueue, CreateQueueBody, UpdateQue
  * Provider Key API Client Configuration
  */
 export const keyApiClient: CrudApiClient<ProviderKey, CreateProviderKeyBody, UpdateProviderKeyBody> = {
-  list: (client) => client.keys.listKeys().then(r => r?.data || r),
-  getById: (client, id) => client.keys.getKey(id).then(r => r?.data || r),
-  create: (client, data) => client.keys.createKey(data).then(r => r?.data || r),
-  update: (client, id, data) => client.keys.updateKey(id, data).then(r => r?.data || r),
+  list: (client) => client.keys.listKeys().then((r: any) => r?.data || r),
+  getById: (client, id) => client.keys.getKey(id).then((r: any) => r?.data || r),
+  create: (client, data) => client.keys.createKey(data).then((r: any) => r?.data || r),
+  update: (client, id, data) => client.keys.updateKey(id, data).then((r: any) => r?.data || r),
   delete: (client, id) => client.keys.deleteKey(id).then(() => undefined)
 }
 
@@ -497,8 +499,8 @@ export const ENTITY_MESSAGES = {
     deleteSuccess: 'Chat deleted successfully'
   },
   prompt: {
-    createSuccess: (entity: Prompt) => `Prompt "${entity.name}" created successfully`,
-    updateSuccess: (entity: Prompt) => `Prompt "${entity.name}" updated successfully`,
+    createSuccess: (entity: Prompt) => `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" created successfully`,
+    updateSuccess: (entity: Prompt) => `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" updated successfully`,
     deleteSuccess: 'Prompt deleted successfully'
   },
   agent: {

@@ -2,11 +2,11 @@ import { DataResponseSchema } from '@promptliano/api-client'
 import type {
   CreateClaudeCommandBody,
   UpdateClaudeCommandBody,
-  ClaudeCommand,
   SearchCommandsQuery,
   CommandSuggestions,
   CommandGenerationRequest
 } from '@promptliano/schemas'
+import type { ClaudeCommand } from '@promptliano/database'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useApiClient } from './use-api-client'
@@ -65,9 +65,11 @@ export function useCreateCommand(projectId: number) {
       if (!client) throw new Error('API client not initialized')
       return client.commands.createCommand(projectId, data)
     },
-    onSuccess: ({ data: newCommand }: DataResponseSchema<ClaudeCommand>) => {
+    onSuccess: (result: any) => {
       invalidateProjectCommands(projectId)
-      toast.success(`Command '${newCommand.name}' created successfully`)
+      // Extract command name from result, handling various response formats
+      const commandName = result?.data?.name || result?.name || 'Command'
+      toast.success(`Command '${commandName}' created successfully`)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create command')
@@ -79,7 +81,7 @@ export function useUpdateCommand(projectId: number) {
   const client = useApiClient()
   // Client null check removed - handled by React Query
 
-  const { invalidateProjectCommands, setCommandDetail } = useInvalidateCommands()
+  const { invalidateProjectCommands } = useInvalidateCommands()
 
   return useMutation({
     mutationFn: ({
@@ -94,10 +96,11 @@ export function useUpdateCommand(projectId: number) {
       if (!client) throw new Error('API client not initialized')
       return client.commands.updateCommand(projectId, commandName, data, namespace)
     },
-    onSuccess: ({ data: updatedCommand }: DataResponseSchema<ClaudeCommand>) => {
+    onSuccess: (result: any) => {
       invalidateProjectCommands(projectId)
-      setCommandDetail(projectId, updatedCommand)
-      toast.success(`Command '${updatedCommand.name}' updated successfully`)
+      // Extract command name from result, handling various response formats
+      const commandName = result?.data?.name || result?.name || 'Command'
+      toast.success(`Command '${commandName}' updated successfully`)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update command')
@@ -214,7 +217,7 @@ export function useInvalidateCommands() {
       })
     },
     setCommandDetail: (projectId: number, command: ClaudeCommand) => {
-      queryClient.setQueryData(COMMAND_KEYS.detail(projectId, command.name, command.namespace), {
+      queryClient.setQueryData(COMMAND_KEYS.detail(projectId, command.name, undefined), {
         success: true,
         data: command
       })

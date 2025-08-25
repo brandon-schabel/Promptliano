@@ -3,17 +3,17 @@ import { useApiClient } from './use-api-client'
 import type {
   CreateHookConfigBody,
   UpdateHookConfigBody,
-  HookGenerationRequest,
-  HookTestRequest,
-  HookEvent
-} from '@promptliano/api-client'
+  HookEventType,
+  HookGeneration,
+  HookTest
+} from '@promptliano/schemas'
 import { toast } from 'sonner'
 // Note: createCrudHooks import removed as it's not being used
 
 const CLAUDE_HOOKS_KEYS = {
   all: ['claude-hooks'] as const,
   byProject: (projectPath: string) => [...CLAUDE_HOOKS_KEYS.all, 'project', projectPath] as const,
-  detail: (projectPath: string, eventName: HookEvent, matcherIndex: number) => 
+  detail: (projectPath: string, eventName: HookEventType, matcherIndex: number) => 
     [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'detail', eventName, matcherIndex] as const,
   search: (projectPath: string, query: string) => 
     [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'search', query] as const
@@ -44,7 +44,7 @@ export function createClaudeHooksFactory() {
     /**
      * Get a specific hook
      */
-    useGetHook: (projectPath: string, eventName: HookEvent, matcherIndex: number) => {
+    useGetHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
       const client = useApiClient()
 
       return useQuery({
@@ -136,10 +136,10 @@ export function createClaudeHooksMutationFactory() {
             )
           })
           
-          // Cache the individual hook
-          if (data.eventName && typeof data.matcherIndex === 'number') {
+          // Cache the individual hook if we have the necessary info from newHook response
+          if (newHook && 'eventName' in newHook && 'matcherIndex' in newHook && typeof (newHook as any).matcherIndex === 'number') {
             queryClient.setQueryData(
-              CLAUDE_HOOKS_KEYS.detail(projectPath, data.eventName, data.matcherIndex),
+              CLAUDE_HOOKS_KEYS.detail(projectPath, (newHook as any).eventName, (newHook as any).matcherIndex),
               newHook
             )
           }
@@ -166,7 +166,7 @@ export function createClaudeHooksMutationFactory() {
           matcherIndex,
           data
         }: {
-          eventName: HookEvent
+          eventName: HookEventType
           matcherIndex: number
           data: UpdateHookConfigBody
         }) => {
@@ -250,7 +250,7 @@ export function createClaudeHooksMutationFactory() {
       const queryClient = useQueryClient()
 
       return useMutation({
-        mutationFn: async ({ eventName, matcherIndex }: { eventName: HookEvent; matcherIndex: number }) => {
+        mutationFn: async ({ eventName, matcherIndex }: { eventName: HookEventType; matcherIndex: number }) => {
           if (!client) throw new Error('API client not initialized')
           return client.claudeHooks.deleteHook(projectPath, eventName, matcherIndex)
         },
@@ -309,7 +309,7 @@ export function createClaudeHooksUtilityFactory() {
       const client = useApiClient()
 
       return useMutation({
-        mutationFn: async (data: HookGenerationRequest) => {
+        mutationFn: async (data: HookGeneration) => {
           if (!client) throw new Error('API client not initialized')
           const response = await client.claudeHooks.generate(projectPath, data)
           return response.data
@@ -327,7 +327,7 @@ export function createClaudeHooksUtilityFactory() {
       const client = useApiClient()
 
       return useMutation({
-        mutationFn: async (data: HookTestRequest) => {
+        mutationFn: async (data: HookTest) => {
           if (!client) throw new Error('API client not initialized')
           const response = await client.claudeHooks.test(projectPath, data)
           return response.data
@@ -353,7 +353,7 @@ export function createClaudeHooksCacheFactory() {
         },
         
         // Invalidate specific hook
-        invalidateHook: (projectPath: string, eventName: HookEvent, matcherIndex: number) => {
+        invalidateHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
           queryClient.invalidateQueries({ 
             queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex) 
           })
@@ -385,7 +385,7 @@ export function createClaudeHooksCacheFactory() {
         },
         
         // Get cached hook without triggering fetch
-        getCachedHook: (projectPath: string, eventName: HookEvent, matcherIndex: number) => {
+        getCachedHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
           return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex))
         }
       }
@@ -415,3 +415,12 @@ export const useClaudeHooksInvalidation = cacheHooks.useClaudeHooksInvalidation
 
 // Export query keys for advanced usage
 export { CLAUDE_HOOKS_KEYS }
+
+// Export types for compatibility
+export type {
+  CreateHookConfigBody,
+  UpdateHookConfigBody,
+  HookEventType as HookEvent,
+  HookGeneration as HookGenerationRequest,
+  HookTest as HookTestRequest
+}

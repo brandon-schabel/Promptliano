@@ -49,6 +49,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
   const { data: queuesWithStats, isLoading } = useGetQueuesWithStats(projectId)
   const createQueueMutation = useCreateQueue(projectId)
   const deleteQueueMutation = useDeleteQueue()
+  const updateQueueMutation = useUpdateQueue()
 
   const handleCreateQueue = async () => {
     if (!newQueueName.trim()) return
@@ -67,28 +68,29 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
   }
 
   const handleDeleteQueue = async (queue: QueueWithStats) => {
-    await deleteQueueMutation.mutateAsync({
-      queueId: queue.queue.id,
-      projectId: projectId
-    })
+    await deleteQueueMutation.mutateAsync(queue.queue.id)
     setQueueToDelete(null)
   }
 
   const handlePauseQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'paused' })
+    await updateQueueMutation.mutateAsync({
+      id: queue.queue.id,
+      data: { isActive: false }
+    })
   }
 
   const handleResumeQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'active' })
+    await updateQueueMutation.mutateAsync({
+      id: queue.queue.id,
+      data: { isActive: true }
+    })
   }
 
   // Calculate summary stats
-  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + q.stats.inProgressItems, 0) || 0
-  const totalCompleted = queuesWithStats?.reduce((sum, q) => sum + q.stats.completedItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q) => (q.queue.status ?? 'active') === 'active').length || 0
+  const totalQueued = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.queuedItems, 0) || 0
+  const totalInProgress = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0) || 0
+  const totalCompleted = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0) || 0
+  const activeQueues = queuesWithStats?.filter((q: QueueWithStats) => q.queue.isActive === true).length || 0
 
   return (
     <div className='flex flex-col h-full'>
@@ -195,7 +197,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
           </div>
         ) : queuesWithStats && queuesWithStats.length > 0 ? (
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {queuesWithStats.map((queueWithStats) => (
+            {queuesWithStats.map((queueWithStats: QueueWithStats) => (
               <QueueStatsCard
                 key={queueWithStats.queue.id}
                 queueWithStats={queueWithStats}
@@ -248,7 +250,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
       {/* Queue details dialog */}
       {selectedQueue && (
         <QueueDetailsDialog
-          queue={selectedQueue}
+          queue={selectedQueue.queue}
           open={!!selectedQueue}
           onOpenChange={(open) => !open && setSelectedQueue(null)}
         />

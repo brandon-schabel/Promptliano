@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
+import type { TaskQueue } from '@/hooks/generated/types'
 import {
   BarChart,
   Bar,
@@ -45,8 +46,10 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
         id: ticket.id,
         queueId: selectedQueueId,
         ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
         priority: index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: ticket.createdAt
       })
     })
@@ -57,8 +60,10 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
         id: task.id,
         queueId: selectedQueueId,
         taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
         priority: (queueData.tickets?.length || 0) + index,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: task.createdAt
       })
     })
@@ -150,10 +155,10 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
 
       const completed = items.filter(
         (item) =>
-          item.queueItem.status === 'completed' &&
-          item.queueItem.completedAt &&
-          item.queueItem.completedAt * 1000 >= hour.getTime() &&
-          item.queueItem.completedAt * 1000 < nextHour.getTime()
+          item.status === 'completed' &&
+          item.completedAt &&
+          item.completedAt * 1000 >= hour.getTime() &&
+          item.completedAt * 1000 < nextHour.getTime()
       ).length
 
       return {
@@ -170,11 +175,12 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
     const successRate = total > 0 ? Math.round((totalProcessed / total) * 100) : 0
     const failureRate = total > 0 ? Math.round((totalFailed / total) * 100) : 0
 
+    const completedItems = items.filter(item => item.status === 'completed')
     const avgProcessingTime =
       completedItems.length > 0
         ? Math.round(
             completedItems.reduce(
-              (sum, item) => sum + (item.queueItem.completedAt! - item.queueItem.startedAt!) / 60,
+              (sum, item) => sum + ((item.completedAt || item.createdAt) - item.createdAt) / 60,
               0
             ) / completedItems.length
           )
@@ -220,9 +226,9 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
               <SelectValue placeholder='Select a queue' />
             </SelectTrigger>
             <SelectContent>
-              {queuesWithStats?.map((q) => (
-                <SelectItem key={q.queue.id} value={q.queue.id.toString()}>
-                  {q.queue.name}
+              {queues?.map((q: TaskQueue) => (
+                <SelectItem key={q.id} value={q.id.toString()}>
+                  {q.name}
                 </SelectItem>
               ))}
             </SelectContent>

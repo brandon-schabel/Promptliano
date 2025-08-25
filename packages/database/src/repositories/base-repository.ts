@@ -452,7 +452,8 @@ export function extendRepository<
   baseRepository: TBase,
   extensions: TExtensions
 ): TBase & TExtensions {
-  return { ...baseRepository, ...extensions }
+  // Use Object.assign to properly copy class methods from prototype
+  return Object.assign(baseRepository, extensions) as TBase & TExtensions
 }
 
 // Re-export query operators for convenience

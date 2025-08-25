@@ -7,7 +7,7 @@ import { Button } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Separator } from '@promptliano/ui'
 import type { QueueItem } from '@/hooks/generated/types'
-import { useTicket, useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
+import { useTicket, useGetProjectFilesWithoutContent, useTicketTasks } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { safeFormatDate } from '@/utils/queue-item-utils'
@@ -38,8 +38,13 @@ interface QueueItemDetailsDialogProps {
 export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: QueueItemDetailsDialogProps) {
   const [activeTab, setActiveTab] = useState('details')
 
-  // Fetch ticket details if this is a ticket item
-  const { data: ticket } = useTicket(item.ticketId || 0, { enabled: !!item.ticketId })
+  // Fetch ticket details if this is a ticket item  
+  // TODO: Re-enable conditional fetching once type issues are resolved
+  const { data: ticket } = useTicket(item.ticketId || 0)
+
+  // Fetch task details if this is a task item
+  const { data: ticketTasks } = useTicketTasks(item.ticketId || 0)
+  const task = ticketTasks?.find((t: any) => t.id === item.taskId)
 
   // Fetch files for the project
   const { data: files } = useGetProjectFilesWithoutContent(projectId)
@@ -60,8 +65,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
     in_progress: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'In Progress' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100', label: 'Completed' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', label: 'Failed' },
-    cancelled: { icon: XCircle, color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Cancelled' },
-    timeout: { icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-100', label: 'Timeout' }
+    cancelled: { icon: XCircle, color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Cancelled' }
   }
 
   const config = statusConfig[item.status]
@@ -129,7 +133,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                           <div>
                             <p className='text-muted-foreground mb-1'>Tags</p>
                             <div className='flex flex-wrap gap-1'>
-                              {task.tags.map((tag, idx) => (
+                              {task.tags.map((tag: string, idx: number) => (
                                 <Badge key={idx} variant='secondary' className='text-xs'>
                                   {tag}
                                 </Badge>

@@ -23,6 +23,7 @@ import {
   useQueues, 
   useCreateQueue,
   useGetFlowData,
+  useGetQueuesWithStats,
   useEnqueueTicket,
   useEnqueueTask,
   useDequeueTicket,
@@ -82,7 +83,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     status: queuesStatus,
     refetch: refetchQueues,
     isFetched: queuesWithStatsFetched
-  } = useQueues({ projectId })
+  } = useGetQueuesWithStats(projectId)
 
   console.log({
     flowDataPending: flowDataFetched,
@@ -313,7 +314,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     let toQueueId: string | undefined
 
     // If dropped on a column directly
-    if (overId === 'unqueued' || queuesWithStats?.some((q: TaskQueue) => q.id.toString() === overId)) {
+    if (overId === 'unqueued' || queuesWithStats?.some((q: QueueWithStats) => q.id.toString() === overId)) {
       toQueueId = overId
     } else {
       // If dropped on an item, find which queue contains that item
@@ -444,7 +445,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
   }
 
   const handlePauseQueue = useCallback(
-    async (queue: TaskQueue) => {
+    async (queue: QueueWithStats) => {
       try {
         // Note: Queue pause/resume functionality needs to be implemented
         console.log('Pausing queue:', queue.id)
@@ -458,7 +459,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
   )
 
   const handleResumeQueue = useCallback(
-    async (queue: TaskQueue) => {
+    async (queue: QueueWithStats) => {
       try {
         // Note: Queue pause/resume functionality needs to be implemented
         console.log('Resuming queue:', queue.id)
@@ -538,7 +539,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
             />
 
             {/* Queue columns */}
-            {queuesWithStats?.map((queueWithStats: TaskQueue) => {
+            {queuesWithStats?.map((queueWithStats: QueueWithStats) => {
               console.log({
                 queueWithStats,
                 itemsByQueue

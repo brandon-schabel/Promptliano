@@ -106,7 +106,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
       try {
         // For now, use index 0 as default since matcherIndex is not available
         await deleteHookMutation.mutateAsync({
-          eventName: deletingHook.event,
+          eventName: deletingHook.event as HookEventType,
           matcherIndex: 0
         })
       } catch (error) {

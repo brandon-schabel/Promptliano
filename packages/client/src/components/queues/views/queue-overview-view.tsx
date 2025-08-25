@@ -36,28 +36,30 @@ export function QueueOverviewView({
 
   const { data: queuesWithStats, isLoading } = useGetQueuesWithStats(projectId)
   const deleteQueueMutation = useDeleteQueue()
+  const updateQueueMutation = useUpdateQueue()
 
   // Calculate summary stats
-  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + q.stats.inProgressItems, 0) || 0
-  const totalCompleted = queuesWithStats?.reduce((sum, q) => sum + q.stats.completedItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q) => (q.queue.status ?? 'active') === 'active').length || 0
+  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + (q.stats?.queuedItems || 0), 0) || 0
+  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + (q.stats?.inProgressItems || 0), 0) || 0
+  const totalCompleted = queuesWithStats?.reduce((sum, q) => sum + (q.stats?.completedItems || 0), 0) || 0
+  const activeQueues = queuesWithStats?.filter((q) => q.queue.isActive === true).length || 0
 
   const handlePauseQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'paused' })
+    await updateQueueMutation.mutateAsync({ 
+      id: queue.queue.id, 
+      data: { isActive: false }
+    })
   }
 
   const handleResumeQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'active' })
+    await updateQueueMutation.mutateAsync({ 
+      id: queue.queue.id, 
+      data: { isActive: true }
+    })
   }
 
   const handleDeleteQueue = async (queue: QueueWithStats) => {
-    await deleteQueueMutation.mutateAsync({
-      queueId: queue.queue.id,
-      projectId: projectId
-    })
+    await deleteQueueMutation.mutateAsync(queue.queue.id)
     setQueueToDelete(null)
   }
 
@@ -163,7 +165,7 @@ export function QueueOverviewView({
       {/* Queue details dialog */}
       {selectedQueue && (
         <QueueDetailsDialog
-          queue={selectedQueue}
+          queue={selectedQueue.queue}
           open={!!selectedQueue}
           onOpenChange={(open) => !open && setSelectedQueue(null)}
         />

@@ -104,6 +104,7 @@ export {
   // Queue hooks
   useQueueStats,
   useQueueItems,
+  useGetQueuesWithStats,
   
   // Convenience aliases (defined at bottom of file to avoid conflicts)
   // useGetTicket,
@@ -317,7 +318,7 @@ import type {
  */
 
 // Alias for backward compatibility
-export const useSyncProject = useProjectSync
+// Note: useProjectSync is now part of generated hooks
 
 export function useSyncProjectWithProgress() {
   const client = useApiClient()
@@ -396,7 +397,7 @@ export function useGetProjectSummary(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.summary(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectSummary(projectId).then(r => r?.data || r)
+      return client.projects.getProjectSummary(projectId).then(r => r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 10 * 60 * 1000 // 10 minutes for summary
@@ -632,7 +633,7 @@ export function useSuggestPrompts() {
     }) => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.prompts.suggestPrompts(projectId, { userInput, limit })
-      return response?.data?.prompts || response?.prompts || response
+      return response?.data?.prompts || response
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to suggest prompts')
@@ -912,7 +913,12 @@ import {
   useQueues,
   useQueue,
   useKeys,
-  useKey
+  useKey,
+  useTicket,
+  useTicketTasks,
+  useProjectSync,
+  useProjectFiles,
+  useUpdateTask
 } from './generated'
 
 // Provide aliases for existing hook names to ensure backward compatibility
@@ -930,6 +936,12 @@ export const useGetAgent = useAgent
 export const useGetQueues = useQueues
 export const useGetKeys = useKeys
 export const useGetKey = useKey
+
+// Additional exports for backward compatibility
+export const useGetProjectFiles = useProjectFiles
+export const useGetTicketsWithTasks = useTicketTasks // Alias for tickets with tasks
+export const useReorderTasks = useUpdateTask // Alias for task reordering
+export const useSyncProject = useProjectSync
 
 // ============================================================================
 // PERFORMANCE MONITORING AND ANALYTICS

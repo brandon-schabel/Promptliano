@@ -42,8 +42,8 @@ export function PromptSelectorPopover({
 
   // Extract prompts from response
   const prompts = useMemo(() => {
-    if (!promptsResponse?.data) return []
-    return Array.isArray(promptsResponse.data) ? promptsResponse.data : []
+    if (!promptsResponse) return []
+    return Array.isArray(promptsResponse) ? promptsResponse : []
   }, [promptsResponse])
 
   // Filter prompts based on search
@@ -51,7 +51,7 @@ export function PromptSelectorPopover({
     if (!searchQuery.trim()) return prompts
     const query = searchQuery.toLowerCase()
     return prompts.filter(
-      (prompt) => prompt.title.toLowerCase().includes(query) || prompt.content.toLowerCase().includes(query)
+      (prompt: any) => (prompt.title?.toLowerCase() || prompt.name?.toLowerCase())?.includes(query) || prompt.content.toLowerCase().includes(query)
     )
   }, [prompts, searchQuery])
 
@@ -78,7 +78,7 @@ export function PromptSelectorPopover({
     if (currentPromptIds.length === 0) return 'No prompts'
     if (currentPromptIds.length === 1) {
       const prompt = currentPrompts[0]
-      return prompt ? prompt.title : '1 prompt'
+      return prompt ? ((prompt as any).title || (prompt as any).name) : '1 prompt'
     }
     return `${currentPromptIds.length} prompts`
   }, [currentPromptIds, currentPrompts])
@@ -175,7 +175,7 @@ export function PromptSelectorPopover({
                             onClick={(e) => e.stopPropagation()}
                           />
                           <div className='flex-1 min-w-0'>
-                            <div className='font-medium truncate'>{prompt.title}</div>
+                            <div className='font-medium truncate'>{(prompt as any).title || (prompt as any).name}</div>
                             {prompt.content && (
                               <div className='text-xs text-muted-foreground line-clamp-2'>
                                 {prompt.content.substring(0, 100)}

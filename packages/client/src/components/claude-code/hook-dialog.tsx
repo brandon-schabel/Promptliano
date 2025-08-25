@@ -94,7 +94,11 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
     }
 
     const result = await generateHook.mutateAsync({
-      description: aiDescription
+      name: `Generated Hook ${Date.now()}`,
+      description: aiDescription,
+      event: eventName || 'PreToolUse',
+      script: '',
+      isActive: true
     })
 
     if (result) {

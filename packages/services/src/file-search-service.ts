@@ -1,6 +1,6 @@
 import type { File, Ticket } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
-import { db } from '@promptliano/database'
+import { rawDb } from '@promptliano/database'
 import { ErrorFactory, withErrorContext } from '@promptliano/shared'
 import type { Database, Statement } from 'bun:sqlite'
 import { getProjectFiles } from './project-service'
@@ -43,7 +43,7 @@ export interface SearchStats {
  * Provides sub-millisecond search using FTS5, TF-IDF, and intelligent caching
  */
 export class FileSearchService {
-  private db: any // Using any to avoid type conflicts between drizzle and bun:sqlite
+  private db: Database
 
   private getFileExtension(filePath: string): string {
     return filePath.split('.').pop() || ''
@@ -57,7 +57,7 @@ export class FileSearchService {
   private readonly MAX_CACHE_SIZE = 1000
 
   constructor() {
-    this.db = db
+    this.db = rawDb
     this.initializeStatements()
     this.startCacheCleanup()
   }

@@ -39,12 +39,12 @@ export function TicketsTabWithSidebar({
   // Fetch tickets based on view
   const statusFilter = ticketView === 'active' ? 'open' : ticketView === 'completed' ? 'closed' : undefined
 
-  const { data: tickets, isLoading, refetch } = useGetTicketsWithTasks(projectId, statusFilter)
+  const { data: tickets, isLoading, refetch } = useGetTicketsWithTasks(projectId)
 
   // Update selected ticket when selectedTicketId changes
   useEffect(() => {
     if (selectedTicketId && tickets) {
-      const ticket = tickets.find((t) => t.ticket.id === selectedTicketId)
+      const ticket = tickets.find((t: any) => t.ticket.id === selectedTicketId)
       setSelectedTicket(ticket || null)
     } else {
       setSelectedTicket(null)

@@ -141,6 +141,7 @@ export const QUEUE_ENHANCED_KEYS = {
   ...QUEUES_KEYS,
   stats: (queueId: number) => [...QUEUES_KEYS.all, 'stats', queueId] as const,
   allStats: (projectId: number) => [...QUEUES_KEYS.all, 'all-stats', projectId] as const,
+  listWithStats: (projectId: number) => [...QUEUES_KEYS.all, 'list-with-stats', projectId] as const,
   items: (queueId: number, status?: string) =>
     status ? [...QUEUES_KEYS.all, 'items', queueId, status] as const 
            : [...QUEUES_KEYS.all, 'items', queueId] as const,

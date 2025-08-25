@@ -241,7 +241,7 @@ export function LocalProviderSection({ providers, onEdit, isLoading }: LocalProv
                 </div>
               </div>
               <ModelListPopover
-                models={models?.data || []}
+                models={Array.isArray(models) ? models : []}
                 isLoading={modelsLoading}
                 providerName={providerName}
                 isConnected={status.isConnected}

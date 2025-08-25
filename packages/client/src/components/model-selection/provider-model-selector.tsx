@@ -64,7 +64,7 @@ export function ProviderModelSelector({
 
   // Prepare provider options from API response
   const availableProviders = useMemo(() => {
-    if (!providersData?.data) {
+    if (!providersData) {
       // Fallback to predefined providers if API hasn't loaded yet
       return [
         { value: 'openai', label: 'OpenAI' },
@@ -80,7 +80,7 @@ export function ProviderModelSelector({
     }
     
     // Validate and transform provider data with type safety
-    const allProviders = providersData.data
+    const allProviders = (Array.isArray(providersData) ? providersData : [])
       .filter(isValidProviderKey)
       .map((p: ProviderKey): ComboboxOption => ({
         value: p.id?.toString() || p.provider,
@@ -97,13 +97,13 @@ export function ProviderModelSelector({
 
   // Prepare model options with comprehensive validation
   const comboboxOptions = useMemo((): ComboboxOption[] => {
-    if (!modelsData?.data || !Array.isArray(modelsData.data)) {
+    if (!modelsData || !Array.isArray(modelsData)) {
       return []
     }
 
     try {
       // Use comprehensive validation with detailed error handling
-      const validationResult = validateModelsArray(modelsData.data)
+      const validationResult = validateModelsArray(modelsData)
       
       if (!validationResult.success) {
         console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)

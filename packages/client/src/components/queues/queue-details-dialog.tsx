@@ -152,7 +152,7 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
               </DropdownMenuItem>
             </>
           )}
-          {(item.status === 'failed' || item.status === 'cancelled' || item.status === 'timeout') && (
+          {(item.status === 'failed' || item.status === 'cancelled') && (
             <DropdownMenuItem onClick={() => onRetry(item.id)}>
               <RefreshCw className='mr-2 h-4 w-4' />
               Retry
@@ -264,7 +264,7 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
     completed: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'completed').length : 0,
     failed: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'failed').length : 0,
     cancelled: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'cancelled').length : 0,
-    timeout: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'timeout').length : 0
+    // timeout status does not exist in the database enum, removing this count
   }
 
   const filteredItems = !Array.isArray(items)
@@ -321,7 +321,7 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
               <TabsTrigger value='completed'>Completed ({tabCounts.completed})</TabsTrigger>
               <TabsTrigger value='failed'>Failed ({tabCounts.failed})</TabsTrigger>
               <TabsTrigger value='cancelled'>Cancelled ({tabCounts.cancelled})</TabsTrigger>
-              <TabsTrigger value='timeout'>Timeout ({tabCounts.timeout})</TabsTrigger>
+              {/* Timeout status removed - not supported in database schema */}
             </TabsList>
 
             <TabsContent value={activeTab} className='mt-4'>
