@@ -7,7 +7,7 @@
  */
 
 import { useApiClient } from '../api/use-api-client'
-import { createCrudHooks } from '../factories/crud-hook-factory'
+import { createCrudHooks } from '@promptliano/hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 // Define MCP types locally to avoid import issues

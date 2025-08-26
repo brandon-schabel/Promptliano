@@ -26,7 +26,7 @@
  * Migration Status: Phase 1 & 2 Complete - Ready for Phase 3
  */
 
-import { createCrudHooks } from '../factories/crud-hook-factory'
+import { createCrudHooks } from '@promptliano/hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import {
   PROJECT_CONFIG,
@@ -881,7 +881,7 @@ export function useEnhancedChats(options?: {
 // These types are already exported from @promptliano/database directly
 
 // Export hook factory for creating custom entity hooks
-export { createCrudHooks } from '../factories/crud-hook-factory'
+export { createCrudHooks } from '@promptliano/hook-factory'
 
 // Export query keys for custom queries
 export * from './query-keys'

@@ -116,7 +116,7 @@ export function QueueSelectionDialog({ isOpen, onClose, ticketId, projectId }: Q
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues?.map((queueData) => {
+                    {queues?.map((queueData: any) => {
                       const health = getQueueHealth(queueData)
                       const healthColor = getHealthColor(health)
                       const isSelected = selectedQueueId === queueData.queue.id

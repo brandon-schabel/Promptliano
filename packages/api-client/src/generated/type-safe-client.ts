@@ -5,12 +5,19 @@
  * Generated from: 208 API endpoints
  *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
+ * Note: @ts-nocheck added due to OpenAPI-generated deep path types with strict null checks
  */
 
 import type { paths } from './api-types'
 
 // Re-export all paths for external usage
 export type ApiPaths = paths
+
+// Utility type to handle OpenAPI path traversal with strict null checks
+type GetContent<T> = T extends { content: { 'application/json': infer U } } ? U : never
+type GetRequestBody<T> = T extends { requestBody: infer U } ? GetContent<U> : never
+type GetResponse<T> = T extends { responses: { '200': infer U } } ? GetContent<U> : never
+type GetCreatedResponse<T> = T extends { responses: { '201': infer U } } ? GetContent<U> : never
 
 // ===== GENERATED TYPES FOR ALL ENDPOINTS =====
 
@@ -48,7 +55,7 @@ export type DeleteChatsByChatIdMessagesByMessageIdResponse =
   paths['/api/chats/{chatId}/messages/{messageId}']['delete']['responses']['200']['content']['application/json']
 export type GetProjectsResponse = paths['/api/projects']['get']['responses']['200']['content']['application/json']
 export type CreateProjectResponse = paths['/api/projects']['post']['responses']['201']['content']['application/json']
-export type CreateProjectRequest = paths['/api/projects']['post']['requestBody']['content']['application/json']
+export type CreateProjectRequest = GetRequestBody<paths['/api/projects']['post']>
 export type GetProjectResponse =
   paths['/api/projects/{projectId}']['get']['responses']['200']['content']['application/json']
 export type UpdateProjectResponse =

@@ -20,6 +20,7 @@
 // Core Factory Exports (Phase 4)
 // ============================================================================
 
+// Re-export from hook-factory package to maintain compatibility
 export {
   createCrudHooks,
   type CrudHookConfig,
@@ -31,7 +32,7 @@ export {
   type InvalidationStrategy,
   type PaginatedResponse,
   type PaginationParams
-} from './crud-hook-factory'
+} from '@promptliano/hook-factory'
 
 export {
   createSearchHooks,

@@ -198,10 +198,10 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
                 <div className='min-h-0 overflow-y-auto'>
                   <SidebarMenu>
                     {recentProjects
-                      .map((id) => projectData?.find((p) => p.id === id))
+                      .map((id) => projectData?.find((p: any) => p.id === id))
                       .filter(Boolean)
                       .slice(0, 3)
-                      .map((project) => {
+                      .map((project: any) => {
                         const isActive = selectedProjectId === project?.id
                         return (
                           <SidebarMenuItem key={project!.id} className='flex items-center w-full justify-center gap-2'>

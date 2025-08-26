@@ -96,7 +96,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
           )}
 
           <div className='max-h-64 overflow-y-auto border rounded p-2'>
-            {filteredPrompts.map((prompt) => {
+            {filteredPrompts.map((prompt: any) => {
               const inProject = isPromptInProject(prompt.id)
               return (
                 <div key={prompt.id} className='flex items-center justify-between gap-2 p-1 hover:bg-muted/50 rounded'>

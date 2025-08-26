@@ -4,7 +4,7 @@
  * Provides consistent structure across all entity types
  */
 
-import type { QueryKeyFactory } from '../factories/crud-hook-factory'
+import type { QueryKeyFactory } from '@promptliano/hook-factory'
 
 // ============================================================================
 // Core Entity Query Key Factories

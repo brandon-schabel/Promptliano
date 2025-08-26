@@ -9,6 +9,9 @@
     "test": "bun src/tests/run-functional-tests.ts",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@promptliano/hook-factory": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "openapi-typescript": "^7.9.1"

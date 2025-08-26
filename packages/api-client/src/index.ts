@@ -30,6 +30,7 @@ export * from './types' // Common type re-exports
 
 // Import for creating backward-compatible wrapper
 import { TypeSafeApiClient } from './generated/type-safe-client'
+import type { CreateProjectRequest, UpdateProjectRequest } from './generated/type-safe-client'
 import type { ApiConfig } from './base-client'
 
 /**
@@ -58,9 +59,9 @@ export class PromptlianoClient {
   // BACKWARD-COMPATIBLE service namespaces (core methods only)
   public readonly projects = {
     listProjects: () => this.typeSafe.getProjects(),
-    createProject: (data: any) => this.typeSafe.createProject(data),
+    createProject: (data: CreateProjectRequest) => this.typeSafe.createProject(data),
     getProject: (projectId: number) => this.typeSafe.getProject(projectId),
-    updateProject: (projectId: number, data: any) => this.typeSafe.updateProject(projectId, data),
+    updateProject: (projectId: number, data: UpdateProjectRequest) => this.typeSafe.updateProject(projectId, data),
     deleteProject: (projectId: number) => this.typeSafe.deleteProject(projectId),
     getProjectFiles: (projectId: number) => this.typeSafe.listProjectsByProjectIdFiles(projectId),
     getProjectTickets: (projectId: number) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
@@ -411,7 +412,7 @@ export class ProjectClient {
   }
 
   listProjects = () => this.client.getProjects()
-  createProject = (data: any) => this.client.createProject(data)
+  createProject = (data: CreateProjectRequest) => this.client.createProject(data)
   getProject = (projectId: number) => this.client.getProject(projectId)
   syncProject = (projectId: number) => this.client.createProjectsByProjectIdSync(projectId)
   getProjectFiles = (projectId: number) => this.client.listProjectsByProjectIdFiles(projectId)

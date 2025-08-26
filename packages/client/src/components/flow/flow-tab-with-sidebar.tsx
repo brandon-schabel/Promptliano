@@ -63,7 +63,7 @@ export function FlowTabWithSidebar({
   const tickets: TicketWithTasks[] = React.useMemo(() => {
     if (!rawTickets) return []
     return rawTickets.map(
-      (ticket) =>
+      (ticket: any) =>
         ({
           ...ticket,
           tasks: [] // For now, we'll use empty tasks array

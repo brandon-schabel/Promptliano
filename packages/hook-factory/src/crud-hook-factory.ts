@@ -16,7 +16,6 @@ import {
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApiError } from '@promptliano/shared'
-import { useApiClient } from '../api/use-api-client'
 
 // ============================================================================
 // Types and Interfaces
@@ -84,6 +83,8 @@ export interface CrudHookConfig<TEntity, TCreate, TUpdate, TListParams = void> {
   prefetch?: PrefetchConfig
   invalidation?: InvalidationStrategy
   polling?: PollingStrategy
+  // Hook for API client access - allows injection
+  useApiClient?: () => any
 }
 
 export interface EntityMessages {
@@ -175,6 +176,11 @@ const DEFAULT_INVALIDATION: InvalidationStrategy = {
   cascadeInvalidate: true
 }
 
+// Default useApiClient hook - throws error if not provided
+function defaultUseApiClient() {
+  throw new Error('useApiClient hook must be provided in CrudHookConfig')
+}
+
 // ============================================================================
 // Main Factory Function
 // ============================================================================
@@ -195,7 +201,8 @@ export function createCrudHooks<
     optimistic: optimisticConfig,
     prefetch = { enabled: false },
     invalidation = DEFAULT_INVALIDATION,
-    polling = {}
+    polling = {},
+    useApiClient = defaultUseApiClient
   } = config
 
   const resolvedMessages = { ...createDefaultMessages(entityName), ...messages }

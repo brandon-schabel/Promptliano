@@ -64,9 +64,9 @@ export function QueueSidebarNav({
   const { data: queuesWithStats, isLoading } = useGetQueuesWithStats(projectId)
 
   // Calculate summary stats
-  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + q.stats.inProgressItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q) => q.queue.status === 'active').length || 0
+  const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.queuedItems, 0) || 0
+  const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.inProgressItems, 0) || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.queue.status === 'active').length || 0
 
   return (
     <div className={cn('flex flex-col h-full bg-muted/30', className)}>

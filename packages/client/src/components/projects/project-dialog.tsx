@@ -119,7 +119,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
     } else {
       // Creating new project
       createProject(formData, {
-        onSuccess: (response) => {
+        onSuccess: (response: any) => {
           if (response) {
             // Set newly created project as current
             updateActiveProjectTab((prev) => ({

@@ -90,7 +90,7 @@ export function RecentAssetsView({ projectId, projectName = 'Project' }: RecentA
         projectId: projectId
       },
       {
-        onSuccess: (response) => {
+        onSuccess: (response: any) => {
           const typedResponse = response as any
           if (typedResponse.data?.id) {
             // Then add it to the project

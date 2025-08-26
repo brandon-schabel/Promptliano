@@ -30,15 +30,17 @@ function generateAdvancedHooks(): void {
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
-import { createCrudHooks } from '@promptliano/client/hooks/factories/crud-hook-factory'
+import { createCrudHooks } from '@promptliano/hook-factory'
 import { createTypeSafeClient } from './type-safe-client'
 import type {
   GetProjectsResponse,
   CreateProjectRequest,
   CreateProjectResponse,
+  UpdateProjectRequest,
   GetChatsResponse,
   CreateChatRequest,
-  CreateChatResponse
+  CreateChatResponse,
+  UpdateChatRequest
 } from './type-safe-client'
 
 // Global client instance
@@ -46,16 +48,23 @@ let globalClient: ReturnType<typeof createTypeSafeClient> | null = null
 
 function getApiClient() {
   if (!globalClient) {
-    globalClient = createTypeSafeClient()
+    globalClient = createTypeSafeClient({ baseUrl: '/api' })
   }
   return globalClient
 }
 
 /**
+ * Hook for API client access in React components
+ */
+function useApiClient() {
+  return getApiClient()
+}
+
+/**
  * Initialize the global API client
  */
-export function initializeApiClient(baseUrl?: string) {
-  globalClient = createTypeSafeClient(baseUrl)
+export function initializeApiClient(config?: { baseUrl?: string; timeout?: number; headers?: Record<string, string> }) {
+  globalClient = createTypeSafeClient(config || { baseUrl: '/api' })
   return globalClient
 }
 
@@ -84,16 +93,45 @@ export const queryKeys = {
 // PROJECTS - Advanced Factory Hooks
 // =============================================================================
 
+/**
+ * CRITICAL: API Response Adapter Pattern
+ * 
+ * The API returns wrapped responses: { success: true, data: Project[] }
+ * But the hook factory expects unwrapped data: Project[]
+ * 
+ * Each API call is wrapped in an async adapter function that:
+ * 1. Calls the API client method
+ * 2. Extracts the .data property from the wrapped response
+ * 3. Returns the unwrapped entity data to the hook factory
+ * 
+ * This maintains type safety while bridging the response format mismatch.
+ */
 const projectHooks = createCrudHooks({
   entityName: 'Project',
   queryKeys: queryKeys.projects,
   apiClient: {
-    list: () => getApiClient().getProjects(),
-    getById: (_, id: number) => getApiClient().getProject(id),
-    create: (_, data: CreateProjectRequest) => getApiClient().createProject(data),
-    update: (_, id: number, data: Partial<CreateProjectRequest>) => getApiClient().updateProject(id, data),
-    delete: (_, id: number) => getApiClient().deleteProject(id),
+    list: async () => {
+      const response = await getApiClient().getProjects()
+      return response.data
+    },
+    getById: async (_, id: number) => {
+      const response = await getApiClient().getProject(id)
+      return response.data
+    },
+    create: async (_, data: CreateProjectRequest) => {
+      const response = await getApiClient().createProject(data)
+      return response.data
+    },
+    update: async (_, id: number, data: UpdateProjectRequest) => {
+      const response = await getApiClient().updateProject(id, data)
+      return response.data
+    },
+    delete: async (_, id: number) => {
+      await getApiClient().deleteProject(id)
+      return true
+    },
   },
+  useApiClient: useApiClient,
   messages: {
     createSuccess: (project) => \`Project "\${project.name}" created successfully\`,
     updateSuccess: (project) => \`Project "\${project.name}" updated successfully\`,
@@ -135,16 +173,35 @@ export const useProjectInvalidate = projectHooks.useInvalidate
 // CHATS - Advanced Factory Hooks
 // =============================================================================
 
+/**
+ * CRITICAL: Same API Response Adapter Pattern as Projects
+ * Unwraps { success: true, data: Chat[] } to Chat[] for hook factory compatibility
+ */
 const chatHooks = createCrudHooks({
   entityName: 'Chat',
   queryKeys: queryKeys.chats,
   apiClient: {
-    list: () => getApiClient().getChats(),
-    getById: (_, id: number) => { throw new Error('getChat not available - endpoint does not exist') },
-    create: (_, data: CreateChatRequest) => getApiClient().createChat(data),
-    update: (_, id: number, data: Partial<CreateChatRequest>) => getApiClient().updateChat(id, data),
-    delete: (_, id: number) => getApiClient().deleteChat(id),
+    list: async () => {
+      const response = await getApiClient().getChats()
+      return response.data
+    },
+    getById: async (_, id: number) => { 
+      throw new Error('getChat not available - endpoint does not exist') 
+    },
+    create: async (_, data: CreateChatRequest) => {
+      const response = await getApiClient().createChat(data)
+      return response.data
+    },
+    update: async (_, id: number, data: UpdateChatRequest) => {
+      const response = await getApiClient().updateChat(id, data)
+      return response.data
+    },
+    delete: async (_, id: number) => {
+      await getApiClient().deleteChat(id)
+      return true
+    },
   },
+  useApiClient: useApiClient,
   messages: {
     createSuccess: (chat) => \`Chat "\${chat.title}" created successfully\`,
     updateSuccess: (chat) => \`Chat "\${chat.title}" updated successfully\`,
@@ -196,9 +253,11 @@ export type {
   GetProjectsResponse,
   CreateProjectRequest,
   CreateProjectResponse,
+  UpdateProjectRequest,
   GetChatsResponse,
   CreateChatRequest,
-  CreateChatResponse
+  CreateChatResponse,
+  UpdateChatRequest
 }
 
 // Re-export advanced factory types
@@ -211,7 +270,7 @@ export type {
   OptimisticConfig,
   PrefetchConfig,
   InvalidationStrategy
-} from '@promptliano/client/hooks/factories/crud-hook-factory'
+} from '@promptliano/hook-factory'
 `
 
   const hooksPath = join(outputDir, 'advanced-hooks.ts')

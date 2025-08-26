@@ -24,7 +24,7 @@ import { nanoid } from 'nanoid'
 // import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
 
 const SERVER_HTTP_ENDPOINT = 'http://localhost:3001' // Default fallback
-import { createCrudHooks } from '../factories/crud-hook-factory'
+import { createCrudHooks } from '@promptliano/hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import type { ChatSchema, ChatMessageSchema, CreateChat, UpdateChat } from '@promptliano/database'
 
