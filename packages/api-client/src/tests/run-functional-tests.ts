@@ -21,15 +21,13 @@ try {
 
   // Start test server with proper configuration
   console.log('🚀 Starting test server...')
-  serverProcess = Bun.spawn([
-    'bun', 'run', 'packages/server/server.ts'
-  ], {
+  serverProcess = Bun.spawn(['bun', 'run', 'packages/server/server.ts'], {
     env: {
       ...process.env,
       NODE_ENV: 'test',
       TEST_DB_PATH: TEST_DB_PATH,
       PROMPTLIANO_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY,
-      PORT: '3147'  // Use test port instead of default
+      PORT: '3147' // Use test port instead of default
     },
     stdout: 'pipe',
     stderr: 'pipe',
@@ -38,19 +36,23 @@ try {
 
   // Log server output for debugging
   if (serverProcess.stdout) {
-    serverProcess.stdout.pipeTo(new WritableStream({
-      write(chunk) {
-        console.log('[SERVER]', new TextDecoder().decode(chunk))
-      }
-    }))
+    serverProcess.stdout.pipeTo(
+      new WritableStream({
+        write(chunk) {
+          console.log('[SERVER]', new TextDecoder().decode(chunk))
+        }
+      })
+    )
   }
-  
+
   if (serverProcess.stderr) {
-    serverProcess.stderr.pipeTo(new WritableStream({
-      write(chunk) {
-        console.error('[SERVER ERROR]', new TextDecoder().decode(chunk))
-      }
-    }))
+    serverProcess.stderr.pipeTo(
+      new WritableStream({
+        write(chunk) {
+          console.error('[SERVER ERROR]', new TextDecoder().decode(chunk))
+        }
+      })
+    )
   }
 
   // Wait for server to be ready (increased timeout for migrations)
@@ -70,7 +72,7 @@ try {
   console.log('\n✅ All API tests completed successfully!')
 } catch (error) {
   console.error('\n❌ API tests failed:', error)
-  
+
   // Show more details about the error
   if (error instanceof Error) {
     console.error('Error details:', error.message)
@@ -78,7 +80,7 @@ try {
       console.error('Stack trace:', error.stack)
     }
   }
-  
+
   process.exit(1)
 } finally {
   // Kill test server
@@ -87,7 +89,7 @@ try {
     try {
       serverProcess.kill()
       // Wait a moment for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
     } catch (error) {
       console.warn('Warning: Failed to stop server process:', error)
     }

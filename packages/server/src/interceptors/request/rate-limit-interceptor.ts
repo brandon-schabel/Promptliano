@@ -24,7 +24,8 @@ class MemoryRateLimitStore {
   private store = new Map<string, RateLimitEntry>()
   private cleanupInterval?: NodeJS.Timeout
 
-  constructor(cleanupIntervalMs: number = 300000) { // 5 minutes default
+  constructor(cleanupIntervalMs: number = 300000) {
+    // 5 minutes default
     if (cleanupIntervalMs > 0) {
       this.cleanupInterval = setInterval(() => {
         this.cleanup()
@@ -47,7 +48,7 @@ class MemoryRateLimitStore {
   cleanup(): void {
     const now = Date.now()
     const keysToDelete: string[] = []
-    
+
     // Collect keys to delete first - using Array.from to avoid iterator issues
     const entries = Array.from(this.store.entries())
     for (const [key, entry] of entries) {
@@ -55,7 +56,7 @@ class MemoryRateLimitStore {
         keysToDelete.push(key)
       }
     }
-    
+
     // Delete keys outside of iteration
     for (const key of keysToDelete) {
       this.store.delete(key)
@@ -90,7 +91,7 @@ function matchesRoutePattern(pattern: string, path: string): boolean {
     .replace(/\*/g, '[^/]*')
     .replace(/___DOUBLE_STAR___/g, '.*')
     .replace(/\?/g, '.')
-  
+
   const regex = new RegExp('^' + regexPattern + '$')
   return regex.test(path)
 }
@@ -155,7 +156,7 @@ function createRateLimitHandler(config: RateLimitInterceptorConfig): Interceptor
 
   return async (context: Context, interceptorContext: InterceptorContext, next: () => Promise<void>) => {
     const startTime = Date.now()
-    
+
     try {
       // Check if request should be skipped
       if (shouldSkipRequest(context, interceptorContext, config)) {
@@ -247,13 +248,11 @@ function createRateLimitHandler(config: RateLimitInterceptorConfig): Interceptor
           context.header('X-RateLimit-Remaining', remaining.toString())
           context.header('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000).toString())
         }
-
       } catch (storeError) {
         // Log store error but continue request
         console.warn('Rate limit store error:', storeError)
         await next()
       }
-
     } catch (error) {
       // Record timing even on error
       const duration = Date.now() - startTime
@@ -352,11 +351,11 @@ export function createUserAwareKeyGenerator(
     if (interceptorContext.user && interceptorContext.user.id) {
       return `user:${interceptorContext.user.id}`
     }
-    
+
     if (fallbackToIP) {
       return `ip:${interceptorContext.security.ip}`
     }
-    
+
     // Use a generic key if no user and no IP fallback
     return 'anonymous'
   }
@@ -367,10 +366,10 @@ export function createUserAwareKeyGenerator(
  */
 export function createMethodAwareKeyGenerator(): (context: Context, interceptorContext: InterceptorContext) => string {
   return (context: Context, interceptorContext: InterceptorContext) => {
-    const baseKey = interceptorContext.user 
+    const baseKey = interceptorContext.user
       ? `user:${interceptorContext.user.id}`
       : `ip:${interceptorContext.security.ip}`
-    
+
     return `${context.req.method}:${baseKey}`
   }
 }
@@ -382,16 +381,16 @@ export function createPathAwareKeyGenerator(
   pathPattern?: string
 ): (context: Context, interceptorContext: InterceptorContext) => string {
   return (context: Context, interceptorContext: InterceptorContext) => {
-    const baseKey = interceptorContext.user 
+    const baseKey = interceptorContext.user
       ? `user:${interceptorContext.user.id}`
       : `ip:${interceptorContext.security.ip}`
-    
+
     let pathKey = context.req.path
     if (pathPattern) {
-      // Normalize path based on pattern (e.g., /api/projects/:id -> /api/projects/*) 
+      // Normalize path based on pattern (e.g., /api/projects/:id -> /api/projects/*)
       pathKey = pathPattern
     }
-    
+
     return `${pathKey}:${baseKey}`
   }
 }

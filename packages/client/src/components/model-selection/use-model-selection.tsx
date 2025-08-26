@@ -3,11 +3,7 @@ import type { APIProviders } from '@promptliano/database'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { useGetModels } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
-import { 
-  validateModelsArray,
-  type ValidatedModelData,
-  extractErrorMessage
-} from '@/utils/type-guards'
+import { validateModelsArray, type ValidatedModelData, extractErrorMessage } from '@/utils/type-guards'
 
 export interface UseModelSelectionOptions {
   defaultProvider?: APIProviders
@@ -57,15 +53,15 @@ export function useModelSelection(options: UseModelSelectionOptions = {}): UseMo
     if (!modelsData || !Array.isArray(modelsData)) {
       return []
     }
-    
+
     try {
       const validationResult = validateModelsArray(modelsData)
-      
+
       if (!validationResult.success) {
         console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)
         return []
       }
-      
+
       return validationResult.data
     } catch (error) {
       console.error('Error validating model data:', extractErrorMessage(error))

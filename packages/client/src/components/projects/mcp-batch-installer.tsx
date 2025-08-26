@@ -117,7 +117,9 @@ export function MCPBatchInstaller({ projectId, projectName }: MCPBatchInstallerP
   const tools = detectionData?.tools || []
   const installedTools = statusData?.projectConfig?.installedTools || []
 
-  const availableTools = tools.filter((tool: MCPToolInfo) => tool.installed && !installedTools.some((t: InstalledToolInfo) => t.tool === tool.tool))
+  const availableTools = tools.filter(
+    (tool: MCPToolInfo) => tool.installed && !installedTools.some((t: InstalledToolInfo) => t.tool === tool.tool)
+  )
 
   const handleToggleTool = (toolId: string) => {
     setSelectedTools((prev) => (prev.includes(toolId) ? prev.filter((t) => t !== toolId) : [...prev, toolId]))

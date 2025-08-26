@@ -7,7 +7,7 @@ The `@promptliano/schemas` package handles **application-level validation only**
 ### Mandatory Agent Usage
 
 1. **After Implementation** - Always use `staff-engineer-code-reviewer`
-2. **For Refactoring** - Use `code-modularization-expert` 
+2. **For Refactoring** - Use `code-modularization-expert`
 3. **Package-Specific Agents**:
    - `zod-schema-architect` - Application-level validation patterns
    - `promptliano-drizzle-sqlite-expert` - Database schemas (primary source)
@@ -67,14 +67,11 @@ export type InsertProject = typeof projects.$inferInsert
 // @promptliano/server/src/routes/projects.ts
 import { insertProjectSchema, selectProjectSchema } from '@promptliano/database'
 
-app.post('/projects', 
-  zValidator('json', insertProjectSchema),
-  async (c) => {
-    const data = c.req.valid('json') // Fully typed from Drizzle!
-    const project = await createProject(data)
-    return c.json({ success: true, data: project })
-  }
-)
+app.post('/projects', zValidator('json', insertProjectSchema), async (c) => {
+  const data = c.req.valid('json') // Fully typed from Drizzle!
+  const project = await createProject(data)
+  return c.json({ success: true, data: project })
+})
 ```
 
 ### 3. Application Schemas Reference Database Types
@@ -99,9 +96,11 @@ This package only handles non-database validation:
 export const projectTabStateSchema = z.object({
   selectedFileIds: z.array(z.string()).default([]),
   activeTicketId: entityIdOptionalSchema,
-  filters: z.object({
-    status: z.array(z.enum(['open', 'in_progress', 'closed'])).default([])
-  }).default({})
+  filters: z
+    .object({
+      status: z.array(z.enum(['open', 'in_progress', 'closed'])).default([])
+    })
+    .default({})
 })
 ```
 
@@ -127,10 +126,12 @@ export const errorResponseSchema = z.object({
 // file-operations.schemas.ts
 export const fileSummaryRequestSchema = z.object({
   filePaths: z.array(z.string().min(1)),
-  options: z.object({
-    maxTokens: z.number().int().min(100).max(4000).default(1000),
-    strategy: z.enum(['fast', 'balanced', 'thorough']).default('balanced')
-  }).default({})
+  options: z
+    .object({
+      maxTokens: z.number().int().min(100).max(4000).default(1000),
+      strategy: z.enum(['fast', 'balanced', 'thorough']).default('balanced')
+    })
+    .default({})
 })
 ```
 
@@ -162,16 +163,16 @@ export const aiSdkOptionsSchema = z.object({
 
 ```typescript
 // Entity IDs
-entityIdSchema                 // Required entity ID
-entityIdOptionalSchema         // Optional entity ID
-entityIdCoercibleSchema        // Coerces strings to numbers (URL params)
+entityIdSchema // Required entity ID
+entityIdOptionalSchema // Optional entity ID
+entityIdCoercibleSchema // Coerces strings to numbers (URL params)
 
 // Unix timestamps with preprocessing
-unixTSSchemaSpec              // Required timestamp
-unixTSOptionalSchemaSpec      // Optional timestamp
+unixTSSchemaSpec // Required timestamp
+unixTSOptionalSchemaSpec // Optional timestamp
 
 // Special IDs (can accept -1 as null)
-idSchemaSpec                  // Accepts -1 or valid timestamp
+idSchemaSpec // Accepts -1 or valid timestamp
 ```
 
 ### Timestamp Preprocessing
@@ -189,19 +190,10 @@ Handles multiple input formats automatically:
 
 ```typescript
 // Import database types from database package
-import { 
-  type Project, 
-  type InsertProject,
-  insertProjectSchema,
-  selectProjectSchema
-} from '@promptliano/database'
+import { type Project, type InsertProject, insertProjectSchema, selectProjectSchema } from '@promptliano/database'
 
 // Import application types from this package
-import { 
-  type GlobalState,
-  type FileSummaryRequest,
-  globalStateSchema
-} from '@promptliano/schemas'
+import { type GlobalState, type FileSummaryRequest, globalStateSchema } from '@promptliano/schemas'
 ```
 
 ### ❌ Forbidden Usage

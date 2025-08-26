@@ -56,11 +56,7 @@ export class GitRemoteService extends BaseGitService {
   /**
    * Fetch from remote
    */
-  async fetch(
-    projectId: number,
-    remote: string = 'origin',
-    options?: { prune?: boolean }
-  ): Promise<void> {
+  async fetch(projectId: number, remote: string = 'origin', options?: { prune?: boolean }): Promise<void> {
     try {
       const { git } = await this.getGitInstance(projectId)
 
@@ -177,11 +173,7 @@ export class GitRemoteService extends BaseGitService {
   /**
    * Create a tag
    */
-  async createTag(
-    projectId: number,
-    tagName: string,
-    options?: { message?: string; ref?: string }
-  ): Promise<void> {
+  async createTag(projectId: number, tagName: string, options?: { message?: string; ref?: string }): Promise<void> {
     try {
       const { git } = await this.getGitInstance(projectId)
 

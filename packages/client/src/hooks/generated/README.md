@@ -22,25 +22,25 @@ generated/
 ### Basic CRUD Operations
 
 ```typescript
-import { 
-  useProjects, 
-  useProject, 
-  useCreateProject, 
+import {
+  useProjects,
+  useProject,
+  useCreateProject,
   useUpdateProject,
-  useDeleteProject 
+  useDeleteProject
 } from '@/hooks/generated'
 
 function ProjectList() {
   const { data: projects, isLoading } = useProjects()
   const createProject = useCreateProject()
-  
+
   const handleCreate = () => {
     createProject.mutate({
       name: 'New Project',
       path: '/path/to/project'
     })
   }
-  
+
   return (
     // Your component JSX
   )

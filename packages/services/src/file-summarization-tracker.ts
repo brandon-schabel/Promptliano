@@ -282,7 +282,10 @@ export class FileSummarizationTracker {
           totalTokens += Math.ceil(file.summary.length / 4)
 
           // Check if stale
-          if (file.summaryLastUpdated < staleThreshold || (file.updatedAt && file.updatedAt > file.summaryLastUpdated)) {
+          if (
+            file.summaryLastUpdated < staleThreshold ||
+            (file.updatedAt && file.updatedAt > file.summaryLastUpdated)
+          ) {
             staleCount++
           }
 

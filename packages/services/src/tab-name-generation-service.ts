@@ -10,7 +10,10 @@ export interface TabNameGenerationResult {
 }
 
 export class TabNameGenerationService {
-  static async generateTabName(projectId: number, tabData: Partial<ProjectTabMetadata>): Promise<TabNameGenerationResult> {
+  static async generateTabName(
+    projectId: number,
+    tabData: Partial<ProjectTabMetadata>
+  ): Promise<TabNameGenerationResult> {
     try {
       const project = await getProjectById(projectId)
       if (!project) {

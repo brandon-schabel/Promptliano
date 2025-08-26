@@ -20,7 +20,7 @@ describe('InterceptorConfigLoader', () => {
   describe('constructor', () => {
     it('should create loader with default config', () => {
       const config = configLoader.getConfig()
-      
+
       expect(config.enabled).toBe(true)
       // Note: interceptors is optional and might be undefined in default config
       // expect(config.interceptors).toBeDefined()
@@ -34,10 +34,10 @@ describe('InterceptorConfigLoader', () => {
           timeoutMs: 5000
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(customConfig)
       const config = loader.getConfig()
-      
+
       expect(config.enabled).toBe(false)
       expect(config.chain?.continueOnError).toBe(true)
       expect(config.chain?.timeoutMs).toBe(5000)
@@ -55,10 +55,10 @@ describe('InterceptorConfigLoader', () => {
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config, 'test')
       const finalConfig = loader.getConfig()
-      
+
       expect(finalConfig.enabled).toBe(false)
       expect(finalConfig.chain?.enableLogging).toBe(true)
     })
@@ -67,7 +67,7 @@ describe('InterceptorConfigLoader', () => {
   describe('getChainConfig', () => {
     it('should return chain configuration with defaults', () => {
       const chainConfig = configLoader.getChainConfig()
-      
+
       expect(chainConfig.continueOnError).toBeDefined()
       expect(chainConfig.timeoutMs).toBeDefined()
       expect(chainConfig.enableMetrics).toBeDefined()
@@ -83,10 +83,10 @@ describe('InterceptorConfigLoader', () => {
           enableLogging: true
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(customConfig)
       const chainConfig = loader.getChainConfig()
-      
+
       expect(chainConfig.continueOnError).toBe(true)
       expect(chainConfig.timeoutMs).toBe(1000)
       expect(chainConfig.enableMetrics).toBe(false)
@@ -104,10 +104,10 @@ describe('InterceptorConfigLoader', () => {
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
       const authConfig = loader.getInterceptorConfig('auth')
-      
+
       expect(authConfig?.requireAuth).toBe(true)
       expect(authConfig?.publicRoutes).toEqual(['/public'])
     })
@@ -124,25 +124,27 @@ describe('InterceptorConfigLoader', () => {
         routes: {
           '/api/admin/*': {
             enabled: {
-              'auth': true,
-              'logging': false
+              auth: true,
+              logging: false
             },
             config: {
-              'auth': { strictMode: true }
+              auth: { strictMode: true }
             },
-            additional: [{
-              name: 'admin-only',
-              order: 15,
-              phase: 'request' as const,
-              enabled: true
-            }]
+            additional: [
+              {
+                name: 'admin-only',
+                order: 15,
+                phase: 'request' as const,
+                enabled: true
+              }
+            ]
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
       const routeConfig = loader.getRouteConfig('/api/admin/*')
-      
+
       expect(routeConfig.enabled.auth).toBe(true)
       expect(routeConfig.enabled.logging).toBe(false)
       expect(routeConfig.config.auth.strictMode).toBe(true)
@@ -152,7 +154,7 @@ describe('InterceptorConfigLoader', () => {
 
     it('should return empty config for non-existent route', () => {
       const routeConfig = configLoader.getRouteConfig('/non-existent')
-      
+
       expect(routeConfig.enabled).toEqual({})
       expect(routeConfig.config).toEqual({})
       expect(routeConfig.additional).toEqual([])
@@ -163,7 +165,7 @@ describe('InterceptorConfigLoader', () => {
     it('should return false if system is disabled', () => {
       const loader = new InterceptorConfigLoader({ enabled: false })
       const enabled = loader.isInterceptorEnabled('auth')
-      
+
       expect(enabled).toBe(false)
     })
 
@@ -172,20 +174,20 @@ describe('InterceptorConfigLoader', () => {
         routes: {
           '/api/public/*': {
             enabled: {
-              'auth': false
+              auth: false
             }
           },
           '/api/admin/*': {
             enabled: {
-              'auth': true,
-              'logging': false
+              auth: true,
+              logging: false
             }
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
-      
+
       expect(loader.isInterceptorEnabled('auth', '/api/public/docs')).toBe(false)
       expect(loader.isInterceptorEnabled('auth', '/api/admin/users')).toBe(true)
       expect(loader.isInterceptorEnabled('logging', '/api/admin/users')).toBe(false)
@@ -201,7 +203,7 @@ describe('InterceptorConfigLoader', () => {
   describe('getMonitoringConfig', () => {
     it('should return monitoring configuration with defaults', () => {
       const monitoringConfig = configLoader.getMonitoringConfig()
-      
+
       expect(monitoringConfig.enableMetrics).toBeDefined()
       expect(monitoringConfig.enableLogging).toBeDefined()
       expect(monitoringConfig.metricsInterval).toBeTypeOf('number')
@@ -221,10 +223,10 @@ describe('InterceptorConfigLoader', () => {
           slowInterceptorThreshold: 200
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
       const monitoringConfig = loader.getMonitoringConfig()
-      
+
       expect(monitoringConfig.enableMetrics).toBe(false)
       expect(monitoringConfig.enableLogging).toBe(true)
       expect(monitoringConfig.metricsInterval).toBe(30000)
@@ -237,7 +239,7 @@ describe('InterceptorConfigLoader', () => {
   describe('validate', () => {
     it('should validate correct configuration', () => {
       const result = configLoader.validate()
-      
+
       expect(result.valid).toBe(true)
       expect(result.errors).toBeUndefined()
     })
@@ -247,9 +249,9 @@ describe('InterceptorConfigLoader', () => {
       const loader = new InterceptorConfigLoader()
       // @ts-ignore - Intentionally bypass type checking to test validation
       loader['config'] = { enabled: 'not-boolean' }
-      
+
       const result = loader.validate()
-      
+
       expect(result.valid).toBe(false)
       expect(result.errors).toBeDefined()
       expect(result.errors!.length).toBeGreaterThan(0)
@@ -264,10 +266,10 @@ describe('InterceptorConfigLoader', () => {
           continueOnError: true
         }
       }
-      
+
       configLoader.updateConfig(updates)
       const config = configLoader.getConfig()
-      
+
       expect(config.enabled).toBe(false)
       expect(config.chain?.continueOnError).toBe(true)
     })
@@ -280,12 +282,12 @@ describe('InterceptorConfigLoader', () => {
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config, 'development')
-      
+
       loader.updateConfig({ enabled: true })
       const finalConfig = loader.getConfig()
-      
+
       // Environment override should still apply
       expect(finalConfig.enabled).toBe(false)
     })
@@ -294,7 +296,7 @@ describe('InterceptorConfigLoader', () => {
   describe('export', () => {
     it('should export configuration', () => {
       const exported = configLoader.export()
-      
+
       expect(exported).toBeTypeOf('object')
       expect(exported.enabled).toBeDefined()
     })
@@ -302,7 +304,7 @@ describe('InterceptorConfigLoader', () => {
     it('should create deep copy', () => {
       const exported = configLoader.export()
       const original = configLoader.getConfig()
-      
+
       expect(exported).not.toBe(original)
       expect(exported).toEqual(original)
     })
@@ -314,22 +316,22 @@ describe('InterceptorConfigLoader', () => {
         routes: {
           '/api/admin/*': {
             config: {
-              'auth': { strictMode: true, requireMFA: true },
-              'logging': { level: 'debug' }
+              auth: { strictMode: true, requireMFA: true },
+              logging: { level: 'debug' }
             }
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
-      
+
       const authConfig = loader.getRouteInterceptorConfig<any>('/api/admin/users', 'auth')
       expect(authConfig?.strictMode).toBe(true)
       expect(authConfig?.requireMFA).toBe(true)
-      
+
       const loggingConfig = loader.getRouteInterceptorConfig<any>('/api/admin/users', 'logging')
       expect(loggingConfig?.level).toBe('debug')
-      
+
       const nonExistentConfig = loader.getRouteInterceptorConfig('/api/admin/users', 'cache')
       expect(nonExistentConfig).toBeUndefined()
     })
@@ -339,12 +341,12 @@ describe('InterceptorConfigLoader', () => {
         routes: {
           '/api/admin/*': {
             config: {
-              'auth': { strictMode: true }
+              auth: { strictMode: true }
             }
           }
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
       const authConfig = loader.getRouteInterceptorConfig('/api/public/data', 'auth')
       expect(authConfig).toBeUndefined()
@@ -361,15 +363,15 @@ describe('InterceptorConfigLoader', () => {
           '/web/*': {}
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
-      
+
       const adminMatches = loader.getMatchingRoutePatterns('/api/admin/users')
       expect(adminMatches).toContain('/api/*')
       expect(adminMatches).toContain('/api/admin/*')
       expect(adminMatches).not.toContain('/api/public/*')
       expect(adminMatches).not.toContain('/web/*')
-      
+
       const publicMatches = loader.getMatchingRoutePatterns('/api/public/docs')
       expect(publicMatches).toContain('/api/*')
       expect(publicMatches).toContain('/api/public/*')
@@ -383,7 +385,7 @@ describe('InterceptorConfigLoader', () => {
           '/api/private/*': {}
         }
       }
-      
+
       const loader = new InterceptorConfigLoader(config)
       const matches = loader.getMatchingRoutePatterns('/web/dashboard')
       expect(matches).toEqual([])
@@ -397,19 +399,19 @@ describe('InterceptorConfigLoader', () => {
         retries: 3,
         cache: true
       }
-      
+
       const globalConfig = {
         timeout: 2000,
         retries: 5
       }
-      
+
       const routeConfig = {
         timeout: 3000
       }
-      
+
       const loader = new InterceptorConfigLoader()
       const merged = loader.mergeConfigurations(globalConfig, routeConfig, defaults)
-      
+
       expect(merged.timeout).toBe(3000) // Route config takes priority
       expect(merged.retries).toBe(5) // Global config overrides default
       expect(merged.cache).toBe(true) // Default value preserved
@@ -417,10 +419,10 @@ describe('InterceptorConfigLoader', () => {
 
     it('should handle undefined configurations', () => {
       const defaults = { timeout: 1000, enabled: true }
-      
+
       const loader = new InterceptorConfigLoader()
       const merged = loader.mergeConfigurations(undefined, undefined, defaults)
-      
+
       expect(merged).toEqual(defaults)
     })
   })
@@ -430,7 +432,7 @@ describe('createInterceptorConfig', () => {
   it('should create development config', () => {
     const loader = createInterceptorConfig('development')
     const config = loader.getConfig()
-    
+
     expect(config.enabled).toBe(true)
     expect(config.interceptors?.auth?.requireAuth).toBe(false)
     expect(config.interceptors?.logging?.level).toBe('debug')
@@ -439,7 +441,7 @@ describe('createInterceptorConfig', () => {
   it('should create production config', () => {
     const loader = createInterceptorConfig('production')
     const config = loader.getConfig()
-    
+
     expect(config.enabled).toBe(true)
     expect(config.interceptors?.auth?.requireAuth).toBe(true)
     expect(config.interceptors?.logging?.level).toBe('info')
@@ -454,10 +456,10 @@ describe('createInterceptorConfig', () => {
         }
       }
     }
-    
+
     const loader = createInterceptorConfig('production', overrides)
     const config = loader.getConfig()
-    
+
     expect(config.enabled).toBe(false)
     expect(config.interceptors?.auth?.requireAuth).toBe(false)
   })
@@ -470,13 +472,12 @@ describe('loadConfigFromEnv', () => {
     process.env = { ...originalEnv }
   })
 
-
   it('should load default development config', () => {
     process.env.NODE_ENV = 'development'
-    
+
     const loader = loadConfigFromEnv()
     const config = loader.getConfig()
-    
+
     expect(config.enabled).toBe(true)
   })
 
@@ -484,10 +485,10 @@ describe('loadConfigFromEnv', () => {
     process.env.INTERCEPTORS_ENABLED = 'false'
     process.env.INTERCEPTORS_LOG_ENABLED = 'true'
     process.env.INTERCEPTORS_TIMEOUT_MS = '5000'
-    
+
     const loader = loadConfigFromEnv()
     const config = loader.getConfig()
-    
+
     expect(config.enabled).toBe(false)
     expect(config.chain?.enableLogging).toBe(true)
     expect(config.chain?.timeoutMs).toBe(5000)
@@ -507,9 +508,9 @@ describe('validateInterceptorDefinition', () => {
       version: '1.0.0',
       description: 'Test interceptor'
     }
-    
+
     const result = validateInterceptorDefinition(definition)
-    
+
     expect(result.valid).toBe(true)
     expect(result.data).toBeDefined()
     expect(result.errors).toBeUndefined()
@@ -523,9 +524,9 @@ describe('validateInterceptorDefinition', () => {
         phase: 'invalid'
       }
     }
-    
+
     const result = validateInterceptorDefinition(definition)
-    
+
     expect(result.valid).toBe(false)
     expect(result.errors).toBeDefined()
     expect(result.errors!.length).toBeGreaterThan(0)
@@ -538,13 +539,13 @@ describe('validateInterceptorDefinition', () => {
         order: 'not-a-number'
       }
     }
-    
+
     const result = validateInterceptorDefinition(definition)
-    
+
     expect(result.valid).toBe(false)
     expect(result.errors).toBeDefined()
-    expect(result.errors!.some(error => error.includes('name'))).toBe(true)
-    expect(result.errors!.some(error => error.includes('order'))).toBe(true)
+    expect(result.errors!.some((error) => error.includes('name'))).toBe(true)
+    expect(result.errors!.some((error) => error.includes('order'))).toBe(true)
   })
 })
 
@@ -586,14 +587,14 @@ describe('Configuration Schemas', () => {
     it('should validate minimal config', () => {
       const config = { enabled: true }
       const result = GlobalInterceptorConfigSchema.safeParse(config)
-      
+
       expect(result.success).toBe(true)
     })
 
     it('should provide defaults', () => {
       const config = {}
       const result = GlobalInterceptorConfigSchema.safeParse(config)
-      
+
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.enabled).toBe(true)
@@ -607,7 +608,7 @@ describe('Configuration Schemas', () => {
           timeoutMs: -1 // Invalid negative timeout
         }
       }
-      
+
       const result = GlobalInterceptorConfigSchema.safeParse(config)
       expect(result.success).toBe(false)
     })
@@ -632,9 +633,9 @@ describe('Configuration Schemas', () => {
           cpuUsage: 'low'
         }
       }
-      
+
       const result = InterceptorDefinitionSchema.safeParse(definition)
-      
+
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.config.name).toBe('test-interceptor')
@@ -647,7 +648,7 @@ describe('Configuration Schemas', () => {
       const definition = {
         source: 'custom'
       }
-      
+
       const result = InterceptorDefinitionSchema.safeParse(definition)
       expect(result.success).toBe(false)
     })

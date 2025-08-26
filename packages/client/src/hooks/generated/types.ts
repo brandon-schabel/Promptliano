@@ -4,12 +4,7 @@
  * Provides full TypeScript support for the hook factory system
  */
 
-import type {
-  UseQueryOptions,
-  UseMutationOptions,
-  UseInfiniteQueryOptions,
-  QueryClient
-} from '@tanstack/react-query'
+import type { UseQueryOptions, UseMutationOptions, UseInfiniteQueryOptions, QueryClient } from '@tanstack/react-query'
 
 // Import ApiError from shared package to avoid conflicts
 import type { ApiError } from '@promptliano/shared'
@@ -18,42 +13,45 @@ import type { ApiError } from '@promptliano/shared'
 // Re-export all entity types from schemas
 // ============================================================================
 
-// Import database types using type-only imports to prevent bundling issues
+// Import schema types from schemas package to get properly typed schemas with JSON fields as typed arrays
 import type {
-  // Core Entities - using proper zod-inferred types
+  // Tickets & Tasks - use schemas with proper typing for JSON fields
+  TicketSchema,
+  TicketTaskSchema,
+
+  // Prompts
+  PromptSchema,
+
+  // Export the inferred types directly
+  Ticket,
+  TicketTask,
+  Prompt,
+  TicketWithTasks
+} from '@promptliano/schemas'
+
+// Import database types for entities that don't have JSON type issues
+import type {
+  // Core Entities - these don't have JSON field issues
   ProjectSchema,
   CreateProject,
   UpdateProject,
-  
-  // Tickets & Tasks
-  TicketSchema,
-  CreateTicket,
-  UpdateTicket,
-  TaskSchema,
-  CreateTask,
-  UpdateTask,
-  
-  // Chats & Messages  
+
+  // Chats & Messages - these don't have problematic JSON fields
   ChatSchema,
   CreateChat,
   UpdateChat,
   ChatMessageSchema,
-  
+
   // Agents
   ClaudeAgentSchema,
   CreateClaudeAgent,
   UpdateClaudeAgent,
-  
-  // Prompts
-  PromptSchema,
-  CreatePrompt,
-  UpdatePrompt,
-  
+
   // Queues
   QueueSchema,
   CreateQueue,
   UpdateQueue,
-  
+
   // Provider Keys
   ProviderKeySchema,
   CreateProviderKey,
@@ -65,13 +63,14 @@ export type Project = typeof ProjectSchema._type
 export type CreateProjectBody = CreateProject
 export type UpdateProjectBody = UpdateProject
 
-export type Ticket = typeof TicketSchema._type
-export type CreateTicketBody = CreateTicket
-export type UpdateTicketBody = UpdateTicket
+// Use the properly typed exports from schemas package for entities with JSON fields
+export { Ticket, TicketTask, Prompt, TicketWithTasks }
 
-export type TicketTask = typeof TaskSchema._type
-export type CreateTaskBody = CreateTask
-export type UpdateTaskBody = UpdateTask
+// Create type aliases for backward compatibility
+export type CreateTicketBody = any // TODO: Add proper create schema types
+export type UpdateTicketBody = any // TODO: Add proper update schema types
+export type CreateTaskBody = any // TODO: Add proper create schema types
+export type UpdateTaskBody = any // TODO: Add proper update schema types
 
 export type Chat = typeof ChatSchema._type
 export type CreateChatBody = CreateChat
@@ -83,9 +82,9 @@ export type ClaudeAgent = typeof ClaudeAgentSchema._type
 export type CreateClaudeAgentBody = CreateClaudeAgent
 export type UpdateClaudeAgentBody = UpdateClaudeAgent
 
-export type Prompt = typeof PromptSchema._type
-export type CreatePromptBody = CreatePrompt
-export type UpdatePromptBody = UpdatePrompt
+// Prompt types already exported above from schemas package
+export type CreatePromptBody = any // TODO: Add proper create schema types
+export type UpdatePromptBody = any // TODO: Add proper update schema types
 
 export type TaskQueue = typeof QueueSchema._type & {
   status?: 'active' | 'paused' | 'completed'
@@ -119,7 +118,7 @@ export type AiChatStreamRequest = {
   stream?: boolean
 }
 
-// Files & Content  
+// Files & Content
 export type FileRelevance = {
   file: string
   relevance: number
@@ -191,16 +190,8 @@ export type ProjectStatistics = {
   lastSyncedAt: number | null
 }
 
-// New nested structure for TicketDetailView
-export type TicketWithTasksNested = {
-  ticket: Ticket
-  tasks: TicketTask[]
-}
-
-// Keep the old flat structure for backwards compatibility
-export type TicketWithTasks = Ticket & {
-  tasks: TicketTask[]
-}
+// Use TicketWithTasks from schemas package - it has the correct nested structure
+export type TicketWithTasksNested = TicketWithTasks
 
 export type TicketWithTaskCount = Ticket & {
   taskCount: number
@@ -339,10 +330,12 @@ export interface MutationHookReturn<TData, TError = ApiError, TVariables = void>
  * Infinite Query Hook Return Type
  */
 export interface InfiniteQueryHookReturn<TData, TError = ApiError> {
-  data: {
-    pages: TData[]
-    pageParams: unknown[]
-  } | undefined
+  data:
+    | {
+        pages: TData[]
+        pageParams: unknown[]
+      }
+    | undefined
   error: TError | null
   isLoading: boolean
   isError: boolean
@@ -364,8 +357,12 @@ export interface InfiniteQueryHookReturn<TData, TError = ApiError> {
 export interface ProjectHooks {
   useList: (options?: UseQueryOptions<Project[], ApiError>) => QueryHookReturn<Project[]>
   useGetById: (id: number, options?: UseQueryOptions<Project, ApiError>) => QueryHookReturn<Project>
-  useCreate: (options?: UseMutationOptions<Project, ApiError, CreateProjectBody>) => MutationHookReturn<Project, ApiError, CreateProjectBody>
-  useUpdate: (options?: UseMutationOptions<Project, ApiError, { id: number; data: UpdateProjectBody }>) => MutationHookReturn<Project, ApiError, { id: number; data: UpdateProjectBody }>
+  useCreate: (
+    options?: UseMutationOptions<Project, ApiError, CreateProjectBody>
+  ) => MutationHookReturn<Project, ApiError, CreateProjectBody>
+  useUpdate: (
+    options?: UseMutationOptions<Project, ApiError, { id: number; data: UpdateProjectBody }>
+  ) => MutationHookReturn<Project, ApiError, { id: number; data: UpdateProjectBody }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   usePrefetch: () => {
     prefetchList: () => Promise<void>
@@ -384,10 +381,17 @@ export interface ProjectHooks {
  * Ticket Hook Types
  */
 export interface TicketHooks {
-  useList: (params?: { projectId: number; status?: string }, options?: UseQueryOptions<Ticket[], ApiError>) => QueryHookReturn<Ticket[]>
+  useList: (
+    params?: { projectId: number; status?: string },
+    options?: UseQueryOptions<Ticket[], ApiError>
+  ) => QueryHookReturn<Ticket[]>
   useGetById: (id: number, options?: UseQueryOptions<Ticket, ApiError>) => QueryHookReturn<Ticket>
-  useCreate: (options?: UseMutationOptions<Ticket, ApiError, CreateTicketBody>) => MutationHookReturn<Ticket, ApiError, CreateTicketBody>
-  useUpdate: (options?: UseMutationOptions<Ticket, ApiError, { id: number; data: UpdateTicketBody }>) => MutationHookReturn<Ticket, ApiError, { id: number; data: UpdateTicketBody }>
+  useCreate: (
+    options?: UseMutationOptions<Ticket, ApiError, CreateTicketBody>
+  ) => MutationHookReturn<Ticket, ApiError, CreateTicketBody>
+  useUpdate: (
+    options?: UseMutationOptions<Ticket, ApiError, { id: number; data: UpdateTicketBody }>
+  ) => MutationHookReturn<Ticket, ApiError, { id: number; data: UpdateTicketBody }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   usePrefetch: () => {
     prefetchList: (params?: { projectId: number; status?: string }) => Promise<void>
@@ -408,8 +412,12 @@ export interface TicketHooks {
 export interface ChatHooks {
   useList: (options?: UseQueryOptions<Chat[], ApiError>) => QueryHookReturn<Chat[]>
   useGetById: (id: number, options?: UseQueryOptions<Chat, ApiError>) => QueryHookReturn<Chat>
-  useCreate: (options?: UseMutationOptions<Chat, ApiError, CreateChatBody>) => MutationHookReturn<Chat, ApiError, CreateChatBody>
-  useUpdate: (options?: UseMutationOptions<Chat, ApiError, { id: number; data: UpdateChatBody }>) => MutationHookReturn<Chat, ApiError, { id: number; data: UpdateChatBody }>
+  useCreate: (
+    options?: UseMutationOptions<Chat, ApiError, CreateChatBody>
+  ) => MutationHookReturn<Chat, ApiError, CreateChatBody>
+  useUpdate: (
+    options?: UseMutationOptions<Chat, ApiError, { id: number; data: UpdateChatBody }>
+  ) => MutationHookReturn<Chat, ApiError, { id: number; data: UpdateChatBody }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   usePrefetch: () => {
     prefetchList: () => Promise<void>
@@ -430,8 +438,12 @@ export interface ChatHooks {
 export interface PromptHooks {
   useList: (params?: { projectId?: number }, options?: UseQueryOptions<Prompt[], ApiError>) => QueryHookReturn<Prompt[]>
   useGetById: (id: number, options?: UseQueryOptions<Prompt, ApiError>) => QueryHookReturn<Prompt>
-  useCreate: (options?: UseMutationOptions<Prompt, ApiError, CreatePromptBody>) => MutationHookReturn<Prompt, ApiError, CreatePromptBody>
-  useUpdate: (options?: UseMutationOptions<Prompt, ApiError, { id: number; data: UpdatePromptBody }>) => MutationHookReturn<Prompt, ApiError, { id: number; data: UpdatePromptBody }>
+  useCreate: (
+    options?: UseMutationOptions<Prompt, ApiError, CreatePromptBody>
+  ) => MutationHookReturn<Prompt, ApiError, CreatePromptBody>
+  useUpdate: (
+    options?: UseMutationOptions<Prompt, ApiError, { id: number; data: UpdatePromptBody }>
+  ) => MutationHookReturn<Prompt, ApiError, { id: number; data: UpdatePromptBody }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   usePrefetch: () => {
     prefetchList: (params?: { projectId?: number }) => Promise<void>
@@ -458,7 +470,11 @@ export interface EnhancedProjectHooks extends ProjectHooks {
   useProjectSync: () => MutationHookReturn<void, ApiError, number>
   useProjectSummary: (projectId: number) => QueryHookReturn<ProjectSummary>
   useProjectStatistics: (projectId: number) => QueryHookReturn<ProjectStatistics>
-  useSuggestFiles: () => MutationHookReturn<ProjectFile[], ApiError, { projectId: number; prompt: string; limit?: number }>
+  useSuggestFiles: () => MutationHookReturn<
+    ProjectFile[],
+    ApiError,
+    { projectId: number; prompt: string; limit?: number }
+  >
   useSummarizeFiles: () => MutationHookReturn<any, ApiError, { projectId: number; fileIds: number[]; force?: boolean }>
 }
 
@@ -468,7 +484,11 @@ export interface EnhancedProjectHooks extends ProjectHooks {
 export interface EnhancedTicketHooks extends TicketHooks {
   useTicketTasks: (ticketId: number) => QueryHookReturn<TicketTask[]>
   useCreateTask: () => MutationHookReturn<TicketTask, ApiError, { ticketId: number; data: CreateTaskBody }>
-  useUpdateTask: () => MutationHookReturn<TicketTask, ApiError, { ticketId: number; taskId: number; data: UpdateTaskBody }>
+  useUpdateTask: () => MutationHookReturn<
+    TicketTask,
+    ApiError,
+    { ticketId: number; taskId: number; data: UpdateTaskBody }
+  >
   useDeleteTask: () => MutationHookReturn<void, ApiError, { ticketId: number; taskId: number }>
   useCompleteTicket: () => MutationHookReturn<any, ApiError, number>
   useSuggestTasks: () => MutationHookReturn<TicketTask[], ApiError, { ticketId: number; userContext?: string }>
@@ -489,14 +509,21 @@ export interface EnhancedChatHooks extends ChatHooks {
  * Enhanced Queue Hook Types with Stats and Items
  */
 export interface EnhancedQueueHooks {
-  useList: (params: { projectId: number }, options?: UseQueryOptions<TaskQueue[], ApiError>) => QueryHookReturn<TaskQueue[]>
+  useList: (
+    params: { projectId: number },
+    options?: UseQueryOptions<TaskQueue[], ApiError>
+  ) => QueryHookReturn<TaskQueue[]>
   useGetById: (id: number, options?: UseQueryOptions<TaskQueue, ApiError>) => QueryHookReturn<TaskQueue>
   useCreate: (projectId: number) => MutationHookReturn<TaskQueue, ApiError, Omit<CreateQueueBody, 'projectId'>>
-  useUpdate: (options?: UseMutationOptions<TaskQueue, ApiError, { id: number; data: UpdateQueueBody }>) => MutationHookReturn<TaskQueue, ApiError, { id: number; data: UpdateQueueBody }>
+  useUpdate: (
+    options?: UseMutationOptions<TaskQueue, ApiError, { id: number; data: UpdateQueueBody }>
+  ) => MutationHookReturn<TaskQueue, ApiError, { id: number; data: UpdateQueueBody }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   useQueueStats: (queueId: number) => QueryHookReturn<QueueStats>
   useQueueItems: (queueId: number, status?: string) => QueryHookReturn<QueueItem[]>
-  useEnqueueTicket: (queueId: number) => MutationHookReturn<QueueItem[], ApiError, { ticketId: number; priority?: number }>
+  useEnqueueTicket: (
+    queueId: number
+  ) => MutationHookReturn<QueueItem[], ApiError, { ticketId: number; priority?: number }>
   useGetNextTask: () => MutationHookReturn<GetNextTaskResponse, ApiError, { queueId: number; agentId?: string }>
 }
 
@@ -574,8 +601,12 @@ export interface CustomEntityHookConfig<TEntity, TCreate, TUpdate, TListParams =
 export interface GeneratedEntityHooks<TEntity, TCreate, TUpdate, TListParams = void> {
   useList: (params?: TListParams, options?: UseQueryOptions<TEntity[], ApiError>) => QueryHookReturn<TEntity[]>
   useGetById: (id: number, options?: UseQueryOptions<TEntity, ApiError>) => QueryHookReturn<TEntity>
-  useCreate: (options?: UseMutationOptions<TEntity, ApiError, TCreate>) => MutationHookReturn<TEntity, ApiError, TCreate>
-  useUpdate: (options?: UseMutationOptions<TEntity, ApiError, { id: number; data: TUpdate }>) => MutationHookReturn<TEntity, ApiError, { id: number; data: TUpdate }>
+  useCreate: (
+    options?: UseMutationOptions<TEntity, ApiError, TCreate>
+  ) => MutationHookReturn<TEntity, ApiError, TCreate>
+  useUpdate: (
+    options?: UseMutationOptions<TEntity, ApiError, { id: number; data: TUpdate }>
+  ) => MutationHookReturn<TEntity, ApiError, { id: number; data: TUpdate }>
   useDelete: (options?: UseMutationOptions<void, ApiError, number>) => MutationHookReturn<void, ApiError, number>
   usePrefetch: () => {
     prefetchList: (params?: TListParams) => Promise<void>
@@ -660,4 +691,3 @@ export type {
   UseInfiniteQueryOptions,
   QueryClient
 } from '@tanstack/react-query'
-

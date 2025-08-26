@@ -62,16 +62,16 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
     if (newlyCreatedProjectId && syncingProjectName) {
       // Close the create dialog first
       onOpenChange(false)
-      
+
       // Show sync progress dialog
       setShowSyncProgress(true)
-      
+
       // Start SSE sync with progress tracking
       const abortController = new AbortController()
       abortControllerRef.current = abortController
-      
+
       syncWithProgress(
-        newlyCreatedProjectId, 
+        newlyCreatedProjectId,
         (event) => {
           // Update progress in the dialog
           syncProgressRef.current?.updateProgress(event)
@@ -96,7 +96,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
           setSyncingProjectName('')
           abortControllerRef.current = null
         })
-      
+
       // Cleanup function to abort sync if component unmounts
       return () => {
         abortController.abort()
@@ -215,8 +215,10 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                     {projectId ? 'Saving...' : 'Creating Project...'}
                   </>
+                ) : projectId ? (
+                  'Save Changes'
                 ) : (
-                  projectId ? 'Save Changes' : 'Create Project'
+                  'Create Project'
                 )}
               </Button>
             </DialogFooter>
@@ -230,7 +232,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
         onSelectPath={handleSelectPath}
         initialPath={formData.path || undefined}
       />
-      
+
       {/* Sync Progress Dialog */}
       <SyncProgressDialog
         open={showSyncProgress}

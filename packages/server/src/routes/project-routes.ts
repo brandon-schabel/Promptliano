@@ -1,8 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { createStandardResponses, createStandardResponsesWithStatus, standardResponses } from '../utils/route-helpers'
-import {
-  type File as ProjectFile
-} from '@promptliano/database'
+import { type File as ProjectFile } from '@promptliano/database'
 import {
   ProjectIdParamsSchema,
   CreateProjectBodySchema,
@@ -62,8 +60,6 @@ const FileIdParamsSchema = z.object({
 const UpdateFileContentBodySchema = z.object({
   content: z.string()
 })
-
-
 
 const BulkUpdateFilesBodySchema = z.object({
   updates: z.array(
@@ -242,10 +238,10 @@ const syncProjectStreamRoute = createRoute({
   request: { params: ProjectIdParamsSchema },
   responses: {
     200: {
-      content: { 
-        'text/event-stream': { 
-          schema: z.string().openapi({ 
-            description: 'Server-sent events stream with sync progress updates' 
+      content: {
+        'text/event-stream': {
+          schema: z.string().openapi({
+            description: 'Server-sent events stream with sync progress updates'
           })
         }
       },
@@ -575,7 +571,7 @@ export const projectRoutes = new OpenAPIHono()
     console.log(`Creating project - Original path: ${body.path}, Normalized path: ${normalizedPath}`)
 
     const projectData = { ...body, path: normalizedPath }
-    
+
     try {
       // Use modern service factory with ErrorFactory integration
       const createdProject = await projectService.create(projectData)
@@ -721,7 +717,7 @@ export const projectRoutes = new OpenAPIHono()
         try {
           // Perform sync with progress tracking
           const results = await syncProject(project, progressTracker)
-          
+
           // Send final success event
           const successData = JSON.stringify({
             type: 'complete',
@@ -939,10 +935,7 @@ export const projectRoutes = new OpenAPIHono()
       if (error instanceof ApiError) {
         throw error
       }
-      throw ErrorFactory.operationFailed(
-        'cache invalidation',
-        error instanceof Error ? error.message : String(error)
-      )
+      throw ErrorFactory.operationFailed('cache invalidation', error instanceof Error ? error.message : String(error))
     }
   })
 

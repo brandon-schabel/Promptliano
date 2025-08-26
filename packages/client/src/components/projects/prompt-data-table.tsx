@@ -1,9 +1,5 @@
 import React from 'react'
-import {
-  ConfiguredDataTable,
-  createDataTableColumns,
-  type DataTableColumnsConfig
-} from '@promptliano/ui'
+import { ConfiguredDataTable, createDataTableColumns, type DataTableColumnsConfig } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Copy, Eye, Pencil, Trash, Plus } from 'lucide-react'
@@ -55,7 +51,7 @@ export function PromptDataTable({
   className
 }: PromptDataTableProps) {
   const [deletePromptId, setDeletePromptId] = React.useState<number | null>(null)
-  const promptToDelete = prompts.find(p => p.id === deletePromptId)
+  const promptToDelete = prompts.find((p) => p.id === deletePromptId)
 
   // Define columns using the column factory
   const columnsConfig: DataTableColumnsConfig<Prompt> = {
@@ -67,7 +63,7 @@ export function PromptDataTable({
           accessorKey: 'name',
           header: 'Prompt Name',
           enableSorting: true,
-                    truncate: true,
+          truncate: true,
           maxLength: 40
         }
       },
@@ -76,11 +72,9 @@ export function PromptDataTable({
         column: {
           id: 'tokens',
           header: 'Tokens',
-          cell: ({ row }) => (
-            <FormatTokenCount tokenContent={row.original.content || ''} />
-          ),
+          cell: ({ row }) => <FormatTokenCount tokenContent={row.original.content || ''} />,
           enableSorting: true,
-                    accessorFn: (row) => row.content?.length || 0
+          accessorFn: (row) => row.content?.length || 0
         }
       },
       {
@@ -91,14 +85,10 @@ export function PromptDataTable({
           cell: ({ row }) => {
             const size = row.original.content?.length || 0
             const kb = (size / 1024).toFixed(1)
-            return (
-              <span className='text-sm text-muted-foreground'>
-                {size > 1024 ? `${kb} KB` : `${size} bytes`}
-              </span>
-            )
+            return <span className='text-sm text-muted-foreground'>{size > 1024 ? `${kb} KB` : `${size} bytes`}</span>
           },
           enableSorting: true,
-                    accessorFn: (row) => row.content?.length || 0
+          accessorFn: (row) => row.content?.length || 0
         }
       },
       {
@@ -113,7 +103,7 @@ export function PromptDataTable({
       {
         type: 'date',
         config: {
-          accessorKey: 'created', 
+          accessorKey: 'created',
           header: 'Created',
           format: 'relative',
           enableSorting: true
@@ -154,7 +144,7 @@ export function PromptDataTable({
 
   // Handle selection changes
   const handleSelectionChange = (selectedPrompts: Prompt[]) => {
-    onSelectPrompts(selectedPrompts.map(p => p.id))
+    onSelectPrompts(selectedPrompts.map((p) => p.id))
   }
 
   return (
@@ -205,12 +195,16 @@ export function PromptDataTable({
           </p>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeletePromptId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              if (deletePromptId) {
-                onDeletePrompt(deletePromptId)
-                setDeletePromptId(null)
-              }
-            }}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletePromptId) {
+                  onDeletePrompt(deletePromptId)
+                  setDeletePromptId(null)
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

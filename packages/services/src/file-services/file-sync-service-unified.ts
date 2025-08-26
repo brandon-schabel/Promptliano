@@ -393,7 +393,7 @@ export async function syncFileSet(
 
     const relativePath = relative(absoluteProjectPath, absFilePath)
     const normalizedRelativePath = normalizePathForDbUtil(relativePath)
-    
+
     // Report progress for each file
     progressTracker?.incrementProcessed(normalizedRelativePath)
 
@@ -546,7 +546,7 @@ export async function syncFileSet(
     // Index new and updated files immediately
     if (createdCount > 0 || updatedCount > 0) {
       const filesToIndex = [...createdFiles, ...updatedFiles]
-      
+
       // Switch to indexing phase
       progressTracker?.setPhase('indexing', `Indexing ${filesToIndex.length} files for search...`)
 
@@ -627,7 +627,7 @@ export async function syncProject(
       logger.info(
         `[SYNC] File scan completed in ${scanDuration}ms. Found ${projectFilesOnDisk.length} files to process`
       )
-      
+
       // Set total files for progress tracking
       progressTracker?.setTotalFiles(projectFilesOnDisk.length)
       progressTracker?.setPhase('processing', `Processing ${projectFilesOnDisk.length} files...`)
@@ -645,7 +645,9 @@ export async function syncProject(
       )
 
       // Complete progress tracking
-      progressTracker?.complete(`Sync completed! Processed ${projectFilesOnDisk.length} files in ${(totalDuration / 1000).toFixed(1)} seconds`)
+      progressTracker?.complete(
+        `Sync completed! Processed ${projectFilesOnDisk.length} files in ${(totalDuration / 1000).toFixed(1)} seconds`
+      )
 
       return results
     },

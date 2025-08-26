@@ -5,7 +5,18 @@ import { TestDataUtils } from './test-data'
 
 export interface TestProjectConfig {
   name?: string
-  template: 'web-app' | 'api-service' | 'library' | 'monorepo' | 'simple' | 'custom' | 'empty' | 'minimal' | 'with-symlinks' | 'with-permissions' | 'corrupted'
+  template:
+    | 'web-app'
+    | 'api-service'
+    | 'library'
+    | 'monorepo'
+    | 'simple'
+    | 'custom'
+    | 'empty'
+    | 'minimal'
+    | 'with-symlinks'
+    | 'with-permissions'
+    | 'corrupted'
   includeGit?: boolean
   includeDependencies?: boolean
   fileCount?: number
@@ -53,7 +64,7 @@ export class TestProjectFactory {
 
     // Generate project structure
     const files = this.generateProjectFiles(config, projectPath)
-    
+
     // Create project on disk
     await this.createProjectOnDisk(projectPath, files)
 
@@ -73,7 +84,7 @@ export class TestProjectFactory {
    */
   static async createMultipleProjects(configs: TestProjectConfig[]): Promise<TestProject[]> {
     const projects: TestProject[] = []
-    
+
     for (const config of configs) {
       const project = await this.createProject(config)
       projects.push(project)
@@ -773,28 +784,36 @@ export default App
     // package.json
     files.push({
       path: 'package.json',
-      content: JSON.stringify({
-        name: config.name || `test-${config.template}`,
-        version: '1.0.0',
-        description: `Test ${config.template} project for E2E testing`,
-        main: config.template === 'library' ? 'dist/index.js' : 'src/index.js',
-        scripts: {
-          start: 'node src/index.js',
-          build: 'tsc',
-          test: 'jest',
-          lint: 'eslint src/**/*.{js,ts,tsx}'
+      content: JSON.stringify(
+        {
+          name: config.name || `test-${config.template}`,
+          version: '1.0.0',
+          description: `Test ${config.template} project for E2E testing`,
+          main: config.template === 'library' ? 'dist/index.js' : 'src/index.js',
+          scripts: {
+            start: 'node src/index.js',
+            build: 'tsc',
+            test: 'jest',
+            lint: 'eslint src/**/*.{js,ts,tsx}'
+          },
+          dependencies: config.includeDependencies
+            ? {
+                react: '^18.0.0',
+                express: '^4.18.0',
+                typescript: '^5.0.0'
+              }
+            : {},
+          devDependencies: config.includeDependencies
+            ? {
+                '@types/react': '^18.0.0',
+                jest: '^29.0.0',
+                eslint: '^8.0.0'
+              }
+            : {}
         },
-        dependencies: config.includeDependencies ? {
-          react: '^18.0.0',
-          express: '^4.18.0',
-          typescript: '^5.0.0'
-        } : {},
-        devDependencies: config.includeDependencies ? {
-          '@types/react': '^18.0.0',
-          jest: '^29.0.0',
-          eslint: '^8.0.0'
-        } : {}
-      }, null, 2)
+        null,
+        2
+      )
     })
 
     // README.md
@@ -855,25 +874,29 @@ coverage/
     if (config.template === 'web-app' || config.template === 'library') {
       files.push({
         path: 'tsconfig.json',
-        content: JSON.stringify({
-          compilerOptions: {
-            target: 'es5',
-            lib: ['dom', 'dom.iterable', 'es6'],
-            allowJs: true,
-            skipLibCheck: true,
-            esModuleInterop: true,
-            allowSyntheticDefaultImports: true,
-            strict: true,
-            forceConsistentCasingInFileNames: true,
-            moduleResolution: 'node',
-            resolveJsonModule: true,
-            isolatedModules: true,
-            noEmit: true,
-            jsx: 'react-jsx'
+        content: JSON.stringify(
+          {
+            compilerOptions: {
+              target: 'es5',
+              lib: ['dom', 'dom.iterable', 'es6'],
+              allowJs: true,
+              skipLibCheck: true,
+              esModuleInterop: true,
+              allowSyntheticDefaultImports: true,
+              strict: true,
+              forceConsistentCasingInFileNames: true,
+              moduleResolution: 'node',
+              resolveJsonModule: true,
+              isolatedModules: true,
+              noEmit: true,
+              jsx: 'react-jsx'
+            },
+            include: ['src/**/*'],
+            exclude: ['node_modules', 'dist', 'build']
           },
-          include: ['src/**/*'],
-          exclude: ['node_modules', 'dist', 'build']
-        }, null, 2)
+          null,
+          2
+        )
       })
     }
 

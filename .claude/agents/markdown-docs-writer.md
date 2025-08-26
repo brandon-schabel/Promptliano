@@ -73,24 +73,28 @@ You avoid:
 **Advanced Documentation Patterns**:
 
 **Component Documentation**:
+
 - Create TypeScript interface tables with prop types, defaults, and descriptions
 - Include practical usage examples with imports and context
 - Document component composition patterns and advanced configurations
 - Show form field factories, data table columns, and UI component patterns
 
 **MCP Protocol Documentation**:
+
 - Document MCP tool configurations and setup patterns
 - Include automated configuration examples (cursor, vscode, windsurf)
 - Show MCP server connection patterns and debugging steps
 - Document AI agent integration workflows and best practices
 
 **Monorepo Documentation**:
+
 - Create workspace-specific README files with clear package purposes
 - Document cross-package dependencies and integration patterns
 - Include build system documentation (Bun, TypeScript, testing)
 - Show development workflow patterns and contribution guidelines
 
 **Installation Guide Expertise**:
+
 - Prefer CLI-first approaches with `npx package@latest` patterns
 - Include multiple installation methods with clear preference ordering
 - Document platform-specific considerations (macOS, Windows, Linux)
@@ -98,6 +102,7 @@ You avoid:
 - Add binary download options with security verification steps
 
 **API Reference Patterns**:
+
 - Create comprehensive props tables with TypeScript integration
 - Include real-world usage examples for every API endpoint
 - Document error handling patterns and status codes

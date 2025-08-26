@@ -21,9 +21,7 @@ import {
 } from '@promptliano/ui'
 import { Download, FileDown, Archive } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  useExportPromptAsMarkdown
-} from '@/hooks/api-hooks'
+import { useExportPromptAsMarkdown } from '@/hooks/api-hooks'
 import type { BatchExportRequest } from '@promptliano/schemas'
 
 interface ExportOptions extends Partial<BatchExportRequest> {
@@ -261,9 +259,9 @@ export function MarkdownExportMenuItem({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync({ 
-          promptId, 
-          filename: promptName ? `${promptName}.md` : undefined 
+        await exportSingle.mutateAsync({
+          promptId,
+          filename: promptName ? `${promptName}.md` : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - export each individually
@@ -354,9 +352,9 @@ export function MarkdownExportButton({
     try {
       if (promptId) {
         // Single prompt export - direct download
-        await exportSingle.mutateAsync({ 
-          promptId, 
-          filename: promptName ? `${promptName}.md` : undefined 
+        await exportSingle.mutateAsync({
+          promptId,
+          filename: promptName ? `${promptName}.md` : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - export each individually
@@ -464,9 +462,9 @@ export function MarkdownExportDialog({
   const handleExport = async (options: ExportOptions) => {
     try {
       if (promptId) {
-        await exportSingle.mutateAsync({ 
-          promptId, 
-          filename: promptName ? `${promptName}.md` : undefined 
+        await exportSingle.mutateAsync({
+          promptId,
+          filename: promptName ? `${promptName}.md` : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - use the first promptId for now

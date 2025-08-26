@@ -1,11 +1,13 @@
 # Prompt Management Page Comprehensive Test Plan
 
 ## Overview
+
 The Prompt Management Page is the central hub for creating, organizing, and managing AI prompt templates in Promptliano. It provides comprehensive CRUD operations, markdown import/export functionality, categorization, and search capabilities. This test plan covers all prompt management features including import workflows, card interactions, and content organization.
 
 ## Test Scope & Requirements
 
 ### Major Components
+
 1. **Import Functionality** - Markdown file import with multi-file support
 2. **Prompt Cards** - Display, selection, and interaction with prompt templates
 3. **Prompt Actions** - Three-dot menu with copy, edit, export, delete operations
@@ -14,6 +16,7 @@ The Prompt Management Page is the central hub for creating, organizing, and mana
 6. **Creation Modal** - New prompt creation with validation and token counting
 
 ### Technical Integration Points
+
 - **File System Integration**: Import markdown files from local file system
 - **Database Operations**: CRUD operations for prompt storage and retrieval
 - **Content Processing**: Markdown parsing, token counting, content validation
@@ -23,6 +26,7 @@ The Prompt Management Page is the central hub for creating, organizing, and mana
 ## Test Data Requirements
 
 ### Shared Test Data Setup
+
 ```typescript
 // Location: e2e/fixtures/prompt-management-data.ts
 export const PromptManagementTestData = {
@@ -70,7 +74,7 @@ Please review the following {{language}} code for:
 ## Target Audience:
 {{audience_level}}`,
       tags: ['documentation', 'technical-writing'],
-      category: 'Documentation', 
+      category: 'Documentation',
       tokenCount: 98
     },
     {
@@ -134,7 +138,7 @@ Check if this code follows best practices:
 {{code}}`
     },
     {
-      filename: 'project-management-prompts.md', 
+      filename: 'project-management-prompts.md',
       content: `# Project Management Templates
 
 ## Sprint Planning
@@ -153,8 +157,16 @@ Facilitate a team retrospective covering:
 
   // Sort and filter test scenarios
   sortingScenarios: [
-    { field: 'title', direction: 'asc', expected: ['Bug Report Analyzer', 'Code Review Assistant', 'Documentation Generator'] },
-    { field: 'title', direction: 'desc', expected: ['Test Case Generator', 'Documentation Generator', 'Code Review Assistant'] },
+    {
+      field: 'title',
+      direction: 'asc',
+      expected: ['Bug Report Analyzer', 'Code Review Assistant', 'Documentation Generator']
+    },
+    {
+      field: 'title',
+      direction: 'desc',
+      expected: ['Test Case Generator', 'Documentation Generator', 'Code Review Assistant']
+    },
     { field: 'created_at', direction: 'desc', expected: 'chronological' },
     { field: 'token_count', direction: 'asc', expected: 'ascending by tokens' }
   ],
@@ -173,6 +185,7 @@ Facilitate a team retrospective covering:
 ## Page Object Model Extensions
 
 ### PromptManagementPage Class Implementation
+
 ```typescript
 // Location: e2e/pages/prompt-management-page.ts
 export class PromptManagementPage extends BasePage {
@@ -371,9 +384,9 @@ export class PromptManagementPage extends BasePage {
   async sortPrompts(field: string, direction: 'asc' | 'desc' = 'asc') {
     await this.sortButton.click()
     await expect(this.sortMenu).toBeVisible()
-    
+
     await this.page.getByRole('menuitem', { name: new RegExp(field, 'i') }).click()
-    
+
     if (direction === 'desc') {
       // Click again for descending order
       await this.sortButton.click()
@@ -391,13 +404,13 @@ export class PromptManagementPage extends BasePage {
     const cards = this.promptCards
     const count = await cards.count()
     const titles: string[] = []
-    
+
     for (let i = 0; i < count; i++) {
       const titleElement = cards.nth(i).getByTestId('prompt-title')
       const title = await titleElement.textContent()
       if (title) titles.push(title)
     }
-    
+
     return titles
   }
 }
@@ -408,15 +421,14 @@ export class PromptManagementPage extends BasePage {
 ### 1. Import Functionality Tests
 
 #### 1.1 Basic Import Operations
+
 ```typescript
 test.describe('Prompt Import Functionality', () => {
   let testFiles: string[] = []
 
   test.beforeEach(async ({ page }) => {
     // Create temporary markdown files for testing
-    testFiles = await TestDataManager.createTempMarkdownFiles(
-      PromptManagementTestData.importTestFiles
-    )
+    testFiles = await TestDataManager.createTempMarkdownFiles(PromptManagementTestData.importTestFiles)
   })
 
   test.afterEach(async () => {
@@ -470,7 +482,7 @@ test.describe('Prompt Import Functionality', () => {
 
     // Verify prompts were imported
     await expect(page.getByText('Import completed successfully')).toBeVisible()
-    
+
     // Check that prompts appear in the grid
     await expect(promptPage.promptCardByTitle('Security Review')).toBeVisible()
     await expect(promptPage.promptCardByTitle('Performance Review')).toBeVisible()
@@ -493,7 +505,7 @@ test.describe('Prompt Import Functionality', () => {
 
     // Verify all prompts imported
     await expect(page.getByText('Import completed successfully')).toBeVisible()
-    
+
     // Should have prompts from both files
     await expect(promptPage.promptCardByTitle('Security Review')).toBeVisible()
     await expect(promptPage.promptCardByTitle('Sprint Planning')).toBeVisible()
@@ -502,10 +514,10 @@ test.describe('Prompt Import Functionality', () => {
 
   test('should validate file types and show errors for invalid files', async ({ page }) => {
     const promptPage = new PromptManagementPage(page)
-    
+
     // Create invalid file for testing
     const invalidFile = await TestDataManager.createTempFile('invalid.txt', 'Not markdown content')
-    
+
     await promptPage.goto('/prompts')
     await promptPage.openImportDialog()
 
@@ -527,10 +539,13 @@ test.describe('Prompt Import Functionality', () => {
 
   test('should handle import errors gracefully', async ({ page }) => {
     const promptPage = new PromptManagementPage(page)
-    
+
     // Create malformed markdown file
-    const malformedFile = await TestDataManager.createTempFile('malformed.md', '# Incomplete markdown\n{{invalid_template')
-    
+    const malformedFile = await TestDataManager.createTempFile(
+      'malformed.md',
+      '# Incomplete markdown\n{{invalid_template'
+    )
+
     await promptPage.goto('/prompts')
     await promptPage.openImportDialog()
 
@@ -540,7 +555,7 @@ test.describe('Prompt Import Functionality', () => {
 
       // Should show error message but not crash
       await expect(page.getByText(/import.*error|failed.*import/i)).toBeVisible()
-      
+
       // Dialog should still be closeable
       await page.getByRole('button', { name: 'Close' }).click()
       await expect(promptPage.importDialog).not.toBeVisible()
@@ -552,6 +567,7 @@ test.describe('Prompt Import Functionality', () => {
 ```
 
 #### 1.2 Prompt Cards Display Tests
+
 ```typescript
 test.describe('Prompt Cards Display and Interaction', () => {
   test.beforeEach(async ({ page }) => {
@@ -580,7 +596,7 @@ test.describe('Prompt Cards Display and Interaction', () => {
       // Verify content preview
       const preview = promptPage.getPromptCardPreview(prompt.title)
       await expect(preview).toBeVisible()
-      
+
       // Should show truncated content
       const previewText = await preview.textContent()
       expect(previewText).toBeTruthy()
@@ -603,11 +619,11 @@ test.describe('Prompt Cards Display and Interaction', () => {
     for (const prompt of PromptManagementTestData.testPrompts) {
       const tokenCount = promptPage.getPromptCardTokenCount(prompt.title)
       await expect(tokenCount).toBeVisible()
-      
+
       // Should show a reasonable token count
       const tokenText = await tokenCount.textContent()
       expect(tokenText).toMatch(/\d+.*token/i)
-      
+
       const tokens = parseInt(tokenText?.match(/\d+/)?.[0] || '0')
       expect(tokens).toBeGreaterThan(0)
       expect(tokens).toBeLessThan(10000) // Reasonable upper limit
@@ -616,7 +632,7 @@ test.describe('Prompt Cards Display and Interaction', () => {
 
   test('should handle empty state when no prompts exist', async ({ page }) => {
     const promptPage = new PromptManagementPage(page)
-    
+
     // Navigate to prompts page with no data
     await TestDataManager.clearAllPrompts(page)
     await promptPage.goto('/prompts')
@@ -645,7 +661,7 @@ test.describe('Prompt Cards Display and Interaction', () => {
       const grid = document.querySelector('[data-testid="prompts-grid"]')
       return grid ? getComputedStyle(grid).gridTemplateColumns : ''
     })
-    
+
     expect(gridColumns).toMatch(/repeat|1fr/) // Should use CSS grid
 
     // Test tablet layout
@@ -666,6 +682,7 @@ test.describe('Prompt Cards Display and Interaction', () => {
 ```
 
 #### 1.3 Prompt Card Menu Actions Tests
+
 ```typescript
 test.describe('Prompt Card Menu Actions', () => {
   test.beforeEach(async ({ page }) => {
@@ -682,7 +699,7 @@ test.describe('Prompt Card Menu Actions', () => {
     // Verify all menu items are present
     const menuItems = promptPage.promptCardMenuItems
     await expect(menuItems.copyContent).toBeVisible()
-    await expect(menuItems.edit).toBeVisible() 
+    await expect(menuItems.edit).toBeVisible()
     await expect(menuItems.exportMarkdown).toBeVisible()
     await expect(menuItems.delete).toBeVisible()
 
@@ -717,7 +734,7 @@ test.describe('Prompt Card Menu Actions', () => {
     await promptPage.goto('/prompts')
 
     // Open menu and click edit
-    await promptPage.openPromptCardMenu('Documentation Generator') 
+    await promptPage.openPromptCardMenu('Documentation Generator')
     await promptPage.promptCardMenuItems.edit.click()
 
     // Verify edit modal opens
@@ -726,10 +743,10 @@ test.describe('Prompt Card Menu Actions', () => {
 
     // Verify form is pre-filled with existing data
     await expect(promptPage.promptNameInput).toHaveValue('Documentation Generator')
-    
+
     const contentValue = await promptPage.promptContentTextarea.inputValue()
     expect(contentValue).toContain('Generate comprehensive documentation')
-    
+
     // Can cancel without changes
     await promptPage.cancelPromptButton.click()
     await expect(promptPage.promptModal).not.toBeVisible()
@@ -812,6 +829,7 @@ test.describe('Prompt Card Menu Actions', () => {
 ### 2. Sorting and Organization Tests
 
 #### 2.1 Sorting Functionality Tests
+
 ```typescript
 test.describe('Prompt Sorting and Organization', () => {
   test.beforeEach(async ({ page }) => {
@@ -848,13 +866,13 @@ test.describe('Prompt Sorting and Organization', () => {
     // Get created dates from cards
     const cards = promptPage.promptCards
     const count = await cards.count()
-    
+
     let previousDate: Date | null = null
     for (let i = 0; i < count; i++) {
       const dateElement = cards.nth(i).getByTestId('prompt-created-at')
       const dateText = await dateElement.textContent()
       const currentDate = new Date(dateText || '')
-      
+
       if (previousDate) {
         expect(currentDate.getTime()).toBeLessThanOrEqual(previousDate.getTime())
       }
@@ -872,13 +890,13 @@ test.describe('Prompt Sorting and Organization', () => {
     // Verify token count order
     const cards = promptPage.promptCards
     const count = await cards.count()
-    
+
     let previousTokens: number | null = null
     for (let i = 0; i < count; i++) {
       const tokenElement = cards.nth(i).getByTestId('token-count')
       const tokenText = await tokenElement.textContent()
       const tokens = parseInt(tokenText?.match(/\d+/)?.[0] || '0')
-      
+
       if (previousTokens !== null) {
         expect(tokens).toBeGreaterThanOrEqual(previousTokens)
       }
@@ -906,6 +924,7 @@ test.describe('Prompt Sorting and Organization', () => {
 ```
 
 #### 2.2 Search and Filtering Tests
+
 ```typescript
 test.describe('Prompt Search and Filtering', () => {
   test.beforeEach(async ({ page }) => {
@@ -927,7 +946,7 @@ test.describe('Prompt Search and Filtering', () => {
       } else {
         // Should show matching prompts
         await expect(promptPage.promptCards).toHaveCount(scenario.expectedResults.length)
-        
+
         for (const expectedTitle of scenario.expectedResults) {
           await expect(promptPage.promptCardByTitle(expectedTitle)).toBeVisible()
         }
@@ -948,7 +967,7 @@ test.describe('Prompt Search and Filtering', () => {
 
     // Should find Code Review Assistant (has security in content)
     await expect(promptPage.promptCardByTitle('Code Review Assistant')).toBeVisible()
-    
+
     // Should not show prompts without matching content
     await expect(promptPage.promptCardByTitle('Documentation Generator')).not.toBeVisible()
   })
@@ -962,7 +981,7 @@ test.describe('Prompt Search and Filtering', () => {
 
     // Check if search terms are highlighted (implementation dependent)
     const searchResults = promptPage.promptCards
-    if (await searchResults.first().locator('.highlight, mark, .search-highlight').count() > 0) {
+    if ((await searchResults.first().locator('.highlight, mark, .search-highlight').count()) > 0) {
       await expect(searchResults.first().locator('.highlight, mark, .search-highlight')).toBeVisible()
     }
   })
@@ -976,7 +995,7 @@ test.describe('Prompt Search and Filtering', () => {
 
     for (const query of specialQueries) {
       await promptPage.searchPrompts(query)
-      
+
       // Should not crash and should return some results or empty state
       const resultCount = await promptPage.promptCards.count()
       expect(resultCount).toBeGreaterThanOrEqual(0)
@@ -992,7 +1011,7 @@ test.describe('Prompt Search and Filtering', () => {
 
     // Monitor network requests
     const requests: string[] = []
-    page.on('request', req => {
+    page.on('request', (req) => {
       if (req.url().includes('/search') || req.url().includes('/prompts')) {
         requests.push(req.url())
       }
@@ -1009,7 +1028,7 @@ test.describe('Prompt Search and Filtering', () => {
     await page.waitForTimeout(1000)
 
     // Should not have made excessive requests
-    const searchRequests = requests.filter(url => url.includes('search'))
+    const searchRequests = requests.filter((url) => url.includes('search'))
     expect(searchRequests.length).toBeLessThan(searchTerm.length) // Should be debounced
   })
 })
@@ -1018,6 +1037,7 @@ test.describe('Prompt Search and Filtering', () => {
 ### 3. Create Prompt Modal Tests
 
 #### 3.1 Prompt Creation Tests
+
 ```typescript
 test.describe('Create Prompt Modal', () => {
   test('should open create prompt modal with all fields', async ({ page }) => {
@@ -1129,7 +1149,7 @@ Variables like {{variable_name}} should also be counted.`)
     // Test validation messages (if implemented)
     await promptPage.promptNameInput.clear()
     await promptPage.promptNameInput.blur()
-    
+
     const nameError = page.getByText(/title.*required|name.*required/i)
     if (await nameError.isVisible()) {
       await expect(nameError).toBeVisible()
@@ -1143,7 +1163,7 @@ Variables like {{variable_name}} should also be counted.`)
 
     // Add multiple tags
     const tags = ['testing', 'automation', 'quality-assurance']
-    
+
     for (const tag of tags) {
       await promptPage.promptTagsInput.fill(tag)
       await promptPage.promptTagsInput.press('Enter')
@@ -1155,7 +1175,10 @@ Variables like {{variable_name}} should also be counted.`)
     }
 
     // Should be able to remove tags
-    const firstTagRemove = page.getByTestId('tag-chip').first().getByRole('button', { name: /remove|×/ })
+    const firstTagRemove = page
+      .getByTestId('tag-chip')
+      .first()
+      .getByRole('button', { name: /remove|×/ })
     if (await firstTagRemove.isVisible()) {
       await firstTagRemove.click()
       await expect(page.getByTestId('tag-chip')).toHaveCount(tags.length - 1)
@@ -1230,6 +1253,7 @@ function example() {
 ### 4. Bulk Operations and Selection Tests
 
 #### 4.1 Multi-Selection Tests
+
 ```typescript
 test.describe('Bulk Operations and Multi-Selection', () => {
   test.beforeEach(async ({ page }) => {
@@ -1336,7 +1360,7 @@ test.describe('Bulk Operations and Multi-Selection', () => {
     // Select some prompts
     await promptPage.selectPromptCard('Code Review Assistant')
     await promptPage.selectPromptCard('Documentation Generator')
-    
+
     await expect(promptPage.selectedPromptsCount).toContainText('2 selected')
 
     // Search for something that doesn't include selected items
@@ -1352,21 +1376,22 @@ test.describe('Bulk Operations and Multi-Selection', () => {
 ## Performance and Accessibility Tests
 
 ### Performance Tests
+
 ```typescript
 test.describe('Prompt Management Performance', () => {
   test('should handle large number of prompts efficiently', async ({ page }) => {
     const promptPage = new PromptManagementPage(page)
-    
+
     // Setup large dataset
     await TestDataManager.setupLargePromptDataset(page, 100)
-    
+
     const startTime = Date.now()
     await promptPage.goto('/prompts')
-    
+
     // Should load within reasonable time
     await expect(promptPage.promptCards.first()).toBeVisible({ timeout: 10000 })
     const loadTime = Date.now() - startTime
-    
+
     expect(loadTime).toBeLessThan(5000) // 5 seconds max
 
     // Search should be fast
@@ -1374,16 +1399,16 @@ test.describe('Prompt Management Performance', () => {
     await promptPage.searchPrompts('code')
     await promptPage.promptCards.first().waitFor()
     const searchTime = Date.now() - searchStartTime
-    
+
     expect(searchTime).toBeLessThan(2000) // 2 seconds max
   })
 
   test('should implement virtual scrolling or pagination for large datasets', async ({ page }) => {
     const promptPage = new PromptManagementPage(page)
     await TestDataManager.setupLargePromptDataset(page, 500)
-    
+
     await promptPage.goto('/prompts')
-    
+
     // Should not render all 500 cards at once (performance optimization)
     const renderedCards = await promptPage.promptCards.count()
     expect(renderedCards).toBeLessThan(100) // Should use virtual scrolling or pagination
@@ -1391,10 +1416,10 @@ test.describe('Prompt Management Performance', () => {
     // Check for pagination or load more functionality
     const pagination = page.getByTestId('pagination')
     const loadMoreButton = page.getByRole('button', { name: /load.*more|show.*more/i })
-    
+
     const hasPagination = await pagination.isVisible().catch(() => false)
     const hasLoadMore = await loadMoreButton.isVisible().catch(() => false)
-    
+
     expect(hasPagination || hasLoadMore).toBe(true)
   })
 })
@@ -1403,21 +1428,25 @@ test.describe('Prompt Management Performance', () => {
 ## Best Practices and Recommendations
 
 ### 1. Test Data Management
+
 - **File System Integration**: Use temporary files for import testing with proper cleanup
 - **Large Datasets**: Test with realistic numbers of prompts (100+ items)
 - **Content Variety**: Include prompts with various lengths, formats, and special characters
 
-### 2. UI Interaction Testing  
+### 2. UI Interaction Testing
+
 - **Async Operations**: Properly wait for file imports, search results, token counting
 - **Bulk Operations**: Test selection state management and bulk action performance
 - **Modal Management**: Ensure proper focus handling and keyboard navigation
 
 ### 3. Performance Optimization
+
 - **Search Debouncing**: Verify search input is debounced for performance
 - **Virtual Rendering**: Test large datasets don't cause performance issues
 - **Memory Management**: Monitor for memory leaks during bulk operations
 
 ### 4. Cross-Platform Compatibility
+
 - **File Import**: Test file selection on different operating systems
 - **Download Handling**: Verify export functionality across browsers
 - **Responsive Design**: Test layout at various screen sizes
@@ -1425,12 +1454,14 @@ test.describe('Prompt Management Performance', () => {
 ## Execution Strategy
 
 ### 1. Test Organization
+
 - **Import Tests**: Run sequentially due to file system dependencies
 - **CRUD Operations**: Can run in parallel with proper data isolation
 - **Search/Sort Tests**: Group together for consistent dataset
 - **Performance Tests**: Run separately with controlled datasets
 
 ### 2. Environment Setup
+
 - **Temporary Files**: Create and cleanup test markdown files
 - **Database State**: Ensure clean state between test runs
 - **File Downloads**: Configure download directory for test files

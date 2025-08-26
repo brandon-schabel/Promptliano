@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROJECT
  * Generated at: 2025-08-22T23:50:50.381Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { projectService } from '@promptliano/services'
-import {
-  ProjectSchema,
-  CreateProjectSchema,
-  UpdateProjectSchema
-} from '@promptliano/database'
+import { ProjectSchema, CreateProjectSchema, UpdateProjectSchema } from '@promptliano/database'
 import {
   ProjectIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -69,7 +65,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get Ticket for Project',
       description: 'Retrieve all Ticket associated with this Project',
       handlerName: 'getTickets',
-      response: TicketListResponseSchema,
+      response: TicketListResponseSchema
     },
     {
       method: 'get',
@@ -77,7 +73,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get Chat for Project',
       description: 'Retrieve all Chat associated with this Project',
       handlerName: 'getChats',
-      response: ChatListResponseSchema,
+      response: ChatListResponseSchema
     },
     {
       method: 'get',
@@ -85,7 +81,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get Prompt for Project',
       description: 'Retrieve all Prompt associated with this Project',
       handlerName: 'getPrompts',
-      response: PromptListResponseSchema,
+      response: PromptListResponseSchema
     },
     {
       method: 'get',
@@ -93,7 +89,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get Queue for Project',
       description: 'Retrieve all Queue associated with this Project',
       handlerName: 'getQueues',
-      response: QueueListResponseSchema,
+      response: QueueListResponseSchema
     },
     {
       method: 'get',
@@ -101,7 +97,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get ClaudeCommand for Project',
       description: 'Retrieve all ClaudeCommand associated with this Project',
       handlerName: 'getClaudeCommands',
-      response: ClaudeCommandListResponseSchema,
+      response: ClaudeCommandListResponseSchema
     },
     {
       method: 'get',
@@ -109,7 +105,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get ClaudeHook for Project',
       description: 'Retrieve all ClaudeHook associated with this Project',
       handlerName: 'getClaudeHooks',
-      response: ClaudeHookListResponseSchema,
+      response: ClaudeHookListResponseSchema
     },
     {
       method: 'get',
@@ -117,7 +113,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get project files',
       description: 'Get all files in the project',
       handlerName: 'getFiles',
-      response: FileListResponseSchema,
+      response: FileListResponseSchema
     },
     {
       method: 'get',
@@ -125,7 +121,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get SelectedFile for Project',
       description: 'Retrieve all SelectedFile associated with this Project',
       handlerName: 'getSelectedFiles',
-      response: SelectedFileListResponseSchema,
+      response: SelectedFileListResponseSchema
     },
     {
       method: 'get',
@@ -133,7 +129,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get ActiveTab for Project',
       description: 'Retrieve all ActiveTab associated with this Project',
       handlerName: 'getActiveTabs',
-      response: ActiveTabListResponseSchema,
+      response: ActiveTabListResponseSchema
     },
     {
       method: 'post',
@@ -141,7 +137,7 @@ const projectConfig: EntityConfig = {
       summary: 'Sync project files',
       description: 'Trigger a manual sync of project files',
       handlerName: 'sync',
-      response: OperationSuccessResponseSchema,
+      response: OperationSuccessResponseSchema
     },
     {
       method: 'get',
@@ -149,7 +145,7 @@ const projectConfig: EntityConfig = {
       summary: 'Get project summary',
       description: 'Get AI-generated project summary',
       handlerName: 'getSummary',
-      response: ProjectSummaryResponseSchema,
+      response: ProjectSummaryResponseSchema
     }
   ]
 }
@@ -164,9 +160,9 @@ const projectConfig: EntityConfig = {
  */
 export function registerProjectRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, projectConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Project`)
-  
+
   return updatedApp
 }
 

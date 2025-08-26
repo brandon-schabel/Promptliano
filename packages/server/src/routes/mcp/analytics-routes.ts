@@ -4,11 +4,14 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import {
-  ApiErrorResponseSchema,
-  OperationSuccessResponseSchema
-} from '@promptliano/schemas'
-import { getMCPAnalyticsOverview, getMCPToolStatistics, getMCPExecutionTimeline, getMCPToolExecutions, getTopErrorPatterns } from '@promptliano/services'
+  getMCPAnalyticsOverview,
+  getMCPToolStatistics,
+  getMCPExecutionTimeline,
+  getMCPToolExecutions,
+  getTopErrorPatterns
+} from '@promptliano/services'
 import { createStandardResponses, successResponse } from '../../utils/route-helpers'
 
 // Get MCP analytics
@@ -19,33 +22,45 @@ const getMCPAnalyticsRoute = createRoute({
   summary: 'Get MCP usage analytics',
   request: {
     query: z.object({
-      startDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
-      endDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
+      startDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      endDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
       serverId: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      period: z.object({
-        start: z.string(),
-        end: z.string()
-      }),
-      servers: z.array(z.object({
-        serverId: z.string(),
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        period: z.object({
+          start: z.string(),
+          end: z.string()
+        }),
+        servers: z.array(
+          z.object({
+            serverId: z.string(),
+            totalRequests: z.number(),
+            successRate: z.number(),
+            avgResponseTime: z.number()
+          })
+        ),
+        tools: z.array(
+          z.object({
+            name: z.string(),
+            executions: z.number(),
+            avgDuration: z.number()
+          })
+        ),
         totalRequests: z.number(),
-        successRate: z.number(),
-        avgResponseTime: z.number()
-      })),
-      tools: z.array(z.object({
-        name: z.string(),
-        executions: z.number(),
-        avgDuration: z.number()
-      })),
-      totalRequests: z.number(),
-      totalErrors: z.number()
+        totalErrors: z.number()
+      })
     })
-  }))
+  )
 })
 
 // Get MCP server statistics
@@ -59,19 +74,21 @@ const getMCPServerStatsRoute = createRoute({
       serverId: z.string()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      serverId: z.string(),
-      status: z.enum(['connected', 'disconnected', 'error']),
-      uptime: z.number(),
-      totalRequests: z.number(),
-      successRate: z.number(),
-      avgResponseTime: z.number(),
-      lastActivity: z.string(),
-      capabilities: z.any().optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        serverId: z.string(),
+        status: z.enum(['connected', 'disconnected', 'error']),
+        uptime: z.number(),
+        totalRequests: z.number(),
+        successRate: z.number(),
+        avgResponseTime: z.number(),
+        lastActivity: z.string(),
+        capabilities: z.any().optional()
+      })
     })
-  }))
+  )
 })
 
 // Get tool usage statistics
@@ -86,20 +103,24 @@ const getToolUsageStatsRoute = createRoute({
       limit: z.number().int().positive().optional().default(10)
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      period: z.string(),
-      topTools: z.array(z.object({
-        name: z.string(),
-        count: z.number(),
-        avgExecutionTime: z.number(),
-        successRate: z.number()
-      })),
-      totalExecutions: z.number(),
-      totalErrors: z.number()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        period: z.string(),
+        topTools: z.array(
+          z.object({
+            name: z.string(),
+            count: z.number(),
+            avgExecutionTime: z.number(),
+            successRate: z.number()
+          })
+        ),
+        totalExecutions: z.number(),
+        totalErrors: z.number()
+      })
     })
-  }))
+  )
 })
 
 // Get resource access statistics
@@ -113,18 +134,22 @@ const getResourceAccessStatsRoute = createRoute({
       period: z.enum(['hour', 'day', 'week', 'month']).optional().default('day')
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      period: z.string(),
-      topResources: z.array(z.object({
-        uri: z.string(),
-        accessCount: z.number(),
-        avgResponseTime: z.number()
-      })),
-      totalAccesses: z.number()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        period: z.string(),
+        topResources: z.array(
+          z.object({
+            uri: z.string(),
+            accessCount: z.number(),
+            avgResponseTime: z.number()
+          })
+        ),
+        totalAccesses: z.number()
+      })
     })
-  }))
+  )
 })
 
 // Generate usage report
@@ -149,20 +174,22 @@ const generateUsageReportRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      reportId: z.string(),
-      generatedAt: z.string(),
-      period: z.object({
-        start: z.string(),
-        end: z.string()
-      }),
-      format: z.string(),
-      content: z.any(),
-      downloadUrl: z.string().optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        reportId: z.string(),
+        generatedAt: z.string(),
+        period: z.object({
+          start: z.string(),
+          end: z.string()
+        }),
+        format: z.string(),
+        content: z.any(),
+        downloadUrl: z.string().optional()
+      })
     })
-  }))
+  )
 })
 
 // Get session statistics
@@ -171,16 +198,18 @@ const getSessionStatsRoute = createRoute({
   path: '/api/mcp/sessions/stats',
   tags: ['MCP', 'Analytics'],
   summary: 'Get MCP session statistics',
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      activeSessions: z.number(),
-      totalSessionsToday: z.number(),
-      avgSessionDuration: z.number(),
-      peakConcurrentSessions: z.number(),
-      sessionsByServer: z.record(z.string(), z.number())
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        activeSessions: z.number(),
+        totalSessionsToday: z.number(),
+        avgSessionDuration: z.number(),
+        peakConcurrentSessions: z.number(),
+        sessionsByServer: z.record(z.string(), z.number())
+      })
     })
-  }))
+  )
 })
 
 // Get performance metrics
@@ -195,22 +224,26 @@ const getPerformanceMetricsRoute = createRoute({
       aggregation: z.enum(['avg', 'min', 'max', 'p50', 'p95', 'p99']).optional().default('avg')
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      metrics: z.array(z.object({
-        timestamp: z.string(),
-        value: z.number(),
-        type: z.string()
-      })),
-      aggregation: z.string(),
-      summary: z.object({
-        current: z.number(),
-        trend: z.enum(['up', 'down', 'stable']),
-        changePercent: z.number()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        metrics: z.array(
+          z.object({
+            timestamp: z.string(),
+            value: z.number(),
+            type: z.string()
+          })
+        ),
+        aggregation: z.string(),
+        summary: z.object({
+          current: z.number(),
+          trend: z.enum(['up', 'down', 'stable']),
+          changePercent: z.number()
+        })
       })
     })
-  }))
+  )
 })
 
 // Project-specific MCP analytics routes
@@ -228,18 +261,20 @@ const getProjectMCPOverviewRoute = createRoute({
       toolNames: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      totalExecutions: z.number(),
-      uniqueTools: z.number(),
-      overallSuccessRate: z.number(),
-      avgExecutionTime: z.number(),
-      topTools: z.array(z.any()),
-      recentErrors: z.array(z.any()),
-      executionTrend: z.array(z.any())
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        totalExecutions: z.number(),
+        uniqueTools: z.number(),
+        overallSuccessRate: z.number(),
+        avgExecutionTime: z.number(),
+        topTools: z.array(z.any()),
+        recentErrors: z.array(z.any()),
+        executionTrend: z.array(z.any())
+      })
     })
-  }))
+  )
 })
 
 const getProjectMCPStatisticsRoute = createRoute({
@@ -256,10 +291,12 @@ const getProjectMCPStatisticsRoute = createRoute({
       toolNames: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.any())
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(z.any())
+    })
+  )
 })
 
 const getProjectMCPTimelineRoute = createRoute({
@@ -276,10 +313,12 @@ const getProjectMCPTimelineRoute = createRoute({
       toolNames: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.any())
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(z.any())
+    })
+  )
 })
 
 const getProjectMCPErrorPatternsRoute = createRoute({
@@ -296,10 +335,12 @@ const getProjectMCPErrorPatternsRoute = createRoute({
       toolNames: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.any())
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(z.any())
+    })
+  )
 })
 
 const getProjectMCPExecutionsRoute = createRoute({
@@ -314,23 +355,37 @@ const getProjectMCPExecutionsRoute = createRoute({
     query: z.object({
       toolName: z.string().optional(),
       status: z.enum(['success', 'error', 'timeout']).optional(),
-      startDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
-      endDate: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
-      limit: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
-      offset: z.string().optional().transform((val) => val ? parseInt(val, 10) : undefined),
+      startDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      endDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      limit: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      offset: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
       sortBy: z.enum(['startedAt', 'duration', 'toolName']).optional(),
       sortOrder: z.enum(['asc', 'desc']).optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      executions: z.array(z.any()),
-      total: z.number(),
-      page: z.number(),
-      pageSize: z.number()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        executions: z.array(z.any()),
+        total: z.number(),
+        page: z.number(),
+        pageSize: z.number()
+      })
     })
-  }))
+  )
 })
 
 // Export routes
@@ -429,7 +484,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getProjectMCPOverviewRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    
+
     try {
       const overview = await getMCPAnalyticsOverview(projectId)
       return c.json(successResponse(overview))
@@ -440,7 +495,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getProjectMCPStatisticsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    
+
     try {
       const request = {
         projectId,
@@ -456,12 +511,9 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getProjectMCPTimelineRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    
+
     try {
-      const timeline = await getMCPExecutionTimeline(
-        projectId,
-        query.period || 'day'
-      )
+      const timeline = await getMCPExecutionTimeline(projectId, query.period || 'day')
       return c.json(successResponse(timeline))
     } catch (error) {
       throw error
@@ -470,7 +522,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getProjectMCPErrorPatternsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    
+
     try {
       const errorPatterns = await getTopErrorPatterns(projectId, 10)
       return c.json(successResponse(errorPatterns))
@@ -481,7 +533,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getProjectMCPExecutionsRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    
+
     try {
       const executionQuery = {
         projectId,

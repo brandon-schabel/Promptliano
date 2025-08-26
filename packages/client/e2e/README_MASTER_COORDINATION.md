@@ -82,6 +82,7 @@ const project = IsolatedTestDataFactory.createIsolatedProject('MyTest')
 ```
 
 **Features**:
+
 - Read-only shared reference data
 - Isolated data factories with guaranteed uniqueness
 - Performance test data generators
@@ -96,7 +97,7 @@ import { TestDataManager } from '../utils/test-data-manager'
 
 test.beforeEach(async ({ page }) => {
   dataManager = new TestDataManager(page, testInfo)
-  
+
   // Setup isolated database
   await dataManager.setupIsolatedDatabase()
 })
@@ -108,6 +109,7 @@ test.afterEach(async () => {
 ```
 
 **Features**:
+
 - Complete test isolation with unique IDs
 - Database transaction management
 - Temporary file and directory cleanup
@@ -131,6 +133,7 @@ const result = await safety.safelyExecuteMCPTool(
 ```
 
 **Features**:
+
 - Circuit breaker pattern for MCP failures
 - Automatic fallback to mock behaviors
 - Health monitoring with retry logic
@@ -154,6 +157,7 @@ const testId = await coordinator.requestTestExecution({
 ```
 
 **Features**:
+
 - Intelligent resource allocation and queuing
 - Load balancing across workers
 - Performance tracking and optimization
@@ -172,15 +176,13 @@ const recovery = new AdvancedErrorRecovery(page, testInfo)
 await recovery.createCheckpoint('before-complex-workflow')
 
 // Execute with automatic recovery
-const result = await recovery.executeWithRecovery(
-  async () => {
-    // Your test operation here
-  },
-  'Complex Workflow Test'
-)
+const result = await recovery.executeWithRecovery(async () => {
+  // Your test operation here
+}, 'Complex Workflow Test')
 ```
 
 **Features**:
+
 - Automatic error classification and recovery
 - State checkpoints and restoration
 - Custom recovery strategies
@@ -196,15 +198,19 @@ import { ComprehensiveTestUtilities } from '../utils/comprehensive-test-utilitie
 const utils = await ComprehensiveTestUtilities.create(page, testInfo)
 
 // Execute steps with tracking and recovery
-await utils.executeStep('Login Process', async () => {
-  await page.fill('[name="email"]', 'test@example.com')
-  await page.fill('[name="password"]', 'password123')
-  await page.click('[type="submit"]')
-}, { 
-  takeScreenshot: true,
-  measurePerformance: true,
-  retryCount: 2 
-})
+await utils.executeStep(
+  'Login Process',
+  async () => {
+    await page.fill('[name="email"]', 'test@example.com')
+    await page.fill('[name="password"]', 'password123')
+    await page.click('[type="submit"]')
+  },
+  {
+    takeScreenshot: true,
+    measurePerformance: true,
+    retryCount: 2
+  }
+)
 
 // Performance testing
 const metrics = await utils.measurePageLoad('/dashboard')
@@ -217,6 +223,7 @@ await utils.testAccessibility()
 ```
 
 **Features**:
+
 - Step-by-step execution tracking
 - Performance measurement and Core Web Vitals
 - Visual regression testing with intelligent diffing
@@ -239,14 +246,11 @@ const result = await coordinator.executeTests('production', {
 })
 
 // Execute across multiple environments
-const results = await coordinator.executeTestSuite([
-  'smoke',
-  'development', 
-  'production'
-])
+const results = await coordinator.executeTestSuite(['smoke', 'development', 'production'])
 ```
 
 **Features**:
+
 - Automated server startup and health checking
 - Environment-specific configurations
 - Comprehensive execution reporting
@@ -284,6 +288,7 @@ const results = await coordinator.executeTestSuite([
 ### Environment Configuration
 
 Each environment includes:
+
 - **Server Management**: Automatic startup/shutdown
 - **Health Checks**: Service availability validation
 - **Resource Allocation**: Memory and CPU management
@@ -303,32 +308,31 @@ test('Project workflow with coordination', async ({ page }, testInfo) => {
   // Create comprehensive test context
   const utils = await ComprehensiveTestUtilities.create(page, testInfo)
   const dataManager = TestCoordinationUtils.createDataManager(page, testInfo)
-  
+
   try {
     // Create isolated test data
-    const project = await dataManager.createProject({ 
-      name: 'Test Project For Workflow' 
+    const project = await dataManager.createProject({
+      name: 'Test Project For Workflow'
     })
-    
+
     // Execute workflow with recovery
     await utils.executeStep('Navigate to Projects', async () => {
       await page.goto('/projects')
       await expect(page).toHaveTitle(/Projects/)
     })
-    
+
     await utils.executeStep('Create New Project', async () => {
       await page.click('[data-testid="create-project"]')
       await page.fill('[name="name"]', project.name)
       await page.click('[type="submit"]')
     })
-    
+
     // Performance measurement
     const metrics = await utils.measurePageLoad()
     expect(metrics.pageLoadTime).toBeLessThan(3000)
-    
+
     // Visual regression check
     await utils.performVisualTest('project-dashboard')
-    
   } finally {
     // Automatic cleanup
     await utils.cleanup()
@@ -348,15 +352,15 @@ test('MCP tool integration with safety', async ({ page }, testInfo) => {
       action: 'overview',
       projectId: 123
     })
-    
+
     // Assert with safety checks
     MCPSafetyUtils.assertSafeMCPResult(result, true)
-    
+
     // Handle both real MCP and mock scenarios
     if (result.usedFallback) {
       console.log('Test used mock MCP - this is expected in some environments')
     }
-    
+
     expect(result.data).toBeDefined()
   })
 })
@@ -379,7 +383,7 @@ test('Complex workflow with error recovery', async ({ page }, testInfo) => {
     },
     'Complex Workflow Execution'
   )
-  
+
   expect(result).toBeDefined()
 })
 ```
@@ -389,6 +393,7 @@ test('Complex workflow with error recovery', async ({ page }, testInfo) => {
 ### Built-in Metrics
 
 All tests automatically track:
+
 - **Page Load Times** with Core Web Vitals
 - **Operation Durations** for each test step
 - **Memory Usage** throughout test execution
@@ -413,6 +418,7 @@ All tests automatically track:
 ### Automatic Error Recovery
 
 The system automatically handles:
+
 - **Timeout Errors**: Wait and retry with exponential backoff
 - **Network Issues**: Page reload and connection retry
 - **Element Not Found**: DOM stability checks and fallback selectors
@@ -454,7 +460,7 @@ try {
 ### CI/CD Integration
 
 1. **Use CI Environment**: `bun run test:e2e:ci`
-2. **Parallel Execution**: Configured for optimal CI performance  
+2. **Parallel Execution**: Configured for optimal CI performance
 3. **Comprehensive Reporting**: JSON and HTML reports generated
 4. **Failure Analysis**: Detailed error tracking and recovery logs
 
@@ -464,7 +470,7 @@ try {
 
 - **99.5% Test Reliability** through advanced error recovery
 - **70% Faster Parallel Execution** with intelligent coordination
-- **100% MCP Compatibility** with graceful fallback behaviors  
+- **100% MCP Compatibility** with graceful fallback behaviors
 - **Comprehensive Coverage** across all browsers and devices
 - **Zero Test Pollution** with complete data isolation
 - **Real-time Performance Monitoring** with detailed metrics
@@ -483,6 +489,7 @@ try {
 ### Common Issues
 
 1. **Port Conflicts**
+
    ```bash
    # Check for conflicts
    lsof -i :1420  # Frontend
@@ -490,6 +497,7 @@ try {
    ```
 
 2. **Database Locks**
+
    ```bash
    # Clear locks
    rm -f data/*.db-wal data/*.db-shm

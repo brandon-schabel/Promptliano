@@ -171,7 +171,7 @@ test.describe('Tickets and Queue Management', () => {
         const firstTask = ticketData.tasks[0]
         try {
           await ticketsPage.toggleTask(firstTask)
-          
+
           // Verify task state changed
           await TestAssertions.assertSuccessfulAPIResponse(page, /\/api\/tasks/, 'PUT')
         } catch (error) {
@@ -188,7 +188,7 @@ test.describe('Tickets and Queue Management', () => {
 
       try {
         await ticketsPage.assignAgentToTicket(ticketData.title, 'test-agent')
-        
+
         const ticketInfo = await ticketsPage.getTicketInfo(ticketData.title)
         expect(ticketInfo.assignee).toContain('test-agent')
       } catch (error) {
@@ -267,7 +267,7 @@ test.describe('Tickets and Queue Management', () => {
         // Wait a bit and check status
         await page.waitForTimeout(2000)
         const status = await queuePage.getCurrentQueueStatus()
-        expect(['processing', 'running', 'idle'].some(s => status.includes(s))).toBe(true)
+        expect(['processing', 'running', 'idle'].some((s) => status.includes(s))).toBe(true)
       } catch (error) {
         // Queue processing might need items first
         console.warn('Queue processing requires items:', error)
@@ -283,7 +283,7 @@ test.describe('Tickets and Queue Management', () => {
       // This test would need actual queue items to move
       // For now, we'll just verify the queue board loads
       await queuePage.waitForQueueBoardLoaded()
-      
+
       const columnsVisible = await queuePage.queueColumns.count()
       expect(columnsVisible).toBeGreaterThan(0)
     })
@@ -300,7 +300,7 @@ test.describe('Tickets and Queue Management', () => {
 
         // Pause processing
         await queuePage.pauseQueue()
-        
+
         const status = await queuePage.getCurrentQueueStatus()
         expect(status).toContain('paused')
       } catch (error) {
@@ -327,7 +327,7 @@ test.describe('Tickets and Queue Management', () => {
 
       // Get queue statistics
       const stats = await queuePage.getQueueStats()
-      
+
       // Stats should be numbers
       expect(typeof stats.pending).toBe('number')
       expect(typeof stats.processing).toBe('number')
@@ -357,7 +357,7 @@ test.describe('Tickets and Queue Management', () => {
 
       // Go to tickets and add to queue
       await ticketsPage.goto()
-      
+
       try {
         await ticketsPage.addTicketToQueue(ticketData.title, queueData.name)
 
@@ -406,7 +406,7 @@ test.describe('Tickets and Queue Management', () => {
 
         // Monitor processing (with timeout)
         const processingResult = await queuePage.monitorQueueUntilComplete(1000, 10000)
-        
+
         // Verify some progress was made
         expect(processingResult.completed + processingResult.failed).toBeGreaterThan(0)
       } catch (error) {
@@ -418,7 +418,7 @@ test.describe('Tickets and Queue Management', () => {
   test.describe('MCP Integration - Tickets and Queues', () => {
     test('should integrate with MCP ticket_manager tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('ticket_manager')) {
         // Test listing tickets via MCP
         const mcpResponse = await MCPTestHelpers.testTicketManagerTool(page, 'list')
@@ -446,11 +446,11 @@ test.describe('Tickets and Queue Management', () => {
 
     test('should integrate with MCP queue_processor tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('queue_processor')) {
         // Test queue operations via MCP
         const queueData = TestDataFactory.createQueue()
-        
+
         // Create queue via MCP
         const createResponse = await MCPTestHelpers.testQueueProcessorTool(page, 'create_queue', {
           queue: queueData
@@ -481,7 +481,7 @@ test.describe('Tickets and Queue Management', () => {
 
       // Check status via MCP
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('ticket_manager')) {
         const statusResponse = await MCPTestHelpers.testTicketManagerTool(page, 'get_status', {
           title: ticketData.title
@@ -501,7 +501,7 @@ test.describe('Tickets and Queue Management', () => {
       await ticketsPage.goto()
 
       // Mock server error
-      await page.route('**/api/tickets', route => {
+      await page.route('**/api/tickets', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -513,7 +513,7 @@ test.describe('Tickets and Queue Management', () => {
       })
 
       const ticketData = TestDataFactory.createTicket()
-      
+
       try {
         await ticketsPage.createTicket(ticketData)
       } catch (error) {
@@ -528,7 +528,7 @@ test.describe('Tickets and Queue Management', () => {
       await queuePage.selectQueue(queueData.name)
 
       // Mock processing error
-      await page.route('**/api/queues/*/process', route => {
+      await page.route('**/api/queues/*/process', (route) => {
         route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -575,7 +575,7 @@ test.describe('Tickets and Queue Management', () => {
     test('should handle multiple tickets efficiently', async () => {
       // Create multiple tickets
       const ticketCount = 15
-      const tickets = Array.from({ length: ticketCount }, (_, i) => 
+      const tickets = Array.from({ length: ticketCount }, (_, i) =>
         TestDataFactory.createTicket({ title: `Performance Test Ticket ${i + 1}` })
       )
 

@@ -18,9 +18,9 @@ export class SecurePathValidator {
     // Default allowed paths for local-first app
     this.allowedBasePaths.add(path.normalize(os.homedir()))
     this.allowedBasePaths.add(path.normalize(process.cwd()))
-    
+
     // Add any custom allowed paths
-    allowedPaths.forEach(p => this.addAllowedPath(p))
+    allowedPaths.forEach((p) => this.addAllowedPath(p))
   }
 
   /**
@@ -47,23 +47,21 @@ export class SecurePathValidator {
       }
 
       // Resolve the full path
-      const fullPath = basePath 
-        ? path.resolve(basePath, inputPath)
-        : path.resolve(inputPath)
-      
+      const fullPath = basePath ? path.resolve(basePath, inputPath) : path.resolve(inputPath)
+
       const normalizedPath = path.normalize(fullPath)
 
       // Check if resolved path is within allowed base paths
-      const isWithinAllowed = Array.from(this.allowedBasePaths).some(allowedPath => {
+      const isWithinAllowed = Array.from(this.allowedBasePaths).some((allowedPath) => {
         const relative = path.relative(allowedPath, normalizedPath)
         // Path is within allowed if relative path doesn't start with '..'
         return !relative.startsWith('..') && !path.isAbsolute(relative)
       })
 
       if (!isWithinAllowed) {
-        return { 
-          valid: false, 
-          error: 'Path is outside allowed directories' 
+        return {
+          valid: false,
+          error: 'Path is outside allowed directories'
         }
       }
 
@@ -83,21 +81,21 @@ export class SecurePathValidator {
 
       for (const pattern of systemPatterns) {
         if (pattern.test(normalizedPath)) {
-          return { 
-            valid: false, 
-            error: 'Path points to system directory' 
+          return {
+            valid: false,
+            error: 'Path points to system directory'
           }
         }
       }
 
-      return { 
-        valid: true, 
-        safePath: normalizedPath 
+      return {
+        valid: true,
+        safePath: normalizedPath
       }
     } catch (error) {
-      return { 
-        valid: false, 
-        error: error instanceof Error ? error.message : 'Invalid path' 
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Invalid path'
       }
     }
   }
@@ -107,12 +105,12 @@ export class SecurePathValidator {
    */
   sanitizeFilename(filename: string): string {
     return filename
-      .replace(/[\/\\]/g, '_')        // Replace path separators
-      .replace(/\.\./g, '_')          // Replace directory traversal
-      .replace(/[<>:"|?*\0]/g, '_')   // Replace invalid characters
-      .replace(/^\.+/, '_')           // Replace leading dots
-      .replace(/\s+/g, '_')           // Replace whitespace
-      .substring(0, 255)              // Limit length
+      .replace(/[\/\\]/g, '_') // Replace path separators
+      .replace(/\.\./g, '_') // Replace directory traversal
+      .replace(/[<>:"|?*\0]/g, '_') // Replace invalid characters
+      .replace(/^\.+/, '_') // Replace leading dots
+      .replace(/\s+/g, '_') // Replace whitespace
+      .substring(0, 255) // Limit length
   }
 
   /**
@@ -125,9 +123,10 @@ export class SecurePathValidator {
 
     // Command names should be lowercase alphanumeric with hyphens
     if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(name)) {
-      return { 
-        valid: false, 
-        error: 'Command name must start with a letter, end with a letter or number, and contain only lowercase letters, numbers, and hyphens' 
+      return {
+        valid: false,
+        error:
+          'Command name must start with a letter, end with a letter or number, and contain only lowercase letters, numbers, and hyphens'
       }
     }
 
@@ -156,9 +155,9 @@ export class SecurePathValidator {
 
       // Each segment should follow similar rules to command names
       if (!/^[a-z][a-z0-9-]*[a-z0-9]?$/.test(segment)) {
-        return { 
-          valid: false, 
-          error: `Invalid namespace segment '${segment}': must contain only lowercase letters, numbers, and hyphens` 
+        return {
+          valid: false,
+          error: `Invalid namespace segment '${segment}': must contain only lowercase letters, numbers, and hyphens`
         }
       }
     }

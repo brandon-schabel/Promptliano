@@ -29,7 +29,7 @@ const logger = createLogger('ClaudeCodeFileReaderService')
 export class ClaudeCodeFileReaderService {
   private readonly platform = process.platform
   private readonly sessionErrors = createEntityErrorFactory('session')
-  
+
   // Cache for file stats to avoid repeated filesystem calls
   private readonly getFileStatsCache = withCache(
     this.getFileStats.bind(this),
@@ -115,28 +115,32 @@ export class ClaudeCodeFileReaderService {
     }
 
     const sanitized: any = { ...data }
-    
+
     // Truncate content fields to prevent log spam
     if (sanitized.content && typeof sanitized.content === 'string' && sanitized.content.length > 200) {
       sanitized.content = sanitized.content.substring(0, 200) + '...[truncated]'
     }
-    
-    if (sanitized.message?.content && typeof sanitized.message.content === 'string' && sanitized.message.content.length > 200) {
+
+    if (
+      sanitized.message?.content &&
+      typeof sanitized.message.content === 'string' &&
+      sanitized.message.content.length > 200
+    ) {
       sanitized.message.content = sanitized.message.content.substring(0, 200) + '...[truncated]'
     }
-    
+
     // Remove potentially sensitive tool inputs
     if (sanitized.message?.input) {
       sanitized.message.input = '[REDACTED]'
     }
-    
+
     // Truncate arrays to first few items
-    Object.keys(sanitized).forEach(key => {
+    Object.keys(sanitized).forEach((key) => {
       if (Array.isArray(sanitized[key]) && sanitized[key].length > 3) {
         sanitized[key] = sanitized[key].slice(0, 3).concat(['...[truncated]'])
       }
     })
-    
+
     return sanitized
   }
 
@@ -148,7 +152,7 @@ export class ClaudeCodeFileReaderService {
 
     try {
       const data = JSON.parse(line)
-      
+
       // First try strict validation for well-formed messages
       const strictValidation = ClaudeMessageSchema.safeParse(data)
       if (strictValidation.success) {
@@ -159,16 +163,17 @@ export class ClaudeCodeFileReaderService {
       const lenientValidation = ClaudeMessageLenientSchema.safeParse(data)
       if (lenientValidation.success) {
         const normalized = this.normalizeClaudeMessage(lenientValidation.data)
-        
+
         // Enhanced debugging for strict validation failures
-        const strictErrors = strictValidation.error?.issues.map(issue => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-          code: issue.code,
-          expected: 'expected' in issue ? issue.expected : undefined,
-          received: 'received' in issue ? issue.received : undefined
-        })) || []
-        
+        const strictErrors =
+          strictValidation.error?.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+            code: issue.code,
+            expected: 'expected' in issue ? issue.expected : undefined,
+            received: 'received' in issue ? issue.received : undefined
+          })) || []
+
         logger.debug('Used lenient validation for Claude message:', {
           sessionId: normalized.sessionId,
           timestamp: normalized.timestamp,
@@ -178,28 +183,30 @@ export class ClaudeCodeFileReaderService {
         return normalized
       } else {
         // Enhanced debugging for both validation failures
-        const strictErrors = strictValidation.error?.issues.map(issue => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-          code: issue.code,
-          expected: 'expected' in issue ? issue.expected : undefined,
-          received: 'received' in issue ? issue.received : undefined
-        })) || []
-        
-        const lenientErrors = lenientValidation.error?.issues.map(issue => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-          code: issue.code,
-          expected: 'expected' in issue ? issue.expected : undefined,
-          received: 'received' in issue ? issue.received : undefined
-        })) || []
-        
+        const strictErrors =
+          strictValidation.error?.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+            code: issue.code,
+            expected: 'expected' in issue ? issue.expected : undefined,
+            received: 'received' in issue ? issue.received : undefined
+          })) || []
+
+        const lenientErrors =
+          lenientValidation.error?.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+            code: issue.code,
+            expected: 'expected' in issue ? issue.expected : undefined,
+            received: 'received' in issue ? issue.received : undefined
+          })) || []
+
         logger.debug('Failed to parse Claude message with both strict and lenient validation:', {
           strictErrorsDetailed: strictErrors,
           lenientErrorsDetailed: lenientErrors,
           originalData: this.sanitizeForLogging(data)
         })
-        
+
         // Fallback to raw session info extraction
         return this.extractRawSessionInfo(data)
       }
@@ -209,7 +216,7 @@ export class ClaudeCodeFileReaderService {
         lineLength: line.length,
         linePreview: line.substring(0, 100) + (line.length > 100 ? '...' : '')
       })
-      
+
       // Try to extract session info even from malformed JSON
       return this.extractRawSessionInfoFromString(line)
     }
@@ -222,8 +229,9 @@ export class ClaudeCodeFileReaderService {
     try {
       // Try to extract basic required fields for session metadata
       const sessionId = this.extractFieldValue(data, ['sessionId', 'session_id', 'id']) || 'unknown'
-      const timestamp = this.extractFieldValue(data, ['timestamp', 'time', 'created_at', 'createdAt']) || new Date().toISOString()
-      
+      const timestamp =
+        this.extractFieldValue(data, ['timestamp', 'time', 'created_at', 'createdAt']) || new Date().toISOString()
+
       // Extract message content from various possible locations
       let content = ''
       if (data.content) {
@@ -233,7 +241,7 @@ export class ClaudeCodeFileReaderService {
       } else if (data.text) {
         content = String(data.text)
       }
-      
+
       // Create minimal valid message
       return {
         type: 'assistant' as const,
@@ -277,12 +285,12 @@ export class ClaudeCodeFileReaderService {
       const timestampMatch = line.match(/"timestamp"\s*:\s*"([^"]+)"/)
       const gitBranchMatch = line.match(/"gitBranch"\s*:\s*"([^"]+)"/)
       const cwdMatch = line.match(/"cwd"\s*:\s*"([^"]+)"/)
-      
+
       if (!sessionIdMatch && !timestampMatch) {
         // Can't extract any useful session info
         return null
       }
-      
+
       return {
         type: 'assistant' as const,
         message: {
@@ -337,8 +345,7 @@ export class ClaudeCodeFileReaderService {
    */
   private normalizeClaudeMessage(lenientMessage: ClaudeMessageLenient): ClaudeMessage {
     // Normalize null values to undefined for optional fields
-    const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
-      value === null ? undefined : value
+    const nullToUndefined = <T>(value: T | null | undefined): T | undefined => (value === null ? undefined : value)
 
     // Convert various types to string for string fields (or undefined)
     const toStringOrUndefined = (value: any): string | undefined => {
@@ -381,7 +388,7 @@ export class ClaudeCodeFileReaderService {
 
     // Normalize message field - handle different formats
     let messageData: any = lenientMessage.message
-    
+
     // If there's no message object but there's top-level content, create a message object
     if (!messageData && lenientMessage.content) {
       messageData = {
@@ -391,7 +398,7 @@ export class ClaudeCodeFileReaderService {
     } else if (!messageData) {
       messageData = {}
     }
-    
+
     if (typeof messageData === 'string') {
       // If message is a string, create a message object with that content
       messageData = {
@@ -419,7 +426,7 @@ export class ClaudeCodeFileReaderService {
 
     // Normalize message type - keep 'system' and 'summary' as they're now valid
     let normalizedType = (lenientMessage.type || 'assistant').toLowerCase()
-    
+
     // Handle any unknown types by defaulting to 'assistant'
     if (!['user', 'assistant', 'result', 'system', 'summary'].includes(normalizedType)) {
       normalizedType = 'assistant'
@@ -429,7 +436,8 @@ export class ClaudeCodeFileReaderService {
     return {
       type: normalizedType as 'user' | 'assistant' | 'result' | 'system' | 'summary',
       message: normalizedMessage,
-      timestamp: (typeof lenientMessage.timestamp === 'string' ? lenientMessage.timestamp : null) || new Date().toISOString(),
+      timestamp:
+        (typeof lenientMessage.timestamp === 'string' ? lenientMessage.timestamp : null) || new Date().toISOString(),
       sessionId: (typeof lenientMessage.sessionId === 'string' ? lenientMessage.sessionId : null) || 'unknown',
       uuid: toStringOrUndefined(lenientMessage.uuid),
       parentUuid: toStringOrUndefined(lenientMessage.parentUuid),
@@ -542,7 +550,7 @@ export class ClaudeCodeFileReaderService {
       // Enhanced cleanup function
       const cleanup = () => {
         if (hasResolved) return
-        
+
         try {
           if (rl) {
             rl.close()
@@ -551,7 +559,7 @@ export class ClaudeCodeFileReaderService {
         } catch (e) {
           // Ignore cleanup errors
         }
-        
+
         try {
           if (fileStream) {
             fileStream.destroy()
@@ -579,11 +587,11 @@ export class ClaudeCodeFileReaderService {
       }
 
       try {
-        fileStream = createReadStream(filePath, { 
+        fileStream = createReadStream(filePath, {
           encoding: 'utf8',
           highWaterMark: 64 * 1024 // 64KB buffer for better performance
         })
-        
+
         rl = createInterface({
           input: fileStream,
           crlfDelay: Infinity
@@ -597,7 +605,7 @@ export class ClaudeCodeFileReaderService {
 
         rl.on('line', (line: string) => {
           totalLinesProcessed++
-          
+
           // Prevent processing too many lines to avoid memory issues
           if (totalLinesProcessed > maxLinesToProcess) {
             logger.warn(`File ${filePath} has too many lines, stopping at ${maxLinesToProcess}`)
@@ -643,17 +651,20 @@ export class ClaudeCodeFileReaderService {
         // Store original functions and create new ones that clear timeout
         const originalResolve = safeResolve
         const originalReject = safeReject
-        
-        const timeoutSafeResolve = (result: { firstLine: string | null; lastLine: string | null; lineCount: number }) => {
+
+        const timeoutSafeResolve = (result: {
+          firstLine: string | null
+          lastLine: string | null
+          lineCount: number
+        }) => {
           clearTimeout(timeout)
           originalResolve(result)
         }
-        
+
         const timeoutSafeReject = (error: Error) => {
           clearTimeout(timeout)
           originalReject(error)
         }
-
       } catch (error) {
         logger.debug(`Failed to create file stream for ${filePath}:`, error)
         safeReject(new Error(`Failed to create file stream: ${error instanceof Error ? error.message : String(error)}`))
@@ -730,7 +741,7 @@ export class ClaudeCodeFileReaderService {
     fileSize: number
   ): ClaudeSessionMetadata | null {
     if (!availableLine) return null
-    
+
     // Check if the line has any JSON-like structure before attempting fallback
     // If it doesn't contain basic JSON patterns, return null
     const hasJsonStructure = availableLine.includes('{') && availableLine.includes('}') && availableLine.includes('"')
@@ -747,7 +758,7 @@ export class ClaudeCodeFileReaderService {
       const timestampMatch = availableLine.match(/"timestamp"\s*:\s*"([^"]+)"/)
       const gitBranchMatch = availableLine.match(/"gitBranch"\s*:\s*"([^"]+)"/)
       const cwdMatch = availableLine.match(/"cwd"\s*:\s*"([^"]+)"/)
-      
+
       // If we can't extract any meaningful JSON properties, return null
       if (!sessionIdMatch && !timestampMatch) {
         logger.debug('No extractable JSON properties found, cannot create minimal metadata')
@@ -801,14 +812,14 @@ export class ClaudeCodeFileReaderService {
 
         try {
           const firstLineData = JSON.parse(trimmedLine)
-          
+
           // Check if it's a summary file (which we should skip)
           if (firstLineData.type === 'summary') {
             rl.close()
             readStream.destroy()
             return false
           }
-          
+
           // Check if it has session data fields
           if (firstLineData.sessionId || firstLineData.message) {
             rl.close()
@@ -861,14 +872,14 @@ export class ClaudeCodeFileReaderService {
         }
 
         const jsonlFiles = files.filter((file) => file.endsWith('.jsonl'))
-        
+
         if (jsonlFiles.length === 0) {
           logger.debug(`No JSONL files found in directory: ${projectDir}`)
           return []
         }
 
         logger.debug(`Found ${jsonlFiles.length} JSONL files in ${projectDir}`)
-        
+
         // Filter out summary files early to avoid wasted processing
         const sessionFileCheckPromises = jsonlFiles.map(async (file) => {
           const filePath = path.join(projectDir, file)
@@ -877,8 +888,8 @@ export class ClaudeCodeFileReaderService {
         })
 
         const fileChecks = await Promise.all(sessionFileCheckPromises)
-        const sessionFiles = fileChecks.filter(check => check.isSession)
-        const summaryFiles = fileChecks.filter(check => !check.isSession)
+        const sessionFiles = fileChecks.filter((check) => check.isSession)
+        const summaryFiles = fileChecks.filter((check) => !check.isSession)
 
         logger.debug(`File filtering results:`, {
           totalFiles: jsonlFiles.length,
@@ -898,10 +909,9 @@ export class ClaudeCodeFileReaderService {
 
         // Process only the valid session files
         const metadataPromises = sessionFiles.map(async ({ file, filePath }) => {
-          
           try {
             // Get file stats efficiently
-            const stats = await this.getFileStatsCache(filePath) as { size: number; mtime: Date } | null
+            const stats = (await this.getFileStatsCache(filePath)) as { size: number; mtime: Date } | null
             if (!stats) {
               logger.debug(`Failed to get stats for file: ${filePath}`)
               return null
@@ -909,7 +919,7 @@ export class ClaudeCodeFileReaderService {
 
             // Get first and last lines efficiently
             const { firstLine, lastLine, lineCount } = await this.getFileFirstLastLines(filePath)
-            
+
             if (lineCount === 0) {
               logger.debug(`No valid lines found in file: ${filePath}`)
               return null
@@ -942,7 +952,7 @@ export class ClaudeCodeFileReaderService {
         })
 
         const results = await Promise.allSettled(metadataPromises)
-        
+
         // Process results and handle any rejected promises
         for (const result of results) {
           if (result.status === 'fulfilled' && result.value) {
@@ -964,13 +974,15 @@ export class ClaudeCodeFileReaderService {
         })
 
         // Sort by last update time (most recent first)
-        const sortedMetadata = metadataList.sort((a, b) => 
-          new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime()
+        const sortedMetadata = metadataList.sort(
+          (a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime()
         )
 
         // If we got no metadata but had files, log a warning
         if (sortedMetadata.length === 0 && jsonlFiles.length > 0) {
-          logger.warn(`No valid session metadata extracted from ${jsonlFiles.length} JSONL files in ${projectDir}. This may indicate malformed data or parsing issues.`)
+          logger.warn(
+            `No valid session metadata extracted from ${jsonlFiles.length} JSONL files in ${projectDir}. This may indicate malformed data or parsing issues.`
+          )
         }
 
         return sortedMetadata
@@ -998,15 +1010,16 @@ export class ClaudeCodeFileReaderService {
 
         // First get lightweight metadata to determine which sessions to load
         const allMetadata = await this.getSessionsMetadata(projectPath)
-        
+
         // Apply search filter if provided
         let filteredMetadata = allMetadata
         if (search) {
           const searchLower = search.toLowerCase()
-          filteredMetadata = allMetadata.filter(meta => 
-            meta.sessionId.toLowerCase().includes(searchLower) ||
-            meta.firstMessagePreview?.toLowerCase().includes(searchLower) ||
-            meta.lastMessagePreview?.toLowerCase().includes(searchLower)
+          filteredMetadata = allMetadata.filter(
+            (meta) =>
+              meta.sessionId.toLowerCase().includes(searchLower) ||
+              meta.firstMessagePreview?.toLowerCase().includes(searchLower) ||
+              meta.lastMessagePreview?.toLowerCase().includes(searchLower)
           )
         }
 
@@ -1030,9 +1043,9 @@ export class ClaudeCodeFileReaderService {
 
         const total = filteredMetadata.length
         const paginatedMetadata = filteredMetadata.slice(offset, offset + limit)
-        
+
         // Convert metadata directly to lightweight sessions (no message loading)
-        const sessions = paginatedMetadata.map(metadata => this.createSessionFromMetadata(metadata))
+        const sessions = paginatedMetadata.map((metadata) => this.createSessionFromMetadata(metadata))
 
         return {
           sessions,
@@ -1048,20 +1061,17 @@ export class ClaudeCodeFileReaderService {
    * Get recent sessions (optimized for fastest loading)
    * Returns lightweight session data - use getSessionWithMessages() for full data
    */
-  async getRecentSessions(
-    projectPath: string,
-    limit: number = 10
-  ): Promise<ClaudeSession[]> {
+  async getRecentSessions(projectPath: string, limit: number = 10): Promise<ClaudeSession[]> {
     return withErrorContext(
       async () => {
         // Use metadata-based approach for fastest loading
         const metadata = await this.getSessionsMetadata(projectPath)
-        
+
         // Take the most recent sessions (already sorted by lastUpdate desc)
         const recentMetadata = metadata.slice(0, limit)
-        
+
         // Convert metadata directly to lightweight sessions (no message loading)
-        return recentMetadata.map(meta => this.createSessionFromMetadata(meta))
+        return recentMetadata.map((meta) => this.createSessionFromMetadata(meta))
       },
       { entity: 'session', action: 'getRecent' }
     )
@@ -1084,21 +1094,22 @@ export class ClaudeCodeFileReaderService {
 
         // Get all metadata first
         const allMetadata = await this.getSessionsMetadata(projectPath)
-        
+
         // Apply search filter
         let filteredMetadata = allMetadata
         if (search) {
           const searchLower = search.toLowerCase()
-          filteredMetadata = allMetadata.filter(meta => 
-            meta.sessionId.toLowerCase().includes(searchLower) ||
-            meta.firstMessagePreview?.toLowerCase().includes(searchLower) ||
-            meta.lastMessagePreview?.toLowerCase().includes(searchLower)
+          filteredMetadata = allMetadata.filter(
+            (meta) =>
+              meta.sessionId.toLowerCase().includes(searchLower) ||
+              meta.firstMessagePreview?.toLowerCase().includes(searchLower) ||
+              meta.lastMessagePreview?.toLowerCase().includes(searchLower)
           )
         }
 
         // Apply date filters
         if (cursor.startDate || cursor.endDate) {
-          filteredMetadata = filteredMetadata.filter(meta => {
+          filteredMetadata = filteredMetadata.filter((meta) => {
             const metaDate = new Date(meta.lastUpdate)
             if (cursor.startDate && metaDate < new Date(cursor.startDate)) return false
             if (cursor.endDate && metaDate > new Date(cursor.endDate)) return false
@@ -1133,12 +1144,12 @@ export class ClaudeCodeFileReaderService {
           try {
             const decodedCursor = JSON.parse(Buffer.from(cursor.cursor, 'base64').toString())
             const cursorValue = decodedCursor.value
-            
+
             // Find the starting position based on cursor
-            startIndex = filteredMetadata.findIndex(meta => {
+            startIndex = filteredMetadata.findIndex((meta) => {
               switch (sortBy) {
                 case 'startTime':
-                  return sortOrder === 'desc' 
+                  return sortOrder === 'desc'
                     ? new Date(meta.startTime).getTime() < cursorValue
                     : new Date(meta.startTime).getTime() > cursorValue
                 case 'messageCount':
@@ -1152,7 +1163,7 @@ export class ClaudeCodeFileReaderService {
                     : new Date(meta.lastUpdate).getTime() > cursorValue
               }
             })
-            
+
             if (startIndex === -1) startIndex = filteredMetadata.length
           } catch (error) {
             logger.debug('Invalid cursor provided, starting from beginning:', error)
@@ -1184,17 +1195,19 @@ export class ClaudeCodeFileReaderService {
                 cursorValue = new Date(lastItem.lastUpdate).getTime()
                 break
             }
-            
-            nextCursor = Buffer.from(JSON.stringify({
-              value: cursorValue,
-              sortBy,
-              sortOrder
-            })).toString('base64')
+
+            nextCursor = Buffer.from(
+              JSON.stringify({
+                value: cursorValue,
+                sortBy,
+                sortOrder
+              })
+            ).toString('base64')
           }
         }
 
         // Convert metadata directly to lightweight sessions (no message loading)
-        const sessions = pageMetadata.map(metadata => this.createSessionFromMetadata(metadata))
+        const sessions = pageMetadata.map((metadata) => this.createSessionFromMetadata(metadata))
 
         return {
           sessions,
@@ -1210,17 +1223,14 @@ export class ClaudeCodeFileReaderService {
    * Get complete session with full message data (for detailed views)
    * Use this when user clicks on a specific session to see full details
    */
-  async getSessionWithMessages(
-    projectPath: string,
-    sessionId: string
-  ): Promise<ClaudeSession | null> {
+  async getSessionWithMessages(projectPath: string, sessionId: string): Promise<ClaudeSession | null> {
     return withErrorContext(
       async () => {
         const sessionMessages = await this.getSessionMessages(projectPath, sessionId)
         if (sessionMessages.length === 0) {
           return null
         }
-        
+
         return this.createSessionFromMessages(sessionId, projectPath, sessionMessages)
       },
       { entity: 'session', action: 'getWithMessages', id: sessionId }
@@ -1348,10 +1358,10 @@ export class ClaudeCodeFileReaderService {
         // For backward compatibility, use the optimized approach but load all sessions
         // This is still faster than the old method because we use metadata first
         const metadata = await this.getSessionsMetadata(projectPath)
-        
+
         // Load full session data for all sessions
         const sessions: ClaudeSession[] = []
-        
+
         // Process sessions in parallel for better performance
         const sessionPromises = metadata.map(async (meta) => {
           try {
@@ -1366,7 +1376,7 @@ export class ClaudeCodeFileReaderService {
         })
 
         const results = await Promise.all(sessionPromises)
-        
+
         for (const session of results) {
           if (session) {
             sessions.push(session)

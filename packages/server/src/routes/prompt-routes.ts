@@ -1,7 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import {
   CreatePromptBodySchema,
   UpdatePromptBodySchema,
@@ -589,11 +594,14 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(validateMarkdownRoute, async (c) => {
     const { content } = c.req.valid('json')
     const validationResult = await validateMarkdownContent(content)
-    
-    return c.json({
-      success: true,
-      data: validationResult.validation
-    }, 200)
+
+    return c.json(
+      {
+        success: true,
+        data: validationResult.validation
+      },
+      200
+    )
   })
 
 export type PromptRouteTypes = typeof promptRoutes

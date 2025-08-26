@@ -66,7 +66,7 @@ describe('Error Handler Interceptor', () => {
         includeDetails: true,
         enableErrorReporting: true,
         customErrorMap: {
-          'CUSTOM_ERROR': { status: 418, message: 'Custom error occurred' }
+          CUSTOM_ERROR: { status: 418, message: 'Custom error occurred' }
         }
       }
 
@@ -159,9 +159,7 @@ describe('Error Handler Interceptor', () => {
     it('should handle validation errors properly', async () => {
       mockNext = mock(async () => {
         throw ErrorFactory.validationFailed({
-          validationErrors: [
-            { field: 'email', message: 'Invalid email format' }
-          ]
+          validationErrors: [{ field: 'email', message: 'Invalid email format' }]
         })
       })
 
@@ -216,7 +214,7 @@ describe('Error Handler Interceptor', () => {
 
       const interceptor = createErrorHandlerInterceptor({
         customErrorMap: {
-          'BusinessLogicError': {
+          BusinessLogicError: {
             status: 422,
             message: 'Business rule violation',
             code: 'BUSINESS_RULE_VIOLATION'
@@ -248,7 +246,7 @@ describe('Error Handler Interceptor', () => {
 
       const interceptor = createErrorHandlerInterceptor({
         customErrorMap: {
-          'SomeOtherError': { status: 422, message: 'Other error' }
+          SomeOtherError: { status: 422, message: 'Other error' }
         }
       })
 
@@ -455,7 +453,9 @@ describe('Error Handler Interceptor', () => {
   describe('different error types', () => {
     it('should handle syntax errors', async () => {
       const syntaxError = new SyntaxError('Unexpected token')
-      mockNext = mock(async () => { throw syntaxError })
+      mockNext = mock(async () => {
+        throw syntaxError
+      })
 
       const interceptor = createErrorHandlerInterceptor()
 
@@ -473,7 +473,9 @@ describe('Error Handler Interceptor', () => {
 
     it('should handle type errors', async () => {
       const typeError = new TypeError('Cannot read property of undefined')
-      mockNext = mock(async () => { throw typeError })
+      mockNext = mock(async () => {
+        throw typeError
+      })
 
       const interceptor = createErrorHandlerInterceptor()
 
@@ -491,7 +493,9 @@ describe('Error Handler Interceptor', () => {
 
     it('should handle range errors', async () => {
       const rangeError = new RangeError('Maximum call stack size exceeded')
-      mockNext = mock(async () => { throw rangeError })
+      mockNext = mock(async () => {
+        throw rangeError
+      })
 
       const interceptor = createErrorHandlerInterceptor()
 

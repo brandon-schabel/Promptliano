@@ -147,15 +147,18 @@ function createDefaultMessages(entityName: string): Required<EntityMessages> {
   }
 }
 
-function createDefaultOptimistic<TEntity extends (EntityIdentifiable | StringEntityIdentifiable) & Timestamped>(): OptimisticConfig<TEntity> {
+function createDefaultOptimistic<
+  TEntity extends (EntityIdentifiable | StringEntityIdentifiable) & Timestamped
+>(): OptimisticConfig<TEntity> {
   return {
     enabled: true,
-    createOptimisticEntity: (data) => ({
-      ...data,
-      id: -Date.now(), // Temporary negative ID
-      created: Date.now(),
-      updated: Date.now()
-    } as TEntity),
+    createOptimisticEntity: (data) =>
+      ({
+        ...data,
+        id: -Date.now(), // Temporary negative ID
+        created: Date.now(),
+        updated: Date.now()
+      }) as TEntity,
     updateOptimisticEntity: (old, data) => ({
       ...old,
       ...data,
@@ -177,7 +180,7 @@ const DEFAULT_INVALIDATION: InvalidationStrategy = {
 // ============================================================================
 
 export function createCrudHooks<
-  TEntity extends (EntityIdentifiable | StringEntityIdentifiable),
+  TEntity extends EntityIdentifiable | StringEntityIdentifiable,
   TCreate = Omit<TEntity, 'id'>,
   TUpdate = Partial<Omit<TEntity, 'id'>>,
   TListParams = void
@@ -205,48 +208,50 @@ export function createCrudHooks<
   function useList(params?: TListParams, options?: UseQueryOptions<TEntity[], ApiError>) {
     const client = useApiClient()
     const pollingConfig = polling.list
-    
+
     const queryOptions: UseQueryOptions<TEntity[], ApiError> = {
       queryKey: queryKeys.list(params),
       queryFn: ({ signal }) => {
         if (!client) throw new Error('API client not initialized')
         return apiClient.list(client, params)
       },
-      enabled: !!client && (options?.enabled !== false),
+      enabled: !!client && options?.enabled !== false,
       staleTime,
       gcTime: cacheTime,
       // Apply polling configuration - simplified for type safety
-      ...(pollingConfig?.enabled && typeof pollingConfig.interval === 'number' && {
-        refetchInterval: pollingConfig.interval,
-        refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
-      }),
+      ...(pollingConfig?.enabled &&
+        typeof pollingConfig.interval === 'number' && {
+          refetchInterval: pollingConfig.interval,
+          refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
+        }),
       ...options
     }
-    
+
     return useQuery(queryOptions)
   }
 
   function useGetById(id: number, options?: UseQueryOptions<TEntity, ApiError>) {
     const client = useApiClient()
     const pollingConfig = polling.detail
-    
+
     const queryOptions: UseQueryOptions<TEntity, ApiError> = {
       queryKey: queryKeys.detail(id),
       queryFn: ({ signal }) => {
         if (!client) throw new Error('API client not initialized')
         return apiClient.getById(client, id)
       },
-      enabled: !!client && !!id && id > 0 && (options?.enabled !== false),
+      enabled: !!client && !!id && id > 0 && options?.enabled !== false,
       staleTime,
       gcTime: cacheTime,
       // Apply polling configuration - simplified for type safety
-      ...(pollingConfig?.enabled && typeof pollingConfig.interval === 'number' && {
-        refetchInterval: pollingConfig.interval,
-        refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
-      }),
+      ...(pollingConfig?.enabled &&
+        typeof pollingConfig.interval === 'number' && {
+          refetchInterval: pollingConfig.interval,
+          refetchIntervalInBackground: pollingConfig.refetchInBackground ?? false
+        }),
       ...options
     }
-    
+
     return useQuery(queryOptions)
   }
 
@@ -255,7 +260,7 @@ export function createCrudHooks<
     options?: UseInfiniteQueryOptions<PaginatedResponse<TEntity>, ApiError>
   ) {
     const client = useApiClient()
-    
+
     if (!apiClient.listPaginated) {
       throw new Error(`Infinite queries not supported for ${entityName}. Provide listPaginated in apiClient.`)
     }
@@ -273,12 +278,12 @@ export function createCrudHooks<
         return undefined
       },
       initialPageParam: 1,
-      enabled: !!client && (options?.enabled !== false),
+      enabled: !!client && options?.enabled !== false,
       staleTime,
       gcTime: cacheTime,
       ...options
     }
-    
+
     return useInfiniteQuery(queryOptions)
   }
 
@@ -309,13 +314,10 @@ export function createCrudHooks<
               : ({ ...data, id: -Date.now() } as unknown as TEntity)
 
             // Update all list queries optimistically
-            queryClient.setQueriesData(
-              { queryKey: queryKeys.lists() },
-              (old: TEntity[] | undefined) => {
-                if (!old) return [optimisticEntity]
-                return [...old, optimisticEntity]
-              }
-            )
+            queryClient.setQueriesData({ queryKey: queryKeys.lists() }, (old: TEntity[] | undefined) => {
+              if (!old) return [optimisticEntity]
+              return [...old, optimisticEntity]
+            })
 
             return { previousLists, optimisticEntity }
           }
@@ -328,31 +330,28 @@ export function createCrudHooks<
           })
         }
 
-        const message = typeof resolvedMessages.createError === 'function'
-          ? resolvedMessages.createError(error)
-          : resolvedMessages.createError
+        const message =
+          typeof resolvedMessages.createError === 'function'
+            ? resolvedMessages.createError(error)
+            : resolvedMessages.createError
         toast.error(message)
       },
       onSuccess: (entity, variables, context: any) => {
         // Replace optimistic entity with real one
         if (context?.optimisticEntity) {
-          queryClient.setQueriesData(
-            { queryKey: queryKeys.lists() },
-            (old: TEntity[] | undefined) => {
-              if (!old) return [entity]
-              return old.map(item =>
-                item.id === context.optimisticEntity.id ? entity : item
-              )
-            }
-          )
+          queryClient.setQueriesData({ queryKey: queryKeys.lists() }, (old: TEntity[] | undefined) => {
+            if (!old) return [entity]
+            return old.map((item) => (item.id === context.optimisticEntity.id ? entity : item))
+          })
         }
 
         // Set the detail query
         queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
 
-        const message = typeof resolvedMessages.createSuccess === 'function'
-          ? resolvedMessages.createSuccess(entity)
-          : resolvedMessages.createSuccess
+        const message =
+          typeof resolvedMessages.createSuccess === 'function'
+            ? resolvedMessages.createSuccess(entity)
+            : resolvedMessages.createSuccess
         toast.success(message)
       },
       onSettled: () => {
@@ -390,13 +389,10 @@ export function createCrudHooks<
               queryClient.setQueryData(queryKeys.detail(id), updatedEntity)
 
               // Update in all lists
-              queryClient.setQueriesData(
-                { queryKey: queryKeys.lists() },
-                (old: TEntity[] | undefined) => {
-                  if (!old) return undefined
-                  return old.map(item => (item.id === id ? updatedEntity : item))
-                }
-              )
+              queryClient.setQueriesData({ queryKey: queryKeys.lists() }, (old: TEntity[] | undefined) => {
+                if (!old) return undefined
+                return old.map((item) => (item.id === id ? updatedEntity : item))
+              })
             }
 
             return { previousEntity, previousLists }
@@ -414,18 +410,20 @@ export function createCrudHooks<
           })
         }
 
-        const message = typeof resolvedMessages.updateError === 'function'
-          ? resolvedMessages.updateError(error)
-          : resolvedMessages.updateError
+        const message =
+          typeof resolvedMessages.updateError === 'function'
+            ? resolvedMessages.updateError(error)
+            : resolvedMessages.updateError
         toast.error(message)
       },
       onSuccess: (entity, variables: any) => {
         const { id } = variables
         queryClient.setQueryData(queryKeys.detail(id), entity)
 
-        const message = typeof resolvedMessages.updateSuccess === 'function'
-          ? resolvedMessages.updateSuccess(entity)
-          : resolvedMessages.updateSuccess
+        const message =
+          typeof resolvedMessages.updateSuccess === 'function'
+            ? resolvedMessages.updateSuccess(entity)
+            : resolvedMessages.updateSuccess
         toast.success(message)
       },
       onSettled: (data, error, variables: any) => {
@@ -453,23 +451,15 @@ export function createCrudHooks<
 
             // Apply delete strategy
             if (optimistic.deleteStrategy === 'remove') {
-              queryClient.setQueriesData(
-                { queryKey: queryKeys.lists() },
-                (old: TEntity[] | undefined) => {
-                  if (!old) return undefined
-                  return old.filter(item => item.id !== id)
-                }
-              )
+              queryClient.setQueriesData({ queryKey: queryKeys.lists() }, (old: TEntity[] | undefined) => {
+                if (!old) return undefined
+                return old.filter((item) => item.id !== id)
+              })
             } else if (optimistic.deleteStrategy === 'mark') {
-              queryClient.setQueriesData(
-                { queryKey: queryKeys.lists() },
-                (old: TEntity[] | undefined) => {
-                  if (!old) return undefined
-                  return old.map(item =>
-                    item.id === id ? { ...item, deleted: true } as TEntity : item
-                  )
-                }
-              )
+              queryClient.setQueriesData({ queryKey: queryKeys.lists() }, (old: TEntity[] | undefined) => {
+                if (!old) return undefined
+                return old.map((item) => (item.id === id ? ({ ...item, deleted: true } as TEntity) : item))
+              })
             }
 
             return { previousLists, deletedId: id }
@@ -483,9 +473,10 @@ export function createCrudHooks<
           })
         }
 
-        const message = typeof resolvedMessages.deleteError === 'function'
-          ? resolvedMessages.deleteError(error)
-          : resolvedMessages.deleteError
+        const message =
+          typeof resolvedMessages.deleteError === 'function'
+            ? resolvedMessages.deleteError(error)
+            : resolvedMessages.deleteError
         toast.error(message)
       },
       onSuccess: (data, variables: any) => {
@@ -519,7 +510,7 @@ export function createCrudHooks<
       },
       onSuccess: (entities) => {
         // Add all entities to cache
-        entities.forEach(entity => {
+        entities.forEach((entity) => {
           queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
         })
         toast.success(`Created ${entities.length} ${entityName}s`)
@@ -534,9 +525,7 @@ export function createCrudHooks<
     })
   }
 
-  function useBatchUpdate(
-    options?: UseMutationOptions<TEntity[], ApiError, Array<{ id: number; data: TUpdate }>>
-  ) {
+  function useBatchUpdate(options?: UseMutationOptions<TEntity[], ApiError, Array<{ id: number; data: TUpdate }>>) {
     const queryClient = useQueryClient()
     const client = useApiClient()
 
@@ -550,7 +539,7 @@ export function createCrudHooks<
         return apiClient.batchUpdate!(client, updates)
       },
       onSuccess: (entities) => {
-        entities.forEach(entity => {
+        entities.forEach((entity) => {
           queryClient.setQueryData(queryKeys.detail(Number(entity.id)), entity)
         })
         toast.success(`Updated ${entities.length} ${entityName}s`)
@@ -579,7 +568,7 @@ export function createCrudHooks<
         return apiClient.batchDelete!(client, ids)
       },
       onSuccess: (_, ids) => {
-        ids.forEach(id => {
+        ids.forEach((id) => {
           queryClient.removeQueries({ queryKey: queryKeys.detail(id) })
         })
         toast.success(`Deleted ${ids.length} ${entityName}s`)
@@ -678,21 +667,21 @@ export function createCrudHooks<
   // ============================================================================
   // Custom Hook Creator for Specialized Operations
   // ============================================================================
-  
+
   function createCustomHook<T = any>(
     operation: string,
     queryFn: (client: any, ...args: any[]) => Promise<T>,
     options?: {
-      queryKey?: ((...args: any[]) => readonly unknown[])
+      queryKey?: (...args: any[]) => readonly unknown[]
       polling?: PollingConfig
       staleTime?: number
     }
   ) {
     const operationPolling = polling.custom?.[operation] || options?.polling
-    
+
     return (...args: any[]) => {
       const client = useApiClient()
-      
+
       return useQuery({
         queryKey: options?.queryKey
           ? options.queryKey(...args)
@@ -705,10 +694,11 @@ export function createCrudHooks<
         staleTime: options?.staleTime ?? staleTime,
         gcTime: cacheTime,
         // Apply polling configuration - simplified for type safety
-        ...(operationPolling?.enabled && typeof operationPolling.interval === 'number' && {
-          refetchInterval: operationPolling.interval,
-          refetchIntervalInBackground: operationPolling.refetchInBackground ?? false
-        })
+        ...(operationPolling?.enabled &&
+          typeof operationPolling.interval === 'number' && {
+            refetchInterval: operationPolling.interval,
+            refetchIntervalInBackground: operationPolling.refetchInBackground ?? false
+          })
       })
     }
   }
@@ -722,24 +712,24 @@ export function createCrudHooks<
     useList,
     useGetById,
     useInfiniteList,
-    
+
     // Mutation hooks
     useCreate,
     useUpdate,
     useDelete,
-    
+
     // Batch operations
     useBatchCreate,
     useBatchUpdate,
     useBatchDelete,
-    
+
     // Utilities
     usePrefetch,
     useInvalidate,
-    
+
     // Custom hook creator
     createCustomHook,
-    
+
     // Metadata
     queryKeys,
     entityName,
@@ -766,7 +756,7 @@ function invalidateQueries(
   } else if (strategy === 'detail' && entityId) {
     queryClient.invalidateQueries({ queryKey: queryKeys.detail(entityId) })
   } else if (Array.isArray(strategy)) {
-    strategy.forEach(key => {
+    strategy.forEach((key) => {
       queryClient.invalidateQueries({ queryKey: key as any })
     })
   }
@@ -776,8 +766,4 @@ function invalidateQueries(
 // Re-export types for convenience
 // ============================================================================
 
-export type {
-  UseQueryOptions,
-  UseMutationOptions,
-  UseInfiniteQueryOptions
-} from '@tanstack/react-query'
+export type { UseQueryOptions, UseMutationOptions, UseInfiniteQueryOptions } from '@tanstack/react-query'

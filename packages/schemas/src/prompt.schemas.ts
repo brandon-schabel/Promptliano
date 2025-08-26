@@ -12,16 +12,18 @@ import {
 import type { Prompt as DatabasePrompt } from '@promptliano/database'
 
 // Recreate schema locally to avoid runtime imports from database package
-export const PromptSchema = z.object({
-  id: z.number(),
-  projectId: z.number(),
-  title: z.string(),
-  content: z.string(),
-  description: z.string().nullable(),
-  tags: z.array(z.string()),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('Prompt')
+export const PromptSchema = z
+  .object({
+    id: z.number(),
+    projectId: z.number(),
+    title: z.string(),
+    content: z.string(),
+    description: z.string().nullable(),
+    tags: z.array(z.string()),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('Prompt')
 
 // Type verification to ensure schema matches database type
 const _promptTypeCheck: z.infer<typeof PromptSchema> = {} as DatabasePrompt
@@ -31,21 +33,23 @@ export const CreatePromptBodySchema = PromptSchema.pick({
   title: true,
   content: true,
   projectId: true
-}).extend({
-  projectId: entityIdOptionalSchema,
-  title: z.string().min(1).openapi({ example: 'My New Prompt' }),
-  content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
-}).openapi('CreatePromptRequestBody')
+})
+  .extend({
+    projectId: entityIdOptionalSchema,
+    title: z.string().min(1).openapi({ example: 'My New Prompt' }),
+    content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
+  })
+  .openapi('CreatePromptRequestBody')
 
 export const UpdatePromptBodySchema = CreatePromptBodySchema.pick({
   title: true,
   content: true
-}).partial().refine(
-  (data) => data.title || data.content,
-  {
+})
+  .partial()
+  .refine((data) => data.title || data.content, {
     message: 'At least one of title or content must be provided for update'
-  }
-).openapi('UpdatePromptRequestBody')
+  })
+  .openapi('UpdatePromptRequestBody')
 
 // --- Request Parameter Schemas ---
 export const PromptIdParamsSchema = z

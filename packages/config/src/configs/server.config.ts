@@ -63,7 +63,5 @@ export const serverConfig: ServerConfig = {
   prodPort: PROD_PORT,
   clientPort: CLIENT_PORT,
   clientUrl: getEnvVar('CLIENT_URL', `http://localhost:${CLIENT_PORT}`) || `http://localhost:${CLIENT_PORT}`,
-  apiUrl:
-    getEnvVar('API_URL', `http://localhost:${serverPort}`) ||
-    `http://localhost:${serverPort}`
+  apiUrl: getEnvVar('API_URL', `http://localhost:${serverPort}`) || `http://localhost:${serverPort}`
 }

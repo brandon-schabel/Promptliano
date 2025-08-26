@@ -5,10 +5,7 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import {
-  gitStashSchema as GitStashSchema,
-  ProjectIdParamsSchema
-} from '@promptliano/schemas'
+import { gitStashSchema as GitStashSchema, ProjectIdParamsSchema } from '@promptliano/schemas'
 
 // Define missing schemas locally
 const CreateStashBodySchema = z.object({
@@ -27,14 +24,22 @@ const DropStashBodySchema = z.object({
   stashRef: z.string().optional().default('stash@{0}')
 })
 import { stashList, stash, clearGitStatusCache, stashApply, stashPop, stashDrop } from '@promptliano/services'
-import { createStandardResponses, createStandardResponsesWithStatus, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  createRouteHandler,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 import type { Context } from 'hono'
 
 // Response schemas
-const StashListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(GitStashSchema)
-}).openapi('StashListResponse')
+const StashListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(GitStashSchema)
+  })
+  .openapi('StashListResponse')
 
 // Get stash list
 const getStashListRoute = createRoute({
@@ -63,11 +68,7 @@ const createStashRoute = createRoute({
       required: false
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    201,
-    'Stash created successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 201, 'Stash created successfully')
 })
 
 // Apply stash

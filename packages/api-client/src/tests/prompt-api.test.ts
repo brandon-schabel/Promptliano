@@ -13,7 +13,7 @@ describe('Prompt API Tests', () => {
 
   beforeAll(async () => {
     console.log('Starting Prompt API Tests...')
-    
+
     // Ensure we're in test environment
     if (process.env.NODE_ENV !== 'test') {
       throw new Error('Tests must run in NODE_ENV=test environment')

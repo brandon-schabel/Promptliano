@@ -153,11 +153,13 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
     // Add individual file resources (limit to first 20 for performance)
     const fileResources = (files || []).slice(0, 20).map((file) => {
       // Extract extension from file path
-      const extension = file.extension || (() => {
-        const pathParts = file.path.split('.')
-        return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
-      })()
-      
+      const extension =
+        file.extension ||
+        (() => {
+          const pathParts = file.path.split('.')
+          return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+        })()
+
       return {
         uri: `promptliano://projects/${projectId}/files/${file.id}`,
         name: file.name,
@@ -283,10 +285,12 @@ For more information, visit: https://github.com/Ejb503/promptliano`
           }
 
           // Extract extension from file path
-          const extension = file.extension || (() => {
-            const pathParts = file.path.split('.')
-            return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
-          })()
+          const extension =
+            file.extension ||
+            (() => {
+              const pathParts = file.path.split('.')
+              return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+            })()
 
           return {
             contents: [

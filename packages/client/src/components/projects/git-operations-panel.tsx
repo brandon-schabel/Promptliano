@@ -129,11 +129,14 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
 
         <div className='flex flex-wrap gap-4 text-sm'>
           <div className='flex items-center gap-1'>
-            <span className='text-green-600'>{data.files?.filter((f: GitFileStatus) => f.staged).length || 0} staged</span>
+            <span className='text-green-600'>
+              {data.files?.filter((f: GitFileStatus) => f.staged).length || 0} staged
+            </span>
           </div>
           <div className='flex items-center gap-1'>
             <span className='text-yellow-600'>
-              {data.files?.filter((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored').length || 0}{' '}
+              {data.files?.filter((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored')
+                .length || 0}{' '}
               unstaged
             </span>
           </div>
@@ -146,8 +149,9 @@ export function GitOperationsPanel({ projectId, className }: GitOperationsPanelP
             variant='outline'
             onClick={handleStageAll}
             disabled={
-              !data.files?.some((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored') ||
-              stageFiles.isPending
+              !data.files?.some(
+                (f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored'
+              ) || stageFiles.isPending
             }
           >
             <Plus className='h-3 w-3 mr-1' />

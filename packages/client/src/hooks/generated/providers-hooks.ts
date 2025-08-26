@@ -1,7 +1,7 @@
 /**
  * Generated Providers Hooks - Factory Pattern Implementation
  * Migrated from use-providers-api.ts with factory-based patterns
- * 
+ *
  * Replaces 277 lines of manual provider hook code with factory-based patterns
  * Maintains all validation, health checks, and testing functionality
  */
@@ -10,11 +10,7 @@ import { useApiClient } from '../api/use-api-client'
 import { createCrudHooks } from '../factories/crud-hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type {
-  CreateProviderKey,
-  UpdateProviderKey,
-  ProviderKeySchema
-} from '@promptliano/database'
+import type { CreateProviderKey, UpdateProviderKey, ProviderKeySchema } from '@promptliano/database'
 
 // Extract proper TypeScript types from schemas
 type CreateProviderKeyBody = CreateProviderKey
@@ -133,7 +129,7 @@ export const useDeleteProviderKey = providerHooks.useDelete
  */
 export function useGetProvidersHealth(refresh = false) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: PROVIDERS_ENHANCED_KEYS.health(),
     queryFn: async (): Promise<DataResponseSchema<ProviderHealthStatus[]>> => {
@@ -163,9 +159,9 @@ const isValidTestProviderResponse = (response: unknown): response is DataRespons
   if (typeof response !== 'object' || response === null) {
     return false
   }
-  
+
   const responseObj = response as Record<string, unknown>
-  
+
   return (
     'data' in responseObj &&
     typeof responseObj.data === 'object' &&
@@ -175,13 +171,15 @@ const isValidTestProviderResponse = (response: unknown): response is DataRespons
   )
 }
 
-const isValidBatchTestProviderResponse = (response: unknown): response is DataResponseSchema<BatchTestProviderResponse> => {
+const isValidBatchTestProviderResponse = (
+  response: unknown
+): response is DataResponseSchema<BatchTestProviderResponse> => {
   if (typeof response !== 'object' || response === null) {
     return false
   }
-  
+
   const responseObj = response as Record<string, unknown>
-  
+
   return (
     'data' in responseObj &&
     typeof responseObj.data === 'object' &&
@@ -207,7 +205,7 @@ export function useTestProvider() {
         throw new Error('Provider testing not supported by this version of the API')
       }
       const response = await client.keys.testProvider(data)
-      
+
       // Map API response to expected schema format
       return {
         ...response,
@@ -215,7 +213,7 @@ export function useTestProvider() {
           ...response.data,
           latency: response.data.responseTime || 0,
           providerId: data.providerId,
-          models: response.data.models?.map(model => ({
+          models: response.data.models?.map((model) => ({
             ...model,
             provider: response.data.provider,
             contextLength: undefined,
@@ -230,7 +228,7 @@ export function useTestProvider() {
         toast.error('Invalid response format from provider test')
         return
       }
-      
+
       const testData = response.data
       if (testData.success) {
         toast.success('Provider connected successfully')
@@ -262,7 +260,7 @@ export function useBatchTestProviders() {
         throw new Error('Batch provider testing not supported by this version of the API')
       }
       const response = await client.keys.batchTestProviders(data)
-      
+
       // Map API response to expected schema format
       return {
         ...response,
@@ -293,7 +291,7 @@ export function useBatchTestProviders() {
         toast.error('Invalid response format from batch provider test')
         return
       }
-      
+
       const testData = response.data
       const results = testData.results
       const successCount = results.filter((r: TestProviderResponse) => r.success).length

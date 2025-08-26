@@ -2,14 +2,14 @@
 /**
  * AUTO-GENERATED ADVANCED REACT QUERY HOOKS
  * Generated at: 2025-08-23T20:26:54.232Z
- * 
+ *
  * Uses the CRUD Hook Factory for advanced features:
  * ✅ Optimistic updates
- * ✅ Batch operations  
+ * ✅ Batch operations
  * ✅ Smart caching
  * ✅ Prefetching
  * ✅ Error handling
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
@@ -53,15 +53,15 @@ export const queryKeys = {
     lists: () => ['projects', 'list'] as const,
     list: (params?: any) => ['projects', 'list', params] as const,
     details: () => ['projects', 'detail'] as const,
-    detail: (id: number) => ['projects', 'detail', id] as const,
+    detail: (id: number) => ['projects', 'detail', id] as const
   },
   chats: {
     all: ['chats'] as const,
     lists: () => ['chats', 'list'] as const,
     list: (params?: any) => ['chats', 'list', params] as const,
     details: () => ['chats', 'detail'] as const,
-    detail: (id: number) => ['chats', 'detail', id] as const,
-  },
+    detail: (id: number) => ['chats', 'detail', id] as const
+  }
 } as const
 
 // =============================================================================
@@ -167,7 +167,7 @@ const projectHooks = createCrudHooks({
 // export function useInvalidateAll() {
 //   const projectInvalidate = useProjectInvalidate()
 //   const chatInvalidate = useChatInvalidate()
-//   
+//
 //   return () => {
 //     projectInvalidate.invalidateAll()
 //     chatInvalidate.invalidateAll()

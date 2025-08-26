@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { useGetModels, useGetProviders } from '@/hooks/api-hooks'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
-import { 
+import {
   isValidProviderKey,
   isValidModelsResponse,
   validateModelsArray,
@@ -50,7 +50,7 @@ export function ProviderModelSelector({
 }: ProviderModelSelectorProps) {
   // Get app settings for provider URLs
   const [appSettings] = useAppSettings()
-  
+
   // Get all available providers (predefined + custom)
   const { data: providersData } = useGetProviders()
 
@@ -78,20 +78,20 @@ export function ProviderModelSelector({
         { value: 'ollama', label: 'Ollama' }
       ]
     }
-    
+
     // Validate and transform provider data with type safety
-    const allProviders = (Array.isArray(providersData) ? providersData : [])
-      .filter(isValidProviderKey)
-      .map((p: ProviderKey): ComboboxOption => ({
+    const allProviders = (Array.isArray(providersData) ? providersData : []).filter(isValidProviderKey).map(
+      (p: ProviderKey): ComboboxOption => ({
         value: p.id?.toString() || p.provider,
         label: p.name || p.provider
-      }))
-    
+      })
+    )
+
     // Apply filter if specified
     if (filterProviders && filterProviders.length > 0) {
       return allProviders.filter((option: ComboboxOption) => filterProviders.includes(option.value as APIProviders))
     }
-    
+
     return allProviders
   }, [providersData, filterProviders])
 
@@ -104,7 +104,7 @@ export function ProviderModelSelector({
     try {
       // Use comprehensive validation with detailed error handling
       const validationResult = validateModelsArray(modelsData)
-      
+
       if (!validationResult.success) {
         console.warn(`Model data validation failed: ${validationResult.error} at ${validationResult.path}`)
         return []
@@ -116,10 +116,12 @@ export function ProviderModelSelector({
         filteredModels = filteredModels.filter(filterModels)
       }
 
-      return filteredModels.map((m: ValidatedModelData): ComboboxOption => ({
-        value: m.id,
-        label: m.name
-      }))
+      return filteredModels.map(
+        (m: ValidatedModelData): ComboboxOption => ({
+          value: m.id,
+          label: m.name
+        })
+      )
     } catch (error) {
       console.error('Error processing model data:', extractErrorMessage(error))
       return []

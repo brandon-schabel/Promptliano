@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'bun:test'
-import { 
-  unixTimestampSchema, 
-  parseUnixTimestamp, 
+import {
+  unixTimestampSchema,
+  parseUnixTimestamp,
   safeParseUnixTimestamp,
   type UnixTimestampInput,
-  type UnixTimestampOutput 
+  type UnixTimestampOutput
 } from './unix-ts-utils'
 import { z } from 'zod'
 
@@ -62,7 +62,7 @@ describe('unix-ts-utils', () => {
         const result = unixTimestampSchema.parse(secondsValue)
         expect(result).toBe(secondsValue * 1000) // Should be treated as seconds
 
-        const millisecondsValue = 1500000000000 // July 2017 in milliseconds  
+        const millisecondsValue = 1500000000000 // July 2017 in milliseconds
         const result2 = unixTimestampSchema.parse(millisecondsValue)
         expect(result2).toBe(millisecondsValue) // Should remain as milliseconds
       })
@@ -77,15 +77,9 @@ describe('unix-ts-utils', () => {
       })
 
       test('parses various date string formats', () => {
-        const formats = [
-          '2021-01-01',
-          '2021/01/01',
-          'January 1, 2021',
-          '01 Jan 2021',
-          '2021-01-01T12:00:00Z'
-        ]
+        const formats = ['2021-01-01', '2021/01/01', 'January 1, 2021', '01 Jan 2021', '2021-01-01T12:00:00Z']
 
-        formats.forEach(format => {
+        formats.forEach((format) => {
           expect(() => unixTimestampSchema.parse(format)).not.toThrow()
         })
       })
@@ -111,7 +105,7 @@ describe('unix-ts-utils', () => {
           ''
         ]
 
-        invalidStrings.forEach(str => {
+        invalidStrings.forEach((str) => {
           if (str === '') {
             // Empty string parses to 0 (Unix epoch)
             const result = unixTimestampSchema.parse(str)
@@ -165,7 +159,7 @@ describe('unix-ts-utils', () => {
 
       test('works with optional schema', () => {
         const optionalSchema = unixTimestampSchema.optional()
-        
+
         const result1 = optionalSchema.parse(undefined)
         expect(result1).toBeUndefined()
 
@@ -175,7 +169,7 @@ describe('unix-ts-utils', () => {
 
       test('works with nullable schema', () => {
         const nullableSchema = unixTimestampSchema.nullable()
-        
+
         const result1 = nullableSchema.parse(null)
         expect(result1).toBeNull()
 
@@ -207,16 +201,9 @@ describe('unix-ts-utils', () => {
       })
 
       test('rejects non-date inputs', () => {
-        const invalidInputs = [
-          {},
-          [],
-          true,
-          false,
-          Symbol('test'),
-          () => {}
-        ]
+        const invalidInputs = [{}, [], true, false, Symbol('test'), () => {}]
 
-        invalidInputs.forEach(input => {
+        invalidInputs.forEach((input) => {
           expect(() => unixTimestampSchema.parse(input)).toThrow()
         })
       })
@@ -266,7 +253,7 @@ describe('unix-ts-utils', () => {
   describe('safeParseUnixTimestamp', () => {
     test('returns success result for valid input', () => {
       const result = safeParseUnixTimestamp(1609459200000)
-      
+
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data).toBe(1609459200000)
@@ -275,7 +262,7 @@ describe('unix-ts-utils', () => {
 
     test('returns error result for invalid input', () => {
       const result = safeParseUnixTimestamp('invalid-date')
-      
+
       expect(result.success).toBe(false)
       if (!result.success) {
         expect(result.error).toBeInstanceOf(z.ZodError)
@@ -284,24 +271,16 @@ describe('unix-ts-utils', () => {
     })
 
     test('handles all input types safely', () => {
-      const validInputs = [
-        1609459200000,
-        '2021-01-01',
-        new Date('2021-01-01')
-      ]
+      const validInputs = [1609459200000, '2021-01-01', new Date('2021-01-01')]
 
-      validInputs.forEach(input => {
+      validInputs.forEach((input) => {
         const result = safeParseUnixTimestamp(input)
         expect(result.success).toBe(true)
       })
 
-      const invalidInputs = [
-        'not-a-date',
-        -1000,
-        new Date('invalid')
-      ]
+      const invalidInputs = ['not-a-date', -1000, new Date('invalid')]
 
-      invalidInputs.forEach(input => {
+      invalidInputs.forEach((input) => {
         const result = safeParseUnixTimestamp(input)
         expect(result.success).toBe(false)
       })
@@ -309,7 +288,7 @@ describe('unix-ts-utils', () => {
 
     test('preserves error details', () => {
       const result = safeParseUnixTimestamp(new Date('2051-01-01'))
-      
+
       expect(result.success).toBe(false)
       if (!result.success) {
         const issue = result.error.issues[0]
@@ -352,7 +331,7 @@ describe('unix-ts-utils', () => {
         '1609459200' // String timestamps
       ]
 
-      dbTimestamps.forEach(ts => {
+      dbTimestamps.forEach((ts) => {
         const result = parseUnixTimestamp(ts)
         expect(result).toBe(1609459200000)
       })
@@ -399,11 +378,11 @@ describe('unix-ts-utils', () => {
       const dates = [
         '2021-01-01T00:00:00+00:00', // UTC
         '2021-01-01T08:00:00+08:00', // UTC+8
-        '2020-12-31T16:00:00-08:00', // UTC-8 (same moment)
+        '2020-12-31T16:00:00-08:00' // UTC-8 (same moment)
       ]
 
-      const results = dates.map(d => parseUnixTimestamp(d))
-      
+      const results = dates.map((d) => parseUnixTimestamp(d))
+
       // All should be the same UTC timestamp
       expect(results[0]).toBe(1609459200000)
       expect(results[1]).toBe(1609459200000)

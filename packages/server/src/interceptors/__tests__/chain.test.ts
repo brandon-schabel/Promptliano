@@ -1,12 +1,7 @@
 import { describe, expect, it, beforeEach, mock } from 'bun:test'
 import { InterceptorChain, createInterceptorChain } from '../chain'
 import { DefaultInterceptorRegistry } from '../registry'
-import { 
-  type Interceptor, 
-  type InterceptorContext,
-  type InterceptorChainConfig,
-  InterceptorError
-} from '../types'
+import { type Interceptor, type InterceptorContext, type InterceptorChainConfig, InterceptorError } from '../types'
 import type { Context } from 'hono'
 
 describe('InterceptorChain', () => {
@@ -18,18 +13,18 @@ describe('InterceptorChain', () => {
   beforeEach(() => {
     registry = new DefaultInterceptorRegistry()
     chain = new InterceptorChain(registry)
-    
+
     mockContext = {
       req: {
         method: 'GET',
         path: '/api/test',
-        header: mock(() => undefined),
+        header: mock(() => undefined)
       },
       res: { status: 200 },
       set: mock(),
       get: mock(),
       json: mock(() => ({ success: true })),
-      header: mock(),
+      header: mock()
     } as unknown as Context
 
     interceptorContext = {
@@ -57,7 +52,7 @@ describe('InterceptorChain', () => {
     it('should execute enabled interceptors in order', async () => {
       const interceptor1 = createMockInterceptor({ name: 'first', order: 10 })
       const interceptor2 = createMockInterceptor({ name: 'second', order: 20 })
-      
+
       registry.register(interceptor1)
       registry.register(interceptor2)
 
@@ -71,11 +66,11 @@ describe('InterceptorChain', () => {
 
     it('should skip disabled interceptors', async () => {
       const enabledInterceptor = createMockInterceptor({ name: 'enabled' })
-      const disabledInterceptor = createMockInterceptor({ 
-        name: 'disabled', 
-        enabled: false 
+      const disabledInterceptor = createMockInterceptor({
+        name: 'disabled',
+        enabled: false
       })
-      
+
       registry.register(enabledInterceptor)
       registry.register(disabledInterceptor)
 
@@ -88,16 +83,16 @@ describe('InterceptorChain', () => {
     })
 
     it('should execute interceptors in dependency order', async () => {
-      const baseInterceptor = createMockInterceptor({ 
-        name: 'base', 
-        order: 20 
+      const baseInterceptor = createMockInterceptor({
+        name: 'base',
+        order: 20
       })
-      const dependentInterceptor = createMockInterceptor({ 
+      const dependentInterceptor = createMockInterceptor({
         name: 'dependent',
         order: 10, // Lower order, but should run after base due to dependency
         dependencies: ['base']
       })
-      
+
       registry.register(baseInterceptor)
       registry.register(dependentInterceptor)
 
@@ -115,18 +110,17 @@ describe('InterceptorChain', () => {
           throw new Error('Interceptor failed')
         })
       })
-      
+
       registry.register(failingInterceptor)
 
-      await expect(chain.execute('request', mockContext, interceptorContext))
-        .rejects.toThrow(InterceptorError)
+      await expect(chain.execute('request', mockContext, interceptorContext)).rejects.toThrow(InterceptorError)
     })
 
     it('should continue on error when configured', async () => {
-      const chainWithContinueOnError = new InterceptorChain(registry, { 
-        continueOnError: true 
+      const chainWithContinueOnError = new InterceptorChain(registry, {
+        continueOnError: true
       })
-      
+
       const failingInterceptor = createMockInterceptor({
         name: 'failing',
         handler: mock(async () => {
@@ -137,7 +131,7 @@ describe('InterceptorChain', () => {
         name: 'success',
         order: 20
       })
-      
+
       registry.register(failingInterceptor)
       registry.register(successInterceptor)
 
@@ -151,11 +145,11 @@ describe('InterceptorChain', () => {
       const interceptor = createMockInterceptor({
         handler: mock(async (ctx, interceptorCtx, next) => {
           // Simulate some work
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 10))
           await next()
         })
       })
-      
+
       registry.register(interceptor)
 
       const result = await chain.execute('request', mockContext, interceptorContext)
@@ -168,30 +162,29 @@ describe('InterceptorChain', () => {
       const slowInterceptor = createMockInterceptor({
         handler: mock(async (ctx, interceptorCtx, next) => {
           // Simulate slow operation
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           await next()
         })
       })
-      
+
       registry.register(slowInterceptor)
-      
+
       const fastChain = new InterceptorChain(registry, { timeoutMs: 50 })
 
-      await expect(fastChain.execute('request', mockContext, interceptorContext))
-        .rejects.toThrow('timed out')
+      await expect(fastChain.execute('request', mockContext, interceptorContext)).rejects.toThrow('timed out')
     })
 
     it('should filter interceptors by route and method', async () => {
       const allRoutesInterceptor = createMockInterceptor({ name: 'all-routes' })
-      const apiOnlyInterceptor = createMockInterceptor({ 
+      const apiOnlyInterceptor = createMockInterceptor({
         name: 'api-only',
         routes: ['/api/*']
       })
-      const postOnlyInterceptor = createMockInterceptor({ 
+      const postOnlyInterceptor = createMockInterceptor({
         name: 'post-only',
         methods: ['POST']
       })
-      
+
       registry.register(allRoutesInterceptor)
       registry.register(apiOnlyInterceptor)
       registry.register(postOnlyInterceptor)
@@ -205,20 +198,19 @@ describe('InterceptorChain', () => {
     })
 
     it('should handle circular dependencies', async () => {
-      const interceptor1 = createMockInterceptor({ 
+      const interceptor1 = createMockInterceptor({
         name: 'interceptor1',
         dependencies: ['interceptor2']
       })
-      const interceptor2 = createMockInterceptor({ 
+      const interceptor2 = createMockInterceptor({
         name: 'interceptor2',
         dependencies: ['interceptor1']
       })
-      
+
       registry.register(interceptor1)
       registry.register(interceptor2)
 
-      await expect(chain.execute('request', mockContext, interceptorContext))
-        .rejects.toThrow('Circular dependency')
+      await expect(chain.execute('request', mockContext, interceptorContext)).rejects.toThrow('Circular dependency')
     })
   })
 
@@ -266,8 +258,7 @@ describe('InterceptorChain', () => {
       const middleware = chain.createMiddleware('request')
       const mockNext = mock(async () => {})
 
-      await expect(middleware(mockContext, mockNext))
-        .rejects.toThrow(InterceptorError)
+      await expect(middleware(mockContext, mockNext)).rejects.toThrow(InterceptorError)
     })
   })
 
@@ -289,7 +280,7 @@ describe('InterceptorChain', () => {
 
     it('should return current configuration', () => {
       const config = chain.getConfig()
-      
+
       expect(config).toHaveProperty('continueOnError')
       expect(config).toHaveProperty('timeoutMs')
       expect(config).toHaveProperty('enableMetrics')
@@ -302,7 +293,7 @@ describe('createInterceptorChain', () => {
   it('should create new chain instance', () => {
     const registry = new DefaultInterceptorRegistry()
     const chain = createInterceptorChain(registry)
-    
+
     expect(chain).toBeInstanceOf(InterceptorChain)
   })
 
@@ -310,7 +301,7 @@ describe('createInterceptorChain', () => {
     const registry = new DefaultInterceptorRegistry()
     const config = { continueOnError: true, timeoutMs: 1000 }
     const chain = createInterceptorChain(registry, config)
-    
+
     expect(chain.getConfig().continueOnError).toBe(true)
     expect(chain.getConfig().timeoutMs).toBe(1000)
   })

@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED REACT QUERY PROVIDER
  * Generated at: 2025-08-22T23:54:01.428Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
@@ -16,12 +16,12 @@ export const queryClient = new QueryClient({
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime)
+      gcTime: 10 * 60 * 1000 // 10 minutes (was cacheTime)
     },
     mutations: {
-      retry: 1,
-    },
-  },
+      retry: 1
+    }
+  }
 })
 
 interface ApiProviderProps {
@@ -33,10 +33,10 @@ interface ApiProviderProps {
 /**
  * Provider component that sets up React Query and the API client
  */
-export function ApiProvider({ 
-  children, 
+export function ApiProvider({
+  children,
   baseUrl,
-  enableDevtools = process.env.NODE_ENV === 'development' 
+  enableDevtools = process.env.NODE_ENV === 'development'
 }: ApiProviderProps) {
   // Note: API client initialization would be handled by the consumer
   // of this library by creating their own instance of ApiClient

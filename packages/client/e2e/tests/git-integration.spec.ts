@@ -59,11 +59,11 @@ test.describe('Git Integration - UI Testing', () => {
 
     test('should navigate between git views', async () => {
       const gitSidebar = appPage.page.locator('[data-testid="git-sidebar"], .git-sidebar')
-      
+
       // Test navigation to History view
       await gitSidebar.locator('button:has-text("History")').click()
       await appPage.waitForLoadingComplete()
-      
+
       // Should show some git history interface
       const historyView = appPage.page.locator('[data-testid="git-history"], .git-history, .commit-list')
       if (await historyView.isVisible()) {
@@ -73,7 +73,7 @@ test.describe('Git Integration - UI Testing', () => {
       // Test navigation to Branches view
       await gitSidebar.locator('button:has-text("Branches")').click()
       await appPage.waitForLoadingComplete()
-      
+
       const branchesView = appPage.page.locator('[data-testid="git-branches"], .git-branches, text="Branches"')
       if (await branchesView.isVisible()) {
         await expect(branchesView).toBeVisible()
@@ -83,7 +83,10 @@ test.describe('Git Integration - UI Testing', () => {
 
   test.describe('Git Changes View', () => {
     test.beforeEach(async () => {
-      await appPage.page.locator('[data-testid="git-sidebar"], .git-sidebar').locator('button:has-text("Changes")').click()
+      await appPage.page
+        .locator('[data-testid="git-sidebar"], .git-sidebar')
+        .locator('button:has-text("Changes")')
+        .click()
       await appPage.waitForLoadingComplete()
     })
 
@@ -97,11 +100,15 @@ test.describe('Git Integration - UI Testing', () => {
 
     test('should show staged and unstaged sections', async () => {
       // Check for unstaged changes section
-      const unstagedSection = appPage.page.locator('[data-testid="unstaged-changes"], .unstaged-changes, text="Unstaged Changes"')
+      const unstagedSection = appPage.page.locator(
+        '[data-testid="unstaged-changes"], .unstaged-changes, text="Unstaged Changes"'
+      )
       await expect(unstagedSection).toBeVisible()
 
       // Check for staged changes section
-      const stagedSection = appPage.page.locator('[data-testid="staged-changes"], .staged-changes, text="Staged Changes"')
+      const stagedSection = appPage.page.locator(
+        '[data-testid="staged-changes"], .staged-changes, text="Staged Changes"'
+      )
       await expect(stagedSection).toBeVisible()
     })
 
@@ -109,11 +116,13 @@ test.describe('Git Integration - UI Testing', () => {
       const commitSection = appPage.page.locator('[data-testid="commit-section"], .commit-section')
       if (await commitSection.isVisible()) {
         await expect(commitSection).toBeVisible()
-        
+
         // Check for commit message input
-        const commitTextarea = appPage.page.locator('[data-testid="commit-message"], textarea[placeholder*="Commit message"]')
+        const commitTextarea = appPage.page.locator(
+          '[data-testid="commit-message"], textarea[placeholder*="Commit message"]'
+        )
         await expect(commitTextarea).toBeVisible()
-        
+
         // Check for commit button
         const commitButton = appPage.page.locator('[data-testid="commit-button"], button:has-text("Commit")')
         await expect(commitButton).toBeVisible()
@@ -123,12 +132,17 @@ test.describe('Git Integration - UI Testing', () => {
 
   test.describe('Git History View', () => {
     test('should display commit history interface', async () => {
-      await appPage.page.locator('[data-testid="git-sidebar"], .git-sidebar').locator('button:has-text("History")').click()
+      await appPage.page
+        .locator('[data-testid="git-sidebar"], .git-sidebar')
+        .locator('button:has-text("History")')
+        .click()
       await appPage.waitForLoadingComplete()
 
       // Look for history interface elements
-      const historyElements = appPage.page.locator('[data-testid="commit-list"], .commit-list, .commit-card, text=/commit|history/')
-      if (await historyElements.count() > 0) {
+      const historyElements = appPage.page.locator(
+        '[data-testid="commit-list"], .commit-list, .commit-card, text=/commit|history/'
+      )
+      if ((await historyElements.count()) > 0) {
         await expect(historyElements.first()).toBeVisible()
       }
     })
@@ -136,12 +150,17 @@ test.describe('Git Integration - UI Testing', () => {
 
   test.describe('Git Branches View', () => {
     test('should display branches interface', async () => {
-      await appPage.page.locator('[data-testid="git-sidebar"], .git-sidebar').locator('button:has-text("Branches")').click()
+      await appPage.page
+        .locator('[data-testid="git-sidebar"], .git-sidebar')
+        .locator('button:has-text("Branches")')
+        .click()
       await appPage.waitForLoadingComplete()
 
       // Look for branches interface
-      const branchesElements = appPage.page.locator('[data-testid="branch-list"], .branch-list, .branch-card, text=/branches|branch/')
-      if (await branchesElements.count() > 0) {
+      const branchesElements = appPage.page.locator(
+        '[data-testid="branch-list"], .branch-list, .branch-card, text=/branches|branch/'
+      )
+      if ((await branchesElements.count()) > 0) {
         await expect(branchesElements.first()).toBeVisible()
       }
     })

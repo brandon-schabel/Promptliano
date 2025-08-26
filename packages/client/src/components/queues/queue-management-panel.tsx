@@ -88,8 +88,10 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
 
   // Calculate summary stats
   const totalQueued = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0) || 0
-  const totalCompleted = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0) || 0
+  const totalInProgress =
+    queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0) || 0
+  const totalCompleted =
+    queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0) || 0
   const activeQueues = queuesWithStats?.filter((q: QueueWithStats) => q.queue.isActive === true).length || 0
 
   return (

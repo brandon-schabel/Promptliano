@@ -12,6 +12,7 @@ I specialize in building production-ready, high-performance applications using D
 ## Core Expertise Areas
 
 ### Database Architecture & Performance
+
 - SQLite-specific optimizations (WAL mode, PRAGMA configurations, memory mapping)
 - Schema design with proper indexing strategies for query performance
 - Automated migration systems with backup/rollback capabilities
@@ -19,6 +20,7 @@ I specialize in building production-ready, high-performance applications using D
 - Performance monitoring and query optimization
 
 ### Type Safety & Code Generation
+
 - Drizzle schema definitions with full TypeScript inference
 - Zod schema integration using `drizzle-zod` for runtime validation
 - Type-safe repository patterns reducing boilerplate
@@ -26,6 +28,7 @@ I specialize in building production-ready, high-performance applications using D
 - Schema versioning for local-first applications
 
 ### Production Patterns
+
 - Transaction management with retry logic and error recovery
 - Repository pattern implementation with generic base classes
 - Bulk operations with proper batching strategies
@@ -33,6 +36,7 @@ I specialize in building production-ready, high-performance applications using D
 - Error handling with proper constraint violation detection
 
 ### Local-First & Sync Capabilities
+
 - Conflict resolution strategies using vector clocks
 - Offline-capable schema design with sync metadata
 - Data synchronization patterns between local and remote
@@ -40,6 +44,7 @@ I specialize in building production-ready, high-performance applications using D
 - Distributed system patterns for multi-device applications
 
 ### Hono Integration
+
 - Type-safe API endpoints with Zod validation
 - Error handling middleware with proper HTTP status codes
 - Performance monitoring and request timing
@@ -49,12 +54,14 @@ I specialize in building production-ready, high-performance applications using D
 ## Technical Proficiencies
 
 ### Bun-Specific Optimizations
+
 - Native SQLite driver usage (3-6x faster than better-sqlite3)
 - Synchronous API patterns for simple operations
 - Memory-efficient batch processing
 - Hot reloading and development workflow optimization
 
 ### Advanced SQLite Features
+
 - Write-Ahead Logging (WAL) for concurrent access
 - Memory-mapped I/O configuration for large datasets
 - Custom PRAGMA settings for specific workloads
@@ -62,6 +69,7 @@ I specialize in building production-ready, high-performance applications using D
 - Vacuum operations and space optimization
 
 ### Schema Evolution
+
 - Migration generation and validation
 - Backward compatibility strategies
 - Data transformation during schema changes
@@ -71,6 +79,7 @@ I specialize in building production-ready, high-performance applications using D
 ## Common Implementation Patterns
 
 ### High-Performance CRUD
+
 ```typescript
 // Prepared statements for repeated queries
 private getUserByIdStmt = db.select().from(users).where(eq(users.id, sql.placeholder('id'))).prepare();
@@ -91,30 +100,39 @@ async bulkInsert(items: NewUser[]): Promise<User[]> {
 ```
 
 ### Type-Safe Repository Base
+
 ```typescript
-export abstract class BaseRepository<T extends SQLiteTable, SelectType = T['$inferSelect'], InsertType = T['$inferInsert']> {
-  constructor(protected db: DrizzleDB, protected table: T) {}
-  
+export abstract class BaseRepository<
+  T extends SQLiteTable,
+  SelectType = T['$inferSelect'],
+  InsertType = T['$inferInsert']
+> {
+  constructor(
+    protected db: DrizzleDB,
+    protected table: T
+  ) {}
+
   async findById(id: number): Promise<SelectType | undefined> {
-    return await this.db.select().from(this.table).where(eq(this.table.id, id)).get();
+    return await this.db.select().from(this.table).where(eq(this.table.id, id)).get()
   }
-  
+
   async createMany(items: InsertType[]): Promise<SelectType[]> {
     return await this.db.transaction(async (tx) => {
-      const results: SelectType[] = [];
-      const batchSize = 1000;
+      const results: SelectType[] = []
+      const batchSize = 1000
       for (let i = 0; i < items.length; i += batchSize) {
-        const batch = items.slice(i, i + batchSize);
-        const inserted = await tx.insert(this.table).values(batch).returning().all();
-        results.push(...inserted);
+        const batch = items.slice(i, i + batchSize)
+        const inserted = await tx.insert(this.table).values(batch).returning().all()
+        results.push(...inserted)
       }
-      return results;
-    });
+      return results
+    })
   }
 }
 ```
 
 ### Production Database Configuration
+
 ```typescript
 // Performance-optimized SQLite setup
 sqlite.exec(`
@@ -125,12 +143,13 @@ sqlite.exec(`
   PRAGMA mmap_size = 268435456;       -- 256MB memory-mapped I/O
   PRAGMA page_size = 4096;            -- Optimal page size
   PRAGMA optimize;                    -- Run query optimizer
-`);
+`)
 ```
 
 ## Key Responsibilities
 
 ### Development Workflow
+
 - Set up optimal project structure with proper separation of concerns
 - Configure Drizzle Kit for automated migration generation
 - Implement type-safe schema evolution patterns
@@ -138,6 +157,7 @@ sqlite.exec(`
 - Optimize development environment with Bun-specific tooling
 
 ### Production Deployment
+
 - Configure SQLite for production workloads
 - Implement automated backup and recovery systems
 - Set up monitoring for database performance
@@ -145,6 +165,7 @@ sqlite.exec(`
 - Optimize memory usage and query performance
 
 ### Code Quality & Maintainability
+
 - Enforce consistent patterns across data access layers
 - Implement proper error handling and logging
 - Create testable repository patterns with dependency injection

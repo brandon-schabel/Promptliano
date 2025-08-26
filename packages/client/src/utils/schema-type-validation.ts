@@ -1,28 +1,15 @@
 /**
  * Schema Type Validation Utility
- * 
+ *
  * Ensures that Zod schemas match their corresponding TypeScript types
  * and validates runtime data against both schema and type constraints.
  * Demonstrates advanced TypeScript type validation patterns.
  */
 
 import { z } from 'zod'
-import type { 
-  ProviderKey,
-  CreateProviderKey, 
-  UpdateProviderKey,
-  APIProviders
-} from '@promptliano/database'
-import { 
-  ProviderKeySchema,
-  CreateProviderKeySchema,
-  UpdateProviderKeySchema
-} from '@promptliano/database'
-import { 
-  isValidProviderKey,
-  type ValidationResult,
-  extractErrorMessage
-} from './type-guards'
+import type { ProviderKey, CreateProviderKey, UpdateProviderKey, APIProviders } from '@promptliano/database'
+import { ProviderKeySchema, CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/database'
+import { isValidProviderKey, type ValidationResult, extractErrorMessage } from './type-guards'
 
 // ============================================================================
 // Type-Schema Compatibility Validation
@@ -31,12 +18,8 @@ import {
 /**
  * Validates that a schema produces types that match the expected TypeScript types
  */
-export type SchemaTypeValidator<TSchema extends z.ZodType, TExpectedType> = 
-  z.infer<TSchema> extends TExpectedType 
-    ? TExpectedType extends z.infer<TSchema>
-      ? true
-      : false
-    : false
+export type SchemaTypeValidator<TSchema extends z.ZodType, TExpectedType> =
+  z.infer<TSchema> extends TExpectedType ? (TExpectedType extends z.infer<TSchema> ? true : false) : false
 
 // ============================================================================
 // Provider Schema Validations
@@ -55,7 +38,7 @@ type ProviderSchemaValidation = {
 // Commented out to avoid compilation issues during migration
 // const _providerSchemaValidation: ProviderSchemaValidation = {
 //   select: true,
-//   create: true, 
+//   create: true,
 //   update: true
 // }
 
@@ -70,24 +53,23 @@ export const validateProviderKeyData = (data: unknown): ValidationResult<Provide
   try {
     // First, validate with type guard
     if (!isValidProviderKey(data)) {
-      return { 
-        success: false, 
-        error: 'Data does not match ProviderKey type structure' 
+      return {
+        success: false,
+        error: 'Data does not match ProviderKey type structure'
       }
     }
-    
+
     // Then validate with Zod schema
     const schemaResult = ProviderKeySchema.safeParse(data)
     if (!schemaResult.success) {
       return {
         success: false,
-        error: `Schema validation failed: ${schemaResult.error.errors.map(e => e.message).join(', ')}`
+        error: `Schema validation failed: ${schemaResult.error.errors.map((e) => e.message).join(', ')}`
       }
     }
-    
+
     // Both validations passed
     return { success: true, data: data as ProviderKey }
-    
   } catch (error) {
     return {
       success: false,
@@ -105,28 +87,35 @@ export const validateCreateProviderKeyData = (data: unknown): ValidationResult<C
     if (!schemaResult.success) {
       return {
         success: false,
-        error: `Create schema validation failed: ${schemaResult.error.errors.map(e => e.message).join(', ')}`
+        error: `Create schema validation failed: ${schemaResult.error.errors.map((e) => e.message).join(', ')}`
       }
     }
-    
+
     // Additional business logic validation
     const validatedData = schemaResult.data
-    
+
     // Validate provider is a known type
     const validProviders: APIProviders[] = [
-      'openai', 'anthropic', 'google_gemini', 'groq', 'together', 
-      'xai', 'openrouter', 'lmstudio', 'ollama', 'custom'
+      'openai',
+      'anthropic',
+      'google_gemini',
+      'groq',
+      'together',
+      'xai',
+      'openrouter',
+      'lmstudio',
+      'ollama',
+      'custom'
     ]
-    
+
     if (!validProviders.includes(validatedData.provider as APIProviders)) {
       return {
         success: false,
         error: `Invalid provider: ${validatedData.provider}. Must be one of: ${validProviders.join(', ')}`
       }
     }
-    
+
     return { success: true, data: validatedData }
-    
   } catch (error) {
     return {
       success: false,
@@ -144,12 +133,11 @@ export const validateUpdateProviderKeyData = (data: unknown): ValidationResult<U
     if (!schemaResult.success) {
       return {
         success: false,
-        error: `Update schema validation failed: ${schemaResult.error.errors.map(e => e.message).join(', ')}`
+        error: `Update schema validation failed: ${schemaResult.error.errors.map((e) => e.message).join(', ')}`
       }
     }
-    
+
     return { success: true, data: schemaResult.data }
-    
   } catch (error) {
     return {
       success: false,
@@ -166,18 +154,17 @@ export const validateUpdateProviderKeyData = (data: unknown): ValidationResult<U
  * Provider-specific validation rules based on provider type
  */
 export const validateProviderSpecificData = (
-  provider: APIProviders, 
+  provider: APIProviders,
   data: Partial<CreateProviderKey>
 ): ValidationResult<CreateProviderKey> => {
-  
   // Base validation first
   const baseResult = validateCreateProviderKeyData(data)
   if (!baseResult.success) {
     return baseResult
   }
-  
+
   const validatedData = baseResult.data
-  
+
   // Provider-specific validation
   switch (provider) {
     case 'openai':
@@ -188,7 +175,7 @@ export const validateProviderSpecificData = (
         }
       }
       break
-      
+
     case 'anthropic':
       if (validatedData.key && !validatedData.key.startsWith('sk-ant-')) {
         return {
@@ -197,7 +184,7 @@ export const validateProviderSpecificData = (
         }
       }
       break
-      
+
     case 'google_gemini':
       if (validatedData.key && validatedData.key.length < 20) {
         return {
@@ -206,7 +193,7 @@ export const validateProviderSpecificData = (
         }
       }
       break
-      
+
     case 'ollama':
     case 'lmstudio':
       if (!validatedData.baseUrl) {
@@ -215,7 +202,7 @@ export const validateProviderSpecificData = (
           error: `${provider} requires a base URL`
         }
       }
-      
+
       try {
         new URL(validatedData.baseUrl)
       } catch {
@@ -225,7 +212,7 @@ export const validateProviderSpecificData = (
         }
       }
       break
-      
+
     case 'custom':
       if (!validatedData.baseUrl && !validatedData.key) {
         return {
@@ -235,7 +222,7 @@ export const validateProviderSpecificData = (
       }
       break
   }
-  
+
   return { success: true, data: validatedData }
 }
 
@@ -249,24 +236,24 @@ export const validateProviderSpecificData = (
 export const validateProviderKeysArray = (data: unknown[]): ValidationResult<ProviderKey[]> => {
   const validatedKeys: ProviderKey[] = []
   const errors: string[] = []
-  
+
   for (let i = 0; i < data.length; i++) {
     const result = validateProviderKeyData(data[i])
-    
+
     if (result.success) {
       validatedKeys.push(result.data)
     } else {
       errors.push(`Item ${i}: ${result.error}`)
     }
   }
-  
+
   if (errors.length > 0) {
     return {
       success: false,
       error: `Validation failed for ${errors.length} items:\n${errors.join('\n')}`
     }
   }
-  
+
   return { success: true, data: validatedKeys }
 }
 
@@ -317,7 +304,7 @@ export const assertUpdateProviderKey = (data: unknown): UpdateProviderKey => {
 export const getProviderKeySchemaFields = () => {
   const schema = CreateProviderKeySchema
   const shape = schema.shape
-  
+
   return Object.entries(shape).map(([key, field]) => ({
     name: key,
     required: !field.isOptional(),
@@ -332,28 +319,28 @@ export const getProviderKeySchemaFields = () => {
 export const createProviderKeyFormSchema = (provider: APIProviders) => {
   // Return the refined schema with proper typing
   const baseSchema = CreateProviderKeySchema
-  
+
   // Add provider-specific validation
   switch (provider) {
     case 'openai':
-      return baseSchema.refine(
-        (data) => !data.key || data.key.startsWith('sk-'),
-        { message: 'OpenAI API keys must start with "sk-"', path: ['key'] }
-      )
-      
+      return baseSchema.refine((data) => !data.key || data.key.startsWith('sk-'), {
+        message: 'OpenAI API keys must start with "sk-"',
+        path: ['key']
+      })
+
     case 'anthropic':
-      return baseSchema.refine(
-        (data) => !data.key || data.key.startsWith('sk-ant-'),
-        { message: 'Anthropic API keys must start with "sk-ant-"', path: ['key'] }
-      )
-      
+      return baseSchema.refine((data) => !data.key || data.key.startsWith('sk-ant-'), {
+        message: 'Anthropic API keys must start with "sk-ant-"',
+        path: ['key']
+      })
+
     case 'ollama':
     case 'lmstudio':
-      return baseSchema.refine(
-        (data) => !!data.baseUrl,
-        { message: 'Base URL is required for local providers', path: ['baseUrl'] }
-      )
-      
+      return baseSchema.refine((data) => !!data.baseUrl, {
+        message: 'Base URL is required for local providers',
+        path: ['baseUrl']
+      })
+
     default:
       return baseSchema
   }

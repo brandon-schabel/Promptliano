@@ -9,11 +9,7 @@ export class EntityErrors {
    * Entity not found error (404)
    */
   static notFound(entity: string, id: number | string): never {
-    throw new ApiError(
-      404,
-      `${entity} ${id} not found`,
-      `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`
-    )
+    throw new ApiError(404, `${entity} ${id} not found`, `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`)
   }
 
   /**
@@ -32,40 +28,32 @@ export class EntityErrors {
    * Validation error (400)
    */
   static validationFailed(entity: string, errors: any, context?: string): never {
-    const message = context 
-      ? `Validation failed for ${entity} in ${context}`
-      : `Validation failed for ${entity}`
-    
-    throw new ApiError(
-      400,
-      message,
-      'VALIDATION_ERROR',
-      { entity, errors }
-    )
+    const message = context ? `Validation failed for ${entity} in ${context}` : `Validation failed for ${entity}`
+
+    throw new ApiError(400, message, 'VALIDATION_ERROR', { entity, errors })
   }
 
   /**
    * Duplicate entity error (409)
    */
   static duplicate(entity: string, field: string, value: any): never {
-    throw new ApiError(
-      409,
-      `${entity} with ${field} '${value}' already exists`,
-      'DUPLICATE_ENTITY',
-      { entity, field, value }
-    )
+    throw new ApiError(409, `${entity} with ${field} '${value}' already exists`, 'DUPLICATE_ENTITY', {
+      entity,
+      field,
+      value
+    })
   }
 
   /**
    * Entity state conflict (409)
    */
   static stateConflict(entity: string, id: number | string, currentState: string, attemptedAction: string): never {
-    throw new ApiError(
-      409,
-      `Cannot ${attemptedAction} ${entity} ${id} in state '${currentState}'`,
-      'STATE_CONFLICT',
-      { entity, id, currentState, attemptedAction }
-    )
+    throw new ApiError(409, `Cannot ${attemptedAction} ${entity} ${id} in state '${currentState}'`, 'STATE_CONFLICT', {
+      entity,
+      id,
+      currentState,
+      attemptedAction
+    })
   }
 
   /**
@@ -83,7 +71,12 @@ export class EntityErrors {
   /**
    * Mismatched entity relationship (400)
    */
-  static mismatch(childEntity: string, childId: number | string, parentEntity: string, parentId: number | string): never {
+  static mismatch(
+    childEntity: string,
+    childId: number | string,
+    parentEntity: string,
+    parentId: number | string
+  ): never {
     throw new ApiError(
       400,
       `${childEntity} ${childId} does not belong to ${parentEntity} ${parentId}`,
@@ -95,7 +88,12 @@ export class EntityErrors {
   /**
    * Invalid relationship error (400) - alias for mismatch
    */
-  static invalidRelationship(childEntity: string, childId: number | string, parentEntity: string, parentId: number | string): never {
+  static invalidRelationship(
+    childEntity: string,
+    childId: number | string,
+    parentEntity: string,
+    parentId: number | string
+  ): never {
     return EntityErrors.mismatch(childEntity, childId, parentEntity, parentId)
   }
 
@@ -103,12 +101,7 @@ export class EntityErrors {
    * Missing required field (400)
    */
   static missingRequired(entity: string, field: string): never {
-    throw new ApiError(
-      400,
-      `${field} required for ${entity}`,
-      'MISSING_REQUIRED_FIELD',
-      { entity, field }
-    )
+    throw new ApiError(400, `${field} required for ${entity}`, 'MISSING_REQUIRED_FIELD', { entity, field })
   }
 
   /**
@@ -142,13 +135,8 @@ export class EntityErrors {
     const message = context
       ? `Failed to read ${entity} from database: ${context}`
       : `Failed to read ${entity} from database`
-    
-    throw new ApiError(
-      500,
-      message,
-      'DB_READ_ERROR',
-      { entity, originalError: error?.message }
-    )
+
+    throw new ApiError(500, message, 'DB_READ_ERROR', { entity, originalError: error?.message })
   }
 
   /**
@@ -158,13 +146,8 @@ export class EntityErrors {
     const message = context
       ? `Failed to write ${entity} to database: ${context}`
       : `Failed to write ${entity} to database`
-    
-    throw new ApiError(
-      500,
-      message,
-      'DB_WRITE_ERROR',
-      { entity, originalError: error?.message }
-    )
+
+    throw new ApiError(500, message, 'DB_WRITE_ERROR', { entity, originalError: error?.message })
   }
 
   /**
@@ -174,13 +157,8 @@ export class EntityErrors {
     const message = context
       ? `Failed to delete ${entity} from database: ${context}`
       : `Failed to delete ${entity} from database`
-    
-    throw new ApiError(
-      500,
-      message,
-      'DB_DELETE_ERROR',
-      { entity, originalError: error?.message }
-    )
+
+    throw new ApiError(500, message, 'DB_DELETE_ERROR', { entity, originalError: error?.message })
   }
 
   /**
@@ -199,12 +177,10 @@ export class EntityErrors {
    * Transaction error (500)
    */
   static transactionError(operation: string, error: any): never {
-    throw new ApiError(
-      500,
-      `Transaction failed during ${operation}`,
-      'TRANSACTION_ERROR',
-      { operation, originalError: error?.message }
-    )
+    throw new ApiError(500, `Transaction failed during ${operation}`, 'TRANSACTION_ERROR', {
+      operation,
+      originalError: error?.message
+    })
   }
 
   /**
@@ -214,25 +190,15 @@ export class EntityErrors {
     const message = reason
       ? `${operation} not permitted for ${entity}: ${reason}`
       : `${operation} not permitted for ${entity}`
-    
-    throw new ApiError(
-      403,
-      message,
-      'OPERATION_NOT_PERMITTED',
-      { entity, operation, reason }
-    )
+
+    throw new ApiError(403, message, 'OPERATION_NOT_PERMITTED', { entity, operation, reason })
   }
 
   /**
    * Create a custom entity error with any status code
    */
   static custom(statusCode: number, entity: string, message: string, code: string, details?: any): never {
-    throw new ApiError(
-      statusCode,
-      `${entity}: ${message}`,
-      code,
-      { entity, ...details }
-    )
+    throw new ApiError(statusCode, `${entity}: ${message}`, code, { entity, ...details })
   }
 }
 
@@ -245,25 +211,21 @@ export function createEntityErrorFactory(entityName: string) {
     manyNotFound: (ids: Array<number | string>) => EntityErrors.manyNotFound(entityName, ids),
     validationFailed: (errors: any, context?: string) => EntityErrors.validationFailed(entityName, errors, context),
     duplicate: (field: string, value: any) => EntityErrors.duplicate(entityName, field, value),
-    stateConflict: (id: number | string, currentState: string, attemptedAction: string) => 
+    stateConflict: (id: number | string, currentState: string, attemptedAction: string) =>
       EntityErrors.stateConflict(entityName, id, currentState, attemptedAction),
-    batchSizeExceeded: (limit: number, provided: number) => 
-      EntityErrors.batchSizeExceeded(entityName, limit, provided),
+    batchSizeExceeded: (limit: number, provided: number) => EntityErrors.batchSizeExceeded(entityName, limit, provided),
     missingRequired: (field: string) => EntityErrors.missingRequired(entityName, field),
-    invalidTransition: (id: number | string, from: string, to: string) => 
+    invalidTransition: (id: number | string, from: string, to: string) =>
       EntityErrors.invalidTransition(entityName, id, from, to),
-    alreadyInState: (id: number | string, state: string) => 
-      EntityErrors.alreadyInState(entityName, id, state),
+    alreadyInState: (id: number | string, state: string) => EntityErrors.alreadyInState(entityName, id, state),
     dbReadError: (error: any, context?: string) => EntityErrors.dbReadError(entityName, error, context),
     dbWriteError: (error: any, context?: string) => EntityErrors.dbWriteError(entityName, error, context),
     dbDeleteError: (error: any, context?: string) => EntityErrors.dbDeleteError(entityName, error, context),
-    deleteFailed: (id: number | string, reason?: string) => 
-      EntityErrors.deleteFailed(entityName, id, reason),
-    invalidRelationship: (childId: number | string, parentEntity: string, parentId: number | string) => 
+    deleteFailed: (id: number | string, reason?: string) => EntityErrors.deleteFailed(entityName, id, reason),
+    invalidRelationship: (childId: number | string, parentEntity: string, parentId: number | string) =>
       EntityErrors.invalidRelationship(entityName, childId, parentEntity, parentId),
-    notPermitted: (operation: string, reason?: string) => 
-      EntityErrors.notPermitted(entityName, operation, reason),
-    custom: (statusCode: number, message: string, code: string, details?: any) => 
+    notPermitted: (operation: string, reason?: string) => EntityErrors.notPermitted(entityName, operation, reason),
+    custom: (statusCode: number, message: string, code: string, details?: any) =>
       EntityErrors.custom(statusCode, entityName, message, code, details)
   }
 }

@@ -247,8 +247,24 @@ describe('file-suggestion-utils', () => {
         {
           fileIds: ['1', '2'],
           scores: [
-            { fileId: '1', totalScore: 0.5, keywordScore: 0, pathScore: 0, typeScore: 0, recencyScore: 0, importScore: 0 },
-            { fileId: '2', totalScore: 0.9, keywordScore: 0, pathScore: 0, typeScore: 0, recencyScore: 0, importScore: 0 }
+            {
+              fileId: '1',
+              totalScore: 0.5,
+              keywordScore: 0,
+              pathScore: 0,
+              typeScore: 0,
+              recencyScore: 0,
+              importScore: 0
+            },
+            {
+              fileId: '2',
+              totalScore: 0.9,
+              keywordScore: 0,
+              pathScore: 0,
+              typeScore: 0,
+              recencyScore: 0,
+              importScore: 0
+            }
           ],
           source: 'source1'
         },
@@ -296,7 +312,7 @@ describe('file-suggestion-utils', () => {
       })
 
       expect(filtered).toHaveLength(3)
-      expect(filtered.map(f => f.id)).toEqual(['1', '2', '5'])
+      expect(filtered.map((f) => f.id)).toEqual(['1', '2', '5'])
     })
 
     test('combines include and exclude patterns', () => {
@@ -306,7 +322,7 @@ describe('file-suggestion-utils', () => {
       })
 
       expect(filtered).toHaveLength(2)
-      expect(filtered.map(f => f.id)).toEqual(['1', '5'])
+      expect(filtered.map((f) => f.id)).toEqual(['1', '5'])
     })
 
     test('is case insensitive', () => {
@@ -360,10 +376,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('handles root files', () => {
-      const files = [
-        createTestFile({ path: 'README.md' }),
-        createTestFile({ path: 'package.json' })
-      ]
+      const files = [createTestFile({ path: 'README.md' }), createTestFile({ path: 'package.json' })]
 
       const groups = groupFilesByDirectory(files)
 
@@ -372,9 +385,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('handles deeply nested paths', () => {
-      const files = [
-        createTestFile({ path: '/a/b/c/d/e/f/file.ts' })
-      ]
+      const files = [createTestFile({ path: '/a/b/c/d/e/f/file.ts' })]
 
       const groups = groupFilesByDirectory(files)
 
@@ -408,7 +419,7 @@ describe('file-suggestion-utils', () => {
       expect(metrics?.filesAnalyzed).toBe(0)
 
       // Update metrics
-      tracker.updateMetrics(id, { 
+      tracker.updateMetrics(id, {
         filesAnalyzed: 50,
         cacheHit: true,
         tokensUsed: 1000
@@ -461,11 +472,11 @@ describe('file-suggestion-utils', () => {
     test('calculates average metrics', async () => {
       // Complete two operations
       tracker.startTracking('op1', 100, 'fast')
-      await new Promise(resolve => setTimeout(resolve, 1)) // Add small delay
+      await new Promise((resolve) => setTimeout(resolve, 1)) // Add small delay
       tracker.finishTracking('op1', 50, [])
 
       tracker.startTracking('op2', 200, 'thorough')
-      await new Promise(resolve => setTimeout(resolve, 1)) // Add small delay
+      await new Promise((resolve) => setTimeout(resolve, 1)) // Add small delay
       tracker.finishTracking('op2', 100, [])
 
       const avgMetrics = tracker.getAverageMetrics()
@@ -559,7 +570,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('prioritizes path patterns over extensions', () => {
-      const file = createTestFile({ 
+      const file = createTestFile({
         path: '/src/Button.test.tsx',
         extension: 'tsx' // Would be 'react' by extension
       })

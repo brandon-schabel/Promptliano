@@ -54,7 +54,7 @@ interface MCPServerConfig {
   timeout?: number
 }
 
-type ProjectMCPConfigInput = 
+type ProjectMCPConfigInput =
   | {
       type: 'promptString'
       id: string
@@ -254,11 +254,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
 
       // Save it to the specific location
       if (!client || !defaultConfigResult) return
-      await client.mcp.saveProjectConfigToLocation(
-        projectId,
-        location.path,
-        defaultConfigResult.data
-      )
+      await client.mcp.saveProjectConfigToLocation(projectId, location.path, defaultConfigResult.data)
     },
     onSuccess: (_, location) => {
       const editorInfo = getEditorInfoFromPath(location.path)

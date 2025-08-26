@@ -2,8 +2,8 @@ import React from 'react'
 import { z } from 'zod'
 import { FormFactory, FormConfig, FieldConfig } from './form-factory'
 import { TanStackFormFactory, TanStackFormFactoryConfig } from './tanstack/tanstack-form-factory'
-import { 
-  createTanStackTextField, 
+import {
+  createTanStackTextField,
   createTanStackTextareaField,
   createTanStackSelectField,
   createTanStackCheckboxField,
@@ -45,12 +45,11 @@ function analyzeFormComplexity<T extends z.ZodType>(config: HybridFormConfig<T>)
   }
 
   // Check for complex field types
-  const hasComplexFields = config.fields.some(field => 
-    field.type === 'array' || 
-    field.type === 'group' ||
-    (field.type === 'tags' && field.maxTags && field.maxTags > 5)
+  const hasComplexFields = config.fields.some(
+    (field) =>
+      field.type === 'array' || field.type === 'group' || (field.type === 'tags' && field.maxTags && field.maxTags > 5)
   )
-  
+
   if (hasComplexFields) {
     score += 3
     reasons.push('Contains complex field types (arrays, groups)')
@@ -89,18 +88,18 @@ function analyzeFormComplexity<T extends z.ZodType>(config: HybridFormConfig<T>)
   }
 
   // Check validation complexity
-  const hasComplexValidation = config.fields.some(field => {
+  const hasComplexValidation = config.fields.some((field) => {
     // Check for custom validation on fields that support it
     if (field.type === 'text' && field.validation?.custom) return true
     if (field.type === 'email' && field.validation?.custom) return true
     if (field.type === 'tags' && field.validation?.custom) return true
-    
+
     // Check email-specific validation
     if (field.type === 'email' && field.validation?.allowPlusSymbol) return true
-    
+
     // Check date field constraints
     if (field.type === 'date' && (field.minDate || field.maxDate || field.disabledDates)) return true
-    
+
     return false
   })
 
@@ -126,22 +125,22 @@ function analyzeFormComplexity<T extends z.ZodType>(config: HybridFormConfig<T>)
 export interface HybridFormConfig<T extends z.ZodType> extends Omit<FormConfig<T>, 'fields'> {
   /** Form submission handler */
   onSubmit: (data: z.infer<T>) => void | Promise<void>
-  
+
   /** Optional cancel handler */
   onCancel?: () => void
-  
+
   /** Loading state */
   isLoading?: boolean
-  
+
   /** Disabled state */
   isDisabled?: boolean
-  
+
   /** Form fields - can be original or TanStack field configs */
   fields: FieldConfig[]
-  
+
   /** Force a specific form implementation */
   forceImplementation?: 'original' | 'tanstack'
-  
+
   /** Advanced features that suggest TanStack Form */
   features?: {
     conditionalFields?: boolean
@@ -151,16 +150,16 @@ export interface HybridFormConfig<T extends z.ZodType> extends Omit<FormConfig<T
     crossFieldValidation?: boolean
     autoSave?: boolean
   }
-  
+
   /** Show complexity analysis in development */
   showComplexityAnalysis?: boolean
-  
+
   /** Migration mode - shows both forms for comparison */
   migrationMode?: boolean
-  
+
   /** TanStack-specific configuration */
   tanstackConfig?: Partial<TanStackFormFactoryConfig<z.infer<T>>>
-  
+
   /** Additional children */
   children?: React.ReactNode
 }
@@ -184,7 +183,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           showCount: field.showCount,
           autoComplete: field.autoComplete
         })
-      
+
       case 'email':
         return createTanStackEmailField({
           name: field.name,
@@ -194,7 +193,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           required: field.required,
           disabled: field.disabled
         })
-      
+
       case 'password':
         return createTanStackPasswordField({
           name: field.name,
@@ -204,7 +203,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           required: field.required,
           disabled: field.disabled
         })
-      
+
       case 'number':
         return createTanStackNumberField({
           name: field.name,
@@ -214,7 +213,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           required: field.required,
           disabled: field.disabled
         })
-      
+
       case 'textarea':
         return createTanStackTextareaField({
           name: field.name,
@@ -227,7 +226,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           maxLength: field.maxLength,
           showCount: field.showCount
         })
-      
+
       case 'select':
         return createTanStackSelectField({
           name: field.name,
@@ -243,7 +242,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           })),
           multiple: field.multiple
         })
-      
+
       case 'checkbox':
         return createTanStackCheckboxField({
           name: field.name,
@@ -252,7 +251,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           required: field.required,
           disabled: field.disabled
         })
-      
+
       case 'switch':
         return createTanStackSwitchField({
           name: field.name,
@@ -261,7 +260,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           required: field.required,
           disabled: field.disabled
         })
-      
+
       case 'radio':
         return createTanStackRadioField({
           name: field.name,
@@ -276,7 +275,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           })),
           orientation: field.orientation
         })
-      
+
       case 'date':
         return createTanStackDateField({
           name: field.name,
@@ -289,7 +288,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           maxDate: field.maxDate,
           dateFormat: field.dateFormat
         })
-      
+
       case 'tags':
         return createTanStackTagsField({
           name: field.name,
@@ -302,7 +301,7 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
           suggestions: field.suggestions,
           allowCustom: field.allowCustom
         })
-      
+
       default:
         // Fallback to text field
         return createTanStackTextField({
@@ -333,11 +332,10 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
 
   // Analyze form complexity
   const complexity = analyzeFormComplexity(config)
-  
+
   // Determine which implementation to use
-  const shouldUseTanStack = 
-    forceImplementation === 'tanstack' ||
-    (forceImplementation !== 'original' && complexity.isComplex)
+  const shouldUseTanStack =
+    forceImplementation === 'tanstack' || (forceImplementation !== 'original' && complexity.isComplex)
 
   // Development complexity analysis
   React.useEffect(() => {
@@ -354,34 +352,28 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
   // Migration mode - show both forms side by side
   if (migrationMode) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4">
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 p-4'>
         {/* Original FormFactory */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <span className="text-sm font-medium">⚡ Original FormFactory</span>
-            <span className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
-              Current Implementation
-            </span>
+        <div className='space-y-4'>
+          <div className='flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg'>
+            <span className='text-sm font-medium'>⚡ Original FormFactory</span>
+            <span className='text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded'>Current Implementation</span>
           </div>
-          <FormFactory
-            {...baseConfig}
-          />
+          <FormFactory {...baseConfig} />
         </div>
 
         {/* TanStack FormFactory */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-            <span className="text-sm font-medium">🚀 TanStack Form</span>
-            <span className="text-xs bg-green-100 dark:bg-green-900 px-2 py-1 rounded">
-              Enhanced Implementation
-            </span>
+        <div className='space-y-4'>
+          <div className='flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg'>
+            <span className='text-sm font-medium'>🚀 TanStack Form</span>
+            <span className='text-xs bg-green-100 dark:bg-green-900 px-2 py-1 rounded'>Enhanced Implementation</span>
           </div>
           <TanStackFormFactory
             schema={baseConfig.schema}
             fields={convertFieldsToTanStack(baseConfig.fields)}
             onSubmit={baseConfig.onSubmit}
             defaultValues={baseConfig.defaultValues}
-            title="TanStack Form Version"
+            title='TanStack Form Version'
             {...tanstackConfig}
           />
         </div>
@@ -392,9 +384,9 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
   // Production implementation selection
   if (shouldUseTanStack) {
     return (
-      <div className="space-y-2">
+      <div className='space-y-2'>
         {showComplexityAnalysis && (
-          <div className="text-xs text-muted-foreground">
+          <div className='text-xs text-muted-foreground'>
             Using TanStack Form (complexity score: {complexity.score})
           </div>
         )}
@@ -410,15 +402,13 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
     )
   } else {
     return (
-      <div className="space-y-2">
+      <div className='space-y-2'>
         {showComplexityAnalysis && (
-          <div className="text-xs text-muted-foreground">
+          <div className='text-xs text-muted-foreground'>
             Using Simple FormFactory (complexity score: {complexity.score})
           </div>
         )}
-        <FormFactory
-          {...baseConfig}
-        />
+        <FormFactory {...baseConfig} />
       </div>
     )
   }
@@ -436,35 +426,22 @@ export interface MigrationGuide {
   effort: 'low' | 'medium' | 'high'
 }
 
-export function generateMigrationGuide<T extends z.ZodType>(
-  config: HybridFormConfig<T>
-): MigrationGuide {
+export function generateMigrationGuide<T extends z.ZodType>(config: HybridFormConfig<T>): MigrationGuide {
   const complexity = analyzeFormComplexity(config)
-  
+
   if (complexity.score <= 2) {
     return {
       currentImplementation: 'original',
       recommendation: 'keep-original',
-      benefits: [
-        'Simpler implementation is sufficient',
-        'Smaller bundle size',
-        'Faster initial render'
-      ],
-      migrationSteps: [
-        'No migration needed',
-        'Continue using FormFactory'
-      ],
+      benefits: ['Simpler implementation is sufficient', 'Smaller bundle size', 'Faster initial render'],
+      migrationSteps: ['No migration needed', 'Continue using FormFactory'],
       effort: 'low'
     }
   } else if (complexity.score <= 4) {
     return {
       currentImplementation: 'original',
       recommendation: 'consider-upgrade',
-      benefits: [
-        'Better performance with many fields',
-        'More flexible validation',
-        'Better developer experience'
-      ],
+      benefits: ['Better performance with many fields', 'More flexible validation', 'Better developer experience'],
       migrationSteps: [
         'Test with migrationMode={true}',
         'Compare both implementations',
@@ -507,7 +484,7 @@ export function getFormImplementationDecision(requirements: {
   performanceRequired: boolean
 }): 'original' | 'tanstack' {
   let score = 0
-  
+
   if (requirements.fieldCount > 10) score += 2
   if (requirements.fieldCount > 20) score += 2
   if (requirements.hasArrayFields) score += 3
@@ -516,7 +493,7 @@ export function getFormImplementationDecision(requirements: {
   if (requirements.needsAutoSave) score += 2
   if (requirements.isMultiStep) score += 3
   if (requirements.performanceRequired) score += 2
-  
+
   return score >= 4 ? 'tanstack' : 'original'
 }
 

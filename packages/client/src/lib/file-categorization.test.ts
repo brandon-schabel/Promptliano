@@ -43,101 +43,63 @@ describe('file-categorization', () => {
         'modern.webp'
       ]
 
-      imageFiles.forEach(file => {
+      imageFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies video formats', () => {
-      const videoFiles = [
-        'movie.mp4',
-        'video.avi',
-        'clip.mov',
-        'film.mkv',
-        'web.webm'
-      ]
+      const videoFiles = ['movie.mp4', 'video.avi', 'clip.mov', 'film.mkv', 'web.webm']
 
-      videoFiles.forEach(file => {
+      videoFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies audio formats', () => {
-      const audioFiles = [
-        'song.mp3',
-        'sound.wav',
-        'music.flac',
-        'audio.aac',
-        'track.ogg'
-      ]
+      const audioFiles = ['song.mp3', 'sound.wav', 'music.flac', 'audio.aac', 'track.ogg']
 
-      audioFiles.forEach(file => {
+      audioFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies archive formats', () => {
-      const archiveFiles = [
-        'archive.zip',
-        'backup.tar',
-        'compressed.gz',
-        'archive.rar',
-        'package.7z'
-      ]
+      const archiveFiles = ['archive.zip', 'backup.tar', 'compressed.gz', 'archive.rar', 'package.7z']
 
-      archiveFiles.forEach(file => {
+      archiveFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies document formats', () => {
-      const docFiles = [
-        'document.pdf',
-        'report.doc',
-        'presentation.pptx',
-        'spreadsheet.xlsx'
-      ]
+      const docFiles = ['document.pdf', 'report.doc', 'presentation.pptx', 'spreadsheet.xlsx']
 
-      docFiles.forEach(file => {
+      docFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies executable formats', () => {
-      const execFiles = [
-        'program.exe',
-        'library.dll',
-        'shared.so',
-        'dynamic.dylib'
-      ]
+      const execFiles = ['program.exe', 'library.dll', 'shared.so', 'dynamic.dylib']
 
-      execFiles.forEach(file => {
+      execFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies font formats', () => {
-      const fontFiles = [
-        'font.ttf',
-        'font.otf',
-        'web.woff',
-        'web2.woff2'
-      ]
+      const fontFiles = ['font.ttf', 'font.otf', 'web.woff', 'web2.woff2']
 
-      fontFiles.forEach(file => {
+      fontFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
 
     test('identifies model/data formats', () => {
-      const dataFiles = [
-        'model.pkl',
-        'weights.h5',
-        'network.onnx',
-        'data.sqlite'
-      ]
+      const dataFiles = ['model.pkl', 'weights.h5', 'network.onnx', 'data.sqlite']
 
-      dataFiles.forEach(file => {
+      dataFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(true)
       })
     })
@@ -156,7 +118,7 @@ describe('file-categorization', () => {
         '.gitignore'
       ]
 
-      textFiles.forEach(file => {
+      textFiles.forEach((file) => {
         expect(isBinaryFile(file)).toBe(false)
       })
     })
@@ -204,7 +166,7 @@ describe('file-categorization', () => {
     })
 
     test('categorizes large files', () => {
-      const file = createTestFile({ 
+      const file = createTestFile({
         size: 2 * 1024 * 1024, // 2MB
         content: 'large content'
       })
@@ -223,12 +185,12 @@ describe('file-categorization', () => {
       expect(categorizeFile(emptyContentFile).category).toBe('empty')
       expect(categorizeFile(nullContentFile).category).toBe('empty')
       expect(categorizeFile(whitespaceFile).category).toBe('empty')
-      
+
       expect(categorizeFile(emptyContentFile).reason).toContain('empty')
     })
 
     test('categorizes pending files', () => {
-      const file = createTestFile({ 
+      const file = createTestFile({
         summary: null,
         content: 'valid content',
         size: 500
@@ -240,7 +202,7 @@ describe('file-categorization', () => {
     })
 
     test('prioritizes summarized over binary', () => {
-      const file = createTestFile({ 
+      const file = createTestFile({
         path: '/image.jpg',
         summary: 'An image file'
       })
@@ -250,11 +212,11 @@ describe('file-categorization', () => {
     })
 
     test('handles edge case file sizes', () => {
-      const exactLimit = createTestFile({ 
+      const exactLimit = createTestFile({
         size: 1024 * 1024, // Exactly 1MB
         content: 'content'
       })
-      const justOver = createTestFile({ 
+      const justOver = createTestFile({
         size: 1024 * 1024 + 1, // Just over 1MB
         content: 'content'
       })
@@ -308,7 +270,7 @@ describe('file-categorization', () => {
       const result = categorizeProjectFiles(files)
 
       expect(result.nonSummarizable).toHaveLength(3)
-      expect(result.nonSummarizable.map(f => f.id)).toEqual([1, 2, 3])
+      expect(result.nonSummarizable.map((f) => f.id)).toEqual([1, 2, 3])
     })
 
     test('handles empty file list', () => {
@@ -325,9 +287,7 @@ describe('file-categorization', () => {
     })
 
     test('handles all files of same category', () => {
-      const allSummarized = Array.from({ length: 5 }, (_, i) => 
-        createTestFile({ id: i, summary: `Summary ${i}` })
-      )
+      const allSummarized = Array.from({ length: 5 }, (_, i) => createTestFile({ id: i, summary: `Summary ${i}` }))
 
       const result = categorizeProjectFiles(allSummarized)
 
@@ -376,10 +336,7 @@ describe('file-categorization', () => {
     })
 
     test('handles zero summarizable files', () => {
-      const files = [
-        createTestFile({ id: 1, path: '/image.jpg' }),
-        createTestFile({ id: 2, content: '' })
-      ]
+      const files = [createTestFile({ id: 1, path: '/image.jpg' }), createTestFile({ id: 2, content: '' })]
 
       const stats = getSummarizationStats(files)
 
@@ -388,10 +345,7 @@ describe('file-categorization', () => {
     })
 
     test('handles all files summarized', () => {
-      const files = [
-        createTestFile({ id: 1, summary: 'done' }),
-        createTestFile({ id: 2, summary: 'done' })
-      ]
+      const files = [createTestFile({ id: 1, summary: 'done' }), createTestFile({ id: 2, summary: 'done' })]
 
       const stats = getSummarizationStats(files)
 
@@ -411,13 +365,9 @@ describe('file-categorization', () => {
     test('correctly counts each category', () => {
       const files = [
         // 3 summarized
-        ...Array.from({ length: 3 }, (_, i) => 
-          createTestFile({ id: i, summary: 'done' })
-        ),
+        ...Array.from({ length: 3 }, (_, i) => createTestFile({ id: i, summary: 'done' })),
         // 2 pending
-        ...Array.from({ length: 2 }, (_, i) => 
-          createTestFile({ id: i + 3, content: 'pending' })
-        ),
+        ...Array.from({ length: 2 }, (_, i) => createTestFile({ id: i + 3, content: 'pending' })),
         // 1 binary
         createTestFile({ id: 5, path: '/file.jpg' }),
         // 1 too large
@@ -439,49 +389,49 @@ describe('file-categorization', () => {
   describe('getFileCountDescription', () => {
     test('formats single file correctly', () => {
       const result = getFileCountDescription(1, 10)
-      
+
       expect(result).toBe('1 file (10.0%)')
     })
 
     test('formats multiple files correctly', () => {
       const result = getFileCountDescription(5, 10)
-      
+
       expect(result).toBe('5 files (50.0%)')
     })
 
     test('handles zero files', () => {
       const result = getFileCountDescription(0, 10)
-      
+
       expect(result).toBe('0 files (0.0%)')
     })
 
     test('handles zero total', () => {
       const result = getFileCountDescription(0, 0)
-      
+
       expect(result).toBe('0 files (0%)')
     })
 
     test('handles 100% coverage', () => {
       const result = getFileCountDescription(10, 10)
-      
+
       expect(result).toBe('10 files (100.0%)')
     })
 
     test('rounds percentage to one decimal', () => {
       const result = getFileCountDescription(1, 3)
-      
+
       expect(result).toBe('1 file (33.3%)')
     })
 
     test('handles very small percentages', () => {
       const result = getFileCountDescription(1, 1000)
-      
+
       expect(result).toBe('1 file (0.1%)')
     })
 
     test('handles count greater than total (edge case)', () => {
       const result = getFileCountDescription(11, 10)
-      
+
       expect(result).toBe('11 files (110.0%)')
     })
   })

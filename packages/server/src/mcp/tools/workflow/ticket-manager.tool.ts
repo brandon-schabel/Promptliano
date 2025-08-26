@@ -152,7 +152,8 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
             const filteredTickets = status ? tickets.filter((t: any) => t.status === status) : tickets
             const ticketList = filteredTickets
               .map(
-                (t: any) => `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
+                (t: any) =>
+                  `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
               )
               .join('\n')
             return {
@@ -177,7 +178,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
               // Get the ticket to access its overview
               const ticket = await getTicketById(ticketId)
               if (!ticket) throw createMCPError(MCPErrorCode.TICKET_NOT_FOUND, `Ticket ${ticketId} not found`)
-              
+
               const tasks = await autoGenerateTasksFromOverview(ticketId, ticket.overview || '')
               const taskList = tasks.map((t: TicketTask) => `${t.id}: ${t.content}`).join('\n')
               return {
@@ -249,7 +250,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
 
           case TicketManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
-            const query = data?.query as string || ''
+            const query = (data?.query as string) || ''
             const status = data?.status as 'open' | 'in_progress' | 'closed' | undefined
 
             try {

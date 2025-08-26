@@ -14,12 +14,7 @@ import { Loader2 } from 'lucide-react'
 import { UseFormReturn } from 'react-hook-form'
 import { ExpandableTextarea } from '@/components/expandable-textarea'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import {
-  useCreatePrompt,
-  useUpdatePrompt,
-  useGetProjectPrompts,
-  useAddPromptToProject
-} from '@/hooks/api-hooks'
+import { useCreatePrompt, useUpdatePrompt, useGetProjectPrompts, useAddPromptToProject } from '@/hooks/api-hooks'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 

@@ -208,7 +208,12 @@ export function MCPGlobalConfigEditor() {
                 {status.configExists ? (
                   <>
                     <CheckCircle2 className='h-4 w-4 text-green-500' />
-                    <span>Global MCP configuration is active {'totalInstallations' in status && status.totalInstallations ? `(${status.totalInstallations} tools installed)` : ''}</span>
+                    <span>
+                      Global MCP configuration is active{' '}
+                      {'totalInstallations' in status && status.totalInstallations
+                        ? `(${status.totalInstallations} tools installed)`
+                        : ''}
+                    </span>
                   </>
                 ) : (
                   <>
@@ -217,7 +222,7 @@ export function MCPGlobalConfigEditor() {
                   </>
                 )}
               </div>
-              {('configPath' in status && status.configPath) ? (
+              {'configPath' in status && status.configPath ? (
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <FolderOpen className='h-3 w-3' />
                   <code className='text-xs'>{String(status.configPath)}</code>

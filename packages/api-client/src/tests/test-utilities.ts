@@ -48,13 +48,13 @@ export class TestDataManager {
     try {
       // Cleanup in reverse order (last created, first cleaned)
       const resourceTypes = Array.from(this.createdResources.keys()).reverse()
-      
+
       for (const resourceType of resourceTypes) {
         const resources = Array.from(this.createdResources.get(resourceType) || []).reverse()
-        
+
         // Cleanup resources in parallel for CI speed
         if (isCI && resources.length > 1) {
-          await Promise.all(resources.map(id => this.cleanupResource(resourceType, id)))
+          await Promise.all(resources.map((id) => this.cleanupResource(resourceType, id)))
         } else {
           // Sequential cleanup for local development (easier debugging)
           for (const resourceId of resources) {
@@ -122,7 +122,7 @@ export class TestSuiteManager {
     }
 
     const enhancedConfig = getEnhancedTestConfig()
-    
+
     const serverConfig = {
       databasePath: config?.database?.useMemory ? ':memory:' : config?.database?.path,
       enableRateLimit: config?.execution?.enableRateLimit ?? false,
@@ -155,23 +155,19 @@ export class TestSuiteManager {
 
     try {
       const { isCI } = detectCIEnvironment()
-      
+
       // Cleanup data managers first
-      const dataCleanupPromises = this.dataManagers.map(manager => manager.cleanup())
-      
+      const dataCleanupPromises = this.dataManagers.map((manager) => manager.cleanup())
+
       // Cleanup environments
-      const envCleanupPromises = this.environments.map(env => env.cleanup())
+      const envCleanupPromises = this.environments.map((env) => env.cleanup())
 
       // Cleanup server factory
       const serverCleanupPromise = this.serverFactory.cleanupAll()
 
       // Execute cleanup in parallel for CI
       if (isCI) {
-        await Promise.all([
-          Promise.all(dataCleanupPromises),
-          Promise.all(envCleanupPromises),
-          serverCleanupPromise
-        ])
+        await Promise.all([Promise.all(dataCleanupPromises), Promise.all(envCleanupPromises), serverCleanupPromise])
       } else {
         // Sequential cleanup for local development
         await Promise.all(dataCleanupPromises)
@@ -233,12 +229,12 @@ export async function retryWithBackoff<T>(
       return await operation()
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      
+
       if (attempt === maxAttempts || !shouldRetry(lastError)) {
         throw lastError
       }
 
-      await new Promise(resolve => setTimeout(resolve, delay))
+      await new Promise((resolve) => setTimeout(resolve, delay))
       delay = Math.min(delay * backoffFactor, maxDelay)
     }
   }
@@ -264,9 +260,7 @@ export async function retryNetworkOperation<T>(
       // Add timeout protection
       return Promise.race([
         operation(),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timeout')), timeoutMs)
-        )
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Operation timeout')), timeoutMs))
       ])
     },
     {
@@ -344,7 +338,7 @@ export class ResourceMonitor {
       return { current: 0, peak: 0, average: 0, samples: 0 }
     }
 
-    const heaps = this.samples.map(s => s.heap)
+    const heaps = this.samples.map((s) => s.heap)
     const current = heaps[heaps.length - 1]
     const peak = Math.max(...heaps)
     const average = heaps.reduce((a, b) => a + b, 0) / heaps.length
@@ -370,7 +364,7 @@ export class ResourceMonitor {
     const olderAvg = older.reduce((a, b) => a + b.heap, 0) / older.length
 
     // Consider it a leak if memory increased by more than 20MB consistently
-    return (recentAvg - olderAvg) > 20
+    return recentAvg - olderAvg > 20
   }
 }
 
@@ -391,13 +385,13 @@ export class TestTimeoutManager {
    */
   create(name: string, timeoutMs?: number): Promise<never> {
     const timeout = timeoutMs || this.defaultTimeout
-    
+
     return new Promise((_, reject) => {
       const timeoutId = setTimeout(() => {
         this.timeouts.delete(name)
         reject(new Error(`Test operation '${name}' timeout after ${timeout}ms`))
       }, timeout)
-      
+
       this.timeouts.set(name, timeoutId)
     })
   }
@@ -428,10 +422,7 @@ export class TestTimeoutManager {
    */
   async race<T>(operation: Promise<T>, name: string, timeoutMs?: number): Promise<T> {
     try {
-      return await Promise.race([
-        operation,
-        this.create(name, timeoutMs)
-      ])
+      return await Promise.race([operation, this.create(name, timeoutMs)])
     } finally {
       this.clear(name)
     }
@@ -446,11 +437,9 @@ export const globalTestSuite = new TestSuiteManager()
 /**
  * Utility function to run tests with automatic cleanup
  */
-export async function withTestSuite<T>(
-  testFn: (suite: TestSuiteManager) => Promise<T>
-): Promise<T> {
+export async function withTestSuite<T>(testFn: (suite: TestSuiteManager) => Promise<T>): Promise<T> {
   const suite = new TestSuiteManager()
-  
+
   try {
     return await testFn(suite)
   } finally {

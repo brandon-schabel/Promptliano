@@ -96,7 +96,12 @@ export function AssetGeneratorDialog({ open, onOpenChange, assetType, onSuccess 
   const [isGenerating, setIsGenerating] = useState(false)
 
   // Model selection state
-  const { provider, model, setProvider: setProviderBase, setModel } = useModelSelection({
+  const {
+    provider,
+    model,
+    setProvider: setProviderBase,
+    setModel
+  } = useModelSelection({
     persistenceKey: 'asset-generator-model',
     defaultProvider: 'openai',
     defaultModel: 'gpt-4o'
@@ -756,7 +761,10 @@ function renderInputForm(
 }
 
 // Helper function to prepare user input for API
-function prepareUserInput(assetType: string, formData: CommonFormData & Partial<SvgFormData> & Partial<MarkdownFormData>): string {
+function prepareUserInput(
+  assetType: string,
+  formData: CommonFormData & Partial<SvgFormData> & Partial<MarkdownFormData>
+): string {
   // Handle markdown asset types
   if (assetType === 'architecture-doc') {
     const formatNote = formData.documentFormat ? `\n\nDocument format: ${formData.documentFormat}` : ''

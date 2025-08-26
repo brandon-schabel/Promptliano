@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE INDEX
  * Generated at: 2025-08-22T23:50:50.385Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * 📊 Consolidates 15 entity route modules
  * 🎯 Achieves 40% reduction in route boilerplate
@@ -49,7 +49,7 @@ import type { ActiveTabRouteTypes } from './activetab-routes.generated'
  */
 export function registerAllGeneratedRoutes(app: OpenAPIHono): OpenAPIHono {
   console.log('🏭 Registering auto-generated routes...')
-  
+
   registerProjectRoutes(app)
   registerTicketRoutes(app)
   registerTicketTaskRoutes(app)
@@ -65,7 +65,7 @@ export function registerAllGeneratedRoutes(app: OpenAPIHono): OpenAPIHono {
   registerFileRoutes(app)
   registerSelectedFileRoutes(app)
   registerActiveTabRoutes(app)
-  
+
   console.log('✅ All generated routes registered successfully')
   return app
 }

@@ -36,13 +36,13 @@ export function toOSPath(path: string): string {
  */
 export function joinPosix(...segments: string[]): string {
   if (segments.length === 0) return ''
-  
+
   const joined = segments
-    .filter(segment => segment && segment.length > 0)
-    .map(segment => segment.replace(/\\/g, '/')) // Convert to forward slashes
+    .filter((segment) => segment && segment.length > 0)
+    .map((segment) => segment.replace(/\\/g, '/')) // Convert to forward slashes
     .join('/')
     .replace(/\/+/g, '/') // Remove duplicate slashes
-  
+
   return joined
 }
 
@@ -58,11 +58,11 @@ export function relativePosix(from: string, to: string): string {
   // Convert both paths to POSIX format
   const fromPosix = toPosixPath(from)
   const toPosix = toPosixPath(to)
-  
+
   // Split paths into segments
-  const fromSegments = fromPosix.split('/').filter(s => s.length > 0)
-  const toSegments = toPosix.split('/').filter(s => s.length > 0)
-  
+  const fromSegments = fromPosix.split('/').filter((s) => s.length > 0)
+  const toSegments = toPosix.split('/').filter((s) => s.length > 0)
+
   // Find common prefix length
   let commonLength = 0
   while (
@@ -72,11 +72,11 @@ export function relativePosix(from: string, to: string): string {
   ) {
     commonLength++
   }
-  
+
   // Build relative path
   const upSegments = Array(fromSegments.length - commonLength).fill('..')
   const downSegments = toSegments.slice(commonLength)
-  
+
   const relativePath = [...upSegments, ...downSegments].join('/')
   return relativePath || '.'
 }
@@ -150,11 +150,11 @@ export function resolvePath(path: string): string {
   // Just normalize the path and make it absolute-like
   let resolved = expandTilde(path)
   resolved = toPosixPath(resolved)
-  
+
   // If not already absolute, make it absolute-like
   if (!isAbsolutePath(resolved)) {
     resolved = '/' + resolved
   }
-  
+
   return resolved
 }

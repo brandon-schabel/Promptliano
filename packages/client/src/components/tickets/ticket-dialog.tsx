@@ -129,7 +129,11 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
       setOverview(ticketWithTasks.ticket.overview ?? '')
       setPriority(ticketWithTasks.ticket.priority as 'low' | 'normal' | 'high')
       setStatus(ticketWithTasks.ticket.status as 'open' | 'in_progress' | 'closed')
-      setSelectedFileIds(Array.isArray(ticketWithTasks.ticket.suggestedFileIds) ? ticketWithTasks.ticket.suggestedFileIds as string[] : [])
+      setSelectedFileIds(
+        Array.isArray(ticketWithTasks.ticket.suggestedFileIds)
+          ? (ticketWithTasks.ticket.suggestedFileIds as string[])
+          : []
+      )
     } else {
       resetForm()
     }

@@ -39,7 +39,8 @@ export type CommandContextOptions = z.infer<typeof CommandContextOptionsSchema>
  * Command generation request
  */
 export const CommandGenerationRequestSchema = z.object({
-  name: z.string()
+  name: z
+    .string()
     .min(1, 'Command name is required')
     .regex(/^[a-z0-9-]+$/, 'Command name must only contain lowercase letters, numbers, and hyphens'),
   description: z.string().min(1, 'Description is required'),

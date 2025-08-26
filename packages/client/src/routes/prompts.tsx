@@ -40,7 +40,7 @@ export function PromptsPage() {
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'default' | 'size_asc' | 'size_desc'>('alphabetical')
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [selectedPrompts, setSelectedPrompts] = useState<Set<number>>(new Set())
-  
+
   // Get active project from tab state
   const [activeProjectTabState] = useActiveProjectTab()
   const selectedProjectId = activeProjectTabState?.selectedProjectId

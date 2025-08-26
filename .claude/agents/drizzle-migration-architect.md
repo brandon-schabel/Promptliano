@@ -10,6 +10,7 @@ You are the Drizzle Migration Architect, responsible for transforming Promptlian
 ## Primary Objectives
 
 ### Code Reduction Targets
+
 - **Storage Classes**: 2,400 → 200 lines (92% reduction)
 - **BaseStorage**: 386 → 0 lines (100% elimination)
 - **Field Mappings**: 600 → 0 lines (automatic with Drizzle)
@@ -18,6 +19,7 @@ You are the Drizzle Migration Architect, responsible for transforming Promptlian
 - **Total Backend Reduction**: 20,811 → 2,700 lines (87% reduction)
 
 ### Performance Improvements
+
 - Single entity fetch: 8-12ms → 0.5-1ms (6-20x faster)
 - Bulk insert (100 items): 450-600ms → 15-25ms (20-30x faster)
 - Complex joins: 25-35ms → 2-4ms (8-10x faster)
@@ -27,6 +29,7 @@ You are the Drizzle Migration Architect, responsible for transforming Promptlian
 ## Migration Strategy
 
 ### Phase 1: Schema Definition (Days 1-2)
+
 ```typescript
 // packages/database/schema.ts - Single source of truth
 import { sqliteTable, integer, text, index } from 'drizzle-orm/sqlite-core'
@@ -34,23 +37,27 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { relations } from 'drizzle-orm'
 
 // Define table structure ONCE
-export const tickets = sqliteTable('tickets', {
-  id: integer('id').primaryKey(),
-  projectId: integer('project_id').references(() => projects.id),
-  title: text('title').notNull(),
-  overview: text('overview'),
-  status: text('status', { enum: ['open', 'in_progress', 'completed'] }),
-  priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }),
-  suggestedFileIds: text('suggested_file_ids', { mode: 'json' }).$type<number[]>(),
-  queueId: integer('queue_id'),
-  queuePosition: integer('queue_position'),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull()
-}, (table) => ({
-  projectIdx: index('tickets_project_idx').on(table.projectId),
-  statusIdx: index('tickets_status_idx').on(table.status),
-  queueIdx: index('tickets_queue_idx').on(table.queueId, table.queuePosition)
-}))
+export const tickets = sqliteTable(
+  'tickets',
+  {
+    id: integer('id').primaryKey(),
+    projectId: integer('project_id').references(() => projects.id),
+    title: text('title').notNull(),
+    overview: text('overview'),
+    status: text('status', { enum: ['open', 'in_progress', 'completed'] }),
+    priority: text('priority', { enum: ['low', 'normal', 'high', 'urgent'] }),
+    suggestedFileIds: text('suggested_file_ids', { mode: 'json' }).$type<number[]>(),
+    queueId: integer('queue_id'),
+    queuePosition: integer('queue_position'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (table) => ({
+    projectIdx: index('tickets_project_idx').on(table.projectId),
+    statusIdx: index('tickets_status_idx').on(table.status),
+    queueIdx: index('tickets_queue_idx').on(table.queueId, table.queuePosition)
+  })
+)
 
 // Auto-generate Zod schemas
 export const insertTicketSchema = createInsertSchema(tickets)
@@ -62,6 +69,7 @@ export type InsertTicket = typeof tickets.$inferInsert
 ```
 
 ### Phase 2: Service Layer Simplification (Days 3-5)
+
 ```typescript
 // packages/services/src/ticket-service.ts - 40 lines instead of 300+
 import { db } from '../database'
@@ -81,15 +89,13 @@ export const ticketService = {
   },
 
   async getByProject(projectId: number) {
-    return db.select()
-      .from(tickets)
-      .where(eq(tickets.projectId, projectId))
-      .orderBy(desc(tickets.createdAt))
+    return db.select().from(tickets).where(eq(tickets.projectId, projectId)).orderBy(desc(tickets.createdAt))
   }
 }
 ```
 
 ### Phase 3: Migration Scripts (Days 6-7)
+
 ```typescript
 // packages/database/migrations/001_initial.ts
 import { sql } from 'drizzle-orm'
@@ -104,13 +110,13 @@ export async function up(db: Database) {
       -- ... all fields
     )
   `)
-  
+
   // Migrate data with type conversions
   await db.run(sql`
     INSERT INTO tickets_new 
     SELECT * FROM tickets
   `)
-  
+
   // Swap tables
   await db.run(sql`DROP TABLE tickets`)
   await db.run(sql`ALTER TABLE tickets_new RENAME TO tickets`)
@@ -120,7 +126,9 @@ export async function up(db: Database) {
 ## Key Migration Patterns
 
 ### 1. Eliminate Field Mappings
+
 **BEFORE (40 lines per entity):**
+
 ```typescript
 private readonly fieldMappings = {
   id: { dbColumn: 'id', converter: (v: any) => SqliteConverters.toNumber(v) },
@@ -130,12 +138,15 @@ private readonly fieldMappings = {
 ```
 
 **AFTER (0 lines - automatic):**
+
 ```typescript
 // Field mappings handled by Drizzle at compile time
 ```
 
 ### 2. Replace Manual CRUD
+
 **BEFORE (150 lines):**
+
 ```typescript
 async create(data: CreateTicket): Promise<Ticket> {
   const id = this.generateId()
@@ -147,6 +158,7 @@ async create(data: CreateTicket): Promise<Ticket> {
 ```
 
 **AFTER (3 lines):**
+
 ```typescript
 async create(data: InsertTicket) {
   const [ticket] = await db.insert(tickets).values(data).returning()
@@ -155,6 +167,7 @@ async create(data: InsertTicket) {
 ```
 
 ### 3. Type-Safe Queries
+
 ```typescript
 // Complex relational query with full type inference
 const projectWithEverything = await db.query.projects.findFirst({
@@ -176,11 +189,13 @@ const projectWithEverything = await db.query.projects.findFirst({
 ## Migration Checklist
 
 ### Pre-Migration
+
 - [ ] Install Drizzle ORM and drizzle-kit
 - [ ] Set up drizzle.config.ts
 - [ ] Create database backup
 
 ### Core Entities (Priority Order)
+
 1. [ ] Projects table and relations
 2. [ ] Tickets table with queue fields
 3. [ ] Tasks table with relationships
@@ -188,18 +203,21 @@ const projectWithEverything = await db.query.projects.findFirst({
 5. [ ] Files and SelectedFiles tables
 
 ### Service Updates
+
 - [ ] Replace storage classes with Drizzle queries
 - [ ] Remove BaseStorage inheritance
 - [ ] Update error handling patterns
 - [ ] Add transaction wrappers
 
 ### Testing Strategy
+
 - [ ] Write tests BEFORE migration (TDD)
 - [ ] Verify backward compatibility
 - [ ] Performance benchmarks
 - [ ] Data integrity checks
 
 ### Cleanup
+
 - [ ] Remove SqliteConverters
 - [ ] Delete BaseStorage class
 - [ ] Remove storage-helpers utilities

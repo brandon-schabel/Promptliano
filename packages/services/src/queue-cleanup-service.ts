@@ -39,17 +39,18 @@ export async function cleanupQueueData(
       // 1. Remove orphaned queue items (queue doesn't exist)
       // First get queue IDs that exist
       const existingQueueIds = await tx.select({ id: queues.id }).from(queues)
-      const existingIds = existingQueueIds.map(q => q.id)
-      
+      const existingIds = existingQueueIds.map((q) => q.id)
+
       if (existingIds.length === 0) {
         // No queues exist, delete all queue items
-        const orphanedResult = await tx.delete(queueItems).run() as unknown as { changes: number }
+        const orphanedResult = (await tx.delete(queueItems).run()) as unknown as { changes: number }
         result.orphanedItemsRemoved = orphanedResult.changes || 0
       } else {
         // Delete items where queue_id is not in existing queues
-        const orphanedResult = await tx.delete(queueItems)
+        const orphanedResult = (await tx
+          .delete(queueItems)
           .where(notInArray(queueItems.queueId, existingIds))
-          .run() as unknown as { changes: number }
+          .run()) as unknown as { changes: number }
         result.orphanedItemsRemoved = orphanedResult.changes || 0
       }
 
@@ -61,11 +62,9 @@ export async function cleanupQueueData(
 
       if (projectId) {
         // Get queue IDs for this project
-        const projectQueueIds = await tx.select({ id: queues.id })
-          .from(queues)
-          .where(eq(queues.projectId, projectId))
-        const projectQueueIdList = projectQueueIds.map(q => q.id)
-        
+        const projectQueueIds = await tx.select({ id: queues.id }).from(queues).where(eq(queues.projectId, projectId))
+        const projectQueueIdList = projectQueueIds.map((q) => q.id)
+
         if (projectQueueIdList.length > 0) {
           oldCompletedConditions = and(
             oldCompletedConditions!,
@@ -78,80 +77,77 @@ export async function cleanupQueueData(
         }
       }
 
-      const oldCompletedResult = await tx.delete(queueItems)
-        .where(oldCompletedConditions!)
-        .run() as unknown as { changes: number }
+      const oldCompletedResult = (await tx.delete(queueItems).where(oldCompletedConditions!).run()) as unknown as {
+        changes: number
+      }
       result.oldCompletedItemsRemoved = oldCompletedResult.changes || 0
 
       // 3. Remove items with invalid task IDs
       // First get all valid task IDs
       const validTaskIds = await tx.select({ id: ticketTasks.id }).from(ticketTasks)
-      const validTaskIdList = validTaskIds.map(t => t.id)
-      
+      const validTaskIdList = validTaskIds.map((t) => t.id)
+
       let invalidTasksResult
       if (validTaskIdList.length === 0) {
         // No valid tasks exist, delete all items with itemType = 'task'
-        invalidTasksResult = await tx.delete(queueItems)
-          .where(eq(queueItems.itemType, 'task'))
-          .run() as unknown as { changes: number }
+        invalidTasksResult = (await tx.delete(queueItems).where(eq(queueItems.itemType, 'task')).run()) as unknown as {
+          changes: number
+        }
       } else {
         // Delete items with invalid task IDs (where itemType is 'task' but itemId not in valid tasks)
-        invalidTasksResult = await tx.delete(queueItems)
-          .where(and(
-            eq(queueItems.itemType, 'task'),
-            notInArray(queueItems.itemId, validTaskIdList)
-          ))
-          .run() as unknown as { changes: number }
+        invalidTasksResult = (await tx
+          .delete(queueItems)
+          .where(and(eq(queueItems.itemType, 'task'), notInArray(queueItems.itemId, validTaskIdList)))
+          .run()) as unknown as { changes: number }
       }
       result.invalidTasksRemoved = invalidTasksResult.changes || 0
 
       // 4. Remove items with invalid ticket IDs
       // First get all valid ticket IDs
       const validTicketIds = await tx.select({ id: tickets.id }).from(tickets)
-      const validTicketIdList = validTicketIds.map(t => t.id)
-      
+      const validTicketIdList = validTicketIds.map((t) => t.id)
+
       let invalidTicketsResult
       if (validTicketIdList.length === 0) {
         // No valid tickets exist, delete all items with itemType = 'ticket'
-        invalidTicketsResult = await tx.delete(queueItems)
+        invalidTicketsResult = (await tx
+          .delete(queueItems)
           .where(eq(queueItems.itemType, 'ticket'))
-          .run() as unknown as { changes: number }
+          .run()) as unknown as { changes: number }
       } else {
         // Delete items with invalid ticket IDs (where itemType is 'ticket' but itemId not in valid tickets)
-        invalidTicketsResult = await tx.delete(queueItems)
-          .where(and(
-            eq(queueItems.itemType, 'ticket'),
-            notInArray(queueItems.itemId, validTicketIdList)
-          ))
-          .run() as unknown as { changes: number }
+        invalidTicketsResult = (await tx
+          .delete(queueItems)
+          .where(and(eq(queueItems.itemType, 'ticket'), notInArray(queueItems.itemId, validTicketIdList)))
+          .run()) as unknown as { changes: number }
       }
       result.invalidTicketsRemoved = invalidTicketsResult.changes || 0
 
       // 5. Update queue statistics after cleanup
       if (projectId) {
         // Get all queues for this project
-        const projectQueues = await tx.select({ id: queues.id })
-          .from(queues)
-          .where(eq(queues.projectId, projectId))
+        const projectQueues = await tx.select({ id: queues.id }).from(queues).where(eq(queues.projectId, projectId))
 
         // Update statistics for each queue
         for (const queue of projectQueues) {
           // Calculate statistics using Drizzle aggregation
-          const stats = await tx.select({
-            completedItems: count(sql`CASE WHEN ${queueItems.status} = 'completed' THEN 1 END`),
-            avgProcessingTime: sql`AVG(CASE 
+          const stats = await tx
+            .select({
+              completedItems: count(sql`CASE WHEN ${queueItems.status} = 'completed' THEN 1 END`),
+              avgProcessingTime: sql`AVG(CASE 
               WHEN ${queueItems.status} = 'completed' AND ${queueItems.actualProcessingTime} IS NOT NULL 
               THEN ${queueItems.actualProcessingTime} 
               ELSE NULL 
             END)`.as('avg_processing_time')
-          })
+            })
             .from(queueItems)
             .where(eq(queueItems.queueId, queue.id))
 
           const stat = stats[0]
           if (stat) {
             // Update queue statistics (only updatedAt since averageProcessingTime/totalCompletedItems don't exist in schema)
-            await tx.update(queues)
+            await tx
+              .update(queues)
               .set({
                 updatedAt: Date.now()
               })
@@ -185,22 +181,20 @@ export async function resetQueue(queueId: number): Promise<number> {
     // Use Drizzle transaction for atomic reset
     return await db.transaction(async (tx) => {
       // Verify queue exists
-      const queue = await tx.select({ id: queues.id })
-        .from(queues)
-        .where(eq(queues.id, queueId))
-        .limit(1)
-      
+      const queue = await tx.select({ id: queues.id }).from(queues).where(eq(queues.id, queueId)).limit(1)
+
       if (queue.length === 0) {
         throw new ApiError(404, `Queue ${queueId} not found`, 'QUEUE_NOT_FOUND')
       }
 
       // Delete all items in the queue
-      const result = await tx.delete(queueItems)
-        .where(eq(queueItems.queueId, queueId))
-        .run() as unknown as { changes: number }
+      const result = (await tx.delete(queueItems).where(eq(queueItems.queueId, queueId)).run()) as unknown as {
+        changes: number
+      }
 
       // Reset queue statistics (only updatedAt since averageProcessingTime/totalCompletedItems don't exist in schema)
-      await tx.update(queues)
+      await tx
+        .update(queues)
         .set({
           updatedAt: Date.now()
         })
@@ -234,7 +228,8 @@ export async function moveFailedToDeadLetter(queueId?: number): Promise<number> 
     }
 
     // Get failed items that need to be moved
-    const failedItems = await db.select()
+    const failedItems = await db
+      .select()
       .from(queueItems)
       .where(and(...conditions))
 
@@ -246,28 +241,31 @@ export async function moveFailedToDeadLetter(queueId?: number): Promise<number> 
     // Note: Since dead letter queue table doesn't exist in schema,
     // we'll log these items instead and delete them
     // In a real implementation, you'd create a dead_letter table first
-    
+
     console.warn('[Queue Cleanup] Dead letter queue table not found in schema.')
     console.warn('[Queue Cleanup] Failed items will be logged and deleted:')
-    
+
     for (const item of failedItems) {
-      console.warn(`[Queue Cleanup] Dead letter item: ${JSON.stringify({
-        originalQueueId: item.queueId,
-        originalItemId: item.id,
-        itemType: item.itemType,
-        itemId: item.itemId,
-        finalStatus: item.status,
-        errorMessage: item.errorMessage,
-        agentId: item.agentId,
-        originalCreatedAt: item.createdAt
-      })}`)
+      console.warn(
+        `[Queue Cleanup] Dead letter item: ${JSON.stringify({
+          originalQueueId: item.queueId,
+          originalItemId: item.id,
+          itemType: item.itemType,
+          itemId: item.itemId,
+          finalStatus: item.status,
+          errorMessage: item.errorMessage,
+          agentId: item.agentId,
+          originalCreatedAt: item.createdAt
+        })}`
+      )
     }
 
     // Delete the failed items since we can't move them to dead letter
-    const result = await db.delete(queueItems)
+    const result = (await db
+      .delete(queueItems)
       .where(and(...conditions))
-      .run() as unknown as { changes: number }
-    
+      .run()) as unknown as { changes: number }
+
     movedCount = result.changes || 0
 
     console.log(`[Queue Cleanup] Removed ${movedCount} failed items (dead letter queue not implemented)`)
@@ -300,12 +298,13 @@ export async function getQueueHealth(projectId: number): Promise<{
     const activeQueues = projectQueues.filter((q) => q.isActive)
 
     // Get project queue IDs
-    const projectQueueIds = projectQueues.map(q => q.id)
+    const projectQueueIds = projectQueues.map((q) => q.id)
 
     // Count total items in project queues
     let totalItemsCount = 0
     if (projectQueueIds.length > 0) {
-      const totalItemsResult = await db.select({ count: count() })
+      const totalItemsResult = await db
+        .select({ count: count() })
         .from(queueItems)
         .where(sql`${queueItems.queueId} IN (${sql.join(projectQueueIds, sql`, `)})`)
       totalItemsCount = totalItemsResult[0]?.count || 0
@@ -313,8 +312,8 @@ export async function getQueueHealth(projectId: number): Promise<{
 
     // Count orphaned items (items pointing to non-existent queues)
     const allQueueIds = await db.select({ id: queues.id }).from(queues)
-    const allQueueIdList = allQueueIds.map(q => q.id)
-    
+    const allQueueIdList = allQueueIds.map((q) => q.id)
+
     let orphanedItemsCount = 0
     if (allQueueIdList.length === 0) {
       // No queues exist, all items are orphaned
@@ -322,7 +321,8 @@ export async function getQueueHealth(projectId: number): Promise<{
       orphanedItemsCount = orphanedResult[0]?.count || 0
     } else {
       // Count items with queue_id not in existing queues
-      const orphanedResult = await db.select({ count: count() })
+      const orphanedResult = await db
+        .select({ count: count() })
         .from(queueItems)
         .where(notInArray(queueItems.queueId, allQueueIdList))
       orphanedItemsCount = orphanedResult[0]?.count || 0
@@ -330,13 +330,16 @@ export async function getQueueHealth(projectId: number): Promise<{
 
     // Count stuck items (in_progress for > 1 hour)
     const oneHourAgo = Date.now() - 60 * 60 * 1000
-    const stuckResult = await db.select({ count: count() })
+    const stuckResult = await db
+      .select({ count: count() })
       .from(queueItems)
-      .where(and(
-        eq(queueItems.status, 'in_progress'),
-        sql`${queueItems.startedAt} IS NOT NULL`,
-        lt(queueItems.startedAt, oneHourAgo)
-      ))
+      .where(
+        and(
+          eq(queueItems.status, 'in_progress'),
+          sql`${queueItems.startedAt} IS NOT NULL`,
+          lt(queueItems.startedAt, oneHourAgo)
+        )
+      )
 
     const stats = {
       totalQueues: projectQueues.length,

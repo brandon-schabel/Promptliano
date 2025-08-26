@@ -22,7 +22,7 @@ test.describe('Prompt Workflow Tests', () => {
     promptsPage = new PromptsPage(page)
     filesPage = new FilesPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -38,7 +38,7 @@ test.describe('Prompt Workflow Tests', () => {
   test.describe('Basic Prompt Management', () => {
     test('should create a simple prompt', async () => {
       await sidebarPage.navigateToSection('prompts')
-      
+
       const promptData = TestDataFactory.createPrompt({
         title: 'Test Code Review Prompt',
         content: 'Please review the following code and provide feedback:\n\n{{code}}',
@@ -73,7 +73,7 @@ test.describe('Prompt Workflow Tests', () => {
         content: 'Updated prompt content with new instructions',
         description: 'Updated description'
       }
-      
+
       await promptsPage.editPrompt(promptData.title, updatedData)
 
       // Verify changes
@@ -176,7 +176,7 @@ Provide specific recommendations for improvement.`,
 
       // Create prompt with file context
       await sidebarPage.navigateToSection('prompts')
-      
+
       const promptData = TestDataFactory.createPrompt({
         title: 'Package Analysis Prompt',
         content: 'Analyze the package.json file:\n\n{{package.json}}'
@@ -201,7 +201,7 @@ Provide specific recommendations for improvement.`,
 
       // Select different types of files
       await filesPage.waitForFilesInterfaceLoad()
-      
+
       // Try to select various file types
       const filesToSelect = ['package.json', 'README.md', 'tsconfig.json']
       for (const file of filesToSelect) {
@@ -288,7 +288,7 @@ Please provide:
           tags: ['bug', 'template', 'analysis']
         }),
         TestDataFactory.createPrompt({
-          title: 'Feature Documentation Template', 
+          title: 'Feature Documentation Template',
           content: `Feature Documentation:
 
 Feature: {{featureName}}
@@ -350,7 +350,7 @@ End of prompt.`
           tags: ['javascript', 'review']
         }),
         TestDataFactory.createPrompt({
-          title: 'Python Bug Analysis', 
+          title: 'Python Bug Analysis',
           content: 'Analyze Python bugs and provide solutions',
           tags: ['python', 'bug', 'analysis']
         }),
@@ -384,7 +384,7 @@ End of prompt.`
           tags: ['review', 'quality']
         }),
         TestDataFactory.createPrompt({
-          title: 'Code Review 2', 
+          title: 'Code Review 2',
           content: 'Review code for security',
           tags: ['review', 'security']
         }),
@@ -425,7 +425,7 @@ End of prompt.`
       try {
         await promptsPage.sortSelect.selectOption('name')
         await appPage.waitForLoadingComplete()
-        
+
         const sortedPrompts = await promptsPage.getVisiblePromptTitles()
         expect(sortedPrompts.length).toBeGreaterThan(0)
       } catch (error) {
@@ -444,12 +444,12 @@ End of prompt.`
         content: 'This prompt will be exported to markdown',
         description: 'Test prompt for export functionality'
       })
-      
+
       await promptsPage.createPrompt(promptData)
-      
+
       // Export the prompt
       await promptsPage.exportPrompt(promptData.title)
-      
+
       // Note: Actual file download verification would need additional setup
       // This test verifies the export action is triggered
     })
@@ -470,7 +470,7 @@ Please process the following: {{input}}`
 
       try {
         await promptsPage.importPrompt(markdownContent)
-        
+
         // Verify imported prompt exists
         expect(await promptsPage.promptExists('Imported Prompt')).toBe(true)
       } catch (error) {
@@ -488,7 +488,7 @@ Please process the following: {{input}}`
 
 ${'This is a line of content for testing large prompts.\n'.repeat(100)}
 
-Variables: ${Array.from({length: 20}, (_, i) => `{{var${i}}}`).join(', ')}
+Variables: ${Array.from({ length: 20 }, (_, i) => `{{var${i}}}`).join(', ')}
 
 ${'Additional content line for bulk testing.\n'.repeat(50)}`
 
@@ -559,7 +559,7 @@ ${'Additional content line for bulk testing.\n'.repeat(50)}`
 
       // Create project-specific prompt
       await sidebarPage.navigateToSection('prompts')
-      
+
       const projectPrompt = TestDataFactory.createPrompt({
         title: `${testProject.name} - Code Review`,
         content: `Review code for the ${testProject.name} project:
@@ -590,7 +590,7 @@ Focus on:
       // Select TypeScript files
       await filesPage.waitForFilesInterfaceLoad()
       const tsFiles = TestProjectHelpers.getProjectTypeScriptFiles(testProject)
-      
+
       for (const tsFile of tsFiles.slice(0, 2)) {
         const fileName = tsFile.split('/').pop()
         if (fileName) {
@@ -604,7 +604,7 @@ Focus on:
 
       // Create prompt for selected files
       await sidebarPage.navigateToSection('prompts')
-      
+
       const promptData = TestDataFactory.createPrompt({
         title: 'TypeScript Analysis',
         content: `Analyze the selected TypeScript files:

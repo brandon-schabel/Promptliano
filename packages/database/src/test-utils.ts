@@ -18,10 +18,10 @@ export function createTestDatabase() {
   // For now, just ensure tables are created in the global test database
   // The db.ts file already sets up an in-memory database for tests
   // We just need to ensure tables exist
-  
+
   // Import the global db and rawDb
   const { db, rawDb } = require('./db')
-  
+
   // Create tables if they don't exist
   try {
     const tables = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all()
@@ -166,13 +166,7 @@ function createTestTables(sqlite: Database) {
  * Clear all data from test database
  */
 function clearAllData(sqlite: Database) {
-  const tables = [
-    'queue_items',
-    'queues',
-    'ticket_tasks',
-    'tickets',
-    'projects'
-  ]
+  const tables = ['queue_items', 'queues', 'ticket_tasks', 'tickets', 'projects']
 
   for (const table of tables) {
     try {

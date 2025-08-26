@@ -95,7 +95,7 @@ export class ClientInterceptorSystem {
   addInterceptor(interceptor: ClientInterceptor): void {
     // Remove existing interceptor with same name
     this.removeInterceptor(interceptor.name)
-    
+
     // Add new interceptor and sort by order
     this.interceptors.push(interceptor)
     this.interceptors.sort((a, b) => a.order - b.order)
@@ -105,7 +105,7 @@ export class ClientInterceptorSystem {
    * Remove an interceptor by name
    */
   removeInterceptor(name: string): boolean {
-    const index = this.interceptors.findIndex(i => i.name === name)
+    const index = this.interceptors.findIndex((i) => i.name === name)
     if (index >= 0) {
       this.interceptors.splice(index, 1)
       return true
@@ -124,7 +124,7 @@ export class ClientInterceptorSystem {
    * Enable or disable an interceptor
    */
   setInterceptorEnabled(name: string, enabled: boolean): boolean {
-    const interceptor = this.interceptors.find(i => i.name === name)
+    const interceptor = this.interceptors.find((i) => i.name === name)
     if (interceptor) {
       interceptor.enabled = enabled
       return true
@@ -174,7 +174,7 @@ export class ClientInterceptorSystem {
         return result
       } catch (error) {
         lastError = error as Error
-        
+
         // Don't retry on last attempt
         if (attempt === maxAttempts) {
           break
@@ -184,7 +184,7 @@ export class ClientInterceptorSystem {
         if (error instanceof TypeError && error.message.includes('fetch')) {
           // Wait before retry (exponential backoff)
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
           continue
         } else {
           // Don't retry HTTP errors or other types
@@ -201,14 +201,14 @@ export class ClientInterceptorSystem {
    * Execute a single request attempt with interceptors
    */
   private async executeRequest(
-    input: RequestInfo | URL, 
+    input: RequestInfo | URL,
     options?: ClientFetchOptions,
     startTime: number = Date.now(),
     attempt: number = 1
   ): Promise<Response> {
     // Create initial request
     const request = this.createRequest(input, options)
-    
+
     // Create context
     let context: ClientInterceptorContext = {
       request,
@@ -233,7 +233,7 @@ export class ClientInterceptorSystem {
           signal: controller.signal
         })
         clearTimeout(timeoutId)
-        
+
         context.response = response
         context.duration = Date.now() - startTime
 
@@ -243,25 +243,25 @@ export class ClientInterceptorSystem {
         return context.response!
       } catch (fetchError) {
         clearTimeout(timeoutId)
-        
+
         if (controller.signal.aborted) {
           throw new Error('Request timeout')
         }
-        
+
         throw fetchError
       }
     } catch (error) {
       // Execute error interceptors
       context.error = error as Error
       context.duration = Date.now() - startTime
-      
+
       context = await this.executeInterceptors('error', context)
-      
+
       // If error interceptor provided a response, return it
       if (context.response) {
         return context.response
       }
-      
+
       // Otherwise, re-throw the error
       throw context.error
     }
@@ -271,12 +271,10 @@ export class ClientInterceptorSystem {
    * Execute interceptors of a specific type
    */
   private async executeInterceptors(
-    type: ClientInterceptorType, 
+    type: ClientInterceptorType,
     context: ClientInterceptorContext
   ): Promise<ClientInterceptorContext> {
-    const interceptors = this.interceptors
-      .filter(i => i.type === type && i.enabled)
-      .sort((a, b) => a.order - b.order)
+    const interceptors = this.interceptors.filter((i) => i.type === type && i.enabled).sort((a, b) => a.order - b.order)
 
     for (const interceptor of interceptors) {
       try {
@@ -284,12 +282,12 @@ export class ClientInterceptorSystem {
       } catch (error) {
         // If an interceptor fails, log the error but continue
         console.error(`Client interceptor '${interceptor.name}' failed:`, error)
-        
+
         // For error interceptors, we still want to continue processing
         if (type === 'error') {
           continue
         }
-        
+
         // For request/response interceptors, treat as an error
         throw error
       }
@@ -322,7 +320,7 @@ export class ClientInterceptorSystem {
 
     // Merge headers
     const headers = new Headers()
-    
+
     // Add default headers
     if (this.config.defaultHeaders) {
       Object.entries(this.config.defaultHeaders).forEach(([key, value]) => {
@@ -398,7 +396,7 @@ export const ClientInterceptors = {
   /**
    * Add authentication token to requests
    */
-  auth: (getToken: () => string | Promise<string>): ClientRequestInterceptor => 
+  auth: (getToken: () => string | Promise<string>): ClientRequestInterceptor =>
     createClientInterceptor({
       name: 'auth',
       type: 'request',
@@ -417,7 +415,7 @@ export const ClientInterceptors = {
   /**
    * Add request ID for tracing
    */
-  requestId: (): ClientRequestInterceptor => 
+  requestId: (): ClientRequestInterceptor =>
     createClientInterceptor({
       name: 'request-id',
       type: 'request',
@@ -435,9 +433,7 @@ export const ClientInterceptors = {
   /**
    * Log requests and responses
    */
-  logger: (
-    logger: (level: string, message: string, data?: any) => void = console.log
-  ): ClientInterceptor[] => [
+  logger: (logger: (level: string, message: string, data?: any) => void = console.log): ClientInterceptor[] => [
     createClientInterceptor({
       name: 'request-logger',
       type: 'request',
@@ -476,7 +472,7 @@ export const ClientInterceptors = {
   /**
    * Handle common HTTP errors
    */
-  errorHandler: (): ClientErrorInterceptor => 
+  errorHandler: (): ClientErrorInterceptor =>
     createClientInterceptor({
       name: 'error-handler',
       type: 'error',
@@ -492,7 +488,7 @@ export const ClientInterceptors = {
             attempt: context.attempt
           })
         }
-        
+
         if (context.response && !context.response.ok) {
           console.error('HTTP Response Error:', {
             url: context.request.url,
@@ -500,7 +496,7 @@ export const ClientInterceptors = {
             statusText: context.response.statusText
           })
         }
-        
+
         return context
       }
     }) as ClientErrorInterceptor,
@@ -508,7 +504,7 @@ export const ClientInterceptors = {
   /**
    * Add Content-Type header for JSON requests
    */
-  json: (): ClientRequestInterceptor => 
+  json: (): ClientRequestInterceptor =>
     createClientInterceptor({
       name: 'json-content-type',
       type: 'request',
@@ -530,7 +526,7 @@ export const ClientInterceptors = {
   /**
    * Transform response based on Content-Type
    */
-  autoTransform: (): ClientResponseInterceptor => 
+  autoTransform: (): ClientResponseInterceptor =>
     createClientInterceptor({
       name: 'auto-transform',
       type: 'response',
@@ -540,7 +536,7 @@ export const ClientInterceptors = {
       handler: async (context) => {
         if (context.response) {
           const contentType = context.response.headers.get('Content-Type')
-          
+
           // Store parsed data in metadata for easy access
           if (contentType?.includes('application/json')) {
             try {
@@ -558,7 +554,7 @@ export const ClientInterceptors = {
             }
           }
         }
-        
+
         return context
       }
     }) as ClientResponseInterceptor
@@ -575,7 +571,7 @@ export function createDefaultClientSystem(config?: {
   const system = new ClientInterceptorSystem({
     baseURL: config?.baseURL,
     defaultHeaders: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json'
     }
   })
@@ -593,7 +589,7 @@ export function createDefaultClientSystem(config?: {
 
   // Add logging if enabled
   if (config?.enableLogging) {
-    ClientInterceptors.logger().forEach(interceptor => {
+    ClientInterceptors.logger().forEach((interceptor) => {
       system.addInterceptor(interceptor)
     })
   }

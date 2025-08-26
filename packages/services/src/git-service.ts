@@ -1,10 +1,10 @@
 /**
  * Git Service - Backwards Compatibility Layer
- * 
+ *
  * This file maintains backwards compatibility by re-exporting all functions
  * from the modularized git services. The actual implementation has been
  * split into specialized services for better organization and maintainability.
- * 
+ *
  * @deprecated Use the specialized services directly from './git-services' for new code
  */
 

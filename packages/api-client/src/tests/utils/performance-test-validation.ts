@@ -17,7 +17,7 @@ import { PerformanceBaselineManager } from './performance-baselines'
  */
 const mockClient = {
   async mockOperation(delay: number = 100): Promise<{ success: true; data: string }> {
-    await new Promise(resolve => setTimeout(resolve, delay))
+    await new Promise((resolve) => setTimeout(resolve, delay))
     return { success: true, data: 'mock response' }
   }
 } as any
@@ -34,7 +34,7 @@ const testScenarios: EndpointTestScenario[] = [
     }
   },
   {
-    name: 'medium_operation', 
+    name: 'medium_operation',
     weight: 3,
     execute: async () => {
       return await mockClient.mockOperation(150) // 150ms operation
@@ -59,7 +59,7 @@ const testConfig: LoadTestConfig = {
     initial: 1,
     target: 5,
     rampupTimeMs: 2000, // 2 second ramp-up
-    sustainTimeMs: 5000  // 5 second sustain
+    sustainTimeMs: 5000 // 5 second sustain
   },
   requests: {
     thinkTimeMs: 100,
@@ -80,7 +80,7 @@ const testConfig: LoadTestConfig = {
 
 async function main() {
   console.log('🧪 Performance Testing Infrastructure Validation')
-  console.log('=' .repeat(50))
+  console.log('='.repeat(50))
 
   try {
     // Test 1: Basic Performance Measurement
@@ -90,10 +90,7 @@ async function main() {
 
     // Simulate some operations
     for (let i = 0; i < 5; i++) {
-      await measurement.measureOperation(
-        () => mockClient.mockOperation(100 + Math.random() * 100),
-        'test_operation'
-      )
+      await measurement.measureOperation(() => mockClient.mockOperation(100 + Math.random() * 100), 'test_operation')
     }
 
     measurement.updateActiveUsers(3)
@@ -127,7 +124,7 @@ async function main() {
     // Test 4: Baseline Management
     console.log('\n📊 Test 4: Baseline Management')
     const baselineManager = new PerformanceBaselineManager('/tmp/perf-test-baselines')
-    
+
     // Save baseline
     await baselineManager.saveBaseline(loadTestResult, {
       notes: 'Validation test baseline'
@@ -140,7 +137,7 @@ async function main() {
 
     // Test 5: Regression Detection
     console.log('\n🔍 Test 5: Regression Detection')
-    
+
     // Create a slightly degraded result for comparison
     const degradedResult = {
       ...loadTestResult,
@@ -177,9 +174,8 @@ async function main() {
     }
 
     console.log('\n🎉 All Performance Testing Validation Tests Passed!')
-    console.log('=' .repeat(50))
+    console.log('='.repeat(50))
     console.log('Performance testing infrastructure is ready for use.')
-    
   } catch (error) {
     console.error('❌ Validation failed:', error)
     process.exit(1)

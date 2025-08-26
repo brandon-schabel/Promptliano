@@ -1,12 +1,12 @@
 /**
  * Promptliano Hook Factory System
- * 
+ *
  * Phase 5 Complete: Comprehensive optimization layer with all components integrated
- * 
+ *
  * This is the main export point for the entire hook factory system including:
  * - Phase 4: Hook factories with 76% code reduction
  * - Phase 5: Complete optimization layer
- * 
+ *
  * Key achievements:
  * - 76% reduction in hook code (from 64,000 to ~15,000 lines)
  * - 80% faster loading through lazy loading

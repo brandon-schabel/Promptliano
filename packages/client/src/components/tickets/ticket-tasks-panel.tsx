@@ -1,11 +1,5 @@
 import React, { useState } from 'react'
-import {
-  useGetTasks,
-  useCreateTask,
-  useUpdateTask,
-  useDeleteTask,
-  useAutoGenerateTasks
-} from '@/hooks/api-hooks'
+import { useGetTasks, useCreateTask, useUpdateTask, useDeleteTask, useAutoGenerateTasks } from '@/hooks/api-hooks'
 import { Input } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { ArrowDown, ArrowUp, Copy, Plus, RefreshCcw, Trash2, CircleCheckBig, Circle } from 'lucide-react'
@@ -56,7 +50,10 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
     e?.preventDefault()
     e?.stopPropagation()
     if (!newTaskContent.trim()) return
-    await createTaskMut.mutateAsync({ ticketId: Number(ticketId), data: { content: newTaskContent, ticketId: Number(ticketId) } })
+    await createTaskMut.mutateAsync({
+      ticketId: Number(ticketId),
+      data: { content: newTaskContent, ticketId: Number(ticketId) }
+    })
     setNewTaskContent('')
   }
 

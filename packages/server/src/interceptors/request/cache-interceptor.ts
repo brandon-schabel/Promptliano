@@ -66,7 +66,7 @@ class MemoryCache {
 function generateCacheKey(context: Context, includeQuery: boolean = false): string {
   const method = context.req.method
   const path = context.req.path
-  
+
   if (!includeQuery) {
     return `${method}:${path}`
   }
@@ -97,7 +97,7 @@ function generateETag(data: any): string {
  * Check if cache entry is expired
  */
 function isExpired(entry: CacheEntry, ttl: number): boolean {
-  return (Date.now() - entry.timestamp) > ttl
+  return Date.now() - entry.timestamp > ttl
 }
 
 /**
@@ -142,7 +142,7 @@ function createCacheHandler(config: CacheInterceptorConfig): InterceptorHandler 
 
   return async (context: Context, interceptorContext: InterceptorContext, next: () => Promise<void>): Promise<void> => {
     const startTime = Date.now()
-    
+
     try {
       // Skip if caching is disabled
       if (!config.enabled) {
@@ -193,7 +193,7 @@ function createCacheHandler(config: CacheInterceptorConfig): InterceptorHandler 
             // Cache hit - return cached response
             context.header('ETag', cached.etag)
             context.header('X-Cache', 'HIT')
-            
+
             // Set any cached headers
             if (cached.headers) {
               Object.entries(cached.headers).forEach(([key, value]) => {
@@ -223,7 +223,7 @@ function createCacheHandler(config: CacheInterceptorConfig): InterceptorHandler 
           // Get response data (this is simplified - in real implementation,
           // we'd need to intercept the response stream)
           const responseData = context.get('responseData')
-          
+
           if (responseData) {
             const etag = generateETag(responseData)
             const cacheEntry: CacheEntry = {
@@ -240,7 +240,6 @@ function createCacheHandler(config: CacheInterceptorConfig): InterceptorHandler 
         // Log cache write error but don't fail the request
         console.warn('Cache write error:', cacheError)
       }
-
     } catch (error) {
       // Record timing even on error
       const duration = Date.now() - startTime
@@ -315,11 +314,7 @@ export const aggressiveCacheInterceptor = createCacheInterceptor({
 /**
  * Utility function to create cache key
  */
-export function createCacheKey(
-  method: string,
-  path: string,
-  query?: Record<string, string>
-): string {
+export function createCacheKey(method: string, path: string, query?: Record<string, string>): string {
   if (!query || Object.keys(query).length === 0) {
     return `${method}:${path}`
   }
@@ -335,10 +330,7 @@ export function createCacheKey(
 /**
  * Utility function to invalidate cache entries by pattern
  */
-export function invalidateCachePattern(
-  cache: any,
-  pattern: string
-): number {
+export function invalidateCachePattern(cache: any, pattern: string): number {
   if (!cache || typeof cache.delete !== 'function') {
     return 0
   }

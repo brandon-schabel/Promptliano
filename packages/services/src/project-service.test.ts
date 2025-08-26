@@ -18,11 +18,11 @@ import {
   summarizeFiles,
   type FileSyncData
 } from './project-service'
-import type { 
-  Project, 
-  File as ProjectFile, 
-  CreateProject as CreateProjectBody, 
-  UpdateProject as UpdateProjectBody 
+import type {
+  Project,
+  File as ProjectFile,
+  CreateProject as CreateProjectBody,
+  UpdateProject as UpdateProjectBody
 } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { z } from 'zod'

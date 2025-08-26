@@ -1,6 +1,6 @@
 /**
  * Test Data Manager for Isolation and Cleanup
- * 
+ *
  * This module provides comprehensive test data management with isolation,
  * cleanup, and coordination for parallel test execution.
  */
@@ -21,6 +21,17 @@ interface TestDataScope {
   queues: QueueData[]
   createdAt: number
   page?: Page
+}
+
+/**
+ * Test metrics for performance tracking
+ */
+interface TestMetrics {
+  startTime: number
+  endTime?: number
+  dataCreated: number
+  cleanupTime?: number
+  errors: string[]
 }
 
 /**
@@ -46,10 +57,10 @@ export class TestDataManager {
   constructor(page: Page, testInfo?: TestInfo) {
     this.page = page
     this.testInfo = testInfo
-    
+
     const testName = testInfo?.title || 'Unknown Test'
     const testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
+
     this.scope = {
       testId,
       testName,
@@ -74,18 +85,15 @@ export class TestDataManager {
    * Create isolated project data for this test
    */
   async createProject(overrides: Partial<ProjectData> = {}): Promise<ProjectData> {
-    const project = IsolatedTestDataFactory.createIsolatedProject(
-      this.scope.testName,
-      overrides
-    )
-    
+    const project = IsolatedTestDataFactory.createIsolatedProject(this.scope.testName, overrides)
+
     this.scope.projects.push(project)
-    
+
     // Register for cleanup if it creates files/directories
     if (project.path && project.path.startsWith('/tmp/')) {
       this.cleanupRegistry.temporaryFiles.push(project.path)
     }
-    
+
     return project
   }
 
@@ -93,11 +101,8 @@ export class TestDataManager {
    * Create isolated prompt data for this test
    */
   async createPrompt(overrides: Partial<PromptData> = {}): Promise<PromptData> {
-    const prompt = IsolatedTestDataFactory.createIsolatedPrompt(
-      this.scope.testName,
-      overrides
-    )
-    
+    const prompt = IsolatedTestDataFactory.createIsolatedPrompt(this.scope.testName, overrides)
+
     this.scope.prompts.push(prompt)
     return prompt
   }
@@ -106,11 +111,8 @@ export class TestDataManager {
    * Create isolated ticket data for this test
    */
   async createTicket(overrides: Partial<TicketData> = {}): Promise<TicketData> {
-    const ticket = IsolatedTestDataFactory.createIsolatedTicket(
-      this.scope.testName,
-      overrides
-    )
-    
+    const ticket = IsolatedTestDataFactory.createIsolatedTicket(this.scope.testName, overrides)
+
     this.scope.tickets.push(ticket)
     return ticket
   }
@@ -119,11 +121,8 @@ export class TestDataManager {
    * Create isolated queue data for this test
    */
   async createQueue(overrides: Partial<QueueData> = {}): Promise<QueueData> {
-    const queue = IsolatedTestDataFactory.createIsolatedQueue(
-      this.scope.testName,
-      overrides
-    )
-    
+    const queue = IsolatedTestDataFactory.createIsolatedQueue(this.scope.testName, overrides)
+
     this.scope.queues.push(queue)
     return queue
   }
@@ -138,12 +137,12 @@ export class TestDataManager {
     queue: QueueData
   }> {
     const scenario = IsolatedTestDataFactory.createIsolatedScenario(this.scope.testName)
-    
+
     this.scope.projects.push(scenario.project)
     this.scope.prompts.push(...scenario.prompts)
     this.scope.tickets.push(...scenario.tickets)
     this.scope.queues.push(scenario.queue)
-    
+
     return scenario
   }
 
@@ -152,10 +151,10 @@ export class TestDataManager {
    */
   async setupIsolatedDatabase(): Promise<void> {
     const dbConfig = DatabaseIsolationConfig.createTestDatabaseConfig(this.scope.testName)
-    
+
     // Register database for cleanup
     this.cleanupRegistry.databases.push(dbConfig.databasePath)
-    
+
     // Set environment variables for isolated database
     await this.page.evaluate((config) => {
       window.localStorage.setItem('test-database-config', JSON.stringify(config))
@@ -377,16 +376,134 @@ export class TestDataManager {
       // Clear localStorage items created during test
       const keysToKeep = ['theme', 'user-preferences']
       const allKeys = Object.keys(localStorage)
-      
-      allKeys.forEach(key => {
+
+      allKeys.forEach((key) => {
         if (!keysToKeep.includes(key)) {
           localStorage.removeItem(key)
         }
       })
-      
+
       // Clear sessionStorage
       sessionStorage.clear()
     })
+  }
+
+  /**
+   * Setup providers for testing
+   */
+  static async setupProviders(page: Page, providers: any[]) {
+    // Mock the providers API endpoint
+    await page.route('**/api/providers**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: providers.filter((p: any) => p.available)
+        })
+      })
+    })
+  }
+
+  /**
+   * Setup chat history for testing
+   */
+  static async setupChatHistory(page: Page, chats: any[]) {
+    await page.route('**/api/chats**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: chats
+        })
+      })
+    })
+  }
+
+  /**
+   * Setup large chat history for performance testing
+   */
+  static async setupLargeChatHistory(page: Page, messageCount: number) {
+    const largeChat = {
+      id: 999,
+      name: 'Large History Chat',
+      messages: Array.from({ length: messageCount }, (_, i) => ({
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        content: `Message ${i + 1} - ${i % 2 === 0 ? 'User' : 'AI'} content`,
+        timestamp: Date.now() - (messageCount - i) * 60000
+      })),
+      provider: 'anthropic',
+      model: 'claude-3-sonnet-20240229'
+    }
+
+    await page.route('**/api/chats/large-history**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: largeChat
+        })
+      })
+    })
+  }
+
+  /**
+   * Setup AI provider mocks for consistent testing
+   */
+  static async setupAIProviderMocks(page: Page) {
+    // Mock chat completion endpoint
+    await page.route('**/api/chat/**', async (route) => {
+      const request = route.request()
+      const requestData = await request.postDataJSON()
+
+      // Simulate different response based on message content
+      let mockResponse = 'I can help you with that. This is a mock AI response for testing purposes.'
+
+      if (requestData.message?.includes('code')) {
+        mockResponse = 'Here\'s some code assistance: ```javascript\nconsole.log("Hello, World!");\n```'
+      } else if (requestData.message?.includes('error')) {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'AI service temporarily unavailable' })
+        })
+        return
+      }
+
+      // Simulate streaming response
+      await page.waitForTimeout(1000) // Simulate processing time
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            message: mockResponse,
+            provider: requestData.provider || 'anthropic',
+            model: requestData.model || 'claude-3-sonnet-20240229'
+          }
+        })
+      })
+    })
+
+    // Mock typing indicator
+    await page.addInitScript(() => {
+      ;(window as any).__mockTypingIndicator = () => {
+        const indicator = document.querySelector('[data-testid="typing-indicator"]')
+        if (indicator) {
+          ;(indicator as HTMLElement).style.display = 'block'
+          setTimeout(() => {
+            ;(indicator as HTMLElement).style.display = 'none'
+          }, 2000)
+        }
+      }
+    })
+  }
+
+  /**
+   * Reset all mocks and routes
+   */
+  static async resetMocks(page: Page) {
+    await page.unrouteAll()
   }
 }
 
@@ -398,14 +515,6 @@ export class GlobalTestCoordinator {
   private activeTests: Map<string, TestDataManager> = new Map()
   private resourceLocks: Map<string, string> = new Map()
   private testMetrics: Map<string, TestMetrics> = new Map()
-
-  interface TestMetrics {
-    startTime: number
-    endTime?: number
-    dataCreated: number
-    cleanupTime?: number
-    errors: string[]
-  }
 
   private constructor() {}
 
@@ -436,7 +545,7 @@ export class GlobalTestCoordinator {
     if (metrics) {
       metrics.endTime = Date.now()
     }
-    
+
     this.activeTests.delete(testId)
   }
 
@@ -450,7 +559,7 @@ export class GlobalTestCoordinator {
         return false // Resource is locked by another test
       }
     }
-    
+
     this.resourceLocks.set(resource, testId)
     return true
   }
@@ -474,15 +583,14 @@ export class GlobalTestCoordinator {
     avgTestDuration: number
     totalErrors: number
   } {
-    const completedMetrics = Array.from(this.testMetrics.values())
-      .filter(m => m.endTime)
-    
-    const avgDuration = completedMetrics.length > 0
-      ? completedMetrics.reduce((sum, m) => sum + (m.endTime! - m.startTime), 0) / completedMetrics.length
-      : 0
+    const completedMetrics = Array.from(this.testMetrics.values()).filter((m) => m.endTime)
 
-    const totalErrors = Array.from(this.testMetrics.values())
-      .reduce((sum, m) => sum + m.errors.length, 0)
+    const avgDuration =
+      completedMetrics.length > 0
+        ? completedMetrics.reduce((sum, m) => sum + (m.endTime! - m.startTime), 0) / completedMetrics.length
+        : 0
+
+    const totalErrors = Array.from(this.testMetrics.values()).reduce((sum, m) => sum + m.errors.length, 0)
 
     return {
       activeTests: this.activeTests.size,
@@ -496,11 +604,10 @@ export class GlobalTestCoordinator {
    * Perform emergency cleanup of all active tests
    */
   async emergencyCleanup(): Promise<void> {
-    const cleanupPromises = Array.from(this.activeTests.values())
-      .map(dataManager => dataManager.cleanup())
+    const cleanupPromises = Array.from(this.activeTests.values()).map((dataManager) => dataManager.cleanup())
 
     await Promise.allSettled(cleanupPromises)
-    
+
     this.activeTests.clear()
     this.resourceLocks.clear()
   }
@@ -516,11 +623,11 @@ export const TestCoordinationUtils = {
   createDataManager(page: Page, testInfo?: TestInfo): TestDataManager {
     const manager = new TestDataManager(page, testInfo)
     const coordinator = GlobalTestCoordinator.getInstance()
-    
+
     if (testInfo) {
       coordinator.registerTest(testInfo.testId, manager)
     }
-    
+
     return manager
   },
 
@@ -530,16 +637,16 @@ export const TestCoordinationUtils = {
   async waitForResource(resource: string, testId: string, timeout = 30000): Promise<boolean> {
     const coordinator = GlobalTestCoordinator.getInstance()
     const startTime = Date.now()
-    
+
     while (Date.now() - startTime < timeout) {
       if (await coordinator.requestResourceLock(resource, testId)) {
         return true
       }
-      
+
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    
+
     return false
   },
 

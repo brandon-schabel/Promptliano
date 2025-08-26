@@ -84,54 +84,37 @@ const SidebarContent: React.FC<{
     <Button
       key={tab.id}
       variant={activeTab === tab.id ? 'secondary' : 'ghost'}
-      className={cn(
-        'w-full justify-start gap-2 text-left',
-        activeTab === tab.id && 'bg-muted font-medium'
-      )}
+      className={cn('w-full justify-start gap-2 text-left', activeTab === tab.id && 'bg-muted font-medium')}
       onClick={() => !tab.disabled && onTabChange(tab.id)}
       disabled={tab.disabled}
     >
-      {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
-      <span className="truncate">{tab.label}</span>
+      {tab.icon && <span className='flex-shrink-0'>{tab.icon}</span>}
+      <span className='truncate'>{tab.label}</span>
     </Button>
   )
 
   return (
     <>
-      {sidebarHeader && (
-        <div className="p-4 border-b">
-          {sidebarHeader}
-        </div>
-      )}
-      
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      {sidebarHeader && <div className='p-4 border-b'>{sidebarHeader}</div>}
+
+      <ScrollArea className='flex-1'>
+        <div className='p-4 space-y-4'>
           {sections ? (
             sections.map((section, index) => (
-              <div key={index} className="space-y-1">
+              <div key={index} className='space-y-1'>
                 {section.title && (
-                  <h3 className="px-3 py-2 text-sm font-semibold text-muted-foreground">
-                    {section.title}
-                  </h3>
+                  <h3 className='px-3 py-2 text-sm font-semibold text-muted-foreground'>{section.title}</h3>
                 )}
-                <div className="space-y-1">
-                  {section.items.map(renderTabItem)}
-                </div>
+                <div className='space-y-1'>{section.items.map(renderTabItem)}</div>
               </div>
             ))
           ) : tabs ? (
-            <div className="space-y-1">
-              {tabs.map(renderTabItem)}
-            </div>
+            <div className='space-y-1'>{tabs.map(renderTabItem)}</div>
           ) : null}
         </div>
       </ScrollArea>
 
-      {sidebarFooter && (
-        <div className="p-4 border-t">
-          {sidebarFooter}
-        </div>
-      )}
+      {sidebarFooter && <div className='p-4 border-t'>{sidebarFooter}</div>}
     </>
   )
 }
@@ -158,29 +141,23 @@ export const TabsWithSidebar = React.forwardRef<HTMLDivElement, TabsWithSidebarP
 
     // Find the active tab content
     const activeTabContent = React.useMemo(() => {
-      const allTabs = sections 
-        ? sections.flatMap(s => s.items)
-        : tabs || []
-      
-      return allTabs.find(t => t.id === activeTab)?.content
+      const allTabs = sections ? sections.flatMap((s) => s.items) : tabs || []
+
+      return allTabs.find((t) => t.id === activeTab)?.content
     }, [sections, tabs, activeTab])
 
     return (
       <div ref={ref} className={cn('flex h-full', className)}>
         {/* Mobile Drawer */}
         {showMobileDrawer && (
-          <div className="lg:hidden">
+          <div className='lg:hidden'>
             <Sheet>
               <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="fixed bottom-4 right-4 z-40 lg:hidden"
-                >
-                  <Menu className="h-4 w-4" />
+                <Button variant='outline' size='icon' className='fixed bottom-4 right-4 z-40 lg:hidden'>
+                  <Menu className='h-4 w-4' />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
+              <SheetContent side='left' className='w-80 p-0'>
                 <SidebarContent
                   sections={sections}
                   tabs={tabs}
@@ -216,8 +193,8 @@ export const TabsWithSidebar = React.forwardRef<HTMLDivElement, TabsWithSidebarP
         {/* Collapse Toggle Button */}
         {collapsible && (
           <Button
-            variant="ghost"
-            size="icon"
+            variant='ghost'
+            size='icon'
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
               'hidden lg:flex absolute top-4 z-10 h-6 w-6 rounded-full border bg-background shadow-sm transition-all duration-300',
@@ -225,18 +202,12 @@ export const TabsWithSidebar = React.forwardRef<HTMLDivElement, TabsWithSidebarP
             )}
             style={{ left: isCollapsed ? '0.5rem' : `calc(${sidebarWidth} - 1rem)` }}
           >
-            {isCollapsed ? (
-              <ChevronRight className="h-3 w-3" />
-            ) : (
-              <ChevronLeft className="h-3 w-3" />
-            )}
+            {isCollapsed ? <ChevronRight className='h-3 w-3' /> : <ChevronLeft className='h-3 w-3' />}
           </Button>
         )}
 
         {/* Content Area */}
-        <div className={cn('flex-1 overflow-auto', contentClassName)}>
-          {activeTabContent}
-        </div>
+        <div className={cn('flex-1 overflow-auto', contentClassName)}>{activeTabContent}</div>
       </div>
     )
   }

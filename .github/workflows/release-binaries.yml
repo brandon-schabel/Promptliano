@@ -56,6 +56,6 @@ jobs:
           artifact-name: release-binaries-${{ github.sha }}
           artifact-path: dist/*.zip
           upload-condition: always
-          retention-days: 90  # Long retention for release artifacts
-          compress: false  # Already compressed
+          retention-days: 90 # Long retention for release artifacts
+          compress: false # Already compressed
           include-git-info: true

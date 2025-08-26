@@ -1,6 +1,6 @@
 /**
  * Shared Test Data System for Master Test Coordination
- * 
+ *
  * This module provides centralized test data that can be safely shared across
  * all parallel test executions while maintaining proper isolation.
  */
@@ -30,20 +30,20 @@ export const SharedTestData = {
    * Standard test queues for workflow testing
    */
   testQueues: [
-    TestDataFactory.createQueue({ 
+    TestDataFactory.createQueue({
       name: 'Features',
       description: 'Queue for feature development tasks',
-      maxParallelItems: 3 
+      maxParallelItems: 3
     }),
-    TestDataFactory.createQueue({ 
+    TestDataFactory.createQueue({
       name: 'Bugs',
       description: 'Queue for bug fix tasks',
-      maxParallelItems: 5 
+      maxParallelItems: 5
     }),
-    TestDataFactory.createQueue({ 
+    TestDataFactory.createQueue({
       name: 'Improvements',
       description: 'Queue for improvement tasks',
-      maxParallelItems: 2 
+      maxParallelItems: 2
     })
   ],
 
@@ -51,13 +51,7 @@ export const SharedTestData = {
    * Reference file structures for project testing
    */
   referenceFileStructures: {
-    simpleProject: [
-      'README.md',
-      'package.json',
-      'src/index.ts',
-      'src/utils.ts',
-      'tests/index.test.ts'
-    ],
+    simpleProject: ['README.md', 'package.json', 'src/index.ts', 'src/utils.ts', 'tests/index.test.ts'],
     reactProject: [
       'README.md',
       'package.json',
@@ -190,9 +184,9 @@ export class IsolatedTestDataFactory {
     testId: string
   } {
     const testId = this.getTestId()
-    
+
     const project = this.createIsolatedProject(testName)
-    
+
     const prompts = [
       this.createIsolatedPrompt(testName, {
         title: `${testName}-CodeReview-${testId}`,
@@ -284,7 +278,7 @@ export const MCPTestData = {
       name: 'MCP Simple Project',
       path: '/tmp/mcp-simple-project'
     },
-    
+
     complexProject: TestDataFactory.createProject({
       name: 'MCP Complex Project',
       path: '/tmp/mcp-complex-project',
@@ -300,7 +294,7 @@ export const MCPTestData = {
       { id: 1, name: 'Mock Project 1', path: '/mock/project1' },
       { id: 2, name: 'Mock Project 2', path: '/mock/project2' }
     ],
-    
+
     promptList: [
       { id: 1, title: 'Mock Prompt 1', content: 'Mock prompt content' },
       { id: 2, title: 'Mock Prompt 2', content: 'Another mock prompt' }
@@ -355,8 +349,9 @@ export const PerformanceTestData = {
         title: `Performance Test Ticket ${i + 1}`,
         overview: `Performance testing ticket ${i + 1} of ${count}`,
         priority: ['low', 'normal', 'high'][i % 3] as 'low' | 'normal' | 'high',
-        tasks: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, j) =>
-          `Task ${j + 1} for performance ticket ${i + 1}`
+        tasks: Array.from(
+          { length: Math.floor(Math.random() * 5) + 1 },
+          (_, j) => `Task ${j + 1} for performance ticket ${i + 1}`
         )
       })
     )

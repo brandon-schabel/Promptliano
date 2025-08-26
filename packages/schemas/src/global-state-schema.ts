@@ -8,7 +8,7 @@ const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
 // Provider schema based on APIProviders type from database
 export const providerSchema = z.enum([
   'openai',
-  'openrouter', 
+  'openrouter',
   'lmstudio',
   'ollama',
   'xai',
@@ -480,8 +480,8 @@ export const globalStateSchema = z
     projectTabs: projectTabsStateRecordSchema.openapi({
       description: 'State of all open project tabs, keyed by tab ID.'
     }),
-    projectActiveTabId: idSchemaSpec,
-    activeChatId: idSchemaSpec,
+    projectActiveTabId: idSchemaSpec.default(-1),
+    activeChatId: idSchemaSpec.default(-1),
     chatLinkSettings: chatLinkSettingsSchema.openapi({ description: 'Link settings specific to each chat session.' })
   })
   .openapi('GlobalState', { description: 'Represents the entire persistent application state.' })
@@ -500,8 +500,8 @@ export const createInitialGlobalState = (): GlobalState => {
           // Set any other non-default initial values if needed
         })
       },
-  // No active project tab by default; will be set explicitly once a tab is created/selected
-  projectActiveTabId: -1, // Assuming project tabs remain
+      // No active project tab by default; will be set explicitly once a tab is created/selected
+      projectActiveTabId: -1, // Assuming project tabs remain
       activeChatId: -1,
       chatLinkSettings: {}
     }

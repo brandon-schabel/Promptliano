@@ -334,11 +334,7 @@
     "generateDocs": true,
     "formatCode": true,
     "watch": {
-      "watchPaths": [
-        "packages/database/src/**/*.ts",
-        "packages/services/src/**/*.ts",
-        "packages/schemas/src/**/*.ts"
-      ],
+      "watchPaths": ["packages/database/src/**/*.ts", "packages/services/src/**/*.ts", "packages/schemas/src/**/*.ts"],
       "debounceMs": 1000
     }
   }

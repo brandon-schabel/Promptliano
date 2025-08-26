@@ -29,7 +29,7 @@ describe('HonoInterceptorBridge', () => {
   beforeEach(() => {
     system = new InterceptorSystem()
     bridge = new HonoInterceptorBridge(system)
-    
+
     mockContext = {
       req: {
         method: 'GET',
@@ -84,9 +84,7 @@ describe('HonoInterceptorBridge', () => {
 
       await middleware(mockContext as Context, mockNext)
 
-      const setCall = (mockContext.set as any).mock.calls.find((call: any[]) => 
-        call[0] === 'interceptorContext'
-      )
+      const setCall = (mockContext.set as any).mock.calls.find((call: any[]) => call[0] === 'interceptorContext')
       const interceptorContext = setCall[1]
       expect(interceptorContext.security.ip).toBe('192.168.1.1')
     })
@@ -147,7 +145,7 @@ describe('HonoInterceptorBridge', () => {
         phase: 'request',
         enabled: true,
         handler: async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 10))
         }
       })
 
@@ -193,7 +191,7 @@ describe('HonoInterceptorBridge', () => {
       const middleware = bridge.createResponseMiddleware()
       const mockNext = mock(async () => {
         // Simulate some processing time
-        await new Promise(resolve => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, 5))
       })
 
       await middleware(mockContext as Context, mockNext)
@@ -214,7 +212,7 @@ describe('HonoInterceptorBridge', () => {
       })
 
       system.register(errorInterceptor)
-      
+
       const consoleSpy = mock(() => {})
       console.error = consoleSpy
 
@@ -295,7 +293,7 @@ describe('HonoInterceptorBridge', () => {
 
       await handler(testError, mockContext as Context)
 
-      expect((workingInterceptor.handler as any)).toHaveBeenCalled()
+      expect(workingInterceptor.handler as any).toHaveBeenCalled()
     })
   })
 })
@@ -324,7 +322,7 @@ describe('Integration Functions', () => {
   describe('applyInterceptorSystem', () => {
     it('should apply interceptor middleware to existing app', () => {
       const app = new OpenAPIHono()
-      
+
       applyInterceptorSystem(app)
 
       // Middleware should be applied
@@ -333,7 +331,7 @@ describe('Integration Functions', () => {
 
     it('should register custom interceptors', () => {
       const app = new OpenAPIHono()
-      
+
       const customInterceptor = createInterceptor({
         name: 'custom-test',
         order: 10,
@@ -354,7 +352,7 @@ describe('Integration Functions', () => {
   describe('migrateToInterceptorSystem', () => {
     it('should migrate existing app and report changes', () => {
       const app = new OpenAPIHono()
-      
+
       // Add some middleware to simulate existing app
       app.use('*', async (c, next) => {
         await next()
@@ -375,7 +373,7 @@ describe('Integration Functions', () => {
       const { getGlobalInterceptorSystem } = require('../index')
       const globalSystem = getGlobalInterceptorSystem()
       globalSystem.clear()
-      
+
       // Should not throw
       expect(() => setupDefaultInterceptors()).not.toThrow()
     })
@@ -385,7 +383,7 @@ describe('Integration Functions', () => {
 describe('End-to-End Integration', () => {
   it('should handle complete request lifecycle', async () => {
     const app = createHonoAppWithInterceptors()
-    
+
     // Add a test route
     app.get('/api/test-endpoint', (c) => {
       return c.json({ message: 'Hello from test endpoint' })
@@ -397,14 +395,14 @@ describe('End-to-End Integration', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get('X-Request-ID')).toBeDefined()
-    
+
     const data = await res.json()
     expect(data.message).toBe('Hello from test endpoint')
   })
 
   it('should handle errors through interceptor system', async () => {
     const app = createHonoAppWithInterceptors()
-    
+
     // Add a route that throws an error
     app.get('/api/error-endpoint', () => {
       throw new Error('Test error')
@@ -414,7 +412,7 @@ describe('End-to-End Integration', () => {
     const res = await app.request(req)
 
     expect(res.status).toBeGreaterThanOrEqual(400)
-    
+
     const data = await res.json()
     expect(data.success).toBe(false)
     expect(data.error).toBeDefined()
@@ -422,11 +420,11 @@ describe('End-to-End Integration', () => {
 
   it('should apply CORS headers via interceptor', async () => {
     const app = createHonoAppWithInterceptors()
-    
+
     app.get('/api/cors-test', (c) => c.json({ test: true }))
 
     const req = new Request('http://localhost/api/cors-test', {
-      headers: { 'Origin': 'https://example.com' }
+      headers: { Origin: 'https://example.com' }
     })
     const res = await app.request(req)
 
@@ -439,7 +437,7 @@ describe('End-to-End Integration', () => {
 
     const req = new Request('http://localhost/api/preflight-test', {
       method: 'OPTIONS',
-      headers: { 'Origin': 'https://example.com' }
+      headers: { Origin: 'https://example.com' }
     })
     const res = await app.request(req)
 

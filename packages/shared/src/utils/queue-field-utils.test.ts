@@ -1,6 +1,6 @@
 /**
  * Tests for Queue Field Utilities
- * 
+ *
  * These tests ensure type safety and correct behavior for queue field operations.
  */
 
@@ -23,7 +23,7 @@ describe('Queue Field Utilities', () => {
   describe('clearQueueFields', () => {
     test('should return all queue fields set to undefined', () => {
       const cleared = clearQueueFields()
-      
+
       expect(cleared.queueId).toBeUndefined()
       expect(cleared.queuePosition).toBeUndefined()
       expect(cleared.queueStatus).toBeUndefined()
@@ -40,7 +40,7 @@ describe('Queue Field Utilities', () => {
     test('should return new object each time (not mutate shared state)', () => {
       const cleared1 = clearQueueFields()
       const cleared2 = clearQueueFields()
-      
+
       expect(cleared1).not.toBe(cleared2)
       expect(cleared1).toEqual(cleared2)
     })
@@ -49,11 +49,11 @@ describe('Queue Field Utilities', () => {
   describe('clearSpecificQueueFields', () => {
     test('should clear only specified fields', () => {
       const cleared = clearSpecificQueueFields(['queueId', 'queueStatus', 'queuePriority'])
-      
+
       expect(cleared.queueId).toBeUndefined()
       expect(cleared.queueStatus).toBeUndefined()
       expect(cleared.queuePriority).toBeUndefined()
-      
+
       // Should not have other fields
       expect('queuedAt' in cleared).toBe(false)
       expect('queueStartedAt' in cleared).toBe(false)
@@ -62,7 +62,7 @@ describe('Queue Field Utilities', () => {
 
     test('should handle empty array', () => {
       const cleared = clearSpecificQueueFields([])
-      
+
       expect(Object.keys(cleared)).toHaveLength(0)
     })
   })
@@ -130,12 +130,12 @@ describe('Queue Field Utilities', () => {
     test('should calculate duration correctly', () => {
       const startTime = 1000000
       const endTime = 1005000
-      
+
       const duration = getProcessingDuration({
         queueStartedAt: startTime,
         queueCompletedAt: endTime
       })
-      
+
       expect(duration).toBe(5000)
     })
 
@@ -150,11 +150,11 @@ describe('Queue Field Utilities', () => {
     test('should create proper start processing update', () => {
       const agentId = 'test-agent'
       const beforeTime = Date.now()
-      
+
       const update = createStartProcessingUpdate(agentId)
-      
+
       const afterTime = Date.now()
-      
+
       expect(update.queueStatus).toBe('in_progress')
       expect(update.queueAgentId).toBe(agentId)
       expect(update.queueErrorMessage).toBeUndefined()
@@ -164,7 +164,7 @@ describe('Queue Field Utilities', () => {
 
     test('should work without agent ID', () => {
       const update = createStartProcessingUpdate()
-      
+
       expect(update.queueStatus).toBe('in_progress')
       expect(update.queueAgentId).toBeUndefined()
       expect(update.queueErrorMessage).toBeUndefined()
@@ -175,11 +175,11 @@ describe('Queue Field Utilities', () => {
   describe('createCompleteProcessingUpdate', () => {
     test('should create successful completion update', () => {
       const beforeTime = Date.now()
-      
+
       const update = createCompleteProcessingUpdate(true)
-      
+
       const afterTime = Date.now()
-      
+
       expect(update.queueStatus).toBe('completed')
       expect(update.queueErrorMessage).toBeUndefined()
       expect(update.queueCompletedAt).toBeGreaterThanOrEqual(beforeTime)
@@ -189,7 +189,7 @@ describe('Queue Field Utilities', () => {
     test('should create failed completion update with error message', () => {
       const errorMessage = 'Processing failed'
       const update = createCompleteProcessingUpdate(false, errorMessage)
-      
+
       expect(update.queueStatus).toBe('failed')
       expect(update.queueErrorMessage).toBe(errorMessage)
       expect(typeof update.queueCompletedAt).toBe('number')
@@ -201,17 +201,17 @@ describe('Queue Field Utilities', () => {
       const queueId = 123
       const priority = 5
       const beforeTime = Date.now()
-      
+
       const update = createEnqueueUpdate(queueId, priority)
-      
+
       const afterTime = Date.now()
-      
+
       expect(update.queueId).toBe(queueId)
       expect(update.queueStatus).toBe('queued')
       expect(update.queuePriority).toBe(priority)
       expect(update.queuedAt).toBeGreaterThanOrEqual(beforeTime)
       expect(update.queuedAt).toBeLessThanOrEqual(afterTime)
-      
+
       // Should clear processing fields
       expect(update.queueStartedAt).toBeUndefined()
       expect(update.queueCompletedAt).toBeUndefined()
@@ -222,7 +222,7 @@ describe('Queue Field Utilities', () => {
 
     test('should use default priority when not specified', () => {
       const update = createEnqueueUpdate(123)
-      
+
       expect(update.queuePriority).toBe(0)
     })
   })
@@ -246,9 +246,9 @@ describe('Queue Field Utilities', () => {
     test('should handle null vs undefined consistently', () => {
       // Test that clearQueueFields always returns undefined, never null
       const cleared = clearQueueFields()
-      
+
       // Check that all values are specifically undefined, not null
-      Object.values(cleared).forEach(value => {
+      Object.values(cleared).forEach((value) => {
         expect(value).toBeUndefined()
         expect(value).not.toBeNull()
       })
@@ -260,7 +260,7 @@ describe('Queue Field Utilities', () => {
         title: 'Test Ticket',
         queueId: 456
       }
-      
+
       expect(isQueued(partialTicket)).toBe(true)
       expect(hasQueueFields(partialTicket)).toBe(true)
     })
@@ -286,15 +286,15 @@ describe('Queue Field Utilities', () => {
         queueStartedAt: 1001000,
         queueAgentId: 'agent-1'
       }
-      
+
       expect(isQueued(mockTicket)).toBe(true)
       expect(isInProgress(mockTicket)).toBe(true)
       expect(hasQueueFields(mockTicket)).toBe(true)
-      
+
       // Test clearing
       const cleared = clearQueueFields()
       const clearedTicket = { ...mockTicket, ...cleared }
-      
+
       expect(isQueued(clearedTicket)).toBe(false)
       expect(isInProgress(clearedTicket)).toBe(false)
       expect(clearedTicket.title).toBe('Test Ticket') // Non-queue fields preserved
@@ -310,7 +310,7 @@ describe('Queue Field Utilities', () => {
         queueStatus: 'completed' as const,
         queueCompletedAt: 1002000
       }
-      
+
       expect(isQueued(mockTask)).toBe(true)
       expect(isCompleted(mockTask)).toBe(true)
       expect(hasQueueFields(mockTask)).toBe(true)

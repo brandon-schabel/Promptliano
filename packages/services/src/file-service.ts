@@ -1,7 +1,7 @@
 /**
  * File Service - Functional Factory Pattern
  * Modernized file management with repository integration
- * 
+ *
  * Key improvements:
  * - Uses Drizzle repository for file operations
  * - Functional composition pattern
@@ -15,8 +15,8 @@
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { fileRepository } from '@promptliano/database'
-import { 
-  type File as ProjectFile, 
+import {
+  type File as ProjectFile,
   type InsertFile as CreateProjectFileBody,
   selectFileSchema as ProjectFileSchema
 } from '@promptliano/database'
@@ -61,11 +61,7 @@ export interface FileSyncData {
  * Create File Service with functional factory pattern
  */
 export function createFileService(deps: FileServiceDeps = {}) {
-  const {
-    repository = fileRepository,
-    logger = createServiceLogger('FileService'),
-    fs: fileSystem = fs
-  } = deps
+  const { repository = fileRepository, logger = createServiceLogger('FileService'), fs: fileSystem = fs } = deps
 
   // File entities use string IDs, so we can't use the standard CRUD service
   // Instead, we'll create our own base operations that work with string IDs
@@ -134,12 +130,15 @@ export function createFileService(deps: FileServiceDeps = {}) {
     /**
      * Get files by project with optional filtering
      */
-    async getByProject(projectId: number, options?: {
-      limit?: number
-      offset?: number
-      extension?: string
-      path?: string
-    }): Promise<ProjectFile[]> {
+    async getByProject(
+      projectId: number,
+      options?: {
+        limit?: number
+        offset?: number
+        extension?: string
+        path?: string
+      }
+    ): Promise<ProjectFile[]> {
       return withErrorContext(
         async () => {
           return await repository.getByProject(projectId, options)
@@ -166,7 +165,10 @@ export function createFileService(deps: FileServiceDeps = {}) {
     /**
      * Validate that file paths exist in a project
      */
-    async validatePaths(projectId: number, paths: string[]): Promise<{
+    async validatePaths(
+      projectId: number,
+      paths: string[]
+    ): Promise<{
       valid: string[]
       invalid: string[]
     }> {
@@ -177,10 +179,10 @@ export function createFileService(deps: FileServiceDeps = {}) {
           }
 
           const existingFiles = await this.getByPaths(projectId, paths)
-          const existingPaths = new Set(existingFiles.map(f => f.path))
+          const existingPaths = new Set(existingFiles.map((f) => f.path))
 
-          const valid = paths.filter(p => existingPaths.has(p))
-          const invalid = paths.filter(p => !existingPaths.has(p))
+          const valid = paths.filter((p) => existingPaths.has(p))
+          const invalid = paths.filter((p) => !existingPaths.has(p))
 
           return { valid, invalid }
         },
@@ -191,11 +193,15 @@ export function createFileService(deps: FileServiceDeps = {}) {
     /**
      * Sync project files from filesystem
      */
-    async syncProject(projectId: number, projectPath: string, options?: {
-      excludes?: string[]
-      maxFileSize?: number
-      extensions?: string[]
-    }): Promise<{
+    async syncProject(
+      projectId: number,
+      projectPath: string,
+      options?: {
+        excludes?: string[]
+        maxFileSize?: number
+        extensions?: string[]
+      }
+    ): Promise<{
       created: number
       updated: number
       deleted: number
@@ -208,7 +214,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
 
           // Get current files in database
           const existingFiles = await this.getByProject(projectId)
-          const existingFileMap = new Map(existingFiles.map(f => [f.path, f]))
+          const existingFileMap = new Map(existingFiles.map((f) => [f.path, f]))
 
           // Scan filesystem for files
           const fileSystemFiles = await this.scanDirectory(resolvedPath, {
@@ -271,7 +277,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
           // Delete files that no longer exist on filesystem
           const filesToDelete = Array.from(existingFileMap.keys())
           if (filesToDelete.length > 0) {
-            const fileIds = filesToDelete.map(path => existingFileMap.get(path)!.id)
+            const fileIds = filesToDelete.map((path) => existingFileMap.get(path)!.id)
             await this.batch.deleteFiles(projectId, fileIds)
             stats.deleted = filesToDelete.length
           }
@@ -286,56 +292,61 @@ export function createFileService(deps: FileServiceDeps = {}) {
     /**
      * Scan directory for files with metadata
      */
-    async scanDirectory(directoryPath: string, options: {
-      excludes: string[]
-      maxFileSize: number
-      extensions?: string[]
-    }): Promise<Array<{
-      fullPath: string
-      name: string
-      content: string
-      size: number
-      checksum: string
-      imports?: any[]
-      exports?: any[]
-    }>> {
+    async scanDirectory(
+      directoryPath: string,
+      options: {
+        excludes: string[]
+        maxFileSize: number
+        extensions?: string[]
+      }
+    ): Promise<
+      Array<{
+        fullPath: string
+        name: string
+        content: string
+        size: number
+        checksum: string
+        imports?: any[]
+        exports?: any[]
+      }>
+    > {
       return withErrorContext(
         async () => {
           const files: any[] = []
-          
+
           async function scanRecursive(currentPath: string) {
             try {
               const entries = await fileSystem.readdir(currentPath, { withFileTypes: true })
-              
+
               for (const entry of entries) {
                 const fullPath = path.join(currentPath, entry.name)
-                
+
                 // Skip excluded patterns
-                if (options.excludes.some(pattern => fullPath.includes(pattern))) {
+                if (options.excludes.some((pattern) => fullPath.includes(pattern))) {
                   continue
                 }
-                
+
                 if (entry.isDirectory()) {
                   await scanRecursive(fullPath)
                 } else if (entry.isFile()) {
                   const stat = await fileSystem.stat(fullPath)
-                  
+
                   // Skip files that are too large
                   if (stat.size > options.maxFileSize) {
                     continue
                   }
-                  
+
                   const extension = path.extname(fullPath)
-                  
+
                   // Filter by extensions if specified
                   if (options.extensions && !options.extensions.includes(extension)) {
                     continue
                   }
-                  
+
                   try {
                     const content = await fileSystem.readFile(fullPath, 'utf8')
                     const checksum = calculateChecksum(content)
-                    
+
                     files.push({
                       fullPath,
                       name: path.basename(fullPath),
@@ -343,7 +354,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
                       size: stat.size,
                       checksum,
                       imports: null, // Could be populated by parser
-                      exports: null  // Could be populated by parser
+                      exports: null // Could be populated by parser
                     })
                   } catch (readError) {
                     logger.warn(`Could not read file ${fullPath}:`, readError)
@@ -354,7 +365,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
               logger.warn(`Could not scan directory ${currentPath}:`, dirError)
             }
           }
-          
+
           await scanRecursive(directoryPath)
           return files
         },
@@ -370,7 +381,7 @@ export function createFileService(deps: FileServiceDeps = {}) {
         async () => {
           const size = Buffer.byteLength(content, 'utf8')
           const checksum = calculateChecksum(content)
-          
+
           return await baseService.update(fileId, {
             content,
             size,
@@ -392,8 +403,8 @@ export function createFileService(deps: FileServiceDeps = {}) {
         return withErrorContext(
           async () => {
             if (filesToCreate.length === 0) return []
-            
-            const filesData = filesToCreate.map(fileData => ({
+
+            const filesData = filesToCreate.map((fileData) => ({
               id: fileData.path, // Use path as ID for files
               projectId,
               name: fileData.name,
@@ -404,16 +415,14 @@ export function createFileService(deps: FileServiceDeps = {}) {
               imports: fileData.imports,
               exports: fileData.exports
             }))
-            
+
             // Create files individually since repository doesn't have createMany
-            const results = await Promise.allSettled(
-              filesData.map(fileData => repository.create(fileData))
-            )
-            
+            const results = await Promise.allSettled(filesData.map((fileData) => repository.create(fileData)))
+
             const successful = results
               .filter((r): r is PromiseFulfilledResult<ProjectFile> => r.status === 'fulfilled')
-              .map(r => r.value)
-            
+              .map((r) => r.value)
+
             logger.info(`Batch created ${successful.length}/${filesData.length} files`)
             return successful
           },
@@ -424,13 +433,16 @@ export function createFileService(deps: FileServiceDeps = {}) {
       /**
        * Update multiple files at once
        */
-      updateFiles: async (projectId: number, updates: Array<{ fileId: string; data: FileSyncData }>): Promise<ProjectFile[]> => {
+      updateFiles: async (
+        projectId: number,
+        updates: Array<{ fileId: string; data: FileSyncData }>
+      ): Promise<ProjectFile[]> => {
         return withErrorContext(
           async () => {
             if (updates.length === 0) return []
-            
+
             const results = await Promise.allSettled(
-              updates.map(({ fileId, data }) => 
+              updates.map(({ fileId, data }) =>
                 baseService.update(fileId, {
                   content: data.content,
                   size: data.size,
@@ -440,11 +452,11 @@ export function createFileService(deps: FileServiceDeps = {}) {
                 } as UpdateProjectFileBody)
               )
             )
-            
+
             const successful = results
               .filter((r): r is PromiseFulfilledResult<ProjectFile> => r.status === 'fulfilled')
-              .map(r => r.value)
-            
+              .map((r) => r.value)
+
             logger.info(`Batch updated ${successful.length}/${updates.length} files`)
             return successful
           },
@@ -459,14 +471,12 @@ export function createFileService(deps: FileServiceDeps = {}) {
         return withErrorContext(
           async () => {
             if (fileIds.length === 0) return 0
-            
-            const results = await Promise.allSettled(
-              fileIds.map(id => baseService.delete(id))
-            )
-            
-            const successful = results.filter(r => r.status === 'fulfilled').length
+
+            const results = await Promise.allSettled(fileIds.map((id) => baseService.delete(id)))
+
+            const successful = results.filter((r) => r.status === 'fulfilled').length
             logger.info(`Batch deleted ${successful}/${fileIds.length} files`)
-            
+
             return successful
           },
           { entity: 'File', action: 'batchDelete' }

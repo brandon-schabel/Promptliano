@@ -7,14 +7,14 @@ import {
 } from '@promptliano/database'
 
 // Define local types for hooks (schema types may not exist yet)
-export type HookEvent = 
-  | 'PreToolUse' 
-  | 'PostToolUse' 
-  | 'UserPromptSubmit' 
-  | 'Notification' 
-  | 'Stop' 
-  | 'SubagentStop' 
-  | 'SessionStart' 
+export type HookEvent =
+  | 'PreToolUse'
+  | 'PostToolUse'
+  | 'UserPromptSubmit'
+  | 'Notification'
+  | 'Stop'
+  | 'SubagentStop'
+  | 'SessionStart'
   | 'PreCompact'
 
 export interface HookListItem {
@@ -56,7 +56,16 @@ import { generateStructuredData } from './gen-ai-services'
 
 // Schema for AI-generated hook data
 const GeneratedHookConfigSchema = z.object({
-  event: z.enum(['PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Notification', 'Stop', 'SubagentStop', 'SessionStart', 'PreCompact']),
+  event: z.enum([
+    'PreToolUse',
+    'PostToolUse',
+    'UserPromptSubmit',
+    'Notification',
+    'Stop',
+    'SubagentStop',
+    'SessionStart',
+    'PreCompact'
+  ]),
   matcher: z.string().describe('Pattern to match tool names (e.g., "Edit|Write" or ".*" for all tools)'),
   command: z.string().describe('Safe shell command to execute'),
   description: z.string().describe('Human-readable description of what this hook does'),
@@ -76,11 +85,7 @@ export interface ClaudeHookServiceDeps {
  * Manages Claude hooks with database persistence
  */
 export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
-  const {
-    repository = claudeHookRepository,
-    logger = console,
-    cache,
-  } = deps
+  const { repository = claudeHookRepository, logger = console, cache } = deps
 
   const errors = ErrorFactory.forEntity('ClaudeHook')
 
@@ -110,18 +115,18 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
       async () => {
         // Verify hook exists
         await getById(hookId)
-        
+
         const id = typeof hookId === 'string' ? parseInt(hookId, 10) : hookId
         const validated = ClaudeHookSchema.partial().parse({
           ...data,
-          updatedAt: Date.now(),
+          updatedAt: Date.now()
         })
-        
+
         const result = await repository.update(id, validated)
         if (!result) {
           throw errors.updateFailed(hookId)
         }
-        
+
         return result
       },
       { entity: 'ClaudeHook', action: 'update', hookId }
@@ -160,7 +165,7 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
           const validated = ClaudeHookSchema.parse({
             ...data,
             createdAt: Date.now(),
-            updatedAt: Date.now(),
+            updatedAt: Date.now()
           })
           return await repository.create(validated)
         },
@@ -181,13 +186,13 @@ export function createClaudeHookService(deps: ClaudeHookServiceDeps = {}) {
         async () => {
           // Verify hook exists
           await getById(hookId)
-          
+
           const id = typeof hookId === 'string' ? parseInt(hookId, 10) : hookId
           const result = await repository.delete(id)
           if (!result) {
             throw errors.deleteFailed(hookId)
           }
-          
+
           return true
         },
         { entity: 'ClaudeHook', action: 'delete', hookId }
@@ -301,14 +306,11 @@ Return a safe, practical hook configuration.`
     /**
      * Test hook - Note: Claude Code handles actual execution
      */
-    async testHook(
-      hookId: number,
-      sampleToolName?: string
-    ): Promise<{ message: string; hook: ClaudeHook }> {
+    async testHook(hookId: number, sampleToolName?: string): Promise<{ message: string; hook: ClaudeHook }> {
       return withErrorContext(
         async () => {
           const hook = await getById(hookId)
-          
+
           // Claude Code handles hook execution, we just return a message with hook data
           return {
             message: 'Hook testing is not implemented. Claude Code handles hook execution directly.',
@@ -394,7 +396,7 @@ export const {
 
 // Legacy exports for backward compatibility
 export const listHooks = claudeHookService.listHooksLegacy
-export const getHook = claudeHookService.getHookLegacy  
+export const getHook = claudeHookService.getHookLegacy
 export const createHook = claudeHookService.createHookLegacy
 export const updateHook = claudeHookService.updateHookLegacy
 export const deleteHook = claudeHookService.deleteHookLegacy

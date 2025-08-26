@@ -1,6 +1,6 @@
 /**
  * Test Execution Coordinator Scripts
- * 
+ *
  * This module provides scripts and utilities for coordinating comprehensive
  * test execution across all environments and configurations.
  */
@@ -157,9 +157,7 @@ export class TestExecutionCoordinator {
         NODE_ENV: 'development',
         VITE_BASE_URL: 'http://localhost:1420'
       },
-      healthChecks: [
-        { name: 'Backend API', url: 'http://localhost:3147/health' }
-      ],
+      healthChecks: [{ name: 'Backend API', url: 'http://localhost:3147/health' }],
       timeout: 120000 // 2 minutes
     })
 
@@ -191,9 +189,7 @@ export class TestExecutionCoordinator {
         NODE_ENV: 'test',
         DISABLE_ANIMATIONS: 'true'
       },
-      healthChecks: [
-        { name: 'Frontend', url: 'http://localhost:1420' }
-      ],
+      healthChecks: [{ name: 'Frontend', url: 'http://localhost:1420' }],
       timeout: 180000 // 3 minutes
     })
   }
@@ -201,14 +197,17 @@ export class TestExecutionCoordinator {
   /**
    * Execute tests in specified environment
    */
-  async executeTests(environmentName: string, options: {
-    grep?: string
-    headed?: boolean
-    workers?: number
-    retries?: number
-    reporter?: string[]
-    updateSnapshots?: boolean
-  } = {}): Promise<ExecutionSummary> {
+  async executeTests(
+    environmentName: string,
+    options: {
+      grep?: string
+      headed?: boolean
+      workers?: number
+      retries?: number
+      reporter?: string[]
+      updateSnapshots?: boolean
+    } = {}
+  ): Promise<ExecutionSummary> {
     const environment = this.environments.get(environmentName)
     if (!environment) {
       throw new Error(`Environment '${environmentName}' not found`)
@@ -240,7 +239,6 @@ export class TestExecutionCoordinator {
       await this.generateExecutionReport(summary)
 
       return summary
-
     } finally {
       // Always cleanup servers
       await this.stopServers(environment)
@@ -250,10 +248,13 @@ export class TestExecutionCoordinator {
   /**
    * Execute tests across multiple environments in sequence
    */
-  async executeTestSuite(environments: string[], options: {
-    continueOnFailure?: boolean
-    generateReport?: boolean
-  } = {}): Promise<ExecutionSummary[]> {
+  async executeTestSuite(
+    environments: string[],
+    options: {
+      continueOnFailure?: boolean
+      generateReport?: boolean
+    } = {}
+  ): Promise<ExecutionSummary[]> {
     const { continueOnFailure = false, generateReport = true } = options
     const results: ExecutionSummary[] = []
 
@@ -263,14 +264,14 @@ export class TestExecutionCoordinator {
       try {
         const result = await this.executeTests(envName)
         results.push(result)
-        
+
         if (result.failed > 0 && !continueOnFailure) {
           console.error(`❌ Tests failed in ${envName} environment, stopping execution`)
           break
         }
       } catch (error) {
         console.error(`💥 Failed to execute tests in ${envName}: ${(error as Error).message}`)
-        
+
         if (!continueOnFailure) {
           throw error
         }
@@ -362,10 +363,10 @@ export class TestExecutionCoordinator {
 
     const healthPromises = environment.healthChecks.map(async (check) => {
       console.log(`  Checking ${check.name}...`)
-      
+
       const maxAttempts = 30
       const delay = 1000
-      
+
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           const response = await fetch(check.url, {
@@ -398,18 +399,10 @@ export class TestExecutionCoordinator {
   /**
    * Run Playwright tests with specified configuration
    */
-  private async runPlaywrightTests(
-    environment: TestEnvironment,
-    options: any
-  ): Promise<Partial<ExecutionSummary>> {
+  private async runPlaywrightTests(environment: TestEnvironment, options: any): Promise<Partial<ExecutionSummary>> {
     console.log(`🎭 Running Playwright tests with config: ${environment.config}`)
 
-    const args = [
-      'playwright',
-      'test',
-      '--config',
-      environment.config
-    ]
+    const args = ['playwright', 'test', '--config', environment.config]
 
     // Add options
     if (options.grep) args.push('--grep', options.grep)
@@ -450,7 +443,7 @@ export class TestExecutionCoordinator {
 
       child.on('close', (code) => {
         const result = this.parsePlaywrightOutput(output)
-        
+
         if (code === 0) {
           resolve(result)
         } else {
@@ -471,32 +464,32 @@ export class TestExecutionCoordinator {
    */
   private parsePlaywrightOutput(output: string): Partial<ExecutionSummary> {
     const lines = output.split('\n')
-    
+
     let totalTests = 0
     let passed = 0
     let failed = 0
     let skipped = 0
     let flaky = 0
-    
+
     const errors: Array<{ test: string; error: string; recovery: boolean }> = []
-    
+
     // Parse test results
-    lines.forEach(line => {
+    lines.forEach((line) => {
       if (line.includes('passed')) {
         const match = line.match(/(\d+) passed/)
         if (match) passed = parseInt(match[1])
       }
-      
+
       if (line.includes('failed')) {
         const match = line.match(/(\d+) failed/)
         if (match) failed = parseInt(match[1])
       }
-      
+
       if (line.includes('skipped')) {
         const match = line.match(/(\d+) skipped/)
         if (match) skipped = parseInt(match[1])
       }
-      
+
       if (line.includes('flaky')) {
         const match = line.match(/(\d+) flaky/)
         if (match) flaky = parseInt(match[1])
@@ -532,7 +525,7 @@ export class TestExecutionCoordinator {
     const stopPromises = Array.from(this.runningProcesses.entries()).map(async ([name, process]) => {
       try {
         process.kill('SIGTERM')
-        
+
         // Wait for graceful shutdown
         await new Promise((resolve) => {
           process.on('exit', resolve)
@@ -541,7 +534,7 @@ export class TestExecutionCoordinator {
             resolve(void 0)
           }, 5000)
         })
-        
+
         console.log(`  ✅ ${name} server stopped`)
       } catch (error) {
         console.warn(`  ⚠️ Failed to stop ${name} server: ${(error as Error).message}`)
@@ -557,7 +550,7 @@ export class TestExecutionCoordinator {
    */
   private async generateExecutionReport(summary: ExecutionSummary): Promise<void> {
     const reportPath = `test-results/execution-report-${summary.environment}-${Date.now()}.json`
-    
+
     await fs.writeFile(reportPath, JSON.stringify(summary, null, 2))
     console.log(`📊 Execution report generated: ${reportPath}`)
   }
@@ -580,11 +573,11 @@ export class TestExecutionCoordinator {
 
     const reportPath = `test-results/suite-report-${Date.now()}.json`
     await fs.writeFile(reportPath, JSON.stringify(suiteReport, null, 2))
-    
+
     // Also generate HTML report
     const htmlReport = this.generateHtmlReport(suiteReport)
     await fs.writeFile(`test-results/suite-report-${Date.now()}.html`, htmlReport)
-    
+
     console.log(`📊 Suite report generated: ${reportPath}`)
   }
 
@@ -621,7 +614,9 @@ export class TestExecutionCoordinator {
                <span class="flaky">Flaky: ${suiteReport.totalFlaky}</span></p>
         </div>
         
-        ${suiteReport.results.map((result: ExecutionSummary) => `
+        ${suiteReport.results
+          .map(
+            (result: ExecutionSummary) => `
             <div class="environment">
                 <h3>${result.environment} Environment</h3>
                 <p><strong>Duration:</strong> ${(result.duration / 1000).toFixed(2)}s</p>
@@ -637,7 +632,9 @@ export class TestExecutionCoordinator {
                     <li>Fastest Test: ${result.performance.fastestTest.name} (${result.performance.fastestTest.duration}ms)</li>
                 </ul>
             </div>
-        `).join('')}
+        `
+          )
+          .join('')}
     </body>
     </html>
     `
@@ -647,7 +644,7 @@ export class TestExecutionCoordinator {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**
@@ -685,21 +682,22 @@ export class TestExecutionCoordinator {
  */
 export async function main() {
   const coordinator = new TestExecutionCoordinator()
-  
+
   const args = process.argv.slice(2)
   const environment = args[0] || 'development'
-  
+
   const options = {
     headed: args.includes('--headed'),
-    grep: args.find(arg => arg.startsWith('--grep='))?.split('=')[1],
-    workers: args.find(arg => arg.startsWith('--workers='))?.split('=')[1] ? 
-      parseInt(args.find(arg => arg.startsWith('--workers='))!.split('=')[1]) : undefined
+    grep: args.find((arg) => arg.startsWith('--grep='))?.split('=')[1],
+    workers: args.find((arg) => arg.startsWith('--workers='))?.split('=')[1]
+      ? parseInt(args.find((arg) => arg.startsWith('--workers='))!.split('=')[1])
+      : undefined
   }
 
   try {
     console.log(`🎯 Executing tests in ${environment} environment`)
     const result = await coordinator.executeTests(environment, options)
-    
+
     console.log('\n📊 Test Execution Summary:')
     console.log(`  Environment: ${result.environment}`)
     console.log(`  Duration: ${(result.duration / 1000).toFixed(2)}s`)
@@ -708,9 +706,8 @@ export async function main() {
     console.log(`  ❌ Failed: ${result.failed}`)
     console.log(`  ⏭️ Skipped: ${result.skipped}`)
     console.log(`  🔄 Flaky: ${result.flaky}`)
-    
+
     process.exit(result.failed > 0 ? 1 : 0)
-    
   } catch (error) {
     console.error(`💥 Test execution failed: ${(error as Error).message}`)
     process.exit(1)

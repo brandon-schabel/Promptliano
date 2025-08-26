@@ -21,7 +21,9 @@ export class PromptsPage extends BasePage {
 
   // Prompt actions
   get createPromptButton() {
-    return this.page.locator('[data-testid="create-prompt"], button:has-text("New Prompt"), button:has-text("Create Prompt")')
+    return this.page.locator(
+      '[data-testid="create-prompt"], button:has-text("New Prompt"), button:has-text("Create Prompt")'
+    )
   }
 
   get importPromptButton() {
@@ -33,8 +35,11 @@ export class PromptsPage extends BasePage {
     return this.page.locator('[role="dialog"], [data-testid="prompt-dialog"]')
   }
 
-  get promptTitleInput() { // Changed from promptNameInput to promptTitleInput to match schema
-    return this.page.locator('input[name="title"], input[placeholder*="prompt title" i], input[placeholder*="prompt name" i]')
+  get promptTitleInput() {
+    // Changed from promptNameInput to promptTitleInput to match schema
+    return this.page.locator(
+      'input[name="title"], input[placeholder*="prompt title" i], input[placeholder*="prompt name" i]'
+    )
   }
 
   get promptContentTextarea() {
@@ -84,11 +89,15 @@ export class PromptsPage extends BasePage {
   }
 
   // Prompt card actions
-  getPromptCard(promptTitle: string) { // Changed parameter name
-    return this.page.locator(`[data-testid="prompt-card"]:has-text("${promptTitle}"), .prompt-card:has-text("${promptTitle}")`)
+  getPromptCard(promptTitle: string) {
+    // Changed parameter name
+    return this.page.locator(
+      `[data-testid="prompt-card"]:has-text("${promptTitle}"), .prompt-card:has-text("${promptTitle}")`
+    )
   }
 
-  getPromptCardMenu(promptTitle: string) { // Changed parameter name
+  getPromptCardMenu(promptTitle: string) {
+    // Changed parameter name
     return this.getPromptCard(promptTitle).locator('[data-testid="prompt-menu"], button[aria-label*="menu"]')
   }
 
@@ -129,7 +138,7 @@ export class PromptsPage extends BasePage {
 
     // Fill prompt details
     await this.promptTitleInput.fill(promptData.title) // Updated method name
-    
+
     // Fill content - check if we have a code editor or simple textarea
     if (await this.promptEditor.isVisible()) {
       // Monaco editor or similar
@@ -154,11 +163,11 @@ export class PromptsPage extends BasePage {
 
     // Submit the form
     await this.submitPromptButton.click()
-    
+
     // Wait for prompt creation
     await this.waitForAPIResponse(/\/api\/prompts/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify prompt was created
     await expect(this.getPromptCard(promptData.title)).toBeVisible({ timeout: 10000 }) // Updated to use title
   }
@@ -166,15 +175,19 @@ export class PromptsPage extends BasePage {
   /**
    * Edit an existing prompt
    */
-  async editPrompt(currentTitle: string, updates: { // Changed currentName to currentTitle
-    title?: string // Changed name to title
-    content?: string
-    description?: string
-    tags?: string[] // Removed category
-  }) {
+  async editPrompt(
+    currentTitle: string,
+    updates: {
+      // Changed currentName to currentTitle
+      title?: string // Changed name to title
+      content?: string
+      description?: string
+      tags?: string[] // Removed category
+    }
+  ) {
     await this.openPromptMenu(currentTitle)
     await this.promptMenuEdit.click()
-    
+
     await expect(this.promptDialog).toBeVisible()
 
     if (updates.title) {
@@ -205,17 +218,18 @@ export class PromptsPage extends BasePage {
   /**
    * Delete a prompt
    */
-  async deletePrompt(promptTitle: string) { // Changed promptName to promptTitle
+  async deletePrompt(promptTitle: string) {
+    // Changed promptName to promptTitle
     await this.openPromptMenu(promptTitle)
     await this.promptMenuDelete.click()
-    
+
     // Handle confirmation dialog
     await this.handleConfirmationDialog('accept')
-    
+
     // Wait for deletion
     await this.waitForAPIResponse(/\/api\/prompts/, 'DELETE')
     await this.waitForLoadingComplete()
-    
+
     // Verify prompt was deleted
     await expect(this.getPromptCard(promptTitle)).not.toBeVisible()
   }
@@ -223,19 +237,20 @@ export class PromptsPage extends BasePage {
   /**
    * Duplicate a prompt
    */
-  async duplicatePrompt(promptTitle: string, newTitle?: string) { // Changed parameter names
+  async duplicatePrompt(promptTitle: string, newTitle?: string) {
+    // Changed parameter names
     await this.openPromptMenu(promptTitle)
     await this.promptMenuDuplicate.click()
-    
+
     if (newTitle) {
       await expect(this.promptDialog).toBeVisible()
       await this.promptTitleInput.fill(newTitle) // Updated method name
       await this.submitPromptButton.click()
     }
-    
+
     await this.waitForAPIResponse(/\/api\/prompts/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     const expectedTitle = newTitle || `${promptTitle} (Copy)`
     await expect(this.getPromptCard(expectedTitle)).toBeVisible()
   }
@@ -243,10 +258,11 @@ export class PromptsPage extends BasePage {
   /**
    * Open a prompt for editing/viewing
    */
-  async openPrompt(promptTitle: string) { // Changed parameter name
+  async openPrompt(promptTitle: string) {
+    // Changed parameter name
     await this.getPromptCard(promptTitle).click()
     await this.waitForLoadingComplete()
-    
+
     // Should open prompt editor or detail view
     await expect(this.promptEditor.or(this.promptDialog)).toBeVisible()
   }
@@ -254,16 +270,17 @@ export class PromptsPage extends BasePage {
   /**
    * Open prompt menu
    */
-  async openPromptMenu(promptTitle: string) { // Changed parameter name
+  async openPromptMenu(promptTitle: string) {
+    // Changed parameter name
     const promptCard = this.getPromptCard(promptTitle)
     await expect(promptCard).toBeVisible()
-    
+
     // Hover to reveal menu button
     await promptCard.hover()
-    
+
     const menuButton = this.getPromptCardMenu(promptTitle)
     await menuButton.click()
-    
+
     // Wait for menu to appear
     await expect(this.promptMenuEdit).toBeVisible()
   }
@@ -297,42 +314,50 @@ export class PromptsPage extends BasePage {
   /**
    * Get all visible prompt titles
    */
-  async getVisiblePromptTitles(): Promise<string[]> { // Changed method name and return type description
+  async getVisiblePromptTitles(): Promise<string[]> {
+    // Changed method name and return type description
     const cards = this.promptCards
     const count = await cards.count()
     const titles: string[] = []
-    
+
     for (let i = 0; i < count; i++) {
-      const title = await cards.nth(i).locator('[data-testid="prompt-title"], [data-testid="prompt-name"], .prompt-title, .prompt-name').textContent()
+      const title = await cards
+        .nth(i)
+        .locator('[data-testid="prompt-title"], [data-testid="prompt-name"], .prompt-title, .prompt-name')
+        .textContent()
       if (title) titles.push(title.trim())
     }
-    
+
     return titles
   }
 
   /**
    * Check if prompt exists
    */
-  async promptExists(promptTitle: string): Promise<boolean> { // Changed parameter name
+  async promptExists(promptTitle: string): Promise<boolean> {
+    // Changed parameter name
     return await this.getPromptCard(promptTitle).isVisible()
   }
 
   /**
    * Get prompt card information
    */
-  async getPromptInfo(promptTitle: string) { // Changed parameter name
+  async getPromptInfo(promptTitle: string) {
+    // Changed parameter name
     const card = this.getPromptCard(promptTitle)
     await expect(card).toBeVisible()
-    
-    const title = await card.locator('[data-testid="prompt-title"], [data-testid="prompt-name"], .prompt-title, .prompt-name').textContent()
+
+    const title = await card
+      .locator('[data-testid="prompt-title"], [data-testid="prompt-name"], .prompt-title, .prompt-name')
+      .textContent()
     const description = await card.locator('[data-testid="prompt-description"], .prompt-description').textContent()
     const tags = await card.locator('[data-testid="prompt-tags"], .prompt-tags [data-testid="tag"]').allTextContents()
     const lastModified = await card.locator('[data-testid="prompt-modified"], .prompt-modified').textContent()
-    
+
     return {
       title: title?.trim() || '', // Changed from 'name' to 'title'
       description: description?.trim() || '',
-      tags: tags.map(tag => tag.trim()).filter(Boolean), // Removed category
+      tags: tags.map((tag) => tag.trim()).filter(Boolean), // Removed category
       lastModified: lastModified?.trim() || ''
     }
   }
@@ -349,19 +374,19 @@ export class PromptsPage extends BasePage {
    */
   async importPrompt(markdownContent: string) {
     await this.importPromptButton.click()
-    
+
     // This would depend on the actual import implementation
     // Might be a file input or a text area
     const importInput = this.page.locator('input[type="file"], textarea[placeholder*="markdown" i]')
-    
-    if (await importInput.getAttribute('type') === 'file') {
+
+    if ((await importInput.getAttribute('type')) === 'file') {
       // File input - would need to create a temporary file
       // This is more complex in testing
     } else {
       // Text area
       await importInput.fill(markdownContent)
     }
-    
+
     await this.submitPromptButton.click()
     await this.waitForAPIResponse(/\/api\/prompts/, 'POST')
     await this.waitForLoadingComplete()
@@ -370,10 +395,11 @@ export class PromptsPage extends BasePage {
   /**
    * Export prompt
    */
-  async exportPrompt(promptTitle: string) { // Changed parameter name
+  async exportPrompt(promptTitle: string) {
+    // Changed parameter name
     await this.openPromptMenu(promptTitle)
     await this.promptMenuExport.click()
-    
+
     // This would trigger a download or show export options
     // In testing, we might just verify the API call
     await this.waitForAPIResponse(/\/api\/prompts\/.*\/export/, 'GET')

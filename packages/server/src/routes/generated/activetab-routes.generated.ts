@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR ACTIVETAB
  * Generated at: 2025-08-22T23:50:50.384Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { activetabServiceV2 } from '@promptliano/services'
-import {
-  ActiveTabSchema,
-  CreateActiveTabSchema,
-  UpdateActiveTabSchema
-} from '@promptliano/database'
+import { ActiveTabSchema, CreateActiveTabSchema, UpdateActiveTabSchema } from '@promptliano/database'
 import {
   ActiveTabIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -66,9 +62,9 @@ const activetabConfig: EntityConfig = {
  */
 export function registerActiveTabRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, activetabConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for ActiveTab`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +77,7 @@ export const activetabRoutes = {
   list: `GET /api/activetabs`,
   get: `GET /api/activetabs/{id}`,
   update: `PUT /api/activetabs/{id}`,
-  delete: `DELETE /api/activetabs/{id}`,
+  delete: `DELETE /api/activetabs/{id}`
 } as const
 
 export type ActiveTabRouteTypes = typeof activetabRoutes

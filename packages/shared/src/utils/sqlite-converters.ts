@@ -179,7 +179,11 @@ export function ensureBoolean(value: any, fallback = false): boolean {
   return toBoolean(value, fallback)
 }
 
-export function safeJsonParse<T = any>(value: string | null | undefined, fallback: T, validator?: (value: any) => value is T): T {
+export function safeJsonParse<T = any>(
+  value: string | null | undefined,
+  fallback: T,
+  validator?: (value: any) => value is T
+): T {
   if (value === null || value === undefined) return fallback
   try {
     const parsed = JSON.parse(value)

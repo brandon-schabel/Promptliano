@@ -1,6 +1,6 @@
 /**
  * MCP (Model Context Protocol) Test Helpers
- * 
+ *
  * Provides utilities for testing MCP integration with proper mocks,
  * availability checks, and error handling.
  */
@@ -41,7 +41,7 @@ export class MCPTestHelpers {
         return await page.evaluate(async () => {
           try {
             const client = (window as any).mcpClient
-            const tools = await client.listTools?.() || []
+            const tools = (await client.listTools?.()) || []
             return {
               connected: true,
               tools: tools.map((t: any) => t.name),
@@ -59,7 +59,6 @@ export class MCPTestHelpers {
 
       // Fallback: Check if MCP API endpoints are available via HTTP
       return await this.checkMCPViaAPI(page)
-
     } catch (error) {
       return {
         connected: false,
@@ -75,7 +74,7 @@ export class MCPTestHelpers {
   private static async checkMCPViaAPI(page: Page): Promise<MCPServerStatus> {
     try {
       const response = await page.request.get(API_ENDPOINTS.MCP.SESSION)
-      
+
       if (response.ok()) {
         const data = await response.json()
         return {
@@ -112,7 +111,7 @@ export class MCPTestHelpers {
    */
   static async callMCPTool(page: Page, toolName: string, params: Record<string, any>): Promise<any> {
     const status = await this.checkMCPAvailability(page)
-    
+
     if (!status.connected) {
       console.warn(`MCP not available: ${status.error}`)
       return undefined
@@ -125,16 +124,19 @@ export class MCPTestHelpers {
 
     try {
       // Try browser-side MCP client first
-      const browserResult = await page.evaluate(async ({ toolName, params }) => {
-        if (typeof (window as any).mcpClient !== 'undefined') {
-          try {
-            return await (window as any).mcpClient.callTool(toolName, params)
-          } catch (error) {
-            return { error: error.message }
+      const browserResult = await page.evaluate(
+        async ({ toolName, params }) => {
+          if (typeof (window as any).mcpClient !== 'undefined') {
+            try {
+              return await (window as any).mcpClient.callTool(toolName, params)
+            } catch (error) {
+              return { error: error.message }
+            }
           }
-        }
-        return null
-      }, { toolName, params })
+          return null
+        },
+        { toolName, params }
+      )
 
       if (browserResult) {
         return browserResult
@@ -150,7 +152,6 @@ export class MCPTestHelpers {
       } else {
         return { error: `HTTP MCP call failed: ${response.status()}` }
       }
-
     } catch (error) {
       return { error: error.message }
     }
@@ -160,36 +161,37 @@ export class MCPTestHelpers {
    * Mock MCP client for testing when real MCP is not available
    */
   static async setupMCPMocks(page: Page, mockTools: Record<string, (params: any) => any>) {
-    await page.addInitScript((mockToolsStr) => {
-      const mockTools = JSON.parse(mockToolsStr)
-      
-      // Create mock MCP client
-      ;(window as any).mcpClient = {
-        connected: true,
-        version: '1.0.0-test',
-        
-        async listTools() {
-          return Object.keys(mockTools).map(name => ({ name }))
-        },
-        
-        async callTool(toolName: string, params: any) {
-          const mockFn = mockTools[toolName]
-          if (!mockFn) {
-            throw new Error(`Mock tool '${toolName}' not found`)
+    await page.addInitScript(
+      (mockToolsStr) => {
+        const mockTools = JSON.parse(mockToolsStr)
+
+        // Create mock MCP client
+        ;(window as any).mcpClient = {
+          connected: true,
+          version: '1.0.0-test',
+
+          async listTools() {
+            return Object.keys(mockTools).map((name) => ({ name }))
+          },
+
+          async callTool(toolName: string, params: any) {
+            const mockFn = mockTools[toolName]
+            if (!mockFn) {
+              throw new Error(`Mock tool '${toolName}' not found`)
+            }
+
+            // Execute mock function (serialized as string)
+            const fn = new Function('params', mockFn)
+            return fn(params)
+          },
+
+          async ping() {
+            return { status: 'ok', timestamp: Date.now() }
           }
-          
-          // Execute mock function (serialized as string)
-          const fn = new Function('params', mockFn)
-          return fn(params)
-        },
-        
-        async ping() {
-          return { status: 'ok', timestamp: Date.now() }
         }
-      }
-    }, JSON.stringify(Object.fromEntries(
-      Object.entries(mockTools).map(([key, fn]) => [key, fn.toString()])
-    )))
+      },
+      JSON.stringify(Object.fromEntries(Object.entries(mockTools).map(([key, fn]) => [key, fn.toString()])))
+    )
   }
 
   /**
@@ -212,7 +214,7 @@ export class MCPTestHelpers {
         }
         return { success: false, error: 'Action not mocked' }
       },
-      
+
       ticket_manager: (params: any) => {
         if (params.action === 'create') {
           return {
@@ -265,7 +267,7 @@ export class MCPTestHelpers {
    */
   static async mockMCPAPIEndpoints(page: Page, enabledTools: string[] = []) {
     // Mock MCP session endpoint
-    await page.route(`**${API_ENDPOINTS.MCP.SESSION}`, route => {
+    await page.route(`**${API_ENDPOINTS.MCP.SESSION}`, (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -279,10 +281,10 @@ export class MCPTestHelpers {
     })
 
     // Mock MCP execute endpoint
-    await page.route(`**${API_ENDPOINTS.MCP.EXECUTE}`, route => {
+    await page.route(`**${API_ENDPOINTS.MCP.EXECUTE}`, (route) => {
       const postData = route.request().postDataJSON()
       const toolName = postData?.tool
-      
+
       if (enabledTools.includes(toolName)) {
         route.fulfill({
           status: 200,
@@ -308,7 +310,7 @@ export class MCPTestHelpers {
     })
 
     // Mock MCP test endpoint
-    await page.route(`**${API_ENDPOINTS.MCP.TEST}`, route => {
+    await page.route(`**${API_ENDPOINTS.MCP.TEST}`, (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -330,13 +332,13 @@ export class MCPTestHelpers {
     testFn: (mcpAvailable: boolean) => Promise<void>
   ) {
     const status = await this.checkMCPAvailability(page)
-    
+
     console.log(`MCP Test '${testName}': ${status.connected ? 'Connected' : 'Not Available'}`)
-    
+
     if (status.error) {
       console.log(`MCP Status: ${status.error}`)
     }
-    
+
     await testFn(status.connected)
   }
 
@@ -345,43 +347,46 @@ export class MCPTestHelpers {
    */
   static async skipIfMCPNotAvailable(page: Page, testName?: string) {
     const status = await this.checkMCPAvailability(page)
-    
+
     if (!status.connected) {
       console.log(`Skipping test${testName ? ` '${testName}'` : ''}: MCP not available (${status.error})`)
       return true // Should skip
     }
-    
+
     return false // Should run test
   }
 
   /**
    * Create a test environment that works with or without MCP
    */
-  static async createMCPTestEnvironment(page: Page, options: {
-    enableMocks?: boolean
-    mockTools?: string[]
-    requireReal?: boolean
-  } = {}) {
+  static async createMCPTestEnvironment(
+    page: Page,
+    options: {
+      enableMocks?: boolean
+      mockTools?: string[]
+      requireReal?: boolean
+    } = {}
+  ) {
     const { enableMocks = true, mockTools = ['project_manager', 'ticket_manager'], requireReal = false } = options
-    
+
     const status = await this.checkMCPAvailability(page)
-    
+
     if (status.connected) {
       console.log('✅ Using real MCP server')
       return { mcpAvailable: true, usingMocks: false }
     }
-    
+
     if (requireReal) {
       throw new Error('Real MCP server required but not available')
     }
-    
+
     if (enableMocks) {
       console.log('🎭 Setting up MCP mocks')
       await this.setupPromptlianoMCPMocks(page)
       await this.mockMCPAPIEndpoints(page, mockTools)
       return { mcpAvailable: true, usingMocks: true }
     }
-    
+
     console.log('⚠️ No MCP available (mocks disabled)')
     return { mcpAvailable: false, usingMocks: false }
   }
@@ -405,13 +410,13 @@ export class MCPTestHelpers {
   static getMCPToolName(toolName: string): string {
     // Map test assumptions to actual MCP tool names
     const toolNameMap: Record<string, string> = {
-      'project_manager': 'mcp__promptliano__project_manager',
-      'ticket_manager': 'mcp__promptliano__ticket_manager',
-      'queue_processor': 'mcp__promptliano__queue_processor', 
-      'prompt_manager': 'mcp__promptliano__prompt_manager',
-      'task_manager': 'mcp__promptliano__task_manager',
+      project_manager: 'mcp__promptliano__project_manager',
+      ticket_manager: 'mcp__promptliano__ticket_manager',
+      queue_processor: 'mcp__promptliano__queue_processor',
+      prompt_manager: 'mcp__promptliano__prompt_manager',
+      task_manager: 'mcp__promptliano__task_manager'
     }
-    
+
     return toolNameMap[toolName] || toolName
   }
 }

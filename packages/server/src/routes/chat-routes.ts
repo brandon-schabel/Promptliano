@@ -3,7 +3,12 @@ import { createRoute, z } from '@hono/zod-openapi'
 import { createChatService, handleChatMessage } from '@promptliano/services'
 import { ApiError, ErrorFactory, withErrorContext } from '@promptliano/shared'
 import { ApiErrorResponseSchema, MessageRoleEnum, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  standardResponses,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import {
   ChatListResponseSchema,
   ChatResponseSchema,
@@ -207,37 +212,43 @@ const deleteChatRoute = createRoute({
 })
 export const chatRoutes = new OpenAPIHono()
   .openapi(getAllChatsRoute, async (c) => {
-    return await withErrorContext(async () => {
-      const userChats = await chatService.getAllChats()
-      return c.json(
-        {
-          success: true,
-          data: userChats
-        } satisfies z.infer<typeof ChatListResponseSchema>,
-        200
-      )
-    }, { entity: 'Chat', action: 'list' })
+    return await withErrorContext(
+      async () => {
+        const userChats = await chatService.getAllChats()
+        return c.json(
+          {
+            success: true,
+            data: userChats
+          } satisfies z.infer<typeof ChatListResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'list' }
+    )
   })
   .openapi(createChatRoute, async (c) => {
     const body = c.req.valid('json')
-    
-    return await withErrorContext(async () => {
-      const chat = await chatService.createChat(body.title, {
-        copyExisting: body.copyExisting,
-        currentChatId: body.currentChatId
-      })
-      return c.json(
-        {
-          success: true,
-          data: chat
-        } satisfies z.infer<typeof ChatResponseSchema>,
-        201
-      )
-    }, { 
-      entity: 'Chat', 
-      action: 'create',
-      metadata: { title: body.title, copyExisting: body.copyExisting }
-    })
+
+    return await withErrorContext(
+      async () => {
+        const chat = await chatService.createChat(body.title, {
+          copyExisting: body.copyExisting,
+          currentChatId: body.currentChatId
+        })
+        return c.json(
+          {
+            success: true,
+            data: chat
+          } satisfies z.infer<typeof ChatResponseSchema>,
+          201
+        )
+      },
+      {
+        entity: 'Chat',
+        action: 'create',
+        metadata: { title: body.title, copyExisting: body.copyExisting }
+      }
+    )
   })
   .openapi(getChatMessagesRoute, async (c) => {
     const { chatId } = c.req.valid('param')
@@ -262,31 +273,34 @@ export const chatRoutes = new OpenAPIHono()
 
     console.log(`[Hono AI Chat] /ai/chat request: ChatID=${chatId}, Provider=${provider}, Model=${model}`)
 
-    return await withErrorContext(async () => {
-      const unifiedOptions = { ...options, model }
+    return await withErrorContext(
+      async () => {
+        const unifiedOptions = { ...options, model }
 
-      c.header('Content-Type', 'text/event-stream; charset=utf-8')
-      c.header('Cache-Control', 'no-cache')
-      c.header('Connection', 'keep-alive')
+        c.header('Content-Type', 'text/event-stream; charset=utf-8')
+        c.header('Cache-Control', 'no-cache')
+        c.header('Connection', 'keep-alive')
 
-      const readableStream = await handleChatMessage({
-        chatId,
-        userMessage,
-        options: unifiedOptions,
-        systemMessage,
-        tempId,
-        enableChatAutoNaming
-      })
+        const readableStream = await handleChatMessage({
+          chatId,
+          userMessage,
+          options: unifiedOptions,
+          systemMessage,
+          tempId,
+          enableChatAutoNaming
+        })
 
-      return stream(c, async (streamInstance) => {
-        await streamInstance.pipe(readableStream.toDataStream())
-      })
-    }, {
-      entity: 'Chat',
-      action: 'ai_stream',
-      correlationId: String(chatId),
-      metadata: { provider, model, tempId }
-    })
+        return stream(c, async (streamInstance) => {
+          await streamInstance.pipe(readableStream.toDataStream())
+        })
+      },
+      {
+        entity: 'Chat',
+        action: 'ai_stream',
+        correlationId: String(chatId),
+        metadata: { provider, model, tempId }
+      }
+    )
   })
   .openapi(forkChatRoute, async (c) => {
     const { chatId } = c.req.valid('param')

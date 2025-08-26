@@ -24,12 +24,7 @@ import {
   Hash,
   MessageCircle
 } from 'lucide-react'
-import {
-  useClaudeMessages,
-  useClaudeSessions,
-  useFormatClaudeMessage,
-  useSessionDuration
-} from '@/hooks/api-hooks'
+import { useClaudeMessages, useClaudeSessions, useFormatClaudeMessage, useSessionDuration } from '@/hooks/api-hooks'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { ClaudeMessage } from '@promptliano/schemas'
@@ -202,15 +197,15 @@ function MessageBubble({ message, isLast, onJumpToMessage, allMessages }: Messag
             </div>
 
             {/* Show todo changes if present */}
-            {message.toolUseResult && 
-             typeof message.toolUseResult === 'object' && 
-             !Array.isArray(message.toolUseResult) &&
-             (message.toolUseResult.oldTodos || message.toolUseResult.newTodos) && (
-              <div className='mt-2 p-2 bg-muted/50 rounded text-xs'>
-                <span className='font-semibold'>Todo Changes</span>
-                {/* TODO: Create TodoChangeDisplay component */}
-              </div>
-            )}
+            {message.toolUseResult &&
+              typeof message.toolUseResult === 'object' &&
+              !Array.isArray(message.toolUseResult) &&
+              (message.toolUseResult.oldTodos || message.toolUseResult.newTodos) && (
+                <div className='mt-2 p-2 bg-muted/50 rounded text-xs'>
+                  <span className='font-semibold'>Todo Changes</span>
+                  {/* TODO: Create TodoChangeDisplay component */}
+                </div>
+              )}
           </div>
         </div>
       </div>
@@ -436,15 +431,18 @@ export function ChatsView({ projectId, projectName, sessionId, onBack }: ChatsVi
                 <MessageBubble
                   message={{
                     ...message,
-                    content: typeof message.content === 'string' ? message.content : 
-                             message.content ? JSON.stringify(message.content) : ''
+                    content:
+                      typeof message.content === 'string'
+                        ? message.content
+                        : message.content
+                          ? JSON.stringify(message.content)
+                          : ''
                   }}
                   isLast={index === messages.length - 1}
                   onJumpToMessage={handleJumpToMessage}
                   allMessages={messages.map((m: any) => ({
                     ...m,
-                    content: typeof m.content === 'string' ? m.content : 
-                             m.content ? JSON.stringify(m.content) : ''
+                    content: typeof m.content === 'string' ? m.content : m.content ? JSON.stringify(m.content) : ''
                   }))}
                 />
               </div>

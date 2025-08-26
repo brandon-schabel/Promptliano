@@ -1,9 +1,9 @@
 import { describe, test, expect } from 'bun:test'
 import { ZodError, z } from 'zod'
-import { 
-  ErrorFactory, 
-  assertExists, 
-  assertValid, 
+import {
+  ErrorFactory,
+  assertExists,
+  assertValid,
   assertUpdateSucceeded,
   assertDeleteSucceeded,
   assertDatabaseOperation,
@@ -58,7 +58,7 @@ describe('ErrorFactory', () => {
         name: z.string(),
         age: z.number()
       })
-      
+
       try {
         schema.parse({ name: 123, age: 'invalid' })
       } catch (zodError) {
@@ -80,7 +80,7 @@ describe('ErrorFactory', () => {
     test('invalidInput creates proper error', () => {
       const error = ErrorFactory.invalidInput('age', 'number', 'string value')
       expect(error.status).toBe(400)
-      expect(error.message).toBe("Invalid age: expected number, got string")
+      expect(error.message).toBe('Invalid age: expected number, got string')
       expect(error.code).toBe('INVALID_INPUT')
     })
 
@@ -256,10 +256,10 @@ describe('ErrorFactory', () => {
 
     test('forEntity creates entity-specific factory', () => {
       const userErrors = ErrorFactory.forEntity('User')
-      
+
       const notFound = userErrors.notFound(123)
       expect(notFound.message).toBe('User with ID 123 not found')
-      
+
       const createFailed = userErrors.createFailed('duplicate email')
       expect(createFailed.message).toBe('Failed to create User: duplicate email')
     })
@@ -315,8 +315,7 @@ describe('ErrorFactory', () => {
       try {
         schema.parse(123)
       } catch (zodError) {
-        expect(() => handleZodError(zodError as ZodError, 'User', 'create'))
-          .toThrow(ApiError)
+        expect(() => handleZodError(zodError as ZodError, 'User', 'create')).toThrow(ApiError)
       }
     })
   })
@@ -344,7 +343,7 @@ describe('ErrorFactory', () => {
 
     test('withErrorContext preserves ApiError', async () => {
       const originalError = new ApiError(404, 'Not found', 'NOT_FOUND', { original: true })
-      
+
       const operation = async () => {
         throw originalError
       }
@@ -366,18 +365,17 @@ describe('ErrorFactory', () => {
   describe('Error Handler Creation', () => {
     test('createErrorHandler creates entity-specific handler', async () => {
       const handler = createErrorHandler('Product')
-      
+
       // Test wrap
       const wrapped = handler.wrap(new Error('Test'), 'update')
       expect(wrapped.message).toContain('Product.update')
-      
+
       // Test assertExists
       expect(() => handler.assertExists(null, 789)).toThrow('Product with ID 789 not found')
-      
+
       // Test assertUpdateSucceeded
-      expect(() => handler.assertUpdateSucceeded({ changes: 0 }, 'prod-123'))
-        .toThrow('Failed to update Product')
-      
+      expect(() => handler.assertUpdateSucceeded({ changes: 0 }, 'prod-123')).toThrow('Failed to update Product')
+
       // Test withContext
       try {
         await handler.withContext(async () => {

@@ -11,7 +11,7 @@ import type {
   SummaryOptions,
   SummaryVersion,
   SummaryMetrics,
-  EnhancedProjectSummaryResponse,
+  EnhancedProjectSummaryResponse
 } from '@promptliano/schemas'
 import type { File as ProjectFile } from '@promptliano/database'
 import { getProjectFiles } from '../project-service'
@@ -25,7 +25,7 @@ function convertFileToLegacyFormat(file: ProjectFile): any {
     ...file,
     created: file.createdAt,
     updated: file.updatedAt,
-    extension: file.path.split('.').pop() || '',
+    extension: file.path.split('.').pop() || ''
     // All other properties match
   }
 }
@@ -194,20 +194,28 @@ async function filterFilesForSummary(files: ProjectFile[], options: SummaryOptio
   switch (options.depth) {
     case 'minimal':
       // Only include most important files
-      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 2.0).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 2.0).map(
+        (f) => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt }) as ProjectFile
+      )
       break
     case 'standard':
       // Include moderately important files
-      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 1.0).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 1.0).map(
+        (f) => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt }) as ProjectFile
+      )
       break
     case 'detailed':
       // Include all files except very low importance
-      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 0.5).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
+      filtered = filterByImportance(filtered.map(convertFileToLegacyFormat), 0.5).map(
+        (f) => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt }) as ProjectFile
+      )
       break
   }
 
   // Sort by importance for better organization
-  filtered = sortFilesByImportance(filtered.map(convertFileToLegacyFormat)).map(f => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt } as ProjectFile))
+  filtered = sortFilesByImportance(filtered.map(convertFileToLegacyFormat)).map(
+    (f) => ({ ...f, createdAt: f.createdAt, updatedAt: f.updatedAt }) as ProjectFile
+  )
 
   return filtered
 }

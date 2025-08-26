@@ -230,11 +230,11 @@ export const useCreateProjectTab = () => {
     // use unix timestamp in millisecondsc
     const newTabId = Date.now()
     // @ts-ignore
-  const projectTab: ProjectTabState = {
+    const projectTab: ProjectTabState = {
       // id: newTabId,
       // ...currentProjectTabData,
-  // Default to -1 (none) if not provided; do not assume or carry an invalid default
-  selectedProjectId: payload.selectedProjectId ?? (currentSelectedProjectId ?? -1),
+      // Default to -1 (none) if not provided; do not assume or carry an invalid default
+      selectedProjectId: payload.selectedProjectId ?? currentSelectedProjectId ?? -1,
       editProjectId: -1,
       promptDialogOpen: false,
       editPromptId: -1,
@@ -353,7 +353,7 @@ export function useActiveProjectTab(): [
   const { updateProjectTabById } = useUpdateProjectTabById()
 
   const updateActiveProjectTab = (partialData: Partial<ProjectTabState>) => {
-  if (activeProjectTabId && activeProjectTabId !== -1 && activeProjectTabData) {
+    if (activeProjectTabId && activeProjectTabId !== -1 && activeProjectTabData) {
       updateProjectTabById(activeProjectTabId, partialData)
     }
   }

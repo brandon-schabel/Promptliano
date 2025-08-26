@@ -53,10 +53,10 @@ export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
     if (!result.success) {
       console.error('Validation Error:', JSON.stringify(result.error.issues, null, 2))
-      
+
       // Use ErrorFactory for consistent validation error handling
       const validationError = ErrorFactory.validationFailed(result.error)
-      
+
       return c.json(
         {
           success: false,
@@ -108,8 +108,8 @@ const generalLimiter = rateLimiter({
       `${RATE_LIMIT_WINDOW_MS / 1000 / 60} minutes`,
       Math.floor(RATE_LIMIT_WINDOW_MS / 1000)
     )
-    
-    const rateLimitDetails = rateLimitError.details as Record<string, any> || {}
+
+    const rateLimitDetails = (rateLimitError.details as Record<string, any>) || {}
     return c.json(
       {
         success: false,
@@ -140,8 +140,8 @@ const aiLimiter = rateLimiter({
       `${AI_RATE_LIMIT_WINDOW_MS / 1000 / 60} minutes`,
       Math.floor(AI_RATE_LIMIT_WINDOW_MS / 1000)
     )
-    
-    const aiRateLimitDetails = aiRateLimitError.details as Record<string, any> || {}
+
+    const aiRateLimitDetails = (aiRateLimitError.details as Record<string, any>) || {}
     return c.json(
       {
         success: false,
@@ -206,7 +206,7 @@ registerAllGeneratedRoutes(app)
 // Register manual routes (complex operations only - no CRUD conflicts)
 // COMMENTED OUT: Basic CRUD routes (now handled by generated routes)
 // app.route('/', chatRoutes)        // Basic CRUD -> Generated
-// app.route('/', projectRoutes)     // Basic CRUD -> Generated  
+// app.route('/', projectRoutes)     // Basic CRUD -> Generated
 // app.route('/', providerKeyRoutes) // Basic CRUD -> Generated
 // app.route('/', promptRoutes)      // Basic CRUD -> Generated
 // app.route('/', ticketRoutes)      // Basic CRUD -> Generated
@@ -232,7 +232,7 @@ app.route('/', mcpGlobalConfigRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
-// - projectRoutes -> /api/projects CRUD via generated routes  
+// - projectRoutes -> /api/projects CRUD via generated routes
 // - providerKeyRoutes -> /api/providerkeys CRUD via generated routes
 // - promptRoutes -> /api/prompts CRUD via generated routes
 // - ticketRoutes -> /api/tickets CRUD via generated routes

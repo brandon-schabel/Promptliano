@@ -1,7 +1,14 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { ApiError } from '@promptliano/shared'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse, createSuccessResponseSchema, createListResponseSchema } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse,
+  createSuccessResponseSchema,
+  createListResponseSchema
+} from '../utils/route-helpers'
 import {
   type ProviderKey,
   ProviderKeySchema,
@@ -39,15 +46,17 @@ const TestProviderApiResponseSchema = createSuccessResponseSchema(
 
 const BatchTestProviderApiResponseSchema = createSuccessResponseSchema(
   z.object({
-    results: z.array(z.object({
-      success: z.boolean(),
-      providerId: z.number(),
-      provider: z.string(),
-      model: z.string().optional(),
-      latency: z.number(),
-      error: z.string().optional(),
-      response: z.string().optional()
-    })),
+    results: z.array(
+      z.object({
+        success: z.boolean(),
+        providerId: z.number(),
+        provider: z.string(),
+        model: z.string().optional(),
+        latency: z.number(),
+        error: z.string().optional(),
+        response: z.string().optional()
+      })
+    ),
     summary: z.object({
       total: z.number(),
       successful: z.number(),
@@ -299,10 +308,10 @@ const validateCustomProviderRoute = createRoute({
 
 providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
   const body = c.req.valid('json')
-  
+
   try {
     const result = await validateCustomProvider(body)
-    
+
     return c.json(successResponse(result), 200)
   } catch (error) {
     if (error instanceof ApiError) {

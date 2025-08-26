@@ -1,11 +1,6 @@
 import { describe, expect, it, mock, beforeEach } from 'bun:test'
 import { Context } from 'hono'
-import {
-  type InterceptorContext,
-  type Interceptor,
-  type InterceptorHandler,
-  InterceptorError
-} from '../types'
+import { type InterceptorContext, type Interceptor, type InterceptorHandler, InterceptorError } from '../types'
 
 // Mock dependencies for testing
 function createMockContext(): Context {
@@ -13,14 +8,14 @@ function createMockContext(): Context {
     req: {
       method: 'GET',
       path: '/api/test',
-      header: mock(() => undefined),
+      header: mock(() => undefined)
     },
     res: {
-      status: 200,
+      status: 200
     },
     set: mock(),
     get: mock(),
-    json: mock(() => ({ success: true })),
+    json: mock(() => ({ success: true }))
   } as unknown as Context
 }
 
@@ -208,8 +203,8 @@ describe('Interceptor Core Infrastructure', () => {
     })
 
     it('should handle async operations', async () => {
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-      
+      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
       const handler: InterceptorHandler = async (ctx, interceptorCtx, next) => {
         const start = Date.now()
         await delay(10)
@@ -248,9 +243,7 @@ describe('Interceptor Core Infrastructure', () => {
         security: { ip: '127.0.0.1', rateLimitKeys: [] }
       }
 
-      await expect(
-        errorHandler(context, interceptorContext, async () => {})
-      ).rejects.toThrow('Test error')
+      await expect(errorHandler(context, interceptorContext, async () => {})).rejects.toThrow('Test error')
     })
 
     it('should create InterceptorError for system errors', () => {

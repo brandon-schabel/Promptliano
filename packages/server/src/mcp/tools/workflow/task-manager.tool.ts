@@ -197,11 +197,11 @@ export const taskManagerTool: MCPToolDefinition = {
           case TaskManagerAction.ANALYZE_COMPLEXITY: {
             const taskId = validateDataField<number>(data, 'taskId', 'number', '789')
             const analysis = await analyzeTaskComplexity(taskId)
-            
+
             if (!analysis) {
               throw createMCPError(MCPErrorCode.RESOURCE_NOT_FOUND, `Task analysis not found for task ${taskId}`)
             }
-            
+
             return {
               content: [
                 {
@@ -373,10 +373,10 @@ export const taskManagerTool: MCPToolDefinition = {
           error instanceof MCPError
             ? error
             : MCPError.fromError(error, {
-              tool: 'task_manager',
-              action: args.action,
-              ticketId: args.ticketId
-            })
+                tool: 'task_manager',
+                action: args.action,
+                ticketId: args.ticketId
+              })
 
         // Return formatted error response with recovery suggestions
         return await formatMCPErrorResponse(mcpError)

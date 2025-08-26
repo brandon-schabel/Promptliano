@@ -7,14 +7,14 @@ import { getProjectById } from './project-service'
 import { createHash } from 'crypto'
 import { claudeCodeFileReaderService } from './claude-code-file-reader-service'
 // Import database types for return values
-import type { 
-  ClaudeSession as DbClaudeSession, 
-  ClaudeMessage as DbClaudeMessage, 
+import type {
+  ClaudeSession as DbClaudeSession,
+  ClaudeMessage as DbClaudeMessage,
   ClaudeSessionMetadata as DbClaudeSessionMetadata,
   TokenUsage as DbTokenUsage
 } from '@promptliano/database'
 // Import file-based types from schemas for Claude Code file reading
-import type { 
+import type {
   ClaudeSession as FileClaudeSession,
   ClaudeMessage as FileClaudeMessage,
   ClaudeSessionMetadata as FileClaudeSessionMetadata,
@@ -101,7 +101,7 @@ class TypeConverter {
    */
   static fileMessageToDbMessage(fileMessage: FileClaudeMessage, projectId: number): DbClaudeMessage {
     const now = Date.now()
-    
+
     // Generate a numeric ID from UUID, timestamp, or current time
     let numericId = now
     if (fileMessage.uuid) {
@@ -118,7 +118,7 @@ class TypeConverter {
       const timestampNum = new Date(fileMessage.timestamp).getTime()
       numericId = timestampNum
     }
-    
+
     return {
       id: numericId,
       projectId: projectId,
@@ -251,7 +251,7 @@ export class ClaudeCodeMCPService {
    */
   private hasPromptlianoServer(servers: Record<string, any> | undefined): boolean {
     if (!servers) return false
-    return Object.keys(servers).some(key => key.toLowerCase().includes('promptliano'))
+    return Object.keys(servers).some((key) => key.toLowerCase().includes('promptliano'))
   }
 
   /**
@@ -437,11 +437,9 @@ export class ClaudeCodeMCPService {
 
       // Use optimized method that returns lightweight sessions without loading full message data
       const fileSessions = await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, 50)
-      
+
       // Convert file-based sessions to database-compatible sessions
-      return fileSessions.map(fileSession => 
-        TypeConverter.fileSessionToDbSession(fileSession, projectId)
-      )
+      return fileSessions.map((fileSession) => TypeConverter.fileSessionToDbSession(fileSession, projectId))
     } catch (error) {
       logger.error('Failed to get Claude sessions:', error)
       return []
@@ -470,11 +468,9 @@ export class ClaudeCodeMCPService {
       }
 
       const fileSessions = await claudeCodeFileReaderService.getRecentSessions(claudeProjectPath, limit)
-      
+
       // Convert file-based sessions to database-compatible sessions
-      return fileSessions.map(fileSession => 
-        TypeConverter.fileSessionToDbSession(fileSession, projectId)
-      )
+      return fileSessions.map((fileSession) => TypeConverter.fileSessionToDbSession(fileSession, projectId))
     } catch (error) {
       logger.error('Failed to get recent Claude sessions:', error)
       return []
@@ -507,12 +503,12 @@ export class ClaudeCodeMCPService {
       }
 
       const result = await claudeCodeFileReaderService.getSessionsPaginated(claudeProjectPath, { offset, limit })
-      
+
       // Convert file-based sessions to database-compatible sessions
-      const dbSessions = result.sessions.map(fileSession => 
+      const dbSessions = result.sessions.map((fileSession) =>
         TypeConverter.fileSessionToDbSession(fileSession, projectId)
       )
-      
+
       return {
         sessions: dbSessions,
         total: result.total,
@@ -546,11 +542,9 @@ export class ClaudeCodeMCPService {
       }
 
       const fileMetadata = await claudeCodeFileReaderService.getSessionsMetadata(claudeProjectPath)
-      
+
       // Convert file-based metadata to database-compatible metadata
-      return fileMetadata.map(fileMeta => 
-        TypeConverter.fileSessionMetadataToDbSessionMetadata(fileMeta)
-      )
+      return fileMetadata.map((fileMeta) => TypeConverter.fileSessionMetadataToDbSessionMetadata(fileMeta))
     } catch (error) {
       logger.error('Failed to get Claude sessions metadata:', error)
       return []
@@ -590,19 +584,19 @@ export class ClaudeCodeMCPService {
 
       // Create a file-based session first
       const fileSession: FileClaudeSession = {
-        sessionId, 
-        projectPath: claudeProjectPath, 
+        sessionId,
+        projectPath: claudeProjectPath,
         startTime: firstMessage.timestamp,
-        lastUpdate: lastMessage.timestamp, 
-        messageCount: messages.length, 
+        lastUpdate: lastMessage.timestamp,
+        messageCount: messages.length,
         gitBranch: gitBranch || undefined,
         cwd: cwd || undefined,
-        tokenUsage: undefined, 
-        serviceTiers: undefined, 
-        totalTokensUsed: undefined, 
+        tokenUsage: undefined,
+        serviceTiers: undefined,
+        totalTokensUsed: undefined,
         totalCostUsd: undefined
       }
-      
+
       // Convert to database-compatible session
       return TypeConverter.fileSessionToDbSession(fileSession, projectId)
     } catch (error) {
@@ -626,11 +620,9 @@ export class ClaudeCodeMCPService {
 
       // Get file-based messages from Claude Code
       const fileMessages = await claudeCodeFileReaderService.getSessionMessages(claudeProjectPath, sessionId)
-      
+
       // Convert file messages to database-compatible format
-      return fileMessages.map(fileMessage => 
-        TypeConverter.fileMessageToDbMessage(fileMessage, projectId)
-      )
+      return fileMessages.map((fileMessage) => TypeConverter.fileMessageToDbMessage(fileMessage, projectId))
     } catch (error) {
       logger.error('Failed to get session messages:', error)
       return []
@@ -663,22 +655,24 @@ export class ClaudeCodeMCPService {
     let cleanup: (() => void) | null = null
 
     // Async initialization
-    getProjectById(projectId).then(project => {
-      claudeCodeFileReaderService.findProjectByPath(project.path).then(claudeProjectPath => {
-        if (claudeProjectPath) {
-          // Wrap the callback to convert file messages to database format
-          cleanup = claudeCodeFileReaderService.watchChatHistory(claudeProjectPath, (fileMessages) => {
-            // Convert file messages to database-compatible format
-            const dbMessages = fileMessages.map(fileMessage => 
-              TypeConverter.fileMessageToDbMessage(fileMessage, projectId)
-            )
-            onUpdate(dbMessages)
-          })
-        }
+    getProjectById(projectId)
+      .then((project) => {
+        claudeCodeFileReaderService.findProjectByPath(project.path).then((claudeProjectPath) => {
+          if (claudeProjectPath) {
+            // Wrap the callback to convert file messages to database format
+            cleanup = claudeCodeFileReaderService.watchChatHistory(claudeProjectPath, (fileMessages) => {
+              // Convert file messages to database-compatible format
+              const dbMessages = fileMessages.map((fileMessage) =>
+                TypeConverter.fileMessageToDbMessage(fileMessage, projectId)
+              )
+              onUpdate(dbMessages)
+            })
+          }
+        })
       })
-    }).catch(error => {
-      logger.error('Failed to set up chat watcher:', error)
-    })
+      .catch((error) => {
+        logger.error('Failed to set up chat watcher:', error)
+      })
 
     // Return cleanup function
     return () => {

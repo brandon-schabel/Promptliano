@@ -1,13 +1,18 @@
 /**
  * Route Factory - Auto-generate OpenAPI routes from Drizzle schemas
  * Part of Phase 3B: Route Code Generation System
- * 
+ *
  * Reduces route boilerplate by 40% through schema-driven generation
  * Provides consistent patterns, type safety, and auto-generated documentation
  */
 
 import { createRoute, z } from '@hono/zod-openapi'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import type { OpenAPIHono } from '@hono/zod-openapi'
 // Context type no longer needed - inferred from Hono OpenAPI
@@ -119,10 +124,12 @@ export function createPaginationSchema() {
  * Create search query schema
  */
 export function createSearchSchema() {
-  return z.object({
-    search: z.string().optional(),
-    filter: z.string().optional()
-  }).merge(createPaginationSchema())
+  return z
+    .object({
+      search: z.string().optional(),
+      filter: z.string().optional()
+    })
+    .merge(createPaginationSchema())
 }
 
 /**
@@ -134,16 +141,21 @@ export function createBulkSchemas<TCreate, TUpdate>(
   idSchema?: z.ZodSchema<any>
 ) {
   const idType = idSchema || z.number().int().positive()
-  
+
   return {
     bulkCreate: z.object({
       items: z.array(createSchema).min(1).max(100)
     }),
     bulkUpdate: z.object({
-      items: z.array(z.object({
-        id: idType,
-        data: updateSchema
-      })).min(1).max(100)
+      items: z
+        .array(
+          z.object({
+            id: idType,
+            data: updateSchema
+          })
+        )
+        .min(1)
+        .max(100)
     }),
     bulkDelete: z.object({
       ids: z.array(idType).min(1).max(100)
@@ -164,7 +176,7 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
   const { name, plural, schemas, options = {} } = config
   const idParamsSchema = createIdParamsSchema(schemas.id)
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1)
-  
+
   // Standard CRUD routes
   const routes: RouteDefinitions = {
     create: createRoute({
@@ -202,12 +214,14 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
         z.object({
           success: z.literal(true),
           data: z.array(schemas.entity),
-          pagination: z.object({
-            page: z.number(),
-            limit: z.number(),
-            total: z.number(),
-            hasMore: z.boolean()
-          }).optional()
+          pagination: z
+            .object({
+              page: z.number(),
+              limit: z.number(),
+              total: z.number(),
+              hasMore: z.boolean()
+            })
+            .optional()
         })
       )
     }),
@@ -268,28 +282,28 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
   if (config.customRoutes) {
     for (const customRoute of config.customRoutes) {
       const routeKey = `${customRoute.method}_${customRoute.path.replace(/[^a-zA-Z0-9]/g, '_')}`
-      
+
       // Build request configuration matching Hono's expected format
       const requestConfig: Record<string, any> = {}
-      
+
       if (customRoute.request?.body) {
         requestConfig.body = {
-          content: { 
-            'application/json': { 
-              schema: customRoute.request.body 
-            } 
+          content: {
+            'application/json': {
+              schema: customRoute.request.body
+            }
           }
         }
       }
-      
+
       if (customRoute.request?.params) {
         requestConfig.params = customRoute.request.params
       }
-      
+
       if (customRoute.request?.query) {
         requestConfig.query = customRoute.request.query
       }
-      
+
       routes.custom[routeKey] = createRoute({
         method: customRoute.method,
         path: `/api/${plural}${customRoute.path}`,
@@ -298,10 +312,11 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
         description: customRoute.description,
         request: Object.keys(requestConfig).length > 0 ? requestConfig : undefined,
         responses: createStandardResponses(
-          customRoute.response || z.object({
-            success: z.literal(true),
-            data: z.any()
-          })
+          customRoute.response ||
+            z.object({
+              success: z.literal(true),
+              data: z.any()
+            })
         )
       })
     }
@@ -327,12 +342,12 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   // CREATE handler
   app.openapi(routes.create, async (c) => {
     const body = c.req.valid('json' as never) as TCreate
-    
+
     // Custom validation if provided
     if (options.validation?.create) {
       await options.validation.create(body)
     }
-    
+
     try {
       const entity = await service.create(body)
       return c.json(successResponse(entity), 201)
@@ -345,23 +360,23 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   // LIST handler
   app.openapi(routes.list, async (c) => {
     const query = c.req.valid('query' as never) as any
-    
+
     try {
       // For now, use simple list - pagination can be added later
       const entities = await service.list()
-      
+
       // If pagination requested, we'd implement it here
       const result: any = {
         success: true,
         data: entities
       }
-      
+
       if (query.page || query.limit) {
         const page = query.page || 1
         const limit = query.limit || 20
         const start = (page - 1) * limit
         const end = start + limit
-        
+
         result.data = entities.slice(start, end)
         result.pagination = {
           page,
@@ -370,7 +385,7 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
           hasMore: end < entities.length
         }
       }
-      
+
       return c.json(result, 200)
     } catch (error) {
       // Error is handled by ErrorFactory in service layer
@@ -381,7 +396,7 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   // GET by ID handler
   app.openapi(routes.get, async (c) => {
     const { id } = c.req.valid('param' as never) as { id: number | string }
-    
+
     try {
       const entity = await service.getById(id)
       return c.json(successResponse(entity), 200)
@@ -395,12 +410,12 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   app.openapi(routes.update, async (c) => {
     const { id } = c.req.valid('param' as never) as { id: number | string }
     const body = c.req.valid('json' as never) as TUpdate
-    
+
     // Custom validation if provided
     if (options.validation?.update) {
       await options.validation.update(id, body)
     }
-    
+
     try {
       const entity = await service.update(id, body)
       return c.json(successResponse(entity), 200)
@@ -414,21 +429,21 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   if (routes.delete && (service.delete || service.deleteCascade)) {
     app.openapi(routes.delete, async (c) => {
       const { id } = c.req.valid('param' as never) as { id: number | string }
-      
+
       // Custom validation if provided
       if (options.validation?.delete) {
         await options.validation.delete(id)
       }
-      
+
       try {
         // Prefer cascade delete if available
         const deleteMethod = service.deleteCascade || service.delete!
         const success = await deleteMethod(id)
-        
+
         if (!success) {
           throw new Error(`${name} not found`)
         }
-        
+
         return c.json(operationSuccessResponse(`${name} deleted successfully`), 200)
       } catch (error) {
         // Error is handled by ErrorFactory in service layer
@@ -439,16 +454,16 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
 
   // Custom route handlers
   for (const [routeKey, route] of Object.entries(routes.custom)) {
-    const customRoute = config.customRoutes?.find(cr => 
-      routeKey.includes(cr.method) && routeKey.includes(cr.path.replace(/[^a-zA-Z0-9]/g, '_'))
+    const customRoute = config.customRoutes?.find(
+      (cr) => routeKey.includes(cr.method) && routeKey.includes(cr.path.replace(/[^a-zA-Z0-9]/g, '_'))
     )
-    
+
     if (customRoute && (service as any)[customRoute.handlerName]) {
       app.openapi(route, async (c) => {
         const params = c.req.valid('param' as never)
         const query = c.req.valid('query' as never)
         const body = customRoute.request?.body ? c.req.valid('json' as never) : undefined
-        
+
         try {
           const result = await (service as any)[customRoute.handlerName](params, query, body)
           return c.json(successResponse(result), 200)
@@ -476,7 +491,7 @@ export function createAndRegisterEntityRoutes<TEntity, TCreate, TUpdate>(
 ): { app: OpenAPIHono; routes: RouteDefinitions } {
   const routes = createEntityRoutes(config)
   const updatedApp = registerEntityRoutes(app, config, routes)
-  
+
   return { app: updatedApp, routes }
 }
 
@@ -484,9 +499,4 @@ export function createAndRegisterEntityRoutes<TEntity, TCreate, TUpdate>(
 // EXPORT UTILITIES
 // =============================================================================
 
-export {
-  createStandardResponses,
-  createStandardResponsesWithStatus,
-  successResponse,
-  operationSuccessResponse
-}
+export { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse }

@@ -1,7 +1,7 @@
 /**
  * Drizzle Schema Extractor - Extract entity information from Drizzle schema file
  * Part of Phase 3B: Route Code Generation System
- * 
+ *
  * Automatically extracts entity definitions from the Drizzle schema to generate
  * route configurations without manual configuration
  */
@@ -52,7 +52,7 @@ export interface DrizzleRelationship {
 
 export class DrizzleSchemaExtractor {
   private schemaPath: string
-  
+
   constructor(schemaPath: string) {
     this.schemaPath = schemaPath
   }
@@ -69,24 +69,25 @@ export class DrizzleSchemaExtractor {
     const entities: DrizzleEntity[] = []
 
     // Extract table definitions
-    const tableRegex = /export\s+const\s+(\w+)\s*=\s*sqliteTable\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*\{([^}]+)\}(?:\s*,\s*\([^)]+\)\s*=>\s*\(\{([^}]+)\}\))?/gs
+    const tableRegex =
+      /export\s+const\s+(\w+)\s*=\s*sqliteTable\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*\{([^}]+)\}(?:\s*,\s*\([^)]+\)\s*=>\s*\(\{([^}]+)\}\))?/gs
 
     let match
     while ((match = tableRegex.exec(content)) !== null) {
       const [, exportName, tableName, fieldsContent, indexesContent] = match
-      
+
       const fields = this.parseFields(fieldsContent)
       const indexes = indexesContent ? this.parseIndexes(indexesContent) : []
       const relationships = this.parseRelationships(content, exportName)
-      
+
       entities.push({
         tableName,
         exportName,
         entityName: this.tableNameToEntityName(tableName),
         fields,
         indexes,
-        hasStatus: fields.some(f => f.name === 'status'),
-        hasTimestamps: fields.some(f => f.name === 'createdAt' || f.name === 'created_at'),
+        hasStatus: fields.some((f) => f.name === 'status'),
+        hasTimestamps: fields.some((f) => f.name === 'createdAt' || f.name === 'created_at'),
         relationships
       })
     }
@@ -98,7 +99,7 @@ export class DrizzleSchemaExtractor {
    * Convert Drizzle entities to route generator entity definitions
    */
   entitiesToDefinitions(entities: DrizzleEntity[]): EntityDefinition[] {
-    return entities.map(entity => {
+    return entities.map((entity) => {
       const definition: EntityDefinition = {
         name: entity.entityName,
         plural: this.pluralize(entity.entityName.toLowerCase()),
@@ -124,19 +125,19 @@ export class DrizzleSchemaExtractor {
    */
   private parseFields(fieldsContent: string): DrizzleField[] {
     const fields: DrizzleField[] = []
-    
+
     // Clean up the content and split by lines
     const lines = fieldsContent
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('//'))
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('//'))
 
     for (const line of lines) {
       const fieldMatch = line.match(/(\w+):\s*(\w+)\([^)]*\)([^,]*),?/)
       if (!fieldMatch) continue
 
       const [, name, type, modifiers] = fieldMatch
-      
+
       const field: DrizzleField = {
         name,
         type: type as DrizzleField['type'],
@@ -145,7 +146,9 @@ export class DrizzleSchemaExtractor {
       }
 
       // Parse references
-      const refMatch = modifiers.match(/\.references\(\(\)\s*=>\s*(\w+)\.(\w+)(?:,\s*\{[^}]*onDelete:\s*['"`]([^'"`]+)['"`][^}]*\})?/)
+      const refMatch = modifiers.match(
+        /\.references\(\(\)\s*=>\s*(\w+)\.(\w+)(?:,\s*\{[^}]*onDelete:\s*['"`]([^'"`]+)['"`][^}]*\})?/
+      )
       if (refMatch) {
         const [, refTable, refColumn, onDelete] = refMatch
         field.references = {
@@ -158,9 +161,7 @@ export class DrizzleSchemaExtractor {
       // Parse enum values
       const enumMatch = modifiers.match(/\{\s*enum:\s*\[([^\]]+)\]\s*\}/)
       if (enumMatch) {
-        field.enum = enumMatch[1]
-          .split(',')
-          .map(v => v.trim().replace(/['"]/g, ''))
+        field.enum = enumMatch[1].split(',').map((v) => v.trim().replace(/['"]/g, ''))
       }
 
       // Parse default values
@@ -181,7 +182,7 @@ export class DrizzleSchemaExtractor {
   private parseIndexes(indexContent: string): string[] {
     const indexes: string[] = []
     const indexRegex = /(\w+):\s*index\([^)]+\)/g
-    
+
     let match
     while ((match = indexRegex.exec(indexContent)) !== null) {
       indexes.push(match[1])
@@ -195,7 +196,7 @@ export class DrizzleSchemaExtractor {
    */
   private parseRelationships(content: string, tableName: string): DrizzleRelationship[] {
     const relationships: DrizzleRelationship[] = []
-    
+
     // Find relations for this table
     const relationsRegex = new RegExp(
       `export\\s+const\\s+${tableName}Relations\\s*=\\s*relations\\s*\\(\\s*${tableName}\\s*,\\s*\\([^)]+\\)\\s*=>\\s*\\(\\{([^}]+)\\}\\)\\)`,
@@ -211,7 +212,7 @@ export class DrizzleSchemaExtractor {
     let relationMatch
     while ((relationMatch = relationRegex.exec(relationsContent)) !== null) {
       const [, name, type, target] = relationMatch
-      
+
       const targetMatch = target.match(/(\w+)/)
       if (targetMatch) {
         relationships.push({
@@ -232,7 +233,7 @@ export class DrizzleSchemaExtractor {
     // Convert snake_case to PascalCase and make singular
     let entityName = tableName
       .split('_')
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('')
 
     // Handle common plural forms
@@ -265,9 +266,7 @@ export class DrizzleSchemaExtractor {
    */
   private shouldEnableSearch(entity: DrizzleEntity): boolean {
     const searchableFields = ['name', 'title', 'description', 'content', 'summary', 'overview']
-    return entity.fields.some(field => 
-      field.type === 'text' && searchableFields.includes(field.name)
-    )
+    return entity.fields.some((field) => field.type === 'text' && searchableFields.includes(field.name))
   }
 
   /**
@@ -275,9 +274,8 @@ export class DrizzleSchemaExtractor {
    */
   private shouldEnableBatch(entity: DrizzleEntity): boolean {
     const batchEntities = ['file', 'task', 'ticket', 'message', 'prompt']
-    return batchEntities.some(name => 
-      entity.entityName.toLowerCase().includes(name) || 
-      entity.tableName.includes(name)
+    return batchEntities.some(
+      (name) => entity.entityName.toLowerCase().includes(name) || entity.tableName.includes(name)
     )
   }
 
@@ -288,7 +286,7 @@ export class DrizzleSchemaExtractor {
     const customRoutes = []
 
     // Add status transition routes if entity has status field
-    const statusField = entity.fields.find(f => f.name === 'status' && f.enum)
+    const statusField = entity.fields.find((f) => f.name === 'status' && f.enum)
     if (statusField?.enum) {
       for (const status of statusField.enum) {
         if (status !== 'open' && status !== 'pending') {
@@ -351,45 +349,39 @@ export class DrizzleSchemaExtractor {
         break
 
       case 'ticket':
-        customRoutes.push(
-          {
-            method: 'post',
-            path: '/{id}/tasks/generate',
-            summary: 'Generate tasks',
-            description: 'Auto-generate tasks for this ticket',
-            handlerName: 'generateTasks',
-            responseSchema: 'TaskListResponseSchema'
-          }
-        )
+        customRoutes.push({
+          method: 'post',
+          path: '/{id}/tasks/generate',
+          summary: 'Generate tasks',
+          description: 'Auto-generate tasks for this ticket',
+          handlerName: 'generateTasks',
+          responseSchema: 'TaskListResponseSchema'
+        })
         break
 
       case 'chat':
-        customRoutes.push(
-          {
-            method: 'post',
-            path: '/{id}/messages',
-            summary: 'Add message',
-            description: 'Send a new message to the chat',
-            handlerName: 'addMessage',
-            requestSchema: {
-              body: 'ChatMessageCreateSchema'
-            },
-            responseSchema: 'ChatMessageResponseSchema'
-          }
-        )
+        customRoutes.push({
+          method: 'post',
+          path: '/{id}/messages',
+          summary: 'Add message',
+          description: 'Send a new message to the chat',
+          handlerName: 'addMessage',
+          requestSchema: {
+            body: 'ChatMessageCreateSchema'
+          },
+          responseSchema: 'ChatMessageResponseSchema'
+        })
         break
 
       case 'queue':
-        customRoutes.push(
-          {
-            method: 'post',
-            path: '/{id}/process',
-            summary: 'Process queue',
-            description: 'Start processing items in the queue',
-            handlerName: 'process',
-            responseSchema: 'OperationSuccessResponseSchema'
-          }
-        )
+        customRoutes.push({
+          method: 'post',
+          path: '/{id}/process',
+          summary: 'Process queue',
+          description: 'Start processing items in the queue',
+          handlerName: 'process',
+          responseSchema: 'OperationSuccessResponseSchema'
+        })
         break
     }
 
@@ -421,12 +413,9 @@ export function drizzleSchemaToRouteConfig(schemaPath: string): EntityDefinition
 /**
  * Generate configuration file from Drizzle schema
  */
-export function generateConfigFromDrizzleSchema(
-  schemaPath: string,
-  outputDir: string = './src/routes/generated'
-) {
+export function generateConfigFromDrizzleSchema(schemaPath: string, outputDir: string = './src/routes/generated') {
   const entities = drizzleSchemaToRouteConfig(schemaPath)
-  
+
   return {
     outputDir,
     imports: {
@@ -440,11 +429,7 @@ export function generateConfigFromDrizzleSchema(
       generateDocs: true,
       formatCode: true,
       watch: {
-        watchPaths: [
-          'packages/database/src/**/*.ts',
-          'packages/services/src/**/*.ts',
-          'packages/schemas/src/**/*.ts'
-        ],
+        watchPaths: ['packages/database/src/**/*.ts', 'packages/services/src/**/*.ts', 'packages/schemas/src/**/*.ts'],
         debounceMs: 1000
       }
     }

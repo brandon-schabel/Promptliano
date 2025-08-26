@@ -28,7 +28,7 @@ test.describe('File Management System', () => {
   test.afterEach(async () => {
     // Clean up any test data created during the test
     await dataManager.cleanup()
-    
+
     // Clean up test files
     const testFiles = FilesPage.createTestFiles()
     for (const file of testFiles) {
@@ -44,7 +44,7 @@ test.describe('File Management System', () => {
       await expect(page.getByTestId('file-explorer')).toBeVisible()
       await expect(page.getByTestId('file-list')).toBeVisible()
       await expect(page.getByTestId('selected-files-panel')).toBeVisible()
-      
+
       // Verify file management controls
       await expect(page.getByRole('button', { name: 'Upload Files' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Select All' })).toBeVisible()
@@ -54,7 +54,7 @@ test.describe('File Management System', () => {
     test('should navigate to files section from project context', async ({ page }) => {
       // First create a project context
       await projectsPage.goto()
-      
+
       const projectData = TestDataFactory.createProject({
         name: 'File Management Test Project'
       })
@@ -70,7 +70,7 @@ test.describe('File Management System', () => {
 
     test('should display file list with proper structure', async ({ page }) => {
       // Mock some files for testing
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -122,7 +122,7 @@ test.describe('File Management System', () => {
   test.describe('File Selection', () => {
     test('should select single file', async ({ page }) => {
       // Mock file data
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -156,7 +156,7 @@ test.describe('File Management System', () => {
 
     test('should select multiple files with Ctrl+Click', async ({ page }) => {
       // Mock multiple files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -207,7 +207,7 @@ test.describe('File Management System', () => {
 
     test('should select all files with Select All button', async ({ page }) => {
       // Mock multiple files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -236,7 +236,7 @@ test.describe('File Management System', () => {
 
     test('should remove individual files from selection', async ({ page }) => {
       // Mock files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -281,7 +281,7 @@ test.describe('File Management System', () => {
 
     test('should clear all selected files', async ({ page }) => {
       // Mock files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -293,7 +293,7 @@ test.describe('File Management System', () => {
                 type: 'file'
               },
               {
-                name: 'file2.txt', 
+                name: 'file2.txt',
                 path: '/project/file2.txt',
                 type: 'file'
               }
@@ -321,7 +321,7 @@ test.describe('File Management System', () => {
     test('should upload files using upload button', async ({ page, context }) => {
       // Create test files
       const testFiles = FilesPage.createTestFiles()
-      
+
       // Write test files to filesystem
       for (const file of testFiles) {
         const dir = path.dirname(file.path)
@@ -332,13 +332,13 @@ test.describe('File Management System', () => {
       }
 
       // Mock successful upload response
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            files: testFiles.map(f => ({
+            files: testFiles.map((f) => ({
               name: path.basename(f.path),
               size: f.size
             }))
@@ -355,7 +355,7 @@ test.describe('File Management System', () => {
 
     test('should upload files using drag and drop', async ({ page }) => {
       // Mock upload response
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -370,10 +370,7 @@ test.describe('File Management System', () => {
       )
 
       // Test drag and drop
-      await filesPage.dragAndDropFiles([
-        '/tmp/drag-test.txt',
-        '/tmp/drop-test.jpg'
-      ])
+      await filesPage.dragAndDropFiles(['/tmp/drag-test.txt', '/tmp/drop-test.jpg'])
 
       // Verify upload success
       await expect(page.getByText('2 file(s) uploaded successfully')).toBeVisible()
@@ -381,7 +378,7 @@ test.describe('File Management System', () => {
 
     test('should show upload progress', async ({ page }) => {
       // Mock slow upload to test progress
-      await page.route('**/api/files/upload', route => {
+      await page.route('**/api/files/upload', (route) => {
         setTimeout(() => {
           route.fulfill({
             status: 200,
@@ -396,7 +393,7 @@ test.describe('File Management System', () => {
 
       const testFiles = FilesPage.createTestFiles()
       const testFile = testFiles[0]
-      
+
       // Write test file
       const dir = path.dirname(testFile.path)
       if (!fs.existsSync(dir)) {
@@ -420,7 +417,7 @@ test.describe('File Management System', () => {
 
     test('should handle file upload validation errors', async ({ page }) => {
       // Mock validation error
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -434,10 +431,7 @@ test.describe('File Management System', () => {
       const largeFile = '/tmp/large-file.txt'
       fs.writeFileSync(largeFile, 'A'.repeat(1024 * 1024 * 6)) // 6MB file
 
-      await filesPage.testFileUploadValidation(
-        largeFile, 
-        'File size exceeds maximum allowed size of 5MB'
-      )
+      await filesPage.testFileUploadValidation(largeFile, 'File size exceeds maximum allowed size of 5MB')
 
       // Cleanup
       fs.unlinkSync(largeFile)
@@ -445,7 +439,7 @@ test.describe('File Management System', () => {
 
     test('should validate file types during upload', async ({ page }) => {
       // Mock file type validation error
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -459,10 +453,7 @@ test.describe('File Management System', () => {
       const executableFile = '/tmp/test.exe'
       fs.writeFileSync(executableFile, 'Fake executable content')
 
-      await filesPage.testFileUploadValidation(
-        executableFile,
-        'File type not allowed'
-      )
+      await filesPage.testFileUploadValidation(executableFile, 'File type not allowed')
 
       // Cleanup
       fs.unlinkSync(executableFile)
@@ -472,7 +463,7 @@ test.describe('File Management System', () => {
   test.describe('File Management Features', () => {
     test('should preview files', async ({ page }) => {
       // Mock files with previewable content
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -491,7 +482,7 @@ test.describe('File Management System', () => {
       )
 
       // Mock file content for preview
-      await page.route('**/api/files/content/**', route =>
+      await page.route('**/api/files/content/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'text/plain',
@@ -516,7 +507,7 @@ test.describe('File Management System', () => {
 
     test('should search for files', async ({ page }) => {
       // Mock search results
-      await page.route('**/api/files/search**', route =>
+      await page.route('**/api/files/search**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -543,7 +534,7 @@ test.describe('File Management System', () => {
 
     test('should sort files by different criteria', async ({ page }) => {
       // Mock files with different attributes
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -580,7 +571,7 @@ test.describe('File Management System', () => {
 
       // Test sorting by name
       await filesPage.sortFilesBy('name')
-      
+
       // Verify files are sorted alphabetically
       const visibleFiles = await filesPage.getVisibleFiles()
       expect(visibleFiles[0].name).toBe('aaa-first.txt')
@@ -588,14 +579,14 @@ test.describe('File Management System', () => {
 
       // Test sorting by size
       await filesPage.sortFilesBy('size')
-      
+
       // Note: Actual verification would depend on implementation
       // Here we just verify the sort option worked
     })
 
     test('should toggle between list and grid view', async ({ page }) => {
       // Mock files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -619,20 +610,19 @@ test.describe('File Management System', () => {
 
       // Verify view mode changed (specific verification depends on implementation)
       const fileList = page.getByTestId('file-list')
-      
+
       // Check if grid view is active (this would depend on your CSS classes)
-      const hasGridView = await fileList.evaluate(el => 
-        el.classList.contains('grid-view') || 
-        el.classList.contains('view-grid')
+      const hasGridView = await fileList.evaluate(
+        (el) => el.classList.contains('grid-view') || el.classList.contains('view-grid')
       )
-      
+
       // The exact verification depends on your implementation
       expect(typeof hasGridView).toBe('boolean')
     })
 
     test('should filter files by type', async ({ page }) => {
       // Mock files with different types
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -669,7 +659,7 @@ test.describe('File Management System', () => {
 
       // Verify only PDF files are shown
       await expect(page.getByTestId('file-item-document.pdf')).toBeVisible()
-      
+
       // Other files should be hidden (depending on implementation)
       // This verification depends on how filtering is implemented
     })
@@ -682,22 +672,20 @@ test.describe('File Management System', () => {
 
     test('should handle drag and drop from external sources', async ({ page }) => {
       // Mock successful file drop
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             success: true,
-            files: [
-              { name: 'dropped-file.txt', size: 256 }
-            ]
+            files: [{ name: 'dropped-file.txt', size: 256 }]
           })
         })
       )
 
       // Simulate external file drop
       const dragDropZone = page.getByTestId('drag-drop-zone')
-      
+
       // Simulate drag over
       await dragDropZone.dispatchEvent('dragover', {
         dataTransfer: {
@@ -728,7 +716,7 @@ test.describe('File Management System', () => {
 
     test('should handle multiple file drops', async ({ page }) => {
       // Mock successful multiple file drop
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -744,7 +732,7 @@ test.describe('File Management System', () => {
       )
 
       const dragDropZone = page.getByTestId('drag-drop-zone')
-      
+
       // Simulate dropping multiple files
       await dragDropZone.dispatchEvent('drop', {
         dataTransfer: {
@@ -764,7 +752,7 @@ test.describe('File Management System', () => {
   test.describe('Keyboard Navigation and Accessibility', () => {
     test('should support keyboard navigation', async ({ page }) => {
       // Mock files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -786,7 +774,7 @@ test.describe('File Management System', () => {
 
     test('should show context menu on right-click', async ({ page }) => {
       // Mock files
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -811,10 +799,10 @@ test.describe('File Management System', () => {
     test('should have proper ARIA labels', async ({ page }) => {
       // Verify accessibility attributes
       await expect(page.getByTestId('file-list')).toHaveAttribute('role', 'list')
-      
+
       const uploadButton = page.getByRole('button', { name: 'Upload Files' })
       await expect(uploadButton).toHaveAttribute('aria-label')
-      
+
       const selectAllButton = page.getByRole('button', { name: 'Select All' })
       await expect(selectAllButton).toHaveAttribute('aria-label')
     })
@@ -823,7 +811,7 @@ test.describe('File Management System', () => {
   test.describe('Error Handling', () => {
     test('should handle file upload errors gracefully', async ({ page }) => {
       // Mock upload error
-      await page.route('**/api/files/upload', route =>
+      await page.route('**/api/files/upload', (route) =>
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -834,7 +822,7 @@ test.describe('File Management System', () => {
       )
 
       const testFile = FilesPage.createTestFiles()[0]
-      
+
       // Write test file
       const dir = path.dirname(testFile.path)
       if (!fs.existsSync(dir)) {
@@ -854,7 +842,7 @@ test.describe('File Management System', () => {
 
     test('should handle network errors during file operations', async ({ page }) => {
       // Simulate network failure
-      await page.route('**/api/files/**', route => route.abort('failed'))
+      await page.route('**/api/files/**', (route) => route.abort('failed'))
 
       // Try to load files
       await page.reload()
@@ -888,7 +876,7 @@ test.describe('File Management System', () => {
         modified: '2024-01-15T10:00:00Z'
       }))
 
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -926,7 +914,7 @@ test.describe('File Management System', () => {
         type: 'file'
       }))
 
-      await page.route('**/api/files/**', route => 
+      await page.route('**/api/files/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -938,8 +926,8 @@ test.describe('File Management System', () => {
       await filesPage.waitForFilesInterfaceLoad()
 
       // Test batch operations
-      const fileNames = fileList.map(f => f.name)
-      
+      const fileNames = fileList.map((f) => f.name)
+
       await filesPage.testBatchOperations(fileNames.slice(0, 10), 'select')
       await filesPage.testBatchOperations(fileNames.slice(0, 10), 'remove')
 

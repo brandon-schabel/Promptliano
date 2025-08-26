@@ -6,7 +6,7 @@ import type { Interceptor } from '../types'
 
 /**
  * Performance benchmarks for the interceptor system
- * 
+ *
  * These tests measure the performance impact of the interceptor system
  * compared to native Hono middleware and ensure performance targets are met.
  */
@@ -31,29 +31,29 @@ class PerformanceBenchmark {
     iterations: number = 1000
   ): Promise<BenchmarkResult> {
     console.log(`\n[Benchmark] Running "${name}" with ${iterations} iterations...`)
-    
+
     // Setup
     const setupResult = await setup()
-    
+
     // Warmup
     for (let i = 0; i < 10; i++) {
       await operation(setupResult)
     }
-    
+
     // Actual benchmark
     this.results = []
     const startTime = Date.now()
-    
+
     for (let i = 0; i < iterations; i++) {
       const opStart = Date.now()
       await operation(setupResult)
       const opEnd = Date.now()
       this.results.push(opEnd - opStart)
     }
-    
+
     const endTime = Date.now()
     const totalTime = endTime - startTime
-    
+
     // Calculate statistics
     this.results.sort((a, b) => a - b)
     const averageTime = this.results.reduce((sum, time) => sum + time, 0) / iterations
@@ -61,7 +61,7 @@ class PerformanceBenchmark {
     const p95Time = this.results[Math.floor(iterations * 0.95)]
     const p99Time = this.results[Math.floor(iterations * 0.99)]
     const requestsPerSecond = (iterations / totalTime) * 1000
-    
+
     const result: BenchmarkResult = {
       name,
       averageTime,
@@ -71,14 +71,14 @@ class PerformanceBenchmark {
       totalRequests: iterations,
       requestsPerSecond
     }
-    
+
     console.log(`[Benchmark] ${name} Results:`)
     console.log(`  Average: ${averageTime.toFixed(2)}ms`)
     console.log(`  Median: ${medianTime.toFixed(2)}ms`)
     console.log(`  P95: ${p95Time.toFixed(2)}ms`)
     console.log(`  P99: ${p99Time.toFixed(2)}ms`)
     console.log(`  RPS: ${requestsPerSecond.toFixed(0)} req/s`)
-    
+
     return result
   }
 
@@ -90,7 +90,7 @@ class PerformanceBenchmark {
       enabled: true,
       handler: async (c, ctx, next) => {
         if (delay > 0) {
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
         // Simulate some work
         let sum = 0
@@ -136,19 +136,19 @@ describe('Interceptor Performance Benchmarks', () => {
         'Native Hono Middleware',
         async () => {
           const app = new OpenAPIHono()
-          
+
           // Add some typical middleware
           app.use('*', async (c, next) => {
             c.set('requestId', 'req-123')
             await next()
           })
-          
+
           app.use('*', async (c, next) => {
             const start = Date.now()
             await next()
             c.header('X-Response-Time', `${Date.now() - start}ms`)
           })
-          
+
           app.get('/test', (c) => c.json({ message: 'Hello World' }))
           return app
         },
@@ -192,7 +192,7 @@ describe('Interceptor Performance Benchmarks', () => {
         async () => {
           const system = new InterceptorSystem()
           system.register(benchmark.createMockInterceptor('test-interceptor'))
-          
+
           const app = new OpenAPIHono()
           system.applyTo(app)
           app.get('/test', (c) => c.json({ message: 'Hello World' }))
@@ -214,12 +214,12 @@ describe('Interceptor Performance Benchmarks', () => {
         'Interceptor System (5 Interceptors)',
         async () => {
           const system = new InterceptorSystem()
-          
+
           // Register 5 interceptors
           for (let i = 1; i <= 5; i++) {
             system.register(benchmark.createMockInterceptor(`interceptor-${i}`))
           }
-          
+
           const app = new OpenAPIHono()
           system.applyTo(app)
           app.get('/test', (c) => c.json({ message: 'Hello World' }))
@@ -267,11 +267,11 @@ describe('Interceptor Performance Benchmarks', () => {
           `${count} Interceptors`,
           async () => {
             const system = new InterceptorSystem()
-            
+
             for (let i = 1; i <= count; i++) {
               system.register(benchmark.createMockInterceptor(`interceptor-${i}`))
             }
-            
+
             const app = new OpenAPIHono()
             system.applyTo(app)
             app.get('/test', (c) => c.json({ message: 'Hello World' }))
@@ -284,7 +284,7 @@ describe('Interceptor Performance Benchmarks', () => {
           },
           100
         )
-        
+
         results.push(result)
       }
 
@@ -292,15 +292,17 @@ describe('Interceptor Performance Benchmarks', () => {
       for (let i = 1; i < results.length; i++) {
         const prev = results[i - 1]
         const curr = results[i]
-        
+
         // Each additional interceptor should add less than 10ms overhead
         const additionalOverhead = curr.averageTime - prev.averageTime
         expect(additionalOverhead).toBeLessThan(10)
       }
 
       console.log('\n[Scaling Analysis]')
-      results.forEach(result => {
-        console.log(`${result.name}: ${result.averageTime.toFixed(2)}ms avg, ${result.requestsPerSecond.toFixed(0)} RPS`)
+      results.forEach((result) => {
+        console.log(
+          `${result.name}: ${result.averageTime.toFixed(2)}ms avg, ${result.requestsPerSecond.toFixed(0)} RPS`
+        )
       })
     })
 
@@ -311,21 +313,21 @@ describe('Interceptor Performance Benchmarks', () => {
       }
 
       const baselineMemory = getMemoryUsage()
-      
+
       // Create system with many interceptors
       const system = new InterceptorSystem()
       for (let i = 1; i <= 20; i++) {
         system.register(benchmark.createMockInterceptor(`memory-test-${i}`))
       }
-      
+
       const withInterceptorsMemory = getMemoryUsage()
       const memoryIncrease = withInterceptorsMemory - baselineMemory
-      
+
       console.log(`\n[Memory Usage]`)
       console.log(`Baseline: ${baselineMemory.toFixed(2)} MB`)
       console.log(`With 20 interceptors: ${withInterceptorsMemory.toFixed(2)} MB`)
       console.log(`Increase: ${memoryIncrease.toFixed(2)} MB`)
-      
+
       // Should not use excessive memory
       expect(memoryIncrease).toBeLessThan(5) // Less than 5MB for 20 interceptors
     })
@@ -337,7 +339,7 @@ describe('Interceptor Performance Benchmarks', () => {
         'Error Handling',
         async () => {
           const app = createHonoAppWithInterceptors()
-          
+
           // Add error interceptor to the global system
           const { getGlobalInterceptorSystem } = require('../index')
           const system = getGlobalInterceptorSystem()
@@ -350,11 +352,11 @@ describe('Interceptor Performance Benchmarks', () => {
               return c.json({ error: 'Handled' }, 500)
             }
           })
-          
+
           app.get('/error', () => {
             throw new Error('Test error')
           })
-          
+
           return app
         },
         async (app) => {
@@ -375,7 +377,7 @@ describe('Interceptor Performance Benchmarks', () => {
         'Route Matching (Many Patterns)',
         async () => {
           const system = new InterceptorSystem()
-          
+
           // Add interceptors with different route patterns
           const patterns = [
             '/api/*',
@@ -386,7 +388,7 @@ describe('Interceptor Performance Benchmarks', () => {
             '/admin/*',
             '/public/*'
           ]
-          
+
           patterns.forEach((pattern, index) => {
             system.register({
               name: `route-interceptor-${index}`,
@@ -401,7 +403,7 @@ describe('Interceptor Performance Benchmarks', () => {
               }
             })
           })
-          
+
           const app = new OpenAPIHono()
           system.applyTo(app)
           app.get('/api/users/123', (c) => c.json({ id: 123 }))

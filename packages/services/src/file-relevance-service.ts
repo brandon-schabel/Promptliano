@@ -1,9 +1,4 @@
-import type { 
-  File as ProjectFile, 
-  Ticket, 
-  TicketTask,
-  RelevanceScore
-} from '@promptliano/database'
+import type { File as ProjectFile, Ticket, TicketTask, RelevanceScore } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { fileIndexingService } from './file-indexing-service'
 import { getProjectFiles } from './project-service'

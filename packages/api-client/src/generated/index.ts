@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED API CLIENT
  * Generated at: 2025-08-23T20:26:54.232Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
@@ -17,5 +17,5 @@ export * from './advanced-hooks'
 // React Query provider
 export * from './react-query-provider'
 
-// OpenAPI specification  
+// OpenAPI specification
 export { default as openApiSpec } from './openapi-spec.json'

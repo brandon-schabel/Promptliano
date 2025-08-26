@@ -25,7 +25,9 @@ export class QueuePage extends BasePage {
 
   // Queue actions
   get createQueueButton() {
-    return this.page.locator('[data-testid="create-queue"], button:has-text("New Queue"), button:has-text("Create Queue")')
+    return this.page.locator(
+      '[data-testid="create-queue"], button:has-text("New Queue"), button:has-text("Create Queue")'
+    )
   }
 
   get queueSelector() {
@@ -104,17 +106,13 @@ export class QueuePage extends BasePage {
   /**
    * Create a new queue
    */
-  async createQueue(queueData: {
-    name: string
-    description?: string
-    maxParallelItems?: number
-  }) {
+  async createQueue(queueData: { name: string; description?: string; maxParallelItems?: number }) {
     await this.createQueueButton.click()
     await expect(this.queueDialog).toBeVisible()
 
     // Fill queue details
     await this.queueNameInput.fill(queueData.name)
-    
+
     if (queueData.description) {
       await this.queueDescriptionInput.fill(queueData.description)
     }
@@ -125,11 +123,11 @@ export class QueuePage extends BasePage {
 
     // Submit the form
     await this.submitQueueButton.click()
-    
+
     // Wait for queue creation
     await this.waitForAPIResponse(/\/api\/queues/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify queue was created (should appear in selector)
     await expect(this.queueSelector.locator(`option:has-text("${queueData.name}")`)).toBeAttached()
   }
@@ -151,26 +149,28 @@ export class QueuePage extends BasePage {
     priority?: 'low' | 'normal' | 'high' | 'urgent'
   }) {
     await this.addItemButton.click()
-    
+
     // This would show a dialog to select tickets/tasks
     const itemDialog = this.page.locator('[data-testid="add-item-dialog"], [role="dialog"]')
     await expect(itemDialog).toBeVisible()
-    
+
     // Select item type
-    const typeSelector = this.page.locator(`[data-testid="item-type-${itemData.type}"], input[value="${itemData.type}"]`)
+    const typeSelector = this.page.locator(
+      `[data-testid="item-type-${itemData.type}"], input[value="${itemData.type}"]`
+    )
     await typeSelector.click()
-    
+
     // Select specific item
     const itemSelector = this.page.locator(`[data-testid="item-${itemData.id}"], [value="${itemData.id}"]`)
     await itemSelector.click()
-    
+
     if (itemData.priority) {
       const prioritySelect = this.page.locator('select[name="priority"]')
       await prioritySelect.selectOption(itemData.priority)
     }
-    
+
     await this.page.locator('button:has-text("Add to Queue")').click()
-    
+
     // Wait for item to be added
     await this.waitForAPIResponse(/\/api\/queues\/.*\/items/, 'POST')
     await this.waitForLoadingComplete()
@@ -181,11 +181,11 @@ export class QueuePage extends BasePage {
    */
   async processQueue() {
     await this.processQueueButton.click()
-    
+
     // Wait for processing to start
     await this.waitForAPIResponse(/\/api\/queues\/.*\/process/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify queue is processing
     await expect(this.queueStatus).toHaveText(/processing|running/i)
   }
@@ -195,10 +195,10 @@ export class QueuePage extends BasePage {
    */
   async pauseQueue() {
     await this.pauseQueueButton.click()
-    
+
     await this.waitForAPIResponse(/\/api\/queues\/.*\/pause/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify queue is paused
     await expect(this.queueStatus).toHaveText(/paused/i)
   }
@@ -208,13 +208,13 @@ export class QueuePage extends BasePage {
    */
   async clearQueue() {
     await this.clearQueueButton.click()
-    
+
     // Handle confirmation dialog
     await this.handleConfirmationDialog('accept')
-    
+
     await this.waitForAPIResponse(/\/api\/queues\/.*\/clear/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify queue is empty
     await expect(this.queueItems).toHaveCount(0)
   }
@@ -225,13 +225,13 @@ export class QueuePage extends BasePage {
   async moveQueueItem(itemTitle: string, toColumn: 'pending' | 'processing' | 'completed' | 'failed') {
     const item = this.getQueueItem(itemTitle)
     const targetColumn = this.getQueueColumn(toColumn)
-    
+
     await expect(item).toBeVisible()
     await expect(targetColumn).toBeVisible()
-    
+
     // Perform drag and drop
     await item.dragTo(targetColumn)
-    
+
     // Wait for the update
     await this.waitForAPIResponse(/\/api\/queues\/.*\/items/, 'PUT')
     await this.waitForLoadingComplete()
@@ -241,7 +241,9 @@ export class QueuePage extends BasePage {
    * Get queue item by title/content
    */
   getQueueItem(itemTitle: string) {
-    return this.page.locator(`[data-testid="queue-item"]:has-text("${itemTitle}"), .queue-item:has-text("${itemTitle}")`)
+    return this.page.locator(
+      `[data-testid="queue-item"]:has-text("${itemTitle}"), .queue-item:has-text("${itemTitle}")`
+    )
   }
 
   /**
@@ -267,7 +269,7 @@ export class QueuePage extends BasePage {
     const processing = await this.getTextContent('[data-testid="processing-count"]')
     const completed = await this.getTextContent('[data-testid="completed-count"]')
     const failed = await this.getTextContent('[data-testid="failed-count"]').catch(() => '0')
-    
+
     return {
       pending: parseInt(pending) || 0,
       processing: parseInt(processing) || 0,
@@ -282,7 +284,7 @@ export class QueuePage extends BasePage {
   async waitForQueueProcessingComplete(timeoutMs = 30000) {
     // Wait for all items to move out of processing
     await expect(this.getItemsInColumn('processing')).toHaveCount(0, { timeout: timeoutMs })
-    
+
     // Verify queue status is idle
     await expect(this.queueStatus).toHaveText(/idle|completed/i, { timeout: 5000 })
   }
@@ -309,7 +311,7 @@ export class QueuePage extends BasePage {
   async viewQueueItemDetails(itemTitle: string) {
     const item = this.getQueueItem(itemTitle)
     await item.click()
-    
+
     // Should open item detail dialog or navigate to detail view
     const detailView = this.page.locator('[data-testid="queue-item-detail"], [role="dialog"]')
     await expect(detailView).toBeVisible()
@@ -321,16 +323,16 @@ export class QueuePage extends BasePage {
   async removeQueueItem(itemTitle: string) {
     const item = this.getQueueItem(itemTitle)
     await item.hover()
-    
+
     const removeButton = item.locator('[data-testid="remove-item"], button[aria-label*="remove"]')
     await removeButton.click()
-    
+
     // Handle confirmation
     await this.handleConfirmationDialog('accept')
-    
+
     await this.waitForAPIResponse(/\/api\/queues\/.*\/items/, 'DELETE')
     await this.waitForLoadingComplete()
-    
+
     // Verify item was removed
     await expect(this.getQueueItem(itemTitle)).not.toBeVisible()
   }
@@ -340,14 +342,14 @@ export class QueuePage extends BasePage {
    */
   async getAvailableQueues(): Promise<string[]> {
     const options = await this.queueSelector.locator('option').allTextContents()
-    return options.filter(option => option.trim() && option !== 'Select Queue')
+    return options.filter((option) => option.trim() && option !== 'Select Queue')
   }
 
   /**
    * Check if queue has items
    */
   async hasQueueItems(): Promise<boolean> {
-    return await this.queueItems.count() > 0
+    return (await this.queueItems.count()) > 0
   }
 
   /**
@@ -373,7 +375,7 @@ export class QueuePage extends BasePage {
     const total = stats.pending + stats.processing + stats.completed + stats.failed
     const completed = stats.completed
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0
-    
+
     return { completed, total, percentage }
   }
 
@@ -382,18 +384,18 @@ export class QueuePage extends BasePage {
    */
   async monitorQueueUntilComplete(checkIntervalMs = 2000, maxWaitMs = 60000) {
     const startTime = Date.now()
-    
+
     while (Date.now() - startTime < maxWaitMs) {
       const isProcessing = await this.isQueueProcessing()
-      const hasProcessingItems = await this.getItemsInColumn('processing').count() > 0
-      
+      const hasProcessingItems = (await this.getItemsInColumn('processing').count()) > 0
+
       if (!isProcessing && !hasProcessingItems) {
         return await this.getQueueStats()
       }
-      
+
       await this.page.waitForTimeout(checkIntervalMs)
     }
-    
+
     throw new Error(`Queue processing did not complete within ${maxWaitMs}ms`)
   }
 }

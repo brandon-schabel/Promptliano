@@ -11,7 +11,10 @@ export class BasePage {
    * Navigate to a specific path
    */
   async goto(path: string = '/') {
-    await this.page.goto(path, { waitUntil: 'networkidle' })
+    await this.page.goto(path, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    })
     await this.waitForPageLoad()
   }
 
@@ -21,7 +24,7 @@ export class BasePage {
   async waitForPageLoad() {
     // Wait for React to hydrate
     await this.page.waitForFunction(() => document.readyState === 'complete')
-    
+
     // Wait for any loading spinners to disappear
     await this.page.waitForSelector('[data-testid="loading"]', { state: 'hidden', timeout: 5000 }).catch(() => {
       // Ignore if no loading spinner exists
@@ -42,7 +45,7 @@ export class BasePage {
    */
   async clickAndWaitForNavigation(selector: string, waitForURL?: string) {
     const [response] = await Promise.all([
-      waitForURL ? this.page.waitForURL(waitForURL) : this.page.waitForResponse(resp => resp.status() === 200),
+      waitForURL ? this.page.waitForURL(waitForURL) : this.page.waitForResponse((resp) => resp.status() === 200),
       this.page.click(selector)
     ])
     return response
@@ -61,9 +64,9 @@ export class BasePage {
    * Take a screenshot with a descriptive name
    */
   async takeScreenshot(name: string) {
-    await this.page.screenshot({ 
+    await this.page.screenshot({
       path: `e2e/screenshots/${name}-${Date.now()}.png`,
-      fullPage: true 
+      fullPage: true
     })
   }
 
@@ -71,10 +74,9 @@ export class BasePage {
    * Wait for API response
    */
   async waitForAPIResponse(urlPattern: string | RegExp, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') {
-    return await this.page.waitForResponse(response =>
-      response.url().match(urlPattern) !== null && 
-      response.request().method() === method &&
-      response.status() === 200
+    return await this.page.waitForResponse(
+      (response) =>
+        response.url().match(urlPattern) !== null && response.request().method() === method && response.status() === 200
     )
   }
 
@@ -115,7 +117,7 @@ export class BasePage {
   async handleConfirmationDialog(action: 'accept' | 'dismiss' = 'accept') {
     const dialog = this.page.locator('[role="dialog"], [data-testid="confirmation-dialog"]')
     await expect(dialog).toBeVisible()
-    
+
     if (action === 'accept') {
       await this.page.locator('button:has-text("Confirm"), button:has-text("Delete"), button:has-text("Yes")').click()
     } else {
@@ -135,13 +137,15 @@ export class BasePage {
    */
   async waitForLoadingComplete() {
     // Wait for any loading spinners
-    await this.page.waitForSelector('[data-testid="loading"], .loading, [aria-label*="loading"]', { 
-      state: 'hidden', 
-      timeout: 10000 
-    }).catch(() => {
-      // Ignore if no loading indicators exist
-    })
-    
+    await this.page
+      .waitForSelector('[data-testid="loading"], .loading, [aria-label*="loading"]', {
+        state: 'hidden',
+        timeout: 10000
+      })
+      .catch(() => {
+        // Ignore if no loading indicators exist
+      })
+
     // Wait for network to be idle
     await this.page.waitForLoadState('networkidle')
   }

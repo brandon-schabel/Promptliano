@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test'
-import { 
-  EntityErrors, 
+import {
+  EntityErrors,
   createEntityErrorFactory,
   ProjectErrors,
   TicketErrors,
@@ -15,9 +15,8 @@ import { ApiError } from './api-error'
 describe('EntityErrors', () => {
   describe('notFound', () => {
     test('throws 404 error with correct message and code', () => {
-      expect(() => EntityErrors.notFound('User', 123))
-        .toThrow(ApiError)
-      
+      expect(() => EntityErrors.notFound('User', 123)).toThrow(ApiError)
+
       try {
         EntityErrors.notFound('User', 123)
       } catch (error: any) {
@@ -186,7 +185,7 @@ describe('EntityErrors', () => {
   describe('Database Errors', () => {
     test('dbReadError throws 500', () => {
       const originalError = new Error('Connection failed')
-      
+
       try {
         EntityErrors.dbReadError('Project', originalError)
       } catch (error: any) {
@@ -268,7 +267,7 @@ describe('EntityErrors', () => {
 describe('createEntityErrorFactory', () => {
   test('creates entity-specific error factory', () => {
     const UserErrors = createEntityErrorFactory('User')
-    
+
     try {
       UserErrors.notFound(123)
     } catch (error: any) {
@@ -279,7 +278,7 @@ describe('createEntityErrorFactory', () => {
 
   test('factory methods maintain entity context', () => {
     const CustomErrors = createEntityErrorFactory('CustomEntity')
-    
+
     try {
       CustomErrors.validationFailed({ field: 'test' })
     } catch (error: any) {

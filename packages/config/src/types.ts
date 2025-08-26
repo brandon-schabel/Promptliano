@@ -95,17 +95,17 @@ export interface ServerConfig {
   basePath: string
   staticPath: string
   idleTimeout: number
-  
+
   // CORS configuration
   corsOrigin: string
   corsConfig: CorsConfig
-  
+
   // Environment-specific
   environment: 'development' | 'test' | 'production'
   isDevEnv: boolean
   isTestEnv: boolean
   isProdEnv: boolean
-  
+
   // Legacy compatibility (will be removed in future)
   serverHost: string
   serverPort: string | number
@@ -120,18 +120,18 @@ export interface DatabaseConfig {
   // Database file configuration
   path: string
   dataDir: string
-  
+
   // Backup configuration
   backupEnabled: boolean
   backupInterval: number // milliseconds
   maxBackups: number
-  
+
   // Performance settings
   walMode: boolean
   cacheSize: number // MB
   tempStore: 'memory' | 'file'
   mmapSize: number // bytes
-  
+
   // Platform-specific paths
   platformDefaults: {
     darwin: string // macOS
@@ -145,12 +145,12 @@ export interface RuntimeConfig {
   // Logging
   logLevel: 'error' | 'warn' | 'info' | 'debug' | 'trace'
   debugMode: boolean
-  
+
   // Performance
   maxRequestSize: string // e.g., '50mb'
   timeout: number // milliseconds
   compression: boolean
-  
+
   // Feature flags
   features: {
     mcp: boolean

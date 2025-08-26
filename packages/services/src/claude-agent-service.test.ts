@@ -3,10 +3,7 @@ import { rmSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
-import {
-  createClaudeAgentService,
-  type ClaudeAgentService
-} from './claude-agent-service'
+import { createClaudeAgentService, type ClaudeAgentService } from './claude-agent-service'
 
 // Test utilities
 const createTestProjectPath = (): string => {
@@ -29,7 +26,7 @@ describe('Claude Agent Service', () => {
   beforeEach(async () => {
     // Create test project directory
     testProjectPath = createTestProjectPath()
-    
+
     // Create mock logger
     mockLogger = {
       debug: () => {},
@@ -62,11 +59,11 @@ describe('Claude Agent Service', () => {
     })
 
     test('creates service with custom dependencies', () => {
-      const customLogger = { 
-        debug: () => {}, 
-        warn: () => {}, 
-        error: () => {}, 
-        info: () => {} 
+      const customLogger = {
+        debug: () => {},
+        warn: () => {},
+        error: () => {},
+        info: () => {}
       }
 
       const customService = createClaudeAgentService({
@@ -83,7 +80,7 @@ describe('Claude Agent Service', () => {
     test('service exposes all expected methods', () => {
       const expectedMethods = [
         'create',
-        'getById', 
+        'getById',
         'list',
         'update',
         'delete',
@@ -105,11 +102,11 @@ describe('Claude Agent Service', () => {
     test('service uses functional factory pattern instead of classes', () => {
       // The service is created via factory function (not class instantiation)
       expect(typeof createClaudeAgentService).toBe('function')
-      
+
       // Service returns object with methods (not class instance)
       const serviceObj = createClaudeAgentService()
       expect(serviceObj.constructor).toBe(Object)
-      
+
       // All methods are functions on the returned object
       expect(typeof serviceObj.create).toBe('function')
       expect(typeof serviceObj.getById).toBe('function')
@@ -138,7 +135,7 @@ describe('Claude Agent Service', () => {
   describe('File System Operations', () => {
     test('handles test project directory setup', () => {
       expect(existsSync(testProjectPath)).toBe(true)
-      
+
       const agentsDir = join(testProjectPath, 'claude-agents')
       mkdirSync(agentsDir, { recursive: true })
       expect(existsSync(agentsDir)).toBe(true)
@@ -161,7 +158,7 @@ describe('Claude Agent Service', () => {
       // The service should use ErrorFactory patterns for consistent error handling
       // This is verified by the service implementation using withErrorContext
       expect(service).toBeDefined()
-      
+
       // Service methods should handle errors gracefully
       expect(typeof service.create).toBe('function')
       expect(typeof service.getById).toBe('function')
@@ -179,7 +176,7 @@ describe('Claude Agent Service', () => {
       // The service imports types directly from the database package
       // This ensures type safety from database to service layer
       expect(service).toBeDefined()
-      
+
       // Service methods are properly typed
       expect(typeof service.create).toBe('function')
       expect(typeof service.getById).toBe('function')
@@ -194,13 +191,7 @@ describe('Claude Agent Service', () => {
 
   describe('Modern Service Patterns', () => {
     test('exports individual functions for tree-shaking', async () => {
-      const { 
-        createAgent,
-        getAgentById,
-        listAgents,
-        updateAgent,
-        deleteAgent
-      } = await import('./claude-agent-service')
+      const { createAgent, getAgentById, listAgents, updateAgent, deleteAgent } = await import('./claude-agent-service')
 
       expect(typeof createAgent).toBe('function')
       expect(typeof getAgentById).toBe('function')
@@ -213,21 +204,21 @@ describe('Claude Agent Service', () => {
       // Factory pattern for dependency injection
       const factoryService = createClaudeAgentService({ logger: mockLogger })
       expect(factoryService).toBeDefined()
-      
+
       // The service also exports a singleton for convenience
       expect(service).toBeDefined()
     })
 
     test('service follows consistent API patterns', () => {
       const methodNames = Object.keys(service)
-      
+
       // Modern CRUD operations
       expect(methodNames).toContain('create')
-      expect(methodNames).toContain('getById') 
+      expect(methodNames).toContain('getById')
       expect(methodNames).toContain('list')
       expect(methodNames).toContain('update')
       expect(methodNames).toContain('delete')
-      
+
       // Domain-specific operations
       expect(methodNames).toContain('getByProject')
       expect(methodNames).toContain('suggest')

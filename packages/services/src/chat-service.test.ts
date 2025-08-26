@@ -38,20 +38,20 @@ describe('Chat Service (Mocked Storage)', () => {
         mockMessages.set(chat.id, [])
         return Promise.resolve(chat)
       }),
-      
+
       getById: mock((id: number) => {
         const chat = mockChats.get(id)
         return Promise.resolve(chat || null)
       }),
-      
+
       getAll: mock(() => {
         return Promise.resolve(Array.from(mockChats.values()))
       }),
-      
+
       update: mock((id: number, data: any) => {
         const chat = mockChats.get(id)
         if (!chat) return Promise.resolve(null)
-        
+
         const updated = {
           ...chat,
           ...data,
@@ -60,18 +60,18 @@ describe('Chat Service (Mocked Storage)', () => {
         mockChats.set(id, updated)
         return Promise.resolve(updated)
       }),
-      
+
       delete: mock((id: number) => {
         const existed = mockChats.has(id)
         mockChats.delete(id)
         mockMessages.delete(id)
         return Promise.resolve(existed)
       }),
-      
+
       getMessages: mock((chatId: number) => {
         return Promise.resolve(mockMessages.get(chatId) || [])
       }),
-      
+
       addMessage: mock((data: any) => {
         const message: ChatMessage = {
           id: generateTestId(),
@@ -81,28 +81,28 @@ describe('Chat Service (Mocked Storage)', () => {
           metadata: data.metadata || null,
           createdAt: normalizeToUnixMs(Date.now())
         }
-        
+
         const messages = mockMessages.get(data.chatId) || []
         messages.push(message)
         mockMessages.set(data.chatId, messages)
-        
+
         // Update chat's updatedAt
         const chat = mockChats.get(data.chatId)
         if (chat) {
           chat.updatedAt = normalizeToUnixMs(Date.now())
           mockChats.set(data.chatId, chat)
         }
-        
+
         return Promise.resolve(message)
       }),
-      
+
       deleteMessage: mock((messageId: number) => {
         for (const [chatId, messages] of mockMessages.entries()) {
-          const index = messages.findIndex(m => m.id === messageId)
+          const index = messages.findIndex((m) => m.id === messageId)
           if (index !== -1) {
             messages.splice(index, 1)
             mockMessages.set(chatId, messages)
-            
+
             // Update chat's updatedAt
             const chat = mockChats.get(chatId)
             if (chat) {
@@ -114,11 +114,9 @@ describe('Chat Service (Mocked Storage)', () => {
         }
         return Promise.resolve(false)
       }),
-      
+
       getByProject: mock((projectId: number) => {
-        const chats = Array.from(mockChats.values()).filter(
-          chat => chat.projectId === projectId
-        )
+        const chats = Array.from(mockChats.values()).filter((chat) => chat.projectId === projectId)
         return Promise.resolve(chats)
       })
     }
@@ -132,7 +130,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('createChat should insert a new chat record', async () => {
     const title = `Chat_${randomString()}`
     const chat = await chatService.createChat(title)
-    
+
     expect(chat.id).toBeDefined()
     expect(typeof chat.id).toBe('number')
     expect(chat.title).toBe(title)
@@ -151,7 +149,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('createChat with copyExisting copies messages from another chat', async () => {
     const source = await chatService.createChat('SourceChat')
     const now = Date.now()
-    
+
     // Insert two messages
     await chatService.saveMessage({
       chatId: source.id,
@@ -178,7 +176,7 @@ describe('Chat Service (Mocked Storage)', () => {
     // Check that new chat has the same 2 messages (content-wise)
     const newMessages = await chatService.getChatMessages(newChat.id)
     expect(newMessages.length).toBe(2)
-    
+
     // Note: Message IDs will be different in the new chat. Order should be preserved.
     const originalMessages = await chatService.getChatMessages(source.id)
     expect(newMessages[0].content).toBe(originalMessages[0].content) // Hello
@@ -202,7 +200,7 @@ describe('Chat Service (Mocked Storage)', () => {
       createdAt: normalizeToUnixMs(Date.now()) // Ensure Unix ms timestamp
     }
     const msg = await chatService.saveMessage(msgData)
-    
+
     expect(msg.id).toBeDefined()
     expect(typeof msg.id).toBe('number')
     expect(msg.chatId).toBe(chat.id)
@@ -249,7 +247,7 @@ describe('Chat Service (Mocked Storage)', () => {
 
     const chats = await chatService.getAllChats()
     expect(chats.length).toBe(3)
-    
+
     // Verify chats are sorted by updated DESC
     // Since we updated chatA last, it should have the most recent updatedAt
     const sortedChats = chats.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -274,7 +272,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('deleteChat removes chat and its messages', async () => {
     const chat = await chatService.createChat('DeleteMe')
     const now = Date.now()
-    
+
     await chatService.saveMessage({
       chatId: chat.id,
       role: 'user' as const,
@@ -303,7 +301,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('deleteMessage removes only that message', async () => {
     const chat = await chatService.createChat('MsgDelete')
     const now = Date.now()
-    
+
     const m1 = await chatService.saveMessage({
       chatId: chat.id,
       role: 'user' as const,
@@ -329,7 +327,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('forkChat duplicates chat and messages except excluded IDs', async () => {
     const source = await chatService.createChat('SourceFork')
     const now = Date.now()
-    
+
     const msgA = await chatService.saveMessage({
       chatId: source.id,
       role: 'user' as const,
@@ -370,7 +368,7 @@ describe('Chat Service (Mocked Storage)', () => {
   test('forkChatFromMessage only copies messages up to a given message, excluding any if needed', async () => {
     const source = await chatService.createChat('ForkFromMsg')
     const now = Date.now()
-    
+
     const msg1 = await chatService.saveMessage({
       chatId: source.id,
       role: 'user' as const,

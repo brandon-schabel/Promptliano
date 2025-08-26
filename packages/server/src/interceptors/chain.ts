@@ -59,7 +59,7 @@ export class InterceptorChain {
     try {
       // Get applicable interceptors for this phase, route, and method
       const interceptors = this.getApplicableInterceptors(phase, route, method)
-      
+
       if (this.config.enableLogging) {
         console.log(`[InterceptorChain] Executing ${interceptors.length} interceptors for phase '${phase}'`)
       }
@@ -94,7 +94,7 @@ export class InterceptorChain {
       return result
     } catch (error) {
       const totalTime = Date.now() - startTime
-      
+
       const result: InterceptorChainResult = {
         success: false,
         error: error as Error,
@@ -118,23 +118,19 @@ export class InterceptorChain {
   /**
    * Get interceptors that apply to the current request
    */
-  private getApplicableInterceptors(
-    phase: InterceptorPhase,
-    route?: string,
-    method?: string
-  ): Interceptor[] {
+  private getApplicableInterceptors(phase: InterceptorPhase, route?: string, method?: string): Interceptor[] {
     if (route && method) {
       return this.registry.getMatching(route, method, phase)
     }
-    return this.registry.getByPhase(phase).filter(interceptor => interceptor.enabled)
+    return this.registry.getByPhase(phase).filter((interceptor) => interceptor.enabled)
   }
 
   /**
    * Validate that all dependencies are satisfied
    */
   private validateDependencies(interceptors: Interceptor[]): void {
-    const interceptorNames = new Set(interceptors.map(i => i.name))
-    
+    const interceptorNames = new Set(interceptors.map((i) => i.name))
+
     for (const interceptor of interceptors) {
       if (interceptor.dependencies) {
         for (const dependency of interceptor.dependencies) {
@@ -152,7 +148,7 @@ export class InterceptorChain {
   private sortInterceptors(interceptors: Interceptor[]): Interceptor[] {
     // First sort by order
     const sorted = [...interceptors].sort((a, b) => a.order - b.order)
-    
+
     // Then apply topological sort for dependencies
     return this.topologicalSort(sorted)
   }
@@ -164,13 +160,13 @@ export class InterceptorChain {
     const visited = new Set<string>()
     const visiting = new Set<string>()
     const result: Interceptor[] = []
-    const interceptorMap = new Map(interceptors.map(i => [i.name, i]))
+    const interceptorMap = new Map(interceptors.map((i) => [i.name, i]))
 
     const visit = (interceptor: Interceptor) => {
       if (visiting.has(interceptor.name)) {
         throw new Error(`Circular dependency detected involving interceptor '${interceptor.name}'`)
       }
-      
+
       if (visited.has(interceptor.name)) {
         return
       }
@@ -341,7 +337,7 @@ export class InterceptorChain {
         startTime: Date.now(),
         metadata: {},
         metrics: {
-          interceptorTimings: {},
+          interceptorTimings: {}
         },
         cacheKeys: [],
         security: {
@@ -357,7 +353,7 @@ export class InterceptorChain {
       try {
         // Execute interceptors for this phase
         await this.execute(phase, context, interceptorContext, route, method)
-        
+
         // Call the next middleware/handler
         if (phase === 'request') {
           await next()
@@ -387,11 +383,7 @@ export class InterceptorChain {
    * Extract client IP from request
    */
   private getClientIP(context: Context): string {
-    return (
-      context.req.header('x-forwarded-for') ||
-      context.req.header('x-real-ip') ||
-      'unknown'
-    )
+    return context.req.header('x-forwarded-for') || context.req.header('x-real-ip') || 'unknown'
   }
 
   /**

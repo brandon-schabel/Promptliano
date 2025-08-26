@@ -1,12 +1,5 @@
 import { describe, test, expect, beforeEach, mock } from 'bun:test'
-import {
-  bulkOperation,
-  bulkCreate,
-  bulkUpdate,
-  bulkDelete,
-  processBatch,
-  retryOperation
-} from './bulk-operations'
+import { bulkOperation, bulkCreate, bulkUpdate, bulkDelete, processBatch, retryOperation } from './bulk-operations'
 
 describe('bulk-operations', () => {
   describe('bulkOperation', () => {
@@ -26,7 +19,7 @@ describe('bulk-operations', () => {
         const order: number[] = []
         const operation = mock(async (item: number) => {
           order.push(item)
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 10))
           return item
         })
 
@@ -39,7 +32,7 @@ describe('bulk-operations', () => {
         const startTimes: number[] = []
         const operation = mock(async (item: number) => {
           startTimes.push(Date.now())
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 10))
           return item
         })
 
@@ -62,9 +55,9 @@ describe('bulk-operations', () => {
         // Suppress console.error in test
         const originalConsoleError = console.error
         console.error = mock()
-        
+
         const result = await bulkOperation([1, 2, 3, 4, 5], operation)
-        
+
         // Restore console.error
         console.error = originalConsoleError
 
@@ -80,9 +73,7 @@ describe('bulk-operations', () => {
           return Promise.resolve(item)
         })
 
-        await expect(
-          bulkOperation([1, 2, 3], operation, { continueOnError: false })
-        ).rejects.toThrow('Stop!')
+        await expect(bulkOperation([1, 2, 3], operation, { continueOnError: false })).rejects.toThrow('Stop!')
 
         expect(operation).toHaveBeenCalledTimes(2)
       })
@@ -163,11 +154,11 @@ describe('bulk-operations', () => {
       test('skips duplicates when validator provided', async () => {
         const items = ['a', 'b', 'c', 'b']
         const created = new Set<string>(['b']) // 'b' already exists
-        
+
         const validateDuplicates = mock(async (item: string) => {
           return created.has(item)
         })
-        
+
         const createFn = mock(async (item: string) => {
           created.add(item)
           return { id: 1, value: item }
@@ -206,9 +197,9 @@ describe('bulk-operations', () => {
         // Suppress console.error in test
         const originalConsoleError = console.error
         console.error = mock()
-        
+
         const result = await bulkCreate(['a', 'b', 'c'], createFn)
-        
+
         // Restore console.error
         console.error = originalConsoleError
 
@@ -222,9 +213,7 @@ describe('bulk-operations', () => {
           return Promise.resolve({ id: 1, value: item })
         })
 
-        await expect(
-          bulkCreate(['a', 'b', 'c'], createFn, { continueOnError: false })
-        ).rejects.toThrow('Stop')
+        await expect(bulkCreate(['a', 'b', 'c'], createFn, { continueOnError: false })).rejects.toThrow('Stop')
       })
     })
   })
@@ -236,9 +225,7 @@ describe('bulk-operations', () => {
           { id: 1, data: { name: 'One' } },
           { id: 2, data: { name: 'Two' } }
         ]
-        const updateFn = mock((id: number, data: any) => 
-          Promise.resolve({ id, ...data })
-        )
+        const updateFn = mock((id: number, data: any) => Promise.resolve({ id, ...data }))
 
         const result = await bulkUpdate(updates, updateFn)
 
@@ -256,11 +243,9 @@ describe('bulk-operations', () => {
           { id: 1, data: { name: 'One' } },
           { id: 999, data: { name: 'Missing' } }
         ]
-        
+
         const validateExists = mock((id: number) => Promise.resolve(id !== 999))
-        const updateFn = mock((id: number, data: any) => 
-          Promise.resolve({ id, ...data })
-        )
+        const updateFn = mock((id: number, data: any) => Promise.resolve({ id, ...data }))
 
         const result = await bulkUpdate(updates, updateFn, { validateExists })
 
@@ -271,9 +256,7 @@ describe('bulk-operations', () => {
 
       test('updates without validation when not provided', async () => {
         const updates = [{ id: 999, data: { name: 'Test' } }]
-        const updateFn = mock((id: number, data: any) => 
-          Promise.resolve({ id, ...data })
-        )
+        const updateFn = mock((id: number, data: any) => Promise.resolve({ id, ...data }))
 
         const result = await bulkUpdate(updates, updateFn)
 
@@ -289,7 +272,11 @@ describe('bulk-operations', () => {
           return Promise.resolve({ id })
         })
 
-        const updates = [{ id: 1, data: {} }, { id: 2, data: {} }, { id: 3, data: {} }]
+        const updates = [
+          { id: 1, data: {} },
+          { id: 2, data: {} },
+          { id: 3, data: {} }
+        ]
         const result = await bulkUpdate(updates, updateFn)
 
         expect(result.succeeded).toHaveLength(2)
@@ -347,12 +334,12 @@ describe('bulk-operations', () => {
         const originalConsoleError = console.error
         const consoleErrorSpy = mock()
         console.error = consoleErrorSpy
-        
+
         const result = await bulkDelete([1, 2, 3], deleteFn)
-        
+
         // Verify error was logged
         expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to delete entity with ID 2:', expect.any(Error))
-        
+
         // Restore console.error
         console.error = originalConsoleError
 
@@ -366,9 +353,7 @@ describe('bulk-operations', () => {
           return Promise.resolve(true)
         })
 
-        await expect(
-          bulkDelete([1, 2, 3], deleteFn, { continueOnError: false })
-        ).rejects.toThrow('Stop')
+        await expect(bulkDelete([1, 2, 3], deleteFn, { continueOnError: false })).rejects.toThrow('Stop')
       })
     })
 
@@ -388,9 +373,7 @@ describe('bulk-operations', () => {
     describe('happy path', () => {
       test('processes items in correct batch sizes', async () => {
         const items = [1, 2, 3, 4, 5, 6, 7]
-        const processor = mock((batch: number[]) => 
-          Promise.resolve(batch.map(n => n * 2))
-        )
+        const processor = mock((batch: number[]) => Promise.resolve(batch.map((n) => n * 2)))
 
         const result = await processBatch(items, 3, processor)
 
@@ -403,9 +386,7 @@ describe('bulk-operations', () => {
 
       test('handles batch size larger than array', async () => {
         const items = [1, 2, 3]
-        const processor = mock((batch: number[]) => 
-          Promise.resolve(batch.map(n => n * 2))
-        )
+        const processor = mock((batch: number[]) => Promise.resolve(batch.map((n) => n * 2)))
 
         const result = await processBatch(items, 10, processor)
 
@@ -416,9 +397,7 @@ describe('bulk-operations', () => {
 
       test('handles batch size of 1', async () => {
         const items = [1, 2, 3]
-        const processor = mock((batch: number[]) => 
-          Promise.resolve(batch)
-        )
+        const processor = mock((batch: number[]) => Promise.resolve(batch))
 
         const result = await processBatch(items, 1, processor)
 
@@ -438,9 +417,7 @@ describe('bulk-operations', () => {
 
       test('processes large dataset in batches', async () => {
         const items = Array.from({ length: 1000 }, (_, i) => i)
-        const processor = mock((batch: number[]) => 
-          Promise.resolve(batch)
-        )
+        const processor = mock((batch: number[]) => Promise.resolve(batch))
 
         const result = await processBatch(items, 100, processor)
 
@@ -455,9 +432,7 @@ describe('bulk-operations', () => {
           throw new Error('Process failed')
         })
 
-        await expect(
-          processBatch([1, 2, 3], 2, processor)
-        ).rejects.toThrow('Process failed')
+        await expect(processBatch([1, 2, 3], 2, processor)).rejects.toThrow('Process failed')
       })
     })
   })
@@ -494,9 +469,7 @@ describe('bulk-operations', () => {
           throw new Error('Always fails')
         })
 
-        await expect(
-          retryOperation(operation, { maxRetries: 2, initialDelay: 1 })
-        ).rejects.toThrow('Always fails')
+        await expect(retryOperation(operation, { maxRetries: 2, initialDelay: 1 })).rejects.toThrow('Always fails')
 
         expect(operation).toHaveBeenCalledTimes(3) // Initial + 2 retries
       })
@@ -504,7 +477,7 @@ describe('bulk-operations', () => {
       test('uses exponential backoff', async () => {
         const delays: number[] = []
         let lastCall = Date.now()
-        
+
         const operation = mock(() => {
           const now = Date.now()
           delays.push(now - lastCall)
@@ -530,7 +503,7 @@ describe('bulk-operations', () => {
       test.skip('respects max delay', async () => {
         const delays: number[] = []
         let lastCall = Date.now()
-        
+
         const operation = mock(() => {
           const now = Date.now()
           delays.push(now - lastCall)
@@ -583,9 +556,7 @@ describe('bulk-operations', () => {
           throw new Error('Fail')
         })
 
-        await expect(
-          retryOperation(operation, { maxRetries: 0 })
-        ).rejects.toThrow('Fail')
+        await expect(retryOperation(operation, { maxRetries: 0 })).rejects.toThrow('Fail')
 
         expect(operation).toHaveBeenCalledTimes(1)
       })

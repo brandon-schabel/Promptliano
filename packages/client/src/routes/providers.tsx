@@ -284,7 +284,11 @@ function ProvidersPage() {
       provider: p.provider,
       timeout: 30000
     }))
-    await batchTestMutation.mutateAsync({ providerIds: providers.map((p: ProviderKey) => p.id), testPrompt: 'Hello', includeInactive: false })
+    await batchTestMutation.mutateAsync({
+      providerIds: providers.map((p: ProviderKey) => p.id),
+      testPrompt: 'Hello',
+      includeInactive: false
+    })
   }
 
   // Handle form submit
@@ -295,7 +299,12 @@ function ProvidersPage() {
         // await updateMutation.mutateAsync({ keyId: editingProvider.id, ...values })
         console.log('Provider update not implemented yet')
       } else {
-        await createMutation.mutateAsync({ provider: values.provider, keyName: values.name, encryptedValue: values.key, isDefault: values.isDefault })
+        await createMutation.mutateAsync({
+          provider: values.provider,
+          keyName: values.name,
+          encryptedValue: values.key,
+          isDefault: values.isDefault
+        })
       }
       setIsAddDialogOpen(false)
       setEditingProvider(null)
@@ -547,7 +556,7 @@ function ProvidersPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Provider</FormLabel>
-                        <Select 
+                        <Select
                           onValueChange={(value) => {
                             if (value === 'custom') {
                               // Open custom provider dialog instead
@@ -557,7 +566,7 @@ function ProvidersPage() {
                             } else {
                               field.onChange(value)
                             }
-                          }} 
+                          }}
                           defaultValue={field.value}
                         >
                           <FormControl>

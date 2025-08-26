@@ -14,16 +14,21 @@ import {
 } from '@promptliano/schemas'
 import { claudeHookService, type HookEvent } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 
 // Mapping function between schema event names and service event names
 function mapSchemaEventToServiceEvent(schemaEvent: string): HookEvent {
   const mapping: Record<string, HookEvent> = {
     'tool-call': 'PreToolUse',
-    'user-prompt-submit': 'UserPromptSubmit', 
+    'user-prompt-submit': 'UserPromptSubmit',
     'file-change': 'Notification'
   }
-  
+
   const mapped = mapping[schemaEvent]
   if (!mapped) {
     throw new Error(`Unknown event type: ${schemaEvent}`)
@@ -307,8 +312,8 @@ export const claudeHookRoutesSimple = new OpenAPIHono()
     try {
       const mappedEvent = mapSchemaEventToServiceEvent(eventName)
       // Transform body to match service interface
-      const serviceBody: Partial<{event: HookEvent; matcher: string; command: string; timeout: number}> = {}
-      
+      const serviceBody: Partial<{ event: HookEvent; matcher: string; command: string; timeout: number }> = {}
+
       if (body.event) {
         serviceBody.event = mapSchemaEventToServiceEvent(body.event)
       }
@@ -318,7 +323,7 @@ export const claudeHookRoutesSimple = new OpenAPIHono()
       if (body.command) {
         serviceBody.command = body.command
       }
-      
+
       const hook = await claudeHookService.updateHookLegacy(decodedPath, mappedEvent, matcherIndex, serviceBody)
 
       if (!hook) {
@@ -385,7 +390,7 @@ export const claudeHookRoutesSimple = new OpenAPIHono()
     try {
       // Test hook using mock hookId since service expects hookId, not path/event/matcher
       // TODO: Implement proper hook resolution from path/event/matcher to hookId
-      const mockHookId = 1 
+      const mockHookId = 1
       // Get sampleToolName from testData if available
       const sampleToolName = body.testData?.sampleToolName
       const result = await claudeHookService.testHook(mockHookId, sampleToolName)

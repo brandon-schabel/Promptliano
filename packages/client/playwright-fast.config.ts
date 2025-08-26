@@ -6,7 +6,7 @@ dotenv.config()
 
 /**
  * Fast Development Playwright Configuration
- * 
+ *
  * Optimized for rapid development cycles with:
  * - Maximum parallelization
  * - Chromium only for speed
@@ -25,10 +25,7 @@ export default defineConfig({
   workers: '75%', // Use most available cores
 
   // Minimal reporting
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: 'playwright-report-fast', open: 'on-failure' }]
-  ],
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report-fast', open: 'on-failure' }]],
 
   // Fast execution settings
   use: {
@@ -38,19 +35,19 @@ export default defineConfig({
     video: 'off', // Disabled for speed
     viewport: { width: 1280, height: 720 },
     headless: true,
-    actionTimeout: 5 * 1000, // Faster action timeout
+    actionTimeout: 5 * 1000 // Faster action timeout
   },
 
   // Chromium only for speed
   projects: [
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /.*\.setup\.ts/
     },
     {
       name: 'chromium-fast',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     }
   ],
 
@@ -59,5 +56,5 @@ export default defineConfig({
   globalTeardown: './e2e/setup/global-teardown.ts',
 
   // Fast output directory
-  outputDir: 'test-results-fast/',
+  outputDir: 'test-results-fast/'
 })

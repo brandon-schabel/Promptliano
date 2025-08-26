@@ -12,7 +12,7 @@ export default defineConfig({
     // Injects CSS imports for each component
     libInjectCss()
   ],
-  
+
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
@@ -20,7 +20,7 @@ export default defineConfig({
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
   },
-  
+
   build: {
     copyPublicDir: false,
     lib: {
@@ -29,7 +29,7 @@ export default defineConfig({
       formats: ['es', 'cjs'],
       fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`
     },
-    
+
     rollupOptions: {
       // Externalize all peer dependencies
       external: [
@@ -38,7 +38,7 @@ export default defineConfig({
         'react/jsx-runtime',
         // Radix UI packages
         /^@radix-ui\//,
-        // DND Kit packages  
+        // DND Kit packages
         /^@dnd-kit\//,
         // Tanstack packages
         /^@tanstack\//,
@@ -66,7 +66,7 @@ export default defineConfig({
         'monaco-editor',
         'react-dropzone'
       ],
-      
+
       output: {
         // Single bundle for simplicity
         preserveModules: false,
@@ -88,18 +88,18 @@ export default defineConfig({
         inlineDynamicImports: false
       }
     },
-    
+
     // Minification settings based on environment
     minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
     sourcemap: process.env.NODE_ENV !== 'production',
-    
+
     // Report compressed sizes
     reportCompressedSize: true,
-    
+
     // Chunk size warning limit (2MB for a UI library is reasonable)
     chunkSizeWarningLimit: 2000
   },
-  
+
   // CSS processing for Tailwind - handled by postcss.config.cjs
   css: {
     postcss: './postcss.config.cjs'

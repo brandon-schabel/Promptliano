@@ -151,19 +151,18 @@ export function SectionedSidebarNav<T extends string = string>({
 }: SectionedSidebarNavProps<T>) {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
-  
+
   return (
     <div className={cn('flex flex-col', className)}>
       {header && <div className='px-2 pb-2 border-b'>{header}</div>}
 
-      <div className={cn(
-        'flex-1 min-h-0',
-        isCollapsed ? 'overflow-visible' : 'overflow-hidden'
-      )}>
-        <div className={cn(
-          'px-2 py-1 space-y-4 group-data-[collapsible=icon]:px-1',
-          isCollapsed ? 'space-y-2 group-data-[collapsible=icon]:space-y-1' : ''
-        )}>
+      <div className={cn('flex-1 min-h-0', isCollapsed ? 'overflow-visible' : 'overflow-hidden')}>
+        <div
+          className={cn(
+            'px-2 py-1 space-y-4 group-data-[collapsible=icon]:px-1',
+            isCollapsed ? 'space-y-2 group-data-[collapsible=icon]:space-y-1' : ''
+          )}
+        >
           {sections.map((section, index) => (
             <div key={index}>
               {showSectionTitles && section.title && (
@@ -171,10 +170,7 @@ export function SectionedSidebarNav<T extends string = string>({
                   {section.title}
                 </div>
               )}
-              <div className={cn(
-                'space-y-1',
-                isCollapsed ? 'group-data-[collapsible=icon]:space-y-1' : ''
-              )}>
+              <div className={cn('space-y-1', isCollapsed ? 'group-data-[collapsible=icon]:space-y-1' : '')}>
                 {section.items.map((item) => {
                   const Icon = item.icon
                   const isActive =
@@ -208,10 +204,12 @@ export function SectionedSidebarNav<T extends string = string>({
                       }}
                       disabled={isDisabled}
                     >
-                      <Icon className={cn(
-                        'h-4 w-4 shrink-0',
-                        'group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4'
-                      )} />
+                      <Icon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          'group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4'
+                        )}
+                      />
 
                       <div className='flex flex-col items-start text-left flex-1 group-data-[collapsible=icon]:hidden'>
                         <div className='flex items-center gap-2 w-full'>

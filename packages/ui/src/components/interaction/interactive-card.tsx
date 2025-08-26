@@ -3,7 +3,7 @@ import { cn } from '../../utils'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../core/card'
 import { Badge } from '../core/badge'
 import { Button } from '../core/button'
-import { 
+import {
   type LucideIcon,
   ChevronRight,
   MoreHorizontal,
@@ -54,7 +54,7 @@ export interface InteractiveCardProps {
   iconClassName?: string
   variant?: CardVariant
   size?: CardSize
-  
+
   // Interactive states
   isClickable?: boolean
   isSelected?: boolean
@@ -62,7 +62,7 @@ export interface InteractiveCardProps {
   isFavorite?: boolean
   isPinned?: boolean
   isNew?: boolean
-  
+
   // Actions
   onClick?: () => void
   onDoubleClick?: () => void
@@ -71,13 +71,13 @@ export interface InteractiveCardProps {
   primaryAction?: CardAction
   secondaryAction?: CardAction
   menuItems?: CardMenuItem[]
-  
+
   // Content
   badges?: Array<{ label: string; variant?: 'default' | 'secondary' | 'outline' | 'destructive' }>
   metadata?: Array<{ label: string; value: string | number }>
   footer?: React.ReactNode
   children?: React.ReactNode
-  
+
   // Styling
   className?: string
   headerClassName?: string
@@ -157,17 +157,17 @@ export function InteractiveCard({
 
   const handleClick = (e: React.MouseEvent) => {
     if (isDisabled || !onClick) return
-    
+
     // Don't trigger if clicking on interactive elements
     const target = e.target as HTMLElement
     if (target.closest('button, a, [role="button"]')) return
-    
+
     onClick()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isDisabled || !onClick) return
-    
+
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       onClick()
@@ -176,11 +176,11 @@ export function InteractiveCard({
 
   const renderIcon = () => {
     if (!icon) return null
-    
+
     if (React.isValidElement(icon)) {
       return icon
     }
-    
+
     const Icon = icon as LucideIcon
     return <Icon className={cn(sizes.icon, iconClassName)} />
   }
@@ -242,12 +242,7 @@ export function InteractiveCard({
           {menuItems && menuItems.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  className='h-7 w-7 p-0'
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <Button size='sm' variant='ghost' className='h-7 w-7 p-0' onClick={(e) => e.stopPropagation()}>
                   <MoreHorizontal className='h-4 w-4' />
                 </Button>
               </DropdownMenuTrigger>
@@ -279,13 +274,9 @@ export function InteractiveCard({
         <div className='flex items-start gap-3'>
           {renderIcon()}
           <div className='flex-1 min-w-0'>
-            <CardTitle className={cn(sizes.title, 'line-clamp-2')}>
-              {title}
-            </CardTitle>
+            <CardTitle className={cn(sizes.title, 'line-clamp-2')}>{title}</CardTitle>
             {description && (
-              <CardDescription className={cn(sizes.description, 'mt-1 line-clamp-2')}>
-                {description}
-              </CardDescription>
+              <CardDescription className={cn(sizes.description, 'mt-1 line-clamp-2')}>{description}</CardDescription>
             )}
             {badges && badges.length > 0 && (
               <div className='flex flex-wrap gap-1.5 mt-2'>
@@ -372,22 +363,14 @@ export interface SelectableCardProps extends Omit<InteractiveCardProps, 'isClick
   onSelect: (selected: boolean) => void
 }
 
-export function SelectableCard({
-  isSelected,
-  onSelect,
-  ...props
-}: SelectableCardProps) {
+export function SelectableCard({ isSelected, onSelect, ...props }: SelectableCardProps) {
   return (
     <InteractiveCard
       {...props}
       isClickable
       isSelected={isSelected}
       onClick={() => onSelect(!isSelected)}
-      className={cn(
-        'relative',
-        isSelected && 'ring-2 ring-primary',
-        props.className
-      )}
+      className={cn('relative', isSelected && 'ring-2 ring-primary', props.className)}
     />
   )
 }
@@ -451,23 +434,15 @@ const statusConfig = {
   }
 }
 
-export function StatusCard({
-  status,
-  statusText,
-  badges = [],
-  ...props
-}: StatusCardProps) {
+export function StatusCard({ status, statusText, badges = [], ...props }: StatusCardProps) {
   const config = statusConfig[status]
-  
+
   return (
     <InteractiveCard
       {...props}
       icon={config.icon}
       iconClassName={config.className}
-      badges={[
-        { label: statusText || config.text, variant: config.badgeVariant },
-        ...badges
-      ]}
+      badges={[{ label: statusText || config.text, variant: config.badgeVariant }, ...badges]}
     />
   )
 }

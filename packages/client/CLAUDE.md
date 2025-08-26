@@ -678,11 +678,83 @@ Task(
 ```
 
 The agent provides:
+
 - 286 existing tests across 4 test suites
 - Page Object Model architecture
 - MCP integration testing patterns
 - Multi-browser test execution
 - CI/CD integration with GitHub Actions
+
+#### Running E2E Tests
+
+**Prerequisites:**
+
+1. Ensure the development server is running: `bun run dev` (from client package)
+2. Ensure the API server is running: `bun run dev` (from server package)
+
+**Basic Test Commands:**
+
+```bash
+# Run all E2E tests across all browsers
+bunx playwright test
+
+# Run specific test file
+bunx playwright test basic-smoke.spec.ts
+
+# Run tests in headed mode (with browser UI)
+bunx playwright test --headed
+
+# Run tests on specific browser
+bunx playwright test --project=chromium
+bunx playwright test --project=firefox
+bunx playwright test --project=webkit
+
+# Run tests with line reporter for cleaner output
+bunx playwright test --reporter=line
+
+# Run with limited failures for quick feedback
+bunx playwright test --max-failures=3
+
+# Debug mode (opens browser and pauses)
+bunx playwright test --debug
+
+# Generate test report
+bunx playwright test --reporter=html
+bunx playwright show-report
+```
+
+**Test Categories:**
+
+```bash
+# Core functionality smoke tests
+bunx playwright test basic-smoke.spec.ts
+bunx playwright test projects-smoke.spec.ts
+bunx playwright test chat-basic-smoke.spec.ts
+
+# Feature-specific tests
+bunx playwright test providers.spec.ts
+bunx playwright test file-panel.spec.ts
+bunx playwright test git-integration.spec.ts
+
+# Comprehensive workflow tests
+bunx playwright test complete-workflow.spec.ts
+bunx playwright test flow-integration.spec.ts
+```
+
+**Test Configuration:**
+
+- Tests run across 5 browsers: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+- Global setup handles authentication and test project infrastructure
+- Isolated test environments with cleanup between runs
+- Automatic screenshots and videos on failure
+- Network mocking for AI provider endpoints
+
+**Common Issues:**
+
+- **Regex errors**: Fixed in `cloud-provider-configuration.spec.ts` - ensure proper escaping
+- **Strict mode violations**: Fixed in page objects - use `.first()` for multiple matching elements
+- **Mobile test failures**: Expected for responsive UI differences on mobile devices
+- **Initialization timeouts**: Projects page shows initialization screen - this is expected behavior
 
 ### Component Testing
 

@@ -37,7 +37,7 @@ test.describe('Flow System', () => {
       await expect(page.getByTestId('flow-diagram')).toBeVisible()
       await expect(page.getByTestId('flow-controls')).toBeVisible()
       await expect(page.getByTestId('flow-statistics')).toBeVisible()
-      
+
       // Verify flow controls are available
       await expect(page.getByRole('button', { name: 'Create Queue' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Zoom In' })).toBeVisible()
@@ -47,17 +47,17 @@ test.describe('Flow System', () => {
     test('should support zoom functionality', async ({ page }) => {
       // Test zoom in
       await flowPage.zoomIn(2)
-      
+
       // Verify zoom level increased (check if elements appear larger)
       const diagramBounds = await page.getByTestId('flow-diagram').boundingBox()
       expect(diagramBounds).not.toBeNull()
-      
+
       // Test zoom out
       await flowPage.zoomOut(3)
-      
+
       // Test reset zoom
       await flowPage.resetZoom()
-      
+
       // Verify zoom controls are responsive
       await expect(page.getByRole('button', { name: 'Zoom In' })).toBeEnabled()
       await expect(page.getByRole('button', { name: 'Zoom Out' })).toBeEnabled()
@@ -105,7 +105,7 @@ test.describe('Flow System', () => {
       // Verify queue was created
       expect(queueId).toBeTruthy()
       await expect(page.getByTestId(`queue-${queueConfig.name}`)).toBeVisible()
-      
+
       // Verify queue shows correct configuration
       const queueElement = page.getByTestId(`queue-${queueConfig.name}`)
       await expect(queueElement.getByText(queueConfig.name)).toBeVisible()
@@ -134,7 +134,7 @@ test.describe('Flow System', () => {
 
     test('should start and stop queue processing', async ({ page }) => {
       const queueName = 'Processing Test Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for testing start/stop functionality'
@@ -162,26 +162,26 @@ test.describe('Flow System', () => {
 
       // Start processing
       await flowPage.startQueue(queueName)
-      
+
       const status = await flowPage.getQueueStatus(queueName)
       expect(status.toLowerCase()).toContain('processing')
 
       // Pause processing
       await flowPage.pauseQueue(queueName)
-      
+
       const pausedStatus = await flowPage.getQueueStatus(queueName)
       expect(pausedStatus.toLowerCase()).toContain('paused')
 
       // Stop processing
       await flowPage.stopQueue(queueName)
-      
+
       const stoppedStatus = await flowPage.getQueueStatus(queueName)
       expect(stoppedStatus.toLowerCase()).toContain('idle')
     })
 
     test('should add and manage queue items', async ({ page }) => {
       const queueName = 'Items Management Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Testing queue item management'
@@ -226,7 +226,7 @@ test.describe('Flow System', () => {
 
     test('should clear queue items', async ({ page }) => {
       const queueName = 'Clear Test Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Testing queue clearing'
@@ -360,7 +360,7 @@ test.describe('Flow System', () => {
 
       // Monitor the processing
       const processingResult = await flowPage.monitorQueueProcessing(workflowQueue, 10000)
-      
+
       // Verify workflow processed items
       expect(processingResult.itemsProcessed).toBeGreaterThan(0)
     })
@@ -369,7 +369,7 @@ test.describe('Flow System', () => {
       // Create two queues
       const sourceQueue = 'Source Queue'
       const targetQueue = 'Target Queue'
-      
+
       await flowPage.createQueue({
         name: sourceQueue,
         description: 'Source queue for move testing'
@@ -397,10 +397,10 @@ test.describe('Flow System', () => {
       // Verify item moved
       const targetQueueElement = page.getByTestId(`queue-${targetQueue}`)
       await expect(targetQueueElement.getByText(testItem.title)).toBeVisible()
-      
+
       const targetItemCount = await flowPage.getQueueItemCount(targetQueue)
       expect(targetItemCount).toBe(1)
-      
+
       const sourceItemCount = await flowPage.getQueueItemCount(sourceQueue)
       expect(sourceItemCount).toBe(0)
     })
@@ -425,9 +425,7 @@ test.describe('Flow System', () => {
         { id: '2', type: 'task', title: 'Task 2', status: 'pending', priority: 'medium' }
       ]
 
-      const items2: FlowItem[] = [
-        { id: '3', type: 'task', title: 'Task 3', status: 'pending', priority: 'low' }
-      ]
+      const items2: FlowItem[] = [{ id: '3', type: 'task', title: 'Task 3', status: 'pending', priority: 'low' }]
 
       await flowPage.addItemsToQueue('Stats Queue 1', items1)
       await flowPage.addItemsToQueue('Stats Queue 2', items2)
@@ -444,7 +442,7 @@ test.describe('Flow System', () => {
 
     test('should monitor real-time queue processing', async ({ page }) => {
       const queueName = 'Monitoring Test Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for real-time monitoring'
@@ -463,7 +461,7 @@ test.describe('Flow System', () => {
 
       // Start monitoring
       await flowPage.startQueue(queueName)
-      
+
       // Monitor processing with timeout
       const monitoringResult = await flowPage.monitorQueueProcessing(queueName, 15000)
 
@@ -475,7 +473,7 @@ test.describe('Flow System', () => {
 
     test('should track processing performance metrics', async ({ page }) => {
       const queueName = 'Performance Metrics Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for performance metrics testing',
@@ -531,7 +529,7 @@ test.describe('Flow System', () => {
       // Create queues with different statuses
       const idleQueue = 'Idle Status Queue'
       const processingQueue = 'Processing Status Queue'
-      
+
       await flowPage.createQueue({
         name: idleQueue,
         description: 'Queue that will remain idle'
@@ -555,7 +553,7 @@ test.describe('Flow System', () => {
 
       // Verify only processing queue is visible
       await expect(page.getByTestId(`queue-${processingQueue}`)).toBeVisible()
-      
+
       // The idle queue might be hidden or shown based on filter implementation
       // This depends on the specific filtering behavior
     })
@@ -583,7 +581,7 @@ test.describe('Flow System', () => {
       // Verify search results show only development queues
       await expect(page.getByTestId('queue-Development Queue Alpha')).toBeVisible()
       await expect(page.getByTestId('queue-Development Queue Gamma')).toBeVisible()
-      
+
       // Testing queue should be filtered out (depending on implementation)
       // This verification depends on how search filtering is implemented
     })
@@ -592,7 +590,7 @@ test.describe('Flow System', () => {
   test.describe('Drag and Drop Functionality', () => {
     test('should support drag and drop operations', async ({ page }) => {
       await flowPage.testDragAndDrop()
-      
+
       // Create queues for drag and drop testing
       await flowPage.createQueue({
         name: 'Drag Source Queue',
@@ -616,11 +614,7 @@ test.describe('Flow System', () => {
       await flowPage.addItemsToQueue('Drag Source Queue', [testItem])
 
       // Test drag and drop between queues
-      await flowPage.moveItemBetweenQueues(
-        testItem.title, 
-        'Drag Source Queue', 
-        'Drop Target Queue'
-      )
+      await flowPage.moveItemBetweenQueues(testItem.title, 'Drag Source Queue', 'Drop Target Queue')
 
       // Verify drag and drop succeeded
       const targetQueue = page.getByTestId('queue-Drop Target Queue')
@@ -632,27 +626,27 @@ test.describe('Flow System', () => {
     test('should handle queue creation errors gracefully', async ({ page }) => {
       // Try to create queue with empty name
       await page.getByRole('button', { name: 'Create Queue' }).click()
-      
+
       const queueDialog = page.getByTestId('queue-dialog')
       await expect(queueDialog).toBeVisible()
-      
+
       // Try to save without filling required fields
       await page.getByRole('button', { name: 'Save Queue' }).click()
-      
+
       // Verify validation error
       await expect(page.getByText('Queue name is required')).toBeVisible()
     })
 
     test('should handle queue processing errors', async ({ page }) => {
       const queueName = 'Error Handling Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for error handling testing'
       })
 
       // Mock processing error
-      await page.route('**/api/queue/process', route => 
+      await page.route('**/api/queue/process', (route) =>
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -674,14 +668,14 @@ test.describe('Flow System', () => {
 
     test('should handle network failures during queue operations', async ({ page }) => {
       const queueName = 'Network Error Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for network error testing'
       })
 
       // Simulate network failure
-      await page.route('**/api/queue/**', route => route.abort('failed'))
+      await page.route('**/api/queue/**', (route) => route.abort('failed'))
 
       // Try to add items during network failure
       const testItems: FlowItem[] = [
@@ -719,17 +713,19 @@ test.describe('Flow System', () => {
 
       // Verify flow diagram still renders properly with many queues
       await expect(page.getByTestId('flow-diagram')).toBeVisible()
-      
+
       // Verify zoom and pan still work with many queues
       await flowPage.zoomOut(2)
       await flowPage.panFlowDiagram('right', 100)
-      
-      console.log(`Created ${queueCount} queues in ${creationTime}ms (${(creationTime/queueCount).toFixed(0)}ms per queue)`)
+
+      console.log(
+        `Created ${queueCount} queues in ${creationTime}ms (${(creationTime / queueCount).toFixed(0)}ms per queue)`
+      )
     })
 
     test('should process high-volume queue efficiently', async ({ page }) => {
       const queueName = 'High Volume Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Queue for high volume testing',
@@ -753,7 +749,7 @@ test.describe('Flow System', () => {
 
     test('should maintain UI responsiveness during queue operations', async ({ page }) => {
       const queueName = 'Responsiveness Test Queue'
-      
+
       await flowPage.createQueue({
         name: queueName,
         description: 'Testing UI responsiveness'
@@ -776,7 +772,7 @@ test.describe('Flow System', () => {
       // Verify UI remains responsive during processing
       await expect(page.getByRole('button', { name: 'Create Queue' })).toBeEnabled()
       await expect(page.getByRole('button', { name: 'Zoom In' })).toBeEnabled()
-      
+
       // Test interaction responsiveness
       await flowPage.zoomIn(1)
       await expect(page.getByTestId('flow-diagram')).toBeVisible()

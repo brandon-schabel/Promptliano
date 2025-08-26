@@ -1,7 +1,7 @@
 /**
  * Project Service - Functional Factory Pattern
  * Replaces 1458-line ProjectService with ~200 lines using repository integration
- * 
+ *
  * Key improvements:
  * - Uses Drizzle repository instead of manual file operations
  * - Consistent error handling with ErrorFactory
@@ -14,13 +14,13 @@ import { createCrudService, extendService, withErrorContext, createServiceLogger
 import { ErrorFactory, ApiError, promptsMap } from '@promptliano/shared'
 import { getFileExtension } from './utils/file-utils'
 import { projectRepository } from '@promptliano/database'
-import { 
-  type Project, 
-  type CreateProject as CreateProjectBody, 
+import {
+  type Project,
+  type CreateProject as CreateProjectBody,
   type UpdateProject as UpdateProjectBody,
   type File as ProjectFile,
   ProjectSchema,
-  CreateProjectSchema 
+  CreateProjectSchema
 } from '@promptliano/database'
 import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
@@ -44,17 +44,14 @@ export interface ProjectServiceDeps {
   repository?: typeof projectRepository
   logger?: ReturnType<typeof createServiceLogger>
   fileService?: any // To be defined when FileService is migrated
-  gitService?: any  // For git operations
+  gitService?: any // For git operations
 }
 
 /**
  * Create Project Service with functional factory pattern
  */
 export function createProjectService(deps: ProjectServiceDeps = {}) {
-  const {
-    repository = projectRepository,
-    logger = createServiceLogger('ProjectService'),
-  } = deps
+  const { repository = projectRepository, logger = createServiceLogger('ProjectService') } = deps
 
   // Base CRUD operations using the service factory
   const baseService = createCrudService<Project, CreateProjectBody, UpdateProjectBody>({
@@ -86,7 +83,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists first
           await baseService.getById(id)
-          
+
           return await repository.getWithAllRelations(id)
         },
         { entity: 'Project', action: 'getWithRelations', id }
@@ -101,14 +98,14 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           const project = await baseService.getById(projectId)
           const relations = await repository.getWithAllRelations(projectId)
-          
+
           if (!relations) {
             throw ErrorFactory.notFound('Project relations', projectId)
           }
 
           // Build overview sections
           const lines: string[] = []
-          
+
           lines.push('=== PROJECT OVERVIEW ===')
           lines.push(`Project: ${project.name} (ID: ${project.id})`)
           lines.push(`Path: ${project.path}`)
@@ -116,10 +113,10 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           lines.push('')
 
           // Add tickets section
-          const openTickets = relations.tickets?.filter(t => t.status !== 'closed') || []
+          const openTickets = relations.tickets?.filter((t) => t.status !== 'closed') || []
           lines.push(`=== RECENT TICKETS (${openTickets.length} open) ===`)
           if (openTickets.length > 0) {
-            openTickets.slice(0, 5).forEach(ticket => {
+            openTickets.slice(0, 5).forEach((ticket) => {
               const priority = ticket.priority ? `[${ticket.priority.toUpperCase()}]` : ''
               lines.push(`#${ticket.id}: ${ticket.title} ${priority}`)
             })
@@ -134,11 +131,11 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Add task queues section
           lines.push(`=== TASK QUEUES (${relations.queues?.length || 0} total) ===`)
           if (relations.queues?.length) {
-            relations.queues.forEach(queue => {
-              const queuedItems = queue.items?.filter(item => item.status === 'queued').length || 0
-              const inProgressItems = queue.items?.filter(item => item.status === 'in_progress').length || 0
-              const completedItems = queue.items?.filter(item => item.status === 'completed').length || 0
-              
+            relations.queues.forEach((queue) => {
+              const queuedItems = queue.items?.filter((item) => item.status === 'queued').length || 0
+              const inProgressItems = queue.items?.filter((item) => item.status === 'in_progress').length || 0
+              const completedItems = queue.items?.filter((item) => item.status === 'completed').length || 0
+
               const statusIcon = queue.isActive ? '✓' : '⏸'
               lines.push(
                 `${statusIcon} ${queue.name}: ${queuedItems} queued, ${inProgressItems} in progress, ${completedItems} completed`
@@ -158,15 +155,17 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     /**
      * List projects with optional filtering
      */
-    async list(options: { 
-      sortBy?: 'name' | 'updatedAt' | 'createdAt'
-      order?: 'asc' | 'desc'
-      limit?: number 
-    } = {}): Promise<Project[]> {
+    async list(
+      options: {
+        sortBy?: 'name' | 'updatedAt' | 'createdAt'
+        order?: 'asc' | 'desc'
+        limit?: number
+      } = {}
+    ): Promise<Project[]> {
       return withErrorContext(
         async () => {
           const projects = await repository.getAll()
-          
+
           // Apply sorting
           if (options.sortBy && options.sortBy !== 'updatedAt') {
             projects.sort((a, b) => {
@@ -178,12 +177,12 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
               return options.order === 'desc' ? -comparison : comparison
             })
           }
-          
+
           // Apply limit
           if (options.limit) {
             return projects.slice(0, options.limit)
           }
-          
+
           return projects
         },
         { entity: 'Project', action: 'list' }
@@ -198,14 +197,14 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists
           await baseService.getById(id)
-          
+
           // Delete with cascade (handled by database constraints)
           const success = await repository.delete(id)
-          
+
           if (success) {
             logger.info(`Deleted project with cascade`, { id })
           }
-          
+
           return success
         },
         { entity: 'Project', action: 'deleteCascade', id }
@@ -220,11 +219,12 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           const projects = await repository.getAll()
           const lowercaseQuery = query.toLowerCase()
-          
-          return projects.filter(project => 
-            project.name.toLowerCase().includes(lowercaseQuery) ||
-            project.path.toLowerCase().includes(lowercaseQuery) ||
-            (project.description && project.description.toLowerCase().includes(lowercaseQuery))
+
+          return projects.filter(
+            (project) =>
+              project.name.toLowerCase().includes(lowercaseQuery) ||
+              project.path.toLowerCase().includes(lowercaseQuery) ||
+              (project.description && project.description.toLowerCase().includes(lowercaseQuery))
           )
         },
         { entity: 'Project', action: 'search' }
@@ -238,20 +238,22 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const relations = await repository.getWithAllRelations(id)
-          
+
           if (!relations) {
             throw ErrorFactory.notFound('Project', id)
           }
 
           return {
             ticketCount: relations.tickets?.length || 0,
-            openTickets: relations.tickets?.filter(t => t.status !== 'closed').length || 0,
-            totalTasks: relations.tickets?.reduce((sum, ticket) => 
-              sum + (ticket.tasks?.length || 0), 0) || 0,
-            completedTasks: relations.tickets?.reduce((sum, ticket) => 
-              sum + (ticket.tasks?.filter(task => task.status === 'completed').length || 0), 0) || 0,
+            openTickets: relations.tickets?.filter((t) => t.status !== 'closed').length || 0,
+            totalTasks: relations.tickets?.reduce((sum, ticket) => sum + (ticket.tasks?.length || 0), 0) || 0,
+            completedTasks:
+              relations.tickets?.reduce(
+                (sum, ticket) => sum + (ticket.tasks?.filter((task) => task.status === 'completed').length || 0),
+                0
+              ) || 0,
             queueCount: relations.queues?.length || 0,
-            activeQueues: relations.queues?.filter(q => q.isActive).length || 0,
+            activeQueues: relations.queues?.filter((q) => q.isActive).length || 0,
             chatCount: relations.chats?.length || 0,
             promptCount: relations.prompts?.length || 0
           }
@@ -294,9 +296,9 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     async summarizeFiles(projectId: number, fileIds: string[], force: boolean = false) {
       return withErrorContext(
         async () => {
-          // Verify project exists  
+          // Verify project exists
           await baseService.getById(projectId)
-          
+
           // TODO: Implement file summarization
           // For now, return a placeholder result
           return {
@@ -322,7 +324,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists
           await baseService.getById(projectId)
-          
+
           // TODO: Implement summary removal
           // For now, return a placeholder result
           return {
@@ -342,20 +344,21 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists
           await baseService.getById(projectId)
-          
+
           // Simple file suggestion based on content search
           // TODO: Integrate with proper AI-based file suggestion service
           const allFiles = await fileService.getByProject(projectId)
           const searchTerm = prompt.toLowerCase()
-          
+
           const relevantFiles = allFiles
-            .filter((file: ProjectFile) => 
-              file.name.toLowerCase().includes(searchTerm) ||
-              file.path.toLowerCase().includes(searchTerm) ||
-              (file.content && file.content.toLowerCase().includes(searchTerm))
+            .filter(
+              (file: ProjectFile) =>
+                file.name.toLowerCase().includes(searchTerm) ||
+                file.path.toLowerCase().includes(searchTerm) ||
+                (file.content && file.content.toLowerCase().includes(searchTerm))
             )
             .slice(0, limit)
-          
+
           return relevantFiles
         },
         { entity: 'Project', action: 'suggestFiles', id: projectId }
@@ -391,7 +394,9 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
             const result = await generateStructuredData({
               prompt: `Analyze the following ${getFileExtension(file.path) || 'unknown'} file and provide a concise summary of its purpose, key functionality, and important details:\n\n${file.content}`,
               schema: FileSummarizationSchema,
-              systemMessage: promptsMap.summarizationSteps || 'You are a code analysis expert. Provide clear, concise summaries of source code files.',
+              systemMessage:
+                promptsMap.summarizationSteps ||
+                'You are a code analysis expert. Provide clear, concise summaries of source code files.',
               options: {
                 model: 'gemini-1.5-flash',
                 maxTokens: 500,
@@ -471,13 +476,13 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
       if (files.length === 0) {
         return []
       }
-      
+
       // Verify project exists first
       await projectService.getById(projectId)
-      
+
       // Prepare file data with proper IDs and timestamps
       const now = Date.now()
-      const filesData = files.map(fileData => ({
+      const filesData = files.map((fileData) => ({
         id: `${projectId}_${fileData.path}`, // Composite ID for files
         projectId,
         name: fileData.name,
@@ -490,7 +495,7 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
         createdAt: now,
         updatedAt: now
       }))
-      
+
       // Use batch creation from file service
       return await fileService.batch.createFiles(projectId, files)
     },
@@ -503,7 +508,7 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
  * Used by file sync service for efficient bulk operations
  */
 export const bulkUpdateProjectFiles = async (
-  projectId: number, 
+  projectId: number,
   updates: Array<{ fileId: string; data: FileSyncData }>
 ): Promise<ProjectFile[]> => {
   return withErrorContext(
@@ -511,12 +516,12 @@ export const bulkUpdateProjectFiles = async (
       if (updates.length === 0) {
         return []
       }
-      
+
       // Verify project exists first
       await projectService.getById(projectId)
-      
+
       // File IDs are already strings in the new schema, so no conversion needed
-      
+
       // Use batch updates from file service
       return await fileService.batch.updateFiles(projectId, updates)
     },
@@ -529,7 +534,7 @@ export const bulkUpdateProjectFiles = async (
  * Used by file sync service for efficient bulk operations
  */
 export const bulkDeleteProjectFiles = async (
-  projectId: number, 
+  projectId: number,
   fileIds: string[]
 ): Promise<{ deletedCount: number }> => {
   return withErrorContext(
@@ -537,15 +542,15 @@ export const bulkDeleteProjectFiles = async (
       if (fileIds.length === 0) {
         return { deletedCount: 0 }
       }
-      
+
       // Verify project exists first
       await projectService.getById(projectId)
-      
+
       // File IDs are already strings in the new schema
-      
+
       // Use batch deletion from file service
       const deletedCount = await fileService.batch.deleteFiles(projectId, fileIds)
-      
+
       return { deletedCount }
     },
     { entity: 'Project', action: 'bulkDeleteFiles', id: projectId }
@@ -559,7 +564,7 @@ export const getProjectFileTree = async (projectId: number): Promise<any> => {
   return {
     name: 'Project Root',
     type: 'directory',
-    children: files.map(f => ({
+    children: files.map((f) => ({
       name: f.path,
       type: 'file',
       content: f.content
@@ -575,4 +580,3 @@ export async function resummarizeAllFiles(projectId: number) {
   const fileIds = files.map((file: ProjectFile) => file.id)
   return await projectService.summarizeFiles(projectId, fileIds, true)
 }
-

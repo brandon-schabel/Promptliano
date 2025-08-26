@@ -13,14 +13,16 @@ describe('MCP API Tests', () => {
   /**
    * Factory for creating test MCP server configuration data
    */
-  function createMCPServerConfigData(overrides: Partial<{
-    name: string
-    command: string
-    args: string[]
-    env: Record<string, string>
-    enabled: boolean
-    autoStart: boolean
-  }> = {}) {
+  function createMCPServerConfigData(
+    overrides: Partial<{
+      name: string
+      command: string
+      args: string[]
+      env: Record<string, string>
+      enabled: boolean
+      autoStart: boolean
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       name: `Test MCP Server ${timestamp}`,
@@ -36,11 +38,13 @@ describe('MCP API Tests', () => {
   /**
    * Factory for creating test MCP tool execution requests
    */
-  function createMCPToolExecutionRequest(overrides: Partial<{
-    tool: string
-    arguments: Record<string, any>
-    serverId: number
-  }> = {}) {
+  function createMCPToolExecutionRequest(
+    overrides: Partial<{
+      tool: string
+      arguments: Record<string, any>
+      serverId: number
+    }> = {}
+  ) {
     return {
       tool: 'list_files',
       arguments: { path: '/tmp' },
@@ -52,16 +56,18 @@ describe('MCP API Tests', () => {
   /**
    * Factory for creating MCP analytics requests
    */
-  function createMCPAnalyticsRequest(overrides: Partial<{
-    startDate: string
-    endDate: string
-    tool: string
-    serverId: number
-    limit: number
-  }> = {}) {
+  function createMCPAnalyticsRequest(
+    overrides: Partial<{
+      startDate: string
+      endDate: string
+      tool: string
+      serverId: number
+      limit: number
+    }> = {}
+  ) {
     const now = new Date()
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-    
+
     return {
       startDate: oneHourAgo.toISOString(),
       endDate: now.toISOString(),
@@ -184,9 +190,9 @@ describe('MCP API Tests', () => {
             // Get state after start
             const runningState = await client.mcp.getServerState(project.id, config.id)
             assertions.assertSuccessResponse(runningState)
-            
+
             // Wait a moment for server to finish (since it's just sleep 1)
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            await new Promise((resolve) => setTimeout(resolve, 2000))
 
             // Try to stop the server (might already be stopped due to sleep command)
             try {
@@ -196,7 +202,6 @@ describe('MCP API Tests', () => {
             } catch (error) {
               // Server might have already stopped, which is okay for this test
             }
-
           } finally {
             // Cleanup: delete the config
             await client.mcp.deleteServerConfig(project.id, config.id)
@@ -241,7 +246,7 @@ describe('MCP API Tests', () => {
           // Test installation status check
           const statusResult = await client.mcpInstallation.getInstallationStatus(project.id)
           assertions.assertSuccessResponse(statusResult)
-          
+
           expect(statusResult.data).toMatchObject({
             isInstalled: expect.any(Boolean),
             servers: expect.any(Array),
@@ -273,7 +278,7 @@ describe('MCP API Tests', () => {
               tool: 'claude-desktop',
               debug: true
             })
-            
+
             // If successful, validate response
             assertions.assertSuccessResponse(installResult)
             expect(installResult.data).toMatchObject({
@@ -404,7 +409,7 @@ describe('MCP API Tests', () => {
           // Test connection to a non-existent URL (should fail)
           const testResult = await client.mcp.testConnection(project.id, 'stdio://invalid')
           assertions.assertSuccessResponse(testResult)
-          
+
           expect(testResult.data).toMatchObject({
             connected: false,
             responseTime: expect.any(Number),
@@ -423,7 +428,7 @@ describe('MCP API Tests', () => {
           // Test initialization (should fail for invalid URL)
           const initResult = await client.mcp.testInitialize(project.id, 'stdio://invalid')
           assertions.assertSuccessResponse(initResult)
-          
+
           expect(initResult.data).toMatchObject({
             initialized: false,
             error: expect.any(String)
@@ -439,14 +444,9 @@ describe('MCP API Tests', () => {
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           // Test method call (should fail for invalid server)
-          const methodResult = await client.mcp.testMethod(
-            project.id, 
-            'stdio://invalid', 
-            'tools/list', 
-            {}
-          )
+          const methodResult = await client.mcp.testMethod(project.id, 'stdio://invalid', 'tools/list', {})
           assertions.assertSuccessResponse(methodResult)
-          
+
           expect(methodResult.data).toMatchObject({
             request: expect.any(Object),
             responseTime: expect.any(Number),
@@ -464,7 +464,7 @@ describe('MCP API Tests', () => {
 
           const testDataResult = await client.mcp.getTestData(project.id)
           assertions.assertSuccessResponse(testDataResult)
-          
+
           expect(testDataResult.data).toMatchObject({
             projectId: project.id,
             projectName: expect.any(String),
@@ -524,7 +524,7 @@ describe('MCP API Tests', () => {
           // Get project configuration
           const configResult = await client.mcpProjectConfig.getProjectConfig(project.id)
           assertions.assertSuccessResponse(configResult)
-          
+
           expect(configResult.data).toMatchObject({
             projectId: project.id,
             mcpEnabled: expect.any(Boolean),
@@ -537,7 +537,7 @@ describe('MCP API Tests', () => {
               mcpEnabled: true,
               customInstructions: 'Test custom instructions'
             })
-            
+
             assertions.assertSuccessResponse(updateResult)
             expect(updateResult.data.mcpEnabled).toBe(true)
             expect(updateResult.data.customInstructions).toBe('Test custom instructions')
@@ -559,7 +559,7 @@ describe('MCP API Tests', () => {
         // Get global configuration
         const globalConfigResult = await client.mcpGlobalConfig.getGlobalConfig()
         assertions.assertSuccessResponse(globalConfigResult)
-        
+
         expect(globalConfigResult.data).toMatchObject({
           mcpEnabled: expect.any(Boolean),
           defaultServers: expect.any(Array),
@@ -575,7 +575,7 @@ describe('MCP API Tests', () => {
             maxConcurrentServers: 5,
             logLevel: 'info'
           })
-          
+
           assertions.assertSuccessResponse(updateResult)
           expect(updateResult.data.mcpEnabled).toBe(true)
           expect(updateResult.data.maxConcurrentServers).toBe(5)
@@ -600,7 +600,7 @@ describe('MCP API Tests', () => {
             // Get executions (may be empty)
             const executionsResult = await client.mcpAnalytics.getExecutions(project.id)
             assertions.assertSuccessResponse(executionsResult)
-            
+
             expect(executionsResult.data).toMatchObject({
               executions: expect.any(Array),
               total: expect.any(Number),
@@ -634,7 +634,7 @@ describe('MCP API Tests', () => {
 
           const overviewResult = await client.mcpAnalytics.getOverview(project.id)
           assertions.assertSuccessResponse(overviewResult)
-          
+
           expect(overviewResult.data).toMatchObject({
             totalExecutions: expect.any(Number),
             successfulExecutions: expect.any(Number),
@@ -647,7 +647,7 @@ describe('MCP API Tests', () => {
             startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
             endDate: new Date().toISOString()
           })
-          
+
           const rangeOverview = await client.mcpAnalytics.getOverview(project.id, dateRangeRequest)
           assertions.assertSuccessResponse(rangeOverview)
         })
@@ -756,7 +756,7 @@ describe('MCP API Tests', () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
           const project = await dataManager.createProject()
-          const client = createPromptlianoClient({ 
+          const client = createPromptlianoClient({
             baseUrl: env.baseUrl,
             timeout: 100 // Very short timeout
           })
@@ -789,12 +789,7 @@ describe('MCP API Tests', () => {
 
           // Test method call with malformed parameters
           try {
-            await client.mcp.testMethod(
-              project.id,
-              'stdio://invalid',
-              'invalid/method',
-              { malformed: 'data' }
-            )
+            await client.mcp.testMethod(project.id, 'stdio://invalid', 'invalid/method', { malformed: 'data' })
             // Should handle the error gracefully
           } catch (error) {
             expect(error).toBeDefined()
@@ -810,14 +805,12 @@ describe('MCP API Tests', () => {
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           // Run multiple operations concurrently
-          const concurrentOperations = Array.from({ length: 5 }, (_, i) => 
-            client.mcp.listTools(project.id)
-          )
+          const concurrentOperations = Array.from({ length: 5 }, (_, i) => client.mcp.listTools(project.id))
 
           const results = await Promise.allSettled(concurrentOperations)
-          
+
           // At least some should succeed
-          const successful = results.filter(r => r.status === 'fulfilled')
+          const successful = results.filter((r) => r.status === 'fulfilled')
           expect(successful.length).toBeGreaterThan(0)
         })
       })
@@ -882,9 +875,7 @@ describe('MCP API Tests', () => {
 
           // Cleanup all configs
           const cleanupStart = performance.now()
-          await Promise.all(
-            configs.map(config => client.mcp.deleteServerConfig(project.id, config.id))
-          )
+          await Promise.all(configs.map((config) => client.mcp.deleteServerConfig(project.id, config.id)))
           const cleanupTime = performance.now() - cleanupStart
 
           // Performance assertions (adjust thresholds as needed)
@@ -892,7 +883,9 @@ describe('MCP API Tests', () => {
           expect(listTime).toBeLessThan(2000) // 2 seconds for list
           expect(cleanupTime).toBeLessThan(5000) // 5 seconds for cleanup
 
-          console.log(`MCP Performance - Create: ${createTime.toFixed(2)}ms, List: ${listTime.toFixed(2)}ms, Cleanup: ${cleanupTime.toFixed(2)}ms`)
+          console.log(
+            `MCP Performance - Create: ${createTime.toFixed(2)}ms, List: ${listTime.toFixed(2)}ms, Cleanup: ${cleanupTime.toFixed(2)}ms`
+          )
         })
       })
     }, 30000) // 30 second timeout for performance test
@@ -937,7 +930,6 @@ describe('MCP API Tests', () => {
             // Verify workflow completed successfully
             expect(config.id).toBeGreaterThan(0)
             expect(testData.data.projectId).toBe(project.id)
-
           } finally {
             // Cleanup
             await client.mcp.deleteServerConfig(project.id, config.id)

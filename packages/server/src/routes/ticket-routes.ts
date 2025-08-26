@@ -1,9 +1,14 @@
 // Modern functional service imports with ErrorFactory integration
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  standardResponses,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 
 // Modern service imports
-import { 
+import {
   ticketService,
   createTicket,
   getTicketById,
@@ -28,8 +33,8 @@ import {
 // Error factory and context handling from shared package
 import { ErrorFactory, withErrorContext } from '@promptliano/shared'
 // Import database schemas as source of truth
-import { 
-  selectTicketSchema as TicketSchema, 
+import {
+  selectTicketSchema as TicketSchema,
   selectTicketTaskSchema as TicketTaskSchema,
   type TicketStatus
 } from '@promptliano/database'
@@ -459,35 +464,41 @@ export const ticketRoutes = new OpenAPIHono()
 
   .openapi(createTicketRoute, async (c) => {
     const body = c.req.valid('json')
-    
-    return await withErrorContext(async () => {
-      const ticket = await createTicket(body)
-      const formattedTicket = formatTicketData(ticket)
-      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-      return c.json(payload, 201)
-    }, { 
-      entity: 'Ticket', 
-      action: 'create',
-      metadata: { title: body.title, projectId: body.projectId }
-    })
+
+    return await withErrorContext(
+      async () => {
+        const ticket = await createTicket(body)
+        const formattedTicket = formatTicketData(ticket)
+        const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+        return c.json(payload, 201)
+      },
+      {
+        entity: 'Ticket',
+        action: 'create',
+        metadata: { title: body.title, projectId: body.projectId }
+      }
+    )
   })
   .openapi(getTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const numericTicketId = parseNumericId(ticketId)
-    
-    return await withErrorContext(async () => {
-      const ticket = await getTicketById(numericTicketId)
-      if (!ticket) {
-        throw ErrorFactory.notFound('Ticket', numericTicketId)
+
+    return await withErrorContext(
+      async () => {
+        const ticket = await getTicketById(numericTicketId)
+        if (!ticket) {
+          throw ErrorFactory.notFound('Ticket', numericTicketId)
+        }
+        const formattedTicket = formatTicketData(ticket)
+        const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
+        return c.json(payload, 200)
+      },
+      {
+        entity: 'Ticket',
+        action: 'get',
+        correlationId: ticketId
       }
-      const formattedTicket = formatTicketData(ticket)
-      const payload: z.infer<typeof TicketResponseSchema> = { success: true, data: formattedTicket }
-      return c.json(payload, 200)
-    }, { 
-      entity: 'Ticket', 
-      action: 'get',
-      correlationId: ticketId
-    })
+    )
   })
   .openapi(updateTicketRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
@@ -630,10 +641,10 @@ export const ticketRoutes = new OpenAPIHono()
       ticketId: parseNumericId(ticketId),
       content: body.content,
       description: body.description || null,
-      suggestedFileIds: Array.isArray(body.suggestedFileIds) ? body.suggestedFileIds as string[] : [],
-      suggestedPromptIds: Array.isArray(body.suggestedPromptIds) ? body.suggestedPromptIds as number[] : [],
-      tags: Array.isArray(body.tags) ? body.tags as string[] : [],
-      dependencies: Array.isArray(body.dependencies) ? body.dependencies as number[] : [],
+      suggestedFileIds: Array.isArray(body.suggestedFileIds) ? (body.suggestedFileIds as string[]) : [],
+      suggestedPromptIds: Array.isArray(body.suggestedPromptIds) ? (body.suggestedPromptIds as number[]) : [],
+      tags: Array.isArray(body.tags) ? (body.tags as string[]) : [],
+      dependencies: Array.isArray(body.dependencies) ? (body.dependencies as number[]) : [],
       estimatedHours: body.estimatedHours || null,
       agentId: body.agentId || null
     }
@@ -655,18 +666,14 @@ export const ticketRoutes = new OpenAPIHono()
     // Transform the body to match the expected task update schema
     const updateData = {
       ...body,
-      suggestedFileIds: body.suggestedFileIds && Array.isArray(body.suggestedFileIds) 
-        ? body.suggestedFileIds as string[] 
-        : undefined,
-      suggestedPromptIds: body.suggestedPromptIds && Array.isArray(body.suggestedPromptIds) 
-        ? body.suggestedPromptIds as number[] 
-        : undefined,
-      tags: body.tags && Array.isArray(body.tags) 
-        ? body.tags as string[] 
-        : undefined,
-      dependencies: body.dependencies && Array.isArray(body.dependencies) 
-        ? body.dependencies as number[] 
-        : undefined
+      suggestedFileIds:
+        body.suggestedFileIds && Array.isArray(body.suggestedFileIds) ? (body.suggestedFileIds as string[]) : undefined,
+      suggestedPromptIds:
+        body.suggestedPromptIds && Array.isArray(body.suggestedPromptIds)
+          ? (body.suggestedPromptIds as number[])
+          : undefined,
+      tags: body.tags && Array.isArray(body.tags) ? (body.tags as string[]) : undefined,
+      dependencies: body.dependencies && Array.isArray(body.dependencies) ? (body.dependencies as number[]) : undefined
     }
     const updatedTask = await updateTask(parseNumericId(taskId), updateData)
     const formattedTask = formatTaskData(updatedTask)

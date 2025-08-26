@@ -40,10 +40,7 @@ const commandGenerationFormSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Name must be lowercase letters, numbers, and hyphens only'),
   description: z.string().min(1, 'Description is required').max(500, 'Description is too long'),
   userIntent: z.string().min(1, 'Intent is required').max(1000, 'Intent is too long'),
-  category: z
-    .string()
-    .max(50, 'Category is too long')
-    .default('general'),
+  category: z.string().max(50, 'Category is too long').default('general'),
   scope: z.enum(['global', 'project', 'file'] as const),
   // Context options
   includeProjectSummary: z.boolean(),

@@ -17,14 +17,14 @@ const DEBOUNCE_MS = 2000
  */
 async function debouncedGenerate(): Promise<void> {
   const now = Date.now()
-  
-  if (isGenerating || (now - lastGenerationTime) < DEBOUNCE_MS) {
+
+  if (isGenerating || now - lastGenerationTime < DEBOUNCE_MS) {
     return
   }
-  
+
   isGenerating = true
   lastGenerationTime = now
-  
+
   try {
     console.log('\n🔄 Changes detected, regenerating API client...')
     await generateApiClient()
@@ -53,7 +53,7 @@ async function checkServerAvailability(): Promise<boolean> {
  */
 async function pollForChanges(): Promise<void> {
   let lastSpecHash = ''
-  
+
   const poll = async () => {
     try {
       if (await checkServerAvailability()) {
@@ -61,22 +61,22 @@ async function pollForChanges(): Promise<void> {
         if (response.ok) {
           const spec = await response.text()
           const specHash = await Bun.hash(spec).toString()
-          
+
           if (lastSpecHash && lastSpecHash !== specHash) {
             console.log('📡 OpenAPI spec changed, triggering regeneration...')
             await debouncedGenerate()
           }
-          
+
           lastSpecHash = specHash
         }
       }
     } catch (error) {
       // Silently ignore errors during polling
     }
-    
+
     setTimeout(poll, 5000) // Poll every 5 seconds
   }
-  
+
   poll()
 }
 
@@ -88,7 +88,7 @@ async function startWatchMode(): Promise<void> {
   console.log(`📍 Monitoring server: ${config.serverUrl}`)
   console.log('🔄 Will automatically regenerate client when OpenAPI spec changes')
   console.log('⏹️  Press Ctrl+C to stop\n')
-  
+
   // Initial generation
   try {
     await generateApiClient()
@@ -100,7 +100,7 @@ async function startWatchMode(): Promise<void> {
     console.error('❌ Initial generation failed:', error)
     console.log('🔄 Will retry when server becomes available...\n')
   }
-  
+
   // Start polling for changes
   await pollForChanges()
 }

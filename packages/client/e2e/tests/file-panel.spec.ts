@@ -15,7 +15,7 @@ test.describe('File Panel Testing', () => {
     appPage = new AppPage(page)
     projectsPage = new ProjectsPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -63,11 +63,9 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Find file search input
-      const searchInput = appPage.page.locator([
-        '[data-testid="file-search"]',
-        'input[placeholder*="Search files"]',
-        'input[placeholder*="search"]'
-      ].join(', '))
+      const searchInput = appPage.page.locator(
+        ['[data-testid="file-search"]', 'input[placeholder*="Search files"]', 'input[placeholder*="search"]'].join(', ')
+      )
 
       if (await searchInput.isVisible({ timeout: 5000 })) {
         // Type search query
@@ -75,12 +73,10 @@ test.describe('File Panel Testing', () => {
         await appPage.page.waitForTimeout(500) // Wait for debounce
 
         // Check for autocomplete suggestions
-        const autocomplete = appPage.page.locator([
-          '[data-testid="file-autocomplete"]',
-          '.autocomplete-results',
-          '[role="listbox"]'
-        ].join(', '))
-        
+        const autocomplete = appPage.page.locator(
+          ['[data-testid="file-autocomplete"]', '.autocomplete-results', '[role="listbox"]'].join(', ')
+        )
+
         if (await autocomplete.isVisible({ timeout: 3000 })) {
           // Verify suggestions appear
           const suggestions = autocomplete.locator('li, [role="option"]')
@@ -90,7 +86,7 @@ test.describe('File Panel Testing', () => {
           // Test keyboard navigation
           await searchInput.press('ArrowDown')
           await appPage.page.waitForTimeout(200)
-          
+
           // Test selection with Enter
           await searchInput.press('Enter')
           await appPage.page.waitForTimeout(500)
@@ -107,11 +103,9 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Find file tree
-      const fileTree = appPage.page.locator([
-        '[data-testid="file-tree"]',
-        '.file-tree',
-        '[data-testid="file-explorer"]'
-      ].join(', '))
+      const fileTree = appPage.page.locator(
+        ['[data-testid="file-tree"]', '.file-tree', '[data-testid="file-explorer"]'].join(', ')
+      )
 
       await expect(fileTree).toBeVisible({ timeout: 10000 })
 
@@ -123,14 +117,14 @@ test.describe('File Panel Testing', () => {
         // Test arrow key navigation
         await appPage.page.keyboard.press('ArrowDown')
         await appPage.page.waitForTimeout(200)
-        
+
         await appPage.page.keyboard.press('ArrowUp')
         await appPage.page.waitForTimeout(200)
 
         // Test expand/collapse with right/left arrows
         await appPage.page.keyboard.press('ArrowRight')
         await appPage.page.waitForTimeout(300)
-        
+
         await appPage.page.keyboard.press('ArrowLeft')
         await appPage.page.waitForTimeout(300)
       }
@@ -148,14 +142,16 @@ test.describe('File Panel Testing', () => {
       await appPage.page.waitForTimeout(2000)
 
       // Look for file items
-      const fileItems = appPage.page.locator([
-        '[data-testid="file-item"]',
-        '.file-item',
-        '[data-file-type]',
-        'button:has-text(".js")',
-        'button:has-text(".ts")',
-        'button:has-text("package.json")'
-      ].join(', '))
+      const fileItems = appPage.page.locator(
+        [
+          '[data-testid="file-item"]',
+          '.file-item',
+          '[data-file-type]',
+          'button:has-text(".js")',
+          'button:has-text(".ts")',
+          'button:has-text("package.json")'
+        ].join(', ')
+      )
 
       const fileCount = await fileItems.count()
       if (fileCount > 0) {
@@ -164,11 +160,9 @@ test.describe('File Panel Testing', () => {
         await appPage.page.waitForTimeout(500)
 
         // Verify selection (look for visual indicators)
-        const selectedFiles = appPage.page.locator([
-          '[data-testid="selected-files"]',
-          '.selected-files',
-          '.selected-file-item'
-        ].join(', '))
+        const selectedFiles = appPage.page.locator(
+          ['[data-testid="selected-files"]', '.selected-files', '.selected-file-item'].join(', ')
+        )
 
         if (await selectedFiles.isVisible({ timeout: 3000 })) {
           const selectedCount = await selectedFiles.count()
@@ -178,8 +172,8 @@ test.describe('File Panel Testing', () => {
         // Try multi-select if more files available
         if (fileCount > 1) {
           // Hold Cmd/Ctrl and click second file
-          await fileItems.nth(1).click({ 
-            modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control'] 
+          await fileItems.nth(1).click({
+            modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control']
           })
           await appPage.page.waitForTimeout(500)
         }
@@ -197,11 +191,7 @@ test.describe('File Panel Testing', () => {
       await appPage.page.waitForTimeout(2000)
 
       // Look for file items
-      const fileItems = appPage.page.locator([
-        '[data-testid="file-item"]',
-        '.file-item',
-        '[data-file-type]'
-      ].join(', '))
+      const fileItems = appPage.page.locator(['[data-testid="file-item"]', '.file-item', '[data-file-type]'].join(', '))
 
       const fileCount = await fileItems.count()
       if (fileCount > 0) {
@@ -236,22 +226,18 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for filter options
-      const filterButton = appPage.page.locator([
-        '[data-testid="file-filter"]',
-        'button:has-text("Filter")',
-        '.filter-button'
-      ].join(', '))
+      const filterButton = appPage.page.locator(
+        ['[data-testid="file-filter"]', 'button:has-text("Filter")', '.filter-button'].join(', ')
+      )
 
       if (await filterButton.isVisible({ timeout: 3000 })) {
         await filterButton.click()
         await appPage.page.waitForTimeout(300)
 
         // Look for filter options
-        const filterOptions = appPage.page.locator([
-          '[data-testid="filter-option"]',
-          '.filter-option',
-          'input[type="checkbox"]'
-        ].join(', '))
+        const filterOptions = appPage.page.locator(
+          ['[data-testid="filter-option"]', '.filter-option', 'input[type="checkbox"]'].join(', ')
+        )
 
         const optionCount = await filterOptions.count()
         if (optionCount > 0) {
@@ -276,24 +262,23 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for expandable directories
-      const directories = appPage.page.locator([
-        '[data-testid="directory-item"]',
-        '.directory-item',
-        '[data-expandable="true"]',
-        'button[aria-expanded]'
-      ].join(', '))
+      const directories = appPage.page.locator(
+        ['[data-testid="directory-item"]', '.directory-item', '[data-expandable="true"]', 'button[aria-expanded]'].join(
+          ', '
+        )
+      )
 
       const dirCount = await directories.count()
       if (dirCount > 0) {
         const firstDir = directories.first()
-        
+
         // Check initial state
         const isExpanded = await firstDir.getAttribute('aria-expanded')
-        
+
         // Toggle expansion
         await firstDir.click()
         await appPage.page.waitForTimeout(500)
-        
+
         // Verify state changed
         const newState = await firstDir.getAttribute('aria-expanded')
         expect(newState).not.toBe(isExpanded)
@@ -319,10 +304,9 @@ test.describe('File Panel Testing', () => {
       await appPage.page.waitForTimeout(300)
 
       // Verify search input is focused
-      const searchInput = appPage.page.locator([
-        '[data-testid="file-search"]',
-        'input[placeholder*="search"]'
-      ].join(', '))
+      const searchInput = appPage.page.locator(
+        ['[data-testid="file-search"]', 'input[placeholder*="search"]'].join(', ')
+      )
 
       if (await searchInput.isVisible({ timeout: 2000 })) {
         await expect(searchInput).toBeFocused()
@@ -342,16 +326,14 @@ test.describe('File Panel Testing', () => {
       await appPage.page.waitForTimeout(300)
 
       // Verify file tree area is focused
-      const fileTree = appPage.page.locator([
-        '[data-testid="file-tree"]',
-        '.file-tree',
-        '[data-testid="file-explorer"]'
-      ].join(', '))
+      const fileTree = appPage.page.locator(
+        ['[data-testid="file-tree"]', '.file-tree', '[data-testid="file-explorer"]'].join(', ')
+      )
 
       if (await fileTree.isVisible({ timeout: 2000 })) {
         // Check if tree or its children have focus
         const focusedElement = appPage.page.locator(':focus')
-        const isFocusInTree = await fileTree.locator(':focus').count() > 0
+        const isFocusInTree = (await fileTree.locator(':focus').count()) > 0
         // Focus should be within the file tree area
       }
     })
@@ -387,7 +369,7 @@ test.describe('File Panel Testing', () => {
   test.describe('Performance with Large Projects', () => {
     test('should handle projects with 1000+ files efficiently', async () => {
       const startTime = Date.now()
-      
+
       const testProject = await TestProjectHelpers.createLargeProject({
         fileCount: 1000,
         directoryDepth: 5,
@@ -399,7 +381,7 @@ test.describe('File Panel Testing', () => {
       expect(createTime).toBeLessThan(30000) // Should create within 30 seconds
 
       await sidebarPage.navigateToSection('projects')
-      
+
       const loadStartTime = Date.now()
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
@@ -462,7 +444,7 @@ test.describe('File Panel Testing', () => {
       ]
 
       // Execute operations concurrently
-      await Promise.allSettled(operations.map(op => op()))
+      await Promise.allSettled(operations.map((op) => op()))
 
       // Verify page remains responsive
       expect(await appPage.isPageResponsive()).toBe(true)
@@ -479,11 +461,9 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Check for file count display
-      const fileCountDisplay = appPage.page.locator([
-        '[data-testid="file-count"]',
-        '.file-count',
-        'text*="files"'
-      ].join(', '))
+      const fileCountDisplay = appPage.page.locator(
+        ['[data-testid="file-count"]', '.file-count', 'text*="files"'].join(', ')
+      )
 
       if (await fileCountDisplay.isVisible({ timeout: 5000 })) {
         const countText = await fileCountDisplay.textContent()
@@ -493,7 +473,7 @@ test.describe('File Panel Testing', () => {
       // Count actual file items and verify accuracy
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       const actualFileCount = await fileItems.count()
-      
+
       if (actualFileCount > 0) {
         // Verify the count makes sense for a web app project
         expect(actualFileCount).toBeGreaterThan(5) // Should have multiple files
@@ -504,13 +484,7 @@ test.describe('File Panel Testing', () => {
     test('should show/hide hidden files appropriately', async () => {
       const testProject = await TestProjectHelpers.createTestProject({
         template: 'web-app',
-        structure: [
-          '.gitignore',
-          '.env',
-          '.hidden-folder/file.txt',
-          'visible-file.js',
-          'package.json'
-        ]
+        structure: ['.gitignore', '.env', '.hidden-folder/file.txt', 'visible-file.js', 'package.json']
       })
       testProjects.push(testProject)
 
@@ -519,11 +493,9 @@ test.describe('File Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for hidden file toggle
-      const hiddenFileToggle = appPage.page.locator([
-        '[data-testid="show-hidden-files"]',
-        'button:has-text("Hidden")',
-        '.hidden-toggle'
-      ].join(', '))
+      const hiddenFileToggle = appPage.page.locator(
+        ['[data-testid="show-hidden-files"]', 'button:has-text("Hidden")', '.hidden-toggle'].join(', ')
+      )
 
       if (await hiddenFileToggle.isVisible({ timeout: 3000 })) {
         // Count files before toggle

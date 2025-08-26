@@ -51,7 +51,7 @@ try {
       try {
         const migrationSql = readFileSync(migrationPath, 'utf8')
         const statements = migrationSql.split('--> statement-breakpoint')
-        
+
         for (const statement of statements) {
           const cleanStatement = statement.trim()
           if (cleanStatement && !cleanStatement.startsWith('--')) {
@@ -69,7 +69,7 @@ try {
 }
 
 // Create Drizzle instance with schema
-export const db = drizzle(sqlite, { 
+export const db = drizzle(sqlite, {
   schema,
   logger: process.env.NODE_ENV === 'development'
 })
@@ -90,7 +90,9 @@ export const dbUtils = {
    * Get database file size in bytes
    */
   getSize: (): number => {
-    const result = sqlite.query('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()').get() as any
+    const result = sqlite
+      .query('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()')
+      .get() as any
     return result?.size || 0
   },
 
@@ -115,7 +117,7 @@ export const dbUtils = {
     const pageCount = sqlite.query('SELECT * FROM pragma_page_count()').get() as any
     const pageSize = sqlite.query('SELECT * FROM pragma_page_size()').get() as any
     const walCheckpoint = sqlite.query('PRAGMA wal_checkpoint').get() as any
-    
+
     return {
       pageCount: pageCount?.page_count || 0,
       pageSize: pageSize?.page_size || 0,

@@ -15,7 +15,7 @@ const outputDir = './src/generated'
  */
 function generateAdvancedHooks(): void {
   console.log('🏭 Generating advanced factory-based hooks...')
-  
+
   const hooksContent = `/**
  * AUTO-GENERATED ADVANCED REACT QUERY HOOKS
  * Generated at: ${new Date().toISOString()}
@@ -213,10 +213,10 @@ export type {
   InvalidationStrategy
 } from '@promptliano/client/hooks/factories/crud-hook-factory'
 `
-  
+
   const hooksPath = join(outputDir, 'advanced-hooks.ts')
   writeFileSync(hooksPath, hooksContent)
-  
+
   console.log('✅ Advanced factory-based hooks generated successfully')
 }
 
@@ -225,7 +225,7 @@ export type {
  */
 function updateIndexForAdvancedHooks(): void {
   console.log('📝 Updating index to use advanced hooks...')
-  
+
   const indexContent = `/**
  * AUTO-GENERATED API CLIENT
  * Generated at: ${new Date().toISOString()}
@@ -248,10 +248,10 @@ export * from './react-query-provider'
 // OpenAPI specification  
 export { default as openApiSpec } from './openapi-spec.json'
 `
-  
+
   const indexPath = join(outputDir, 'index.ts')
   writeFileSync(indexPath, indexContent)
-  
+
   console.log('✅ Index updated to use advanced hooks')
 }
 
@@ -260,11 +260,11 @@ export { default as openApiSpec } from './openapi-spec.json'
  */
 async function generateAdvancedHooksSystem(): Promise<void> {
   console.log('🎯 Starting advanced hooks generation...')
-  
+
   try {
     generateAdvancedHooks()
     updateIndexForAdvancedHooks()
-    
+
     console.log('🎉 Advanced hooks generation completed successfully!')
     console.log('')
     console.log('✅ Benefits:')
@@ -272,7 +272,6 @@ async function generateAdvancedHooksSystem(): Promise<void> {
     console.log('  • Advanced factory features (optimistic updates, etc.)')
     console.log('  • Consistent patterns across all entities')
     console.log('  • No duplication with existing factory')
-    
   } catch (error) {
     console.error('💥 Advanced hooks generation failed:', error)
     process.exit(1)

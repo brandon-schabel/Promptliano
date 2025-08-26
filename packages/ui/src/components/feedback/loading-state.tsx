@@ -91,14 +91,10 @@ export function LoadingState({
         return (
           <>
             {icon || (
-              <Loader2 
-                className={cn(
-                  sizes.icon,
-                  'animate-spin text-primary',
-                  iconClassName
-                )}
-                aria-label="Loading"
-                role="status"
+              <Loader2
+                className={cn(sizes.icon, 'animate-spin text-primary', iconClassName)}
+                aria-label='Loading'
+                role='status'
               />
             )}
           </>
@@ -110,11 +106,7 @@ export function LoadingState({
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className={cn(
-                  sizes.dots,
-                  'rounded-full bg-primary animate-pulse',
-                  iconClassName
-                )}
+                className={cn(sizes.dots, 'rounded-full bg-primary animate-pulse', iconClassName)}
                 style={{
                   animationDelay: `${i * 150}ms`
                 }}
@@ -137,14 +129,10 @@ export function LoadingState({
           <div className='relative'>
             <div className='absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer' />
             {icon || (
-              <RefreshCw 
-                className={cn(
-                  sizes.icon,
-                  'animate-spin text-primary',
-                  iconClassName
-                )}
-                aria-label="Loading"
-                role="status"
+              <RefreshCw
+                className={cn(sizes.icon, 'animate-spin text-primary', iconClassName)}
+                aria-label='Loading'
+                role='status'
               />
             )}
           </div>
@@ -155,14 +143,10 @@ export function LoadingState({
           <div className='relative'>
             <div className='absolute inset-0 rounded-full bg-primary animate-ping opacity-75' />
             {icon || (
-              <Clock 
-                className={cn(
-                  sizes.icon,
-                  'relative text-primary',
-                  iconClassName
-                )}
-                aria-label="Loading"
-                role="status"
+              <Clock
+                className={cn(sizes.icon, 'relative text-primary', iconClassName)}
+                aria-label='Loading'
+                role='status'
               />
             )}
           </div>
@@ -173,14 +157,10 @@ export function LoadingState({
           <div className='relative overflow-hidden rounded-lg p-4 bg-muted'>
             <div className='absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent' />
             {icon || (
-              <Sparkles 
-                className={cn(
-                  sizes.icon,
-                  'relative text-primary',
-                  iconClassName
-                )}
-                aria-label="Loading"
-                role="status"
+              <Sparkles
+                className={cn(sizes.icon, 'relative text-primary', iconClassName)}
+                aria-label='Loading'
+                role='status'
               />
             )}
           </div>
@@ -197,15 +177,9 @@ export function LoadingState({
 
       {(text || description) && (
         <div className='text-center space-y-1'>
-          {text && (
-            <p className={cn(sizes.text, 'font-medium text-foreground', textClassName)}>
-              {text}
-            </p>
-          )}
+          {text && <p className={cn(sizes.text, 'font-medium text-foreground', textClassName)}>{text}</p>}
           {description && (
-            <p className={cn(sizes.description, 'text-muted-foreground', textClassName)}>
-              {description}
-            </p>
+            <p className={cn(sizes.description, 'text-muted-foreground', textClassName)}>{description}</p>
           )}
         </div>
       )}
@@ -218,9 +192,7 @@ export function LoadingState({
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             />
           </div>
-          <p className='text-xs text-muted-foreground text-center mt-1'>
-            {Math.round(progress)}%
-          </p>
+          <p className='text-xs text-muted-foreground text-center mt-1'>{Math.round(progress)}%</p>
         </div>
       )}
     </div>
@@ -267,7 +239,7 @@ export function TableLoading({ columns = 4, rows = 5, className }: TableLoadingP
             ))}
           </div>
         </div>
-        
+
         {/* Body */}
         <div className='divide-y'>
           {Array.from({ length: rows }).map((_, rowIndex) => (
@@ -318,13 +290,9 @@ export interface InlineLoadingProps {
   className?: string
 }
 
-export function InlineLoading({ 
-  text = 'Loading',
-  size = 'sm',
-  className 
-}: InlineLoadingProps) {
+export function InlineLoading({ text = 'Loading', size = 'sm', className }: InlineLoadingProps) {
   const sizes = sizeClasses[size]
-  
+
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <Loader2 className={cn(sizes.icon, 'animate-spin')} />
@@ -340,13 +308,9 @@ export interface ButtonLoadingProps {
   className?: string
 }
 
-export function ButtonLoading({ 
-  loadingText = 'Loading...',
-  size = 'sm',
-  className 
-}: ButtonLoadingProps) {
+export function ButtonLoading({ loadingText = 'Loading...', size = 'sm', className }: ButtonLoadingProps) {
   const sizes = sizeClasses[size]
-  
+
   return (
     <>
       <Loader2 className={cn(sizes.icon, 'animate-spin mr-2', className)} />
@@ -361,18 +325,6 @@ export interface PageLoadingProps {
   className?: string
 }
 
-export function PageLoading({ 
-  title = 'Loading page...',
-  className 
-}: PageLoadingProps) {
-  return (
-    <LoadingState
-      variant='spinner'
-      size='lg'
-      text={title}
-      centered
-      className={cn('min-h-[400px]', className)}
-    />
-  )
+export function PageLoading({ title = 'Loading page...', className }: PageLoadingProps) {
+  return <LoadingState variant='spinner' size='lg' text={title} centered className={cn('min-h-[400px]', className)} />
 }
-

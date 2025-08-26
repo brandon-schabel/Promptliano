@@ -24,7 +24,6 @@ async function updateJsonFile(filePath: string, updateFn: (data: any) => any) {
   }
 }
 
-
 async function updateTypeScriptFile(filePath: string, patterns: Array<{ search: RegExp; replace: string }>) {
   try {
     let content = await readFile(filePath, 'utf-8')

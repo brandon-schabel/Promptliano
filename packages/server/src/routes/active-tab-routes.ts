@@ -3,7 +3,12 @@ import { z } from '@hono/zod-openapi'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { activeTabService } from '@promptliano/services'
 import { updateActiveTabSchema, ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  standardResponses,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 
 export const activeTabRoutes = new OpenAPIHono()
 
@@ -67,16 +72,18 @@ activeTabRoutes.openapi(getActiveTabRoute, async (c) => {
 
   const activeTab = await activeTabService.getActiveTab(projectId, clientId)
 
-  return c.json(successResponse(
-    activeTab
-      ? {
-          activeTabId: activeTab.data.activeTabId,
-          lastUpdated: activeTab.data.lastUpdated,
-          clientId: activeTab.data.clientId,
-          tabMetadata: activeTab.data.tabMetadata
-        }
-      : null
-  ))
+  return c.json(
+    successResponse(
+      activeTab
+        ? {
+            activeTabId: activeTab.data.activeTabId,
+            lastUpdated: activeTab.data.lastUpdated,
+            clientId: activeTab.data.clientId,
+            tabMetadata: activeTab.data.tabMetadata
+          }
+        : null
+    )
+  )
 })
 
 // Set active tab for a project
@@ -104,12 +111,14 @@ activeTabRoutes.openapi(setActiveTabRoute, async (c) => {
 
   const activeTab = await activeTabService.updateActiveTab(projectId, body)
 
-  return c.json(successResponse({
-    activeTabId: activeTab.data.activeTabId,
-    lastUpdated: activeTab.data.lastUpdated,
-    clientId: activeTab.data.clientId,
-    tabMetadata: activeTab.data.tabMetadata
-  }))
+  return c.json(
+    successResponse({
+      activeTabId: activeTab.data.activeTabId,
+      lastUpdated: activeTab.data.lastUpdated,
+      clientId: activeTab.data.clientId,
+      tabMetadata: activeTab.data.tabMetadata
+    })
+  )
 })
 
 // Clear active tab for a project
@@ -133,7 +142,5 @@ activeTabRoutes.openapi(clearActiveTabRoute, async (c) => {
 
   const success = await activeTabService.clearActiveTab(projectId, clientId)
 
-  return c.json(operationSuccessResponse(
-    success ? 'Active tab cleared' : 'No active tab found'
-  ))
+  return c.json(operationSuccessResponse(success ? 'Active tab cleared' : 'No active tab found'))
 })

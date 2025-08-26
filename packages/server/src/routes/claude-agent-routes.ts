@@ -24,7 +24,12 @@ import {
   getProjectById
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 
 const createClaudeAgentRoute = createRoute({
   method: 'post',
@@ -175,7 +180,11 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    const createdAgent = await createAgent(body)
+    // Create service instance with project context
+    const { createClaudeAgentService } = await import('@promptliano/services')
+    const agentService = createClaudeAgentService({ projectPath: project.path })
+
+    const createdAgent = await agentService.create(body)
     return c.json(successResponse(createdAgent), 201)
   })
   .openapi(listAllClaudeAgentsRoute, async (c) => {

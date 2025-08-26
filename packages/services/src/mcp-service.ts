@@ -1,7 +1,7 @@
 /**
  * MCP Service - Functional Factory Pattern
  * Migrated from direct storage access to repository-based operations
- * 
+ *
  * Key improvements:
  * - Uses mcpServerRepository instead of mcpStorage
  * - Consistent error handling with ErrorFactory
@@ -60,7 +60,10 @@ function databaseToApiConfigs(dbConfigs: DatabaseMcpServerConfig[]): MCPServerCo
 }
 
 // Global MCP client manager factory
-function createMCPClientManager(repository: typeof mcpServerRepository, logger: ReturnType<typeof createServiceLogger>): MCPClientManager {
+function createMCPClientManager(
+  repository: typeof mcpServerRepository,
+  logger: ReturnType<typeof createServiceLogger>
+): MCPClientManager {
   return new MCPClientManager({
     onServerStateChange: async (serverId: number, state: any) => {
       logger.info(`MCP server ${serverId} state changed to: ${state}`)
@@ -100,7 +103,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     clientManager = createMCPClientManager(repository, logger)
   } = deps
 
-  // Base CRUD operations using the service factory  
+  // Base CRUD operations using the service factory
   const baseService = createCrudService<DatabaseMcpServerConfig, CreateMCPServerConfig>({
     entityName: 'MCPServerConfig',
     repository: repository as any, // Extended repository with additional methods
@@ -170,19 +173,16 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     /**
      * Update MCP server config with server lifecycle management
      */
-    async updateConfig(
-      configId: number,
-      data: Partial<CreateMCPServerConfig>
-    ): Promise<DatabaseMcpServerConfig> {
+    async updateConfig(configId: number, data: Partial<CreateMCPServerConfig>): Promise<DatabaseMcpServerConfig> {
       return withErrorContext(
         async () => {
           const existing = await baseService.getById(configId)
-          
+
           const updateData = {
             ...data,
             updatedAt: Date.now()
           } as Partial<CreateMCPServerConfig>
-          
+
           const updated = await baseService.update(configId, updateData)
 
           // Handle state changes based on update
@@ -211,7 +211,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
         async () => {
           // Stop the server if running
           await clientManager.stopServer(configId)
-          
+
           // Delete from repository
           return await baseService.delete!(configId)
         },
@@ -282,10 +282,7 @@ export function createMCPService(deps: MCPServiceDeps = {}) {
     /**
      * Execute MCP tool with request validation and project verification
      */
-    async executeTool(
-      projectId: number,
-      request: MCPToolExecutionRequest
-    ): Promise<MCPToolExecutionResult> {
+    async executeTool(projectId: number, request: MCPToolExecutionRequest): Promise<MCPToolExecutionResult> {
       return withErrorContext(
         async () => {
           // Verify project exists

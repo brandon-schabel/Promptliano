@@ -283,7 +283,7 @@ function findCommonPrefix(paths: string[]): string {
 
   let prefix = paths[0]
   if (!prefix) return ''
-  
+
   for (let i = 1; i < paths.length; i++) {
     const currentPath = paths[i]
     if (!currentPath) continue

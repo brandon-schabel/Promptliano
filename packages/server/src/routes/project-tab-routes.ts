@@ -61,11 +61,13 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
 
     const generatedName = await generateTabName(project.name, selectedFiles.map(String), context)
 
-    return c.json(successResponse({
-      name: generatedName,
-      status: 'success' as const,
-      generatedAt: new Date().toISOString()
-    }))
+    return c.json(
+      successResponse({
+        name: generatedName,
+        status: 'success' as const,
+        generatedAt: new Date().toISOString()
+      })
+    )
   } catch (error) {
     console.error('Failed to generate tab name:', error)
 

@@ -51,11 +51,11 @@ const navigationSections = [
         routeIds: ['/projects'],
         testId: 'sidebar-nav-projects'
       },
-      { 
-        id: 'chat', 
-        title: 'Chat', 
-        href: '/chat', 
-        icon: MessageSquareIcon, 
+      {
+        id: 'chat',
+        title: 'Chat',
+        href: '/chat',
+        icon: MessageSquareIcon,
         routeIds: ['/chat'],
         testId: 'sidebar-nav-chat'
       }
@@ -64,19 +64,19 @@ const navigationSections = [
   {
     title: 'Tools',
     items: [
-      { 
-        id: 'prompts', 
-        title: 'Prompts', 
-        href: '/prompts', 
-        icon: LightbulbIcon, 
+      {
+        id: 'prompts',
+        title: 'Prompts',
+        href: '/prompts',
+        icon: LightbulbIcon,
         routeIds: ['/prompts'],
         testId: 'sidebar-nav-prompts'
       },
-      { 
-        id: 'providers', 
-        title: 'Providers', 
-        href: '/providers', 
-        icon: Cloud, 
+      {
+        id: 'providers',
+        title: 'Providers',
+        href: '/providers',
+        icon: Cloud,
         routeIds: ['/providers'],
         testId: 'sidebar-nav-providers'
       }
@@ -152,29 +152,31 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <ErrorBoundary>
       <>
-        <Sidebar collapsible='icon' side='left' variant='sidebar' data-testid="sidebar-container" {...props}>
-          <SidebarHeader className='p-2 flex-shrink-0' data-testid="sidebar-header">
+        <Sidebar collapsible='icon' side='left' variant='sidebar' data-testid='sidebar-container' {...props}>
+          <SidebarHeader className='p-2 flex-shrink-0' data-testid='sidebar-header'>
             <div className='flex items-center justify-center relative group-data-[collapsible=icon]:justify-center'>
-              <Logo 
-                size='sm' 
-                className='absolute left-0 group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:left-auto' 
+              <Logo
+                size='sm'
+                className='absolute left-0 group-data-[collapsible=icon]:relative group-data-[collapsible=icon]:left-auto'
               />
               <span className='text-lg font-semibold group-data-[collapsible=icon]:hidden'>Promptliano</span>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className='p-2 group-data-[collapsible=icon]:p-1 flex flex-col min-h-0'>
             {/* Main Navigation - Always visible */}
             <div className='flex-shrink-0'>
               <SectionedSidebarNav
-                activeItem={matches.find((match) => 
-                  navigationSections.some(section => 
-                    section.items.some(item => item.routeIds.includes(match.routeId))
-                  )
-                )?.routeId || ''}
-                sections={navigationSections.map(section => ({
+                activeItem={
+                  matches.find((match) =>
+                    navigationSections.some((section) =>
+                      section.items.some((item) => item.routeIds.includes(match.routeId))
+                    )
+                  )?.routeId || ''
+                }
+                sections={navigationSections.map((section) => ({
                   ...section,
-                  items: section.items.map(item => ({
+                  items: section.items.map((item) => ({
                     ...item,
                     label: item.title,
                     isActive: matches.some((match) => item.routeIds.includes(match.routeId)),
@@ -189,7 +191,7 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
 
             {/* Recent Projects Section - Scrollable if needed */}
             {open && recentProjects.length > 0 && projectData && (
-              <div className='flex flex-col min-h-0 flex-1' data-testid="sidebar-recent-projects">
+              <div className='flex flex-col min-h-0 flex-1' data-testid='sidebar-recent-projects'>
                 <div className='px-3 py-2 mt-4 flex-shrink-0'>
                   <p className='text-xs font-medium text-muted-foreground'>Recent Projects</p>
                 </div>
@@ -223,11 +225,11 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
                 </div>
               </div>
             )}
-            
+
             {/* Spacer to push footer to bottom */}
             <div className='flex-1' />
           </SidebarContent>
-          
+
           <SidebarFooter className='flex-shrink-0 border-t border-sidebar-border/50'>
             {/* Footer content with proper overflow handling */}
             <div className='max-h-[40vh] overflow-y-auto'>
@@ -236,14 +238,18 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
                   <ServerStatusIndicator />
                 </SidebarMenuItem>
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
-                  <SidebarMenuButton onClick={() => setOpenProjectListDialog(true)} tooltip='Manage Projects' data-testid="sidebar-manage-projects">
+                  <SidebarMenuButton
+                    onClick={() => setOpenProjectListDialog(true)}
+                    tooltip='Manage Projects'
+                    data-testid='sidebar-manage-projects'
+                  >
                     <FolderTreeIcon className='h-4 w-4 flex-shrink-0' />
                     <span className='truncate'>Manage Projects</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
                   <SidebarMenuButton asChild tooltip='Settings'>
-                    <Link to='/settings' data-testid="sidebar-nav-settings">
+                    <Link to='/settings' data-testid='sidebar-nav-settings'>
                       <SettingsIcon className='h-4 w-4 flex-shrink-0' />
                       <span className='truncate'>Settings</span>
                     </Link>

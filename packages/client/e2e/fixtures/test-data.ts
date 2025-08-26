@@ -72,11 +72,7 @@ export class TestDataFactory {
       title: `Test Ticket ${id}`,
       overview: `Test ticket for E2E testing ${id}`, // Changed from 'description' to 'overview'
       priority: 'normal',
-      tasks: [
-        `Task 1 for ticket ${id}`,
-        `Task 2 for ticket ${id}`,
-        `Task 3 for ticket ${id}`
-      ],
+      tasks: [`Task 1 for ticket ${id}`, `Task 2 for ticket ${id}`, `Task 3 for ticket ${id}`],
       ...overrides
     }
   }
@@ -115,7 +111,7 @@ export class TestDataFactory {
         overview: `Ticket ${index + 1} for project ${project.name}` // Changed from 'description' to 'overview'
       })
     )
-    
+
     return { project, tickets }
   }
 
@@ -162,31 +158,19 @@ export class TestDataFactory {
         title: 'Setup Project Structure',
         overview: 'Initialize the project with basic structure', // Changed from 'description' to 'overview'
         priority: 'high',
-        tasks: [
-          'Create directory structure',
-          'Initialize package.json',
-          'Setup build configuration'
-        ]
+        tasks: ['Create directory structure', 'Initialize package.json', 'Setup build configuration']
       }),
       this.createTicket({
         title: 'Implement Core Features',
         overview: 'Develop the main application features', // Changed from 'description' to 'overview'
         priority: 'normal',
-        tasks: [
-          'Create user interface',
-          'Implement business logic',
-          'Add error handling'
-        ]
+        tasks: ['Create user interface', 'Implement business logic', 'Add error handling']
       }),
       this.createTicket({
         title: 'Add Testing',
         overview: 'Create comprehensive test suite', // Changed from 'description' to 'overview'
         priority: 'normal',
-        tasks: [
-          'Write unit tests',
-          'Add integration tests',
-          'Setup E2E tests'
-        ]
+        tasks: ['Write unit tests', 'Add integration tests', 'Setup E2E tests']
       })
     ]
 
@@ -211,13 +195,13 @@ export const TestDataTemplates = {
       description: 'A modern web application built with React and TypeScript',
       path: '/projects/web-app'
     }),
-    
+
     mobileApp: TestDataFactory.createProject({
       name: 'Mobile App',
       description: 'Cross-platform mobile application using React Native',
       path: '/projects/mobile-app'
     }),
-    
+
     apiService: TestDataFactory.createProject({
       name: 'API Service',
       description: 'RESTful API service built with Node.js and Express',
@@ -229,13 +213,15 @@ export const TestDataTemplates = {
   prompts: {
     codeGeneration: TestDataFactory.createPrompt({
       title: 'Code Generator', // Changed from 'name' to 'title'
-      content: 'Generate {{language}} code for the following requirements:\n\n{{requirements}}\n\nInclude error handling and comments.',
+      content:
+        'Generate {{language}} code for the following requirements:\n\n{{requirements}}\n\nInclude error handling and comments.',
       tags: ['code', 'generation', 'development']
     }),
 
     bugAnalysis: TestDataFactory.createPrompt({
       title: 'Bug Analysis', // Changed from 'name' to 'title'
-      content: 'Analyze the following bug report and provide a solution:\n\n{{bugReport}}\n\nInclude steps to reproduce and potential fixes.',
+      content:
+        'Analyze the following bug report and provide a solution:\n\n{{bugReport}}\n\nInclude steps to reproduce and potential fixes.',
       tags: ['bug', 'analysis', 'debugging']
     }),
 
@@ -397,9 +383,6 @@ ${description}
     }
 
     const taskList = themes[theme as keyof typeof themes] || themes.development
-    return Array.from(
-      { length: Math.min(count, taskList.length) },
-      (_, i) => taskList[i]
-    )
+    return Array.from({ length: Math.min(count, taskList.length) }, (_, i) => taskList[i])
   }
 }

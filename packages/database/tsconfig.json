@@ -13,18 +13,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src/**/*",
-    "index.ts",
-    "drizzle.config.ts"
-  ],
-  "exclude": [
-    "dist",
-    "node_modules",
-    "**/*.test.ts"
-  ],
-  "references": [
-    { "path": "../schemas" },
-    { "path": "../shared" }
-  ]
+  "include": ["src/**/*", "index.ts", "drizzle.config.ts"],
+  "exclude": ["dist", "node_modules", "**/*.test.ts"],
+  "references": [{ "path": "../schemas" }, { "path": "../shared" }]
 }

@@ -47,7 +47,7 @@ export function withErrorContext<T>(
     if (error instanceof Error && error.name === 'ApiError') {
       throw error // Re-throw API errors as-is
     }
-    
+
     const details = context.id ? ` (ID: ${context.id})` : ''
     throw ErrorFactory.operationFailed(
       `${context.action} ${context.entity}${details}`,
@@ -182,7 +182,7 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
         async () => {
           // Verify entity exists first
           await this.getById(id)
-          
+
           // Handle schema validation - only call partial() on ZodObject instances
           let validated: any = data
           if (schema && data) {
@@ -194,7 +194,7 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
               validated = data
             }
           }
-          
+
           const result = await repository.update(id, validated as Partial<TCreate>)
           logger.info(`Updated ${entityName}`, { id })
           return result
@@ -212,7 +212,7 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
           // Verify entity exists first
           const entity = await repository.getById(id)
           assertExists(entity, entityName, id)
-          
+
           const success = await repository.delete(id)
           if (success) {
             logger.info(`Deleted ${entityName}`, { id })
@@ -251,10 +251,10 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
      * Batch operations
      */
     batch: {
-      create: (items: TCreate[]): Promise<TEntity[]> => 
+      create: (items: TCreate[]): Promise<TEntity[]> =>
         withErrorContext(
           async () => {
-            const validated = schema ? items.map(item => schema.parse(item)) : items
+            const validated = schema ? items.map((item) => schema.parse(item)) : items
             const results = await repository.createMany(validated as TCreate[])
             logger.info(`Batch created ${results.length} ${entityName}s`)
             return results
@@ -268,10 +268,7 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
 /**
  * Extend a base service with additional methods
  */
-export function extendService<TBase, TExtensions>(
-  baseService: TBase,
-  extensions: TExtensions
-): TBase & TExtensions {
+export function extendService<TBase, TExtensions>(baseService: TBase, extensions: TExtensions): TBase & TExtensions {
   return { ...baseService, ...extensions }
 }
 
@@ -301,25 +298,38 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
 
   return {
     // Ensure list method exists
-    list: service[listMethod] || service.list || service.getAll || (async () => {
-      console.warn(`Service ${entityName} missing list method, returning empty array`)
-      return []
-    }),
+    list:
+      service[listMethod] ||
+      service.list ||
+      service.getAll ||
+      (async () => {
+        console.warn(`Service ${entityName} missing list method, returning empty array`)
+        return []
+      }),
 
     // Ensure getById method exists and handles both string and number IDs
-    getById: service[getByIdMethod] || service.getById || (async (id: number | string) => {
-      throw ErrorFactory.notFound(entityName, id)
-    }),
+    getById:
+      service[getByIdMethod] ||
+      service.getById ||
+      (async (id: number | string) => {
+        throw ErrorFactory.notFound(entityName, id)
+      }),
 
     // Ensure create method exists
-    create: service[createMethod] || service.create || (async (data: TCreate) => {
-      throw ErrorFactory.operationFailed(`create ${entityName}`, 'Method not implemented')
-    }),
+    create:
+      service[createMethod] ||
+      service.create ||
+      (async (data: TCreate) => {
+        throw ErrorFactory.operationFailed(`create ${entityName}`, 'Method not implemented')
+      }),
 
     // Ensure update method exists and handles both string and number IDs
-    update: service[updateMethod] || service.update || (async (id: number | string, data: TUpdate) => {
-      throw ErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
-    }),
+    update:
+      service[updateMethod] ||
+      service.update ||
+      (async (id: number | string, data: TUpdate) => {
+        throw ErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
+      }),
 
     // Optional delete method
     delete: service[deleteMethod] || service.delete || undefined,
@@ -332,9 +342,7 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
 /**
  * Compose multiple services into a domain service
  */
-export function composeServices<TServices extends Record<string, any>>(
-  services: TServices
-): TServices {
+export function composeServices<TServices extends Record<string, any>>(services: TServices): TServices {
   return services
 }
 

@@ -12,20 +12,37 @@ import {
   gitWorktreeRemoveRequestSchema as RemoveWorktreeBodySchema,
   gitWorktreeLockRequestSchema as LockWorktreeBodySchema
 } from '@promptliano/schemas'
-import { getWorktrees, addWorktree, removeWorktree, lockWorktree, unlockWorktree, pruneWorktrees } from '@promptliano/services'
-import { createStandardResponses, createStandardResponsesWithStatus, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import {
+  getWorktrees,
+  addWorktree,
+  removeWorktree,
+  lockWorktree,
+  unlockWorktree,
+  pruneWorktrees
+} from '@promptliano/services'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  createRouteHandler,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 
 // Response schemas
-const WorktreeListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(GitWorktreeSchema)
-}).openapi('WorktreeListResponse')
+const WorktreeListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(GitWorktreeSchema)
+  })
+  .openapi('WorktreeListResponse')
 
-const PruneWorktreesResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(z.string()),
-  message: z.string()
-}).openapi('PruneWorktreesResponse')
+const PruneWorktreesResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(z.string()),
+    message: z.string()
+  })
+  .openapi('PruneWorktreesResponse')
 
 // List worktrees
 const listWorktreesRoute = createRoute({
@@ -54,11 +71,7 @@ const addWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    201,
-    'Worktree added successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 201, 'Worktree added successfully')
 })
 
 // Remove worktree
@@ -75,11 +88,7 @@ const removeWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    200,
-    'Worktree removed successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'Worktree removed successfully')
 })
 
 // Lock worktree
@@ -96,11 +105,7 @@ const lockWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    200,
-    'Worktree locked successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'Worktree locked successfully')
 })
 
 // Unlock worktree
@@ -123,11 +128,7 @@ const unlockWorktreeRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    200,
-    'Worktree unlocked successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'Worktree unlocked successfully')
 })
 
 // Prune worktrees
@@ -152,14 +153,14 @@ const pruneWorktreesRoute = createRoute({
 export const gitWorktreeRoutes = new OpenAPIHono()
   .openapi(
     listWorktreesRoute,
-    (createRouteHandler<{ projectId: number }>(async ({ params }) => {
+    createRouteHandler<{ projectId: number }>(async ({ params }) => {
       const worktrees = await getWorktrees(params!.projectId)
       return successResponse(worktrees)
-    }) as any)
+    }) as any
   )
   .openapi(
     addWorktreeRoute,
-    (createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
+    createRouteHandler<{ projectId: number }, void, typeof AddWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
         await addWorktree(params!.projectId, {
           path: body!.path,
@@ -170,61 +171,51 @@ export const gitWorktreeRoutes = new OpenAPIHono()
         })
         return operationSuccessResponse('Worktree added successfully')
       }
-    ) as any)
+    ) as any
   )
   .openapi(
     removeWorktreeRoute,
-    (createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
+    createRouteHandler<{ projectId: number }, void, typeof RemoveWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
-        await removeWorktree(
-          params!.projectId,
-          body!.path,
-          body!.force || false
-        )
+        await removeWorktree(params!.projectId, body!.path, body!.force || false)
         return operationSuccessResponse('Worktree removed successfully')
       }
-    ) as any)
+    ) as any
   )
   .openapi(
     lockWorktreeRoute,
-    (createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
+    createRouteHandler<{ projectId: number }, void, typeof LockWorktreeBodySchema._type>(
       async ({ params, body }): Promise<any> => {
-        await lockWorktree(
-          params!.projectId,
-          body!.path,
-          body!.reason
-        )
+        await lockWorktree(params!.projectId, body!.path, body!.reason)
         return operationSuccessResponse('Worktree locked successfully')
       }
-    ) as any)
+    ) as any
   )
   .openapi(
     unlockWorktreeRoute,
-    (createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
+    createRouteHandler<{ projectId: number }, void, { worktreePath: string }>(
       async ({ params, body }): Promise<any> => {
         await unlockWorktree(params!.projectId, body!.worktreePath)
         return operationSuccessResponse('Worktree unlocked successfully')
       }
-    ) as any)
+    ) as any
   )
   .openapi(
     pruneWorktreesRoute,
-    (createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(
-      async ({ params, query }): Promise<any> => {
-        const { dryRun = false } = query || {}
-        const prunedPaths = await pruneWorktrees(params!.projectId, dryRun)
-        
-        const message = dryRun
-          ? `Would prune ${prunedPaths.length} worktree(s)`
-          : `Pruned ${prunedPaths.length} worktree(s)`
-        
-        return {
-          success: true as const,
-          data: prunedPaths,
-          message
-        }
+    createRouteHandler<{ projectId: number }, { dryRun?: boolean }>(async ({ params, query }): Promise<any> => {
+      const { dryRun = false } = query || {}
+      const prunedPaths = await pruneWorktrees(params!.projectId, dryRun)
+
+      const message = dryRun
+        ? `Would prune ${prunedPaths.length} worktree(s)`
+        : `Pruned ${prunedPaths.length} worktree(s)`
+
+      return {
+        success: true as const,
+        data: prunedPaths,
+        message
       }
-    ) as any)
+    }) as any
   )
 
 export type GitWorktreeRouteTypes = typeof gitWorktreeRoutes

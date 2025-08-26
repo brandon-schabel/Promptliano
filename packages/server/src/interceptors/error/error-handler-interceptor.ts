@@ -59,15 +59,15 @@ function sanitizeSensitiveData(text: string): string {
  */
 function getPreferredContentType(context: Context): 'json' | 'html' | 'text' {
   const accept = context.req.header('accept') || ''
-  
+
   if (accept.includes('application/json')) {
     return 'json'
   }
-  
+
   if (accept.includes('text/html') || accept.includes('application/xhtml')) {
     return 'html'
   }
-  
+
   return 'text'
 }
 
@@ -75,23 +75,29 @@ function getPreferredContentType(context: Context): 'json' | 'html' | 'text' {
  * Check if error is an API error (has status and code properties)
  */
 function isApiError(error: any): error is { status: number; message: string; code: string; details?: any } {
-  return error && 
-         typeof error === 'object' && 
-         typeof error.status === 'number' && 
-         typeof error.message === 'string' &&
-         typeof error.code === 'string'
+  return (
+    error &&
+    typeof error === 'object' &&
+    typeof error.status === 'number' &&
+    typeof error.message === 'string' &&
+    typeof error.code === 'string'
+  )
 }
 
 /**
  * Check if error is an ApiError instance from ErrorFactory
  */
-function isApiErrorInstance(error: any): error is { statusCode?: number; status?: number; message: string; code: string; details?: any } {
-  return error && 
-         error.name === 'ApiError' &&
-         typeof error === 'object' && 
-         (typeof error.status === 'number' || typeof error.statusCode === 'number') && 
-         typeof error.message === 'string' &&
-         typeof error.code === 'string'
+function isApiErrorInstance(
+  error: any
+): error is { statusCode?: number; status?: number; message: string; code: string; details?: any } {
+  return (
+    error &&
+    error.name === 'ApiError' &&
+    typeof error === 'object' &&
+    (typeof error.status === 'number' || typeof error.statusCode === 'number') &&
+    typeof error.message === 'string' &&
+    typeof error.code === 'string'
+  )
 }
 
 /**
@@ -105,12 +111,15 @@ function generateErrorHtml(
   includeDetails: boolean = false,
   details?: any
 ): string {
-  const detailsHtml = includeDetails && details ? `
+  const detailsHtml =
+    includeDetails && details
+      ? `
     <details>
       <summary>Error Details</summary>
       <pre>${JSON.stringify(details, null, 2)}</pre>
     </details>
-  ` : ''
+  `
+      : ''
 
   return `
 <!DOCTYPE html>
@@ -189,7 +198,7 @@ function mapJavaScriptError(error: Error): { status: number; message: string; co
 function createErrorHandler(config: ErrorHandlerInterceptorConfig): InterceptorHandler {
   return async (context: Context, interceptorContext: InterceptorContext, next: () => Promise<void>): Promise<void> => {
     const startTime = Date.now()
-    
+
     try {
       // Execute next interceptor/handler
       await next()
@@ -253,7 +262,7 @@ function createErrorHandler(config: ErrorHandlerInterceptorConfig): InterceptorH
           details.path = context.req.path
           details.timestamp = new Date().toISOString()
           details.ip = interceptorContext.security.ip
-          
+
           errorResponse.details = details
         }
 
@@ -290,7 +299,7 @@ function createErrorHandler(config: ErrorHandlerInterceptorConfig): InterceptorH
               timestamp: Date.now(),
               metadata: interceptorContext.metadata
             }
-            
+
             await config.errorReporter(error instanceof Error ? error : new Error(String(error)), reportContext)
           } catch (reportError) {
             // Don't let reporting errors fail the response
@@ -331,11 +340,10 @@ function createErrorHandler(config: ErrorHandlerInterceptorConfig): InterceptorH
             context.json({ success: false, error: errorResponse })
             return
         }
-
       } catch (handlerError) {
         // If error handling itself fails, send a minimal error response
         console.error('[ErrorHandler] Error in error handler:', handlerError)
-        
+
         try {
           context.status(500)
           context.json({
@@ -414,32 +422,32 @@ export const prodErrorHandler = createErrorHandlerInterceptor({
  */
 export const customErrorHandler = createErrorHandlerInterceptor({
   customErrorMap: {
-    'ValidationError': {
+    ValidationError: {
       status: 422,
       message: 'Validation failed',
       code: 'VALIDATION_ERROR'
     },
-    'AuthenticationError': {
+    AuthenticationError: {
       status: 401,
       message: 'Authentication failed',
       code: 'AUTHENTICATION_ERROR'
     },
-    'AuthorizationError': {
+    AuthorizationError: {
       status: 403,
       message: 'Access denied',
       code: 'AUTHORIZATION_ERROR'
     },
-    'NotFoundError': {
+    NotFoundError: {
       status: 404,
       message: 'Resource not found',
       code: 'NOT_FOUND'
     },
-    'ConflictError': {
+    ConflictError: {
       status: 409,
       message: 'Resource conflict',
       code: 'CONFLICT'
     },
-    'RateLimitError': {
+    RateLimitError: {
       status: 429,
       message: 'Rate limit exceeded',
       code: 'RATE_LIMIT_EXCEEDED'

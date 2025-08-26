@@ -228,7 +228,11 @@ export class AgentFileDetectionService {
         try {
           await fs.mkdir(dir, { recursive: true })
         } catch (error) {
-          throw ErrorFactory.fileSystemError('create directory', dir, error instanceof Error ? error.message : 'Unknown error')
+          throw ErrorFactory.fileSystemError(
+            'create directory',
+            dir,
+            error instanceof Error ? error.message : 'Unknown error'
+          )
         }
 
         // Check if file already exists
@@ -244,7 +248,11 @@ export class AgentFileDetectionService {
         try {
           await fs.writeFile(filePath, initialContent, 'utf-8')
         } catch (error) {
-          throw ErrorFactory.fileSystemError('create file', filePath, error instanceof Error ? error.message : 'Unknown error')
+          throw ErrorFactory.fileSystemError(
+            'create file',
+            filePath,
+            error instanceof Error ? error.message : 'Unknown error'
+          )
         }
 
         return {
@@ -253,13 +261,16 @@ export class AgentFileDetectionService {
         }
       },
       { entity: 'Agent File', action: 'create', id: filePath }
-    ).catch(error => ({
+    ).catch((error) => ({
       success: false,
       message: `Failed to create agent file: ${error instanceof Error ? error.message : 'Unknown error'}`
     }))
   }
 
-  getSuggestedFiles(projectPath: string, existingFiles: DetectedAgentFile[]): (AgentFilePattern & { suggestedPath: string })[] {
+  getSuggestedFiles(
+    projectPath: string,
+    existingFiles: DetectedAgentFile[]
+  ): (AgentFilePattern & { suggestedPath: string })[] {
     const existingTypes = new Set(existingFiles.map((f) => f.type))
 
     return this.patterns

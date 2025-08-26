@@ -36,12 +36,12 @@ interface ValidationResult {
 function matchesRoutePattern(pattern: string, path: string): boolean {
   // Convert route pattern to regex
   const regexPattern = pattern
-    .replace(/\*\*/g, '___DOUBLE_STAR___')  // Temporarily replace **
-    .replace(/\*/g, '[^/]*')                // * matches anything except /
-    .replace(/___DOUBLE_STAR___/g, '.*')    // ** matches everything including /
-    .replace(/:\w+/g, '[^/]+')              // :param matches path segments
-    .replace(/\?/g, '.')                    // ? matches single character
-  
+    .replace(/\*\*/g, '___DOUBLE_STAR___') // Temporarily replace **
+    .replace(/\*/g, '[^/]*') // * matches anything except /
+    .replace(/___DOUBLE_STAR___/g, '.*') // ** matches everything including /
+    .replace(/:\w+/g, '[^/]+') // :param matches path segments
+    .replace(/\?/g, '.') // ? matches single character
+
   const regex = new RegExp('^' + regexPattern + '$')
   return regex.test(path)
 }
@@ -78,21 +78,23 @@ function validateWithSchema(schema: z.ZodSchema, data: any): ValidationResult {
     return { valid: true }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.issues.map(issue => ({
+      const errors = error.issues.map((issue) => ({
         field: issue.path.join('.'),
         message: issue.message,
         code: issue.code
       }))
       return { valid: false, errors }
     }
-    
+
     return {
       valid: false,
-      errors: [{
-        field: 'unknown',
-        message: error instanceof Error ? error.message : 'Validation failed',
-        code: 'UNKNOWN_ERROR'
-      }]
+      errors: [
+        {
+          field: 'unknown',
+          message: error instanceof Error ? error.message : 'Validation failed',
+          code: 'UNKNOWN_ERROR'
+        }
+      ]
     }
   }
 }
@@ -107,11 +109,11 @@ async function extractRequestBody(context: Context, allowFormData: boolean = fal
     if (contentType.includes('application/json')) {
       return await context.req.json()
     }
-    
-    if (allowFormData && (
-      contentType.includes('application/x-www-form-urlencoded') ||
-      contentType.includes('multipart/form-data')
-    )) {
+
+    if (
+      allowFormData &&
+      (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data'))
+    ) {
       // For form data, try to use parseBody if available
       if (typeof context.req.parseBody === 'function') {
         return await context.req.parseBody()
@@ -140,13 +142,13 @@ async function extractRequestBody(context: Context, allowFormData: boolean = fal
 function extractQueryParams(context: Context): Record<string, string> {
   const url = new URL(context.req.url, 'http://localhost')
   const params: Record<string, string> = {}
-  
+
   const entries = Array.from(url.searchParams.entries())
   for (let i = 0; i < entries.length; i++) {
     const [key, value] = entries[i]
     params[key] = value
   }
-  
+
   return params
 }
 
@@ -155,7 +157,7 @@ function extractQueryParams(context: Context): Record<string, string> {
  */
 function extractPathParams(context: Context, schema?: z.ZodSchema): Record<string, string> {
   const params: Record<string, string> = {}
-  
+
   // If we have a schema, extract param names from it
   if (schema && 'shape' in schema && schema.shape) {
     const shape = schema.shape as Record<string, any>
@@ -166,7 +168,7 @@ function extractPathParams(context: Context, schema?: z.ZodSchema): Record<strin
       }
     }
   }
-  
+
   return params
 }
 
@@ -176,7 +178,7 @@ function extractPathParams(context: Context, schema?: z.ZodSchema): Record<strin
 function createValidationHandler(config: ValidationInterceptorConfig): InterceptorHandler {
   return async (context: Context, interceptorContext: InterceptorContext, next: () => Promise<void>) => {
     const startTime = Date.now()
-    
+
     try {
       // Skip if validation is disabled
       if (!config.enabled) {
@@ -189,7 +191,7 @@ function createValidationHandler(config: ValidationInterceptorConfig): Intercept
 
       // Find matching schema
       const schema = findMatchingSchema(path, method, config.schemas || {})
-      
+
       // If no schema found, skip validation
       if (!schema) {
         await next()
@@ -211,11 +213,13 @@ function createValidationHandler(config: ValidationInterceptorConfig): Intercept
             }
           }
         } catch (error) {
-          allErrors.body = [{
-            field: 'body',
-            message: error instanceof Error ? error.message : 'Failed to parse request body',
-            code: 'BODY_PARSE_ERROR'
-          }]
+          allErrors.body = [
+            {
+              field: 'body',
+              message: error instanceof Error ? error.message : 'Failed to parse request body',
+              code: 'BODY_PARSE_ERROR'
+            }
+          ]
           validationResults.body = { valid: false, errors: allErrors.body }
         }
       }
@@ -254,7 +258,7 @@ function createValidationHandler(config: ValidationInterceptorConfig): Intercept
             }
           }
         }
-        
+
         const result = validateWithSchema(schema.headers, headers)
         validationResults.headers = result
         if (!result.valid && result.errors) {
@@ -299,7 +303,6 @@ function createValidationHandler(config: ValidationInterceptorConfig): Intercept
 
       // Continue to next interceptor/handler
       await next()
-
     } catch (error) {
       // Record timing even on error
       const duration = Date.now() - startTime
@@ -373,12 +376,14 @@ export function createBodyValidationSchema<T extends z.ZodRawShape>(shape: T): z
 /**
  * Utility function to create a query validation schema with common patterns
  */
-export function createQueryValidationSchema(options: {
-  pagination?: boolean
-  sorting?: string[]
-  filtering?: Record<string, z.ZodSchema>
-  search?: boolean
-} = {}): z.ZodSchema {
+export function createQueryValidationSchema(
+  options: {
+    pagination?: boolean
+    sorting?: string[]
+    filtering?: Record<string, z.ZodSchema>
+    search?: boolean
+  } = {}
+): z.ZodSchema {
   const shape: Record<string, z.ZodSchema> = {}
 
   if (options.pagination) {
@@ -449,9 +454,7 @@ export const CommonValidationSchemas = {
 /**
  * Utility function to merge validation schemas
  */
-export function mergeValidationSchemas(
-  ...schemas: z.ZodObject<any>[]
-): z.ZodObject<any> {
+export function mergeValidationSchemas(...schemas: z.ZodObject<any>[]): z.ZodObject<any> {
   return schemas.reduce((merged, schema) => merged.merge(schema))
 }
 

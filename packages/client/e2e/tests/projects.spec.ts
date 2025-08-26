@@ -57,7 +57,7 @@ test.describe('Project Management', () => {
 
       // Should show validation errors
       await TestAssertions.assertErrorMessage(page)
-      
+
       // Dialog should remain open
       await expect(projectsPage.projectDialog).toBeVisible()
     })
@@ -121,7 +121,7 @@ test.describe('Project Management', () => {
       // Start deletion but cancel
       await projectsPage.openProjectMenu(projectData.name)
       await projectsPage.projectMenuDelete.click()
-      
+
       // Cancel the confirmation dialog
       await TestAssertions.assertAndHandleConfirmation(page, 'dismiss')
 
@@ -191,7 +191,7 @@ test.describe('Project Management', () => {
       await projectsPage.goto()
       await projectsPage.waitForProjectsLoaded()
 
-      if (await projectsPage.getProjectCount() === 0) {
+      if ((await projectsPage.getProjectCount()) === 0) {
         expect(await projectsPage.isEmptyState()).toBe(true)
         await expect(projectsPage.emptyState).toBeVisible()
       }
@@ -203,18 +203,18 @@ test.describe('Project Management', () => {
       const projectZ = TestDataFactory.createProject({ name: 'Z Last Project' })
 
       await dataManager.createProject(projectA)
-      await new Promise(resolve => setTimeout(resolve, 100)) // Small delay
+      await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
       await dataManager.createProject(projectZ)
-      
+
       await projectsPage.goto()
 
       // Test name sorting
       await projectsPage.sortProjects('name')
-      
+
       const sortedNames = await projectsPage.getVisibleProjectNames()
       const firstProject = sortedNames[0]
       const lastProject = sortedNames[sortedNames.length - 1]
-      
+
       // Should be alphabetically sorted (A before Z)
       expect(firstProject.localeCompare(lastProject)).toBeLessThan(0)
     })
@@ -224,7 +224,7 @@ test.describe('Project Management', () => {
     test('should integrate with MCP project_manager tool', async ({ page }) => {
       // Verify MCP tools are available
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('project_manager')) {
         // Test listing projects via MCP
         const mcpResponse = await MCPTestHelpers.testProjectManagerTool(page, 'list')
@@ -254,7 +254,7 @@ test.describe('Project Management', () => {
 
       // Verify it's accessible via MCP
       const mcpResponse = await MCPTestHelpers.testProjectManagerTool(page, 'list')
-      
+
       if (mcpResponse && mcpResponse.success) {
         const mcpProjects = mcpResponse.data || []
         const foundProject = mcpProjects.find((p: any) => p.name === projectData.name)
@@ -267,10 +267,10 @@ test.describe('Project Management', () => {
   test.describe('Error Handling', () => {
     test('should handle network errors gracefully', async ({ page }) => {
       // Simulate network failure
-      await page.route('**/api/projects', route => route.abort())
+      await page.route('**/api/projects', (route) => route.abort())
 
       const projectData = TestDataFactory.createProject()
-      
+
       try {
         await projectsPage.createProject(projectData)
         // Should show error message instead of success
@@ -283,7 +283,7 @@ test.describe('Project Management', () => {
 
     test('should handle server validation errors', async ({ page }) => {
       // Mock server validation error response
-      await page.route('**/api/projects', route => {
+      await page.route('**/api/projects', (route) => {
         route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -298,7 +298,7 @@ test.describe('Project Management', () => {
       })
 
       const projectData = TestDataFactory.createProject()
-      
+
       try {
         await projectsPage.createProject(projectData)
       } catch (error) {
@@ -309,7 +309,7 @@ test.describe('Project Management', () => {
 
     test('should handle permission errors', async ({ page }) => {
       // Mock permission denied response
-      await page.route('**/api/projects', route => {
+      await page.route('**/api/projects', (route) => {
         route.fulfill({
           status: 403,
           contentType: 'application/json',
@@ -324,7 +324,7 @@ test.describe('Project Management', () => {
       })
 
       const projectData = TestDataFactory.createProject()
-      
+
       try {
         await projectsPage.createProject(projectData)
       } catch (error) {
@@ -347,7 +347,7 @@ test.describe('Project Management', () => {
     test('should handle large number of projects efficiently', async () => {
       // Create multiple projects to test performance
       const projectCount = 20
-      const projects = Array.from({ length: projectCount }, (_, i) => 
+      const projects = Array.from({ length: projectCount }, (_, i) =>
         TestDataFactory.createProject({ name: `Performance Test Project ${i + 1}` })
       )
 
@@ -355,7 +355,7 @@ test.describe('Project Management', () => {
       const batchSize = 5
       for (let i = 0; i < projects.length; i += batchSize) {
         const batch = projects.slice(i, i + batchSize)
-        await Promise.all(batch.map(project => dataManager.createProject(project)))
+        await Promise.all(batch.map((project) => dataManager.createProject(project)))
       }
 
       // Measure loading time with many projects

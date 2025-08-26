@@ -1,7 +1,7 @@
 /**
  * Generated MCP Hooks - Factory Pattern Implementation
  * Migrated from use-mcp-analytics-api.ts and use-mcp-global-api.ts
- * 
+ *
  * Replaces 239 + 98 = 337 lines of manual MCP hook code with factory-based patterns
  * Maintains 30s polling for analytics overview
  */
@@ -132,15 +132,15 @@ export const MCP_ENHANCED_KEYS = {
   detail: (id: number) => ['mcp', 'detail', id] as const,
   // MCP-specific query keys
   analytics: (projectId: number) => ['mcp', 'analytics', projectId] as const,
-  executions: (projectId: number, query?: MCPExecutionQuery) => 
+  executions: (projectId: number, query?: MCPExecutionQuery) =>
     ['mcp', 'analytics', projectId, 'executions', query] as const,
-  overview: (projectId: number, request?: MCPAnalyticsRequest) => 
+  overview: (projectId: number, request?: MCPAnalyticsRequest) =>
     ['mcp', 'analytics', projectId, 'overview', request] as const,
-  statistics: (projectId: number, request?: MCPAnalyticsRequest) => 
+  statistics: (projectId: number, request?: MCPAnalyticsRequest) =>
     ['mcp', 'analytics', projectId, 'statistics', request] as const,
-  timeline: (projectId: number, request?: MCPAnalyticsRequest) => 
+  timeline: (projectId: number, request?: MCPAnalyticsRequest) =>
     ['mcp', 'analytics', projectId, 'timeline', request] as const,
-  errorPatterns: (projectId: number, request?: MCPAnalyticsRequest) => 
+  errorPatterns: (projectId: number, request?: MCPAnalyticsRequest) =>
     ['mcp', 'analytics', projectId, 'error-patterns', request] as const,
   global: () => ['mcp', 'global'] as const,
   config: () => ['mcp', 'global', 'config'] as const,
@@ -488,7 +488,11 @@ export function useGlobalMCPManager() {
 
     // Helper methods
     isToolInstalled: (tool: string) => {
-      return (installations?.data as any)?.toolStatuses?.some((toolStatus: any) => toolStatus.tool === tool && toolStatus.installed) ?? false
+      return (
+        (installations?.data as any)?.toolStatuses?.some(
+          (toolStatus: any) => toolStatus.tool === tool && toolStatus.installed
+        ) ?? false
+      )
     },
 
     getInstallation: (tool: string) => {

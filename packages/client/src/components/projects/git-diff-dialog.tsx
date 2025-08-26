@@ -94,7 +94,12 @@ export function GitDiffDialog({
           <DialogTitle className='flex items-center justify-between'>
             <span className='text-sm truncate'>{filePath}</span>
             <div className='flex items-center gap-2'>
-              <Button variant='ghost' size='sm' onClick={handleCopyDiff} disabled={!((diffData as any)?.diff || diffData?.content || diffData)}>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleCopyDiff}
+                disabled={!((diffData as any)?.diff || diffData?.content || diffData)}
+              >
                 <Copy className='h-4 w-4' />
               </Button>
               <Button variant='ghost' size='sm' onClick={() => onOpenChange(false)}>
@@ -147,7 +152,9 @@ export function GitDiffDialog({
                   </div>
                 ) : (
                   <div className='max-h-[400px] overflow-auto'>
-                    <pre className='text-xs p-2 bg-muted rounded font-mono'>{(diffData as any)?.diff || diffData?.content || diffData}</pre>
+                    <pre className='text-xs p-2 bg-muted rounded font-mono'>
+                      {(diffData as any)?.diff || diffData?.content || diffData}
+                    </pre>
                   </div>
                 )}
               </>

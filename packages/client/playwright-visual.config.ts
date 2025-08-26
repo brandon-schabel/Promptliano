@@ -6,7 +6,7 @@ dotenv.config()
 
 /**
  * Visual Regression Testing Configuration
- * 
+ *
  * Specialized configuration for visual testing with:
  * - Optimized screenshot settings
  * - Consistent viewport sizes
@@ -17,7 +17,7 @@ export default defineConfig({
   testDir: './e2e/tests',
   testMatch: /.*\.visual\.spec\.ts/, // Only run visual tests
   timeout: 60 * 1000, // Longer timeout for visual tests
-  expect: { 
+  expect: {
     timeout: 10000,
     // Visual comparison settings
     toHaveScreenshot: {
@@ -35,13 +35,16 @@ export default defineConfig({
 
   // Visual testing specific reporting
   reporter: [
-    ['html', { 
-      outputFolder: 'playwright-report-visual', 
-      open: 'never',
-      attachmentsBaseURL: './screenshots/'
-    }],
+    [
+      'html',
+      {
+        outputFolder: 'playwright-report-visual',
+        open: 'never',
+        attachmentsBaseURL: './screenshots/'
+      }
+    ],
     ['json', { outputFile: 'visual-test-results.json' }],
-    ['list'],
+    ['list']
   ],
 
   // Optimized settings for visual testing
@@ -50,12 +53,12 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    
+
     // Consistent viewport for screenshots
     viewport: { width: 1280, height: 720 },
     headless: true,
     actionTimeout: 10 * 1000,
-    
+
     // Visual testing specific settings
     ignoreHTTPSErrors: true,
     // Disable animations globally for consistent screenshots
@@ -68,11 +71,11 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /.*\.setup\.ts/
     },
     {
       name: 'visual-chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // Force consistent rendering
         launchOptions: {
@@ -87,11 +90,11 @@ export default defineConfig({
           ]
         }
       },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'visual-firefox',
-      use: { 
+      use: {
         ...devices['Desktop Firefox'],
         // Firefox specific settings
         launchOptions: {
@@ -101,22 +104,22 @@ export default defineConfig({
           }
         }
       },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'visual-webkit',
-      use: { 
-        ...devices['Desktop Safari'],
+      use: {
+        ...devices['Desktop Safari']
       },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'visual-mobile',
-      use: { 
+      use: {
         ...devices['iPhone 12'],
         viewport: { width: 375, height: 667 } // Consistent mobile viewport
       },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     }
   ],
 
@@ -126,10 +129,10 @@ export default defineConfig({
 
   // Visual test specific output
   outputDir: 'visual-test-results/',
-  
+
   // Screenshot storage configuration
   snapshotDir: './e2e/visual-snapshots',
-  
+
   // Update snapshots in non-CI environments
-  updateSnapshots: process.env.CI ? 'none' : 'missing',
+  updateSnapshots: process.env.CI ? 'none' : 'missing'
 })

@@ -47,15 +47,19 @@ const FilenameSuggestionSchema = z
   })
   .openapi('FilenameSuggestionOutput')
 
-const ProvidersListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    isCustom: z.boolean().optional(),
-    baseUrl: z.string().optional()
-  }))
-}).openapi('ProvidersListResponse')
+const ProvidersListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        isCustom: z.boolean().optional(),
+        baseUrl: z.string().optional()
+      })
+    )
+  })
+  .openapi('ProvidersListResponse')
 
 // Use the imported structuredDataSchemas from @promptliano/schemas
 // which now includes all our asset generators
@@ -173,9 +177,11 @@ const updateProviderSettingsRoute = createRoute({
       description: 'Provider settings to update'
     }
   },
-  responses: createStandardResponses(OperationSuccessResponseSchema.extend({
-    data: UpdateProviderSettingsSchema
-  }))
+  responses: createStandardResponses(
+    OperationSuccessResponseSchema.extend({
+      data: UpdateProviderSettingsSchema
+    })
+  )
 })
 
 export const genAiRoutes = new OpenAPIHono()
@@ -193,19 +199,19 @@ export const genAiRoutes = new OpenAPIHono()
         { id: 'lmstudio', name: 'LMStudio', isCustom: false },
         { id: 'ollama', name: 'Ollama', isCustom: false }
       ]
-      
+
       // Get custom providers
       const customProviders = await providerKeyService.getCustomProviders()
-      const formattedCustomProviders = customProviders.map(cp => ({
+      const formattedCustomProviders = customProviders.map((cp) => ({
         id: cp.id,
         name: cp.name,
         isCustom: true,
         baseUrl: cp.baseUrl
       }))
-      
+
       // Combine both lists
       const allProviders = [...predefinedProviders, ...formattedCustomProviders]
-      
+
       return c.json(successResponse(allProviders))
     } catch (error) {
       console.error('Failed to fetch providers:', error)
@@ -280,19 +286,19 @@ export const genAiRoutes = new OpenAPIHono()
         const customKey = await providerKeyService.getKeyById(keyId)
         if (customKey && customKey.provider === 'custom' && customKey.baseUrl && customKey.key) {
           const modelFetcherService = new ModelFetcherService({})
-          
+
           try {
             const models = await modelFetcherService.listCustomProviderModels({
               baseUrl: customKey.baseUrl,
               apiKey: customKey.key
             })
-            
+
             const modelData = models.map((model) => ({
               id: model.id,
               name: model.name,
               provider
             }))
-            
+
             return c.json(successResponse(modelData))
           } catch (error) {
             console.error(`Failed to fetch models for custom provider ${keyId}:`, error)

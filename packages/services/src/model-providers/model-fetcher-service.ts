@@ -369,11 +369,11 @@ export class ModelFetcherService {
 
     const response = await fetch(`${normalizedUrl}/models`, {
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       }
     })
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       throw new Error(`Custom provider error: ${response.statusText} - ${errorText}`)

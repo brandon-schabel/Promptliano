@@ -1,6 +1,6 @@
 /**
  * Parallel Execution Coordinator
- * 
+ *
  * This module provides advanced coordination for parallel test execution,
  * ensuring proper resource management, load balancing, and conflict prevention.
  */
@@ -87,9 +87,7 @@ export class ParallelExecutionCoordinator {
 
   static getInstance(config?: ParallelExecutionConfig): ParallelExecutionCoordinator {
     if (!this.instance) {
-      this.instance = new ParallelExecutionCoordinator(
-        config || this.getDefaultConfig()
-      )
+      this.instance = new ParallelExecutionCoordinator(config || this.getDefaultConfig())
     }
     return this.instance
   }
@@ -135,11 +133,7 @@ export class ParallelExecutionCoordinator {
         maxRetries: 3,
         retryDelay: 1000,
         backoffMultiplier: 2,
-        retryableErrors: [
-          'TimeoutError',
-          'NetworkError',
-          'TemporaryResourceUnavailable'
-        ]
+        retryableErrors: ['TimeoutError', 'NetworkError', 'TemporaryResourceUnavailable']
       },
       timeouts: {
         testTimeout: 60000,
@@ -154,7 +148,7 @@ export class ParallelExecutionCoordinator {
    * Initialize resource pools
    */
   private initializeResourcePools(): void {
-    this.config.resourcePools.forEach(pool => {
+    this.config.resourcePools.forEach((pool) => {
       this.resourcePools.set(pool.name, { ...pool })
     })
   }
@@ -174,13 +168,13 @@ export class ParallelExecutionCoordinator {
 
     // Check resource availability
     const canExecuteNow = await this.checkResourceAvailability(testContext.requiredResources)
-    
+
     if (canExecuteNow) {
       await this.allocateResources(testContext)
       const worker = await this.assignWorker(testContext)
       testContext.assignedWorker = worker
       testContext.startTime = Date.now()
-      
+
       this.activeTests.set(testContext.testId, testContext)
       return testContext.testId
     } else {
@@ -231,13 +225,14 @@ export class ParallelExecutionCoordinator {
 
     // Increment retry count
     testContext.retryCount++
-    
+
     // Calculate retry delay
-    const delay = this.config.retryStrategy.retryDelay * 
-                  Math.pow(this.config.retryStrategy.backoffMultiplier, testContext.retryCount - 1)
+    const delay =
+      this.config.retryStrategy.retryDelay *
+      Math.pow(this.config.retryStrategy.backoffMultiplier, testContext.retryCount - 1)
 
     // Wait before retry
-    await new Promise(resolve => setTimeout(resolve, delay))
+    await new Promise((resolve) => setTimeout(resolve, delay))
 
     // Re-request execution
     await this.completeTestExecution(testId, false)
@@ -250,7 +245,7 @@ export class ParallelExecutionCoordinator {
    * Check if resources are available for test execution
    */
   private async checkResourceAvailability(requiredResources: string[]): Promise<boolean> {
-    return requiredResources.every(resourceName => {
+    return requiredResources.every((resourceName) => {
       const pool = this.resourcePools.get(resourceName)
       return pool && pool.currentUsage < pool.maxConcurrent
     })
@@ -287,13 +282,13 @@ export class ParallelExecutionCoordinator {
     switch (this.config.loadBalancingStrategy) {
       case 'round-robin':
         return this.assignWorkerRoundRobin()
-      
+
       case 'least-loaded':
         return this.assignWorkerLeastLoaded()
-      
+
       case 'resource-aware':
         return this.assignWorkerResourceAware(testContext)
-      
+
       default:
         return this.assignWorkerRoundRobin()
     }
@@ -307,7 +302,7 @@ export class ParallelExecutionCoordinator {
     if (workers.length === 0) {
       return 'worker-0' // Default worker
     }
-    
+
     const currentIndex = workers.length % this.config.maxWorkers
     return workers[currentIndex] || 'worker-0'
   }
@@ -341,9 +336,9 @@ export class ParallelExecutionCoordinator {
       const resourceScore = this.calculateResourceScore(load, testContext.requiredResources)
       const performanceScore = load.performance.successRate * 100
       const loadScore = Math.max(0, 100 - load.activeTests * 10)
-      
-      const totalScore = (resourceScore * 0.4) + (performanceScore * 0.4) + (loadScore * 0.2)
-      
+
+      const totalScore = resourceScore * 0.4 + performanceScore * 0.4 + loadScore * 0.2
+
       if (totalScore > bestScore) {
         bestScore = totalScore
         bestWorker = workerId
@@ -360,10 +355,10 @@ export class ParallelExecutionCoordinator {
     let totalScore = 0
     let resourceCount = 0
 
-    requiredResources.forEach(resource => {
+    requiredResources.forEach((resource) => {
       const usage = workerLoad.resourceUsage.get(resource) || 0
       const pool = this.resourcePools.get(resource)
-      
+
       if (pool) {
         const utilizationRate = usage / pool.maxConcurrent
         totalScore += Math.max(0, 100 - utilizationRate * 100)
@@ -377,13 +372,9 @@ export class ParallelExecutionCoordinator {
   /**
    * Update worker load information after test completion
    */
-  private async updateWorkerLoad(
-    workerId: string, 
-    testContext: TestExecutionContext, 
-    success: boolean
-  ): Promise<void> {
+  private async updateWorkerLoad(workerId: string, testContext: TestExecutionContext, success: boolean): Promise<void> {
     let workerLoad = this.workerLoads.get(workerId)
-    
+
     if (!workerLoad) {
       workerLoad = {
         workerId,
@@ -402,7 +393,7 @@ export class ParallelExecutionCoordinator {
     workerLoad.activeTests = Math.max(0, workerLoad.activeTests - 1)
 
     // Update resource usage
-    testContext.requiredResources.forEach(resource => {
+    testContext.requiredResources.forEach((resource) => {
       const currentUsage = workerLoad!.resourceUsage.get(resource) || 0
       workerLoad!.resourceUsage.set(resource, Math.max(0, currentUsage - 1))
     })
@@ -411,13 +402,11 @@ export class ParallelExecutionCoordinator {
     if (testContext.startTime) {
       const duration = Date.now() - testContext.startTime
       const currentAvg = workerLoad.performance.avgTestDuration
-      workerLoad.performance.avgTestDuration = 
-        currentAvg === 0 ? duration : (currentAvg + duration) / 2
+      workerLoad.performance.avgTestDuration = currentAvg === 0 ? duration : (currentAvg + duration) / 2
 
       // Update success rate (exponential moving average)
       const alpha = 0.1
-      workerLoad.performance.successRate = 
-        alpha * (success ? 1 : 0) + (1 - alpha) * workerLoad.performance.successRate
+      workerLoad.performance.successRate = alpha * (success ? 1 : 0) + (1 - alpha) * workerLoad.performance.successRate
     }
 
     workerLoad.performance.lastUpdateTime = Date.now()
@@ -428,9 +417,9 @@ export class ParallelExecutionCoordinator {
    */
   private addToExecutionQueue(testContext: TestExecutionContext): void {
     // Insert based on priority (higher priority first)
-    const priorityOrder = { 'critical': 0, 'high': 1, 'normal': 2, 'low': 3 }
+    const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 }
     const contextPriority = priorityOrder[testContext.priority]
-    
+
     let insertIndex = this.executionQueue.length
     for (let i = 0; i < this.executionQueue.length; i++) {
       const queuePriority = priorityOrder[this.executionQueue[i].priority]
@@ -452,7 +441,7 @@ export class ParallelExecutionCoordinator {
     for (let i = 0; i < this.executionQueue.length; i++) {
       const testContext = this.executionQueue[i]
       const canExecute = await this.checkResourceAvailability(testContext.requiredResources)
-      
+
       if (canExecute) {
         readyTests.push(testContext)
         this.executionQueue.splice(i, 1)
@@ -466,7 +455,7 @@ export class ParallelExecutionCoordinator {
       const worker = await this.assignWorker(testContext)
       testContext.assignedWorker = worker
       testContext.startTime = Date.now()
-      
+
       this.activeTests.set(testContext.testId, testContext)
     }
   }
@@ -479,8 +468,8 @@ export class ParallelExecutionCoordinator {
       return false
     }
 
-    return this.config.retryStrategy.retryableErrors.some(retryableError =>
-      error.name.includes(retryableError) || error.message.includes(retryableError)
+    return this.config.retryStrategy.retryableErrors.some(
+      (retryableError) => error.name.includes(retryableError) || error.message.includes(retryableError)
     )
   }
 
@@ -503,7 +492,7 @@ export class ParallelExecutionCoordinator {
   } {
     const resourceUtilization = new Map<string, number>()
     this.resourcePools.forEach((pool, name) => {
-      resourceUtilization.set(name, pool.currentUsage / pool.maxConcurrent * 100)
+      resourceUtilization.set(name, (pool.currentUsage / pool.maxConcurrent) * 100)
     })
 
     const totalWaitTime = this.executionQueue.reduce((sum, test) => {
@@ -527,9 +516,9 @@ export class ParallelExecutionCoordinator {
     // Clear all queues
     this.executionQueue.length = 0
     this.activeTests.clear()
-    
+
     // Reset resource pools
-    this.resourcePools.forEach(pool => {
+    this.resourcePools.forEach((pool) => {
       pool.currentUsage = 0
       pool.waitingQueue.length = 0
     })

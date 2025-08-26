@@ -62,18 +62,21 @@ export function FlowTabWithSidebar({
   // TODO: Use proper ticket with tasks hook when available
   const tickets: TicketWithTasks[] = React.useMemo(() => {
     if (!rawTickets) return []
-    return rawTickets.map((ticket) => ({
-      ...ticket,
-      tasks: [] // For now, we'll use empty tasks array
-    } as TicketWithTasks))
+    return rawTickets.map(
+      (ticket) =>
+        ({
+          ...ticket,
+          tasks: [] // For now, we'll use empty tasks array
+        }) as TicketWithTasks
+    )
   }, [rawTickets])
 
   // Derive selected ticket from selectedTicketId and tickets data
   const selectedTicket: import('@/hooks/generated/types').TicketWithTasksNested | null = React.useMemo(() => {
     if (!selectedTicketId || !tickets) return null
-    const ticket = tickets.find(t => t.id === selectedTicketId)
+    const ticket = tickets.find((t) => t.id === selectedTicketId)
     if (!ticket) return null
-    
+
     // Convert the flat TicketWithTasks to the nested structure expected by TicketDetailView
     const { tasks, ...ticketData } = ticket
     return {
@@ -91,16 +94,16 @@ export function FlowTabWithSidebar({
     // Apply status filter
     switch (ticketStatusFilter) {
       case 'non_closed':
-        filtered = filtered.filter(t => t.status !== 'closed')
+        filtered = filtered.filter((t) => t.status !== 'closed')
         break
       case 'open':
-        filtered = filtered.filter(t => t.status === 'open')
+        filtered = filtered.filter((t) => t.status === 'open')
         break
       case 'in_progress':
-        filtered = filtered.filter(t => t.status === 'in_progress')
+        filtered = filtered.filter((t) => t.status === 'in_progress')
         break
       case 'closed':
-        filtered = filtered.filter(t => t.status === 'closed')
+        filtered = filtered.filter((t) => t.status === 'closed')
         break
       case 'all':
       default:
@@ -112,10 +115,10 @@ export function FlowTabWithSidebar({
     if (ticketQueueFilter === 'all') {
       // No queue filtering
     } else if (ticketQueueFilter === 'unqueued') {
-      filtered = filtered.filter(t => t.queueId == null)
+      filtered = filtered.filter((t) => t.queueId == null)
     } else {
       // It's a specific queue ID
-      filtered = filtered.filter(t => t.queueId?.toString() === ticketQueueFilter)
+      filtered = filtered.filter((t) => t.queueId?.toString() === ticketQueueFilter)
     }
 
     return filtered
@@ -154,7 +157,12 @@ export function FlowTabWithSidebar({
                     </Button>
                   </div>
                   <div className='flex items-center gap-2'>
-                    <Select value={ticketStatusFilter} onValueChange={(value: 'all' | 'open' | 'in_progress' | 'closed' | 'non_closed') => setTicketStatusFilter(value)}>
+                    <Select
+                      value={ticketStatusFilter}
+                      onValueChange={(value: 'all' | 'open' | 'in_progress' | 'closed' | 'non_closed') =>
+                        setTicketStatusFilter(value)
+                      }
+                    >
                       <SelectTrigger className='flex-1 h-8'>
                         <Filter className='h-3 w-3 mr-1' />
                         <SelectValue placeholder='Status' />

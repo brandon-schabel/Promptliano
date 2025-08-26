@@ -11,7 +11,7 @@ describe('Cache Interceptor', () => {
 
   beforeEach(() => {
     mockCache = new Map()
-    
+
     mockContext = {
       req: {
         method: 'GET',
@@ -119,7 +119,6 @@ describe('Cache Interceptor', () => {
         etag: 'etag-123'
       }
       mockCache.set(cacheKey, cachedResponse)
-
       ;(mockContext.req as any).header = mock((name: string) => {
         if (name === 'if-none-match') return 'etag-123'
         return undefined
@@ -174,7 +173,7 @@ describe('Cache Interceptor', () => {
       }
 
       const responseData = { id: 123, name: 'Test Project' }
-      
+
       // Mock successful response
       mockNext = mock(async () => {
         ;(mockContext.res as any).status = 200
@@ -190,7 +189,7 @@ describe('Cache Interceptor', () => {
 
       expect(mockNext).toHaveBeenCalled()
       expect(mockCache$.set).toHaveBeenCalled()
-      
+
       // Verify cache key generation
       const cacheKey = 'GET:/api/projects/123'
       expect(interceptorContext.cacheKeys).toContain(cacheKey)
@@ -350,7 +349,9 @@ describe('Cache Interceptor', () => {
   describe('error handling', () => {
     it('should proceed normally if cache operations fail', async () => {
       const mockCache$ = {
-        get: mock(() => { throw new Error('Cache read error') }),
+        get: mock(() => {
+          throw new Error('Cache read error')
+        }),
         set: mock(),
         delete: mock(),
         has: mock(() => false)

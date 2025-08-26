@@ -1,6 +1,11 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { createPromptlianoClient } from '@promptliano/api-client'
-import type { PromptlianoClient, CreateClaudeAgentBody, UpdateClaudeAgentBody, ClaudeAgent } from '@promptliano/api-client'
+import type {
+  PromptlianoClient,
+  CreateClaudeAgentBody,
+  UpdateClaudeAgentBody,
+  ClaudeAgent
+} from '@promptliano/api-client'
 import type { TestEnvironment } from './test-environment'
 import { withTestEnvironment } from './test-environment'
 import { assertions, factories, TestDataManager, withTestData, retryOperation, waitFor } from './utils/test-helpers'
@@ -12,7 +17,6 @@ import { join, dirname } from 'path'
  * Tests agent CRUD, suggestions, project associations, file detection, and management
  */
 describe('Claude Agent API Tests', () => {
-  
   /**
    * Test helper to create agent files in a test directory
    */
@@ -134,7 +138,7 @@ You specialize in comprehensive testing strategies and automation.
         const env = getEnv()
         client = createPromptlianoClient({ baseUrl: env.baseUrl })
         dataManager = new TestDataManager(client)
-        
+
         // Create a test project
         const project = await dataManager.createProject({
           name: 'Agent Test Project',
@@ -155,7 +159,7 @@ You specialize in comprehensive testing strategies and automation.
         })
 
         const response = await client.agents.createAgent(agentData)
-        
+
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
         expect(response.data.name).toBe(agentData.name)
@@ -176,7 +180,7 @@ You specialize in comprehensive testing strategies and automation.
         })
 
         const response = await client.agents.createAgent(agentData, testProjectId)
-        
+
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
         expect(response.data.projectId).toBe(testProjectId)
@@ -195,11 +199,11 @@ You specialize in comprehensive testing strategies and automation.
         agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
 
         const response = await client.agents.listAgents()
-        
+
         assertions.assertSuccessResponse(response)
         assertions.assertArrayOfItems(response.data, 3)
-        
-        response.data.forEach(agent => {
+
+        response.data.forEach((agent) => {
           assertValidAgent(agent)
         })
 
@@ -213,38 +217,34 @@ You specialize in comprehensive testing strategies and automation.
       test('should list agents filtered by project', async () => {
         // Create agents with and without project association
         const projectAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Project Filtered Agent' }), 
+          createTestAgentData({ name: 'Project Filtered Agent' }),
           testProjectId
         )
-        const globalAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Global Agent' })
-        )
+        const globalAgent = await client.agents.createAgent(createTestAgentData({ name: 'Global Agent' }))
 
         dataManager.trackAgent(projectAgent.data.id)
         dataManager.trackAgent(globalAgent.data.id)
 
         const response = await client.agents.listAgents(testProjectId)
-        
+
         assertions.assertSuccessResponse(response)
-        
+
         // Should include project-specific agents
         const agentNames = response.data.map((a: any) => a.name)
         expect(agentNames).toContain('Project Filtered Agent')
-        
+
         // Verify all returned agents are either global or associated with the project
-        response.data.forEach(agent => {
+        response.data.forEach((agent) => {
           expect(agent.projectId === undefined || agent.projectId === testProjectId).toBe(true)
         })
       })
 
       test('should get single agent by ID', async () => {
-        const createdAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Get Single Agent' })
-        )
+        const createdAgent = await client.agents.createAgent(createTestAgentData({ name: 'Get Single Agent' }))
         dataManager.trackAgent(createdAgent.data.id)
 
         const response = await client.agents.getAgent(createdAgent.data.id)
-        
+
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
         expect(response.data.id).toBe(createdAgent.data.id)
@@ -252,9 +252,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should update agent successfully', async () => {
-        const createdAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Update Agent Original' })
-        )
+        const createdAgent = await client.agents.createAgent(createTestAgentData({ name: 'Update Agent Original' }))
         dataManager.trackAgent(createdAgent.data.id)
 
         const updateData: UpdateClaudeAgentBody = {
@@ -265,7 +263,7 @@ You specialize in comprehensive testing strategies and automation.
         }
 
         const response = await client.agents.updateAgent(createdAgent.data.id, updateData)
-        
+
         assertions.assertSuccessResponse(response)
         assertValidAgent(response.data)
         expect(response.data.id).toBe(createdAgent.data.id)
@@ -277,9 +275,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should partially update agent', async () => {
-        const createdAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Partial Update Agent' })
-        )
+        const createdAgent = await client.agents.createAgent(createTestAgentData({ name: 'Partial Update Agent' }))
         dataManager.trackAgent(createdAgent.data.id)
 
         const partialUpdate: UpdateClaudeAgentBody = {
@@ -287,7 +283,7 @@ You specialize in comprehensive testing strategies and automation.
         }
 
         const response = await client.agents.updateAgent(createdAgent.data.id, partialUpdate)
-        
+
         assertions.assertSuccessResponse(response)
         expect(response.data.name).toBe(partialUpdate.name)
         // Other fields should remain unchanged
@@ -297,9 +293,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should delete agent successfully', async () => {
-        const createdAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Delete Test Agent' })
-        )
+        const createdAgent = await client.agents.createAgent(createTestAgentData({ name: 'Delete Test Agent' }))
 
         const deleteResult = await client.agents.deleteAgent(createdAgent.data.id)
         expect(deleteResult).toBe(true)
@@ -328,7 +322,7 @@ You specialize in comprehensive testing strategies and automation.
         const env = getEnv()
         client = createPromptlianoClient({ baseUrl: env.baseUrl })
         dataManager = new TestDataManager(client)
-        
+
         const project = await dataManager.createProject({
           name: 'Suggestions Test Project',
           description: 'Test project for agent suggestions',
@@ -338,22 +332,28 @@ You specialize in comprehensive testing strategies and automation.
 
         // Create some agents to suggest
         await Promise.all([
-          client.agents.createAgent(createTestAgentData({
-            name: 'Frontend Developer',
-            description: 'Expert in React, Vue, and Angular development',
-            content: 'Specializes in modern frontend frameworks and UI/UX design'
-          })),
-          client.agents.createAgent(createTestAgentData({
-            name: 'Backend Engineer', 
-            description: 'Expert in Node.js, Python, and database design',
-            content: 'Focuses on API development and server architecture'
-          })),
-          client.agents.createAgent(createTestAgentData({
-            name: 'DevOps Specialist',
-            description: 'Expert in CI/CD, Docker, and cloud infrastructure',
-            content: 'Specializes in deployment automation and monitoring'
-          }))
-        ]).then(agents => {
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'Frontend Developer',
+              description: 'Expert in React, Vue, and Angular development',
+              content: 'Specializes in modern frontend frameworks and UI/UX design'
+            })
+          ),
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'Backend Engineer',
+              description: 'Expert in Node.js, Python, and database design',
+              content: 'Focuses on API development and server architecture'
+            })
+          ),
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'DevOps Specialist',
+              description: 'Expert in CI/CD, Docker, and cloud infrastructure',
+              content: 'Specializes in deployment automation and monitoring'
+            })
+          )
+        ]).then((agents) => {
           agents.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
         })
       })
@@ -367,12 +367,12 @@ You specialize in comprehensive testing strategies and automation.
           testProjectId,
           'I need help building a React component with TypeScript'
         )
-        
+
         assertions.assertSuccessResponse(response)
         expect(Array.isArray(response.data.agents)).toBe(true)
         expect(response.data.agents.length).toBeGreaterThan(0)
-        
-        response.data.agents.forEach(suggestion => {
+
+        response.data.agents.forEach((suggestion) => {
           assertValidAgentSuggestion(suggestion)
         })
 
@@ -386,10 +386,10 @@ You specialize in comprehensive testing strategies and automation.
           testProjectId,
           'I need to design an API and set up a database'
         )
-        
+
         assertions.assertSuccessResponse(response)
         expect(response.data.agents.length).toBeGreaterThan(0)
-        
+
         const topSuggestion = response.data.agents[0]
         expect(topSuggestion.name.toLowerCase()).toContain('backend')
       })
@@ -399,29 +399,25 @@ You specialize in comprehensive testing strategies and automation.
           testProjectId,
           'I need to set up CI/CD pipeline and deploy to AWS'
         )
-        
+
         assertions.assertSuccessResponse(response)
         expect(response.data.agents.length).toBeGreaterThan(0)
-        
+
         const topSuggestion = response.data.agents[0]
         expect(topSuggestion.name.toLowerCase()).toContain('devops')
       })
 
       test('should respect suggestion limit', async () => {
         const limit = 2
-        const response = await client.agents.suggestAgents(
-          testProjectId,
-          'I need help with development',
-          limit
-        )
-        
+        const response = await client.agents.suggestAgents(testProjectId, 'I need help with development', limit)
+
         assertions.assertSuccessResponse(response)
         expect(response.data.agents.length).toBeLessThanOrEqual(limit)
       })
 
       test.skipIf(process.env.CI)('should handle empty context gracefully', async () => {
         const response = await client.agents.suggestAgents(testProjectId, '')
-        
+
         assertions.assertSuccessResponse(response)
         expect(Array.isArray(response.data.agents)).toBe(true)
         // Should still return some suggestions, possibly ranked by general relevance
@@ -443,7 +439,7 @@ You specialize in comprehensive testing strategies and automation.
         const env = getEnv()
         client = createPromptlianoClient({ baseUrl: env.baseUrl })
         dataManager = new TestDataManager(client)
-        
+
         const project = await dataManager.createProject({
           name: 'Association Test Project',
           description: 'Test project for agent associations',
@@ -452,9 +448,7 @@ You specialize in comprehensive testing strategies and automation.
         testProjectId = project.id
 
         // Create a global agent for association testing
-        const globalAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Global Association Agent' })
-        )
+        const globalAgent = await client.agents.createAgent(createTestAgentData({ name: 'Global Association Agent' }))
         globalAgentId = globalAgent.data.id
         dataManager.trackAgent(globalAgentId)
       })
@@ -468,19 +462,17 @@ You specialize in comprehensive testing strategies and automation.
         await client.agents.addAgentToProject(testProjectId, globalAgentId)
 
         const response = await client.agents.listProjectAgents(testProjectId)
-        
+
         assertions.assertSuccessResponse(response)
         assertions.assertArrayOfItems(response.data, 1)
-        
+
         const agentIds = response.data.map((a: any) => a.id)
         expect(agentIds).toContain(globalAgentId)
       })
 
       test('should add agent to project', async () => {
         // Create another agent for testing
-        const newAgent = await client.agents.createAgent(
-          createTestAgentData({ name: 'New Association Agent' })
-        )
+        const newAgent = await client.agents.createAgent(createTestAgentData({ name: 'New Association Agent' }))
         dataManager.trackAgent(newAgent.data.id)
 
         const result = await client.agents.addAgentToProject(testProjectId, newAgent.data.id)
@@ -494,9 +486,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should remove agent from project', async () => {
         // Add an agent first
-        const agentToRemove = await client.agents.createAgent(
-          createTestAgentData({ name: 'Remove Association Agent' })
-        )
+        const agentToRemove = await client.agents.createAgent(createTestAgentData({ name: 'Remove Association Agent' }))
         dataManager.trackAgent(agentToRemove.data.id)
 
         await client.agents.addAgentToProject(testProjectId, agentToRemove.data.id)
@@ -515,9 +505,9 @@ You specialize in comprehensive testing strategies and automation.
         // Try to add the same agent twice
         await client.agents.addAgentToProject(testProjectId, globalAgentId)
         const result = await client.agents.addAgentToProject(testProjectId, globalAgentId)
-        
+
         expect(result).toBe(true) // Should not error
-        
+
         // Should still only appear once in the list
         const projectAgents = await client.agents.listProjectAgents(testProjectId)
         const matchingAgents = projectAgents.data.filter((a: any) => a.id === globalAgentId)
@@ -541,7 +531,7 @@ You specialize in comprehensive testing strategies and automation.
         const env = getEnv()
         client = createPromptlianoClient({ baseUrl: env.baseUrl })
         dataManager = new TestDataManager(client)
-        
+
         testProjectPath = '/tmp/agent-files-test-project'
         const project = await dataManager.createProject({
           name: 'Agent Files Test Project',
@@ -561,7 +551,7 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should detect agent files in project', async () => {
         const response = await client.agentFiles.detectFiles(testProjectId)
-        
+
         assertions.assertSuccessResponse(response)
         expect(response.data).toBeDefined()
         expect(response.data.projectFiles).toBeDefined()
@@ -576,7 +566,7 @@ You specialize in comprehensive testing strategies and automation.
         expect(projectFileNames).toContain('testing-specialist.md')
 
         // Verify file structure
-        response.data.projectFiles.forEach(file => {
+        response.data.projectFiles.forEach((file) => {
           expect(file.type).toBeTypeOf('string')
           expect(file.name).toBeTypeOf('string')
           expect(file.path).toBeTypeOf('string')
@@ -588,8 +578,8 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should detect file details correctly', async () => {
         const response = await client.agentFiles.detectFiles(testProjectId)
-        
-        const frontendAgent = response.data.projectFiles.find(f => f.name === 'frontend-expert.md')
+
+        const frontendAgent = response.data.projectFiles.find((f) => f.name === 'frontend-expert.md')
         expect(frontendAgent).toBeDefined()
         expect(frontendAgent!.exists).toBe(true)
         expect(frontendAgent!.scope).toBe('project')
@@ -605,7 +595,7 @@ You specialize in comprehensive testing strategies and automation.
         })
 
         const response = await client.agentFiles.detectFiles(emptyProject.id)
-        
+
         assertions.assertSuccessResponse(response)
         expect(response.data.projectFiles).toEqual([])
         expect(Array.isArray(response.data.globalFiles)).toBe(true)
@@ -670,9 +660,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should handle empty update gracefully', async () => {
-        const agent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Empty Update Test' })
-        )
+        const agent = await client.agents.createAgent(createTestAgentData({ name: 'Empty Update Test' }))
         dataManager.trackAgent(agent.data.id)
 
         try {
@@ -739,16 +727,18 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should handle multiple concurrent agent creations', async () => {
         const agentPromises = Array.from({ length: 5 }, (_, i) =>
-          client.agents.createAgent(createTestAgentData({
-            name: `Concurrent Agent ${i}`,
-            description: `Concurrent test agent ${i}`
-          }))
+          client.agents.createAgent(
+            createTestAgentData({
+              name: `Concurrent Agent ${i}`,
+              description: `Concurrent test agent ${i}`
+            })
+          )
         )
 
         const results = await Promise.all(agentPromises)
-        
+
         // Track all for cleanup
-        results.forEach(agent => dataManager.trackAgent(agent.data.id))
+        results.forEach((agent) => dataManager.trackAgent(agent.data.id))
 
         // All should succeed
         results.forEach((result: any) => {
@@ -774,9 +764,7 @@ You specialize in comprehensive testing strategies and automation.
 
         // Perform concurrent reads
         const startTime = Date.now()
-        const readPromises = agents.map((agent: any) =>
-          client.agents.getAgent(agent.data.id)
-        )
+        const readPromises = agents.map((agent: any) => client.agents.getAgent(agent.data.id))
 
         const results = await Promise.all(readPromises)
         const endTime = Date.now()
@@ -797,10 +785,12 @@ You specialize in comprehensive testing strategies and automation.
 
         // Create multiple agents
         const agentPromises = Array.from({ length: 10 }, (_, i) =>
-          client.agents.createAgent(createTestAgentData({
-            name: `Bulk Agent ${i}`,
-            color: (i % 2 === 0) ? 'blue' : 'green'
-          }))
+          client.agents.createAgent(
+            createTestAgentData({
+              name: `Bulk Agent ${i}`,
+              color: i % 2 === 0 ? 'blue' : 'green'
+            })
+          )
         )
 
         const agents = await Promise.all(agentPromises)
@@ -808,7 +798,7 @@ You specialize in comprehensive testing strategies and automation.
 
         // List all agents
         const listResponse = await client.agents.listAgents()
-        
+
         const endTime = Date.now()
         const totalTime = endTime - startTime
 
@@ -820,9 +810,7 @@ You specialize in comprehensive testing strategies and automation.
       })
 
       test('should maintain data consistency under concurrent updates', async () => {
-        const agent = await client.agents.createAgent(
-          createTestAgentData({ name: 'Concurrent Update Test' })
-        )
+        const agent = await client.agents.createAgent(createTestAgentData({ name: 'Concurrent Update Test' }))
         dataManager.trackAgent(agent.data.id)
 
         // Perform concurrent updates
@@ -843,7 +831,7 @@ You specialize in comprehensive testing strategies and automation.
         // Final state should be consistent
         const finalAgent = await client.agents.getAgent(agent.data.id)
         assertions.assertSuccessResponse(finalAgent)
-        
+
         // Should have the latest timestamp
         const latestUpdate = Math.max(...results.map((r: any) => r.data.updated))
         expect(finalAgent.data.updated).toBe(latestUpdate)
@@ -864,7 +852,7 @@ You specialize in comprehensive testing strategies and automation.
         const env = getEnv()
         client = createPromptlianoClient({ baseUrl: env.baseUrl })
         dataManager = new TestDataManager(client)
-        
+
         const project = await dataManager.createProject({
           name: 'Integration Test Project',
           description: 'Test project for integration scenarios',
@@ -879,11 +867,13 @@ You specialize in comprehensive testing strategies and automation.
 
       test('should support full agent lifecycle workflow', async () => {
         // 1. Create agent
-        const createResponse = await client.agents.createAgent(createTestAgentData({
-          name: 'Lifecycle Agent',
-          description: 'Testing full lifecycle'
-        }))
-        
+        const createResponse = await client.agents.createAgent(
+          createTestAgentData({
+            name: 'Lifecycle Agent',
+            description: 'Testing full lifecycle'
+          })
+        )
+
         assertions.assertSuccessResponse(createResponse)
         const agentId = createResponse.data.id
         dataManager.trackAgent(agentId)
@@ -893,7 +883,7 @@ You specialize in comprehensive testing strategies and automation.
 
         // 3. Verify in project list
         const projectAgents = await client.agents.listProjectAgents(testProjectId)
-        expect(projectAgents.data.some(a => a.id === agentId)).toBe(true)
+        expect(projectAgents.data.some((a) => a.id === agentId)).toBe(true)
 
         // 4. Update agent
         const updateResponse = await client.agents.updateAgent(agentId, {
@@ -903,10 +893,7 @@ You specialize in comprehensive testing strategies and automation.
         assertions.assertSuccessResponse(updateResponse)
 
         // 5. Use in suggestions
-        const suggestionsResponse = await client.agents.suggestAgents(
-          testProjectId, 
-          'lifecycle testing'
-        )
+        const suggestionsResponse = await client.agents.suggestAgents(testProjectId, 'lifecycle testing')
         assertions.assertSuccessResponse(suggestionsResponse)
         // Should include our agent in suggestions (if relevant)
 
@@ -915,11 +902,11 @@ You specialize in comprehensive testing strategies and automation.
 
         // 7. Verify removal
         const updatedProjectAgents = await client.agents.listProjectAgents(testProjectId)
-        expect(updatedProjectAgents.data.some(a => a.id === agentId)).toBe(false)
+        expect(updatedProjectAgents.data.some((a) => a.id === agentId)).toBe(false)
 
         // 8. Agent should still exist globally
         const globalAgents = await client.agents.listAgents()
-        expect(globalAgents.data.some(a => a.id === agentId)).toBe(true)
+        expect(globalAgents.data.some((a) => a.id === agentId)).toBe(true)
 
         // 9. Delete agent
         await client.agents.deleteAgent(agentId)
@@ -936,26 +923,34 @@ You specialize in comprehensive testing strategies and automation.
       test('should handle complex agent ecosystem', async () => {
         // Create multiple agents with different specializations
         const specialists = await Promise.all([
-          client.agents.createAgent(createTestAgentData({
-            name: 'React Specialist',
-            description: 'Expert in React development and hooks',
-            color: 'blue'
-          })),
-          client.agents.createAgent(createTestAgentData({
-            name: 'Node.js Expert',
-            description: 'Backend development with Node.js and Express',
-            color: 'green'
-          })),
-          client.agents.createAgent(createTestAgentData({
-            name: 'Database Designer',
-            description: 'Database architecture and optimization',
-            color: 'purple'
-          })),
-          client.agents.createAgent(createTestAgentData({
-            name: 'Testing Engineer',
-            description: 'Automated testing and quality assurance',
-            color: 'orange'
-          }))
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'React Specialist',
+              description: 'Expert in React development and hooks',
+              color: 'blue'
+            })
+          ),
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'Node.js Expert',
+              description: 'Backend development with Node.js and Express',
+              color: 'green'
+            })
+          ),
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'Database Designer',
+              description: 'Database architecture and optimization',
+              color: 'purple'
+            })
+          ),
+          client.agents.createAgent(
+            createTestAgentData({
+              name: 'Testing Engineer',
+              description: 'Automated testing and quality assurance',
+              color: 'orange'
+            })
+          )
         ])
 
         specialists.forEach((agent: any) => dataManager.trackAgent(agent.data.id))
@@ -987,14 +982,11 @@ You specialize in comprehensive testing strategies and automation.
         ]
 
         for (const scenario of scenarioTests) {
-          const suggestions = await client.agents.suggestAgents(
-            testProjectId,
-            scenario.context
-          )
-          
+          const suggestions = await client.agents.suggestAgents(testProjectId, scenario.context)
+
           assertions.assertSuccessResponse(suggestions)
           expect(suggestions.data.agents.length).toBeGreaterThan(0)
-          
+
           // Top suggestion should be relevant to the context
           const topSuggestion = suggestions.data.agents[0]
           expect(topSuggestion.name).toContain(scenario.expected.split(' ')[0])
@@ -1003,7 +995,7 @@ You specialize in comprehensive testing strategies and automation.
         // Verify project associations
         const projectAgents = await client.agents.listProjectAgents(testProjectId)
         expect(projectAgents.data.length).toBe(2) // Only 2 were associated
-        
+
         const projectAgentNames = projectAgents.data.map((a: any) => a.name)
         expect(projectAgentNames).toContain('React Specialist')
         expect(projectAgentNames).toContain('Node.js Expert')

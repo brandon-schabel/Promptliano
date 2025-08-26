@@ -7,12 +7,12 @@
 import { eq, and, desc, asc } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
-import { 
-  chats, 
-  chatMessages, 
-  type Chat, 
+import {
+  chats,
+  chatMessages,
+  type Chat,
   type ChatMessage,
-  type InsertChat, 
+  type InsertChat,
   type InsertChatMessage,
   type ChatWithMessages,
   type MessageRole,
@@ -20,11 +20,7 @@ import {
 } from '../schema'
 
 // Create base chat repository
-const baseChatRepository = createBaseRepository(
-  chats,
-  selectChatSchema,
-  'Chat'
-)
+const baseChatRepository = createBaseRepository(chats, selectChatSchema, 'Chat')
 
 // ChatMessages don't have updatedAt field, so custom implementation needed
 
@@ -67,15 +63,18 @@ export const chatRepository = extendRepository(baseChatRepository, {
 
     // Create message with only createdAt (no updatedAt)
     const now = Date.now()
-    const [message] = await db.insert(chatMessages).values({
-      ...data,
-      createdAt: now
-    }).returning()
-    
+    const [message] = await db
+      .insert(chatMessages)
+      .values({
+        ...data,
+        createdAt: now
+      })
+      .returning()
+
     if (!message) {
       throw new Error('Failed to create chat message')
     }
-    
+
     return message
   },
 
@@ -83,19 +82,16 @@ export const chatRepository = extendRepository(baseChatRepository, {
    * Get messages by chat ID
    */
   async getMessages(chatId: number): Promise<ChatMessage[]> {
-    return db.select()
-      .from(chatMessages)
-      .where(eq(chatMessages.chatId, chatId))
-      .orderBy(asc(chatMessages.createdAt))
+    return db.select().from(chatMessages).where(eq(chatMessages.chatId, chatId)).orderBy(asc(chatMessages.createdAt))
   },
 
   /**
    * Delete message
    */
   async deleteMessage(id: number): Promise<boolean> {
-    const result = await db.delete(chatMessages)
-      .where(eq(chatMessages.id, id))
-      .run() as unknown as { changes: number }
+    const result = (await db.delete(chatMessages).where(eq(chatMessages.id, id)).run()) as unknown as {
+      changes: number
+    }
     return result.changes > 0
   }
 })
@@ -104,30 +100,30 @@ export const chatRepository = extendRepository(baseChatRepository, {
 export const messageRepository = {
   async create(data: Omit<InsertChatMessage, 'id' | 'createdAt'>): Promise<ChatMessage> {
     const now = Date.now()
-    const [message] = await db.insert(chatMessages).values({
-      ...data,
-      createdAt: now
-    }).returning()
-    
+    const [message] = await db
+      .insert(chatMessages)
+      .values({
+        ...data,
+        createdAt: now
+      })
+      .returning()
+
     if (!message) {
       throw new Error('Failed to create chat message')
     }
-    
+
     return message
   },
 
   async getById(id: number): Promise<ChatMessage | null> {
-    const [message] = await db.select()
-      .from(chatMessages)
-      .where(eq(chatMessages.id, id))
-      .limit(1)
+    const [message] = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).limit(1)
     return message ?? null
   },
 
   async delete(id: number): Promise<boolean> {
-    const result = await db.delete(chatMessages)
-      .where(eq(chatMessages.id, id))
-      .run() as unknown as { changes: number }
+    const result = (await db.delete(chatMessages).where(eq(chatMessages.id, id)).run()) as unknown as {
+      changes: number
+    }
     return result.changes > 0
   }
 }

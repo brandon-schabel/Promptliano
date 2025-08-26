@@ -16,10 +16,7 @@ export function createServiceMethod<TArgs extends any[], TReturn>(
   }
 ): (...args: TArgs) => Promise<TReturn> {
   return async (...args: TArgs): Promise<TReturn> => {
-    return withErrorContext(
-      () => fn(...args),
-      context
-    )
+    return withErrorContext(() => fn(...args), context)
   }
 }
 
@@ -80,20 +77,20 @@ export function createCrudService<
       return withErrorContext(
         async () => {
           const now = Date.now()
-          
+
           let entity: TEntity = {
             ...(transform.beforeCreate ? await transform.beforeCreate(data) : data),
             id: generateId(),
             createdAt: now,
             updatedAt: now
           } as TEntity
-          
+
           const created = await storage.add(entity)
-          
+
           if (transform.afterCreate) {
             return await transform.afterCreate(created)
           }
-          
+
           return created
         },
         { entity: entityName, action: 'create' }
@@ -106,20 +103,18 @@ export function createCrudService<
           // Verify entity exists
           const existing = await storage.getById(id)
           assertExists(existing, entityName, id)
-          
-          const updates = transform.beforeUpdate
-            ? await transform.beforeUpdate(id, data)
-            : data as Partial<TEntity>
-          
+
+          const updates = transform.beforeUpdate ? await transform.beforeUpdate(id, data) : (data as Partial<TEntity>)
+
           const updated = await storage.update(id, {
             ...updates,
             updatedAt: Date.now()
           })
-          
+
           if (transform.afterUpdate) {
             return await transform.afterUpdate(updated)
           }
-          
+
           return updated
         },
         { entity: entityName, action: 'update', id }
@@ -131,12 +126,12 @@ export function createCrudService<
         async () => {
           const existing = await storage.getById(id)
           assertExists(existing, entityName, id)
-          
+
           const success = await storage.delete(id)
           if (!success) {
             throw ErrorFactory.operationFailed(`delete ${entityName}`)
           }
-          
+
           return success
         },
         { entity: entityName, action: 'delete', id }
@@ -160,41 +155,41 @@ export async function batchOperation<TItem, TResult>(
   failed: Array<{ item: TItem; error: Error; index: number }>
 }> {
   const { continueOnError = false, maxConcurrent = 10 } = options
-  
+
   const successful: Array<{ item: TItem; result: TResult; index: number }> = []
   const failed: Array<{ item: TItem; error: Error; index: number }> = []
-  
+
   // Process in chunks for concurrency control
   for (let i = 0; i < items.length; i += maxConcurrent) {
     const chunk = items.slice(i, i + maxConcurrent)
-    
+
     const results = await Promise.allSettled(
       chunk.map((item, chunkIndex) => {
         const index = i + chunkIndex
         return operation(item, index).then(
-          result => ({ item, result, index }),
-          error => Promise.reject({ item, error, index })
+          (result) => ({ item, result, index }),
+          (error) => Promise.reject({ item, error, index })
         )
       })
     )
-    
+
     for (const result of results) {
       if (result.status === 'fulfilled') {
         successful.push(result.value)
       } else {
         failed.push(result.reason)
-        
+
         if (!continueOnError) {
           break
         }
       }
     }
-    
+
     if (failed.length > 0 && !continueOnError) {
       break
     }
   }
-  
+
   return { successful, failed }
 }
 
@@ -206,10 +201,10 @@ export async function withTransaction<T>(
   rollback?: () => Promise<void>
 ): Promise<T> {
   const completed: number[] = []
-  
+
   try {
     const results: any[] = []
-    
+
     for (let i = 0; i < operations.length; i++) {
       const operation = operations[i]
       if (!operation) {
@@ -218,7 +213,7 @@ export async function withTransaction<T>(
       results.push(await operation())
       completed.push(i)
     }
-    
+
     return results as T
   } catch (error) {
     // Rollback on failure
@@ -229,7 +224,7 @@ export async function withTransaction<T>(
         console.error('Rollback failed:', rollbackError)
       }
     }
-    
+
     throw error
   }
 }
@@ -246,31 +241,26 @@ export async function withRetry<T>(
     shouldRetry?: (error: any) => boolean
   } = {}
 ): Promise<T> {
-  const {
-    maxAttempts = 3,
-    delay = 1000,
-    backoff = 2,
-    shouldRetry = () => true
-  } = options
-  
+  const { maxAttempts = 3, delay = 1000, backoff = 2, shouldRetry = () => true } = options
+
   let lastError: any
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation()
     } catch (error) {
       lastError = error
-      
+
       if (attempt === maxAttempts || !shouldRetry(error)) {
         throw error
       }
-      
+
       // Wait before retry with exponential backoff
       const waitTime = delay * Math.pow(backoff, attempt - 1)
-      await new Promise(resolve => setTimeout(resolve, waitTime))
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
     }
   }
-  
+
   throw lastError
 }
 
@@ -286,21 +276,21 @@ export function withCache<TArgs extends any[], TResult>(
 ) {
   const { ttl = 60000, keyGenerator = (...args) => JSON.stringify(args) } = options
   const cache = new Map<string, { value: TResult; expires: number }>()
-  
+
   return async (...args: TArgs): Promise<TResult> => {
     const key = keyGenerator(...args)
     const cached = cache.get(key)
-    
+
     if (cached && cached.expires > Date.now()) {
       return cached.value
     }
-    
+
     const value = await fn(...args)
     cache.set(key, {
       value,
       expires: Date.now() + ttl
     })
-    
+
     // Clean expired entries periodically
     if (cache.size > 100) {
       const now = Date.now()
@@ -310,7 +300,7 @@ export function withCache<TArgs extends any[], TResult>(
         }
       }
     }
-    
+
     return value
   }
 }

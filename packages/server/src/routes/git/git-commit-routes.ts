@@ -28,29 +28,49 @@ const CommitLogQuerySchema = z.object({
   grep: z.string().optional(),
   branch: z.string().optional()
 })
-import { commitChanges, clearGitStatusCache, getCommitLog, getCommitLogEnhanced, getCommitDetail, getFileDiff } from '@promptliano/services'
-import { createStandardResponses, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import {
+  commitChanges,
+  clearGitStatusCache,
+  getCommitLog,
+  getCommitLogEnhanced,
+  getCommitDetail,
+  getFileDiff
+} from '@promptliano/services'
+import {
+  createStandardResponses,
+  createRouteHandler,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 
 // Response schemas
-const CommitLogResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(GitCommitSchema)
-}).openapi('CommitLogResponse')
+const CommitLogResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(GitCommitSchema)
+  })
+  .openapi('CommitLogResponse')
 
-const CommitLogEnhancedResponseSchema = z.object({
-  success: z.literal(true),
-  data: GitCommitLogEnhancedSchema
-}).openapi('CommitLogEnhancedResponse')
+const CommitLogEnhancedResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: GitCommitLogEnhancedSchema
+  })
+  .openapi('CommitLogEnhancedResponse')
 
-const CommitDetailResponseSchema = z.object({
-  success: z.literal(true),
-  data: GitCommitDetailSchema
-}).openapi('CommitDetailResponse')
+const CommitDetailResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: GitCommitDetailSchema
+  })
+  .openapi('CommitDetailResponse')
 
-const DiffResponseSchema = z.object({
-  success: z.literal(true),
-  data: GitDiffSchema
-}).openapi('DiffResponse')
+const DiffResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: GitDiffSchema
+  })
+  .openapi('DiffResponse')
 
 // Create commit
 const commitRoute = createRoute({
@@ -147,20 +167,20 @@ export const gitCommitRoutes = new OpenAPIHono()
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
-    
+
     const commits = await getCommitLog(projectId, {
       limit: maxCount,
       skip,
       branch
     })
-    
+
     return c.json(successResponse(commits))
   })
   .openapi(getCommitLogEnhancedRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
-    
+
     const result = await getCommitLogEnhanced(projectId, {
       page: Math.floor(skip / maxCount) + 1,
       perPage: maxCount,
@@ -172,7 +192,7 @@ export const gitCommitRoutes = new OpenAPIHono()
       until,
       branch
     })
-    
+
     return c.json(successResponse(result))
   })
   .openapi(getCommitDetailRoute, async (c) => {

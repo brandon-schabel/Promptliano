@@ -22,7 +22,7 @@ test.describe('Complete End-to-End Workflow Tests', () => {
     promptsPage = new PromptsPage(page)
     filesPage = new FilesPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -40,7 +40,7 @@ test.describe('Complete End-to-End Workflow Tests', () => {
       /**
        * Complete workflow:
        * 1. Create realistic project folder structure
-       * 2. Load project into application  
+       * 2. Load project into application
        * 3. Navigate and explore file structure
        * 4. Select relevant files for review
        * 5. Create specialized prompts for code review
@@ -54,7 +54,7 @@ test.describe('Complete End-to-End Workflow Tests', () => {
 
       // Verify project structure on disk
       expect(await TestProjectHelpers.verifyProjectOnDisk(testProject)).toBe(true)
-      
+
       const stats = await TestProjectHelpers.getProjectStats(testProject)
       expect(stats.fileCount).toBeGreaterThan(10) // Should have substantial files
       expect(stats.directoryCount).toBeGreaterThan(3) // Should have nested structure
@@ -70,19 +70,19 @@ test.describe('Complete End-to-End Workflow Tests', () => {
       // Step 3: Open project and explore file structure
       console.log('📂 Opening project and exploring files...')
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
-      
+
       // Should be in project view
       await expect(appPage.page).toHaveURL(/\/projects\/\d+/)
-      
+
       // Verify file explorer is available
       await filesPage.waitForFilesInterfaceLoad()
 
       // Step 4: Select files for code review
       console.log('📄 Selecting files for review...')
       const filesToReview = [
-        'package.json',     // Configuration
-        'README.md',        // Documentation  
-        'tsconfig.json'     // TypeScript config
+        'package.json', // Configuration
+        'README.md', // Documentation
+        'tsconfig.json' // TypeScript config
       ]
 
       let selectedCount = 0
@@ -96,7 +96,7 @@ test.describe('Complete End-to-End Workflow Tests', () => {
       }
 
       expect(selectedCount).toBeGreaterThan(0) // At least some files selected
-      
+
       // Verify files are in selected panel
       const actualSelectedCount = await filesPage.getSelectedFilesCount()
       expect(actualSelectedCount).toBeGreaterThanOrEqual(selectedCount)
@@ -157,17 +157,17 @@ This is a ${testProject.name} project with the following structure:
 
       // Step 6: Verify workflow completion
       console.log('✅ Verifying workflow completion...')
-      
+
       // Check prompt details
       const promptInfo = await promptsPage.getPromptInfo(codeReviewPrompt.title)
       expect(promptInfo.title).toBe(codeReviewPrompt.title)
       expect(promptInfo.description).toBe(codeReviewPrompt.description)
-      
+
       // Verify we can navigate between sections while maintaining state
       await sidebarPage.navigateToSection('projects')
       expect(await TestProjectHelpers.verifyProjectInApp(appPage.page, testProject)).toBe(true)
 
-      await sidebarPage.navigateToSection('prompts') 
+      await sidebarPage.navigateToSection('prompts')
       expect(await promptsPage.promptExists(codeReviewPrompt.title)).toBe(true)
 
       console.log('🎉 Complete workflow test passed successfully!')
@@ -191,7 +191,7 @@ This is a ${testProject.name} project with the following structure:
       // Step 2: Load both projects
       console.log('📥 Loading projects into application...')
       await sidebarPage.navigateToSection('projects')
-      
+
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, frontendProject)
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, backendProject)
 
@@ -213,7 +213,7 @@ This is a ${testProject.name} project with the following structure:
 
       // Create frontend-specific prompt
       await sidebarPage.navigateToSection('prompts')
-      
+
       const frontendPrompt = TestDataFactory.createPrompt({
         title: 'React Frontend Review',
         content: `Review this React application:
@@ -246,7 +246,7 @@ Focus on:
 
       // Create backend-specific prompt
       await sidebarPage.navigateToSection('prompts')
-      
+
       const backendPrompt = TestDataFactory.createPrompt({
         title: 'API Backend Review',
         content: `Review this Node.js/Express API:
@@ -270,7 +270,7 @@ Focus on:
 
       // Step 6: Verify project switching maintains state
       await sidebarPage.navigateToSection('projects')
-      
+
       // Switch back to frontend
       await TestProjectHelpers.openProjectInApp(appPage.page, frontendProject)
       expect(await appPage.getCurrentProjectName()).toContain(frontendProject.name.split('-')[0])
@@ -286,7 +286,7 @@ Focus on:
     test('should handle complete documentation workflow', async () => {
       /**
        * Documentation workflow:
-       * 1. Create library project 
+       * 1. Create library project
        * 2. Select documentation-relevant files
        * 3. Create comprehensive documentation prompts
        * 4. Generate different types of documentation
@@ -305,7 +305,7 @@ Focus on:
 
       // Step 3: Select files relevant to documentation
       const docRelevantFiles = ['package.json', 'README.md', 'tsconfig.json']
-      
+
       for (const file of docRelevantFiles) {
         try {
           await filesPage.selectFile(file)
@@ -471,11 +471,11 @@ Make it GitHub-ready and professional.`,
 
       // Try to navigate back to project - should handle gracefully
       await sidebarPage.navigateToSection('projects')
-      
+
       // Application should not crash and should show error state
       const hasError = await appPage.hasGlobalError()
       const isStillFunctional = await sidebarPage.sidebar.isVisible()
-      
+
       // Either should show error OR remain functional
       expect(hasError || isStillFunctional).toBe(true)
     })
@@ -502,10 +502,10 @@ Make it GitHub-ready and professional.`,
 
       // Browse project structure to understand it
       await filesPage.waitForFilesInterfaceLoad()
-      
+
       // Look at key configuration files first
       await filesPage.selectFile('package.json')
-      
+
       // Review would typically look at multiple files
       const reviewFiles = ['README.md', 'tsconfig.json']
       for (const file of reviewFiles) {
@@ -518,7 +518,7 @@ Make it GitHub-ready and professional.`,
 
       // Create focused review prompt
       await sidebarPage.navigateToSection('prompts')
-      
+
       const reviewPrompt = TestDataFactory.createPrompt({
         title: 'Focused Code Review',
         content: `Code Review Checklist for {{projectName}}:
@@ -568,14 +568,12 @@ Make it GitHub-ready and professional.`,
       /**
        * Developer learning from existing codebase:
        * 1. Open unfamiliar project
-       * 2. Create prompts to understand architecture  
+       * 2. Create prompts to understand architecture
        * 3. Focus on specific patterns or components
        * 4. Generate learning materials
        */
 
-      const complexProject = await TestProjectHelpers.createTestProject(
-        TestProjectPresets.largeMonorepo()
-      )
+      const complexProject = await TestProjectHelpers.createTestProject(TestProjectPresets.largeMonorepo())
       testProjects.push(complexProject)
 
       // Developer wants to understand this complex project
@@ -652,7 +650,7 @@ Create a "lessons learned" summary I can apply to my own projects.`,
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
       await filesPage.waitForFilesInterfaceLoad()
       await filesPage.selectFile('package.json')
-      
+
       await sidebarPage.navigateToSection('prompts')
       const quickPrompt = TestDataFactory.createPrompt({
         title: 'Quick Analysis',
@@ -665,7 +663,7 @@ Create a "lessons learned" summary I can apply to my own projects.`,
 
       // Complete workflow should be under 30 seconds
       expect(totalTime).toBeLessThan(30000)
-      
+
       console.log(`⚡ Workflow completed in ${totalTime}ms`)
     })
 
@@ -682,10 +680,10 @@ Create a "lessons learned" summary I can apply to my own projects.`,
       // Perform multiple operations in quick succession
       await filesPage.selectFile('package.json')
       await sidebarPage.navigateToSection('prompts')
-      
+
       const prompt1 = TestDataFactory.createPrompt({ title: 'Concurrent Test 1' })
       const prompt2 = TestDataFactory.createPrompt({ title: 'Concurrent Test 2' })
-      
+
       await promptsPage.createPrompt(prompt1)
       await promptsPage.createPrompt(prompt2)
 

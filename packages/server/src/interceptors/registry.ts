@@ -11,11 +11,11 @@ import {
 function matchesPattern(pattern: string, path: string): boolean {
   // Convert glob-like patterns to regex
   const regexPattern = pattern
-    .replace(/\*\*/g, '___DOUBLE_STAR___')  // Temporarily replace **
-    .replace(/\*/g, '[^/]*')                // * matches anything except /
-    .replace(/___DOUBLE_STAR___/g, '.*')    // ** matches everything including /
-    .replace(/\?/g, '.')                    // ? matches single character
-  
+    .replace(/\*\*/g, '___DOUBLE_STAR___') // Temporarily replace **
+    .replace(/\*/g, '[^/]*') // * matches anything except /
+    .replace(/___DOUBLE_STAR___/g, '.*') // ** matches everything including /
+    .replace(/\?/g, '.') // ? matches single character
+
   const regex = new RegExp('^' + regexPattern + '$')
   return regex.test(path)
 }
@@ -85,7 +85,7 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
    */
   getByPhase(phase: InterceptorPhase): Interceptor[] {
     return Array.from(this.interceptors.values())
-      .filter(interceptor => interceptor.phase === phase)
+      .filter((interceptor) => interceptor.phase === phase)
       .sort((a, b) => a.order - b.order)
   }
 
@@ -121,7 +121,7 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
    */
   getMatching(route: string, method: string, phase: InterceptorPhase): Interceptor[] {
     return Array.from(this.interceptors.values())
-      .filter(interceptor => {
+      .filter((interceptor) => {
         // Must be correct phase and enabled
         if (interceptor.phase !== phase || !interceptor.enabled) {
           return false
@@ -129,9 +129,7 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
 
         // Check route patterns
         if (interceptor.routes && interceptor.routes.length > 0) {
-          const routeMatches = interceptor.routes.some(pattern => 
-            matchesPattern(pattern, route)
-          )
+          const routeMatches = interceptor.routes.some((pattern) => matchesPattern(pattern, route))
           if (!routeMatches) {
             return false
           }
@@ -161,7 +159,7 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
    */
   getByTag(tag: string): Interceptor[] {
     return Array.from(this.interceptors.values())
-      .filter(interceptor => interceptor.tags?.includes(tag))
+      .filter((interceptor) => interceptor.tags?.includes(tag))
       .sort((a, b) => a.order - b.order)
   }
 
@@ -169,10 +167,9 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
    * Get interceptors that depend on a specific interceptor
    */
   getDependents(interceptorName: string): Interceptor[] {
-    return Array.from(this.interceptors.values())
-      .filter(interceptor => 
-        interceptor.dependencies?.includes(interceptorName)
-      )
+    return Array.from(this.interceptors.values()).filter((interceptor) =>
+      interceptor.dependencies?.includes(interceptorName)
+    )
   }
 
   /**
@@ -186,9 +183,7 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
       if (interceptor.dependencies) {
         for (const dependency of interceptor.dependencies) {
           if (!interceptorNames.has(dependency)) {
-            errors.push(
-              `Interceptor '${interceptor.name}' depends on '${dependency}' which is not registered`
-            )
+            errors.push(`Interceptor '${interceptor.name}' depends on '${dependency}' which is not registered`)
           }
         }
       }
@@ -212,12 +207,12 @@ export class DefaultInterceptorRegistry implements InterceptorRegistry {
     const interceptors = Array.from(this.interceptors.values())
     const stats = {
       total: interceptors.length,
-      enabled: interceptors.filter(i => i.enabled).length,
-      disabled: interceptors.filter(i => !i.enabled).length,
+      enabled: interceptors.filter((i) => i.enabled).length,
+      disabled: interceptors.filter((i) => !i.enabled).length,
       byPhase: {
-        request: interceptors.filter(i => i.phase === 'request').length,
-        response: interceptors.filter(i => i.phase === 'response').length,
-        error: interceptors.filter(i => i.phase === 'error').length
+        request: interceptors.filter((i) => i.phase === 'request').length,
+        response: interceptors.filter((i) => i.phase === 'response').length,
+        error: interceptors.filter((i) => i.phase === 'error').length
       }
     }
 

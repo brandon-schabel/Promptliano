@@ -361,12 +361,10 @@ describe('Validation Interceptor', () => {
         name: '', // Invalid
         email: 'invalid' // Invalid
       }))
-
       ;(mockContext.req as any).query = mock((key?: string) => {
         if (key === 'limit') return 'invalid' // Invalid
         return undefined
       })
-
       ;(mockContext.req as any).param = mock((key: string) => {
         if (key === 'id') return 'invalid' // Invalid
         return undefined
@@ -502,7 +500,8 @@ describe('Validation Interceptor', () => {
         validateBody: true,
         schemas: {
           '/api/users': {
-            GET: { // Only GET has schema
+            GET: {
+              // Only GET has schema
               query: z.object({ q: z.string() })
             }
           }
@@ -594,7 +593,6 @@ describe('Validation Interceptor', () => {
         if (name === 'content-type') return 'application/x-www-form-urlencoded'
         return undefined
       })
-
       ;(mockContext.req as any).parseBody = mock(async () => ({
         name: 'John Doe',
         email: 'john@example.com'

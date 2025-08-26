@@ -1,11 +1,13 @@
 # Manage Project Modal Comprehensive Test Plan
 
 ## Overview
+
 The Manage Project Modal is the project management interface accessible via the bottom-left button in Promptliano. It provides project discovery, creation, import, and management capabilities through a modal interface. This test plan covers project listing, creation workflow, file browser integration, and project synchronization processes.
 
 ## Test Scope & Requirements
 
 ### Major Components
+
 1. **Modal Trigger** - Bottom-left button accessibility and modal opening
 2. **Project List Display** - Existing projects with metadata and actions
 3. **Project Creation** - New project form with validation and browser integration
@@ -14,6 +16,7 @@ The Manage Project Modal is the project management interface accessible via the 
 6. **Project Management** - Edit, delete, archive operations on existing projects
 
 ### Technical Integration Points
+
 - **File System Access**: Client-side file browser for directory selection
 - **Project Synchronization**: File scanning, indexing, and database updates
 - **Modal Management**: Focus handling, keyboard navigation, and accessibility
@@ -23,6 +26,7 @@ The Manage Project Modal is the project management interface accessible via the 
 ## Test Data Requirements
 
 ### Shared Test Data Setup
+
 ```typescript
 // Location: e2e/fixtures/manage-project-modal-data.ts
 export const ManageProjectModalTestData = {
@@ -83,7 +87,7 @@ export const ManageProjectModalTestData = {
         description: 'Project with no path'
       },
       invalidPath: {
-        name: 'Invalid Path Project', 
+        name: 'Invalid Path Project',
         path: '/nonexistent/invalid/path',
         description: 'Project with invalid path'
       },
@@ -103,7 +107,7 @@ export const ManageProjectModalTestData = {
         'project-a': {
           type: 'directory',
           children: {
-            'src': {
+            src: {
               type: 'directory',
               children: {
                 'main.js': { type: 'file', size: 1024 },
@@ -130,12 +134,12 @@ export const ManageProjectModalTestData = {
     '/Users': {
       type: 'directory',
       children: {
-        'developer': {
+        developer: {
           type: 'directory',
           children: {
-            'Documents': { type: 'directory', children: {} },
-            'Projects': { type: 'directory', children: {} },
-            'Desktop': { type: 'directory', children: {} }
+            Documents: { type: 'directory', children: {} },
+            Projects: { type: 'directory', children: {} },
+            Desktop: { type: 'directory', children: {} }
           }
         }
       }
@@ -173,6 +177,7 @@ export const ManageProjectModalTestData = {
 ## Page Object Model Extensions
 
 ### ManageProjectModal Class Implementation
+
 ```typescript
 // Location: e2e/pages/manage-project-modal.ts
 export class ManageProjectModal extends BasePage {
@@ -362,11 +367,11 @@ export class ManageProjectModal extends BasePage {
 
   async fillProjectForm(projectData: { name: string; path?: string; description?: string }) {
     await this.projectNameInput.fill(projectData.name)
-    
+
     if (projectData.path) {
       await this.projectPathInput.fill(projectData.path)
     }
-    
+
     if (projectData.description) {
       await this.projectDescriptionInput.fill(projectData.description)
     }
@@ -378,7 +383,7 @@ export class ManageProjectModal extends BasePage {
 
     // Navigate to target path (simplified - would need actual navigation logic)
     const pathParts = targetPath.split('/').filter(Boolean)
-    
+
     for (const part of pathParts) {
       if (part === '..') {
         await this.parentDirectoryButton.click()
@@ -388,7 +393,7 @@ export class ManageProjectModal extends BasePage {
           await dirItem.dblclick()
         }
       }
-      
+
       // Wait for navigation to complete
       await this.page.waitForTimeout(500)
     }
@@ -404,7 +409,7 @@ export class ManageProjectModal extends BasePage {
     await this.openCreateProjectForm()
     await this.fillProjectForm(projectData)
 
-    if (projectData.path && !await this.projectPathInput.inputValue()) {
+    if (projectData.path && !(await this.projectPathInput.inputValue())) {
       await this.browseFolderAndSelect(projectData.path)
     }
 
@@ -414,7 +419,7 @@ export class ManageProjectModal extends BasePage {
   async waitForProjectSync() {
     // Wait for sync to start
     await expect(this.syncStatus).toBeVisible({ timeout: 5000 })
-    
+
     // Wait for sync to complete
     await expect(this.syncStatus).toContainText(/complete|finished|done/i, { timeout: 30000 })
   }
@@ -429,11 +434,11 @@ export class ManageProjectModal extends BasePage {
 
   async deleteProject(projectName: string, confirm: boolean = true) {
     await this.getDeleteProjectButton(projectName).click()
-    
+
     // Handle confirmation dialog
     const confirmDialog = this.page.getByTestId('delete-project-confirmation')
     await expect(confirmDialog).toBeVisible()
-    
+
     if (confirm) {
       await this.page.getByRole('button', { name: /delete|confirm/i }).click()
     } else {
@@ -448,6 +453,7 @@ export class ManageProjectModal extends BasePage {
 ### 1. Modal Access and Display
 
 #### 1.1 Modal Trigger and Basic Display Tests
+
 ```typescript
 test.describe('Manage Project Modal - Access and Display', () => {
   test('should open modal when bottom-left button is clicked', async ({ page }) => {
@@ -456,11 +462,11 @@ test.describe('Manage Project Modal - Access and Display', () => {
 
     // Verify trigger button exists and is positioned correctly
     await expect(modalPage.modalTriggerButton).toBeVisible()
-    
+
     // Check button positioning (should be in bottom-left area)
     const buttonBox = await modalPage.modalTriggerButton.boundingBox()
     const viewport = page.viewportSize()
-    
+
     expect(buttonBox?.x).toBeLessThan(200) // Left side
     expect(buttonBox?.y).toBeGreaterThan((viewport?.height || 800) - 200) // Bottom area
 
@@ -475,16 +481,16 @@ test.describe('Manage Project Modal - Access and Display', () => {
 
   test('should display existing projects in list', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Setup test projects
     await TestDataManager.setupProjects(page, ManageProjectModalTestData.existingProjects)
-    
+
     await modalPage.goto('/')
     await modalPage.openModal()
 
     // Verify project list is visible
     await expect(modalPage.projectList).toBeVisible()
-    
+
     // Check that all test projects are displayed
     const projectCount = await modalPage.getProjectCount()
     expect(projectCount).toBe(3)
@@ -497,7 +503,7 @@ test.describe('Manage Project Modal - Access and Display', () => {
       // Check project information
       await expect(modalPage.getProjectName(project.name)).toContainText(project.name)
       await expect(modalPage.getProjectPath(project.name)).toContainText(project.path)
-      
+
       if (project.description) {
         await expect(modalPage.getProjectDescription(project.name)).toContainText(project.description)
       }
@@ -505,7 +511,7 @@ test.describe('Manage Project Modal - Access and Display', () => {
       // Check metadata (file count, last accessed, etc.)
       const metadata = modalPage.getProjectMetadata(project.name)
       await expect(metadata).toContainText(project.fileCount.toString())
-      
+
       // Check action buttons
       await expect(modalPage.getOpenProjectButton(project.name)).toBeVisible()
       await expect(modalPage.getEditProjectButton(project.name)).toBeVisible()
@@ -515,10 +521,10 @@ test.describe('Manage Project Modal - Access and Display', () => {
 
   test('should display empty state when no projects exist', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Clear all projects
     await TestDataManager.clearAllProjects(page)
-    
+
     await modalPage.goto('/')
     await modalPage.openModal()
 
@@ -536,7 +542,7 @@ test.describe('Manage Project Modal - Access and Display', () => {
   test('should close modal with close button and escape key', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
     await modalPage.goto('/')
-    
+
     // Open modal
     await modalPage.openModal()
 
@@ -552,13 +558,13 @@ test.describe('Manage Project Modal - Access and Display', () => {
   test('should handle modal focus and accessibility', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
     await modalPage.goto('/')
-    
+
     await modalPage.openModal()
 
     // Modal should be focused or contain focused element
     const focusedElement = page.locator(':focus')
-    const modalContainsFocus = await modalPage.modal.locator(':focus').count() > 0
-    
+    const modalContainsFocus = (await modalPage.modal.locator(':focus').count()) > 0
+
     expect(modalContainsFocus).toBe(true)
 
     // Should trap focus within modal (Tab navigation stays within modal)
@@ -574,6 +580,7 @@ test.describe('Manage Project Modal - Access and Display', () => {
 ```
 
 #### 1.2 Project Selection and Navigation Tests
+
 ```typescript
 test.describe('Manage Project Modal - Project Selection', () => {
   test.beforeEach(async ({ page }) => {
@@ -590,7 +597,7 @@ test.describe('Manage Project Modal - Project Selection', () => {
 
     // Should navigate to project page
     await expect(page).toHaveURL(/.*\/projects\/\d+/)
-    
+
     // Modal should close
     await expect(modalPage.modal).not.toBeVisible()
 
@@ -632,7 +639,7 @@ test.describe('Manage Project Modal - Project Selection', () => {
 
     // Should have archived indicator
     await expect(archivedProject).toHaveClass(/archived|inactive/)
-    
+
     // Or should show archived status in metadata
     const metadata = modalPage.getProjectMetadata('Legacy API')
     await expect(metadata).toContainText(/archived|inactive/)
@@ -640,11 +647,11 @@ test.describe('Manage Project Modal - Project Selection', () => {
     // Open button might be disabled or show different action
     const openButton = modalPage.getOpenProjectButton('Legacy API')
     const buttonText = await openButton.textContent()
-    
+
     // Either disabled or shows "Restore" instead of "Open"
     const isDisabled = await openButton.isDisabled()
     const showsRestore = buttonText?.toLowerCase().includes('restore')
-    
+
     expect(isDisabled || showsRestore).toBe(true)
   })
 
@@ -660,7 +667,7 @@ test.describe('Manage Project Modal - Project Selection', () => {
 
       // Test sort by name
       await page.getByRole('menuitem', { name: /name|alphabetical/i }).click()
-      
+
       // Verify alphabetical order
       const projectNames = await modalPage.projectItems.allTextContents()
       const sortedNames = [...projectNames].sort()
@@ -669,7 +676,7 @@ test.describe('Manage Project Modal - Project Selection', () => {
       // Test sort by last accessed
       await sortButton.click()
       await page.getByRole('menuitem', { name: /last.*accessed|recent/i }).click()
-      
+
       // Most recently accessed should be first
       const firstProject = modalPage.projectItems.first()
       await expect(firstProject).toContainText('Promptliano Core') // Most recent in test data
@@ -681,6 +688,7 @@ test.describe('Manage Project Modal - Project Selection', () => {
 ### 2. Project Creation Workflow
 
 #### 2.1 Create Project Form Tests
+
 ```typescript
 test.describe('Manage Project Modal - Project Creation', () => {
   test('should open create project form', async ({ page }) => {
@@ -734,10 +742,10 @@ test.describe('Manage Project Modal - Project Creation', () => {
 
   test('should validate project name uniqueness', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Setup existing projects
     await TestDataManager.setupProjects(page, ManageProjectModalTestData.existingProjects)
-    
+
     await modalPage.goto('/')
     await modalPage.openModal()
     await modalPage.openCreateProjectForm()
@@ -784,7 +792,7 @@ test.describe('Manage Project Modal - Project Creation', () => {
       // Should show path validation error or create button disabled
       const hasError = await modalPage.validationErrors.filter({ hasText: /path|invalid/i }).isVisible()
       const isDisabled = await modalPage.createProjectButton.isDisabled()
-      
+
       expect(hasError || isDisabled).toBe(true)
     }
   })
@@ -817,6 +825,7 @@ test.describe('Manage Project Modal - Project Creation', () => {
 ```
 
 #### 2.2 File Browser Integration Tests
+
 ```typescript
 test.describe('Manage Project Modal - File Browser Integration', () => {
   test.beforeEach(async ({ page }) => {
@@ -857,7 +866,7 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
     // Navigate to Users directory
     if (await modalPage.getDirectoryItem('Users').isVisible()) {
       await modalPage.getDirectoryItem('Users').dblclick()
-      
+
       // Path should update
       const newPath = await modalPage.currentPathDisplay.textContent()
       expect(newPath).toContain('Users')
@@ -867,7 +876,7 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
 
       // Navigate deeper
       await modalPage.getDirectoryItem('developer').dblclick()
-      
+
       const deeperPath = await modalPage.currentPathDisplay.textContent()
       expect(deeperPath).toContain('Users/developer')
     }
@@ -888,7 +897,7 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
 
       // Use parent directory button
       await modalPage.parentDirectoryButton.click()
-      
+
       const parentPath = await modalPage.currentPathDisplay.textContent()
       expect(parentPath).not.toContain('tmp')
     }
@@ -903,7 +912,7 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
 
     // Navigate to test projects directory
     const targetPath = '/tmp/test-projects/project-a'
-    
+
     // Simulate navigation (implementation would depend on actual file system API)
     await modalPage.getDirectoryItem('tmp').dblclick()
     await modalPage.getDirectoryItem('test-projects').dblclick()
@@ -937,14 +946,16 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
 
     // Should differentiate between files and directories
     await expect(modalPage.getDirectoryItem('src')).toHaveClass(/directory|folder/)
-    await expect(modalPage.directoryList.getByTestId('file-item').filter({ hasText: 'package.json' })).toHaveClass(/file/)
+    await expect(modalPage.directoryList.getByTestId('file-item').filter({ hasText: 'package.json' })).toHaveClass(
+      /file/
+    )
   })
 
   test('should handle file system errors gracefully', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Mock file system error
-    await page.route('**/file-system/**', route => {
+    await page.route('**/file-system/**', (route) => {
       route.fulfill({
         status: 403,
         body: JSON.stringify({ error: 'Permission denied' })
@@ -984,7 +995,7 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
     // Files should be visible but not selectable for project creation
     // (Implementation detail - depends on design)
     const fileItems = modalPage.fileItems
-    if (await fileItems.count() > 0) {
+    if ((await fileItems.count()) > 0) {
       // Files might be shown but disabled/dimmed
       await expect(fileItems.first()).toHaveClass(/disabled|dimmed/)
     }
@@ -995,14 +1006,15 @@ test.describe('Manage Project Modal - File Browser Integration', () => {
 ### 3. Project Import and Synchronization
 
 #### 3.1 Project Creation and Import Tests
+
 ```typescript
 test.describe('Manage Project Modal - Project Import and Sync', () => {
   test('should create project and initiate file sync', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Setup mock file system with project files
     await TestDataManager.setupMockFileSystem(page, ManageProjectModalTestData.mockDirectoryStructure)
-    
+
     await modalPage.goto('/')
     await modalPage.openModal()
 
@@ -1033,10 +1045,10 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
   test('should handle large project import with progress tracking', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Setup large project structure
     await TestDataManager.setupLargeProjectStructure(page, 500) // 500 files
-    
+
     await modalPage.goto('/')
     await modalPage.openModal()
 
@@ -1050,14 +1062,14 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
     // Should show detailed progress
     await expect(modalPage.syncProgress).toBeVisible()
-    
+
     // Progress should update over time
     const initialProgress = await modalPage.syncProgress.getAttribute('value')
-    
+
     // Wait a bit and check progress increased
     await page.waitForTimeout(2000)
     const laterProgress = await modalPage.syncProgress.getAttribute('value')
-    
+
     if (initialProgress && laterProgress) {
       expect(parseInt(laterProgress)).toBeGreaterThan(parseInt(initialProgress))
     }
@@ -1067,7 +1079,7 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
     // Complete sync
     await modalPage.waitForProjectSync()
-    
+
     // Final file count should be accurate
     const metadata = modalPage.getProjectMetadata(projectData.name)
     await expect(metadata).toContainText('500')
@@ -1075,9 +1087,9 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
   test('should handle sync errors and provide recovery options', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Mock sync failure
-    await page.route('**/api/projects/sync', route => {
+    await page.route('**/api/projects/sync', (route) => {
       route.fulfill({
         status: 500,
         body: JSON.stringify({ error: 'File system access error' })
@@ -1105,7 +1117,7 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
   test('should skip non-relevant files during sync', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Setup project with mixed file types including irrelevant ones
     await TestDataManager.setupProjectWithMixedFiles(page, {
       relevant: ['src/main.js', 'README.md', 'package.json', 'src/utils.js'],
@@ -1127,7 +1139,7 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
     const metadata = modalPage.getProjectMetadata(projectData.name)
     const fileCountText = await metadata.textContent()
     const fileCount = parseInt(fileCountText?.match(/(\d+).*file/)?.[1] || '0')
-    
+
     // Should be 4 relevant files, not all 8
     expect(fileCount).toBe(4)
 
@@ -1137,12 +1149,12 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 
   test('should handle permission errors during file scanning', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Mock permission error during scan
-    await page.route('**/api/projects/scan', route => {
+    await page.route('**/api/projects/scan', (route) => {
       route.fulfill({
         status: 403,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Permission denied',
           details: 'Cannot access /private/restricted/'
         })
@@ -1184,7 +1196,9 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
     await modalPage.createProjectButton.click()
 
     // Should validate path exists before starting sync
-    const pathError = modalPage.validationErrors.filter({ hasText: /path.*not.*exist|invalid.*path|directory.*not.*found/i })
+    const pathError = modalPage.validationErrors.filter({
+      hasText: /path.*not.*exist|invalid.*path|directory.*not.*found/i
+    })
     await expect(pathError).toBeVisible()
 
     // Create button should remain disabled or show error
@@ -1197,6 +1211,7 @@ test.describe('Manage Project Modal - Project Import and Sync', () => {
 ### 4. Project Management Operations
 
 #### 4.1 Edit and Delete Operations Tests
+
 ```typescript
 test.describe('Manage Project Modal - Project Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -1218,14 +1233,14 @@ test.describe('Manage Project Modal - Project Management', () => {
     // Form should be pre-populated
     const nameInput = editForm.getByTestId('project-name-input')
     const descInput = editForm.getByTestId('project-description-input')
-    
+
     await expect(nameInput).toHaveValue('E-Commerce App')
     await expect(descInput).toHaveValue('React-based e-commerce platform')
 
     // Make changes
     await nameInput.clear()
     await nameInput.fill('Updated E-Commerce App')
-    
+
     await descInput.clear()
     await descInput.fill('Updated description for the e-commerce platform')
 
@@ -1252,7 +1267,7 @@ test.describe('Manage Project Modal - Project Management', () => {
 
     // Should be removed from list
     await expect(modalPage.projectItem('Legacy API')).not.toBeVisible()
-    
+
     // Project count should decrease
     const newCount = await modalPage.getProjectCount()
     expect(newCount).toBe(initialCount - 1)
@@ -1273,7 +1288,7 @@ test.describe('Manage Project Modal - Project Management', () => {
 
     // Project should still exist
     await expect(modalPage.projectItem('Promptliano Core')).toBeVisible()
-    
+
     // Count should be unchanged
     const newCount = await modalPage.getProjectCount()
     expect(newCount).toBe(initialCount)
@@ -1281,9 +1296,9 @@ test.describe('Manage Project Modal - Project Management', () => {
 
   test('should handle project deletion errors', async ({ page }) => {
     const modalPage = new ManageProjectModal(page)
-    
+
     // Mock deletion error
-    await page.route('**/api/projects/*', route => {
+    await page.route('**/api/projects/*', (route) => {
       if (route.request().method() === 'DELETE') {
         route.fulfill({
           status: 500,
@@ -1315,7 +1330,7 @@ test.describe('Manage Project Modal - Project Management', () => {
     // Archive active project
     const activeProject = modalPage.projectItem('Promptliano Core')
     const archiveButton = activeProject.getByRole('button', { name: /archive/i })
-    
+
     if (await archiveButton.isVisible()) {
       await archiveButton.click()
 
@@ -1331,7 +1346,7 @@ test.describe('Manage Project Modal - Project Management', () => {
     // Restore archived project
     const archivedProject = modalPage.projectItem('Legacy API')
     const restoreButton = archivedProject.getByRole('button', { name: /restore/i })
-    
+
     if (await restoreButton.isVisible()) {
       await restoreButton.click()
 
@@ -1347,11 +1362,13 @@ test.describe('Manage Project Modal - Project Management', () => {
     await modalPage.openModal()
 
     // Find refresh button for project
-    const refreshButton = modalPage.projectItem('Promptliano Core').getByRole('button', { name: /refresh|sync|update/i })
-    
+    const refreshButton = modalPage
+      .projectItem('Promptliano Core')
+      .getByRole('button', { name: /refresh|sync|update/i })
+
     if (await refreshButton.isVisible()) {
       // Mock updated file count
-      await page.route('**/api/projects/*/sync', route => {
+      await page.route('**/api/projects/*/sync', (route) => {
         route.fulfill({
           status: 200,
           body: JSON.stringify({ fileCount: 267, lastModified: new Date().toISOString() })
@@ -1377,21 +1394,25 @@ test.describe('Manage Project Modal - Project Management', () => {
 ## Best Practices and Recommendations
 
 ### 1. Modal Management
+
 - **Focus Handling**: Ensure proper focus management and tab trapping
 - **Keyboard Navigation**: Support Escape key closing and accessibility features
 - **State Persistence**: Handle modal state during navigation and errors
 
 ### 2. File System Integration
+
 - **Cross-Platform**: Test file browser on different operating systems
 - **Permission Handling**: Gracefully handle file system permission errors
 - **Large Directories**: Optimize performance for directories with many files
 
 ### 3. Project Synchronization
+
 - **Progress Feedback**: Provide clear progress indicators for long operations
 - **Error Recovery**: Allow users to retry failed operations
 - **Incremental Updates**: Support efficient re-sync of existing projects
 
 ### 4. User Experience
+
 - **Loading States**: Show appropriate loading indicators during operations
 - **Error Messages**: Provide actionable error messages with recovery options
 - **Validation Feedback**: Real-time validation with clear error messages
@@ -1399,17 +1420,20 @@ test.describe('Manage Project Modal - Project Management', () => {
 ## Execution Strategy
 
 ### 1. Test Organization
+
 - **Modal Tests**: Can run in parallel with proper cleanup
 - **File System Tests**: Use mocked file system API for consistency
 - **Project Management**: Require database state management between tests
 - **Sync Operations**: May need sequential execution for timing-dependent tests
 
 ### 2. Mock Requirements
+
 - **File System API**: Mock directory browsing and file access
 - **Project Sync**: Mock file scanning and indexing operations
 - **Database Operations**: Mock project CRUD operations for isolation
 
 ### 3. Performance Considerations
+
 - **Large Projects**: Test with realistic project sizes (100+ files)
 - **Concurrent Operations**: Test multiple sync operations simultaneously
 - **Memory Management**: Monitor for memory leaks during large imports

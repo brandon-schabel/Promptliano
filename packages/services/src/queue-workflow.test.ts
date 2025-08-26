@@ -34,10 +34,7 @@ const enqueueTask = async (ticketId: number, taskId: number, queueId: number, pr
 const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number) => {
   // Simplified version - enqueue ticket and its tasks
   const tasks = await getTasks(ticketId)
-  const items = [
-    { ticketId, priority: 5 },
-    ...tasks.map(task => ({ taskId: task.id, priority: 5 }))
-  ]
+  const items = [{ ticketId, priority: 5 }, ...tasks.map((task) => ({ taskId: task.id, priority: 5 }))]
   return await batchEnqueueItems(queueId, items)
 }
 

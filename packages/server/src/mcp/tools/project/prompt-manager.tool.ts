@@ -61,7 +61,9 @@ export const promptManagerTool: MCPToolDefinition = {
           case PromptManagerAction.LIST: {
             const prompts = await listAllPrompts()
             const promptList = prompts
-              .map((p: any) => `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`)
+              .map(
+                (p: any) => `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`
+              )
               .join('\n')
             return {
               content: [{ type: 'text', text: promptList || 'No prompts found' }]
@@ -87,7 +89,8 @@ export const promptManagerTool: MCPToolDefinition = {
               '"Review this code for best practices..."'
             )
             // Ensure projectId is provided (required by database schema)
-            const validProjectId = projectId || validateDataField<number>(createData, 'projectId', 'number', '1754713756748')
+            const validProjectId =
+              projectId || validateDataField<number>(createData, 'projectId', 'number', '1754713756748')
             const prompt = await createPrompt(addTimestamps({ ...createData, projectId: validProjectId }))
 
             // Auto-associate with project if projectId is provided
@@ -150,7 +153,10 @@ export const promptManagerTool: MCPToolDefinition = {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
             const prompts = await listPromptsByProject(validProjectId)
             const promptList = prompts
-              .map((p: Prompt) => `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`)
+              .map(
+                (p: Prompt) =>
+                  `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`
+              )
               .join('\n')
             return {
               content: [{ type: 'text', text: promptList || `No prompts found for project ${validProjectId}` }]

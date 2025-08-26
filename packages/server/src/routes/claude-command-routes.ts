@@ -27,7 +27,12 @@ import {
   getProjectById
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import type { Context } from 'hono'
 
 const createClaudeCommandRoute = createRoute({
@@ -180,7 +185,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     const command = await createCommand(Number(projectId), body)
     return c.json(successResponse(command), 201)
   })
@@ -192,7 +197,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     const commands = await listCommands(Number(projectId), query)
     return c.json(successResponse(commands))
   })
@@ -204,7 +209,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     const command = await getCommandByName(Number(projectId), commandName)
     return c.json(successResponse(command))
   })
@@ -217,7 +222,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     const command = await updateCommand(Number(projectId), commandName, body)
     return c.json(successResponse(command))
   })
@@ -229,7 +234,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     await deleteCommand(Number(projectId), commandName)
     return c.json(operationSuccessResponse('Command deleted successfully'))
   })
@@ -242,26 +247,28 @@ export const claudeCommandRoutes = new OpenAPIHono()
     if (!project) {
       throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
     }
-    
+
     const result = await executeCommand(Number(projectId), commandName, body?.arguments)
-    
+
     const responseData = {
       result: result.result,
-      usage: result.metadata?.usage ? {
-        inputTokens: result.metadata.usage.inputTokens || 0,
-        outputTokens: result.metadata.usage.outputTokens || 0,
-        totalTokens: result.metadata.usage.totalTokens || 0
-      } : undefined,
+      usage: result.metadata?.usage
+        ? {
+            inputTokens: result.metadata.usage.inputTokens || 0,
+            outputTokens: result.metadata.usage.outputTokens || 0,
+            totalTokens: result.metadata.usage.totalTokens || 0
+          }
+        : undefined,
       model: result.metadata?.model,
       sessionId: result.metadata?.sessionId
     }
-    
+
     return c.json(successResponse(responseData))
   })
   .openapi(generateClaudeCommandRoute, async (c: any) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    
+
     const generatedCommand = await generateCommand(Number(projectId), body)
     return c.json(successResponse(generatedCommand))
   })

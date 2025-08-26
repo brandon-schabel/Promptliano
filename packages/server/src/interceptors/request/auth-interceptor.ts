@@ -14,11 +14,11 @@ import {
 function matchesRoutePattern(pattern: string, path: string): boolean {
   // Convert glob-like patterns to regex
   const regexPattern = pattern
-    .replace(/\*\*/g, '___DOUBLE_STAR___')  // Temporarily replace **
-    .replace(/\*/g, '[^/]*')                // * matches anything except /
-    .replace(/___DOUBLE_STAR___/g, '.*')    // ** matches everything including /
-    .replace(/\?/g, '.')                    // ? matches single character
-  
+    .replace(/\*\*/g, '___DOUBLE_STAR___') // Temporarily replace **
+    .replace(/\*/g, '[^/]*') // * matches anything except /
+    .replace(/___DOUBLE_STAR___/g, '.*') // ** matches everything including /
+    .replace(/\?/g, '.') // ? matches single character
+
   const regex = new RegExp('^' + regexPattern + '$')
   return regex.test(path)
 }
@@ -44,11 +44,9 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
       }
 
       const currentPath = context.req.path
-      
+
       // Check if this is a public route
-      const isPublicRoute = config.publicRoutes?.some(pattern => 
-        matchesRoutePattern(pattern, currentPath)
-      ) || false
+      const isPublicRoute = config.publicRoutes?.some((pattern) => matchesRoutePattern(pattern, currentPath)) || false
 
       if (isPublicRoute) {
         // Public route - proceed without authentication
@@ -58,7 +56,7 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
 
       // Get authorization header
       const authHeader = context.req.header('authorization')
-      
+
       if (!authHeader) {
         // No token provided
         if (config.onUnauthorized) {
@@ -70,32 +68,30 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
       }
 
       // Extract token from Bearer header
-      const token = authHeader.startsWith('Bearer ') 
-        ? authHeader.slice(7) 
-        : authHeader
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
 
       // Validate token
       const validateFn = config.validateToken || defaultValidateToken
-      
+
       try {
         const user = await validateFn(token)
-        
+
         // Store user in interceptor context and Hono context
         interceptorContext.user = user
         context.set('user', user)
-        
+
         // Add authentication metadata
         interceptorContext.metadata.authMethod = 'bearer'
         interceptorContext.metadata.tokenLength = authHeader.length
         interceptorContext.metadata.userId = user?.id
-        
+
         await next()
       } catch (validationError) {
         if (config.onUnauthorized) {
           const response = await config.onUnauthorized(context)
           throw new Error('Token validation failed - custom handler invoked')
         }
-        
+
         // Re-throw validation errors (like expired tokens, invalid credentials)
         throw validationError
       }
@@ -104,18 +100,13 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
       if (error instanceof InterceptorError) {
         throw error
       }
-      
+
       // If it's a known auth error (from ErrorFactory), re-throw it
       if (error && typeof error === 'object' && 'statusCode' in error) {
         throw error
       }
-      
-      throw new InterceptorError(
-        `Authentication failed: ${error}`,
-        'auth-interceptor',
-        'request',
-        error as Error
-      )
+
+      throw new InterceptorError(`Authentication failed: ${error}`, 'auth-interceptor', 'request', error as Error)
     }
   }
 }
@@ -148,11 +139,7 @@ export function createAuthInterceptor(config: Partial<AuthInterceptorConfig> = {
  */
 export const authInterceptor = createAuthInterceptor({
   requireAuth: true,
-  publicRoutes: [
-    '/api/health',
-    '/api/status',
-    '/api/public/*'
-  ]
+  publicRoutes: ['/api/health', '/api/status', '/api/public/*']
 })
 
 /**
@@ -167,17 +154,14 @@ export const optionalAuthInterceptor = createAuthInterceptor({
  */
 export const apiAuthInterceptor = createAuthInterceptor({
   requireAuth: true,
-  publicRoutes: [
-    '/api/health',
-    '/api/status'
-  ]
+  publicRoutes: ['/api/health', '/api/status']
 })
 
 /**
  * Utility function to check if a route is public
  */
 export function isPublicRoute(path: string, publicRoutes: string[] = []): boolean {
-  return publicRoutes.some(pattern => matchesRoutePattern(pattern, path))
+  return publicRoutes.some((pattern) => matchesRoutePattern(pattern, path))
 }
 
 /**
@@ -187,10 +171,10 @@ export function extractBearerToken(authHeader?: string): string | null {
   if (!authHeader) {
     return null
   }
-  
+
   if (authHeader.startsWith('Bearer ')) {
     return authHeader.slice(7)
   }
-  
+
   return authHeader
 }

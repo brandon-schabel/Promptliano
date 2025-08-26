@@ -33,13 +33,13 @@ interface QueueAnalyticsViewProps {
 export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalyticsViewProps) {
   const { data: queues, isLoading } = useQueues({ projectId })
   const { data: flowData } = useGetFlowData(projectId)
-  
+
   // Extract queue items from flow data
   const items: QueueItem[] = useMemo(() => {
     if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
     const queueData = flowData.queues[selectedQueueId]
     const queueItems: QueueItem[] = []
-    
+
     // Add tickets as queue items
     queueData.tickets?.forEach((ticket, index) => {
       queueItems.push({
@@ -53,7 +53,7 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
         createdAt: ticket.createdAt
       })
     })
-    
+
     // Add tasks as queue items
     queueData.tasks?.forEach((task, index) => {
       queueItems.push({
@@ -67,7 +67,7 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
         createdAt: task.createdAt
       })
     })
-    
+
     return queueItems
   }, [flowData, selectedQueueId])
 
@@ -103,7 +103,7 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
 
     // Processing times for completed items (simulated data since we don't have actual timing data)
     const processingTimes = items
-      .filter(item => item.status === 'completed')
+      .filter((item) => item.status === 'completed')
       .map((item, index) => ({
         id: item.id,
         duration: Math.round(Math.random() * 60 + 10), // Simulated duration 10-70 minutes
@@ -175,7 +175,7 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
     const successRate = total > 0 ? Math.round((totalProcessed / total) * 100) : 0
     const failureRate = total > 0 ? Math.round((totalFailed / total) * 100) : 0
 
-    const completedItems = items.filter(item => item.status === 'completed')
+    const completedItems = items.filter((item) => item.status === 'completed')
     const avgProcessingTime =
       completedItems.length > 0
         ? Math.round(

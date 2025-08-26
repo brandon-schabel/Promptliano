@@ -106,7 +106,12 @@ export function DocumentationGeneratorDialog({
   const [isGenerating, setIsGenerating] = useState(false)
 
   // Model selection - Default to OpenRouter with Gemini 2.5 Pro
-  const { provider, model, setProvider: setProviderBase, setModel } = useModelSelection({
+  const {
+    provider,
+    model,
+    setProvider: setProviderBase,
+    setModel
+  } = useModelSelection({
     persistenceKey: 'documentation-generator-model',
     defaultProvider: 'openrouter',
     defaultModel: 'google/gemini-2.5-pro-preview'
@@ -468,7 +473,11 @@ interface ProjectContext {
   techStack?: string[]
 }
 
-function prepareUserInput(documentationType: string, formData: DocumentFormData, projectContext?: ProjectContext): string {
+function prepareUserInput(
+  documentationType: string,
+  formData: DocumentFormData,
+  projectContext?: ProjectContext
+): string {
   const projectName = projectContext?.name || 'the project'
   const projectDesc = projectContext?.description || ''
   const techStack = projectContext?.techStack?.join(', ') || ''

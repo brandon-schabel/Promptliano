@@ -1,7 +1,7 @@
 /**
  * Prompt Service - Functional Factory Pattern
  * Modernized prompt management with repository integration
- * 
+ *
  * Key improvements:
  * - Uses Drizzle repository instead of manual storage
  * - Functional composition pattern
@@ -15,12 +15,7 @@ import { createCrudService, extendService, withErrorContext, createServiceLogger
 import { nullToUndefined } from './utils/file-utils'
 import { ErrorFactory } from '@promptliano/shared'
 import { promptRepository } from '@promptliano/database'
-import { 
-  type Prompt, 
-  type CreatePrompt, 
-  type UpdatePrompt,
-  PromptSchema
-} from '@promptliano/database'
+import { type Prompt, type CreatePrompt, type UpdatePrompt, PromptSchema } from '@promptliano/database'
 
 type CreatePromptBody = CreatePrompt
 type UpdatePromptBody = UpdatePrompt
@@ -40,11 +35,8 @@ export interface PromptServiceDeps {
  * Create Prompt Service with functional factory pattern
  */
 export function createPromptService(deps: PromptServiceDeps = {}) {
-  const {
-    repository = promptRepository,
-    logger = createServiceLogger('PromptService'),
-  } = deps
-  
+  const { repository = promptRepository, logger = createServiceLogger('PromptService') } = deps
+
   // Ensure logger is never undefined
   const safeLogger = logger!
 
@@ -54,8 +46,8 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
     repository,
     logger
   })
-  
-  // Ensure baseService is never undefined  
+
+  // Ensure baseService is never undefined
   const safeBaseService = baseService!
 
   // Extended domain operations
@@ -66,7 +58,7 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
     async getByProject(projectId: number): Promise<Prompt[]> {
       return withErrorContext(
         async () => {
-          return await repository.getByProject(projectId) as Prompt[]
+          return (await repository.getByProject(projectId)) as Prompt[]
         },
         { entity: 'Prompt', action: 'getByProject' }
       )
@@ -80,16 +72,18 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
         async () => {
           // Use the getByProject method and filter in memory for now
           if (projectId) {
-            const prompts = await repository.getByProject(projectId) as Prompt[]
-            return prompts.filter(p => 
-              p.title.toLowerCase().includes(query.toLowerCase()) ||
-              p.content.toLowerCase().includes(query.toLowerCase())
+            const prompts = (await repository.getByProject(projectId)) as Prompt[]
+            return prompts.filter(
+              (p) =>
+                p.title.toLowerCase().includes(query.toLowerCase()) ||
+                p.content.toLowerCase().includes(query.toLowerCase())
             )
           } else {
-            const allPrompts = await repository.getAll() as Prompt[]
-            return allPrompts.filter(p => 
-              p.title.toLowerCase().includes(query.toLowerCase()) ||
-              p.content.toLowerCase().includes(query.toLowerCase())
+            const allPrompts = (await repository.getAll()) as Prompt[]
+            return allPrompts.filter(
+              (p) =>
+                p.title.toLowerCase().includes(query.toLowerCase()) ||
+                p.content.toLowerCase().includes(query.toLowerCase())
             )
           }
         },
@@ -109,7 +103,7 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
           }
 
           // Use repository directly with proper type casting
-          return await repository.create(data as any) as Prompt
+          return (await repository.create(data as any)) as Prompt
         },
         { entity: 'Prompt', action: 'createWithProject' }
       )
@@ -123,7 +117,7 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
         async () => {
           const projectSummary = await getCompactProjectSummary(projectId)
           const existingPrompts = await this.getByProject(projectId)
-          
+
           const systemPrompt = `You are a prompt engineering assistant. Based on the project context and user query, suggest relevant prompt templates that would be useful for this project.
 
 Return an array of prompt suggestions that are:
@@ -136,7 +130,7 @@ Project Summary:
 ${projectSummary}
 
 Existing Prompts:
-${existingPrompts.map(p => `- ${p.title}: ${p.content.substring(0, 100)}...`).join('\n')}
+${existingPrompts.map((p) => `- ${p.title}: ${p.content.substring(0, 100)}...`).join('\n')}
 
 User Query: ${userQuery}`
 
@@ -146,7 +140,7 @@ User Query: ${userQuery}`
             schema: PromptSuggestionsZodSchema
           })
 
-          return result.object.promptIds.map(id => `Prompt ID: ${id}`)
+          return result.object.promptIds.map((id) => `Prompt ID: ${id}`)
         },
         { entity: 'Prompt', action: 'getSuggestions' }
       )
@@ -158,8 +152,8 @@ User Query: ${userQuery}`
     async optimizePrompt(promptId: number, context?: string): Promise<string> {
       return withErrorContext(
         async () => {
-          const prompt = await safeBaseService.getById(promptId) as Prompt
-          
+          const prompt = (await safeBaseService.getById(promptId)) as Prompt
+
           const systemPrompt = `You are a prompt optimization expert. Improve the given prompt to be more effective, clear, and specific.
 
 Original Prompt:
@@ -192,16 +186,16 @@ Return the optimized version that:
     async duplicate(promptId: number, modifications?: Partial<CreatePromptBody>): Promise<Prompt> {
       return withErrorContext(
         async () => {
-          const original = await safeBaseService.getById(promptId) as Prompt
-          
+          const original = (await safeBaseService.getById(promptId)) as Prompt
+
           const duplicateData: CreatePromptBody = {
             title: `${original.title} (Copy)`,
             content: original.content,
             projectId: original.projectId,
             ...modifications
           }
-          
-          return await repository.create(duplicateData as any) as Prompt
+
+          return (await repository.create(duplicateData as any)) as Prompt
         },
         { entity: 'Prompt', action: 'duplicate', id: promptId }
       )
@@ -241,7 +235,7 @@ Return the optimized version that:
           async () => {
             const results = []
             for (const prompt of prompts) {
-              const created = await repository.create(prompt as any) as Prompt
+              const created = (await repository.create(prompt as any)) as Prompt
               results.push(created)
             }
             return results
@@ -261,9 +255,9 @@ Return the optimized version that:
                 return repository.update(id, data as any) as unknown as Prompt
               })
             )
-            
-            const successful = results.filter(r => r.status === 'fulfilled').length
-            
+
+            const successful = results.filter((r) => r.status === 'fulfilled').length
+
             if (successful < updates.length) {
               safeLogger.warn('Some prompt updates failed', {
                 total: updates.length,
@@ -271,7 +265,7 @@ Return the optimized version that:
                 failed: updates.length - successful
               })
             }
-            
+
             return successful
           },
           { entity: 'Prompt', action: 'batchUpdate' }
@@ -285,10 +279,10 @@ Return the optimized version that:
         return withErrorContext(
           async () => {
             const results = await Promise.allSettled(
-              promptIds.map(id => safeBaseService.delete?.(id) || Promise.resolve(false))
+              promptIds.map((id) => safeBaseService.delete?.(id) || Promise.resolve(false))
             )
-            
-            return results.filter(r => r.status === 'fulfilled').length
+
+            return results.filter((r) => r.status === 'fulfilled').length
           },
           { entity: 'Prompt', action: 'batchDelete' }
         )

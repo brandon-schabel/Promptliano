@@ -168,8 +168,8 @@ describe('Queue Error Handling', () => {
       // Fail the item
       // Get the queue item first
       const items = await getQueueItems(queue.id)
-      const queueItem = items.find(i => i.queueItem.itemId === ticket.id)?.queueItem
-      
+      const queueItem = items.find((i) => i.queueItem.itemId === ticket.id)?.queueItem
+
       if (queueItem) {
         await failQueueItem(queueItem.id, { success: false, error: 'Network timeout' })
       }

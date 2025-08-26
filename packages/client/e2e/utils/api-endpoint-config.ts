@@ -1,6 +1,6 @@
 /**
  * API Endpoint Configuration for E2E Tests
- * 
+ *
  * This file defines the correct API endpoints used by the server
  * to ensure tests use the proper paths and avoid hardcoded assumptions.
  */
@@ -11,66 +11,66 @@ export const API_ENDPOINTS = {
     BASE: '/api/projects',
     BY_ID: (id: number) => `/api/projects/${id}`,
     SYNC: (id: number) => `/api/projects/${id}/sync`,
-    FILES: (id: number) => `/api/projects/${id}/files`,
+    FILES: (id: number) => `/api/projects/${id}/files`
   },
-  
+
   TICKETS: {
     BASE: '/api/tickets',
     BY_ID: (id: number) => `/api/tickets/${id}`,
-    TASKS: (id: number) => `/api/tickets/${id}/tasks`,
+    TASKS: (id: number) => `/api/tickets/${id}/tasks`
   },
-  
+
   PROMPTS: {
     BASE: '/api/prompts',
-    BY_ID: (id: number) => `/api/prompts/${id}`,
+    BY_ID: (id: number) => `/api/prompts/${id}`
   },
-  
+
   QUEUES: {
-    BASE: '/api/queues',  // Generated route
+    BASE: '/api/queues', // Generated route
     BY_ID: (id: number) => `/api/queues/${id}`,
-    PROCESS: (id: number) => `/api/queues/${id}/process`,
+    PROCESS: (id: number) => `/api/queues/${id}/process`
   },
-  
+
   // AI endpoints (Manual routes - different pattern)
   AI: {
-    CHAT: '/api/ai/chat',  // Not /api/chat/completions!
+    CHAT: '/api/ai/chat', // Not /api/chat/completions!
     GENERATE_TEXT: '/api/ai/generate/text',
     STREAM: '/api/gen-ai/stream',
-    STRUCTURED: '/api/gen-ai/structured',
+    STRUCTURED: '/api/gen-ai/structured'
   },
-  
+
   // File operations
   FILES: {
     BASE: '/api/files',
     BY_ID: (id: string) => `/api/files/${id}`,
     CONTENT: (id: string) => `/api/files/content/${id}`,
     UPLOAD: '/api/files/upload',
-    SEARCH: '/api/files/search',
+    SEARCH: '/api/files/search'
   },
-  
+
   // Flow operations (Manual routes)
   FLOW: {
     ENQUEUE_TICKET: (ticketId: number) => `/api/flow/tickets/${ticketId}/enqueue`,
     DEQUEUE_TICKET: (ticketId: number) => `/api/flow/tickets/${ticketId}/dequeue`,
     ENQUEUE_TASK: (taskId: number) => `/api/flow/tasks/${taskId}/enqueue`,
     DEQUEUE_TASK: (taskId: number) => `/api/flow/tasks/${taskId}/dequeue`,
-    PROCESS_FAIL: '/api/flow/process/fail',
+    PROCESS_FAIL: '/api/flow/process/fail'
   },
-  
+
   // Git operations
   GIT: {
     STATUS: (projectId: number) => `/api/projects/${projectId}/git/status`,
     BRANCHES: (projectId: number) => `/api/projects/${projectId}/git/branches`,
     COMMIT: (projectId: number) => `/api/projects/${projectId}/git/commit`,
-    STASH: (projectId: number) => `/api/projects/${projectId}/git/stash`,
+    STASH: (projectId: number) => `/api/projects/${projectId}/git/stash`
   },
-  
+
   // MCP operations
   MCP: {
     SESSION: '/api/mcp/sessions',
-    EXECUTE: '/api/mcp/execute', 
+    EXECUTE: '/api/mcp/execute',
     TEST: '/api/mcp/test',
-    CONFIG: '/api/mcp/config',
+    CONFIG: '/api/mcp/config'
   }
 } as const
 
@@ -87,7 +87,7 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   VALIDATION_ERROR: 422,
-  INTERNAL_ERROR: 500,
+  INTERNAL_ERROR: 500
 } as const
 
 /**
@@ -99,7 +99,7 @@ export const API_PATTERNS = {
     data: {} // Will contain response data
   },
   ERROR_RESPONSE: {
-    success: false, 
+    success: false,
     error: '' // Will contain error message
   },
   OPERATION_SUCCESS: {
@@ -112,19 +112,19 @@ export const API_PATTERNS = {
  */
 export function validateAPIResponse(response: any, pattern: keyof typeof API_PATTERNS): boolean {
   const expectedPattern = API_PATTERNS[pattern]
-  
+
   if (pattern === 'SUCCESS_RESPONSE') {
     return response.success === true && typeof response.data === 'object'
   }
-  
+
   if (pattern === 'ERROR_RESPONSE') {
     return response.success === false && typeof response.error === 'string'
   }
-  
+
   if (pattern === 'OPERATION_SUCCESS') {
     return response.success === true
   }
-  
+
   return false
 }
 
@@ -136,10 +136,10 @@ export const ENDPOINT_CORRECTIONS = {
   // AI endpoint corrections
   '/api/chat/completions': API_ENDPOINTS.AI.CHAT,
   '/api/chat/completion': API_ENDPOINTS.AI.CHAT,
-  
-  // Queue endpoint corrections  
+
+  // Queue endpoint corrections
   '/api/queue/process': API_ENDPOINTS.FLOW.PROCESS_FAIL,
-  '/api/queues/*/process': (queueId: number) => API_ENDPOINTS.QUEUES.PROCESS(queueId),
+  '/api/queues/*/process': (queueId: number) => API_ENDPOINTS.QUEUES.PROCESS(queueId)
 } as const
 
 /**
@@ -161,16 +161,15 @@ export function getCorrectedEndpoint(assumedEndpoint: string): string {
 export function isValidEndpoint(endpoint: string): boolean {
   // Generated routes follow /api/{entity} pattern
   const generatedRoutePattern = /^\/api\/(projects|tickets|prompts|queues|chats|files)(\/.+)?$/
-  
-  // Manual routes have specific known patterns  
+
+  // Manual routes have specific known patterns
   const manualRoutePatterns = [
     /^\/api\/ai\/.+$/,
     /^\/api\/gen-ai\/.+$/,
     /^\/api\/flow\/.+$/,
     /^\/api\/mcp\/.+$/,
-    /^\/api\/git\/.+$/,
+    /^\/api\/git\/.+$/
   ]
-  
-  return generatedRoutePattern.test(endpoint) || 
-         manualRoutePatterns.some(pattern => pattern.test(endpoint))
+
+  return generatedRoutePattern.test(endpoint) || manualRoutePatterns.some((pattern) => pattern.test(endpoint))
 }

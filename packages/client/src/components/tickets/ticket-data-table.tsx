@@ -1,10 +1,6 @@
 import React from 'react'
 import { type Ticket } from '@promptliano/schemas'
-import {
-  ConfiguredDataTable,
-  createDataTableColumns,
-  type DataTableColumnsConfig
-} from '@promptliano/ui'
+import { ConfiguredDataTable, createDataTableColumns, type DataTableColumnsConfig } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 
 interface TicketDataTableProps {
@@ -14,20 +10,14 @@ interface TicketDataTableProps {
   isLoading?: boolean
 }
 
-export function TicketDataTable({ 
-  tickets, 
-  selectedTicket, 
-  onSelectTicket,
-  isLoading = false 
-}: TicketDataTableProps) {
-  
+export function TicketDataTable({ tickets, selectedTicket, onSelectTicket, isLoading = false }: TicketDataTableProps) {
   // Priority configuration
   const priorityConfig = {
     low: { label: 'Low', variant: 'secondary' as const, className: 'bg-green-100 text-green-900' },
     normal: { label: 'Medium', variant: 'secondary' as const, className: 'bg-yellow-100 text-yellow-900' },
     high: { label: 'High', variant: 'secondary' as const, className: 'bg-red-100 text-red-900' }
   }
-  
+
   // Status configuration
   const statusConfig = {
     open: { label: 'Open', variant: 'secondary' as const, className: 'bg-blue-100 text-blue-900' },
@@ -45,7 +35,7 @@ export function TicketDataTable({
           accessorKey: 'title',
           header: 'Title',
           enableSorting: true,
-                    className: 'font-semibold'
+          className: 'font-semibold'
         }
       },
       {
@@ -56,7 +46,7 @@ export function TicketDataTable({
           truncate: true,
           maxLength: 100,
           enableSorting: false,
-                    className: 'text-muted-foreground'
+          className: 'text-muted-foreground'
         }
       },
       {
@@ -65,8 +55,8 @@ export function TicketDataTable({
           accessorKey: 'priority',
           header: 'Priority',
           statuses: priorityConfig,
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'status',
@@ -74,8 +64,8 @@ export function TicketDataTable({
           accessorKey: 'status',
           header: 'Status',
           statuses: statusConfig,
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'date',

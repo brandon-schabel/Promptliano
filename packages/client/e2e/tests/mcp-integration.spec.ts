@@ -45,13 +45,12 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       await MCPTestHelpers.testMCPIntegrationSafely(page, 'connection test', async (mcpAvailable) => {
         if (mcpAvailable) {
           console.log('✅ MCP is available')
-          
+
           // Test basic MCP connection
           const result = await MCPTestHelpers.callMCPTool(page, 'project_manager', { action: 'ping' })
-          
+
           // Should not have error if MCP is working
           expect(result).toBeDefined()
-          
         } else {
           console.log('⚠️ MCP not available in test environment')
           // Test should pass gracefully when MCP is not available
@@ -61,9 +60,9 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should list all available MCP tools', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       console.log('Available MCP tools:', availableTools)
-      
+
       // Expected MCP tools for Promptliano (with correct naming)
       const expectedTools = [
         MCPTestHelpers.getMCPToolName('project_manager'),
@@ -73,7 +72,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       ]
 
       // Check which tools are available (allowing for both mock and real tools)
-      const availableExpectedTools = expectedTools.filter(tool => {
+      const availableExpectedTools = expectedTools.filter((tool) => {
         // Check both with and without mcp__promptliano__ prefix
         const shortName = tool.replace('mcp__promptliano__', '')
         return availableTools.includes(tool) || availableTools.includes(shortName)
@@ -87,7 +86,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should handle MCP tool call errors gracefully', async ({ page }) => {
       // Try to call a non-existent MCP tool
       const result = await MCPTestHelpers.callMCPTool(page, 'nonexistent_tool', {})
-      
+
       // Should gracefully handle missing tools
       if (result) {
         // If result is returned, it should contain an error
@@ -102,7 +101,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
   test.describe('Project Manager MCP Tool', () => {
     test('should create project via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('project_manager')) {
         console.warn('Skipping project_manager tests - tool not available')
         return
@@ -135,7 +134,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should list projects via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('project_manager')) {
         return
       }
@@ -152,10 +151,10 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
       if (listResponse && listResponse.success) {
         expect(Array.isArray(listResponse.data)).toBe(true)
-        
+
         const projects = listResponse.data
         const projectNames = projects.map((p: any) => p.name)
-        
+
         expect(projectNames).toContain(project1.name)
         expect(projectNames).toContain(project2.name)
       }
@@ -163,7 +162,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should get specific project via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('project_manager')) {
         return
       }
@@ -191,7 +190,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should update project via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('project_manager')) {
         return
       }
@@ -229,7 +228,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
   test.describe('Ticket Manager MCP Tool', () => {
     test('should create ticket with tasks via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('ticket_manager')) {
         console.warn('Skipping ticket_manager tests - tool not available')
         return
@@ -239,11 +238,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
         title: 'MCP Created Ticket',
         description: 'Ticket created via MCP tool',
         priority: 'high',
-        tasks: [
-          'MCP Task 1',
-          'MCP Task 2',
-          'MCP Task 3'
-        ]
+        tasks: ['MCP Task 1', 'MCP Task 2', 'MCP Task 3']
       })
 
       // Create ticket via MCP
@@ -268,7 +263,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should update ticket status via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('ticket_manager')) {
         return
       }
@@ -297,7 +292,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should list tickets by status via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('ticket_manager')) {
         return
       }
@@ -308,7 +303,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
         priority: 'high'
       })
       const normalPriorityTicket = TestDataFactory.createTicket({
-        title: 'Normal Priority MCP Ticket', 
+        title: 'Normal Priority MCP Ticket',
         priority: 'normal'
       })
 
@@ -323,9 +318,9 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       if (listResponse && listResponse.success) {
         const tickets = listResponse.data
         const highPriorityTickets = tickets.filter((t: any) => t.priority === 'high')
-        
+
         expect(highPriorityTickets.length).toBeGreaterThan(0)
-        
+
         const ticketTitles = highPriorityTickets.map((t: any) => t.title)
         expect(ticketTitles).toContain(highPriorityTicket.title)
       }
@@ -335,7 +330,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
   test.describe('Queue Processor MCP Tool', () => {
     test('should create and manage queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('queue_processor')) {
         console.warn('Skipping queue_processor tests - tool not available')
         return
@@ -364,7 +359,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should add items to queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('queue_processor')) {
         return
       }
@@ -399,7 +394,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should process queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('queue_processor')) {
         return
       }
@@ -416,16 +411,16 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       if (processResponse && processResponse.success) {
         // Verify queue is processing
         await queuePage.selectQueue(queueData.name)
-        
+
         // Check status (might be idle if no items)
         const status = await queuePage.getCurrentQueueStatus()
-        expect(['processing', 'running', 'idle'].some(s => status.includes(s))).toBe(true)
+        expect(['processing', 'running', 'idle'].some((s) => status.includes(s))).toBe(true)
       }
     })
 
     test('should get queue status via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('queue_processor')) {
         return
       }
@@ -441,7 +436,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
       if (statusResponse && statusResponse.success) {
         const queueStatus = statusResponse.data
-        
+
         expect(queueStatus).toBeDefined()
         expect(queueStatus.name).toBe(queueData.name)
         expect(typeof queueStatus.itemCount).toBe('number')
@@ -453,7 +448,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
   test.describe('Prompt Manager MCP Tool', () => {
     test('should create prompt via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('prompt_manager')) {
         console.warn('Skipping prompt_manager tests - tool not available')
         return
@@ -489,7 +484,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should search prompts via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('prompt_manager')) {
         return
       }
@@ -518,7 +513,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       if (searchResponse && searchResponse.success) {
         const results = searchResponse.data
         expect(Array.isArray(results)).toBe(true)
-        
+
         if (results.length > 0) {
           const promptNames = results.map((p: any) => p.name)
           expect(promptNames).toContain(codePrompt.name)
@@ -528,7 +523,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should get prompt templates via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('prompt_manager')) {
         return
       }
@@ -539,7 +534,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       if (templatesResponse && templatesResponse.success) {
         const templates = templatesResponse.data
         expect(Array.isArray(templates)).toBe(true)
-        
+
         // Templates should have required properties
         if (templates.length > 0) {
           const template = templates[0]
@@ -554,7 +549,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
   test.describe('Cross-Tool Integration', () => {
     test('should create complete workflow via MCP tools', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       // Check which tools are available
       const hasProjectManager = availableTools.includes('project_manager')
       const hasTicketManager = availableTools.includes('ticket_manager')
@@ -641,7 +636,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should sync data consistency across MCP tools and UI', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (!availableTools.includes('project_manager') || !availableTools.includes('ticket_manager')) {
         return
       }
@@ -653,7 +648,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
       // Verify project is accessible via MCP
       const mcpProjectsResponse = await MCPTestHelpers.testProjectManagerTool(page, 'list')
-      
+
       if (mcpProjectsResponse?.success) {
         const projects = mcpProjectsResponse.data
         const foundProject = projects.find((p: any) => p.name === projectData.name)
@@ -692,11 +687,13 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
     test('should handle MCP tool errors gracefully', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('project_manager')) {
         // Try to create project with invalid data
         const invalidResponse = await MCPTestHelpers.testProjectManagerTool(page, 'create', {
-          project: { /* missing required fields */ }
+          project: {
+            /* missing required fields */
+          }
         })
 
         // Should return error response rather than throwing
@@ -710,7 +707,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should handle MCP connection loss gracefully', async ({ page }) => {
       // This would require mocking MCP connection failure
       // For now, we'll just verify the client handles undefined responses
-      
+
       const result = await page.evaluate(async () => {
         try {
           // @ts-ignore

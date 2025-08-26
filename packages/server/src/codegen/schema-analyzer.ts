@@ -1,7 +1,7 @@
 /**
  * Schema Analyzer - Automatically discover entities from Drizzle schemas
  * Part of Phase 3B: Route Code Generation System
- * 
+ *
  * Analyzes Drizzle schemas to auto-generate entity configurations
  * Reduces manual configuration and keeps routes in sync with schema changes
  */
@@ -68,7 +68,7 @@ export interface SchemaTable {
 export class SchemaAnalyzer {
   private schemaPath: string
   private serviceBasePath: string
-  
+
   constructor(schemaPath: string, serviceBasePath: string) {
     this.schemaPath = schemaPath
     this.serviceBasePath = serviceBasePath
@@ -84,7 +84,7 @@ export class SchemaAnalyzer {
 
     const schemaContent = readFileSync(this.schemaPath, 'utf-8')
     const tables = this.parseSchemaContent(schemaContent)
-    
+
     const entities = this.generateEntityDefinitions(tables)
     const relationships = this.extractRelationships(tables)
     const suggestions = this.generateRouteSuggestions(tables, relationships)
@@ -103,17 +103,17 @@ export class SchemaAnalyzer {
    */
   private parseSchemaContent(content: string): SchemaTable[] {
     const tables: SchemaTable[] = []
-    
+
     // Find all sqliteTable definitions
     const tableRegex = /export\s+const\s+(\w+)\s*=\s*sqliteTable\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*\{([^}]+)\}/gs
     let tableMatch
-    
+
     while ((tableMatch = tableRegex.exec(content)) !== null) {
       const [, tableName, dbTableName, fieldsContent] = tableMatch
-      
+
       const fields = this.parseTableFields(fieldsContent)
       const indexes = this.parseTableIndexes(content, tableName)
-      
+
       tables.push({
         name: dbTableName,
         fields,
@@ -135,23 +135,25 @@ export class SchemaAnalyzer {
    */
   private parseTableFields(fieldsContent: string): SchemaField[] {
     const fields: SchemaField[] = []
-    
+
     // Extract field definitions
     const fieldRegex = /(\w+):\s*(\w+)\([^)]*\)([^,\n]*)/g
     let fieldMatch
-    
+
     while ((fieldMatch = fieldRegex.exec(fieldsContent)) !== null) {
       const [, fieldName, fieldType, modifiers] = fieldMatch
-      
+
       const field: SchemaField = {
         name: fieldName,
         type: this.mapDrizzleTypeToJS(fieldType),
         nullable: !modifiers.includes('.notNull()'),
-        primaryKey: modifiers.includes('.primaryKey()'),
+        primaryKey: modifiers.includes('.primaryKey()')
       }
 
       // Check for foreign key references
-      const referencesMatch = modifiers.match(/\.references\(\(\)\s*=>\s*(\w+)\.(\w+)(?:,\s*\{[^}]*onDelete:\s*['"`]([^'"`]+)['"`][^}]*\})?/)
+      const referencesMatch = modifiers.match(
+        /\.references\(\(\)\s*=>\s*(\w+)\.(\w+)(?:,\s*\{[^}]*onDelete:\s*['"`]([^'"`]+)['"`][^}]*\})?/
+      )
       if (referencesMatch) {
         const [, refTable, refColumn, onDelete] = referencesMatch
         field.foreignKey = {
@@ -164,7 +166,7 @@ export class SchemaAnalyzer {
       // Check for enum values
       const enumMatch = modifiers.match(/\{\s*enum:\s*\[([^\]]+)\]\s*\}/)
       if (enumMatch) {
-        field.enum = enumMatch[1].split(',').map(v => v.trim().replace(/['"]/g, ''))
+        field.enum = enumMatch[1].split(',').map((v) => v.trim().replace(/['"]/g, ''))
       }
 
       // Check for default values
@@ -184,16 +186,19 @@ export class SchemaAnalyzer {
    */
   private parseTableIndexes(content: string, tableName: string): string[] {
     const indexes: string[] = []
-    
+
     // Find index definitions for this table
-    const indexRegex = new RegExp(`${tableName}\\s*=\\s*sqliteTable[^}]+\\}\\),\\s*\\(table\\)\\s*=>\\s*\\(\\{([^}]+)\\}\\)`, 's')
+    const indexRegex = new RegExp(
+      `${tableName}\\s*=\\s*sqliteTable[^}]+\\}\\),\\s*\\(table\\)\\s*=>\\s*\\(\\{([^}]+)\\}\\)`,
+      's'
+    )
     const indexMatch = content.match(indexRegex)
-    
+
     if (indexMatch) {
       const indexContent = indexMatch[1]
       const indexEntryRegex = /(\w+):\s*index\([^)]+\)\.on\(([^)]+)\)/g
       let entryMatch
-      
+
       while ((entryMatch = indexEntryRegex.exec(indexContent)) !== null) {
         const [, indexName, columns] = entryMatch
         indexes.push(indexName)
@@ -208,21 +213,24 @@ export class SchemaAnalyzer {
    */
   private parseTableRelationships(content: string, tableName: string): EntityRelationship[] {
     const relationships: EntityRelationship[] = []
-    
+
     // Find relations definitions
-    const relationsRegex = new RegExp(`export\\s+const\\s+(\\w+)Relations\\s*=\\s*relations\\s*\\(\\s*(\\w+)\\s*,\\s*\\(\\{[^}]+\\}\\)\\s*=>\\s*\\(\\{([^}]+)\\}\\)\\)`, 'gs')
+    const relationsRegex = new RegExp(
+      `export\\s+const\\s+(\\w+)Relations\\s*=\\s*relations\\s*\\(\\s*(\\w+)\\s*,\\s*\\(\\{[^}]+\\}\\)\\s*=>\\s*\\(\\{([^}]+)\\}\\)\\)`,
+      'gs'
+    )
     let relMatch
-    
+
     while ((relMatch = relationsRegex.exec(content)) !== null) {
       const [, relationsName, sourceTable, relationsContent] = relMatch
-      
+
       if (sourceTable === tableName) {
         const relationRegex = /(\w+):\s*(one|many)\(([^)]+)\)/g
         let relationMatch
-        
+
         while ((relationMatch = relationRegex.exec(relationsContent)) !== null) {
           const [, relationName, relationType, relationTarget] = relationMatch
-          
+
           // Extract target table from relation definition
           const targetMatch = relationTarget.match(/(\w+)/)
           if (targetMatch) {
@@ -244,10 +252,10 @@ export class SchemaAnalyzer {
    * Generate entity definitions from parsed tables
    */
   private generateEntityDefinitions(tables: SchemaTable[]): EntityDefinition[] {
-    return tables.map(table => {
+    return tables.map((table) => {
       const entityName = this.tableNameToEntityName(table.name)
       const plural = this.entityNameToPlural(entityName)
-      
+
       const entity: EntityDefinition = {
         name: entityName,
         plural,
@@ -273,7 +281,7 @@ export class SchemaAnalyzer {
    */
   private extractRelationships(tables: SchemaTable[]): EntityRelationship[] {
     const relationships: EntityRelationship[] = []
-    
+
     for (const table of tables) {
       for (const field of table.fields) {
         if (field.foreignKey) {
@@ -299,12 +307,12 @@ export class SchemaAnalyzer {
 
     for (const table of tables) {
       const entityName = this.tableNameToEntityName(table.name)
-      
+
       // Suggest search route if table has searchable fields
-      const hasSearchableFields = table.fields.some(f => 
-        f.type === 'string' && ['name', 'title', 'description', 'content'].includes(f.name)
+      const hasSearchableFields = table.fields.some(
+        (f) => f.type === 'string' && ['name', 'title', 'description', 'content'].includes(f.name)
       )
-      
+
       if (hasSearchableFields) {
         suggestions.push({
           entity: entityName,
@@ -318,7 +326,7 @@ export class SchemaAnalyzer {
       }
 
       // Suggest status transition routes for entities with status fields
-      const statusField = table.fields.find(f => f.name === 'status' && f.enum)
+      const statusField = table.fields.find((f) => f.name === 'status' && f.enum)
       if (statusField?.enum) {
         for (const status of statusField.enum) {
           if (status !== 'open') {
@@ -336,7 +344,7 @@ export class SchemaAnalyzer {
       }
 
       // Suggest relationship routes
-      const relatedEntities = relationships.filter(r => r.fromEntity === table.name)
+      const relatedEntities = relationships.filter((r) => r.fromEntity === table.name)
       for (const rel of relatedEntities) {
         const relatedEntityName = this.tableNameToEntityName(rel.toEntity)
         suggestions.push({
@@ -362,9 +370,9 @@ export class SchemaAnalyzer {
 
     for (const table of tables) {
       // Check for missing indexes on foreign keys
-      const fkFields = table.fields.filter(f => f.foreignKey)
+      const fkFields = table.fields.filter((f) => f.foreignKey)
       for (const fkField of fkFields) {
-        const hasIndex = table.indexes.some(idx => idx.includes(fkField.name))
+        const hasIndex = table.indexes.some((idx) => idx.includes(fkField.name))
         if (!hasIndex) {
           warnings.push(`Table '${table.name}' foreign key '${fkField.name}' is not indexed`)
         }
@@ -387,13 +395,18 @@ export class SchemaAnalyzer {
 
   private tableNameToEntityName(tableName: string): string {
     // Convert snake_case or plural to PascalCase singular
-    return tableName
-      .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-      .replace(/s$/, '') // Remove trailing 's' for plural
-      .charAt(0).toUpperCase() + tableName.slice(1)
-      .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-      .replace(/s$/, '')
-      .slice(1)
+    return (
+      tableName
+        .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+        .replace(/s$/, '') // Remove trailing 's' for plural
+        .charAt(0)
+        .toUpperCase() +
+      tableName
+        .slice(1)
+        .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+        .replace(/s$/, '')
+        .slice(1)
+    )
   }
 
   private entityNameToPlural(entityName: string): string {
@@ -409,32 +422,31 @@ export class SchemaAnalyzer {
 
   private mapDrizzleTypeToJS(drizzleType: string): string {
     const typeMap: Record<string, string> = {
-      'integer': 'number',
-      'text': 'string',
-      'real': 'number',
-      'blob': 'Buffer'
+      integer: 'number',
+      text: 'string',
+      real: 'number',
+      blob: 'Buffer'
     }
     return typeMap[drizzleType] || 'unknown'
   }
 
   private shouldEnableSearch(table: SchemaTable): boolean {
-    return table.fields.some(f => 
-      f.type === 'string' && 
-      ['name', 'title', 'description', 'content', 'summary'].includes(f.name)
+    return table.fields.some(
+      (f) => f.type === 'string' && ['name', 'title', 'description', 'content', 'summary'].includes(f.name)
     )
   }
 
   private shouldEnableBatch(table: SchemaTable): boolean {
     // Enable batch operations for tables that typically need bulk operations
     const batchTables = ['files', 'tasks', 'tickets', 'messages']
-    return batchTables.some(name => table.name.includes(name))
+    return batchTables.some((name) => table.name.includes(name))
   }
 
   private generateCustomRoutes(table: SchemaTable): any[] {
     const customRoutes = []
-    
+
     // Generate status transition routes
-    const statusField = table.fields.find(f => f.name === 'status' && f.enum)
+    const statusField = table.fields.find((f) => f.name === 'status' && f.enum)
     if (statusField?.enum) {
       for (const status of statusField.enum) {
         if (status !== 'open') {
@@ -472,10 +484,10 @@ export async function generateEntityConfigsFromSchema(
   serviceBasePath: string
 ): Promise<EntityDefinition[]> {
   const analysis = await analyzeSchemaFile(schemaPath, serviceBasePath)
-  
+
   if (analysis.warnings.length > 0) {
     console.warn('Schema analysis warnings:')
-    analysis.warnings.forEach(warning => console.warn(`  ⚠️  ${warning}`))
+    analysis.warnings.forEach((warning) => console.warn(`  ⚠️  ${warning}`))
   }
 
   return analysis.entities

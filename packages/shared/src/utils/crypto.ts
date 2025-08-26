@@ -14,10 +14,10 @@ function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
 }
 
 // Environment detection
-const isServerEnvironment = typeof process !== 'undefined' && process.env && (
-  process.env.NODE_ENV === 'test' || 
-  typeof (globalThis as any).window === 'undefined'
-)
+const isServerEnvironment =
+  typeof process !== 'undefined' &&
+  process.env &&
+  (process.env.NODE_ENV === 'test' || typeof (globalThis as any).window === 'undefined')
 
 // Conditional storage import for server/test environments
 let encryptionKeyStorage: { getKey: () => string; clearCache?: () => void; hasKey?: () => boolean }
@@ -27,7 +27,7 @@ if (isServerEnvironment) {
     // Dynamic import to avoid bundling issues in client
     const storageModule = require('@promptliano/storage')
     encryptionKeyStorage = storageModule.encryptionKeyStorage || storageModule.default?.encryptionKeyStorage
-    
+
     if (!encryptionKeyStorage) {
       throw new Error('encryptionKeyStorage not found in storage module')
     }
@@ -124,7 +124,9 @@ export async function encryptKey(plaintext: string): Promise<EncryptedData> {
   const derivedKey = await deriveKey(envKey, Buffer.from(salt))
 
   // Use Web Crypto API for encryption
-  const cryptoKey = await crypto.subtle.importKey('raw', bufferToArrayBuffer(derivedKey), { name: 'AES-GCM' }, false, ['encrypt'])
+  const cryptoKey = await crypto.subtle.importKey('raw', bufferToArrayBuffer(derivedKey), { name: 'AES-GCM' }, false, [
+    'encrypt'
+  ])
 
   const encrypted = await crypto.subtle.encrypt(
     {
@@ -167,7 +169,9 @@ export async function decryptKey(encryptedData: EncryptedData): Promise<string> 
   combined.set(ciphertext)
   combined.set(tag, ciphertext.length)
 
-  const cryptoKey = await crypto.subtle.importKey('raw', bufferToArrayBuffer(derivedKey), { name: 'AES-GCM' }, false, ['decrypt'])
+  const cryptoKey = await crypto.subtle.importKey('raw', bufferToArrayBuffer(derivedKey), { name: 'AES-GCM' }, false, [
+    'decrypt'
+  ])
 
   const decrypted = await crypto.subtle.decrypt(
     {

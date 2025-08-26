@@ -19,8 +19,8 @@ import { Skeleton } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { toast } from 'sonner'
 import { Plus, RefreshCw } from 'lucide-react'
-import { 
-  useQueues, 
+import {
+  useQueues,
   useCreateQueue,
   useGetFlowData,
   useGetQueuesWithStats,
@@ -261,10 +261,25 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
   }, [flowData])
 
   const { data: openTicketData } = useTicket(openTicketId || 0)
-  const openTicketWithTasks: import('@/hooks/generated/types').TicketWithTasksNested | null = useMemo(
-    () => (openTicketData ? { ticket: openTicketData, tasks: [] } : null),
-    [openTicketData]
-  )
+  const openTicketWithTasks: import('@/hooks/generated/types').TicketWithTasksNested | null = useMemo(() => {
+    if (!openTicketData) return null
+
+    // Transform database JSON types to properly typed arrays
+    const transformedTicket = {
+      ...openTicketData,
+      suggestedFileIds: Array.isArray(openTicketData.suggestedFileIds)
+        ? openTicketData.suggestedFileIds.filter((id: any): id is string => typeof id === 'string')
+        : [],
+      suggestedAgentIds: Array.isArray(openTicketData.suggestedAgentIds)
+        ? openTicketData.suggestedAgentIds.filter((id: any): id is string => typeof id === 'string')
+        : [],
+      suggestedPromptIds: Array.isArray(openTicketData.suggestedPromptIds)
+        ? openTicketData.suggestedPromptIds.filter((id: any): id is number => typeof id === 'number')
+        : []
+    }
+
+    return { ticket: transformedTicket, tasks: [] }
+  }, [openTicketData])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -547,17 +562,20 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
               return (
                 <KanbanColumn
                   key={queueWithStats.id}
-                  queue={{ ...queueWithStats, stats: { 
-                    total: 0, 
-                    pending: 0, 
-                    processing: 0, 
-                    completed: 0, 
-                    failed: 0,
-                    currentAgents: [],
-                    completedItems: 0,
-                    totalItems: 0,
-                    averageProcessingTime: undefined
-                  } }}
+                  queue={{
+                    ...queueWithStats,
+                    stats: {
+                      total: 0,
+                      pending: 0,
+                      processing: 0,
+                      completed: 0,
+                      failed: 0,
+                      currentAgents: [],
+                      completedItems: 0,
+                      totalItems: 0,
+                      averageProcessingTime: undefined
+                    }
+                  }}
                   items={itemsByQueue[queueWithStats.id.toString()] || []}
                   onPauseQueue={() => handlePauseQueue(queueWithStats)}
                   onResumeQueue={() => handleResumeQueue(queueWithStats)}

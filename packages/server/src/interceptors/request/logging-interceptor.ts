@@ -18,7 +18,7 @@ function defaultLogger(level: string, message: string, data?: any): void {
     message,
     ...data
   }
-  
+
   switch (level) {
     case 'error':
       console.error(`[${logEntry.level}] ${logEntry.message}`, logEntry)
@@ -44,7 +44,7 @@ function shouldLog(level: string, configLevel: string): boolean {
   const levels = ['debug', 'info', 'warn', 'error']
   const levelIndex = levels.indexOf(level)
   const configLevelIndex = levels.indexOf(configLevel)
-  
+
   return levelIndex >= configLevelIndex
 }
 
@@ -52,16 +52,10 @@ function shouldLog(level: string, configLevel: string): boolean {
  * Mask sensitive header values
  */
 function maskSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
-  const sensitiveHeaders = [
-    'authorization',
-    'x-api-key',
-    'cookie',
-    'x-auth-token',
-    'x-access-token'
-  ]
-  
+  const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie', 'x-auth-token', 'x-access-token']
+
   const masked: Record<string, string> = {}
-  
+
   for (const [key, value] of Object.entries(headers)) {
     if (sensitiveHeaders.includes(key.toLowerCase())) {
       masked[key] = '***MASKED***'
@@ -69,7 +63,7 @@ function maskSensitiveHeaders(headers: Record<string, string>): Record<string, s
       masked[key] = value
     }
   }
-  
+
   return masked
 }
 
@@ -78,7 +72,7 @@ function maskSensitiveHeaders(headers: Record<string, string>): Record<string, s
  */
 function getRequestHeaders(context: Context): Record<string, string> {
   const headers: Record<string, string> = {}
-  
+
   // Common headers to log
   const headerNames = [
     'user-agent',
@@ -91,14 +85,14 @@ function getRequestHeaders(context: Context): Record<string, string> {
     'x-forwarded-for',
     'x-real-ip'
   ]
-  
+
   for (const name of headerNames) {
     const value = context.req.header(name)
     if (value) {
       headers[name] = value
     }
   }
-  
+
   return headers
 }
 
@@ -110,7 +104,7 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
     const logger = config.logger || defaultLogger
     const logLevel = config.level || 'info'
     const startTime = Date.now()
-    
+
     try {
       // Log request start
       if (shouldLog('info', logLevel)) {
@@ -122,21 +116,21 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           userAgent: context.req.header('user-agent'),
           timestamp: new Date().toISOString()
         }
-        
+
         logger('info', 'Request started', requestData)
       }
-      
+
       // Log request headers (debug level)
       if (shouldLog('debug', logLevel)) {
         const headers = getRequestHeaders(context)
         const maskedHeaders = maskSensitiveHeaders(headers)
-        
+
         logger('debug', 'Request headers', {
           requestId: interceptorContext.requestId,
           headers: maskedHeaders
         })
       }
-      
+
       // Log request body if enabled
       if (config.logRequestBody && context.req.method !== 'GET') {
         if (shouldLog('debug', logLevel)) {
@@ -147,7 +141,7 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
             const body = await clonedRequest.json()
             const bodyStr = JSON.stringify(body)
             const maxSize = config.maxBodySize || 1024
-            
+
             if (bodyStr.length <= maxSize) {
               logger('debug', 'Request body', {
                 requestId: interceptorContext.requestId,
@@ -170,14 +164,14 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           }
         }
       }
-      
+
       // Execute next interceptor/handler
       await next()
-      
+
       // Log request completion
       const duration = Date.now() - startTime
       interceptorContext.metrics.interceptorTimings['logging'] = duration
-      
+
       if (shouldLog('info', logLevel)) {
         logger('info', 'Request completed', {
           requestId: interceptorContext.requestId,
@@ -185,7 +179,7 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           status: context.res.status
         })
       }
-      
+
       // Log slow requests
       const slowThreshold = config.slowThreshold || 1000 // 1 second default
       if (duration > slowThreshold && shouldLog('warn', logLevel)) {
@@ -197,7 +191,7 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           threshold: slowThreshold
         })
       }
-      
+
       // Log response if enabled
       if (config.logResponseBody && shouldLog('debug', logLevel)) {
         try {
@@ -216,12 +210,11 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           }
         }
       }
-      
     } catch (error) {
       // Log the error
       const duration = Date.now() - startTime
       interceptorContext.metrics.interceptorTimings['logging'] = duration
-      
+
       if (shouldLog('error', logLevel)) {
         logger('error', 'Request failed', {
           requestId: interceptorContext.requestId,
@@ -235,7 +228,7 @@ function createLoggingHandler(config: LoggingInterceptorConfig): InterceptorHand
           }
         })
       }
-      
+
       // Re-throw the error
       throw error
     }
@@ -324,16 +317,11 @@ export function createLogEntry(
  */
 export function shouldLogRequest(path: string, excludePatterns: string[] = []): boolean {
   // Default exclude patterns for noisy endpoints
-  const defaultExcludes = [
-    '/health',
-    '/metrics',
-    '/favicon.ico',
-    '/_next/**'
-  ]
-  
+  const defaultExcludes = ['/health', '/metrics', '/favicon.ico', '/_next/**']
+
   const allExcludes = [...defaultExcludes, ...excludePatterns]
-  
-  return !allExcludes.some(pattern => {
+
+  return !allExcludes.some((pattern) => {
     const regex = new RegExp('^' + pattern.replace('*', '.*') + '$')
     return regex.test(path)
   })
@@ -344,36 +332,34 @@ export function shouldLogRequest(path: string, excludePatterns: string[] = []): 
  */
 export function safeStringify(obj: any, maxDepth = 3): string {
   const seen = new WeakSet()
-  
+
   function replacer(key: string, value: any, depth = 0): any {
     if (depth > maxDepth) {
       return '[Max Depth Reached]'
     }
-    
+
     if (value === null) return null
-    
+
     if (typeof value === 'object') {
       if (seen.has(value)) {
         return '[Circular Reference]'
       }
       seen.add(value)
-      
+
       if (Array.isArray(value)) {
-        return value.map((item, index) => 
-          replacer(index.toString(), item, depth + 1)
-        )
+        return value.map((item, index) => replacer(index.toString(), item, depth + 1))
       }
-      
+
       const result: any = {}
       for (const [k, v] of Object.entries(value)) {
         result[k] = replacer(k, v, depth + 1)
       }
       return result
     }
-    
+
     return value
   }
-  
+
   try {
     return JSON.stringify(obj, (key, value) => replacer(key, value))
   } catch (error) {

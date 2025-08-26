@@ -25,17 +25,13 @@ async function createCommand(projectId: number, data: CreateClaudeCommandBody): 
     async (): Promise<ClaudeCommand> => {
       // Validate command name
       if (!/^[a-z0-9-]+$/.test(data.name)) {
-        throw ErrorFactory.invalidInput(
-          'name',
-          'lowercase letters, numbers, and hyphens only',
-          data.name
-        )
+        throw ErrorFactory.invalidInput('name', 'lowercase letters, numbers, and hyphens only', data.name)
       }
 
       // Check if command already exists for this project
       const existingCommands = await claudeCommandRepository.getByProject(projectId)
-      const existing = existingCommands.find(cmd => cmd.name === data.name)
-      
+      const existing = existingCommands.find((cmd) => cmd.name === data.name)
+
       if (existing) {
         throw ErrorFactory.conflict(`Command '${data.name}' already exists in project`, {
           commandName: data.name,
@@ -79,7 +75,7 @@ async function listCommands(
       }
 
       // Filter by active status
-      commands = commands.filter(cmd => cmd.isActive)
+      commands = commands.filter((cmd) => cmd.isActive)
 
       // Sort by name
       commands.sort((a, b) => a.name.localeCompare(b.name))
@@ -95,14 +91,11 @@ async function listCommands(
   )
 }
 
-async function getCommandByName(
-  projectId: number,
-  commandName: string
-): Promise<ClaudeCommand> {
+async function getCommandByName(projectId: number, commandName: string): Promise<ClaudeCommand> {
   return withErrorContext(
     async () => {
       const commands = await claudeCommandRepository.getByProject(projectId)
-      const command = commands.find(cmd => cmd.name === commandName && cmd.isActive)
+      const command = commands.find((cmd) => cmd.name === commandName && cmd.isActive)
 
       if (!command) {
         throw ErrorFactory.notFound('ClaudeCommand', commandName, { projectId })
@@ -174,7 +167,9 @@ async function executeCommand(
 
       if (args) {
         // Convert args object to string format expected by parser
-        const argsString = Object.entries(args).map(([key, value]) => `${key}=${value}`).join(' ')
+        const argsString = Object.entries(args)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(' ')
         content = parser.substituteArguments(content, argsString)
       }
 
@@ -211,7 +206,9 @@ async function generateCommand(
         try {
           projectContext = await getCompactProjectSummary(projectId)
         } catch (error) {
-          console.log(`Warning: Could not get project summary: ${error instanceof Error ? error.message : String(error)}`)
+          console.log(
+            `Warning: Could not get project summary: ${error instanceof Error ? error.message : String(error)}`
+          )
           projectContext = 'Project summary unavailable'
         }
       }
@@ -337,9 +334,11 @@ Based on this project's structure and the user's context, suggest ${limit} Claud
 }
 
 // Service factory following modern functional pattern
-function createClaudeCommandService(deps: {
-  repository?: typeof claudeCommandRepository
-} = {}) {
+function createClaudeCommandService(
+  deps: {
+    repository?: typeof claudeCommandRepository
+  } = {}
+) {
   const repository = deps.repository || claudeCommandRepository
 
   return {

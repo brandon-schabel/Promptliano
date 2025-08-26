@@ -18,69 +18,80 @@ describe('Drizzle Query Operations', () => {
     await db.delete(schema.queueItems)
 
     // Create test project
-    const [project] = await db.insert(schema.projects).values({
-      name: 'Test Project',
-      description: 'Test project for query testing',
-      path: '/test/project',
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    }).returning()
-    
+    const [project] = await db
+      .insert(schema.projects)
+      .values({
+        name: 'Test Project',
+        description: 'Test project for query testing',
+        path: '/test/project',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      })
+      .returning()
+
     testProject = project
   })
 
   describe('CRUD Operations', () => {
     describe('Create Operations', () => {
       it('should create single entity with returning', async () => {
-        const [ticket] = await db.insert(schema.tickets).values({
-          projectId: testProject.id,
-          title: 'Test Ticket',
-          overview: 'Test overview',
-          status: 'open',
-          priority: 'normal',
-          suggestedFileIds: ['file1.ts'],
-          suggestedAgentIds: ['agent1'],
-          suggestedPromptIds: [1],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }).returning()
+        const [ticket] = await db
+          .insert(schema.tickets)
+          .values({
+            projectId: testProject.id,
+            title: 'Test Ticket',
+            overview: 'Test overview',
+            status: 'open',
+            priority: 'normal',
+            suggestedFileIds: ['file1.ts'],
+            suggestedAgentIds: ['agent1'],
+            suggestedPromptIds: [1],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
+          .returning()
 
-        expect(ticket).toEqual(expect.objectContaining({
-          id: expect.any(Number),
-          projectId: testProject.id,
-          title: 'Test Ticket',
-          status: 'open',
-          priority: 'normal'
-        }))
+        expect(ticket).toEqual(
+          expect.objectContaining({
+            id: expect.any(Number),
+            projectId: testProject.id,
+            title: 'Test Ticket',
+            status: 'open',
+            priority: 'normal'
+          })
+        )
       })
 
       it('should create multiple entities in batch', async () => {
-        const tickets = await db.insert(schema.tickets).values([
-          {
-            projectId: testProject.id,
-            title: 'Ticket 1',
-            overview: 'Overview 1',
-            status: 'open',
-            priority: 'high',
-            suggestedFileIds: [],
-            suggestedAgentIds: [],
-            suggestedPromptIds: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          },
-          {
-            projectId: testProject.id,
-            title: 'Ticket 2',
-            overview: 'Overview 2',
-            status: 'in_progress',
-            priority: 'normal',
-            suggestedFileIds: [],
-            suggestedAgentIds: [],
-            suggestedPromptIds: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        ]).returning()
+        const tickets = await db
+          .insert(schema.tickets)
+          .values([
+            {
+              projectId: testProject.id,
+              title: 'Ticket 1',
+              overview: 'Overview 1',
+              status: 'open',
+              priority: 'high',
+              suggestedFileIds: [],
+              suggestedAgentIds: [],
+              suggestedPromptIds: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            },
+            {
+              projectId: testProject.id,
+              title: 'Ticket 2',
+              overview: 'Overview 2',
+              status: 'in_progress',
+              priority: 'normal',
+              suggestedFileIds: [],
+              suggestedAgentIds: [],
+              suggestedPromptIds: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }
+          ])
+          .returning()
 
         expect(tickets).toHaveLength(2)
         expect(tickets[0].title).toBe('Ticket 1')
@@ -89,45 +100,51 @@ describe('Drizzle Query Operations', () => {
 
       it('should handle JSON arrays in batch inserts', async () => {
         // First create a ticket to reference
-        const [ticket] = await db.insert(schema.tickets).values({
-          projectId: testProject.id,
-          title: 'Parent Ticket',
-          overview: 'For tasks',
-          status: 'open',
-          priority: 'normal',
-          suggestedFileIds: [],
-          suggestedAgentIds: [],
-          suggestedPromptIds: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }).returning()
+        const [ticket] = await db
+          .insert(schema.tickets)
+          .values({
+            projectId: testProject.id,
+            title: 'Parent Ticket',
+            overview: 'For tasks',
+            status: 'open',
+            priority: 'normal',
+            suggestedFileIds: [],
+            suggestedAgentIds: [],
+            suggestedPromptIds: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
+          .returning()
 
-        const tasks = await db.insert(schema.ticketTasks).values([
-          {
-            ticketId: ticket.id,
-            content: 'Task 1',
-            description: 'First task',
-            suggestedFileIds: ['file1.ts', 'file2.ts'],
-            done: false,
-            orderIndex: 0,
-            dependencies: [],
-            tags: ['backend', 'api'],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          },
-          {
-            ticketId: ticket.id,
-            content: 'Task 2',
-            description: 'Second task',
-            suggestedFileIds: ['file3.ts'],
-            done: true,
-            orderIndex: 1,
-            dependencies: [],
-            tags: ['frontend'],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        ]).returning()
+        const tasks = await db
+          .insert(schema.ticketTasks)
+          .values([
+            {
+              ticketId: ticket.id,
+              content: 'Task 1',
+              description: 'First task',
+              suggestedFileIds: ['file1.ts', 'file2.ts'],
+              done: false,
+              orderIndex: 0,
+              dependencies: [],
+              tags: ['backend', 'api'],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            },
+            {
+              ticketId: ticket.id,
+              content: 'Task 2',
+              description: 'Second task',
+              suggestedFileIds: ['file3.ts'],
+              done: true,
+              orderIndex: 1,
+              dependencies: [],
+              tags: ['frontend'],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }
+          ])
+          .returning()
 
         expect(tasks[0].suggestedFileIds).toEqual(['file1.ts', 'file2.ts'])
         expect(tasks[0].tags).toEqual(['backend', 'api'])
@@ -138,18 +155,21 @@ describe('Drizzle Query Operations', () => {
     describe('Read Operations', () => {
       beforeEach(async () => {
         // Create test data
-        const [ticket] = await db.insert(schema.tickets).values({
-          projectId: testProject.id,
-          title: 'Test Ticket',
-          overview: 'Test overview',
-          status: 'open',
-          priority: 'normal',
-          suggestedFileIds: [],
-          suggestedAgentIds: [],
-          suggestedPromptIds: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }).returning()
+        const [ticket] = await db
+          .insert(schema.tickets)
+          .values({
+            projectId: testProject.id,
+            title: 'Test Ticket',
+            overview: 'Test overview',
+            status: 'open',
+            priority: 'normal',
+            suggestedFileIds: [],
+            suggestedAgentIds: [],
+            suggestedPromptIds: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
+          .returning()
 
         await db.insert(schema.ticketTasks).values([
           {
@@ -176,12 +196,10 @@ describe('Drizzle Query Operations', () => {
       })
 
       it('should select with basic where conditions', async () => {
-        const openTickets = await db.select()
+        const openTickets = await db
+          .select()
           .from(schema.tickets)
-          .where(and(
-            eq(schema.tickets.projectId, testProject.id),
-            eq(schema.tickets.status, 'open')
-          ))
+          .where(and(eq(schema.tickets.projectId, testProject.id), eq(schema.tickets.status, 'open')))
 
         expect(openTickets).toHaveLength(1)
         expect(openTickets[0].status).toBe('open')
@@ -217,32 +235,30 @@ describe('Drizzle Query Operations', () => {
         ])
 
         // Test OR conditions
-        const openOrHighPriority = await db.select()
+        const openOrHighPriority = await db
+          .select()
           .from(schema.tickets)
-          .where(and(
-            eq(schema.tickets.projectId, testProject.id),
-            or(
-              eq(schema.tickets.status, 'open'),
-              eq(schema.tickets.priority, 'high')
+          .where(
+            and(
+              eq(schema.tickets.projectId, testProject.id),
+              or(eq(schema.tickets.status, 'open'), eq(schema.tickets.priority, 'high'))
             )
-          ))
+          )
 
         expect(openOrHighPriority.length).toBeGreaterThanOrEqual(2)
 
         // Test IN condition
-        const specificStatuses = await db.select()
+        const specificStatuses = await db
+          .select()
           .from(schema.tickets)
-          .where(and(
-            eq(schema.tickets.projectId, testProject.id),
-            inArray(schema.tickets.status, ['open', 'closed'])
-          ))
+          .where(and(eq(schema.tickets.projectId, testProject.id), inArray(schema.tickets.status, ['open', 'closed'])))
 
         expect(specificStatuses.length).toBeGreaterThanOrEqual(2)
       })
 
       it('should select with ordering and limiting', async () => {
         const now = Date.now()
-        
+
         // Insert multiple tickets with specific timestamps to ensure ordering
         await db.insert(schema.tickets).values([
           {
@@ -272,7 +288,8 @@ describe('Drizzle Query Operations', () => {
         ])
 
         // Test descending order - should get newest first
-        const newestFirst = await db.select()
+        const newestFirst = await db
+          .select()
           .from(schema.tickets)
           .where(eq(schema.tickets.projectId, testProject.id))
           .orderBy(desc(schema.tickets.createdAt))
@@ -282,7 +299,8 @@ describe('Drizzle Query Operations', () => {
         expect(newestFirst[0].title).toBe('Newest Ticket')
 
         // Test ascending order - should get oldest first
-        const oldestFirst = await db.select()
+        const oldestFirst = await db
+          .select()
           .from(schema.tickets)
           .where(eq(schema.tickets.projectId, testProject.id))
           .orderBy(asc(schema.tickets.createdAt))
@@ -292,19 +310,22 @@ describe('Drizzle Query Operations', () => {
       })
 
       it('should select specific columns', async () => {
-        const titles = await db.select({
-          id: schema.tickets.id,
-          title: schema.tickets.title,
-          status: schema.tickets.status
-        })
+        const titles = await db
+          .select({
+            id: schema.tickets.id,
+            title: schema.tickets.title,
+            status: schema.tickets.status
+          })
           .from(schema.tickets)
           .where(eq(schema.tickets.projectId, testProject.id))
 
-        expect(titles[0]).toEqual(expect.objectContaining({
-          id: expect.any(Number),
-          title: expect.any(String),
-          status: expect.any(String)
-        }))
+        expect(titles[0]).toEqual(
+          expect.objectContaining({
+            id: expect.any(Number),
+            title: expect.any(String),
+            status: expect.any(String)
+          })
+        )
         // Should not have other fields
         expect(titles[0]).not.toHaveProperty('overview')
         expect(titles[0]).not.toHaveProperty('priority')
@@ -315,24 +336,28 @@ describe('Drizzle Query Operations', () => {
       let testTicket: schema.Ticket
 
       beforeEach(async () => {
-        const [ticket] = await db.insert(schema.tickets).values({
-          projectId: testProject.id,
-          title: 'Original Title',
-          overview: 'Original overview',
-          status: 'open',
-          priority: 'normal',
-          suggestedFileIds: [],
-          suggestedAgentIds: [],
-          suggestedPromptIds: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }).returning()
-        
+        const [ticket] = await db
+          .insert(schema.tickets)
+          .values({
+            projectId: testProject.id,
+            title: 'Original Title',
+            overview: 'Original overview',
+            status: 'open',
+            priority: 'normal',
+            suggestedFileIds: [],
+            suggestedAgentIds: [],
+            suggestedPromptIds: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
+          .returning()
+
         testTicket = ticket
       })
 
       it('should update single entity', async () => {
-        const [updated] = await db.update(schema.tickets)
+        const [updated] = await db
+          .update(schema.tickets)
           .set({
             title: 'Updated Title',
             status: 'in_progress',
@@ -347,7 +372,8 @@ describe('Drizzle Query Operations', () => {
       })
 
       it('should update JSON fields', async () => {
-        const [updated] = await db.update(schema.tickets)
+        const [updated] = await db
+          .update(schema.tickets)
           .set({
             suggestedFileIds: ['new-file1.ts', 'new-file2.ts'],
             suggestedAgentIds: ['new-agent'],
@@ -392,19 +418,17 @@ describe('Drizzle Query Operations', () => {
         ])
 
         // Update all open tickets
-        const updated = await db.update(schema.tickets)
+        const updated = await db
+          .update(schema.tickets)
           .set({
             priority: 'high',
             updatedAt: Date.now()
           })
-          .where(and(
-            eq(schema.tickets.projectId, testProject.id),
-            eq(schema.tickets.status, 'open')
-          ))
+          .where(and(eq(schema.tickets.projectId, testProject.id), eq(schema.tickets.status, 'open')))
           .returning()
 
         expect(updated).toHaveLength(3) // All 3 open tickets
-        updated.forEach(ticket => {
+        updated.forEach((ticket) => {
           expect(ticket.priority).toBe('high')
         })
       })
@@ -414,64 +438,59 @@ describe('Drizzle Query Operations', () => {
       let testTickets: schema.Ticket[]
 
       beforeEach(async () => {
-        const tickets = await db.insert(schema.tickets).values([
-          {
-            projectId: testProject.id,
-            title: 'Ticket 1',
-            overview: 'Test',
-            status: 'open',
-            priority: 'normal',
-            suggestedFileIds: [],
-            suggestedAgentIds: [],
-            suggestedPromptIds: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          },
-          {
-            projectId: testProject.id,
-            title: 'Ticket 2',
-            overview: 'Test',
-            status: 'closed',
-            priority: 'normal',
-            suggestedFileIds: [],
-            suggestedAgentIds: [],
-            suggestedPromptIds: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        ]).returning()
-        
+        const tickets = await db
+          .insert(schema.tickets)
+          .values([
+            {
+              projectId: testProject.id,
+              title: 'Ticket 1',
+              overview: 'Test',
+              status: 'open',
+              priority: 'normal',
+              suggestedFileIds: [],
+              suggestedAgentIds: [],
+              suggestedPromptIds: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            },
+            {
+              projectId: testProject.id,
+              title: 'Ticket 2',
+              overview: 'Test',
+              status: 'closed',
+              priority: 'normal',
+              suggestedFileIds: [],
+              suggestedAgentIds: [],
+              suggestedPromptIds: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }
+          ])
+          .returning()
+
         testTickets = tickets
       })
 
       it('should delete single entity', async () => {
-        const deleted = await db.delete(schema.tickets)
-          .where(eq(schema.tickets.id, testTickets[0].id))
-          .returning()
+        const deleted = await db.delete(schema.tickets).where(eq(schema.tickets.id, testTickets[0].id)).returning()
 
         expect(deleted).toHaveLength(1)
         expect(deleted[0].id).toBe(testTickets[0].id)
 
         // Verify deletion
-        const remaining = await db.select()
-          .from(schema.tickets)
-          .where(eq(schema.tickets.projectId, testProject.id))
+        const remaining = await db.select().from(schema.tickets).where(eq(schema.tickets.projectId, testProject.id))
 
         expect(remaining).toHaveLength(1)
         expect(remaining[0].id).toBe(testTickets[1].id)
       })
 
       it('should delete multiple entities with condition', async () => {
-        const deleted = await db.delete(schema.tickets)
-          .where(eq(schema.tickets.projectId, testProject.id))
-          .returning()
+        const deleted = await db.delete(schema.tickets).where(eq(schema.tickets.projectId, testProject.id)).returning()
 
         expect(deleted).toHaveLength(2)
 
         // Verify all deleted
-        const remaining = await db.select()
-          .from(schema.tickets)
-          .where(eq(schema.tickets.projectId, testProject.id))
+        const remaining = await db.select().from(schema.tickets).where(eq(schema.tickets.projectId, testProject.id))
 
         expect(remaining).toHaveLength(0)
       })
@@ -502,11 +521,11 @@ describe('Drizzle Query Operations', () => {
         ])
 
         // Delete ticket (should cascade to tasks)
-        await db.delete(schema.tickets)
-          .where(eq(schema.tickets.id, testTickets[0].id))
+        await db.delete(schema.tickets).where(eq(schema.tickets.id, testTickets[0].id))
 
         // Verify tasks are deleted
-        const remainingTasks = await db.select()
+        const remainingTasks = await db
+          .select()
           .from(schema.ticketTasks)
           .where(eq(schema.ticketTasks.ticketId, testTickets[0].id))
 
@@ -559,9 +578,10 @@ describe('Drizzle Query Operations', () => {
     })
 
     it('should count entities', async () => {
-      const [result] = await db.select({
-        total: count()
-      })
+      const [result] = await db
+        .select({
+          total: count()
+        })
         .from(schema.tickets)
         .where(eq(schema.tickets.projectId, testProject.id))
 
@@ -569,28 +589,30 @@ describe('Drizzle Query Operations', () => {
     })
 
     it('should count with grouping', async () => {
-      const statusCounts = await db.select({
-        status: schema.tickets.status,
-        count: count()
-      })
+      const statusCounts = await db
+        .select({
+          status: schema.tickets.status,
+          count: count()
+        })
         .from(schema.tickets)
         .where(eq(schema.tickets.projectId, testProject.id))
         .groupBy(schema.tickets.status)
 
       expect(statusCounts).toHaveLength(2) // open and closed
-      
-      const openCount = statusCounts.find(s => s.status === 'open')?.count
-      const closedCount = statusCounts.find(s => s.status === 'closed')?.count
-      
+
+      const openCount = statusCounts.find((s) => s.status === 'open')?.count
+      const closedCount = statusCounts.find((s) => s.status === 'closed')?.count
+
       expect(openCount).toBe(2)
       expect(closedCount).toBe(1)
     })
 
     it('should handle timestamp aggregations', async () => {
-      const [result] = await db.select({
-        minCreated: count(schema.tickets.createdAt),
-        maxCreated: count(schema.tickets.createdAt)
-      })
+      const [result] = await db
+        .select({
+          minCreated: count(schema.tickets.createdAt),
+          maxCreated: count(schema.tickets.createdAt)
+        })
         .from(schema.tickets)
         .where(eq(schema.tickets.projectId, testProject.id))
 
@@ -602,25 +624,25 @@ describe('Drizzle Query Operations', () => {
   describe('Performance Benchmarks', () => {
     it('should perform single entity lookup in < 1ms', async () => {
       // Create test ticket
-      const [ticket] = await db.insert(schema.tickets).values({
-        projectId: testProject.id,
-        title: 'Performance Test',
-        overview: 'Test',
-        status: 'open',
-        priority: 'normal',
-        suggestedFileIds: [],
-        suggestedAgentIds: [],
-        suggestedPromptIds: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }).returning()
+      const [ticket] = await db
+        .insert(schema.tickets)
+        .values({
+          projectId: testProject.id,
+          title: 'Performance Test',
+          overview: 'Test',
+          status: 'open',
+          priority: 'normal',
+          suggestedFileIds: [],
+          suggestedAgentIds: [],
+          suggestedPromptIds: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+        .returning()
 
       // Benchmark single lookup
       const start = Date.now()
-      const found = await db.select()
-        .from(schema.tickets)
-        .where(eq(schema.tickets.id, ticket.id))
-        .limit(1)
+      const found = await db.select().from(schema.tickets).where(eq(schema.tickets.id, ticket.id)).limit(1)
       const elapsed = Date.now() - start
 
       expect(found).toHaveLength(1)
@@ -653,18 +675,21 @@ describe('Drizzle Query Operations', () => {
 
     it('should perform complex join query in < 4ms', async () => {
       // Create ticket with tasks
-      const [ticket] = await db.insert(schema.tickets).values({
-        projectId: testProject.id,
-        title: 'Join Test',
-        overview: 'Test',
-        status: 'open',
-        priority: 'normal',
-        suggestedFileIds: [],
-        suggestedAgentIds: [],
-        suggestedPromptIds: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }).returning()
+      const [ticket] = await db
+        .insert(schema.tickets)
+        .values({
+          projectId: testProject.id,
+          title: 'Join Test',
+          overview: 'Test',
+          status: 'open',
+          priority: 'normal',
+          suggestedFileIds: [],
+          suggestedAgentIds: [],
+          suggestedPromptIds: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+        .returning()
 
       await db.insert(schema.ticketTasks).values(
         Array.from({ length: 10 }, (_, i) => ({
@@ -716,12 +741,10 @@ describe('Drizzle Query Operations', () => {
 
       // Test paginated query performance
       const start = Date.now()
-      const results = await db.select()
+      const results = await db
+        .select()
         .from(schema.tickets)
-        .where(and(
-          eq(schema.tickets.projectId, testProject.id),
-          eq(schema.tickets.status, 'open')
-        ))
+        .where(and(eq(schema.tickets.projectId, testProject.id), eq(schema.tickets.status, 'open')))
         .orderBy(desc(schema.tickets.createdAt))
         .limit(20)
         .offset(100)

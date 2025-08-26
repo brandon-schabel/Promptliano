@@ -4,10 +4,7 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import {
-  ApiErrorResponseSchema,
-  OperationSuccessResponseSchema
-} from '@promptliano/schemas'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 // TODO: Import proper MCP session services when implemented
 // import { } from '@promptliano/services'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
@@ -19,11 +16,13 @@ const MCPSessionSchema = z.object({
   status: z.enum(['active', 'idle', 'disconnected']),
   startedAt: z.string(),
   lastActivity: z.string(),
-  metadata: z.object({
-    clientInfo: z.any().optional(),
-    serverInfo: z.any().optional(),
-    capabilities: z.any().optional()
-  }).optional()
+  metadata: z
+    .object({
+      clientInfo: z.any().optional(),
+      serverInfo: z.any().optional(),
+      capabilities: z.any().optional()
+    })
+    .optional()
 })
 
 // Create MCP session
@@ -38,15 +37,19 @@ const createMCPSessionRoute = createRoute({
         'application/json': {
           schema: z.object({
             serverId: z.string(),
-            clientInfo: z.object({
-              name: z.string(),
-              version: z.string()
-            }).optional(),
-            capabilities: z.object({
-              tools: z.boolean().optional(),
-              resources: z.boolean().optional(),
-              prompts: z.boolean().optional()
-            }).optional()
+            clientInfo: z
+              .object({
+                name: z.string(),
+                version: z.string()
+              })
+              .optional(),
+            capabilities: z
+              .object({
+                tools: z.boolean().optional(),
+                resources: z.boolean().optional(),
+                prompts: z.boolean().optional()
+              })
+              .optional()
           })
         }
       },
@@ -81,10 +84,12 @@ const listMCPSessionsRoute = createRoute({
       serverId: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(MCPSessionSchema)
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(MCPSessionSchema)
+    })
+  )
 })
 
 // Get session by ID
@@ -154,22 +159,26 @@ const getSessionHistoryRoute = createRoute({
       offset: z.number().int().min(0).optional().default(0)
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      sessionId: z.string(),
-      history: z.array(z.object({
-        timestamp: z.string(),
-        type: z.enum(['request', 'response', 'notification']),
-        method: z.string().optional(),
-        params: z.any().optional(),
-        result: z.any().optional(),
-        error: z.any().optional()
-      })),
-      total: z.number(),
-      hasMore: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        sessionId: z.string(),
+        history: z.array(
+          z.object({
+            timestamp: z.string(),
+            type: z.enum(['request', 'response', 'notification']),
+            method: z.string().optional(),
+            params: z.any().optional(),
+            result: z.any().optional(),
+            error: z.any().optional()
+          })
+        ),
+        total: z.number(),
+        hasMore: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 // Cleanup idle sessions
@@ -190,15 +199,17 @@ const cleanupIdleSessionsRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      sessionsChecked: z.number(),
-      sessionsClosed: z.number(),
-      sessionIds: z.array(z.string()),
-      dryRun: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        sessionsChecked: z.number(),
+        sessionsClosed: z.number(),
+        sessionIds: z.array(z.string()),
+        dryRun: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 // Export routes

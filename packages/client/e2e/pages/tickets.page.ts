@@ -21,7 +21,9 @@ export class TicketsPage extends BasePage {
 
   // Ticket actions
   get createTicketButton() {
-    return this.page.locator('[data-testid="create-ticket"], button:has-text("New Ticket"), button:has-text("Create Ticket")')
+    return this.page.locator(
+      '[data-testid="create-ticket"], button:has-text("New Ticket"), button:has-text("Create Ticket")'
+    )
   }
 
   // Ticket dialog/form elements
@@ -33,8 +35,11 @@ export class TicketsPage extends BasePage {
     return this.page.locator('input[name="title"], input[placeholder*="ticket title" i]')
   }
 
-  get ticketOverviewTextarea() { // Changed from description to overview to match schema
-    return this.page.locator('textarea[name="overview"], textarea[name="description"], [data-testid="ticket-overview"], [data-testid="ticket-description"]')
+  get ticketOverviewTextarea() {
+    // Changed from description to overview to match schema
+    return this.page.locator(
+      'textarea[name="overview"], textarea[name="description"], [data-testid="ticket-overview"], [data-testid="ticket-description"]'
+    )
   }
 
   get ticketPrioritySelect() {
@@ -72,7 +77,9 @@ export class TicketsPage extends BasePage {
 
   // Ticket card actions
   getTicketCard(ticketTitle: string) {
-    return this.page.locator(`[data-testid="ticket-card"]:has-text("${ticketTitle}"), .ticket-card:has-text("${ticketTitle}")`)
+    return this.page.locator(
+      `[data-testid="ticket-card"]:has-text("${ticketTitle}"), .ticket-card:has-text("${ticketTitle}")`
+    )
   }
 
   getTicketCardMenu(ticketTitle: string) {
@@ -134,7 +141,7 @@ export class TicketsPage extends BasePage {
 
     // Fill ticket details
     await this.ticketTitleInput.fill(ticketData.title)
-    
+
     if (ticketData.overview) {
       await this.ticketOverviewTextarea.fill(ticketData.overview) // Updated method name
     }
@@ -156,11 +163,11 @@ export class TicketsPage extends BasePage {
 
     // Submit the form
     await this.submitTicketButton.click()
-    
+
     // Wait for ticket creation
     await this.waitForAPIResponse(/\/api\/tickets/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify ticket was created
     await expect(this.getTicketCard(ticketData.title)).toBeVisible({ timeout: 10000 })
   }
@@ -170,11 +177,11 @@ export class TicketsPage extends BasePage {
    */
   async addTask(taskText: string) {
     await this.addTaskButton.click()
-    
+
     const taskInputs = this.taskInput
     const lastInput = taskInputs.last()
     await lastInput.fill(taskText)
-    
+
     // Press Enter or Tab to confirm the task
     await this.page.keyboard.press('Enter')
     await this.page.waitForTimeout(300) // Wait for task to be added
@@ -183,15 +190,18 @@ export class TicketsPage extends BasePage {
   /**
    * Edit an existing ticket
    */
-  async editTicket(currentTitle: string, updates: {
-    title?: string
-    overview?: string // Changed from description to overview to match schema
-    priority?: string
-    status?: string
-  }) {
+  async editTicket(
+    currentTitle: string,
+    updates: {
+      title?: string
+      overview?: string // Changed from description to overview to match schema
+      priority?: string
+      status?: string
+    }
+  ) {
     await this.openTicketMenu(currentTitle)
     await this.ticketMenuEdit.click()
-    
+
     await expect(this.ticketDialog).toBeVisible()
 
     if (updates.title) {
@@ -217,14 +227,14 @@ export class TicketsPage extends BasePage {
   async deleteTicket(ticketTitle: string) {
     await this.openTicketMenu(ticketTitle)
     await this.ticketMenuDelete.click()
-    
+
     // Handle confirmation dialog
     await this.handleConfirmationDialog('accept')
-    
+
     // Wait for deletion
     await this.waitForAPIResponse(/\/api\/tickets/, 'DELETE')
     await this.waitForLoadingComplete()
-    
+
     // Verify ticket was deleted
     await expect(this.getTicketCard(ticketTitle)).not.toBeVisible()
   }
@@ -235,7 +245,7 @@ export class TicketsPage extends BasePage {
   async openTicket(ticketTitle: string) {
     await this.getTicketCard(ticketTitle).click()
     await this.waitForLoadingComplete()
-    
+
     // Should navigate to ticket detail view
     await expect(this.page).toHaveURL(new RegExp('/tickets/\\d+'))
   }
@@ -246,13 +256,13 @@ export class TicketsPage extends BasePage {
   async openTicketMenu(ticketTitle: string) {
     const ticketCard = this.getTicketCard(ticketTitle)
     await expect(ticketCard).toBeVisible()
-    
+
     // Hover to reveal menu button
     await ticketCard.hover()
-    
+
     const menuButton = this.getTicketCardMenu(ticketTitle)
     await menuButton.click()
-    
+
     // Wait for menu to appear
     await expect(this.ticketMenuEdit).toBeVisible()
   }
@@ -263,13 +273,13 @@ export class TicketsPage extends BasePage {
   async addTicketToQueue(ticketTitle: string, queueName?: string) {
     await this.openTicketMenu(ticketTitle)
     await this.ticketMenuAddToQueue.click()
-    
+
     if (queueName) {
       // Select specific queue if multiple options
       const queueOption = this.page.locator(`text="${queueName}", [data-testid="queue-${queueName}"]`)
       await queueOption.click()
     }
-    
+
     // Wait for queue addition
     await this.waitForAPIResponse(/\/api\/queues\/.*\/items/, 'POST')
     await this.waitForLoadingComplete()
@@ -281,11 +291,11 @@ export class TicketsPage extends BasePage {
   async assignAgentToTicket(ticketTitle: string, agentName: string) {
     await this.openTicketMenu(ticketTitle)
     await this.ticketMenuAssignAgent.click()
-    
+
     // Select agent from list
     const agentOption = this.page.locator(`text="${agentName}", [data-testid="agent-${agentName}"]`)
     await agentOption.click()
-    
+
     await this.waitForAPIResponse(/\/api\/tickets/, 'PUT')
     await this.waitForLoadingComplete()
   }
@@ -330,12 +340,12 @@ export class TicketsPage extends BasePage {
     const cards = this.ticketCards
     const count = await cards.count()
     const titles: string[] = []
-    
+
     for (let i = 0; i < count; i++) {
       const title = await cards.nth(i).locator('[data-testid="ticket-title"], .ticket-title').textContent()
       if (title) titles.push(title.trim())
     }
-    
+
     return titles
   }
 
@@ -352,14 +362,14 @@ export class TicketsPage extends BasePage {
   async getTicketInfo(ticketTitle: string) {
     const card = this.getTicketCard(ticketTitle)
     await expect(card).toBeVisible()
-    
+
     const title = await card.locator('[data-testid="ticket-title"], .ticket-title').textContent()
     const description = await card.locator('[data-testid="ticket-description"], .ticket-description').textContent()
     const priority = await card.locator('[data-testid="ticket-priority"], .ticket-priority').textContent()
     const status = await card.locator('[data-testid="ticket-status"], .ticket-status').textContent()
     const assignee = await card.locator('[data-testid="ticket-assignee"], .ticket-assignee').textContent()
     const taskCount = await card.locator('[data-testid="task-count"], .task-count').textContent()
-    
+
     return {
       title: title?.trim() || '',
       description: description?.trim() || '',
@@ -374,10 +384,12 @@ export class TicketsPage extends BasePage {
    * Toggle task completion in ticket detail view
    */
   async toggleTask(taskText: string) {
-    const taskItem = this.page.locator(`[data-testid="task-item"]:has-text("${taskText}"), .task-item:has-text("${taskText}")`)
+    const taskItem = this.page.locator(
+      `[data-testid="task-item"]:has-text("${taskText}"), .task-item:has-text("${taskText}")`
+    )
     const checkbox = taskItem.locator('input[type="checkbox"], [data-testid="task-checkbox"]')
     await checkbox.click()
-    
+
     await this.waitForAPIResponse(/\/api\/tasks/, 'PUT')
   }
 
@@ -411,7 +423,7 @@ export class TicketsPage extends BasePage {
   async getTicketsByStatus(status: string): Promise<string[]> {
     const tickets = await this.ticketCards.all()
     const filteredTitles: string[] = []
-    
+
     for (const ticket of tickets) {
       const ticketStatus = await ticket.locator('[data-testid="ticket-status"], .ticket-status').textContent()
       if (ticketStatus?.trim().toLowerCase() === status.toLowerCase()) {
@@ -419,7 +431,7 @@ export class TicketsPage extends BasePage {
         if (title) filteredTitles.push(title.trim())
       }
     }
-    
+
     return filteredTitles
   }
 }

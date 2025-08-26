@@ -85,11 +85,11 @@ export class MCPProjectConfigService extends EventEmitter {
   async getConfigLocations(projectId: number): Promise<MCPConfigLocation[]> {
     try {
       const project = await getProjectById(projectId)
-      
+
       if (!project) {
         throw ErrorFactory.notFound('Project', projectId)
       }
-      
+
       const projectPath = project.path
 
       if (!projectPath) {
@@ -130,17 +130,17 @@ export class MCPProjectConfigService extends EventEmitter {
       }
 
       const project = await getProjectById(projectId)
-      
+
       if (!project) {
         throw ErrorFactory.notFound('Project', projectId)
       }
-      
+
       const projectPath = project.path
-      
+
       if (!projectPath) {
         throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
       }
-      
+
       const locations = await this.getConfigLocations(projectId)
 
       // Find the first existing config file (highest priority)
@@ -172,10 +172,10 @@ export class MCPProjectConfigService extends EventEmitter {
         return resolved
       } catch (fileError) {
         logger.error(`Failed to load MCP config from ${existingConfig.path}:`, fileError)
-        throw ErrorFactory.validationFailed(
-          fileError instanceof Error ? fileError : new Error(String(fileError)),
-          { context: 'MCP configuration', path: existingConfig.path }
-        )
+        throw ErrorFactory.validationFailed(fileError instanceof Error ? fileError : new Error(String(fileError)), {
+          context: 'MCP configuration',
+          path: existingConfig.path
+        })
       }
     } catch (error: any) {
       logger.error('Error loading project config:', { projectId, error: error.message })
@@ -253,11 +253,11 @@ export class MCPProjectConfigService extends EventEmitter {
    */
   async expandVariables(config: ProjectMCPConfig, projectId: number): Promise<ProjectMCPConfig> {
     const project = await getProjectById(projectId)
-    
+
     if (!project) {
       throw ErrorFactory.notFound('Project', projectId)
     }
-    
+
     if (!project.path) {
       throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
     }
@@ -335,11 +335,7 @@ export class MCPProjectConfigService extends EventEmitter {
     const fullPath = path.isAbsolute(locationPath) ? locationPath : path.join(project.path, locationPath)
 
     if (!allowedPaths.includes(fullPath)) {
-      throw ErrorFactory.invalidInput(
-        'config location',
-        `one of: ${CONFIG_FILE_NAMES.join(', ')}`,
-        locationPath
-      )
+      throw ErrorFactory.invalidInput('config location', `one of: ${CONFIG_FILE_NAMES.join(', ')}`, locationPath)
     }
 
     // Ensure directory exists

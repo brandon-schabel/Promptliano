@@ -1,11 +1,13 @@
 # Project Page Comprehensive Test Plan
 
 ## Overview
+
 The Project Page is the central hub of Promptliano, integrating project context management, prompt organization, file tree navigation, flow features with task queues, and the task queue board. This test plan covers all major functionality with specific attention to MCP integration and complex user workflows.
 
 ## Test Scope & Requirements
 
 ### Major Components
+
 1. **Project Context Tab** - User input, file selection, prompt management, context copying
 2. **Prompt Management** - CRUD operations with hover actions and contextual menus
 3. **File Tree Testing** - File/folder selection, right-click context menus, git integration
@@ -13,6 +15,7 @@ The Project Page is the central hub of Promptliano, integrating project context 
 5. **Task Queue Board** - Drag-and-drop queue management with ticket/task organization
 
 ### Technical Integration Points
+
 - **MCP Integration**: Project manager, ticket manager, queue processor tools
 - **File System Integration**: File selection, path management, git operations
 - **Database Operations**: Project data persistence and synchronization
@@ -21,6 +24,7 @@ The Project Page is the central hub of Promptliano, integrating project context 
 ## Test Data Requirements
 
 ### Shared Test Data Setup
+
 ```typescript
 // Location: e2e/fixtures/project-page-data.ts
 export const ProjectPageTestData = {
@@ -75,12 +79,7 @@ export const ProjectPageTestData = {
       title: 'Fix Navigation Bug',
       overview: 'Resolve issue with sidebar navigation',
       priority: 'normal',
-      tasks: [
-        'Reproduce navigation issue',
-        'Identify root cause',
-        'Implement fix',
-        'Test across browsers'
-      ]
+      tasks: ['Reproduce navigation issue', 'Identify root cause', 'Implement fix', 'Test across browsers']
     }),
     TestDataFactory.createTicket({
       title: 'Performance Optimization',
@@ -101,6 +100,7 @@ export const ProjectPageTestData = {
 ## Page Object Model Extensions
 
 ### ProjectPage Class Enhancements
+
 ```typescript
 // Location: e2e/pages/project-page.ts
 export class ProjectPage extends BasePage {
@@ -171,7 +171,7 @@ export class ProjectPage extends BasePage {
     return this.page.getByTestId('folder-node').filter({ hasText: folderName })
   }
 
-  // Flow Feature Elements  
+  // Flow Feature Elements
   get flowSection() {
     return this.page.getByTestId('flow-section')
   }
@@ -228,6 +228,7 @@ export class ProjectPage extends BasePage {
 ### 1. Project Context Tab Tests
 
 #### 1.1 User Input Management
+
 ```typescript
 test.describe('Project Context - User Input', () => {
   test('should handle user input and copy functionality', async ({ page }) => {
@@ -303,7 +304,7 @@ test.describe('Project Context - User Input', () => {
 
     // Set up context: user input, selected files, selected prompts
     await projectPage.userInputTextarea.fill('Help with authentication')
-    
+
     // Select some files
     await projectPage.fileNode('auth.ts').getByRole('checkbox').check()
     await projectPage.fileNode('user.ts').getByRole('checkbox').check()
@@ -316,11 +317,11 @@ test.describe('Project Context - User Input', () => {
 
     // Should navigate to chat with context
     await expect(page).toHaveURL(/.*\/chat/)
-    
+
     // Verify context is copied to chat input
     const chatInput = page.getByTestId('chat-input')
     await expect(chatInput).toContainText('Help with authentication')
-    
+
     // Should also contain file and prompt references
     await expect(chatInput).toContainText('auth.ts')
     await expect(chatInput).toContainText('Code Review Assistant')
@@ -335,7 +336,7 @@ test.describe('Project Context - User Input', () => {
 
     // Verify summary section exists and has content
     await expect(projectPage.summarySection).toBeVisible()
-    
+
     // Check for markdown formatting elements
     const summaryContent = projectPage.summarySection.locator('.markdown-content')
     await expect(summaryContent).toBeVisible()
@@ -347,6 +348,7 @@ test.describe('Project Context - User Input', () => {
 ```
 
 #### 1.2 Prompt Management Tests
+
 ```typescript
 test.describe('Project Context - Prompt Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -379,7 +381,7 @@ test.describe('Project Context - Prompt Management', () => {
 
     // Hover over prompt to reveal copy icon
     await projectPage.promptCardByTitle('Code Review Assistant').hover()
-    
+
     // Click copy icon
     await projectPage.promptCardCopyIcon('Code Review Assistant').click()
 
@@ -396,13 +398,7 @@ test.describe('Project Context - Prompt Management', () => {
     await projectPage.promptCardMenu('Code Review Assistant').click()
 
     // Verify all menu options are present
-    const menuItems = [
-      'View Prompt',
-      'Edit Prompt', 
-      'Copy Content',
-      'Export as Markdown',
-      'Delete Prompt'
-    ]
+    const menuItems = ['View Prompt', 'Edit Prompt', 'Copy Content', 'Export as Markdown', 'Delete Prompt']
 
     for (const item of menuItems) {
       await expect(page.getByRole('menuitem', { name: item })).toBeVisible()
@@ -441,7 +437,7 @@ test.describe('Project Context - Prompt Management', () => {
     await projectPage.promptCardByTitle('Code Review Assistant').hover()
     await projectPage.promptCardMenu('Code Review Assistant').click()
     await page.getByRole('menuitem', { name: 'Export as Markdown' }).click()
-    
+
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/.*\.md$/)
 
@@ -461,6 +457,7 @@ test.describe('Project Context - Prompt Management', () => {
 ```
 
 #### 1.3 File Tree Testing
+
 ```typescript
 test.describe('File Tree Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -534,11 +531,7 @@ test.describe('File Tree Management', () => {
     const contextMenu = page.getByTestId('folder-context-menu')
     await expect(contextMenu).toBeVisible()
 
-    const expectedMenuItems = [
-      'Copy Folder Contents',
-      'Copy Folder Summaries', 
-      'Copy Folder Tree'
-    ]
+    const expectedMenuItems = ['Copy Folder Contents', 'Copy Folder Summaries', 'Copy Folder Tree']
 
     for (const item of expectedMenuItems) {
       await expect(contextMenu.getByRole('menuitem', { name: item })).toBeVisible()
@@ -560,12 +553,7 @@ test.describe('File Tree Management', () => {
     const contextMenu = page.getByTestId('file-context-menu')
     await expect(contextMenu).toBeVisible()
 
-    const expectedItems = [
-      'Copy Relative Path',
-      'Copy Absolute Path',
-      'Open In Editor',
-      'Copy File Contents'
-    ]
+    const expectedItems = ['Copy Relative Path', 'Copy Absolute Path', 'Open In Editor', 'Copy File Contents']
 
     for (const item of expectedItems) {
       await expect(contextMenu.getByRole('menuitem', { name: item })).toBeVisible()
@@ -577,7 +565,7 @@ test.describe('File Tree Management', () => {
 
   test('should handle git-modified file right-click context menu', async ({ page }) => {
     const projectPage = new ProjectPage(page)
-    
+
     // Setup a file with git modifications
     await TestDataManager.setupGitModifiedFile(page, 'src/auth/login.ts')
     await projectPage.goto('/projects/1')
@@ -589,11 +577,7 @@ test.describe('File Tree Management', () => {
     const contextMenu = page.getByTestId('file-context-menu')
     await expect(contextMenu).toBeVisible()
 
-    const gitMenuItems = [
-      'Stage File',
-      'Copy Previous Version', 
-      'Copy Diff'
-    ]
+    const gitMenuItems = ['Stage File', 'Copy Previous Version', 'Copy Diff']
 
     for (const item of gitMenuItems) {
       await expect(contextMenu.getByRole('menuitem', { name: item })).toBeVisible()
@@ -602,7 +586,7 @@ test.describe('File Tree Management', () => {
 
   test('should handle staged file operations', async ({ page }) => {
     const projectPage = new ProjectPage(page)
-    
+
     // Setup a staged file
     await TestDataManager.setupStagedFile(page, 'src/auth/login.ts')
     await projectPage.goto('/projects/1')
@@ -622,6 +606,7 @@ test.describe('File Tree Management', () => {
 ```
 
 #### 1.4 Flow Feature Tests
+
 ```typescript
 test.describe('Flow Feature - Queue Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -649,7 +634,7 @@ test.describe('Flow Feature - Queue Management', () => {
     const activeCount = await projectPage.activeQueuesCount.textContent()
     expect(parseInt(activeCount || '0')).toBeGreaterThan(0)
 
-    // Check total queues count  
+    // Check total queues count
     const totalCount = await projectPage.totalQueuesCount.textContent()
     expect(parseInt(totalCount || '0')).toBeGreaterThanOrEqual(parseInt(activeCount || '0'))
 
@@ -699,7 +684,7 @@ test.describe('Flow Feature - Queue Management', () => {
     const allTab = queueModal.getByRole('tab', { name: 'All' })
     const tabText = await allTab.textContent()
     const itemCount = parseInt(tabText?.match(/\((\d+)\)/)?.[1] || '0')
-    
+
     // Should match the displayed count in the tab content
     await allTab.click()
     const items = queueModal.getByTestId('queue-item')
@@ -713,6 +698,7 @@ test.describe('Flow Feature - Queue Management', () => {
 ```
 
 #### 1.5 Task Queue Board Tests
+
 ```typescript
 test.describe('Task Queue Board - Drag and Drop Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -795,9 +781,9 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     const initialTaskCount = await featuresColumn.getByTestId('task-card').count()
 
     // Find a ticket with multiple tasks in Bugs queue
-    const bugsColumn = projectPage.queueColumn('Bugs') 
+    const bugsColumn = projectPage.queueColumn('Bugs')
     const ticketWithTasks = bugsColumn.getByTestId('ticket-card').first()
-    
+
     // Get the number of tasks this ticket has
     const ticketTasksText = await ticketWithTasks.getByTestId('ticket-tasks').textContent()
     const taskCount = parseInt(ticketTasksText?.match(/(\d+) task/)?.[1] || '0')
@@ -812,17 +798,17 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     // Verify task ownership is maintained
     const movedTicketTitle = await ticketWithTasks.getByTestId('ticket-title').textContent()
     const tasksInFeatures = featuresColumn.getByTestId('task-card')
-    
+
     // Check that moved tasks belong to the moved ticket
     let ticketTasksFound = 0
-    for (let i = 0; i < await tasksInFeatures.count(); i++) {
+    for (let i = 0; i < (await tasksInFeatures.count()); i++) {
       const task = tasksInFeatures.nth(i)
       const taskTicketInfo = await task.getByTestId('task-ticket').textContent()
       if (taskTicketInfo?.includes(movedTicketTitle || '')) {
         ticketTasksFound++
       }
     }
-    
+
     expect(ticketTasksFound).toBe(taskCount)
   })
 
@@ -837,7 +823,7 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     // Get a ticket from Features
     const ticketInFeatures = featuresColumn.getByTestId('ticket-card').first()
     await expect(ticketInFeatures).toBeVisible()
-    
+
     const ticketTitle = await ticketInFeatures.getByTestId('ticket-title').textContent()
 
     // Get initial counts
@@ -863,7 +849,7 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     // Get a ticket from a queue
     const featuresColumn = projectPage.queueColumn('Features')
     const ticketInQueue = featuresColumn.getByTestId('ticket-card').first()
-    
+
     const ticketTitle = await ticketInQueue.getByTestId('ticket-title').textContent()
     const tasksCount = await ticketInQueue.getByTestId('task-card').count()
 
@@ -877,15 +863,15 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     // Verify tasks are also unqueued
     const unqueuedTasks = projectPage.unqueuedColumn.getByTestId('task-card')
     let unqueuedTasksFromTicket = 0
-    
-    for (let i = 0; i < await unqueuedTasks.count(); i++) {
+
+    for (let i = 0; i < (await unqueuedTasks.count()); i++) {
       const task = unqueuedTasks.nth(i)
       const taskTicketInfo = await task.getByTestId('task-ticket').textContent()
       if (taskTicketInfo?.includes(ticketTitle || '')) {
         unqueuedTasksFromTicket++
       }
     }
-    
+
     expect(unqueuedTasksFromTicket).toBe(tasksCount)
   })
 
@@ -898,7 +884,9 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     await expect(authTicket).toBeVisible()
 
     // Get current queue location
-    const currentColumn = authTicket.locator('xpath=ancestor::*[@data-testid="queue-column" or @data-testid="unqueued-column"]')
+    const currentColumn = authTicket.locator(
+      'xpath=ancestor::*[@data-testid="queue-column" or @data-testid="unqueued-column"]'
+    )
     const currentQueueName = await currentColumn.getAttribute('data-queue-name')
 
     // Count tasks belonging to this ticket before move
@@ -915,7 +903,7 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
     // Verify all tasks moved and still belong to the ticket
     const movedTicket = targetQueue.getByTestId('ticket-card').filter({ hasText: 'Implement User Authentication' })
     const tasksAfterMove = movedTicket.getByTestId('task-card')
-    
+
     await expect(tasksAfterMove).toHaveCount(taskCountBefore)
 
     // Verify task content is preserved
@@ -928,26 +916,31 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
 ## Best Practices and Recommendations
 
 ### 1. Test Data Management
+
 - **Isolation**: Each test creates its own project context to avoid interference
 - **Cleanup**: Comprehensive cleanup after each test ensures no data pollution
 - **Realistic Data**: Use representative file structures and content for accurate testing
 
 ### 2. MCP Integration Testing
+
 - **Graceful Degradation**: Tests work with or without MCP server availability
 - **Mock Fallbacks**: Comprehensive mocks ensure tests run in any environment
 - **Error Handling**: Tests verify error states and recovery mechanisms
 
 ### 3. Async Operations Handling
+
 - **Smart Waiting**: Use appropriate waits for file loading, queue updates, drag operations
 - **Network Awareness**: Handle API calls and file system operations with proper timeouts
 - **State Verification**: Ensure UI reflects backend state changes accurately
 
 ### 4. Performance Considerations
+
 - **Large File Sets**: Test behavior with realistic project sizes
 - **Concurrent Operations**: Verify drag-and-drop works with multiple simultaneous actions
 - **Memory Management**: Monitor for memory leaks during extensive drag operations
 
 ### 5. Accessibility Testing
+
 - **Keyboard Navigation**: Verify all drag-drop operations have keyboard alternatives
 - **Screen Reader Support**: Ensure queue status and changes are announced
 - **Focus Management**: Test focus behavior during modal operations
@@ -955,20 +948,25 @@ test.describe('Task Queue Board - Drag and Drop Management', () => {
 ## Execution Strategy
 
 ### 1. Sequential Dependencies
+
 Some tests should run in specific order:
+
 1. **Basic Navigation** - Ensure page loads correctly
 2. **Project Context Setup** - Establish baseline functionality
 3. **MCP Integration** - Test with and without MCP availability
 4. **Complex Workflows** - Multi-step operations requiring stable foundation
 
 ### 2. Parallel Execution Groups
+
 Tests can run in parallel within these groups:
+
 - **Prompt Management Tests** (isolated prompt operations)
-- **File Tree Tests** (independent file system operations)  
+- **File Tree Tests** (independent file system operations)
 - **Flow Feature Tests** (queue statistics and viewing)
 - **Drag-and-Drop Tests** (independent board operations)
 
 ### 3. Resource Requirements
+
 - **Database**: Isolated test database per test file
 - **File System**: Temporary directories for each test
 - **Network**: Mock external API calls for consistent results

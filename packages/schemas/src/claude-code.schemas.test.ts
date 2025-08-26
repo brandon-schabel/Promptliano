@@ -251,7 +251,7 @@ describe('Claude Code Schemas', () => {
 
       const strictResult = ClaudeMessageSchema.safeParse(message)
       const lenientResult = ClaudeMessageLenientSchema.safeParse(message)
-      
+
       expect(strictResult.success).toBe(true)
       expect(lenientResult.success).toBe(true)
     })
@@ -269,7 +269,7 @@ describe('Claude Code Schemas', () => {
 
       const strictResult = ClaudeMessageSchema.safeParse(message)
       const lenientResult = ClaudeMessageLenientSchema.safeParse(message)
-      
+
       expect(strictResult.success).toBe(true)
       expect(lenientResult.success).toBe(true)
     })
@@ -342,10 +342,10 @@ describe('Claude Code Schemas', () => {
 
       const strictResult = ClaudeMessageSchema.safeParse(message)
       const lenientResult = ClaudeMessageLenientSchema.safeParse(message)
-      
+
       expect(strictResult.success).toBe(true)
       expect(lenientResult.success).toBe(true)
-      
+
       if (strictResult.success) {
         expect(strictResult.data.content).toBe('System initialization message')
         expect(strictResult.data.isMeta).toBe(true)

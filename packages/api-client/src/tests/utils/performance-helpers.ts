@@ -74,7 +74,7 @@ export interface LoadTestConfig {
   /** Test identification */
   name: string
   description?: string
-  
+
   /** Load pattern configuration */
   users: {
     initial: number
@@ -83,7 +83,7 @@ export interface LoadTestConfig {
     sustainTimeMs: number
     rampdownTimeMs?: number
   }
-  
+
   /** Request configuration */
   requests: {
     thinkTimeMs?: number
@@ -91,7 +91,7 @@ export interface LoadTestConfig {
     retryCount?: number
     requestsPerUser?: number
   }
-  
+
   /** Performance thresholds */
   thresholds?: {
     maxResponseTimeMs?: number
@@ -99,7 +99,7 @@ export interface LoadTestConfig {
     minThroughputRps?: number
     maxMemoryMB?: number
   }
-  
+
   /** Resource monitoring */
   monitoring?: {
     enableMemoryTracking?: boolean
@@ -161,15 +161,15 @@ export class PerformanceMeasurement {
     this.timeline = []
     this.activeUsers = 0
     this.peakConcurrentUsers = 0
-    
+
     if (this.config.monitoring?.enableMemoryTracking) {
       this.startMemoryTracking()
     }
-    
+
     if (this.config.monitoring?.enableCpuTracking) {
       this.startCpuTracking()
     }
-    
+
     if (this.config.monitoring?.enableGcTracking) {
       this.startGcTracking()
     }
@@ -212,18 +212,15 @@ export class PerformanceMeasurement {
   recordTimelineSnapshot(): void {
     const now = performance.now()
     const recentTimings = this.timings.slice(-100) // Last 100 requests
-    const recentErrors = this.errors.filter(e => now - e.timestamp < 10000) // Last 10 seconds
-    
+    const recentErrors = this.errors.filter((e) => now - e.timestamp < 10000) // Last 10 seconds
+
     this.timeline.push({
       timestamp: now,
       activeUsers: this.activeUsers,
       requestsPerSecond: this.calculateCurrentRps(),
-      averageResponseTime: recentTimings.length > 0 
-        ? recentTimings.reduce((sum, t) => sum + t, 0) / recentTimings.length 
-        : 0,
-      errorRate: this.timings.length > 0 
-        ? (recentErrors.length / Math.min(100, this.timings.length)) * 100 
-        : 0
+      averageResponseTime:
+        recentTimings.length > 0 ? recentTimings.reduce((sum, t) => sum + t, 0) / recentTimings.length : 0,
+      errorRate: this.timings.length > 0 ? (recentErrors.length / Math.min(100, this.timings.length)) * 100 : 0
     })
   }
 
@@ -235,7 +232,7 @@ export class PerformanceMeasurement {
     const totalDuration = this.endTime - this.startTime
 
     // Clean up all monitoring intervals
-    this.intervals.forEach(interval => clearInterval(interval))
+    this.intervals.forEach((interval) => clearInterval(interval))
     this.intervals = []
 
     return {
@@ -253,20 +250,15 @@ export class PerformanceMeasurement {
   /**
    * Measures and records a single operation
    */
-  async measureOperation<T>(
-    operation: () => Promise<T>, 
-    endpoint: string = 'unknown'
-  ): Promise<T> {
+  async measureOperation<T>(operation: () => Promise<T>, endpoint: string = 'unknown'): Promise<T> {
     const start = performance.now()
-    
+
     try {
       const result = await operation()
       this.recordTiming(performance.now() - start, endpoint)
       return result
     } catch (error) {
-      const statusCode = error && typeof error === 'object' && 'status' in error 
-        ? (error as any).status 
-        : undefined
+      const statusCode = error && typeof error === 'object' && 'status' in error ? (error as any).status : undefined
       this.recordError(error instanceof Error ? error.message : String(error), endpoint, statusCode)
       throw error
     }
@@ -275,28 +267,29 @@ export class PerformanceMeasurement {
   private calculateMetrics(totalDuration: number): PerformanceMetrics {
     const sortedTimings = [...this.timings].sort((a, b) => a - b)
     const errorsByType: Record<string, number> = {}
-    
+
     // Categorize errors
-    this.errors.forEach(error => {
+    this.errors.forEach((error) => {
       const errorType = this.categorizeError(error)
       errorsByType[errorType] = (errorsByType[errorType] || 0) + 1
     })
 
     // Calculate response time statistics
-    const mean = sortedTimings.length > 0 
-      ? sortedTimings.reduce((sum, t) => sum + t, 0) / sortedTimings.length 
-      : 0
-    
-    const variance = sortedTimings.length > 0
-      ? sortedTimings.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / sortedTimings.length
-      : 0
-    
+    const mean = sortedTimings.length > 0 ? sortedTimings.reduce((sum, t) => sum + t, 0) / sortedTimings.length : 0
+
+    const variance =
+      sortedTimings.length > 0
+        ? sortedTimings.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / sortedTimings.length
+        : 0
+
     const standardDeviation = Math.sqrt(variance)
 
     // Calculate average concurrent users
-    const averageConcurrentUsers = this.userConcurrencyTimeline.length > 0
-      ? this.userConcurrencyTimeline.reduce((sum, point) => sum + point.count, 0) / this.userConcurrencyTimeline.length
-      : 0
+    const averageConcurrentUsers =
+      this.userConcurrencyTimeline.length > 0
+        ? this.userConcurrencyTimeline.reduce((sum, point) => sum + point.count, 0) /
+          this.userConcurrencyTimeline.length
+        : 0
 
     return {
       responseTime: {
@@ -316,17 +309,21 @@ export class PerformanceMeasurement {
       },
       errors: {
         totalErrors: this.errors.length,
-        errorRate: sortedTimings.length > 0 ? (this.errors.length / (sortedTimings.length + this.errors.length)) * 100 : 0,
+        errorRate:
+          sortedTimings.length > 0 ? (this.errors.length / (sortedTimings.length + this.errors.length)) * 100 : 0,
         errorsByType,
-        timeouts: this.errors.filter(e => e.error.toLowerCase().includes('timeout')).length
+        timeouts: this.errors.filter((e) => e.error.toLowerCase().includes('timeout')).length
       },
       resources: {
         memoryUsage: this.resourceUsage.length > 0 ? this.resourceUsage[this.resourceUsage.length - 1] : undefined,
         cpuTimes: this.cpuUsage.length > 0 ? this.cpuUsage[this.cpuUsage.length - 1] : undefined,
-        gcMetrics: this.gcData.length > 0 ? {
-          totalCollections: this.gcData.reduce((sum, gc) => sum + gc.collections, 0),
-          totalTime: this.gcData.reduce((sum, gc) => sum + gc.time, 0)
-        } : undefined
+        gcMetrics:
+          this.gcData.length > 0
+            ? {
+                totalCollections: this.gcData.reduce((sum, gc) => sum + gc.collections, 0),
+                totalTime: this.gcData.reduce((sum, gc) => sum + gc.time, 0)
+              }
+            : undefined
       },
       concurrency: {
         targetUsers: this.config.users.target,
@@ -339,15 +336,15 @@ export class PerformanceMeasurement {
 
   private calculatePercentile(sortedArray: number[], percentile: number): number {
     if (sortedArray.length === 0) return 0
-    
+
     const index = (percentile / 100) * (sortedArray.length - 1)
     const lower = Math.floor(index)
     const upper = Math.ceil(index)
-    
+
     if (lower === upper) {
       return sortedArray[lower]
     }
-    
+
     const weight = index - lower
     return sortedArray[lower] * (1 - weight) + sortedArray[upper] * weight
   }
@@ -358,11 +355,11 @@ export class PerformanceMeasurement {
       if (error.statusCode >= 400) return 'client_error'
       if (error.statusCode >= 300) return 'redirect'
     }
-    
+
     if (error.error.toLowerCase().includes('timeout')) return 'timeout'
     if (error.error.toLowerCase().includes('network')) return 'network'
     if (error.error.toLowerCase().includes('connection')) return 'connection'
-    
+
     return 'unknown'
   }
 
@@ -372,14 +369,14 @@ export class PerformanceMeasurement {
       // Approximate timing based on index and current time
       return true // Simplified for now
     })
-    
+
     return recentRequests.length / 10 // Requests per 10-second window
   }
 
   private startMemoryTracking(): void {
     const interval = setInterval(() => {
       this.resourceUsage.push(process.memoryUsage())
-      
+
       // Limit memory samples to prevent memory leaks
       const maxSamples = this.config.monitoring?.maxSamples || 1000
       if (this.resourceUsage.length > maxSamples) {
@@ -392,12 +389,12 @@ export class PerformanceMeasurement {
 
   private startCpuTracking(): void {
     let lastCpuUsage = process.cpuUsage()
-    
+
     const interval = setInterval(() => {
       const currentCpuUsage = process.cpuUsage(lastCpuUsage)
       this.cpuUsage.push(currentCpuUsage)
       lastCpuUsage = process.cpuUsage()
-      
+
       // Limit CPU samples to prevent memory leaks
       const maxSamples = this.config.monitoring?.maxSamples || 1000
       if (this.cpuUsage.length > maxSamples) {
@@ -412,11 +409,11 @@ export class PerformanceMeasurement {
     // Simple GC tracking implementation
     let gcCount = 0
     let gcTime = 0
-    
+
     const interval = setInterval(() => {
       // This is a simplified version - in practice you'd use perf_hooks
       this.gcData.push({ collections: gcCount, time: gcTime })
-      
+
       // Limit GC samples to prevent memory leaks
       const maxSamples = this.config.monitoring?.maxSamples || 1000
       if (this.gcData.length > maxSamples) {
@@ -449,8 +446,10 @@ export class LoadTestRunner {
    */
   async run(): Promise<LoadTestResult> {
     console.log(`🚀 Starting load test: ${this.config.name}`)
-    console.log(`📊 Target: ${this.config.users.initial} → ${this.config.users.target} users over ${this.config.users.rampupTimeMs}ms`)
-    
+    console.log(
+      `📊 Target: ${this.config.users.initial} → ${this.config.users.target} users over ${this.config.users.rampupTimeMs}ms`
+    )
+
     this.measurement.start()
 
     try {
@@ -460,14 +459,13 @@ export class LoadTestRunner {
       // Execute load test phases
       await this.executeRampup()
       await this.executeSustain()
-      
+
       if (this.config.users.rampdownTimeMs) {
         await this.executeRampdown()
       }
 
       // Teardown phase
       await this.teardownScenarios()
-
     } catch (error) {
       console.error('❌ Load test failed:', error)
       this.measurement.recordError(error instanceof Error ? error.message : String(error), 'test_execution')
@@ -478,8 +476,10 @@ export class LoadTestRunner {
     }
 
     const result = this.measurement.end()
-    console.log(`✅ Load test completed: ${result.metrics.throughput.totalRequests} requests, ${result.metrics.errors.errorRate.toFixed(2)}% errors`)
-    
+    console.log(
+      `✅ Load test completed: ${result.metrics.throughput.totalRequests} requests, ${result.metrics.errors.errorRate.toFixed(2)}% errors`
+    )
+
     return result
   }
 
@@ -498,19 +498,17 @@ export class LoadTestRunner {
     if (this.activeSessions.size === 0) return
 
     console.log(`⏳ Waiting for ${this.activeSessions.size} active sessions to complete...`)
-    
+
     try {
       // Wait for all sessions with timeout
       await Promise.race([
         Promise.allSettled(this.activeSessions),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session cleanup timeout')), timeoutMs)
-        )
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Session cleanup timeout')), timeoutMs))
       ])
     } catch (error) {
       console.warn('⚠️ Some sessions did not complete gracefully:', error)
     }
-    
+
     this.activeSessions.clear()
   }
 
@@ -538,7 +536,7 @@ export class LoadTestRunner {
     const { initial, target, rampupTimeMs } = this.config.users
     const userIncrement = target - initial
     const stepDuration = rampupTimeMs / userIncrement
-    
+
     console.log(`📈 Ramping up from ${initial} to ${target} users over ${rampupTimeMs}ms`)
 
     for (let currentUsers = initial; currentUsers <= target; currentUsers++) {
@@ -546,7 +544,7 @@ export class LoadTestRunner {
 
       this.measurement.updateActiveUsers(currentUsers)
       this.startUserSession(currentUsers)
-      
+
       if (currentUsers < target) {
         await this.sleep(stepDuration)
       }
@@ -574,14 +572,14 @@ export class LoadTestRunner {
   private async executeRampdown(): Promise<void> {
     const { target, rampdownTimeMs } = this.config.users
     const stepDuration = rampdownTimeMs! / target
-    
+
     console.log(`📉 Ramping down from ${target} to 0 users over ${rampdownTimeMs}ms`)
 
     for (let currentUsers = target; currentUsers > 0; currentUsers--) {
       if (this.abortController.signal.aborted) break
 
       this.measurement.updateActiveUsers(currentUsers)
-      
+
       if (currentUsers > 0) {
         await this.sleep(stepDuration)
       }
@@ -590,15 +588,14 @@ export class LoadTestRunner {
 
   private async startUserSession(userId: number): Promise<void> {
     // Start user session in background with proper tracking
-    const sessionPromise = this.runUserSession(userId).catch(error => {
-      this.measurement.recordError(
-        error instanceof Error ? error.message : String(error),
-        `user_session_${userId}`
-      )
-    }).finally(() => {
-      // Remove session from active set when completed
-      this.activeSessions.delete(sessionPromise)
-    })
+    const sessionPromise = this.runUserSession(userId)
+      .catch((error) => {
+        this.measurement.recordError(error instanceof Error ? error.message : String(error), `user_session_${userId}`)
+      })
+      .finally(() => {
+        // Remove session from active set when completed
+        this.activeSessions.delete(sessionPromise)
+      })
 
     // Track the session for cleanup
     this.activeSessions.add(sessionPromise)
@@ -615,10 +612,7 @@ export class LoadTestRunner {
         const context = this.createScenarioContext(userId, iterationCount)
 
         // Execute scenario with measurement
-        await this.measurement.measureOperation(
-          () => scenario.execute(this.client, context),
-          scenario.name
-        )
+        await this.measurement.measureOperation(() => scenario.execute(this.client, context), scenario.name)
 
         // Think time between requests
         if (this.config.requests.thinkTimeMs) {
@@ -628,7 +622,7 @@ export class LoadTestRunner {
         iterationCount++
       } catch (error) {
         // Error already recorded by measureOperation
-        
+
         // Decide whether to continue or stop this user session
         if (this.shouldStopOnError(error)) {
           break
@@ -641,14 +635,14 @@ export class LoadTestRunner {
     // Weighted random selection
     const totalWeight = this.scenarios.reduce((sum, scenario) => sum + scenario.weight, 0)
     let random = Math.random() * totalWeight
-    
+
     for (const scenario of this.scenarios) {
       random -= scenario.weight
       if (random <= 0) {
         return scenario
       }
     }
-    
+
     // Fallback to first scenario
     return this.scenarios[0]
   }
@@ -667,12 +661,12 @@ export class LoadTestRunner {
     if (error && typeof error === 'object' && error.status === 401) {
       return true // Unauthorized - stop this user
     }
-    
+
     return false
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 
@@ -701,29 +695,38 @@ export class PerformanceRegression {
     }
   } {
     const issues: string[] = []
-    
+
     // Compare response times
-    const responseTimeChange = ((current.metrics.responseTime.mean - baseline.metrics.responseTime.mean) / baseline.metrics.responseTime.mean) * 100
+    const responseTimeChange =
+      ((current.metrics.responseTime.mean - baseline.metrics.responseTime.mean) / baseline.metrics.responseTime.mean) *
+      100
     const responseTimeThreshold = thresholds.responseTimeDegradation || 20
-    
+
     if (responseTimeChange > responseTimeThreshold) {
       issues.push(`Response time degraded by ${responseTimeChange.toFixed(1)}% (threshold: ${responseTimeThreshold}%)`)
     }
 
     // Compare throughput
-    const throughputChange = ((current.metrics.throughput.requestsPerSecond - baseline.metrics.throughput.requestsPerSecond) / baseline.metrics.throughput.requestsPerSecond) * 100
+    const throughputChange =
+      ((current.metrics.throughput.requestsPerSecond - baseline.metrics.throughput.requestsPerSecond) /
+        baseline.metrics.throughput.requestsPerSecond) *
+      100
     const throughputThreshold = thresholds.throughputDegradation || -15
-    
+
     if (throughputChange < throughputThreshold) {
-      issues.push(`Throughput degraded by ${Math.abs(throughputChange).toFixed(1)}% (threshold: ${Math.abs(throughputThreshold)}%)`)
+      issues.push(
+        `Throughput degraded by ${Math.abs(throughputChange).toFixed(1)}% (threshold: ${Math.abs(throughputThreshold)}%)`
+      )
     }
 
     // Compare error rates
     const errorRateChange = current.metrics.errors.errorRate - baseline.metrics.errors.errorRate
     const errorRateThreshold = thresholds.errorRateIncrease || 5
-    
+
     if (errorRateChange > errorRateThreshold) {
-      issues.push(`Error rate increased by ${errorRateChange.toFixed(1)} percentage points (threshold: ${errorRateThreshold})`)
+      issues.push(
+        `Error rate increased by ${errorRateChange.toFixed(1)} percentage points (threshold: ${errorRateThreshold})`
+      )
     }
 
     return {
@@ -773,7 +776,7 @@ export class PerformanceReporter {
    */
   static generateReport(result: LoadTestResult): string {
     const { metrics, testName, totalDuration } = result
-    
+
     return `
 # Performance Test Report: ${testName}
 
@@ -802,24 +805,34 @@ export class PerformanceReporter {
 - **Timeouts**: ${metrics.errors.timeouts}
 
 ### Error Breakdown
-${Object.entries(metrics.errors.errorsByType)
-  .map(([type, count]) => `- **${type}**: ${count}`)
-  .join('\n') || 'No errors'}
+${
+  Object.entries(metrics.errors.errorsByType)
+    .map(([type, count]) => `- **${type}**: ${count}`)
+    .join('\n') || 'No errors'
+}
 
 ## Resource Utilization
-${metrics.resources.memoryUsage ? `
+${
+  metrics.resources.memoryUsage
+    ? `
 ### Memory Usage
 - **RSS**: ${(metrics.resources.memoryUsage.rss / 1024 / 1024).toFixed(2)} MB
 - **Heap Used**: ${(metrics.resources.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB
 - **Heap Total**: ${(metrics.resources.memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB
 - **External**: ${(metrics.resources.memoryUsage.external / 1024 / 1024).toFixed(2)} MB
-` : ''}
+`
+    : ''
+}
 
-${metrics.resources.gcMetrics ? `
+${
+  metrics.resources.gcMetrics
+    ? `
 ### Garbage Collection
 - **Total Collections**: ${metrics.resources.gcMetrics.totalCollections}
 - **Total Time**: ${metrics.resources.gcMetrics.totalTime.toFixed(2)}ms
-` : ''}
+`
+    : ''
+}
 
 ## Performance Assessment
 ${this.assessPerformance(metrics)}
@@ -882,18 +895,12 @@ ${this.assessPerformance(metrics)}
    * Exports results to CSV format
    */
   static exportToCsv(result: LoadTestResult): string {
-    const headers = [
-      'timestamp',
-      'response_time_ms',
-      'endpoint',
-      'success',
-      'error_type'
-    ]
+    const headers = ['timestamp', 'response_time_ms', 'endpoint', 'success', 'error_type']
 
     const rows = result.rawTimings.map((timing, index) => {
       const error = result.errors[index]
       return [
-        result.startTime + (index * (result.totalDuration / result.rawTimings.length)),
+        result.startTime + index * (result.totalDuration / result.rawTimings.length),
         timing.toFixed(2),
         error?.endpoint || 'unknown',
         error ? 'false' : 'true',

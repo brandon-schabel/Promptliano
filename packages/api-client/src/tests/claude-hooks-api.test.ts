@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { createPromptlianoClient } from '@promptliano/api-client'
-import type { 
-  PromptlianoClient, 
-  CreateHookConfigBody, 
-  UpdateHookConfigBody, 
+import type {
+  PromptlianoClient,
+  CreateHookConfigBody,
+  UpdateHookConfigBody,
   HookEvent,
   HookGenerationRequest,
   HookTestRequest,
@@ -11,7 +11,15 @@ import type {
 } from '@promptliano/api-client'
 import type { TestEnvironment } from './test-environment'
 import { withTestEnvironment, checkLMStudioAvailability } from './test-environment'
-import { assertions, factories, TestDataManager, withTestData, retryOperation, waitFor, PerformanceTracker } from './utils/test-helpers'
+import {
+  assertions,
+  factories,
+  TestDataManager,
+  withTestData,
+  retryOperation,
+  waitFor,
+  PerformanceTracker
+} from './utils/test-helpers'
 import { mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
 
@@ -20,7 +28,6 @@ import { join, dirname } from 'path'
  * Tests hook CRUD, validation, generation, and execution with security considerations
  */
 describe('Claude Hooks API Tests', () => {
-  
   /**
    * Test helper to create hook configuration files in a test directory
    */
@@ -167,14 +174,20 @@ describe('Claude Hooks API Tests', () => {
       expect(typeof hook.matcherIndex).toBe('number')
       expect(typeof hook.matcher).toBe('string')
       expect(typeof hook.command).toBe('string')
-      
+
       // Validate event is one of the allowed types
       const validEvents: HookEvent[] = [
-        'PreToolUse', 'PostToolUse', 'UserPromptSubmit', 
-        'Notification', 'Stop', 'SubagentStop', 'SessionStart', 'PreCompact'
+        'PreToolUse',
+        'PostToolUse',
+        'UserPromptSubmit',
+        'Notification',
+        'Stop',
+        'SubagentStop',
+        'SessionStart',
+        'PreCompact'
       ]
       expect(validEvents).toContain(hook.event as HookEvent)
-      
+
       if (hook.timeout !== undefined) {
         expect(typeof hook.timeout).toBe('number')
         expect(hook.timeout).toBeGreaterThan(0)
@@ -198,11 +211,11 @@ describe('Claude Hooks API Tests', () => {
       expect(response.data.matcher).toBeTypeOf('string')
       expect(response.data.command).toBeTypeOf('string')
       expect(response.data.description).toBeTypeOf('string')
-      
+
       if (response.data.timeout !== undefined) {
         expect(response.data.timeout).toBeTypeOf('number')
       }
-      
+
       if (response.data.security_warnings !== undefined) {
         expect(Array.isArray(response.data.security_warnings)).toBe(true)
       }
@@ -221,14 +234,14 @@ describe('Claude Hooks API Tests', () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
       performanceTracker = new PerformanceTracker()
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Claude Hooks Test Project',
         description: 'Test project for Claude Hooks operations',
         path: '/tmp/claude-hooks-test'
       })
-      
+
       projectPath = testProject.data.path
 
       // Setup hook files for file-based operations
@@ -244,10 +257,10 @@ describe('Claude Hooks API Tests', () => {
           // Ignore errors during cleanup
         }
       }
-      
+
       await cleanupHookFiles(projectPath)
       await dataManager.cleanup()
-      
+
       if (testEnv.isLocal) {
         performanceTracker.printSummary()
       }
@@ -258,15 +271,15 @@ describe('Claude Hooks API Tests', () => {
         const result = await performanceTracker.measure('list-hooks', async () => {
           return await client.claudeHooks.list(projectPath)
         })
-        
+
         assertions.assertSuccessResponse(result)
         hookAssertions.assertValidHookList(result.data)
-        
+
         // Should have hooks from the setup file
         expect(result.data.length).toBeGreaterThan(0)
-        
+
         // Verify we have hooks from different events
-        const events = new Set(result.data.map(hook => hook.event))
+        const events = new Set(result.data.map((hook) => hook.event))
         expect(events.has('PostToolUse')).toBe(true)
         expect(events.has('PreToolUse')).toBe(true)
         expect(events.has('UserPromptSubmit')).toBe(true)
@@ -276,7 +289,7 @@ describe('Claude Hooks API Tests', () => {
         // Create a temporary directory with no hooks
         const emptyProjectPath = '/tmp/empty-hooks-test'
         mkdirSync(emptyProjectPath, { recursive: true })
-        
+
         try {
           const result = await client.claudeHooks.list(emptyProjectPath)
           assertions.assertSuccessResponse(result)
@@ -300,16 +313,16 @@ describe('Claude Hooks API Tests', () => {
         const result = await performanceTracker.measure('create-hook', async () => {
           return await client.claudeHooks.create(projectPath, createData)
         })
-        
+
         assertions.assertSuccessResponse(result)
         hookAssertions.assertValidHook(result.data)
-        
+
         expect(result.data.event).toBe(createData.event)
         expect(result.data.matcher).toBe(createData.matcher)
         expect(result.data.command).toBe(createData.command)
         expect(result.data.timeout).toBe(createData.timeout)
         expect(typeof result.data.matcherIndex).toBe('number')
-        
+
         // Track for cleanup
         createdHooks.push(result.data)
       })
@@ -328,13 +341,9 @@ describe('Claude Hooks API Tests', () => {
 
         // Now retrieve it
         const result = await performanceTracker.measure('get-hook', async () => {
-          return await client.claudeHooks.getHook(
-            projectPath, 
-            createResult.data.event, 
-            createResult.data.matcherIndex
-          )
+          return await client.claudeHooks.getHook(projectPath, createResult.data.event, createResult.data.matcherIndex)
         })
-        
+
         assertions.assertSuccessResponse(result)
         hookAssertions.assertValidHook(result.data)
         expect(result.data).toEqual(createResult.data)
@@ -363,16 +372,16 @@ describe('Claude Hooks API Tests', () => {
 
         const result = await performanceTracker.measure('update-hook', async () => {
           return await client.claudeHooks.update(
-            projectPath, 
-            createResult.data.event, 
-            createResult.data.matcherIndex, 
+            projectPath,
+            createResult.data.event,
+            createResult.data.matcherIndex,
             updateData
           )
         })
-        
+
         assertions.assertSuccessResponse(result)
         hookAssertions.assertValidHook(result.data)
-        
+
         expect(result.data.command).toBe(updateData.command)
         expect(result.data.timeout).toBe(updateData.timeout)
         expect(result.data.matcherIndex).toBe(createResult.data.matcherIndex)
@@ -393,21 +402,17 @@ describe('Claude Hooks API Tests', () => {
         // Delete it
         const deleteResult = await performanceTracker.measure('delete-hook', async () => {
           return await client.claudeHooks.deleteHook(
-            projectPath, 
-            createResult.data.event, 
+            projectPath,
+            createResult.data.event,
             createResult.data.matcherIndex
           )
         })
-        
+
         expect(deleteResult).toBe(true)
 
         // Verify it's gone
         await expect(async () => {
-          await client.claudeHooks.getHook(
-            projectPath, 
-            createResult.data.event, 
-            createResult.data.matcherIndex
-          )
+          await client.claudeHooks.getHook(projectPath, createResult.data.event, createResult.data.matcherIndex)
         }).toThrow()
       })
     })
@@ -457,8 +462,14 @@ describe('Claude Hooks API Tests', () => {
 
       test('should accept all valid hook events', async () => {
         const validEvents: HookEvent[] = [
-          'PreToolUse', 'PostToolUse', 'UserPromptSubmit', 
-          'Notification', 'Stop', 'SubagentStop', 'SessionStart', 'PreCompact'
+          'PreToolUse',
+          'PostToolUse',
+          'UserPromptSubmit',
+          'Notification',
+          'Stop',
+          'SubagentStop',
+          'SessionStart',
+          'PreCompact'
         ]
 
         for (const event of validEvents) {
@@ -471,7 +482,7 @@ describe('Claude Hooks API Tests', () => {
           const result = await client.claudeHooks.create(projectPath, hookData)
           assertions.assertSuccessResponse(result)
           expect(result.data.event).toBe(event)
-          
+
           createdHooks.push(result.data)
         }
       })
@@ -486,7 +497,7 @@ describe('Claude Hooks API Tests', () => {
             command: 'npm test'
           }),
           hookFactories.createHookData({
-            matcher: 'SearchTest2', 
+            matcher: 'SearchTest2',
             command: 'npm run lint'
           }),
           hookFactories.createHookData({
@@ -505,20 +516,18 @@ describe('Claude Hooks API Tests', () => {
         const searchResult = await performanceTracker.measure('search-hooks', async () => {
           return await client.claudeHooks.search(projectPath, 'SearchTest')
         })
-        
+
         assertions.assertSuccessResponse(searchResult)
         hookAssertions.assertValidHookList(searchResult.data)
-        
+
         // Should find at least the hooks we created with SearchTest in the name
-        const foundSearchTestHooks = searchResult.data.filter(hook => 
-          hook.matcher.includes('SearchTest')
-        )
+        const foundSearchTestHooks = searchResult.data.filter((hook) => hook.matcher.includes('SearchTest'))
         expect(foundSearchTestHooks.length).toBeGreaterThanOrEqual(2)
       })
 
       test('should return empty results for non-matching search', async () => {
         const result = await client.claudeHooks.search(projectPath, 'NonExistentHookPattern')
-        
+
         assertions.assertSuccessResponse(result)
         expect(Array.isArray(result.data)).toBe(true)
         // Could be empty or have unrelated results
@@ -528,7 +537,7 @@ describe('Claude Hooks API Tests', () => {
     describe('Error Handling', () => {
       test('should handle invalid project path', async () => {
         const invalidPath = '/nonexistent/path/that/does/not/exist'
-        
+
         await expect(async () => {
           await client.claudeHooks.list(invalidPath)
         }).toThrow()
@@ -596,7 +605,7 @@ describe('Claude Hooks API Tests', () => {
           const result = await client.claudeHooks.create(projectPath, hookData)
           assertions.assertSuccessResponse(result)
           expect(result.data.command).toBe(dangerousCommand)
-          
+
           createdHooks.push(result.data)
         }
       })
@@ -620,7 +629,7 @@ describe('Claude Hooks API Tests', () => {
           const result = await client.claudeHooks.create(projectPath, hookData)
           assertions.assertSuccessResponse(result)
           expect(result.data.command).toBe(command)
-          
+
           createdHooks.push(result.data)
         }
       })
@@ -635,7 +644,7 @@ describe('Claude Hooks API Tests', () => {
         const result = await client.claudeHooks.create(projectPath, hookData)
         assertions.assertSuccessResponse(result)
         expect(result.data.command).toBe(longCommand)
-        
+
         createdHooks.push(result.data)
       })
     })
@@ -652,15 +661,13 @@ describe('Claude Hooks API Tests', () => {
             command: `echo "Concurrent operation ${i}"`
           })
 
-          concurrentOperations.push(
-            client.claudeHooks.create(projectPath, hookData)
-          )
+          concurrentOperations.push(client.claudeHooks.create(projectPath, hookData))
         }
 
         const results = await Promise.all(concurrentOperations)
-        
+
         // Verify all operations succeeded
-        results.forEach(result => {
+        results.forEach((result) => {
           assertions.assertSuccessResponse(result)
           hookAssertions.assertValidHook(result.data)
           createdHooks.push(result.data)
@@ -672,7 +679,7 @@ describe('Claude Hooks API Tests', () => {
       test('should handle rapid sequential operations', async () => {
         const startTime = performance.now()
         const operations = 10
-        
+
         for (let i = 0; i < operations; i++) {
           const hookData = hookFactories.createHookData({
             matcher: `Sequential-${i}`,
@@ -683,12 +690,12 @@ describe('Claude Hooks API Tests', () => {
           assertions.assertSuccessResponse(result)
           createdHooks.push(result.data)
         }
-        
+
         const duration = performance.now() - startTime
-        
+
         // Performance assertion - should complete within reasonable time
         expect(duration).toBeLessThan(10000) // 10 seconds for 10 operations
-        
+
         if (testEnv.isLocal) {
           console.log(`Sequential operations (${operations}) completed in ${duration.toFixed(2)}ms`)
         }
@@ -707,20 +714,20 @@ describe('Claude Hooks API Tests', () => {
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Claude Hooks AI Test Project',
         description: 'Test project for AI-powered hook generation',
         path: '/tmp/claude-hooks-ai-test'
       })
-      
+
       projectPath = testProject.data.path
 
       // Check AI availability
       const lmStudioCheck = await checkLMStudioAvailability(testEnv.config.ai.lmstudio)
       aiAvailable = lmStudioCheck.available
-      
+
       if (!aiAvailable && testEnv.isLocal) {
         console.log(`⏭️  Skipping AI tests: ${lmStudioCheck.message}`)
       }
@@ -730,69 +737,86 @@ describe('Claude Hooks API Tests', () => {
       await dataManager.cleanup()
     })
 
-    test.skipIf(!aiAvailable)('should generate hook configuration from natural language description', async () => {
-      const generationRequest = hookFactories.createGenerationRequest({
-        description: 'Run TypeScript type checking after editing .ts files',
-        context: {
-          suggestedEvent: 'PostToolUse',
-          examples: ['tsc --noEmit', 'npm run typecheck', 'bun run typecheck']
-        }
-      })
+    test.skipIf(!aiAvailable)(
+      'should generate hook configuration from natural language description',
+      async () => {
+        const generationRequest = hookFactories.createGenerationRequest({
+          description: 'Run TypeScript type checking after editing .ts files',
+          context: {
+            suggestedEvent: 'PostToolUse',
+            examples: ['tsc --noEmit', 'npm run typecheck', 'bun run typecheck']
+          }
+        })
 
-      const result = await retryOperation(async () => {
-        return await client.claudeHooks.generate(projectPath, generationRequest)
-      }, {
-        maxRetries: 2,
-        delay: 3000,
-        shouldRetry: (error) => {
-          // Retry on timeout or connection errors
-          return error.message.includes('timeout') || error.message.includes('ECONNREFUSED')
-        }
-      })
-      
-      hookAssertions.assertValidGenerationResponse(result)
-      
-      // Verify the generated hook makes sense
-      expect(result.data.event).toBeTypeOf('string')
-      expect(result.data.matcher).toBeTypeOf('string')
-      expect(result.data.command).toBeTypeOf('string')
-      expect(result.data.description).toBeTypeOf('string')
-      
-      // For TypeScript type checking, expect reasonable values
-      expect(result.data.command.toLowerCase()).toMatch(/tsc|typecheck/)
-      expect(result.data.event).toBe('PostToolUse') // Should match suggestion
-    }, 45000) // Longer timeout for AI operations
+        const result = await retryOperation(
+          async () => {
+            return await client.claudeHooks.generate(projectPath, generationRequest)
+          },
+          {
+            maxRetries: 2,
+            delay: 3000,
+            shouldRetry: (error) => {
+              // Retry on timeout or connection errors
+              return error.message.includes('timeout') || error.message.includes('ECONNREFUSED')
+            }
+          }
+        )
 
-    test.skipIf(!aiAvailable)('should generate hooks with security warnings for dangerous operations', async () => {
-      const dangerousRequest = hookFactories.createGenerationRequest({
-        description: 'Delete all temporary files and clean up the system',
-        context: {
-          suggestedEvent: 'SessionStart',
-          examples: ['rm -rf /tmp/*', 'del temp files', 'cleanup system']
-        }
-      })
+        hookAssertions.assertValidGenerationResponse(result)
 
-      const result = await retryOperation(async () => {
-        return await client.claudeHooks.generate(projectPath, dangerousRequest)
-      }, {
-        maxRetries: 2,
-        delay: 3000
-      })
-      
-      hookAssertions.assertValidGenerationResponse(result)
-      
-      // Should include security warnings for potentially dangerous operations
-      expect(result.data.security_warnings).toBeDefined()
-      expect(Array.isArray(result.data.security_warnings)).toBe(true)
-      
-      if (result.data.security_warnings && result.data.security_warnings.length > 0) {
-        expect(result.data.security_warnings.some(warning => 
-          warning.toLowerCase().includes('danger') || 
-          warning.toLowerCase().includes('caution') ||
-          warning.toLowerCase().includes('risk')
-        )).toBe(true)
-      }
-    }, 45000)
+        // Verify the generated hook makes sense
+        expect(result.data.event).toBeTypeOf('string')
+        expect(result.data.matcher).toBeTypeOf('string')
+        expect(result.data.command).toBeTypeOf('string')
+        expect(result.data.description).toBeTypeOf('string')
+
+        // For TypeScript type checking, expect reasonable values
+        expect(result.data.command.toLowerCase()).toMatch(/tsc|typecheck/)
+        expect(result.data.event).toBe('PostToolUse') // Should match suggestion
+      },
+      45000
+    ) // Longer timeout for AI operations
+
+    test.skipIf(!aiAvailable)(
+      'should generate hooks with security warnings for dangerous operations',
+      async () => {
+        const dangerousRequest = hookFactories.createGenerationRequest({
+          description: 'Delete all temporary files and clean up the system',
+          context: {
+            suggestedEvent: 'SessionStart',
+            examples: ['rm -rf /tmp/*', 'del temp files', 'cleanup system']
+          }
+        })
+
+        const result = await retryOperation(
+          async () => {
+            return await client.claudeHooks.generate(projectPath, dangerousRequest)
+          },
+          {
+            maxRetries: 2,
+            delay: 3000
+          }
+        )
+
+        hookAssertions.assertValidGenerationResponse(result)
+
+        // Should include security warnings for potentially dangerous operations
+        expect(result.data.security_warnings).toBeDefined()
+        expect(Array.isArray(result.data.security_warnings)).toBe(true)
+
+        if (result.data.security_warnings && result.data.security_warnings.length > 0) {
+          expect(
+            result.data.security_warnings.some(
+              (warning) =>
+                warning.toLowerCase().includes('danger') ||
+                warning.toLowerCase().includes('caution') ||
+                warning.toLowerCase().includes('risk')
+            )
+          ).toBe(true)
+        }
+      },
+      45000
+    )
 
     test.skipIf(!aiAvailable)('should handle invalid generation requests gracefully', async () => {
       const invalidRequest = {
@@ -816,14 +840,14 @@ describe('Claude Hooks API Tests', () => {
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Claude Hooks Test Operations Project',
         description: 'Test project for hook testing operations',
         path: '/tmp/claude-hooks-test-ops'
       })
-      
+
       projectPath = testProject.data.path
     })
 
@@ -841,7 +865,7 @@ describe('Claude Hooks API Tests', () => {
       })
 
       const result = await client.claudeHooks.test(projectPath, testRequest)
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.message).toBeTypeOf('string')
       expect(result.data.message.length).toBeGreaterThan(0)
@@ -849,7 +873,7 @@ describe('Claude Hooks API Tests', () => {
 
     test('should handle test requests with various tool names', async () => {
       const toolNames = ['Edit', 'Write', 'Bash', 'Read', 'MultiEdit']
-      
+
       for (const toolName of toolNames) {
         const testRequest = hookFactories.createTestRequest({
           matcher: toolName,
@@ -867,7 +891,7 @@ describe('Claude Hooks API Tests', () => {
       const invalidRequests = [
         { event: '', matcher: 'Test', command: 'echo test' }, // empty event
         { event: 'PostToolUse', matcher: '', command: 'echo test' }, // empty matcher
-        { event: 'PostToolUse', matcher: 'Test', command: '' }, // empty command
+        { event: 'PostToolUse', matcher: 'Test', command: '' } // empty command
       ]
 
       for (const invalidRequest of invalidRequests) {
@@ -888,14 +912,14 @@ describe('Claude Hooks API Tests', () => {
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Claude Hooks FS Integration Project',
         description: 'Test project for file system integration',
         path: '/tmp/claude-hooks-fs-test'
       })
-      
+
       projectPath = testProject.data.path
     })
 
@@ -922,15 +946,13 @@ describe('Claude Hooks API Tests', () => {
       // Read and verify file contents
       const fileContents = readFileSync(hooksFilePath, 'utf-8')
       const parsedHooks = JSON.parse(fileContents)
-      
+
       expect(parsedHooks).toHaveProperty('hooks')
       expect(parsedHooks.hooks).toHaveProperty(hookData.event)
-      
+
       // Find our hook in the file
       const eventHooks = parsedHooks.hooks[hookData.event]
-      const foundMatcher = eventHooks.find((matcher: any) => 
-        matcher.matcher === hookData.matcher
-      )
+      const foundMatcher = eventHooks.find((matcher: any) => matcher.matcher === hookData.matcher)
       expect(foundMatcher).toBeDefined()
       expect(foundMatcher.hooks).toHaveLength(1)
       expect(foundMatcher.hooks[0].command).toBe(hookData.command)
@@ -958,7 +980,7 @@ describe('Claude Hooks API Tests', () => {
         // Verify directory and file were created
         const claudeDir = join(cleanProjectPath, '.claude')
         const hooksFile = join(claudeDir, 'hooks.json')
-        
+
         expect(existsSync(claudeDir)).toBe(true)
         expect(existsSync(hooksFile)).toBe(true)
 
@@ -981,15 +1003,13 @@ describe('Claude Hooks API Tests', () => {
           command: `echo "Concurrent FS test ${i}"`
         })
 
-        concurrentHooks.push(
-          client.claudeHooks.create(projectPath, hookData)
-        )
+        concurrentHooks.push(client.claudeHooks.create(projectPath, hookData))
       }
 
       const results = await Promise.all(concurrentHooks)
-      
+
       // Verify all hooks were created
-      results.forEach(result => {
+      results.forEach((result) => {
         assertions.assertSuccessResponse(result)
       })
 
@@ -997,12 +1017,10 @@ describe('Claude Hooks API Tests', () => {
       const hooksFilePath = join(projectPath, '.claude', 'hooks.json')
       const fileContents = readFileSync(hooksFilePath, 'utf-8')
       const parsedHooks = JSON.parse(fileContents)
-      
+
       const postToolUseHooks = parsedHooks.hooks.PostToolUse || []
-      const concurrentMatchers = postToolUseHooks.filter((matcher: any) => 
-        matcher.matcher.startsWith('ConcurrentFS-')
-      )
-      
+      const concurrentMatchers = postToolUseHooks.filter((matcher: any) => matcher.matcher.startsWith('ConcurrentFS-'))
+
       expect(concurrentMatchers.length).toBe(numberOfHooks)
 
       // Cleanup

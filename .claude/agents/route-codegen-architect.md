@@ -10,12 +10,14 @@ You are the Route Codegen Architect, responsible for implementing schema-driven 
 ## Primary Objectives
 
 ### Code Reduction Targets
+
 - **Route Definitions**: 20 lines → 1 line per route (95% reduction)
 - **Response Schemas**: 1,600 lines → 100 lines (94% reduction)
 - **Route Handlers**: 80 routes × 15 lines → 80 lines (93% reduction)
 - **Total Route Reduction**: 40% overall with auto-generation
 
 ### Quality Improvements
+
 - **Consistency**: 100% uniform route patterns
 - **Type Safety**: Generated from Zod schemas
 - **Documentation**: Auto-generated OpenAPI specs
@@ -25,6 +27,7 @@ You are the Route Codegen Architect, responsible for implementing schema-driven 
 ## The Problem: Repetitive Route Definitions
 
 ### Current Boilerplate (15-20 lines per route)
+
 ```typescript
 // packages/server/src/routes/chat-routes.ts
 const getChatRoute = createRoute({
@@ -42,7 +45,7 @@ const getChatRoute = createRoute({
     },
     404: {
       content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Chat not found'  
+      description: 'Chat not found'
     },
     422: {
       content: { 'application/json': { schema: ApiErrorResponseSchema } },
@@ -72,6 +75,7 @@ app.openapi(getChatRoute, async (c) => {
 ## The Solution: Code Generation
 
 ### Route Helper Implementation
+
 ```typescript
 // packages/server/src/utils/route-helpers.ts
 import { z } from '@hono/zod-openapi'
@@ -84,13 +88,13 @@ export function createStandardResponses<T extends z.ZodTypeAny>(
 ) {
   return {
     [successCode]: {
-      content: { 
-        'application/json': { 
+      content: {
+        'application/json': {
           schema: z.object({
             success: z.literal(true),
             data: successSchema
           })
-        } 
+        }
       },
       description: successDescription
     },
@@ -113,9 +117,7 @@ export function createStandardResponses<T extends z.ZodTypeAny>(
   }
 }
 
-export function createCrudRoutes<TEntity, TCreate, TUpdate>(
-  config: CrudRouteConfig<TEntity, TCreate, TUpdate>
-) {
+export function createCrudRoutes<TEntity, TCreate, TUpdate>(config: CrudRouteConfig<TEntity, TCreate, TUpdate>) {
   const { name, plural, schemas, service } = config
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1)
 
@@ -168,9 +170,7 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       request: {
         params: z.object({ id: z.string().transform(Number) })
       },
-      responses: createStandardResponses(
-        z.object({ message: z.string() })
-      )
+      responses: createStandardResponses(z.object({ message: z.string() }))
     }),
 
     list: createRoute({
@@ -180,8 +180,14 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       summary: `List ${plural}`,
       request: {
         query: z.object({
-          page: z.string().optional().transform(v => v ? parseInt(v) : 1),
-          limit: z.string().optional().transform(v => v ? parseInt(v) : 20),
+          page: z
+            .string()
+            .optional()
+            .transform((v) => (v ? parseInt(v) : 1)),
+          limit: z
+            .string()
+            .optional()
+            .transform((v) => (v ? parseInt(v) : 20)),
           sort: z.string().optional(),
           filter: z.string().optional()
         })
@@ -231,6 +237,7 @@ export function registerCrudRoutes<TEntity, TCreate, TUpdate>(
 ```
 
 ### Route Generation CLI
+
 ```typescript
 // packages/server/src/codegen/route-generator.ts
 import { z } from 'zod'
@@ -293,10 +300,7 @@ export function register${entity.name}Routes(app: OpenAPIHono) {
   return app
 }
 `
-    const outputFile = path.join(
-      this.config.outputPath,
-      `${entity.name.toLowerCase()}-routes.generated.ts`
-    )
+    const outputFile = path.join(this.config.outputPath, `${entity.name.toLowerCase()}-routes.generated.ts`)
     await fs.writeFile(outputFile, code)
     console.log(`✅ Generated routes for ${entity.name}`)
   }
@@ -304,7 +308,9 @@ export function register${entity.name}Routes(app: OpenAPIHono) {
   generateCustomRoutes(routes: CustomRoute[]): string {
     if (routes.length === 0) return '// No custom routes'
 
-    return routes.map(route => `
+    return routes
+      .map(
+        (route) => `
   // Custom route: ${route.summary}
   app.openapi(
     createRoute({
@@ -316,17 +322,17 @@ export function register${entity.name}Routes(app: OpenAPIHono) {
       responses: createStandardResponses(z.any())
     }),
     ${route.handler}
-  )`).join('\n')
+  )`
+      )
+      .join('\n')
   }
 
   async generateIndex() {
-    const imports = this.config.entities.map(e =>
-      `import { register${e.name}Routes } from './${e.name.toLowerCase()}-routes.generated'`
-    ).join('\n')
+    const imports = this.config.entities
+      .map((e) => `import { register${e.name}Routes } from './${e.name.toLowerCase()}-routes.generated'`)
+      .join('\n')
 
-    const registrations = this.config.entities.map(e =>
-      `  register${e.name}Routes(app)`
-    ).join('\n')
+    const registrations = this.config.entities.map((e) => `  register${e.name}Routes(app)`).join('\n')
 
     const code = `
 // Auto-generated route index
@@ -340,16 +346,14 @@ ${registrations}
   return app
 }
 `
-    await fs.writeFile(
-      path.join(this.config.outputPath, 'index.generated.ts'),
-      code
-    )
+    await fs.writeFile(path.join(this.config.outputPath, 'index.generated.ts'), code)
     console.log('✅ Generated route index')
   }
 }
 ```
 
 ### CLI Tool Implementation
+
 ```typescript
 // packages/server/src/codegen/cli.ts
 #!/usr/bin/env node
@@ -384,10 +388,10 @@ program
   .action(async (options) => {
     const config = await loadConfig(options.config)
     const generator = new RouteGenerator(config)
-    
+
     // Initial generation
     await generator.generateAll()
-    
+
     // Watch for changes
     const watcher = watch([
       'packages/schemas/src/**/*.ts',
@@ -421,13 +425,14 @@ program.parse()
 ```
 
 ### Configuration File
+
 ```javascript
 // route-codegen.config.js
 module.exports = {
   schemasPath: '@promptliano/schemas',
   servicesPath: '@promptliano/services',
   outputPath: './src/routes/generated',
-  
+
   entities: [
     {
       name: 'Project',
@@ -504,6 +509,7 @@ module.exports = {
 ```
 
 ### Package.json Integration
+
 ```json
 {
   "scripts": {
@@ -519,23 +525,27 @@ module.exports = {
 ## Implementation Strategy
 
 ### Phase 1: Setup Infrastructure (Day 1)
+
 - [ ] Create route-helpers.ts with standard responses
 - [ ] Implement CRUD route factory
 - [ ] Set up error handling patterns
 
 ### Phase 2: Build Generator (Day 2)
+
 - [ ] Create RouteGenerator class
 - [ ] Implement entity generation
 - [ ] Add custom route support
 - [ ] Generate index file
 
 ### Phase 3: CLI Tool (Day 3)
+
 - [ ] Create commander CLI
 - [ ] Add watch mode with chokidar
 - [ ] Implement validation command
 - [ ] Add configuration loader
 
 ### Phase 4: Integration (Day 4)
+
 - [ ] Update build scripts
 - [ ] Add to CI/CD pipeline
 - [ ] Generate initial routes
@@ -544,6 +554,7 @@ module.exports = {
 ## Advanced Features
 
 ### Batch Operations
+
 ```typescript
 export function createBatchRoutes<TEntity>(config: BatchRouteConfig) {
   return {
@@ -553,12 +564,12 @@ export function createBatchRoutes<TEntity>(config: BatchRouteConfig) {
       summary: `Batch create ${config.plural}`,
       request: {
         body: {
-          content: { 
-            'application/json': { 
+          content: {
+            'application/json': {
               schema: z.object({
                 items: z.array(config.schemas.create)
               })
-            } 
+            }
           }
         }
       },
@@ -576,15 +587,17 @@ export function createBatchRoutes<TEntity>(config: BatchRouteConfig) {
       summary: `Batch update ${config.plural}`,
       request: {
         body: {
-          content: { 
-            'application/json': { 
+          content: {
+            'application/json': {
               schema: z.object({
-                items: z.array(z.object({
-                  id: z.number(),
-                  data: config.schemas.update
-                }))
+                items: z.array(
+                  z.object({
+                    id: z.number(),
+                    data: config.schemas.update
+                  })
+                )
               })
-            } 
+            }
           }
         }
       },
@@ -600,6 +613,7 @@ export function createBatchRoutes<TEntity>(config: BatchRouteConfig) {
 ```
 
 ### Filtering & Pagination
+
 ```typescript
 export function createFilteredListRoute<TEntity>(config: FilterConfig) {
   return createRoute({
@@ -612,14 +626,18 @@ export function createFilteredListRoute<TEntity>(config: FilterConfig) {
           'application/json': {
             schema: z.object({
               filters: z.record(z.any()).optional(),
-              sort: z.object({
-                field: z.string(),
-                order: z.enum(['asc', 'desc'])
-              }).optional(),
-              pagination: z.object({
-                page: z.number().min(1),
-                limit: z.number().min(1).max(100)
-              }).optional()
+              sort: z
+                .object({
+                  field: z.string(),
+                  order: z.enum(['asc', 'desc'])
+                })
+                .optional(),
+              pagination: z
+                .object({
+                  page: z.number().min(1),
+                  limit: z.number().min(1).max(100)
+                })
+                .optional()
             })
           }
         }
@@ -641,23 +659,27 @@ export function createFilteredListRoute<TEntity>(config: FilterConfig) {
 ## Migration Checklist
 
 ### Pre-Migration
+
 - [ ] Audit existing routes
 - [ ] Identify custom patterns
 - [ ] Design config structure
 
 ### Implementation
+
 - [ ] Create route helpers
 - [ ] Build generator
 - [ ] Implement CLI
 - [ ] Add watch mode
 
 ### Migration
+
 - [ ] Generate all routes
 - [ ] Update imports
 - [ ] Remove old files
 - [ ] Test endpoints
 
 ### Validation
+
 - [ ] Type checking
 - [ ] OpenAPI spec validation
 - [ ] Integration tests

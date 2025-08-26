@@ -1,8 +1,4 @@
-import type {
-  GitBranch,
-  GitBranchEnhanced,
-  GitBranchListEnhancedResponse
-} from '@promptliano/schemas'
+import type { GitBranch, GitBranchEnhanced, GitBranchListEnhancedResponse } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
 import { BaseGitService } from './base-git-service'
 import { gitStatusService } from './git-status-service'
@@ -190,10 +186,7 @@ export class GitBranchService extends BaseGitService {
       const status = await git.status()
       const currentBranch = status.current
 
-      const [localBranches, remoteBranches] = await Promise.all([
-        git.branchLocal(),
-        git.branch(['-r'])
-      ])
+      const [localBranches, remoteBranches] = await Promise.all([git.branchLocal(), git.branch(['-r'])])
 
       // Determine default branch
       let defaultBranch = 'main'

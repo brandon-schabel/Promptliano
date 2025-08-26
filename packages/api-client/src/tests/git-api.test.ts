@@ -35,7 +35,7 @@ describe('Git API Tests', () => {
     // Create some test files
     writeFileSync(join(projectPath, 'README.md'), '# Test Repository\n\nThis is a test repository for Git API testing.')
     writeFileSync(join(projectPath, 'package.json'), JSON.stringify({ name: 'test-repo', version: '1.0.0' }, null, 2))
-    
+
     // Create a subdirectory with files
     const srcDir = join(projectPath, 'src')
     if (!existsSync(srcDir)) {
@@ -58,9 +58,11 @@ describe('Git API Tests', () => {
     test('should get project git status', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-status'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-status'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           // Setup test repository
@@ -72,7 +74,7 @@ describe('Git API Tests', () => {
 
           expect(statusResult.data).toBeDefined()
           expect(statusResult.data.success).toBe(true)
-          
+
           // Access the nested data object from the Git result
           const gitData = statusResult.data.data
           expect(gitData).toBeDefined()
@@ -87,9 +89,11 @@ describe('Git API Tests', () => {
     test('should handle git status for non-git repository', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-non-git'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-non-git'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           try {
@@ -108,9 +112,11 @@ describe('Git API Tests', () => {
     test('should stage and unstage specific files', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-staging'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-staging'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -124,7 +130,7 @@ describe('Git API Tests', () => {
           // Verify staging worked
           const statusAfterStage = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterStage)
-          const stagedFiles = statusAfterStage.data.files.filter(f => f.staged)
+          const stagedFiles = statusAfterStage.data.files.filter((f) => f.staged)
           expect(stagedFiles.length).toBeGreaterThanOrEqual(2)
 
           // Unstage specific files
@@ -135,7 +141,7 @@ describe('Git API Tests', () => {
           // Verify unstaging worked
           const statusAfterUnstage = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterUnstage)
-          const remainingStagedFiles = statusAfterUnstage.data.files.filter(f => f.staged)
+          const remainingStagedFiles = statusAfterUnstage.data.files.filter((f) => f.staged)
           expect(remainingStagedFiles.length).toBeLessThan(stagedFiles.length)
         })
       })
@@ -144,9 +150,11 @@ describe('Git API Tests', () => {
     test('should stage and unstage all files', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-stage-all'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-stage-all'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -159,8 +167,8 @@ describe('Git API Tests', () => {
           // Verify all files are staged
           const statusAfterStageAll = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterStageAll)
-          const modifiedFiles = statusAfterStageAll.data.files.filter(f => f.status !== 'untracked')
-          const stagedFiles = statusAfterStageAll.data.files.filter(f => f.staged)
+          const modifiedFiles = statusAfterStageAll.data.files.filter((f) => f.status !== 'untracked')
+          const stagedFiles = statusAfterStageAll.data.files.filter((f) => f.staged)
           expect(stagedFiles.length).toBeGreaterThan(0)
 
           // Unstage all files
@@ -170,7 +178,7 @@ describe('Git API Tests', () => {
           // Verify no files are staged
           const statusAfterUnstageAll = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterUnstageAll)
-          const remainingStagedFiles = statusAfterUnstageAll.data.files.filter(f => f.staged)
+          const remainingStagedFiles = statusAfterUnstageAll.data.files.filter((f) => f.staged)
           expect(remainingStagedFiles.length).toBe(0)
         })
       })
@@ -179,9 +187,11 @@ describe('Git API Tests', () => {
     test('should handle staging non-existent files', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-stage-nonexistent'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-stage-nonexistent'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -202,9 +212,11 @@ describe('Git API Tests', () => {
     test('should create commits with staged changes', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-commit'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-commit'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -222,7 +234,7 @@ describe('Git API Tests', () => {
           // Verify commit was created by checking status
           const statusAfterCommit = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterCommit)
-          expect(statusAfterCommit.data.files.filter(f => f.staged).length).toBe(0)
+          expect(statusAfterCommit.data.files.filter((f) => f.staged).length).toBe(0)
         })
       })
     })
@@ -230,9 +242,11 @@ describe('Git API Tests', () => {
     test('should handle empty commits', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-empty-commit'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-empty-commit'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -251,9 +265,11 @@ describe('Git API Tests', () => {
     test('should validate commit message requirements', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-commit-validation'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-commit-validation'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -276,9 +292,11 @@ describe('Git API Tests', () => {
     test('should list, create, switch, and delete branches', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-branches'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-branches'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -300,7 +318,7 @@ describe('Git API Tests', () => {
           // Verify branch was created
           const branchesAfterCreate = await client.git.getBranches(project.id)
           assertions.assertSuccessResponse(branchesAfterCreate)
-          const newBranch = branchesAfterCreate.data.find(b => b.name === branchName)
+          const newBranch = branchesAfterCreate.data.find((b) => b.name === branchName)
           expect(newBranch).toBeDefined()
 
           // Switch to new branch
@@ -313,7 +331,7 @@ describe('Git API Tests', () => {
           expect(statusAfterSwitch.data.data.current).toBe(branchName)
 
           // Switch back to main/master
-          const mainBranch = initialBranches.data.find(b => b.current)?.name || 'main'
+          const mainBranch = initialBranches.data.find((b) => b.current)?.name || 'main'
           await client.git.switchBranch(project.id, mainBranch)
 
           // Delete the test branch
@@ -323,7 +341,7 @@ describe('Git API Tests', () => {
           // Verify branch was deleted
           const branchesAfterDelete = await client.git.getBranches(project.id)
           assertions.assertSuccessResponse(branchesAfterDelete)
-          const deletedBranch = branchesAfterDelete.data.find(b => b.name === branchName)
+          const deletedBranch = branchesAfterDelete.data.find((b) => b.name === branchName)
           expect(deletedBranch).toBeUndefined()
         })
       })
@@ -332,9 +350,11 @@ describe('Git API Tests', () => {
     test('should handle branch creation with start point', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-branch-startpoint'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-branch-startpoint'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -348,7 +368,7 @@ describe('Git API Tests', () => {
           // Verify branch exists
           const branches = await client.git.getBranches(project.id)
           assertions.assertSuccessResponse(branches)
-          const newBranch = branches.data.find(b => b.name === 'feature/from-head')
+          const newBranch = branches.data.find((b) => b.name === 'feature/from-head')
           expect(newBranch).toBeDefined()
         })
       })
@@ -357,9 +377,11 @@ describe('Git API Tests', () => {
     test('should handle branch operation errors', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-branch-errors'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-branch-errors'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -398,9 +420,11 @@ describe('Git API Tests', () => {
     test('should retrieve commit log', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-log'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-log'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -431,9 +455,11 @@ describe('Git API Tests', () => {
     test('should handle commit log with options', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-log-options'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-log-options'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -462,9 +488,11 @@ describe('Git API Tests', () => {
     test('should get enhanced commit log', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-enhanced-log'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-enhanced-log'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -485,9 +513,11 @@ describe('Git API Tests', () => {
     test('should create, list, apply, and drop stashes', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-stash'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-stash'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -526,9 +556,11 @@ describe('Git API Tests', () => {
     test('should handle stash pop operation', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-stash-pop'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-stash-pop'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -556,9 +588,11 @@ describe('Git API Tests', () => {
     test('should list remotes', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-remotes'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-remotes'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -574,9 +608,11 @@ describe('Git API Tests', () => {
     test('should handle fetch operation gracefully', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-fetch'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-fetch'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -597,9 +633,11 @@ describe('Git API Tests', () => {
     test('should create and list tags', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-tags'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-tags'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -617,8 +655,8 @@ describe('Git API Tests', () => {
           const tags = await client.git.getTags(project.id)
           assertions.assertSuccessResponse(tags)
           expect(Array.isArray(tags.data)).toBe(true)
-          
-          const createdTag = tags.data.find(t => t.name === tagName)
+
+          const createdTag = tags.data.find((t) => t.name === tagName)
           expect(createdTag).toBeDefined()
         })
       })
@@ -629,9 +667,11 @@ describe('Git API Tests', () => {
     test('should list, add, and remove worktrees', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-worktrees'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-worktrees'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -678,9 +718,11 @@ describe('Git API Tests', () => {
     test('should handle worktree lock and unlock operations', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-worktree-lock'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-worktree-lock'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -727,9 +769,11 @@ describe('Git API Tests', () => {
     test('should prune worktrees', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-worktree-prune'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-worktree-prune'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -749,9 +793,11 @@ describe('Git API Tests', () => {
     test('should get file diff for modified files', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-diff'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-diff'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -773,9 +819,11 @@ describe('Git API Tests', () => {
     test('should get staged file diff', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-staged-diff'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-staged-diff'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -799,9 +847,11 @@ describe('Git API Tests', () => {
     test('should get enhanced branches information', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-enhanced-branches'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-enhanced-branches'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -820,9 +870,11 @@ describe('Git API Tests', () => {
     test('should get detailed commit information', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-commit-detail'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-commit-detail'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -850,9 +902,11 @@ describe('Git API Tests', () => {
     test('should reset to specific commit', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-reset'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-reset'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -872,7 +926,7 @@ describe('Git API Tests', () => {
           const statusAfterReset = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterReset)
           // After mixed reset, changes should be unstaged
-          expect(statusAfterReset.data.files.some(f => !f.staged)).toBe(true)
+          expect(statusAfterReset.data.files.some((f) => !f.staged)).toBe(true)
         })
       })
     })
@@ -882,9 +936,11 @@ describe('Git API Tests', () => {
     test('should handle complete feature branch workflow', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-workflow'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-workflow'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           // Setup initial repository
@@ -905,7 +961,7 @@ describe('Git API Tests', () => {
           // Switch back to main
           const branches = await client.git.getBranches(project.id)
           assertions.assertSuccessResponse(branches)
-          const mainBranch = branches.data.find(b => b.name === 'main' || b.name === 'master')?.name || 'main'
+          const mainBranch = branches.data.find((b) => b.name === 'main' || b.name === 'master')?.name || 'main'
           await client.git.switchBranch(project.id, mainBranch)
 
           // Clean up by deleting feature branch
@@ -922,9 +978,11 @@ describe('Git API Tests', () => {
     test('should handle stash and branch switching workflow', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-stash-workflow'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-stash-workflow'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -946,14 +1004,14 @@ describe('Git API Tests', () => {
           // Switch back and apply stash
           const branches = await client.git.getBranches(project.id)
           assertions.assertSuccessResponse(branches)
-          const mainBranch = branches.data.find(b => b.name === 'main' || b.name === 'master')?.name || 'main'
+          const mainBranch = branches.data.find((b) => b.name === 'main' || b.name === 'master')?.name || 'main'
           await client.git.switchBranch(project.id, mainBranch)
           await client.git.stashPop(project.id)
 
           // Verify changes are back
           const statusAfterPop = await client.git.getProjectGitStatus(project.id)
           assertions.assertSuccessResponse(statusAfterPop)
-          expect(statusAfterPop.data.files.some(f => f.status === 'modified')).toBe(true)
+          expect(statusAfterPop.data.files.some((f) => f.status === 'modified')).toBe(true)
         })
       })
     })
@@ -976,9 +1034,11 @@ describe('Git API Tests', () => {
     test('should handle operations on non-existent paths', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/non-existent-git-repo'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/non-existent-git-repo'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           try {
@@ -994,9 +1054,11 @@ describe('Git API Tests', () => {
     test('should handle concurrent git operations gracefully', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-concurrent'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-concurrent'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
@@ -1004,14 +1066,12 @@ describe('Git API Tests', () => {
           await client.git.commitChanges(project.id, 'Initial commit')
 
           // Try multiple status calls concurrently
-          const statusPromises = Array.from({ length: 5 }, () =>
-            client.git.getProjectGitStatus(project.id)
-          )
+          const statusPromises = Array.from({ length: 5 }, () => client.git.getProjectGitStatus(project.id))
 
           const results = await Promise.allSettled(statusPromises)
-          
+
           // At least some should succeed
-          const successful = results.filter(r => r.status === 'fulfilled')
+          const successful = results.filter((r) => r.status === 'fulfilled')
           expect(successful.length).toBeGreaterThan(0)
         })
       })
@@ -1022,16 +1082,18 @@ describe('Git API Tests', () => {
     test('should handle large commit history efficiently', async () => {
       await withTestEnvironment(async (env: TestEnvironment) => {
         await withTestData(env, async (dataManager: TestDataManager) => {
-          const project = await dataManager.createProject(factories.createProjectData({
-            path: '/tmp/git-test-performance'
-          }))
+          const project = await dataManager.createProject(
+            factories.createProjectData({
+              path: '/tmp/git-test-performance'
+            })
+          )
           const client = createPromptlianoClient({ baseUrl: env.baseUrl })
 
           await setupTestRepository(client, project.path)
 
           // Create multiple commits quickly
           const start = performance.now()
-          
+
           for (let i = 1; i <= 10; i++) {
             writeFileSync(join(project.path, `perf-test-${i}.txt`), `Performance test file ${i}`)
             await client.git.stageAll(project.id)

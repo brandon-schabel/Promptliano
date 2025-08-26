@@ -62,7 +62,7 @@ export class SyncProgressTracker extends EventEmitter {
 
     this.processedFiles++
     this.currentFile = fileName
-    
+
     // Only emit progress at update interval to avoid overwhelming
     if (now - this.lastUpdateTime >= this.updateInterval || this.processedFiles === this.totalFiles) {
       this.lastUpdateTime = now
@@ -108,9 +108,7 @@ export class SyncProgressTracker extends EventEmitter {
   }
 
   private emitProgress(message?: string) {
-    const percentage = this.totalFiles > 0 
-      ? Math.round((this.processedFiles / this.totalFiles) * 100)
-      : 0
+    const percentage = this.totalFiles > 0 ? Math.round((this.processedFiles / this.totalFiles) * 100) : 0
 
     const event: SyncProgressEvent = {
       phase: this.phase,
@@ -139,10 +137,10 @@ export class SyncProgressTracker extends EventEmitter {
     try {
       while (this.progressQueue.length > 0) {
         const event = this.progressQueue.shift()!
-        
+
         // Emit to EventEmitter listeners
         this.emit('progress', event)
-        
+
         // Call the progress callback if provided
         if (this.options.onProgress) {
           try {
@@ -151,10 +149,10 @@ export class SyncProgressTracker extends EventEmitter {
             console.error('Error in progress callback:', err)
           }
         }
-        
+
         // Add a small delay between events to prevent overwhelming
         if (this.progressQueue.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, 10))
         }
       }
     } finally {
@@ -166,7 +164,8 @@ export class SyncProgressTracker extends EventEmitter {
     this.phase = 'complete'
     this.processedFiles = this.totalFiles
     const elapsedSeconds = (Date.now() - this.startTime) / 1000
-    const finalMessage = message || `Sync completed! Processed ${this.totalFiles} files in ${elapsedSeconds.toFixed(1)} seconds`
+    const finalMessage =
+      message || `Sync completed! Processed ${this.totalFiles} files in ${elapsedSeconds.toFixed(1)} seconds`
     this.emitProgress(finalMessage)
   }
 
@@ -181,11 +180,11 @@ export class SyncProgressTracker extends EventEmitter {
       error,
       sequenceNumber: ++this.sequenceNumber
     }
-    
+
     // Queue the error event for ordered processing
     this.progressQueue.push(event)
     this.processQueue()
-    
+
     // Also emit error directly for error handlers
     this.emit('error', error)
   }

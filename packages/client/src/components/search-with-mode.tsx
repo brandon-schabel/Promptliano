@@ -5,12 +5,7 @@ import { ChevronDown, X, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@promptliano/ui'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@promptliano/ui'
 
 interface SearchMode {
   value: string
@@ -35,8 +30,8 @@ interface SearchWithModeProps {
   disabled?: boolean
 }
 
-export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeProps>(
-  function SearchWithMode({
+export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeProps>(function SearchWithMode(
+  {
     value = '',
     onChange,
     onClear,
@@ -50,7 +45,9 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
     onBlur,
     autoFocus,
     disabled
-  }, ref) {
+  },
+  ref
+) {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false)
   const [dropdownIndex, setDropdownIndex] = React.useState(-1)
   const internalInputRef = React.useRef<HTMLInputElement>(null)
@@ -73,7 +70,7 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
   // Get the actual ref to pass to the Input component
   const actualInputRef = ref || internalInputRef
 
-  const currentMode = modes.find(m => m.value === mode) || modes[0]
+  const currentMode = modes.find((m) => m.value === mode) || modes[0]
   const displayLabel = currentMode?.shortLabel || currentMode?.label || 'Search'
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -89,10 +86,10 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
     if (isDropdownOpen) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setDropdownIndex(prev => Math.min(modes.length - 1, prev + 1))
+        setDropdownIndex((prev) => Math.min(modes.length - 1, prev + 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setDropdownIndex(prev => Math.max(0, prev - 1))
+        setDropdownIndex((prev) => Math.max(0, prev - 1))
       } else if (e.key === 'Enter' && dropdownIndex >= 0) {
         e.preventDefault()
         onModeChange(modes[dropdownIndex].value)
@@ -137,7 +134,7 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
   }
 
   return (
-    <div 
+    <div
       className={cn(
         'relative flex items-center w-full max-w-sm',
         'border border-input rounded-md bg-background',
@@ -151,8 +148,8 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="ghost"
-            size="sm"
+            variant='ghost'
+            size='sm'
             disabled={disabled}
             className={cn(
               'h-full px-3 rounded-none rounded-l-md border-r border-input',
@@ -167,20 +164,14 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
               }
             }}
           >
-            <div className="flex items-center gap-1 min-w-0">
-              {currentMode?.icon && (
-                <span className="shrink-0">
-                  {currentMode.icon}
-                </span>
-              )}
-              <span className="truncate text-sm">
-                {displayLabel}
-              </span>
-              <ChevronDown className="h-3 w-3 shrink-0" />
+            <div className='flex items-center gap-1 min-w-0'>
+              {currentMode?.icon && <span className='shrink-0'>{currentMode.icon}</span>}
+              <span className='truncate text-sm'>{displayLabel}</span>
+              <ChevronDown className='h-3 w-3 shrink-0' />
             </div>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuContent align='start' className='w-48'>
           {modes.map((modeOption, index) => (
             <DropdownMenuItem
               key={modeOption.value}
@@ -191,11 +182,7 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
                 index === dropdownIndex && isDropdownOpen && 'bg-accent text-accent-foreground'
               )}
             >
-              {modeOption.icon && (
-                <span className="shrink-0">
-                  {modeOption.icon}
-                </span>
-              )}
+              {modeOption.icon && <span className='shrink-0'>{modeOption.icon}</span>}
               <span>{modeOption.label}</span>
             </DropdownMenuItem>
           ))}
@@ -203,7 +190,7 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
       </DropdownMenu>
 
       {/* Search Input */}
-      <div className="relative flex-1">
+      <div className='relative flex-1'>
         <Input
           ref={actualInputRef}
           value={value}
@@ -225,9 +212,9 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
         {/* Clear Button */}
         {value && (
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+            type='button'
+            variant='ghost'
+            size='sm'
             disabled={disabled}
             onClick={handleClear}
             className={cn(
@@ -236,9 +223,9 @@ export const SearchWithMode = React.forwardRef<HTMLInputElement, SearchWithModeP
               'hover:bg-accent hover:text-accent-foreground',
               'focus:ring-0 focus:ring-offset-0'
             )}
-            aria-label="Clear search"
+            aria-label='Clear search'
           >
-            <X className="h-3 w-3" />
+            <X className='h-3 w-3' />
           </Button>
         )}
       </div>

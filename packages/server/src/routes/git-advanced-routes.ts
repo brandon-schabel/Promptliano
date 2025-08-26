@@ -8,7 +8,18 @@ import {
   gitResetRequestSchema,
   ApiErrorResponseSchema
 } from '@promptliano/schemas'
-import { getRemotes, push, fetch, pull, getTags, createTag, stash, stashList, stashApply, reset } from '@promptliano/services'
+import {
+  getRemotes,
+  push,
+  fetch,
+  pull,
+  getTags,
+  createTag,
+  stash,
+  stashList,
+  stashApply,
+  reset
+} from '@promptliano/services'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Define reusable response schemas
@@ -86,9 +97,7 @@ gitAdvancedRoutes.openapi(pushRoute, async (c) => {
 
   await push(projectId, remote || 'origin', branch, { force, setUpstream })
 
-  return c.json(operationSuccessResponse(
-    `Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`
-  ))
+  return c.json(operationSuccessResponse(`Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
 })
 
 // Fetch route

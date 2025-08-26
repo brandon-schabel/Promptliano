@@ -70,7 +70,7 @@ runs:
       shell: bash
       run: |
         echo "🔍 Detecting changed packages..." >&2
-        
+
         # Get changed files based on event type
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           echo "📝 Analyzing PR changes against ${{ inputs.base-ref }}" >&2
@@ -79,14 +79,14 @@ runs:
           echo "📝 Analyzing push changes against previous commit" >&2
           CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
         fi
-        
+
         echo "📄 Changed files:" >&2
         echo "$CHANGED_FILES" >&2
         echo "" >&2
-        
+
         # Initialize arrays
         CHANGED_PACKAGES=()
-        
+
         # Check each package directory
         echo "🔍 Scanning packages in ${{ inputs.packages-path }}..." >&2
         for pkg_dir in ${{ inputs.packages-path }}/*/; do
@@ -100,11 +100,11 @@ runs:
             fi
           fi
         done
-        
+
         # Check for root-level changes that affect all packages
         ROOT_CHANGES=false
         echo "🌍 Checking for root-level changes..." >&2
-        
+
         # Convert root change patterns to proper regex
         ROOT_PATTERNS="${{ inputs.root-change-patterns }}"
         while IFS= read -r pattern; do
@@ -114,7 +114,7 @@ runs:
             break
           fi
         done <<< "$ROOT_PATTERNS"
-        
+
         # If root changes detected, include all packages
         if [ "$ROOT_CHANGES" = "true" ]; then
           echo "🌍 Root changes detected - will test all packages" >&2
@@ -127,11 +127,11 @@ runs:
             fi
           done
         fi
-        
+
         # Output results
         CHANGED_COUNT=${#CHANGED_PACKAGES[@]}
         echo "changed-count=$CHANGED_COUNT" >> $GITHUB_OUTPUT
-        
+
         if [ $CHANGED_COUNT -eq 0 ]; then
           echo "packages=[]" >> $GITHUB_OUTPUT
           echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
@@ -173,6 +173,6 @@ runs:
             echo "  - $pkg" >&2
           done
         fi
-        
+
         echo "" >&2
         echo "🎯 Change detection completed" >&2

@@ -1,10 +1,4 @@
-import { 
-  useQuery, 
-  useMutation, 
-  useQueryClient, 
-  useInfiniteQuery, 
-  useQueries 
-} from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, useQueries } from '@tanstack/react-query'
 import type {
   ClaudeSession,
   ClaudeSessionMetadata,
@@ -163,7 +157,7 @@ export function createClaudeCodeSessionHooks() {
         queryFn: async ({ pageParam }: { pageParam?: string }) => {
           if (!projectId) throw new Error('Project ID is required')
           if (!client) throw new Error('API client not initialized')
-          
+
           const cursorQuery: ClaudeSessionCursor = {
             sortBy: (query?.sortBy as 'lastUpdate' | 'startTime' | 'messageCount' | 'fileSize') || 'lastUpdate',
             sortOrder: (query?.sortOrder as 'asc' | 'desc') || 'desc',
@@ -174,23 +168,25 @@ export function createClaudeCodeSessionHooks() {
             endDate: query?.endDate,
             cursor: pageParam
           }
-          
+
           const response = await client.claudeCode.getSessionsPaginated(projectId, cursorQuery)
           return response
         },
         enabled: !!client && options?.enabled !== false && !!projectId,
         staleTime: options?.staleTime ?? 3 * 60 * 1000, // 3 minutes
         gcTime: 20 * 60 * 1000, // 20 minutes for infinite data
-        getNextPageParam: options?.getNextPageParam ?? ((lastPage) => {
-          return lastPage.pagination?.hasMore ? lastPage.pagination.nextCursor : undefined
-        }),
+        getNextPageParam:
+          options?.getNextPageParam ??
+          ((lastPage) => {
+            return lastPage.pagination?.hasMore ? lastPage.pagination.nextCursor : undefined
+          }),
         initialPageParam: undefined as string | undefined,
         maxPages: 50, // Prevent memory issues with very large datasets
         select: (data) => ({
           pages: data.pages,
           pageParams: data.pageParams,
           // Flatten all sessions for easy consumption
-          allSessions: data.pages.flatMap(page => page.data),
+          allSessions: data.pages.flatMap((page) => page.data),
           totalLoaded: data.pages.reduce((sum, page) => sum + page.data.length, 0),
           hasNextPage: data.pages[data.pages.length - 1]?.pagination?.hasMore ?? false,
           isFetchingNextPage: false // Will be set by the hook
@@ -231,11 +227,11 @@ export function createClaudeCodeSessionHooks() {
       // Build optimized query from table state
       const query = useMemo((): ClaudeSessionCursor => {
         const { pagination, sorting, columnFilters, globalFilter } = tableOptions
-        
+
         // Map table sorting to API sorting
         let sortBy: 'lastUpdate' | 'startTime' | 'messageCount' | 'fileSize' = 'lastUpdate'
         let sortOrder: 'asc' | 'desc' = 'desc'
-        
+
         if (sorting && sorting.length > 0) {
           const sort = sorting[0]
           if (['lastUpdate', 'startTime', 'messageCount', 'fileSize'].includes(sort.id)) {
@@ -243,14 +239,14 @@ export function createClaudeCodeSessionHooks() {
             sortOrder = sort.desc ? 'desc' : 'asc'
           }
         }
-        
+
         // Extract filters
-        const branchFilter = columnFilters?.find(f => f.id === 'gitBranch')?.value
+        const branchFilter = columnFilters?.find((f) => f.id === 'gitBranch')?.value
         const dateFilters = {
-          startDate: columnFilters?.find(f => f.id === 'startDate')?.value,
-          endDate: columnFilters?.find(f => f.id === 'endDate')?.value
+          startDate: columnFilters?.find((f) => f.id === 'startDate')?.value,
+          endDate: columnFilters?.find((f) => f.id === 'endDate')?.value
         }
-        
+
         return {
           limit: pagination?.pageSize ?? 20,
           sortBy,
@@ -266,7 +262,7 @@ export function createClaudeCodeSessionHooks() {
       const cursor = useMemo(() => {
         const { pagination } = tableOptions
         if (!pagination || pagination.pageIndex === 0) return undefined
-        
+
         // We need to implement cursor calculation based on previous page data
         // For now, we'll use offset-style pagination as fallback
         return undefined
@@ -275,7 +271,7 @@ export function createClaudeCodeSessionHooks() {
       const finalQuery = { ...query, cursor }
 
       // Choose between metadata or full session data
-      const queryKey = options?.metadata 
+      const queryKey = options?.metadata
         ? CLAUDE_CODE_KEYS.sessionsMetadata(projectId ?? 0, finalQuery)
         : CLAUDE_CODE_KEYS.sessionsPaginated(projectId ?? 0, finalQuery)
 
@@ -284,7 +280,7 @@ export function createClaudeCodeSessionHooks() {
         queryFn: async () => {
           if (!projectId) throw new Error('Project ID is required')
           if (!client) throw new Error('API client not initialized')
-          
+
           if (options?.metadata) {
             return await client.claudeCode.getSessionsMetadata(projectId, finalQuery)
           } else {
@@ -306,20 +302,20 @@ export function createClaudeCodeSessionHooks() {
       // Background prefetching for next/previous pages
       useEffect(() => {
         if (!result.isSuccess || !result.data?.pagination?.hasMore) return
-        
+
         const { pageIndex = 0, pageSize = 20 } = tableOptions.pagination || {}
-        
+
         // Prefetch next page
         const nextPageQuery = {
           ...finalQuery,
           cursor: result.data.pagination.nextCursor
         }
-        
+
         if (result.data.pagination.nextCursor) {
-          const nextPageKey = options?.metadata 
+          const nextPageKey = options?.metadata
             ? CLAUDE_CODE_KEYS.sessionsMetadata(projectId ?? 0, nextPageQuery)
             : CLAUDE_CODE_KEYS.sessionsPaginated(projectId ?? 0, nextPageQuery)
-          
+
           queryClient.prefetchQuery({
             queryKey: nextPageKey,
             queryFn: async () => {
@@ -395,8 +391,12 @@ export function createClaudeCodeSessionHooks() {
           if (!projectId || !client) throw new Error('Project ID and client required')
           return await client.claudeCode.getSessionsPaginated(projectId, query)
         },
-        enabled: !!client && options?.enabled !== false && !!projectId && 
-                 options?.loadFullData !== false && metadataResult.isSuccess,
+        enabled:
+          !!client &&
+          options?.enabled !== false &&
+          !!projectId &&
+          options?.loadFullData !== false &&
+          metadataResult.isSuccess,
         staleTime: options?.staleTime ?? 3 * 60 * 1000, // 3 minutes
         gcTime: 15 * 60 * 1000
       })
@@ -406,22 +406,22 @@ export function createClaudeCodeSessionHooks() {
         metadata: metadataResult.data?.sessions ?? [],
         metadataLoading: metadataResult.isLoading,
         metadataError: metadataResult.error,
-        
+
         // Full data results (slower but complete)
         sessions: fullDataResult.data?.data ?? metadataResult.data?.sessions ?? [],
         fullDataLoading: fullDataResult.isLoading,
         fullDataError: fullDataResult.error,
-        
+
         // Combined state
         isLoading: metadataResult.isLoading,
         isLoadingFullData: fullDataResult.isLoading,
         error: metadataResult.error || fullDataResult.error,
         hasFullData: fullDataResult.isSuccess,
-        
+
         // Pagination
         pagination: fullDataResult.data?.pagination ?? metadataResult.data?.pagination,
         hasMore: fullDataResult.data?.pagination?.hasMore ?? metadataResult.data?.hasMore ?? false,
-        
+
         // Utils
         refetchMetadata: metadataResult.refetch,
         refetchFullData: fullDataResult.refetch,
@@ -546,28 +546,28 @@ export function createClaudeCodeAdvancedHooks() {
         const interval = setInterval(async () => {
           try {
             let sessions: ClaudeSession[]
-            
+
             if (useRecent) {
               // Use recent endpoint for efficiency
               const response = await client.claudeCode.getRecentSessions(projectId)
               sessions = response.data
-              
+
               // Update recent cache
               queryClient.setQueryData(CLAUDE_CODE_KEYS.sessionsRecent(projectId), sessions)
             } else {
               // Use full sessions endpoint
               const response = await client.claudeCode.getSessions(projectId)
               sessions = response.data
-              
+
               // Update sessions cache
               queryClient.setQueryData(CLAUDE_CODE_KEYS.sessions(projectId), sessions)
             }
 
             // Call callback if provided
             options?.onUpdate?.(sessions)
-            
+
             // Invalidate related queries to trigger background updates
-            queryClient.invalidateQueries({ 
+            queryClient.invalidateQueries({
               queryKey: CLAUDE_CODE_KEYS.sessions(projectId),
               exact: false,
               refetchType: 'none' // Don't refetch immediately, just mark as stale
@@ -588,11 +588,11 @@ export function createClaudeCodeAdvancedHooks() {
         stop: useCallback(() => {
           cleanupRef.current?.()
         }, []),
-        
+
         // Force refresh now
         refresh: useCallback(async () => {
           if (!projectId || !client) return
-          
+
           try {
             if (useRecent) {
               const response = await client.claudeCode.getRecentSessions(projectId)
@@ -624,7 +624,7 @@ export function createClaudeCodeAdvancedHooks() {
     ) => {
       const queryClient = useQueryClient()
       const client = useApiClient()
-      
+
       const {
         enableBackgroundRefresh = true,
         prefetchRecent = true,
@@ -646,12 +646,21 @@ export function createClaudeCodeAdvancedHooks() {
                 staleTime: 30 * 1000 // 30 seconds
               })
             }
-            
+
             // Refresh metadata if it's being used
             if (prefetchMetadata) {
               await queryClient.prefetchQuery({
-                queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 20, sortBy: 'lastUpdate', sortOrder: 'desc' }),
-                queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 20, sortBy: 'lastUpdate', sortOrder: 'desc' }),
+                queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, {
+                  limit: 20,
+                  sortBy: 'lastUpdate',
+                  sortOrder: 'desc'
+                }),
+                queryFn: () =>
+                  client.claudeCode.getSessionsMetadata(projectId, {
+                    limit: 20,
+                    sortBy: 'lastUpdate',
+                    sortOrder: 'desc'
+                  }),
                 staleTime: 1 * 60 * 1000 // 1 minute
               })
             }
@@ -661,7 +670,15 @@ export function createClaudeCodeAdvancedHooks() {
         }, backgroundRefreshInterval)
 
         return () => clearInterval(interval)
-      }, [projectId, enableBackgroundRefresh, prefetchRecent, prefetchMetadata, backgroundRefreshInterval, queryClient, client])
+      }, [
+        projectId,
+        enableBackgroundRefresh,
+        prefetchRecent,
+        prefetchMetadata,
+        backgroundRefreshInterval,
+        queryClient,
+        client
+      ])
 
       // Initial prefetching on mount
       useEffect(() => {
@@ -676,11 +693,20 @@ export function createClaudeCodeAdvancedHooks() {
                 staleTime: 30 * 1000
               })
             }
-            
+
             if (prefetchMetadata) {
               queryClient.prefetchQuery({
-                queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit: 10, sortBy: 'lastUpdate', sortOrder: 'desc' }),
-                queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit: 10, sortBy: 'lastUpdate', sortOrder: 'desc' }),
+                queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, {
+                  limit: 10,
+                  sortBy: 'lastUpdate',
+                  sortOrder: 'desc'
+                }),
+                queryFn: () =>
+                  client.claudeCode.getSessionsMetadata(projectId, {
+                    limit: 10,
+                    sortBy: 'lastUpdate',
+                    sortOrder: 'desc'
+                  }),
                 staleTime: 1 * 60 * 1000
               })
             }
@@ -701,14 +727,22 @@ export function createClaudeCodeAdvancedHooks() {
             queryFn: () => client.claudeCode.getRecentSessions(projectId)
           })
         }, [projectId, client, queryClient]),
-        
-        prefetchMetadata: useCallback(async (limit = 20) => {
-          if (!projectId || !client) return
-          return queryClient.prefetchQuery({
-            queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, { limit, sortBy: 'lastUpdate', sortOrder: 'desc' }),
-            queryFn: () => client.claudeCode.getSessionsMetadata(projectId, { limit, sortBy: 'lastUpdate', sortOrder: 'desc' })
-          })
-        }, [projectId, client, queryClient])
+
+        prefetchMetadata: useCallback(
+          async (limit = 20) => {
+            if (!projectId || !client) return
+            return queryClient.prefetchQuery({
+              queryKey: CLAUDE_CODE_KEYS.sessionsMetadata(projectId, {
+                limit,
+                sortBy: 'lastUpdate',
+                sortOrder: 'desc'
+              }),
+              queryFn: () =>
+                client.claudeCode.getSessionsMetadata(projectId, { limit, sortBy: 'lastUpdate', sortOrder: 'desc' })
+            })
+          },
+          [projectId, client, queryClient]
+        )
       }
     },
 
@@ -718,72 +752,70 @@ export function createClaudeCodeAdvancedHooks() {
     useClaudeCodeInvalidation: () => {
       const queryClient = useQueryClient()
 
-      return useMemo(() => ({
-        // Invalidate all Claude Code data
-        invalidateAll: () => {
-          queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.all })
-        },
-        
-        // Invalidate all sessions for a project
-        invalidateSessions: (projectId: number) => {
-          queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.sessions(projectId) })
-        },
-        
-        // Invalidate specific session data
-        invalidateSessionMessages: (projectId: number, sessionId: string) => {
-          queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.messages(projectId, sessionId) })
-        },
-        
-        // Invalidate project data
-        invalidateProjectData: (projectId: number) => {
-          queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.projectData(projectId) })
-        },
-        
-        // Reset infinite query
-        resetInfiniteQuery: (projectId: number, query?: Omit<ClaudeSessionCursor, 'cursor'>) => {
-          queryClient.resetQueries({ queryKey: CLAUDE_CODE_KEYS.sessionsInfinite(projectId, query) })
-        },
-        
-        // Prefetch recent sessions
-        prefetchRecent: async (projectId: number) => {
-          return queryClient.prefetchQuery({
-            queryKey: CLAUDE_CODE_KEYS.sessionsRecent(projectId),
-            staleTime: 30 * 1000 // 30 seconds
-          })
-        },
-        
-        // Manually update session data (optimistic updates)
-        updateSessionData: (projectId: number, sessionId: string, updater: (old: ClaudeSession) => ClaudeSession) => {
-          // Update in all relevant caches
-          queryClient.setQueriesData(
-            { queryKey: CLAUDE_CODE_KEYS.sessions(projectId) },
-            (old: any) => {
+      return useMemo(
+        () => ({
+          // Invalidate all Claude Code data
+          invalidateAll: () => {
+            queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.all })
+          },
+
+          // Invalidate all sessions for a project
+          invalidateSessions: (projectId: number) => {
+            queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.sessions(projectId) })
+          },
+
+          // Invalidate specific session data
+          invalidateSessionMessages: (projectId: number, sessionId: string) => {
+            queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.messages(projectId, sessionId) })
+          },
+
+          // Invalidate project data
+          invalidateProjectData: (projectId: number) => {
+            queryClient.invalidateQueries({ queryKey: CLAUDE_CODE_KEYS.projectData(projectId) })
+          },
+
+          // Reset infinite query
+          resetInfiniteQuery: (projectId: number, query?: Omit<ClaudeSessionCursor, 'cursor'>) => {
+            queryClient.resetQueries({ queryKey: CLAUDE_CODE_KEYS.sessionsInfinite(projectId, query) })
+          },
+
+          // Prefetch recent sessions
+          prefetchRecent: async (projectId: number) => {
+            return queryClient.prefetchQuery({
+              queryKey: CLAUDE_CODE_KEYS.sessionsRecent(projectId),
+              staleTime: 30 * 1000 // 30 seconds
+            })
+          },
+
+          // Manually update session data (optimistic updates)
+          updateSessionData: (projectId: number, sessionId: string, updater: (old: ClaudeSession) => ClaudeSession) => {
+            // Update in all relevant caches
+            queryClient.setQueriesData({ queryKey: CLAUDE_CODE_KEYS.sessions(projectId) }, (old: any) => {
               if (!old || !Array.isArray(old)) return old
-              return old.map((session: ClaudeSession) => 
-                session.sessionId === sessionId ? updater(session) : session
-              )
-            }
-          )
-        },
-        
-        // Get cached session data without triggering a request
-        getCachedSession: (projectId: number, sessionId: string): ClaudeSession | undefined => {
-          const sessionsData = queryClient.getQueryData(CLAUDE_CODE_KEYS.sessions(projectId)) as ClaudeSession[]
-          return sessionsData?.find(s => s.sessionId === sessionId)
-        },
-        
-        // Check if data is stale
-        isStale: (queryKey: any[]) => {
-          const query = queryClient.getQueryState(queryKey)
-          if (!query) return true
-          
-          // Get the default stale time from query cache or use default
-          const defaultStaleTime = queryClient.getDefaultOptions().queries?.staleTime || 0
-          const staleTime = typeof defaultStaleTime === 'number' ? defaultStaleTime : 0
-          
-          return Date.now() - (query.dataUpdatedAt || 0) > staleTime
-        }
-      }), [queryClient])
+              return old.map((session: ClaudeSession) => (session.sessionId === sessionId ? updater(session) : session))
+            })
+          },
+
+          // Get cached session data without triggering a request
+          getCachedSession: (projectId: number, sessionId: string): ClaudeSession | undefined => {
+            const sessionsData = queryClient.getQueryData(CLAUDE_CODE_KEYS.sessions(projectId)) as ClaudeSession[]
+            return sessionsData?.find((s) => s.sessionId === sessionId)
+          },
+
+          // Check if data is stale
+          isStale: (queryKey: any[]) => {
+            const query = queryClient.getQueryState(queryKey)
+            if (!query) return true
+
+            // Get the default stale time from query cache or use default
+            const defaultStaleTime = queryClient.getDefaultOptions().queries?.staleTime || 0
+            const staleTime = typeof defaultStaleTime === 'number' ? defaultStaleTime : 0
+
+            return Date.now() - (query.dataUpdatedAt || 0) > staleTime
+          }
+        }),
+        [queryClient]
+      )
     }
   }
 }

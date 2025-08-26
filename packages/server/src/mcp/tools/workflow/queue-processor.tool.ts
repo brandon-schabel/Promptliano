@@ -85,7 +85,14 @@ export const queueProcessorTool: MCPToolDefinition = {
 
             let taskDetails = `Next task from queue:\n`
 
-            if (response && typeof response === 'object' && 'type' in response && (response as any).type === 'task' && 'item' in response && (response as any).item) {
+            if (
+              response &&
+              typeof response === 'object' &&
+              'type' in response &&
+              (response as any).type === 'task' &&
+              'item' in response &&
+              (response as any).item
+            ) {
               // Task within a ticket
               const task = (response as any).item // TicketTask
               taskDetails += `
@@ -97,7 +104,14 @@ ${task.suggestedFileIds?.length > 0 ? `Suggested Files: ${task.suggestedFileIds.
 ${task.agentId ? `Recommended Agent: ${task.agentId}` : ''}
 ${task.estimatedHours ? `Estimated Hours: ${task.estimatedHours}` : ''}
 ${task.tags?.length > 0 ? `Tags: ${task.tags.join(', ')}` : ''}`
-            } else if (response && typeof response === 'object' && 'type' in response && (response as any).type === 'ticket' && 'item' in response && (response as any).item) {
+            } else if (
+              response &&
+              typeof response === 'object' &&
+              'type' in response &&
+              (response as any).type === 'ticket' &&
+              'item' in response &&
+              (response as any).item
+            ) {
               // Entire ticket
               const ticket = (response as any).item // Ticket
               taskDetails += `
@@ -218,11 +232,9 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
             const validQueueId = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const stats = await getQueueStats(validQueueId)
 
-            const hasWork = stats.items.filter(item => item.status === 'queued').length > 0
-            const queuedItems = stats.items.filter(item => item.status === 'queued').length
-            const workload = hasWork
-              ? `${queuedItems} task${queuedItems > 1 ? 's' : ''} waiting`
-              : 'No tasks waiting'
+            const hasWork = stats.items.filter((item) => item.status === 'queued').length > 0
+            const queuedItems = stats.items.filter((item) => item.status === 'queued').length
+            const workload = hasWork ? `${queuedItems} task${queuedItems > 1 ? 's' : ''} waiting` : 'No tasks waiting'
 
             return {
               content: [
@@ -230,8 +242,8 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
                   type: 'text',
                   text: `Queue "${stats.queue.name}" status:
 ${workload}
-${stats.items.filter(item => item.status === 'in_progress').length} in progress
-${stats.items.filter(item => item.status === 'completed').length} completed
+${stats.items.filter((item) => item.status === 'in_progress').length} in progress
+${stats.items.filter((item) => item.status === 'completed').length} completed
 ${hasWork ? '\nTasks are available for processing!' : '\nQueue is empty - no tasks to process.'}`
                 }
               ]

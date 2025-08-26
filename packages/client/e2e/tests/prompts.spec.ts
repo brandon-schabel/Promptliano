@@ -1,18 +1,24 @@
 import { test, expect } from '@playwright/test'
 import { AppPage } from '../pages/app.page'
 import { PromptsPage } from '../pages/prompts.page'
+import { PromptManagementPage } from '../pages/prompt-management-page'
 import { TestDataFactory, TestDataTemplates } from '../fixtures/test-data'
+import { PromptTestDataManager } from '../utils/prompt-test-data-manager'
 import { TestAssertions, TestDataManager, MCPTestHelpers } from '../utils/test-helpers'
 
-test.describe('Prompt Management', () => {
+test.describe('Prompt Management - Basic Functionality', () => {
   let appPage: AppPage
   let promptsPage: PromptsPage
+  let promptManagementPage: PromptManagementPage
   let dataManager: TestDataManager
+  let promptDataManager: PromptTestDataManager
 
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page)
     promptsPage = new PromptsPage(page)
+    promptManagementPage = new PromptManagementPage(page)
     dataManager = new TestDataManager(page)
+    promptDataManager = await PromptTestDataManager.createForStandardTests(page, 'basic-prompts')
 
     // Navigate to prompts page and wait for app to be ready
     await promptsPage.goto()
@@ -22,30 +28,30 @@ test.describe('Prompt Management', () => {
   test.afterEach(async () => {
     // Clean up any test data created during the test
     await dataManager.cleanup()
+    await promptDataManager.cleanup()
   })
 
   test.describe('Prompt Creation', () => {
     test('should create a new prompt with complete data', async () => {
       const promptData = TestDataFactory.createPrompt({
-        name: 'Code Review Assistant',
-        content: 'Review the following code and provide constructive feedback:\n\n{{code}}\n\nFocus on:\n- Code quality\n- Performance\n- Security\n- Best practices',
+        title: 'Code Review Assistant', // Updated to use 'title' instead of 'name'
+        content:
+          'Review the following code and provide constructive feedback:\n\n{{code}}\n\nFocus on:\n- Code quality\n- Performance\n- Security\n- Best practices',
         description: 'A prompt for conducting thorough code reviews',
-        category: 'development',
-        tags: ['code', 'review', 'development']
+        tags: ['code', 'review', 'development'] // Removed category as it's not in schema
       })
 
       // Create prompt through UI
       await promptsPage.createPrompt(promptData)
 
       // Verify prompt appears in the list
-      expect(await promptsPage.promptExists(promptData.name)).toBe(true)
+      expect(await promptsPage.promptExists(promptData.title)).toBe(true) // Updated to use title
 
       // Verify prompt information is correct
-      const promptInfo = await promptsPage.getPromptInfo(promptData.name)
-      expect(promptInfo.name).toBe(promptData.name)
+      const promptInfo = await promptsPage.getPromptInfo(promptData.title) // Updated to use title
+      expect(promptInfo.title).toBe(promptData.title) // Updated field name
       expect(promptInfo.description).toBe(promptData.description)
-      expect(promptInfo.category).toBe(promptData.category)
-      
+
       // Verify tags
       for (const tag of promptData.tags!) {
         expect(promptInfo.tags).toContain(tag)
@@ -57,16 +63,16 @@ test.describe('Prompt Management', () => {
 
     test('should create prompt with minimal required data', async () => {
       const promptData = {
-        name: 'Simple Prompt',
+        title: 'Simple Prompt', // Updated to use 'title'
         content: 'This is a simple test prompt.'
       }
 
       await promptsPage.createPrompt(promptData)
 
-      expect(await promptsPage.promptExists(promptData.name)).toBe(true)
-      
-      const promptInfo = await promptsPage.getPromptInfo(promptData.name)
-      expect(promptInfo.name).toBe(promptData.name)
+      expect(await promptsPage.promptExists(promptData.title)).toBe(true) // Updated to use title
+
+      const promptInfo = await promptsPage.getPromptInfo(promptData.title) // Updated to use title
+      expect(promptInfo.title).toBe(promptData.title) // Updated field name
     })
 
     test('should show validation errors for invalid prompt data', async ({ page }) => {
@@ -79,14 +85,14 @@ test.describe('Prompt Management', () => {
 
       // Should show validation errors
       await TestAssertions.assertErrorMessage(page)
-      
+
       // Dialog should remain open
       await expect(promptsPage.promptDialog).toBeVisible()
     })
 
     test('should handle markdown content properly', async () => {
       const promptData = TestDataFactory.createPrompt({
-        name: 'Markdown Test Prompt',
+        title: 'Markdown Test Prompt', // Updated to use 'title'
         content: `# Instructions
 
 Please help with the following:
@@ -107,7 +113,7 @@ function example() {
       })
 
       await promptsPage.createPrompt(promptData)
-      expect(await promptsPage.promptExists(promptData.name)).toBe(true)
+      expect(await promptsPage.promptExists(promptData.title)).toBe(true) // Updated to use title
     })
   })
 
@@ -156,7 +162,7 @@ function example() {
       // Verify duplicate has same content but different name
       const originalInfo = await promptsPage.getPromptInfo(originalData.name)
       const duplicateInfo = await promptsPage.getPromptInfo(duplicateName)
-      
+
       expect(duplicateInfo.name).toBe(duplicateName)
       expect(duplicateInfo.description).toBe(originalInfo.description)
     })
@@ -266,7 +272,7 @@ function example() {
     test('should organize prompts from template set', async () => {
       // Create a set of categorized prompts
       const promptSet = TestDataFactory.createPromptSet()
-      
+
       for (const prompt of promptSet) {
         await dataManager.createPrompt(prompt)
       }
@@ -279,13 +285,13 @@ function example() {
       expect(promptCount).toBeGreaterThanOrEqual(promptSet.length)
 
       // Test filtering by each category
-      const categories = [...new Set(promptSet.map(p => p.category!))]
+      const categories = [...new Set(promptSet.map((p) => p.category!))]
       for (const category of categories) {
         await promptsPage.filterByCategory(category)
-        
+
         const visiblePrompts = await promptsPage.getVisiblePromptNames()
-        const expectedPrompts = promptSet.filter(p => p.category === category)
-        
+        const expectedPrompts = promptSet.filter((p) => p.category === category)
+
         for (const expectedPrompt of expectedPrompts) {
           expect(visiblePrompts).toContain(expectedPrompt.name)
         }
@@ -320,7 +326,7 @@ Please focus on:
       // Import prompt (implementation depends on actual import feature)
       try {
         await promptsPage.importPrompt(markdownContent)
-        
+
         // Verify imported prompt exists
         expect(await promptsPage.promptExists('Code Review Assistant')).toBe(true)
       } catch (error) {
@@ -338,7 +344,7 @@ Please focus on:
       try {
         // Export the prompt
         await promptsPage.exportPrompt(promptData.name)
-        
+
         // Verify export API call was made
         await TestAssertions.assertSuccessfulAPIResponse(page, /\/api\/prompts\/.*\/export/, 'GET')
       } catch (error) {
@@ -352,7 +358,7 @@ Please focus on:
     test('should integrate with MCP prompt_manager tool', async ({ page }) => {
       // Verify MCP tools are available
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('prompt_manager')) {
         // Test listing prompts via MCP
         const mcpResponse = await MCPTestHelpers.testPromptManagerTool(page, 'list')
@@ -384,7 +390,7 @@ Please focus on:
       const mcpResponse = await MCPTestHelpers.testPromptManagerTool(page, 'get', {
         name: promptData.name
       })
-      
+
       if (mcpResponse && mcpResponse.success) {
         const mcpPrompt = mcpResponse.data
         expect(mcpPrompt.name).toBe(promptData.name)
@@ -395,15 +401,15 @@ Please focus on:
 
     test('should use MCP tool for prompt templates', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
-      
+
       if (availableTools.includes('prompt_manager')) {
         // Get template prompts via MCP
         const templatesResponse = await MCPTestHelpers.testPromptManagerTool(page, 'get_templates')
-        
+
         if (templatesResponse && templatesResponse.success) {
           const templates = templatesResponse.data
           expect(Array.isArray(templates)).toBe(true)
-          
+
           if (templates.length > 0) {
             // Use first template to create a prompt
             const template = templates[0]
@@ -411,7 +417,7 @@ Please focus on:
               templateId: template.id,
               name: `Template Test - ${template.name}`
             })
-            
+
             if (createResponse.success) {
               await promptsPage.goto()
               expect(await promptsPage.promptExists(createResponse.data.name)).toBe(true)
@@ -440,7 +446,7 @@ Expected format: {{format}}`
 
       // Open prompt for editing to verify variables are preserved
       await promptsPage.openPrompt(promptWithVariables.name)
-      
+
       // Variable validation would depend on the actual editor implementation
       // For now, we just verify the prompt opens correctly
       await expect(promptsPage.promptDialog.or(promptsPage.promptEditor)).toBeVisible()
@@ -483,10 +489,10 @@ Please compare the implementations.`
   test.describe('Error Handling', () => {
     test('should handle network errors gracefully', async ({ page }) => {
       // Simulate network failure
-      await page.route('**/api/prompts', route => route.abort())
+      await page.route('**/api/prompts', (route) => route.abort())
 
       const promptData = TestDataFactory.createPrompt()
-      
+
       try {
         await promptsPage.createPrompt(promptData)
         await TestAssertions.assertErrorMessage(page, 'Failed to create prompt')
@@ -498,7 +504,7 @@ Please compare the implementations.`
 
     test('should handle duplicate prompt names', async ({ page }) => {
       // Mock duplicate name error response
-      await page.route('**/api/prompts', route => {
+      await page.route('**/api/prompts', (route) => {
         route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -513,7 +519,7 @@ Please compare the implementations.`
       })
 
       const promptData = TestDataFactory.createPrompt()
-      
+
       try {
         await promptsPage.createPrompt(promptData)
       } catch (error) {

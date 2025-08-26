@@ -42,7 +42,7 @@ mock.module('@promptliano/database', () => ({
   providerKeyRepository: mockRepository,
   providerKeys: {
     provider: { name: 'provider' }
-  }, 
+  },
   eq: mock((field: any, value: any) => ({ field, value }))
 }))
 
@@ -58,11 +58,7 @@ mock.module('@promptliano/shared/src/utils/crypto', () => ({
 
 // Import service and types after mocking
 const { createProviderKeyService } = await import('./provider-key-service')
-import type { 
-  ProviderKey, 
-  CreateProviderKey, 
-  UpdateProviderKey 
-} from '@promptliano/database'
+import type { ProviderKey, CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
 import { ErrorFactory } from '@promptliano/shared'
 
 describe('Provider Key Service Encryption', () => {
@@ -70,9 +66,9 @@ describe('Provider Key Service Encryption', () => {
 
   beforeEach(() => {
     // Reset all mocks
-    Object.values(mockRepository).forEach(mockFn => {
+    Object.values(mockRepository).forEach((mockFn) => {
       if (typeof mockFn === 'function' && 'mockReset' in mockFn) {
-        (mockFn as any).mockReset()
+        ;(mockFn as any).mockReset()
       }
     })
     mockEncryptKey.mockClear()

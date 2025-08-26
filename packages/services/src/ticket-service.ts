@@ -1,7 +1,7 @@
 /**
  * Ticket Service - Functional Factory Pattern
  * Replaces existing TicketService with repository integration and consistent patterns
- * 
+ *
  * Key improvements:
  * - Uses Drizzle repository instead of ticketStorage
  * - Consistent error handling with ErrorFactory
@@ -13,14 +13,14 @@
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository } from '@promptliano/database'
-import { 
-  type TicketStatus, 
-  type QueueStatus, 
-  type Ticket, 
-  type InsertTicket, 
-  type TicketTask, 
+import {
+  type TicketStatus,
+  type QueueStatus,
+  type Ticket,
+  type InsertTicket,
+  type TicketTask,
   type InsertTicketTask,
-  type CreateTicket as CreateTicketBody, 
+  type CreateTicket as CreateTicketBody,
   type UpdateTicket as UpdateTicketBody,
   type CreateTask as CreateTaskBody,
   type UpdateTask as UpdateTaskBody,
@@ -46,7 +46,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
   const {
     ticketRepository: repo = ticketRepository,
     taskRepository: taskRepo = taskRepository,
-    logger = createServiceLogger('TicketService'),
+    logger = createServiceLogger('TicketService')
   } = deps
 
   // Base CRUD operations for tickets
@@ -66,11 +66,11 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const tickets = await repo.getByProject(projectId)
-          
+
           if (statusFilter) {
-            return tickets.filter(ticket => ticket.status === statusFilter)
+            return tickets.filter((ticket) => ticket.status === statusFilter)
           }
-          
+
           return tickets.sort((a, b) => b.createdAt - a.createdAt)
         },
         { entity: 'Ticket', action: 'getByProject' }
@@ -85,7 +85,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
         async () => {
           const ticket = await baseService.getById(ticketId)
           const tasks = await taskRepo.getByTicket(ticketId)
-          
+
           return {
             ...ticket,
             tasks: tasks.sort((a, b) => a.orderIndex - b.orderIndex)
@@ -105,9 +105,9 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
         async () => {
           // Create the ticket first
           const ticket = await baseService.create(data)
-          
+
           let tasks: TicketTask[] = []
-          
+
           // Generate tasks if requested and AI service is available
           if (data.generateTasks && deps.aiService) {
             try {
@@ -116,7 +116,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
                 overview: ticket.overview,
                 projectId: ticket.projectId
               })
-              
+
               // Create tasks from suggestions
               tasks = await Promise.all(
                 suggestions.tasks.map((taskSuggestion: any, index: number) =>
@@ -138,14 +138,14 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
                   })
                 )
               )
-              
+
               logger.info(`Generated ${tasks.length} tasks for ticket`, { ticketId: ticket.id })
             } catch (error) {
               // Log error but don't fail the ticket creation
               logger.warn('Failed to generate tasks', { ticketId: ticket.id, error })
             }
           }
-          
+
           return { ticket, tasks }
         },
         { entity: 'Ticket', action: 'createWithTasks' }
@@ -159,21 +159,17 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const ticket = await baseService.getById(ticketId)
-          
+
           // Validation: can't close ticket if there are incomplete tasks
           if (status === 'closed') {
             const tasks = await taskRepo.getByTicket(ticketId)
-            const incompleteTasks = tasks.filter(task => !task.done)
-            
+            const incompleteTasks = tasks.filter((task) => !task.done)
+
             if (incompleteTasks.length > 0) {
-              throw ErrorFactory.invalidState(
-                'Ticket',
-                `has ${incompleteTasks.length} incomplete tasks`,
-                'close'
-              )
+              throw ErrorFactory.invalidState('Ticket', `has ${incompleteTasks.length} incomplete tasks`, 'close')
             }
           }
-          
+
           return await baseService.update(ticketId, { status })
         },
         { entity: 'Ticket', action: 'updateStatus', id: ticketId }
@@ -188,22 +184,18 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
     ): Promise<{ successful: number; failed: number; errors: any[] }> {
       return withErrorContext(
         async () => {
-          const results = await Promise.allSettled(
-            updates.map(({ id, status }) => extensions.updateStatus(id, status))
-          )
-          
-          const successful = results.filter(r => r.status === 'fulfilled').length
+          const results = await Promise.allSettled(updates.map(({ id, status }) => extensions.updateStatus(id, status)))
+
+          const successful = results.filter((r) => r.status === 'fulfilled').length
           const failed = results.length - successful
-          const errors = results
-            .filter(r => r.status === 'rejected')
-            .map(r => r.reason)
-          
-          logger.info('Bulk status update completed', { 
-            total: updates.length, 
-            successful, 
-            failed 
+          const errors = results.filter((r) => r.status === 'rejected').map((r) => r.reason)
+
+          logger.info('Bulk status update completed', {
+            total: updates.length,
+            successful,
+            failed
           })
-          
+
           return { successful, failed, errors }
         },
         { entity: 'Ticket', action: 'bulkUpdateStatus' }
@@ -217,21 +209,18 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const tickets = await repo.getByProject(projectId)
-          
+
           return await Promise.all(
             tickets.map(async (ticket: Ticket) => {
               const tasks = await taskRepo.getByTicket(ticket.id)
-              const completedTasks = tasks.filter(task => task.done)
-              
+              const completedTasks = tasks.filter((task) => task.done)
+
               return {
                 ...ticket,
                 taskCount: tasks.length,
                 completedTasks: completedTasks.length,
                 progress: tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0,
-                lastActivity: Math.max(
-                  ticket.updatedAt,
-                  ...tasks.map(task => task.updatedAt)
-                )
+                lastActivity: Math.max(ticket.updatedAt, ...tasks.map((task) => task.updatedAt))
               }
             })
           )
@@ -250,18 +239,18 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
           if (!options.projectId) {
             throw ErrorFactory.invalidParam('projectId', 'valid project ID', 'undefined')
           }
-          
+
           const tickets = await repo.getByProject(options.projectId)
-          
+
           const lowercaseQuery = query.toLowerCase()
-          
-          return tickets.filter(ticket => {
-            const matchesQuery = 
+
+          return tickets.filter((ticket) => {
+            const matchesQuery =
               ticket.title.toLowerCase().includes(lowercaseQuery) ||
               (ticket.overview && ticket.overview.toLowerCase().includes(lowercaseQuery))
-            
+
             const matchesStatus = !options.status || ticket.status === options.status
-            
+
             return matchesQuery && matchesStatus
           })
         },
@@ -276,17 +265,16 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const tickets = await repo.getByProject(projectId)
-          const oldClosedTickets = tickets.filter(ticket => 
-            ticket.status === 'closed' && 
-            ticket.updatedAt < beforeDate
+          const oldClosedTickets = tickets.filter(
+            (ticket) => ticket.status === 'closed' && ticket.updatedAt < beforeDate
           )
-          
+
           let archivedCount = 0
           for (const ticket of oldClosedTickets) {
             await baseService.update(ticket.id, { status: 'closed' }) // Note: 'archived' is not a valid TicketStatus, using 'closed'
             archivedCount++
           }
-          
+
           logger.info(`Archived ${archivedCount} old tickets`)
           return archivedCount
         },
@@ -302,10 +290,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
  * Create Task Service (embedded within ticket service)
  */
 export function createTaskService(deps: TicketServiceDeps = {}) {
-  const {
-    taskRepository: taskRepo = taskRepository,
-    logger = createServiceLogger('TaskService'),
-  } = deps
+  const { taskRepository: taskRepo = taskRepository, logger = createServiceLogger('TaskService') } = deps
 
   // Use repository methods directly for tasks since types are incompatible
   const baseTaskService = {
@@ -317,17 +302,17 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
         updatedAt: now
       })
     },
-    
+
     async getById(id: number): Promise<TicketTask | null> {
       const task = await taskRepo.getById(id)
       if (!task) throw ErrorFactory.notFound('Task', id)
       return task
     },
-    
+
     async update(id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
       return taskRepo.update(id, data)
     },
-    
+
     async delete(id: number): Promise<boolean> {
       return taskRepo.delete(id)
     }
@@ -354,7 +339,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const tasks = await this.getByTicket(ticketId)
-          
+
           // Update positions based on new order
           const updates = await Promise.all(
             taskIds.map((taskId, index) => {
@@ -365,7 +350,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
               return baseTaskService.update(taskId, { orderIndex: index })
             })
           )
-          
+
           logger.info('Reordered tasks', { ticketId, count: updates.length })
           return updates
         },
@@ -379,14 +364,14 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
     async complete(taskId: number): Promise<{ task: TicketTask; ticketCompleted: boolean }> {
       return withErrorContext(
         async () => {
-          const task = await baseTaskService.update(taskId, { 
+          const task = await baseTaskService.update(taskId, {
             done: true
           })
-          
+
           // Check if all tasks in the ticket are now completed
           const allTasks = await this.getByTicket(task.ticketId)
-          const incompleteTasks = allTasks.filter(t => !t.done)
-          
+          const incompleteTasks = allTasks.filter((t) => !t.done)
+
           let ticketCompleted = false
           if (incompleteTasks.length === 0) {
             // Auto-complete the ticket if all tasks are done
@@ -396,7 +381,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
               logger.info('Auto-completed ticket', { ticketId: task.ticketId })
             }
           }
-          
+
           return { task, ticketCompleted }
         },
         { entity: 'Task', action: 'complete', id: taskId }
@@ -524,7 +509,7 @@ export const batchDeleteTickets = async (ticketIds: number[]) => {
 export async function getTicketsWithFiles(projectId: number) {
   const tickets = await getTicketsByProject(projectId)
   // TODO: Implement proper file association
-  return tickets.map(ticket => ({
+  return tickets.map((ticket) => ({
     ...ticket,
     files: [] // Placeholder for associated files
   }))

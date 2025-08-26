@@ -12,14 +12,16 @@ import { createEntitySchemas, createResponseSchemas } from './schema-factories'
 import type { Project as DatabaseProject } from '@promptliano/database'
 
 // Recreate schema locally to avoid runtime imports from database package
-export const ProjectSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string().nullable(),
-  path: z.string(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('Project')
+export const ProjectSchema = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+    path: z.string(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('Project')
 
 // Type verification to ensure schema matches database type
 const _projectTypeCheck: z.infer<typeof ProjectSchema> = {} as DatabaseProject
@@ -87,18 +89,19 @@ export const CreateProjectBodySchema = ProjectSchema.pick({
   name: true,
   path: true,
   description: true
-}).extend({
-  name: z.string().min(1).openapi({ example: 'My Awesome Project' }),
-  path: z.string().min(1).openapi({ example: '/path/to/project' }),
-  description: z.string().optional().openapi({ example: 'Optional project description' })
-}).openapi('CreateProjectRequestBody')
+})
+  .extend({
+    name: z.string().min(1).openapi({ example: 'My Awesome Project' }),
+    path: z.string().min(1).openapi({ example: '/path/to/project' }),
+    description: z.string().optional().openapi({ example: 'Optional project description' })
+  })
+  .openapi('CreateProjectRequestBody')
 
-export const UpdateProjectBodySchema = CreateProjectBodySchema.partial().refine(
-  (data) => data.name || data.path || data.description, 
-  {
+export const UpdateProjectBodySchema = CreateProjectBodySchema.partial()
+  .refine((data) => data.name || data.path || data.description, {
     message: 'At least one field (name, path, description) must be provided for update'
-  }
-).openapi('UpdateProjectRequestBody')
+  })
+  .openapi('UpdateProjectRequestBody')
 
 export const SummarizeFilesBodySchema = z
   .object({
@@ -128,12 +131,14 @@ export const SuggestFilesResponseSchema = z
   .object({
     success: z.literal(true),
     data: z.object({
-      suggestedFiles: z.array(z.object({
-        path: z.string(),
-        relevance: z.number().min(0).max(1),
-        reason: z.string(),
-        fileType: z.string()
-      })),
+      suggestedFiles: z.array(
+        z.object({
+          path: z.string(),
+          relevance: z.number().min(0).max(1),
+          reason: z.string(),
+          fileType: z.string()
+        })
+      ),
       totalFiles: z.number(),
       processingTime: z.number()
     })

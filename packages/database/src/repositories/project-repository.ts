@@ -10,11 +10,7 @@ import { db } from '../db'
 import { projects, type Project, type InsertProject, selectProjectSchema } from '../schema'
 
 // Create base project repository with full CRUD operations
-const baseProjectRepository = createBaseRepository(
-  projects,
-  selectProjectSchema,
-  'Project'
-)
+const baseProjectRepository = createBaseRepository(projects, selectProjectSchema, 'Project')
 
 // Extend with domain-specific methods
 export const projectRepository = extendRepository(baseProjectRepository, {

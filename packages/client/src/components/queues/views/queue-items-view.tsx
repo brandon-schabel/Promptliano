@@ -48,13 +48,13 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
   const { data: queues } = useQueues({ projectId })
   const { data: flowData, isLoading } = useGetFlowData(projectId)
   const { data: ticketsWithTasks } = useTickets({ projectId })
-  
+
   // Extract queue items from flow data
   const items: QueueItem[] = useMemo(() => {
     if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
     const queueData = flowData.queues[selectedQueueId]
     const queueItems: QueueItem[] = []
-    
+
     // Add tickets as queue items
     queueData.tickets?.forEach((ticket, index) => {
       queueItems.push({
@@ -68,7 +68,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         createdAt: ticket.createdAt
       })
     })
-    
+
     // Add tasks as queue items
     queueData.tasks?.forEach((task, index) => {
       queueItems.push({
@@ -82,7 +82,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
         createdAt: task.createdAt
       })
     })
-    
+
     return queueItems
   }, [flowData, selectedQueueId])
 
@@ -107,7 +107,7 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
 
   // Get task details for an item
   const getTaskDetails = (item: QueueItem): { ticket: any; task: TicketTask | null } | null => {
-    if (item.itemType !== 'ticket' && item.itemType !== 'task' || !ticketsWithTasks) return null
+    if ((item.itemType !== 'ticket' && item.itemType !== 'task') || !ticketsWithTasks) return null
     if (item.itemType === 'ticket') {
       const ticket = ticketsWithTasks.find((t: any) => t.id === item.itemId)
       return ticket ? { ticket, task: null } : null
@@ -170,8 +170,8 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
               </div>
             )
           },
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'custom',
@@ -183,7 +183,9 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
             const details = getTaskDetails(item)
             if (!details) {
               return (
-                <div className='text-muted-foreground'>{item.itemType} #{item.itemId}</div>
+                <div className='text-muted-foreground'>
+                  {item.itemType} #{item.itemId}
+                </div>
               )
             }
 
@@ -197,17 +199,19 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
                   <FileText className='h-3 w-3' />
                   <span className='truncate max-w-[300px]'>{details.task?.content || 'Task not found'}</span>
                 </div>
-                {details.task?.suggestedFileIds && Array.isArray(details.task.suggestedFileIds) && details.task.suggestedFileIds.length > 0 && (
-                  <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                    <FileIcon className='h-3 w-3' />
-                    <span>{details.task.suggestedFileIds.length} suggested files</span>
-                  </div>
-                )}
+                {details.task?.suggestedFileIds &&
+                  Array.isArray(details.task.suggestedFileIds) &&
+                  details.task.suggestedFileIds.length > 0 && (
+                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                      <FileIcon className='h-3 w-3' />
+                      <span>{details.task.suggestedFileIds.length} suggested files</span>
+                    </div>
+                  )}
               </div>
             )
           },
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'custom',
@@ -222,8 +226,8 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
               </Badge>
             )
           },
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'custom',
@@ -242,8 +246,8 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
               </div>
             )
           },
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       },
       {
         type: 'custom',
@@ -273,8 +277,8 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
             }
             return <span>-</span>
           },
-          enableSorting: true,
-                  }
+          enableSorting: true
+        }
       }
     ],
     actions: {

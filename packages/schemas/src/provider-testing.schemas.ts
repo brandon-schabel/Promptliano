@@ -6,13 +6,7 @@
 import { z } from 'zod'
 
 // Provider status enum
-export const ProviderStatusEnum = z.enum([
-  'active',
-  'inactive',
-  'error',
-  'testing',
-  'degraded'
-])
+export const ProviderStatusEnum = z.enum(['active', 'inactive', 'error', 'testing', 'degraded'])
 
 // Provider health status enum
 export const ProviderHealthStatusEnum = z.enum([

@@ -12,7 +12,7 @@ import { extname, basename } from 'path'
  */
 export function getFileExtension(filePath: string): string {
   if (!filePath) return ''
-  
+
   const ext = extname(filePath)
   return ext.startsWith('.') ? ext.slice(1) : ext
 }
@@ -24,7 +24,7 @@ export function getFileExtension(filePath: string): string {
  */
 export function getFileNameWithoutExtension(filePath: string): string {
   if (!filePath) return ''
-  
+
   const name = basename(filePath)
   const ext = extname(filePath)
   return ext ? name.slice(0, -ext.length) : name
@@ -38,7 +38,7 @@ export function getFileNameWithoutExtension(filePath: string): string {
  */
 export function isFileType(filePath: string, extensions: string[]): boolean {
   const ext = getFileExtension(filePath).toLowerCase()
-  return extensions.map(e => e.toLowerCase()).includes(ext)
+  return extensions.map((e) => e.toLowerCase()).includes(ext)
 }
 
 /**
@@ -48,9 +48,32 @@ export function isFileType(filePath: string, extensions: string[]): boolean {
  */
 export function isCodeFile(filePath: string): boolean {
   const codeExtensions = [
-    'ts', 'tsx', 'js', 'jsx', 'py', 'java', 'c', 'cpp', 'h', 'hpp',
-    'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'clj',
-    'hs', 'ml', 'fs', 'elm', 'dart', 'vue', 'svelte'
+    'ts',
+    'tsx',
+    'js',
+    'jsx',
+    'py',
+    'java',
+    'c',
+    'cpp',
+    'h',
+    'hpp',
+    'cs',
+    'php',
+    'rb',
+    'go',
+    'rs',
+    'swift',
+    'kt',
+    'scala',
+    'clj',
+    'hs',
+    'ml',
+    'fs',
+    'elm',
+    'dart',
+    'vue',
+    'svelte'
   ]
   return isFileType(filePath, codeExtensions)
 }
@@ -63,14 +86,29 @@ export function isCodeFile(filePath: string): boolean {
 export function isConfigFile(filePath: string): boolean {
   const configExtensions = ['json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf']
   const configFilenames = [
-    'package.json', 'tsconfig.json', 'webpack.config.js', 'vite.config.js',
-    'tailwind.config.js', 'next.config.js', 'nuxt.config.js', 'dockerfile',
-    '.env', '.env.local', '.env.development', '.env.production', '.gitignore',
-    '.gitattributes', 'readme.md', 'license', 'changelog.md'
+    'package.json',
+    'tsconfig.json',
+    'webpack.config.js',
+    'vite.config.js',
+    'tailwind.config.js',
+    'next.config.js',
+    'nuxt.config.js',
+    'dockerfile',
+    '.env',
+    '.env.local',
+    '.env.development',
+    '.env.production',
+    '.gitignore',
+    '.gitattributes',
+    'readme.md',
+    'license',
+    'changelog.md'
   ]
-  
-  return isFileType(filePath, configExtensions) || 
-         configFilenames.some(name => basename(filePath).toLowerCase() === name.toLowerCase())
+
+  return (
+    isFileType(filePath, configExtensions) ||
+    configFilenames.some((name) => basename(filePath).toLowerCase() === name.toLowerCase())
+  )
 }
 
 /**
@@ -102,7 +140,9 @@ export function nullToUndefined<T>(value: T | null | undefined): T | undefined {
  * @param obj - Object from database with potentially null fields
  * @returns Object with null values converted to undefined
  */
-export function convertNullsToUndefined<T extends Record<string, any>>(obj: T): {
+export function convertNullsToUndefined<T extends Record<string, any>>(
+  obj: T
+): {
   [K in keyof T]: T[K] extends null ? undefined : T[K] extends null | infer U ? U | undefined : T[K]
 } {
   const result = {} as any
@@ -145,7 +185,7 @@ export function updateTimestamp<T extends Record<string, any>>(data: T): T & { u
  */
 export function jsonToStringArray(value: any): string[] {
   if (!value || value === null) return []
-  if (Array.isArray(value)) return value.filter(item => typeof item === 'string')
+  if (Array.isArray(value)) return value.filter((item) => typeof item === 'string')
   return []
 }
 
@@ -157,8 +197,9 @@ export function jsonToStringArray(value: any): string[] {
 export function jsonToNumberArray(value: any): number[] {
   if (!value || value === null) return []
   if (Array.isArray(value)) {
-    return value.filter(item => typeof item === 'number' || !isNaN(Number(item)))
-                .map(item => typeof item === 'number' ? item : Number(item))
+    return value
+      .filter((item) => typeof item === 'number' || !isNaN(Number(item)))
+      .map((item) => (typeof item === 'number' ? item : Number(item)))
   }
   return []
 }

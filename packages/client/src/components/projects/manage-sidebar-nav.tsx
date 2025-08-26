@@ -60,9 +60,9 @@ export function ManageSidebarNav({ activeView, onViewChange, className }: Manage
   return (
     <div className={className}>
       <SectionedSidebarNav
-        sections={sections.map(section => ({
+        sections={sections.map((section) => ({
           ...section,
-          items: section.items.map(item => ({
+          items: section.items.map((item) => ({
             ...item,
             label: item.title
           }))

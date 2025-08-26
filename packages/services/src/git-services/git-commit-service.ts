@@ -328,10 +328,7 @@ export class GitCommitService extends BaseGitService {
   /**
    * Get enhanced commit log
    */
-  async getCommitLogEnhanced(
-    projectId: number,
-    request: GitLogEnhancedRequest
-  ): Promise<GitLogEnhancedResponse> {
+  async getCommitLogEnhanced(projectId: number, request: GitLogEnhancedRequest): Promise<GitLogEnhancedResponse> {
     try {
       const { git } = await this.getGitInstance(projectId)
 
@@ -484,10 +481,7 @@ export class GitCommitService extends BaseGitService {
     try {
       const { git } = await this.getGitInstance(projectId)
 
-      const commitFormat = [
-        '%H', '%h', '%s', '%b', '%an', '%ae', '%aI',
-        '%cn', '%ce', '%cI', '%P', '%D'
-      ].join('%n')
+      const commitFormat = ['%H', '%h', '%s', '%b', '%an', '%ae', '%aI', '%cn', '%ce', '%cI', '%P', '%D'].join('%n')
 
       const showResult = await git.show([commitHash, `--format=${commitFormat}`, '--no-patch'])
       const lines = showResult.split('\n')
@@ -500,9 +494,14 @@ export class GitCommitService extends BaseGitService {
       const metadataLines = bodyAndRest.slice(bodyEndIndex + 1)
 
       const [
-        authorName = '', authorEmail = '', authorDate = '',
-        committerName = '', committerEmail = '', committerDate = '',
-        parents = '', refs = ''
+        authorName = '',
+        authorEmail = '',
+        authorDate = '',
+        committerName = '',
+        committerEmail = '',
+        committerDate = '',
+        parents = '',
+        refs = ''
       ] = metadataLines
 
       const numstatResult = await git.raw(['show', '--numstat', '--format=', commitHash])

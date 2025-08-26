@@ -1,7 +1,7 @@
 /**
  * MCP Service Tests - Functional Factory Pattern
  * Tests the modernized MCP service with repository-based operations
- * 
+ *
  * Key testing areas:
  * - CRUD operations with repository patterns
  * - Error handling with ErrorFactory
@@ -11,13 +11,8 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
-import type { 
-  McpServerConfig, 
-  InsertMcpServerConfig
-} from '@promptliano/database'
-import type {
-  MCPToolExecutionRequest
-} from '@promptliano/schemas'
+import type { McpServerConfig, InsertMcpServerConfig } from '@promptliano/database'
+import type { MCPToolExecutionRequest } from '@promptliano/schemas'
 import { ErrorFactory } from '@promptliano/shared'
 import { ZodError } from 'zod'
 
@@ -82,7 +77,7 @@ const mockMCPServerRepository = {
     mockMCPConfigs[config.id] = config
     return config
   }),
-  
+
   getById: mock(async (id: number): Promise<McpServerConfig> => {
     const config = mockMCPConfigs[id]
     if (!config) {
@@ -90,7 +85,7 @@ const mockMCPServerRepository = {
     }
     return config
   }),
-  
+
   update: mock(async (id: number, data: Partial<InsertMcpServerConfig>): Promise<McpServerConfig> => {
     const existing = mockMCPConfigs[id]
     if (!existing) {
@@ -100,7 +95,7 @@ const mockMCPServerRepository = {
     mockMCPConfigs[id] = updated
     return updated
   }),
-  
+
   delete: mock(async (id: number): Promise<boolean> => {
     if (!mockMCPConfigs[id]) {
       throw ErrorFactory.notFound(`MCP server config with ID ${id} not found`)
@@ -108,23 +103,21 @@ const mockMCPServerRepository = {
     delete mockMCPConfigs[id]
     return true
   }),
-  
+
   getByProject: mock(async (projectId: number): Promise<McpServerConfig[]> => {
-    return Object.values(mockMCPConfigs).filter(config => config.projectId === projectId)
+    return Object.values(mockMCPConfigs).filter((config) => config.projectId === projectId)
   }),
-  
+
   getEnabledByProject: mock(async (projectId: number): Promise<McpServerConfig[]> => {
-    return Object.values(mockMCPConfigs).filter(
-      config => config.projectId === projectId && config.enabled
-    )
+    return Object.values(mockMCPConfigs).filter((config) => config.projectId === projectId && config.enabled)
   }),
-  
+
   getAutoStartByProject: mock(async (projectId: number): Promise<McpServerConfig[]> => {
     return Object.values(mockMCPConfigs).filter(
-      config => config.projectId === projectId && config.enabled && config.autoStart
+      (config) => config.projectId === projectId && config.enabled && config.autoStart
     )
   }),
-  
+
   updateState: mock(async (serverId: number, state: any): Promise<McpServerConfig> => {
     const config = mockMCPConfigs[serverId]
     if (!config) {
@@ -134,10 +127,10 @@ const mockMCPServerRepository = {
     mockMCPConfigs[serverId] = updated
     return updated
   }),
-  
+
   deleteByProject: mock(async (projectId: number): Promise<number> => {
-    const toDelete = Object.values(mockMCPConfigs).filter(config => config.projectId === projectId)
-    toDelete.forEach(config => delete mockMCPConfigs[config.id])
+    const toDelete = Object.values(mockMCPConfigs).filter((config) => config.projectId === projectId)
+    toDelete.forEach((config) => delete mockMCPConfigs[config.id])
     return toDelete.length
   })
 }
@@ -170,7 +163,7 @@ mock.module('./mcp-service', () => {
         projectService = mockProjectService,
         clientManager = mockMCPClientManager
       } = deps
-      
+
       return {
         // Core CRUD operations
         async createForProject(projectId: number, data: any) {
@@ -190,20 +183,20 @@ mock.module('./mcp-service', () => {
           }
           return config
         },
-        
+
         async getConfigById(id: number) {
           return await repository.getById(id)
         },
-        
+
         async listForProject(projectId: number) {
           await projectService.getById(projectId)
           return await repository.getByProject(projectId)
         },
-        
+
         async updateConfig(id: number, data: any) {
           const existing = await repository.getById(id)
           const updated = await repository.update(id, { ...data, updatedAt: Date.now() })
-          
+
           if (existing.enabled && !updated.enabled) {
             await clientManager.stopServer(id)
           } else if (!existing.enabled && updated.enabled && updated.autoStart) {
@@ -211,15 +204,15 @@ mock.module('./mcp-service', () => {
           } else if (existing.enabled && updated.enabled) {
             await clientManager.restartServer(updated)
           }
-          
+
           return updated
         },
-        
+
         async deleteConfig(id: number) {
           await clientManager.stopServer(id)
           return await repository.delete(id)
         },
-        
+
         // Server lifecycle
         async startServer(id: number) {
           const config = await repository.getById(id)
@@ -229,44 +222,40 @@ mock.module('./mcp-service', () => {
           await clientManager.startServer(config)
           return await clientManager.getServerState(id)
         },
-        
+
         async stopServer(id: number) {
           await clientManager.stopServer(id)
           return await clientManager.getServerState(id)
         },
-        
+
         async getServerState(id: number) {
           return await clientManager.getServerState(id)
         },
-        
+
         // Tools and resources
         async listTools(projectId: number) {
           await projectService.getById(projectId)
           return await clientManager.listAllTools(projectId)
         },
-        
+
         async executeTool(projectId: number, request: any) {
           await projectService.getById(projectId)
-          
+
           // Basic validation
           if (!request.toolId) {
             throw new (require('zod').ZodError)([])
           }
-          
+
           const config = await repository.getById(request.serverId)
           if (config.projectId !== projectId) {
             throw new Error('MCP server does not belong to this project')
           }
-          
+
           const executionId = `exec_${Date.now()}`
           const startedAt = Date.now()
-          
+
           try {
-            const result = await clientManager.executeTool(
-              request.serverId,
-              request.toolId,
-              request.parameters
-            )
+            const result = await clientManager.executeTool(request.serverId, request.toolId, request.parameters)
             return {
               id: executionId,
               toolId: request.toolId,
@@ -290,12 +279,12 @@ mock.module('./mcp-service', () => {
             }
           }
         },
-        
+
         async listResources(projectId: number) {
           await projectService.getById(projectId)
           return await clientManager.listAllResources(projectId)
         },
-        
+
         async readResource(projectId: number, serverId: number, uri: string) {
           await projectService.getById(projectId)
           const config = await repository.getById(serverId)
@@ -304,13 +293,13 @@ mock.module('./mcp-service', () => {
           }
           return await clientManager.readResource(serverId, uri)
         },
-        
+
         // Project management
         async autoStartProjectServers(projectId: number) {
           const configs = await repository.getAutoStartByProject(projectId)
           await clientManager.autoStartProjectServers(configs)
         },
-        
+
         async cleanupProjectServers(projectId: number) {
           const configs = await repository.getByProject(projectId)
           for (const config of configs) {
@@ -322,12 +311,12 @@ mock.module('./mcp-service', () => {
           }
           await repository.deleteByProject(projectId)
         },
-        
+
         async getEnabledForProject(projectId: number) {
           await projectService.getById(projectId)
           return await repository.getEnabledByProject(projectId)
         },
-        
+
         getClientManager() {
           return clientManager
         }
@@ -347,13 +336,13 @@ describe('MCP Service - Repository-Based Operations', () => {
     mockMCPConfigs = {}
     nextId = 1
     mockProjectExists = true
-    
+
     // Reset all mocks
-    Object.values(mockMCPServerRepository).forEach(mock => mock.mockClear())
-    Object.values(mockMCPClientManager).forEach(mock => mock.mockClear())
+    Object.values(mockMCPServerRepository).forEach((mock) => mock.mockClear())
+    Object.values(mockMCPClientManager).forEach((mock) => mock.mockClear())
     mockProjectService.getById.mockClear()
-    Object.values(mockLogger).forEach(mock => mock.mockClear())
-    
+    Object.values(mockLogger).forEach((mock) => mock.mockClear())
+
     // Create service instance with mocked dependencies
     mcpService = createMCPService({
       repository: mockMCPServerRepository as any,
@@ -379,7 +368,7 @@ describe('MCP Service - Repository-Based Operations', () => {
 
       // Verify project validation was called
       expect(mockProjectService.getById).toHaveBeenCalledWith(projectId)
-      
+
       // Verify repository create was called with correct data
       expect(mockMCPServerRepository.create).toHaveBeenCalledWith({
         ...configData,
@@ -387,7 +376,7 @@ describe('MCP Service - Repository-Based Operations', () => {
         createdAt: expect.any(Number),
         updatedAt: expect.any(Number)
       })
-      
+
       expect(result.id).toBeDefined()
       expect(result.projectId).toBe(projectId)
       expect(result.name).toBe(configData.name)
@@ -412,22 +401,22 @@ describe('MCP Service - Repository-Based Operations', () => {
       mockProjectExists = false
       const projectId = 999
 
-      await expect(
-        mcpService.createForProject(projectId, { name: 'Test', command: 'test' })
-      ).rejects.toThrow('Project with ID 999 not found')
+      await expect(mcpService.createForProject(projectId, { name: 'Test', command: 'test' })).rejects.toThrow(
+        'Project with ID 999 not found'
+      )
 
       expect(mockProjectService.getById).toHaveBeenCalledWith(projectId)
     })
 
     test('listForProject returns project-scoped configs', async () => {
       const projectId = 1
-      
+
       // Create test data
       const expectedConfigs = [
         { id: 1, projectId, name: 'Server 1', command: 'test1' },
         { id: 2, projectId, name: 'Server 2', command: 'test2' }
       ]
-      
+
       mockMCPServerRepository.getByProject.mockResolvedValueOnce(expectedConfigs as any)
 
       const result = await mcpService.listForProject(projectId)
@@ -448,7 +437,7 @@ describe('MCP Service - Repository-Based Operations', () => {
 
       // Mock the existing config lookup
       mockMCPServerRepository.getById.mockResolvedValueOnce(config)
-      
+
       // Update to disable
       await mcpService.updateConfig(config.id, { enabled: false })
 
@@ -475,10 +464,8 @@ describe('MCP Service - Repository-Based Operations', () => {
 
     test('getEnabledForProject filters correctly', async () => {
       const projectId = 1
-      const expectedConfigs = [
-        { id: 1, projectId, name: 'Enabled Server', enabled: true }
-      ]
-      
+      const expectedConfigs = [{ id: 1, projectId, name: 'Enabled Server', enabled: true }]
+
       mockMCPServerRepository.getEnabledByProject.mockResolvedValueOnce(expectedConfigs as any)
 
       const result = await mcpService.getEnabledForProject(projectId)
@@ -493,7 +480,7 @@ describe('MCP Service - Repository-Based Operations', () => {
     test('executeTool validates server belongs to project', async () => {
       const projectId = 1
       const serverId = 1
-      
+
       // Create server config for validation
       const serverConfig = await mockMCPServerRepository.create({
         projectId,
@@ -514,18 +501,14 @@ describe('MCP Service - Repository-Based Operations', () => {
 
       expect(mockProjectService.getById).toHaveBeenCalledWith(projectId)
       expect(mockMCPServerRepository.getById).toHaveBeenCalledWith(serverId)
-      expect(mockMCPClientManager.executeTool).toHaveBeenCalledWith(
-        serverId,
-        request.toolId,
-        request.parameters
-      )
+      expect(mockMCPClientManager.executeTool).toHaveBeenCalledWith(serverId, request.toolId, request.parameters)
       expect(result.status).toBe('success')
     })
 
     test('executeTool rejects server from different project', async () => {
       const projectId = 1
       const serverId = 1
-      
+
       // Create server config for different project
       const serverConfig = await mockMCPServerRepository.create({
         projectId: 2, // Different project
@@ -554,7 +537,7 @@ describe('MCP Service - Repository-Based Operations', () => {
         { id: 1, name: 'Server 1', projectId },
         { id: 2, name: 'Server 2', projectId }
       ]
-      
+
       mockMCPServerRepository.getByProject.mockResolvedValueOnce(serverConfigs as any)
 
       await mcpService.cleanupProjectServers(projectId)
@@ -568,7 +551,7 @@ describe('MCP Service - Repository-Based Operations', () => {
     test('cleanupProjectServers handles stop failures gracefully', async () => {
       const projectId = 1
       const serverConfigs = [{ id: 1, name: 'Server 1', projectId }]
-      
+
       mockMCPServerRepository.getByProject.mockResolvedValueOnce(serverConfigs as any)
       mockMCPClientManager.stopServer.mockRejectedValueOnce(new Error('Stop failed'))
 
@@ -580,10 +563,8 @@ describe('MCP Service - Repository-Based Operations', () => {
 
     test('autoStartProjectServers uses repository filter', async () => {
       const projectId = 1
-      const autoStartConfigs = [
-        { id: 1, name: 'Server 1', autoStart: true, enabled: true }
-      ]
-      
+      const autoStartConfigs = [{ id: 1, name: 'Server 1', autoStart: true, enabled: true }]
+
       mockMCPServerRepository.getAutoStartByProject.mockResolvedValueOnce(autoStartConfigs as any)
 
       await mcpService.autoStartProjectServers(projectId)
@@ -595,9 +576,7 @@ describe('MCP Service - Repository-Based Operations', () => {
 
   describe('Error Handling and Validation', () => {
     test('handles repository errors properly', async () => {
-      mockMCPServerRepository.getById.mockRejectedValueOnce(
-        ErrorFactory.notFound('Server not found')
-      )
+      mockMCPServerRepository.getById.mockRejectedValueOnce(ErrorFactory.notFound('Server not found'))
 
       await expect(mcpService.getConfigById(999)).rejects.toThrow('Server not found')
     })
@@ -610,9 +589,7 @@ describe('MCP Service - Repository-Based Operations', () => {
         parameters: {}
       }
 
-      await expect(
-        mcpService.executeTool(projectId, invalidRequest as any)
-      ).rejects.toThrow() // Just check it throws an error, don't check the type
+      await expect(mcpService.executeTool(projectId, invalidRequest as any)).rejects.toThrow() // Just check it throws an error, don't check the type
     })
 
     test('handles client manager startup errors in createForProject', async () => {
@@ -645,10 +622,10 @@ describe('MCP Service - Repository-Based Operations', () => {
 
     test('accepts dependency injection', () => {
       const customLogger = { info: mock(), warn: mock(), error: mock(), debug: mock() }
-      const customService = createMCPService({ 
-        logger: customLogger as any 
+      const customService = createMCPService({
+        logger: customLogger as any
       })
-      
+
       expect(typeof customService.createForProject).toBe('function')
       // Custom logger should be used (though we can't easily test this without implementation changes)
     })

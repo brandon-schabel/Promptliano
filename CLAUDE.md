@@ -30,6 +30,7 @@ UI Components (React + shadcn/ui)
 ```
 
 ### ⚡ Key Benefits Achieved
+
 - **64,000+ lines eliminated** from codebase
 - **10-15x development velocity** increase
 - **100% type safety** from database to UI
@@ -41,21 +42,21 @@ UI Components (React + shadcn/ui)
 
 **RULE: Every task needs an agent. No exceptions.**
 
-| Working On | Agent | Why |
-|------------|-------|-----|
-| **Planning** | `promptliano-planning-architect` | Creates tickets with agent assignments |
-| **Database** | `drizzle-migration-architect` | Drizzle ORM expertise |
-| **Services** | `promptliano-service-architect` | Functional factory patterns |
-| **API Routes** | `hono-bun-api-architect` | Hono + OpenAPI + Zod |
-| **Frontend** | `promptliano-ui-architect` | React components + hook factories |
-| **Forms** | `promptliano-forms-architect` | Form validation + UX patterns |
-| **E2E Testing** | `promptliano-playwright-expert` | **NEW** - Playwright E2E tests with MCP integration |
-| **API Testing** | `api-test-automation-expert` | Isolated test environments |
-| **Routing** | `tanstack-router-expert` | Type-safe routing with TanStack Router |
-| **Schemas** | `zod-schema-architect` | Data validation schemas |
-| **Type Safety** | `typescript-type-safety-auditor` | Remove 'any' types, ensure type safety |
-| **AI Features** | `vercel-ai-sdk-expert` | AI SDK integration and streaming |
-| **Code Review** | `staff-engineer-code-reviewer` | **MANDATORY after ALL work** |
+| Working On      | Agent                            | Why                                                 |
+| --------------- | -------------------------------- | --------------------------------------------------- |
+| **Planning**    | `promptliano-planning-architect` | Creates tickets with agent assignments              |
+| **Database**    | `drizzle-migration-architect`    | Drizzle ORM expertise                               |
+| **Services**    | `promptliano-service-architect`  | Functional factory patterns                         |
+| **API Routes**  | `hono-bun-api-architect`         | Hono + OpenAPI + Zod                                |
+| **Frontend**    | `promptliano-ui-architect`       | React components + hook factories                   |
+| **Forms**       | `promptliano-forms-architect`    | Form validation + UX patterns                       |
+| **E2E Testing** | `promptliano-playwright-expert`  | **NEW** - Playwright E2E tests with MCP integration |
+| **API Testing** | `api-test-automation-expert`     | Isolated test environments                          |
+| **Routing**     | `tanstack-router-expert`         | Type-safe routing with TanStack Router              |
+| **Schemas**     | `zod-schema-architect`           | Data validation schemas                             |
+| **Type Safety** | `typescript-type-safety-auditor` | Remove 'any' types, ensure type safety              |
+| **AI Features** | `vercel-ai-sdk-expert`           | AI SDK integration and streaming                    |
+| **Code Review** | `staff-engineer-code-reviewer`   | **MANDATORY after ALL work**                        |
 
 ### How to Load an Agent
 
@@ -72,6 +73,7 @@ Task(
 ## 🔄 Development Workflow
 
 ### 1. Start Every Session
+
 ```
 mcp__promptliano__project_manager(
   action: "overview",
@@ -80,6 +82,7 @@ mcp__promptliano__project_manager(
 ```
 
 ### 2. Plan with Agent (MANDATORY)
+
 ```python
 Task(
   subagent_type: "promptliano-planning-architect",
@@ -89,6 +92,7 @@ Task(
 ```
 
 ### 3. Process with Assigned Agent
+
 ```python
 # Get next task
 mcp__promptliano__queue_processor(...)
@@ -104,6 +108,7 @@ Task(
 ```
 
 ### 4. Review with Code Reviewer
+
 ```python
 Task(
   subagent_type: "staff-engineer-code-reviewer",
@@ -113,6 +118,7 @@ Task(
 ```
 
 ### 5. Complete Task
+
 ```
 mcp__promptliano__queue_processor(
   action: "complete_task",
@@ -124,13 +130,13 @@ mcp__promptliano__queue_processor(
 
 ## 📦 Package Structure (Modernized)
 
-| Package | Purpose | Key Changes |
-|---------|---------|-------------|
-| `@promptliano/database` | **Drizzle ORM, source of truth** | NEW - replaces storage |
-| `@promptliano/services` | **Functional factory services** | 75% code reduction |
-| `@promptliano/client` | **React app with hook factories** | 76% frontend reduction |
-| `@promptliano/server` | **Hono API with route generation** | 40% route code reduction |
-| `@promptliano/ui` | **Component library** | Enhanced patterns |
+| Package                 | Purpose                            | Key Changes              |
+| ----------------------- | ---------------------------------- | ------------------------ |
+| `@promptliano/database` | **Drizzle ORM, source of truth**   | NEW - replaces storage   |
+| `@promptliano/services` | **Functional factory services**    | 75% code reduction       |
+| `@promptliano/client`   | **React app with hook factories**  | 76% frontend reduction   |
+| `@promptliano/server`   | **Hono API with route generation** | 40% route code reduction |
+| `@promptliano/ui`       | **Component library**              | Enhanced patterns        |
 
 ### Import Patterns (NEW)
 
@@ -155,6 +161,7 @@ import { useTickets } from '@promptliano/client/hooks'
 ### Database-First Feature Development
 
 #### 1. Define Schema (Source of Truth)
+
 ```typescript
 // packages/database/src/schema.ts
 export const myFeature = sqliteTable('my_feature', {
@@ -167,11 +174,13 @@ export const myFeature = sqliteTable('my_feature', {
 ```
 
 #### 2. Types Auto-Generate
+
 ```bash
 bun run db:generate  # Creates Zod schemas automatically
 ```
 
 #### 3. Create Repository
+
 ```typescript
 // packages/database/src/repositories/my-feature-repository.ts
 export const myFeatureRepository = createBaseRepository(myFeature, {
@@ -182,6 +191,7 @@ export const myFeatureRepository = createBaseRepository(myFeature, {
 ```
 
 #### 4. Service Factory
+
 ```typescript
 // packages/services/src/my-feature-service.ts
 export function createMyFeatureService(deps = {}) {
@@ -190,7 +200,7 @@ export function createMyFeatureService(deps = {}) {
     repository: myFeatureRepository,
     schema: MyFeatureSchema
   })
-  
+
   return extendService(baseService, {
     // Add domain-specific methods
   })
@@ -198,6 +208,7 @@ export function createMyFeatureService(deps = {}) {
 ```
 
 #### 5. Hook Factory
+
 ```typescript
 // packages/client/src/hooks/my-feature-hooks.ts
 const myFeatureHooks = createEntityHooks<MyFeature, CreateMyFeature, UpdateMyFeature>({
@@ -211,20 +222,21 @@ export const useCreateMyFeature = myFeatureHooks.useCreate
 
 ### Performance: Before vs After
 
-| Step | Old Process | New Process | Improvement |
-|------|-------------|-------------|-------------|
-| Schema + Types | 3 hours | 15 minutes | **12x faster** |
-| Repository | 4 hours | 30 minutes | **8x faster** |
-| Services | 3 hours | 20 minutes | **9x faster** |
-| API Routes | 2 hours | 10 minutes | **12x faster** |
-| React Hooks | 3 hours | 15 minutes | **12x faster** |
-| **Total** | **15 hours** | **1.5 hours** | **10x faster** |
+| Step           | Old Process  | New Process   | Improvement    |
+| -------------- | ------------ | ------------- | -------------- |
+| Schema + Types | 3 hours      | 15 minutes    | **12x faster** |
+| Repository     | 4 hours      | 30 minutes    | **8x faster**  |
+| Services       | 3 hours      | 20 minutes    | **9x faster**  |
+| API Routes     | 2 hours      | 10 minutes    | **12x faster** |
+| React Hooks    | 3 hours      | 15 minutes    | **12x faster** |
+| **Total**      | **15 hours** | **1.5 hours** | **10x faster** |
 
 ---
 
 ## ✅ Testing & Validation
 
 ### Core Commands (Use Bun Always)
+
 ```bash
 # Quick validation
 bun run validate:quick
@@ -239,6 +251,7 @@ bun run test:client
 ```
 
 ### Testing Rules
+
 1. **Always use Bun** (not npm/yarn/pnpm)
 2. **Run tests after changes** to relevant packages
 3. **Full validation before commits** for substantial changes
@@ -263,6 +276,7 @@ bun run test:client
 ## 🎯 Quick Start Checklist
 
 ### For New Features:
+
 - [ ] Load `promptliano-planning-architect`
 - [ ] Create tickets with agent assignments
 - [ ] Process through queue system
@@ -271,12 +285,14 @@ bun run test:client
 - [ ] Complete and validate
 
 ### For Database Work:
+
 - [ ] Define schema in `packages/database/src/schema.ts`
 - [ ] Auto-generate types with `bun run db:generate`
 - [ ] Create repository with Drizzle queries
 - [ ] Use `drizzle-migration-architect` agent
 
 ### For Frontend Work:
+
 - [ ] Use hook factories (not manual hooks)
 - [ ] Leverage auto-generated types
 - [ ] Use `promptliano-ui-architect` agent
@@ -302,7 +318,7 @@ bun run test:client
 # Project overview
 mcp__promptliano__project_manager(action: "overview", projectId: 1754713756748)
 
-# File suggestions  
+# File suggestions
 mcp__promptliano__project_manager(action: "suggest_files", projectId: 1754713756748, data: { prompt: "auth" })
 
 # Queue management
@@ -319,6 +335,7 @@ mcp__promptliano__task_manager(action: "create", ...)
 ## 🎉 The Bottom Line
 
 **You now have a 10-15x faster development system with:**
+
 - Single source of truth (database schema)
 - Specialized agents for every domain
 - Automatic type generation and validation

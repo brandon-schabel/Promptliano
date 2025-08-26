@@ -5,40 +5,52 @@ import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptl
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Response schemas - properly structured for route helpers
-const ConfigLocationsDataSchema = z.object({
-  locations: z.array(
-    z.object({
-      path: z.string(),
-      exists: z.boolean(),
-      priority: z.number()
-    })
-  )
-}).openapi('ConfigLocationsData')
+const ConfigLocationsDataSchema = z
+  .object({
+    locations: z.array(
+      z.object({
+        path: z.string(),
+        exists: z.boolean(),
+        priority: z.number()
+      })
+    )
+  })
+  .openapi('ConfigLocationsData')
 
-const MergedConfigDataSchema = z.object({
-  config: ProjectMCPConfigSchema
-}).openapi('MergedConfigData')
+const MergedConfigDataSchema = z
+  .object({
+    config: ProjectMCPConfigSchema
+  })
+  .openapi('MergedConfigData')
 
-const ProjectConfigDataSchema = z.object({
-  config: ProjectMCPConfigSchema.nullable(),
-  source: z.string().optional()
-}).openapi('ProjectConfigData')
+const ProjectConfigDataSchema = z
+  .object({
+    config: ProjectMCPConfigSchema.nullable(),
+    source: z.string().optional()
+  })
+  .openapi('ProjectConfigData')
 
 // Success response schemas
-const ConfigLocationsResponseSchema = z.object({
-  success: z.literal(true),
-  data: ConfigLocationsDataSchema
-}).openapi('ConfigLocationsResponse')
+const ConfigLocationsResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ConfigLocationsDataSchema
+  })
+  .openapi('ConfigLocationsResponse')
 
-const MergedConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: MergedConfigDataSchema
-}).openapi('MergedConfigResponse')
+const MergedConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: MergedConfigDataSchema
+  })
+  .openapi('MergedConfigResponse')
 
-const ProjectConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: ProjectConfigDataSchema
-}).openapi('ProjectConfigResponse')
+const ProjectConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ProjectConfigDataSchema
+  })
+  .openapi('ProjectConfigResponse')
 
 export const mcpProjectConfigApp = new OpenAPIHono()
 
@@ -217,26 +229,30 @@ mcpProjectConfigApp
     try {
       const result = await mcpProjectConfigService.loadProjectConfig(projectId)
       if (result) {
-        return c.json(successResponse({
-          config: result.config,
-          source: result.source
-        }))
+        return c.json(
+          successResponse({
+            config: result.config,
+            source: result.source
+          })
+        )
       } else {
-        return c.json(successResponse({
-          config: null
-        }))
+        return c.json(
+          successResponse({
+            config: null
+          })
+        )
       }
     } catch (error) {
       console.error('Failed to load project config:', error)
       if (error instanceof ApiError) {
         throw error
       }
-      
+
       // Handle project not found error specifically
       if (error instanceof Error && error.message.includes('not found')) {
         throw new ApiError(404, error.message, 'PROJECT_NOT_FOUND')
       }
-      
+
       throw new ApiError(500, 'Failed to load project configuration', 'CONFIG_LOAD_ERROR')
     }
   })

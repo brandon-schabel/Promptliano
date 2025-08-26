@@ -43,10 +43,10 @@ export class TestProjectHelpers {
    */
   static async cleanupSpecificProjects(projects: TestProject[]): Promise<void> {
     await TestProjectFactory.cleanupProjects(projects)
-    
+
     // Remove from active projects
     for (const project of projects) {
-      const index = this.activeProjects.findIndex(p => p.path === project.path)
+      const index = this.activeProjects.findIndex((p) => p.path === project.path)
       if (index !== -1) {
         this.activeProjects.splice(index, 1)
       }
@@ -62,7 +62,8 @@ export class TestProjectHelpers {
     }
 
     // Verify some key files exist
-    for (const file of project.files.slice(0, 3)) { // Check first 3 files
+    for (const file of project.files.slice(0, 3)) {
+      // Check first 3 files
       const filePath = join(project.path, file.path)
       if (!existsSync(filePath)) {
         return false
@@ -122,7 +123,9 @@ export class TestProjectHelpers {
     await expect(page.locator('[data-testid="projects-grid"], .projects-container')).toBeVisible()
 
     // Click create/import project button
-    const createButton = page.locator('[data-testid="create-project"], button:has-text("New Project"), button:has-text("Import Project")')
+    const createButton = page.locator(
+      '[data-testid="create-project"], button:has-text("New Project"), button:has-text("Import Project")'
+    )
     await createButton.click()
 
     // Fill project form with test project data
@@ -222,7 +225,7 @@ export class TestProjectHelpers {
     includeVariousFileTypes?: boolean
   }): Promise<TestProject> {
     const { fileCount = 100, directoryDepth = 3, includeVariousFileTypes = false } = options || {}
-    
+
     return this.createTestProject({
       template: 'monorepo',
       name: `test-large-${Date.now()}`,
@@ -258,14 +261,14 @@ export class TestProjectHelpers {
    */
   static async waitForFileSystem(): Promise<void> {
     // Small delay to ensure file system operations are complete
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
   /**
    * Get project file by path
    */
   static getProjectFile(project: TestProject, filePath: string): string | null {
-    const file = project.files.find(f => f.path === filePath)
+    const file = project.files.find((f) => f.path === filePath)
     return file?.content || null
   }
 
@@ -273,25 +276,21 @@ export class TestProjectHelpers {
    * Get project files by extension
    */
   static getProjectFilesByExtension(project: TestProject, extension: string): string[] {
-    return project.files
-      .filter(f => f.path.endsWith(`.${extension}`))
-      .map(f => f.path)
+    return project.files.filter((f) => f.path.endsWith(`.${extension}`)).map((f) => f.path)
   }
 
   /**
    * Get project TypeScript files
    */
   static getProjectTypeScriptFiles(project: TestProject): string[] {
-    return this.getProjectFilesByExtension(project, 'ts')
-      .concat(this.getProjectFilesByExtension(project, 'tsx'))
+    return this.getProjectFilesByExtension(project, 'ts').concat(this.getProjectFilesByExtension(project, 'tsx'))
   }
 
   /**
    * Get project JavaScript files
    */
   static getProjectJavaScriptFiles(project: TestProject): string[] {
-    return this.getProjectFilesByExtension(project, 'js')
-      .concat(this.getProjectFilesByExtension(project, 'jsx'))
+    return this.getProjectFilesByExtension(project, 'js').concat(this.getProjectFilesByExtension(project, 'jsx'))
   }
 
   /**
@@ -306,16 +305,10 @@ export class TestProjectHelpers {
     }
 
     // Add common config file names
-    const commonConfigFiles = [
-      'package.json',
-      'tsconfig.json',
-      '.gitignore',
-      '.eslintrc.js',
-      '.prettierrc'
-    ]
+    const commonConfigFiles = ['package.json', 'tsconfig.json', '.gitignore', '.eslintrc.js', '.prettierrc']
 
     for (const configFile of commonConfigFiles) {
-      if (project.files.find(f => f.path === configFile)) {
+      if (project.files.find((f) => f.path === configFile)) {
         configFiles.push(configFile)
       }
     }
@@ -333,20 +326,18 @@ export class TestProjectHelpers {
     const errors: string[] = []
 
     // Check required files
-    if (!project.files.find(f => f.path === 'package.json')) {
+    if (!project.files.find((f) => f.path === 'package.json')) {
       errors.push('Missing package.json')
     }
 
-    if (!project.files.find(f => f.path === 'README.md')) {
+    if (!project.files.find((f) => f.path === 'README.md')) {
       errors.push('Missing README.md')
     }
 
     // Check for main entry point
-    const hasEntryPoint = project.files.some(f => 
-      f.path === 'index.js' || 
-      f.path === 'src/index.js' || 
-      f.path === 'src/index.ts' ||
-      f.path === 'src/index.tsx'
+    const hasEntryPoint = project.files.some(
+      (f) =>
+        f.path === 'index.js' || f.path === 'src/index.js' || f.path === 'src/index.ts' || f.path === 'src/index.tsx'
     )
 
     if (!hasEntryPoint) {
@@ -366,7 +357,7 @@ export class TestProjectHelpers {
     // Simulate project creation monitoring
     for (let i = 0; i <= 100; i += 10) {
       callback(i)
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
   }
 
@@ -388,7 +379,7 @@ export class TestProjectHelpers {
    * Find project by name
    */
   static findProjectByName(name: string): TestProject | null {
-    return this.activeProjects.find(p => p.name === name) || null
+    return this.activeProjects.find((p) => p.name === name) || null
   }
 
   /**
@@ -419,7 +410,7 @@ export class TestFileSystemUtils {
    */
   static isSafeTestPath(path: string): boolean {
     const safePrefixes = ['/tmp', '/var/tmp', process.env.TEMP, process.env.TMP]
-    return safePrefixes.some(prefix => prefix && path.startsWith(prefix))
+    return safePrefixes.some((prefix) => prefix && path.startsWith(prefix))
   }
 
   /**

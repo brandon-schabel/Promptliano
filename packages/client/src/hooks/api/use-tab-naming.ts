@@ -22,11 +22,12 @@ export function useGenerateTabName() {
       })
 
       // Handle various response formats for generated content
-      const tabName = (response as any)?.data?.output?.tabName || 
-                     (response as any)?.data?.tabName || 
-                     (response as any)?.output?.tabName ||
-                     (response as any)?.tabName;
-      
+      const tabName =
+        (response as any)?.data?.output?.tabName ||
+        (response as any)?.data?.tabName ||
+        (response as any)?.output?.tabName ||
+        (response as any)?.tabName
+
       if (!response?.success || !tabName) {
         throw new Error('Failed to generate tab name')
       }

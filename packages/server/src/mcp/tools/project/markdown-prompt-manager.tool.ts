@@ -81,12 +81,14 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
                   { action, parameter: 'projectId', example: '1754713756748' }
                 )
               }
-              
-              const newPrompt = await createPrompt(addTimestamps({
-                title: parsedPrompt.frontmatter.name,
-                content: parsedPrompt.content,
-                projectId
-              }))
+
+              const newPrompt = await createPrompt(
+                addTimestamps({
+                  title: parsedPrompt.frontmatter.name,
+                  content: parsedPrompt.content,
+                  projectId
+                })
+              )
 
               // Auto-associate with project if projectId is provided and not already set
               if (projectId && !newPrompt.projectId) {

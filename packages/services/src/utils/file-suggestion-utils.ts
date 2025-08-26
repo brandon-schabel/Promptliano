@@ -184,7 +184,7 @@ export function mergeFileSuggestions(
 
   for (const suggestion of suggestions) {
     suggestion.fileIds.forEach((fileId, index) => {
-      const fileIdStr = String(fileId)  // Convert number to string
+      const fileIdStr = String(fileId) // Convert number to string
       const existing = fileScoreMap.get(fileIdStr)
       const score = suggestion.scores?.[index]
 

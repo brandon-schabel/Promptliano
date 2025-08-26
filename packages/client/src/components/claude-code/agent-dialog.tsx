@@ -45,7 +45,7 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
   // Mutations
   const createAgentMutation = useCreateAgent()
   const updateAgentMutation = useUpdateAgent()
-  
+
   // Type assertion to help TypeScript understand the mutation signatures
   const updateMutation = updateAgentMutation as any
 

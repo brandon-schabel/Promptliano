@@ -24,6 +24,7 @@ bun run generate:all
 ## ✨ Features
 
 The generated hooks include advanced features via the CRUD factory:
+
 - ✅ Optimistic updates
 - ✅ Smart caching & invalidation
 - ✅ Error handling with toasts

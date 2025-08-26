@@ -195,18 +195,21 @@ When a user requests a complete feature like "Add user preferences management":
 ## Queue Management Patterns (NEW)
 
 **Queue Creation and Management**
+
 - Create project-specific queues using `mcp__promptliano__queue_manager(action: "create_queue")`
 - Enqueue tickets and tasks with priority levels: `mcp__promptliano__queue_manager(action: "enqueue_ticket")`
 - Monitor queue progress with `mcp__promptliano__queue_manager(action: "get_stats")`
 - Use `mcp__promptliano__queue_processor(action: "get_next_task")` to pull work items
 
 **Queue Organization Strategy**
+
 - **Feature Queues**: Create dedicated queues for large features (e.g., "User Auth Queue", "Dashboard Feature Queue")
 - **Priority Queues**: Separate high-priority work from regular development tasks
 - **Review Queues**: Dedicated queues for code review and QA tasks
 - **Parallel Execution**: Design tasks to enable multiple agents working simultaneously
 
 **Example Queue Setup:**
+
 ```typescript
 // Create feature-specific queue
 mcp__promptliano__queue_manager({

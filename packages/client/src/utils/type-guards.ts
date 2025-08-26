@@ -1,6 +1,6 @@
 /**
  * Advanced Type Guards and Validation Utilities
- * 
+ *
  * Provides comprehensive type safety for API responses, provider data,
  * and model selection components. Implements advanced TypeScript patterns
  * for runtime type validation and error handling.
@@ -43,7 +43,7 @@ export const isValidNumber = (value: unknown): value is number => {
 export const isValidAPIProvider = (value: unknown): value is APIProviders => {
   const validProviders: APIProviders[] = [
     'openai',
-    'openrouter', 
+    'openrouter',
     'lmstudio',
     'ollama',
     'xai',
@@ -63,7 +63,7 @@ export const isValidProviderIdentifier = (value: unknown): value is APIProviders
   if (isValidAPIProvider(value)) {
     return true
   }
-  
+
   // Allow custom provider IDs (e.g., "custom_123")
   return typeof value === 'string' && value.length > 0 && /^[a-zA-Z0-9_-]+$/.test(value)
 }
@@ -73,9 +73,9 @@ export const isValidProviderIdentifier = (value: unknown): value is APIProviders
  */
 export const isValidProviderKey = (value: unknown): value is ProviderKey => {
   if (!isObject(value)) return false
-  
+
   const obj = value as Record<string, unknown>
-  
+
   return (
     // Required fields
     isValidNumber(obj.id) &&
@@ -114,9 +114,9 @@ export interface ValidatedModelData {
 
 export const isValidModelData = (value: unknown): value is ValidatedModelData => {
   if (!isObject(value)) return false
-  
+
   const obj = value as Record<string, unknown>
-  
+
   return (
     isNonEmptyString(obj.id) &&
     isNonEmptyString(obj.name) &&
@@ -148,9 +148,9 @@ export const isValidDataResponse = <T>(
   validator: (data: unknown) => data is T
 ): value is DataResponse<T> => {
   if (!isObject(value)) return false
-  
+
   const obj = value as Record<string, unknown>
-  
+
   return (
     'data' in obj &&
     validator(obj.data) &&
@@ -185,9 +185,7 @@ export const isValidProvidersResponse = (value: unknown): value is DataResponse<
 /**
  * Result type for validation operations
  */
-export type ValidationResult<T> = 
-  | { success: true; data: T }
-  | { success: false; error: string; path?: string }
+export type ValidationResult<T> = { success: true; data: T } | { success: false; error: string; path?: string }
 
 /**
  * Validates and transforms model data with detailed error reporting
@@ -196,30 +194,30 @@ export const validateModelData = (value: unknown): ValidationResult<ValidatedMod
   if (!isObject(value)) {
     return { success: false, error: 'Expected object', path: 'root' }
   }
-  
+
   const obj = value as Record<string, unknown>
-  
+
   if (!isNonEmptyString(obj.id)) {
     return { success: false, error: 'Missing or invalid id', path: 'id' }
   }
-  
+
   if (!isNonEmptyString(obj.name)) {
     return { success: false, error: 'Missing or invalid name', path: 'name' }
   }
-  
+
   // Validate optional fields
   if (obj.description !== null && obj.description !== undefined && !isNonEmptyString(obj.description)) {
     return { success: false, error: 'Invalid description', path: 'description' }
   }
-  
+
   if (obj.provider !== null && obj.provider !== undefined && !isNonEmptyString(obj.provider)) {
     return { success: false, error: 'Invalid provider', path: 'provider' }
   }
-  
+
   if (obj.contextLength !== null && obj.contextLength !== undefined && !isValidNumber(obj.contextLength)) {
     return { success: false, error: 'Invalid context length', path: 'contextLength' }
   }
-  
+
   return {
     success: true,
     data: {
@@ -241,21 +239,21 @@ export const validateModelsArray = (value: unknown): ValidationResult<ValidatedM
   if (!Array.isArray(value)) {
     return { success: false, error: 'Expected array', path: 'root' }
   }
-  
+
   const validatedModels: ValidatedModelData[] = []
-  
+
   for (let i = 0; i < value.length; i++) {
     const result = validateModelData(value[i])
     if (!result.success) {
-      return { 
-        success: false, 
-        error: result.error, 
-        path: `[${i}]${result.path ? '.' + result.path : ''}` 
+      return {
+        success: false,
+        error: result.error,
+        path: `[${i}]${result.path ? '.' + result.path : ''}`
       }
     }
     validatedModels.push(result.data)
   }
-  
+
   return { success: true, data: validatedModels }
 }
 
@@ -305,7 +303,7 @@ export const createValidatedModelId = (id: string): ValidatedModelId => {
 }
 
 /**
- * Branded type for validated provider identifiers  
+ * Branded type for validated provider identifiers
  */
 export type ValidatedProviderId = string & { readonly __brand: 'ValidatedProviderId' }
 
@@ -330,15 +328,15 @@ export const extractErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message
   }
-  
+
   if (typeof error === 'string') {
     return error
   }
-  
+
   if (isObject(error) && typeof error.message === 'string') {
     return error.message
   }
-  
+
   return 'An unknown error occurred'
 }
 

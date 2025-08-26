@@ -91,7 +91,7 @@ export class FlowPage extends BasePage {
   async waitForFlowToLoad(): Promise<void> {
     await expect(this.flowDiagram).toBeVisible()
     await expect(this.flowVisualization).toBeVisible()
-    
+
     // Wait for any initial loading animations
     await this.page.waitForTimeout(1000)
   }
@@ -107,14 +107,14 @@ export class FlowPage extends BasePage {
     maxConcurrent?: number
   }): Promise<string> {
     await this.createQueueButton.click()
-    
+
     // Wait for queue creation dialog
     const queueDialog = this.page.getByTestId('queue-dialog')
     await expect(queueDialog).toBeVisible()
 
     // Fill queue details
     await this.queueNameInput.fill(queueConfig.name)
-    
+
     if (queueConfig.description) {
       await this.queueDescriptionInput.fill(queueConfig.description)
     }
@@ -140,7 +140,7 @@ export class FlowPage extends BasePage {
     await expect(queueElement).toBeVisible()
 
     // Return the queue ID for further operations
-    return await queueElement.getAttribute('data-queue-id') || ''
+    return (await queueElement.getAttribute('data-queue-id')) || ''
   }
 
   /**
@@ -148,22 +148,22 @@ export class FlowPage extends BasePage {
    */
   async addItemsToQueue(queueName: string, items: FlowItem[]): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
-    
+
     // Click on the queue to select it
     await queueElement.click()
-    
+
     // Add each item
     for (const item of items) {
       await this.addItemButton.click()
-      
+
       const itemDialog = this.page.getByTestId('item-dialog')
       await expect(itemDialog).toBeVisible()
-      
+
       // Fill item details
       await this.page.getByLabel('Item Type').selectOption(item.type)
       await this.page.getByLabel('Title').fill(item.title)
       await this.page.getByLabel('Priority').selectOption(item.priority)
-      
+
       // Save item
       await this.page.getByRole('button', { name: 'Add Item' }).click()
       await expect(itemDialog).toBeHidden()
@@ -180,9 +180,9 @@ export class FlowPage extends BasePage {
   async startQueue(queueName: string): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
     await queueElement.click()
-    
+
     await this.startQueueButton.click()
-    
+
     // Verify queue status changed to processing
     await expect(queueElement.getByTestId('queue-status')).toContainText('processing')
   }
@@ -193,9 +193,9 @@ export class FlowPage extends BasePage {
   async pauseQueue(queueName: string): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
     await queueElement.click()
-    
+
     await this.pauseQueueButton.click()
-    
+
     // Verify queue status changed to paused
     await expect(queueElement.getByTestId('queue-status')).toContainText('paused')
   }
@@ -206,15 +206,15 @@ export class FlowPage extends BasePage {
   async stopQueue(queueName: string): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
     await queueElement.click()
-    
+
     await this.stopQueueButton.click()
-    
+
     // Confirm stop if there's a confirmation dialog
     const confirmButton = this.page.getByRole('button', { name: 'Stop' })
     if (await confirmButton.isVisible()) {
       await confirmButton.click()
     }
-    
+
     // Verify queue status changed to idle
     await expect(queueElement.getByTestId('queue-status')).toContainText('idle')
   }
@@ -225,15 +225,15 @@ export class FlowPage extends BasePage {
   async clearQueue(queueName: string): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
     await queueElement.click()
-    
+
     await this.clearQueueButton.click()
-    
+
     // Confirm clear if there's a confirmation dialog
     const confirmButton = this.page.getByRole('button', { name: 'Clear' })
     if (await confirmButton.isVisible()) {
       await confirmButton.click()
     }
-    
+
     // Verify queue is empty
     const itemCount = await this.getQueueItemCount(queueName)
     expect(itemCount).toBe(0)
@@ -262,7 +262,7 @@ export class FlowPage extends BasePage {
   async getQueueStatus(queueName: string): Promise<string> {
     const queueElement = this.getQueueElement(queueName)
     const statusElement = queueElement.getByTestId('queue-status')
-    return await statusElement.textContent() || ''
+    return (await statusElement.textContent()) || ''
   }
 
   /**
@@ -271,13 +271,13 @@ export class FlowPage extends BasePage {
   async moveItemBetweenQueues(itemTitle: string, fromQueue: string, toQueue: string): Promise<void> {
     const sourceQueue = this.getQueueElement(fromQueue)
     const targetQueue = this.getQueueElement(toQueue)
-    
+
     // Find the item in the source queue
     const item = sourceQueue.getByText(itemTitle)
-    
+
     // Drag from source to target
     await item.dragTo(targetQueue)
-    
+
     // Verify item moved
     await expect(targetQueue.getByText(itemTitle)).toBeVisible()
     await expect(sourceQueue.getByText(itemTitle)).toBeHidden()
@@ -353,11 +353,13 @@ export class FlowPage extends BasePage {
   }> {
     await expect(this.flowStats).toBeVisible()
 
-    const totalQueues = parseInt(await this.flowStats.getByTestId('total-queues').textContent() || '0', 10)
-    const totalItems = parseInt(await this.flowStats.getByTestId('total-items').textContent() || '0', 10)
-    const processingItems = parseInt(await this.flowStats.getByTestId('processing-items').textContent() || '0', 10)
-    const completedItems = parseInt(await this.flowStats.getByTestId('completed-items').textContent() || '0', 10)
-    const averageProcessingTime = parseFloat(await this.flowStats.getByTestId('avg-processing-time').textContent() || '0')
+    const totalQueues = parseInt((await this.flowStats.getByTestId('total-queues').textContent()) || '0', 10)
+    const totalItems = parseInt((await this.flowStats.getByTestId('total-items').textContent()) || '0', 10)
+    const processingItems = parseInt((await this.flowStats.getByTestId('processing-items').textContent()) || '0', 10)
+    const completedItems = parseInt((await this.flowStats.getByTestId('completed-items').textContent()) || '0', 10)
+    const averageProcessingTime = parseFloat(
+      (await this.flowStats.getByTestId('avg-processing-time').textContent()) || '0'
+    )
 
     return {
       totalQueues,
@@ -374,7 +376,7 @@ export class FlowPage extends BasePage {
   async viewQueueDetails(queueName: string): Promise<void> {
     const queueElement = this.getQueueElement(queueName)
     await queueElement.dblclick()
-    
+
     // Verify details panel opens
     const detailsPanel = this.page.getByTestId('queue-details-panel')
     await expect(detailsPanel).toBeVisible()
@@ -386,10 +388,10 @@ export class FlowPage extends BasePage {
   async filterQueuesByStatus(status: string): Promise<void> {
     const filterButton = this.page.getByRole('button', { name: 'Filter' })
     await filterButton.click()
-    
+
     const statusFilter = this.page.getByRole('checkbox', { name: status })
     await statusFilter.check()
-    
+
     // Apply filter
     const applyButton = this.page.getByRole('button', { name: 'Apply Filter' })
     await applyButton.click()
@@ -409,7 +411,7 @@ export class FlowPage extends BasePage {
    */
   async exportFlowConfiguration(): Promise<void> {
     const exportButton = this.page.getByRole('button', { name: 'Export Flow' })
-    
+
     const downloadPromise = this.page.waitForEvent('download')
     await exportButton.click()
     const download = await downloadPromise
@@ -422,7 +424,7 @@ export class FlowPage extends BasePage {
    */
   async importFlowConfiguration(filePath: string): Promise<void> {
     const importButton = this.page.getByRole('button', { name: 'Import Flow' })
-    
+
     const fileChooserPromise = this.page.waitForEvent('filechooser')
     await importButton.click()
     const fileChooser = await fileChooserPromise
@@ -437,19 +439,19 @@ export class FlowPage extends BasePage {
   async connectQueues(sourceQueue: string, targetQueue: string): Promise<void> {
     const source = this.getQueueElement(sourceQueue)
     const target = this.getQueueElement(targetQueue)
-    
+
     // Click connection mode button if available
     const connectionMode = this.page.getByRole('button', { name: 'Connection Mode' })
     if (await connectionMode.isVisible()) {
       await connectionMode.click()
     }
-    
+
     // Click source queue
     await source.click()
-    
+
     // Click target queue
     await target.click()
-    
+
     // Verify connection was created
     const connection = this.flowDiagram.getByTestId(`connection-${sourceQueue}-${targetQueue}`)
     await expect(connection).toBeVisible()
@@ -458,29 +460,32 @@ export class FlowPage extends BasePage {
   /**
    * Monitor queue processing in real-time
    */
-  async monitorQueueProcessing(queueName: string, timeout: number = 30000): Promise<{
+  async monitorQueueProcessing(
+    queueName: string,
+    timeout: number = 30000
+  ): Promise<{
     startTime: number
     endTime: number
     itemsProcessed: number
   }> {
     const startTime = Date.now()
     const initialCount = await this.getQueueItemCount(queueName)
-    
+
     // Wait for processing to complete or timeout
     let endTime = startTime
     let finalCount = initialCount
-    
+
     while (endTime - startTime < timeout) {
       finalCount = await this.getQueueItemCount(queueName)
       if (finalCount === 0) {
         endTime = Date.now()
         break
       }
-      
+
       await this.page.waitForTimeout(1000)
       endTime = Date.now()
     }
-    
+
     return {
       startTime,
       endTime,
@@ -491,13 +496,16 @@ export class FlowPage extends BasePage {
   /**
    * Test flow performance under load
    */
-  async testFlowPerformance(queueName: string, itemCount: number): Promise<{
+  async testFlowPerformance(
+    queueName: string,
+    itemCount: number
+  ): Promise<{
     setupTime: number
     processingTime: number
     itemsPerSecond: number
   }> {
     const setupStart = Date.now()
-    
+
     // Create test items
     const testItems: FlowItem[] = []
     for (let i = 0; i < itemCount; i++) {
@@ -509,17 +517,17 @@ export class FlowPage extends BasePage {
         priority: 'medium'
       })
     }
-    
+
     await this.addItemsToQueue(queueName, testItems)
     const setupTime = Date.now() - setupStart
-    
+
     // Start processing and monitor
     await this.startQueue(queueName)
     const processingResult = await this.monitorQueueProcessing(queueName)
-    
+
     const processingTime = processingResult.endTime - processingResult.startTime
     const itemsPerSecond = processingResult.itemsProcessed / (processingTime / 1000)
-    
+
     return {
       setupTime,
       processingTime,
@@ -534,21 +542,21 @@ export class FlowPage extends BasePage {
     // Test different viewport sizes
     const viewports = [
       { width: 1920, height: 1080 }, // Desktop
-      { width: 1024, height: 768 },  // Tablet
-      { width: 768, height: 1024 },  // Mobile landscape
-      { width: 375, height: 667 }    // Mobile portrait
+      { width: 1024, height: 768 }, // Tablet
+      { width: 768, height: 1024 }, // Mobile landscape
+      { width: 375, height: 667 } // Mobile portrait
     ]
-    
+
     for (const viewport of viewports) {
       await this.page.setViewportSize(viewport)
       await this.page.waitForTimeout(500)
-      
+
       // Verify flow diagram adapts to viewport
       await expect(this.flowDiagram).toBeVisible()
-      
+
       // Verify controls remain accessible
       await expect(this.flowControls).toBeVisible()
-      
+
       console.log(`✅ Flow layout responsive at ${viewport.width}x${viewport.height}`)
     }
   }
@@ -559,7 +567,7 @@ export class FlowPage extends BasePage {
   async testDragAndDrop(): Promise<void> {
     // Test dragging items within the flow
     await expect(this.dragDropArea).toBeVisible()
-    
+
     // Verify drag and drop areas are properly configured
     const dropZones = await this.page.getByTestId('drop-zone').all()
     expect(dropZones.length).toBeGreaterThan(0)

@@ -21,10 +21,16 @@
     "emitDeclarationOnly": false,
     "noEmit": false
   },
-  "include": [
-    "*.ts",
-    "src/**/*.ts",
-    "schema.ts"
-  ],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "src/test-*.ts", "src/tests/**", "src/test-utils/**"]
+  "include": ["*.ts", "src/**/*.ts", "schema.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test-*.ts",
+    "src/tests/**",
+    "src/test-utils/**"
+  ]
 }

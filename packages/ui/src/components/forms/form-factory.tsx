@@ -3,15 +3,7 @@ import { useForm, UseFormReturn, FieldPath, Control, ControllerRenderProps } fro
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '../../utils'
-import {
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField
-} from '../core/form'
+import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from '../core/form'
 import { Input } from '../core/input'
 import { Textarea } from '../core/textarea'
 import { Button } from '../core/button'
@@ -247,7 +239,7 @@ const TextFieldRenderer = <T extends z.ZodType>({
 
         return (
           <FormItem className={config.className}>
-            <div className="flex items-center justify-between">
+            <div className='flex items-center justify-between'>
               <FormLabel>{config.label}</FormLabel>
               {config.showCount && config.maxLength && (
                 <span
@@ -268,12 +260,12 @@ const TextFieldRenderer = <T extends z.ZodType>({
                   disabled={isDisabled || config.disabled}
                   rows={config.rows || 3}
                   maxLength={config.maxLength}
-                  className="resize-none"
+                  className='resize-none'
                 />
               ) : (
                 <Input
                   {...field}
-                  type="text"
+                  type='text'
                   placeholder={config.placeholder}
                   disabled={isDisabled || config.disabled}
                   autoComplete={config.autoComplete}
@@ -302,23 +294,23 @@ const NumberFieldRenderer = <T extends z.ZodType>({
       <FormItem className={config.className}>
         <FormLabel>{config.label}</FormLabel>
         <FormControl>
-          <div className="relative">
+          <div className='relative'>
             {config.currency && (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <span className='absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground'>$</span>
             )}
             <Input
               {...field}
-              type="number"
+              type='number'
               placeholder={config.placeholder}
               disabled={isDisabled || config.disabled}
               min={config.min}
               max={config.max}
               step={config.step}
               className={cn(config.currency && 'pl-8', config.percentage && 'pr-8')}
-              onChange={e => field.onChange(e.target.value ? Number(e.target.value) : '')}
+              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
             />
             {config.percentage && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+              <span className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground'>%</span>
             )}
           </div>
         </FormControl>
@@ -344,7 +336,7 @@ const PasswordFieldRenderer = <T extends z.ZodType>({
         <FormItem className={config.className}>
           <FormLabel>{config.label}</FormLabel>
           <FormControl>
-            <div className="relative">
+            <div className='relative'>
               <Input
                 {...field}
                 type={showPassword ? 'text' : 'password'}
@@ -353,18 +345,14 @@ const PasswordFieldRenderer = <T extends z.ZodType>({
               />
               {config.showToggle && (
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isDisabled || config.disabled}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                 </Button>
               )}
             </div>
@@ -420,14 +408,10 @@ const CheckboxFieldRenderer = <T extends z.ZodType>({
     render={({ field }) => (
       <FormItem className={cn('flex flex-row items-start space-x-3 space-y-0', config.className)}>
         <FormControl>
-          <Checkbox
-            checked={field.value}
-            onCheckedChange={field.onChange}
-            disabled={isDisabled || config.disabled}
-          />
+          <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isDisabled || config.disabled} />
         </FormControl>
-        <div className="space-y-1 leading-none">
-          <FormLabel className="cursor-pointer">{config.label}</FormLabel>
+        <div className='space-y-1 leading-none'>
+          <FormLabel className='cursor-pointer'>{config.label}</FormLabel>
           {config.description && <FormDescription>{config.description}</FormDescription>}
         </div>
         <FormMessage />
@@ -451,23 +435,16 @@ const RadioFieldRenderer = <T extends z.ZodType>({
           <RadioGroup
             onValueChange={field.onChange}
             defaultValue={field.value}
-            className={cn(
-              config.orientation === 'horizontal' ? 'flex flex-row space-x-6' : 'flex flex-col space-y-3'
-            )}
+            className={cn(config.orientation === 'horizontal' ? 'flex flex-row space-x-6' : 'flex flex-col space-y-3')}
             disabled={isDisabled || config.disabled}
           >
             {config.options.map((option) => (
-              <div key={option.value} className="flex items-center space-x-2">
+              <div key={option.value} className='flex items-center space-x-2'>
                 <RadioGroupItem value={option.value} id={`${config.name}-${option.value}`} />
-                <Label
-                  htmlFor={`${config.name}-${option.value}`}
-                  className="cursor-pointer font-normal"
-                >
+                <Label htmlFor={`${config.name}-${option.value}`} className='cursor-pointer font-normal'>
                   <div>
                     <div>{option.label}</div>
-                    {option.description && (
-                      <div className="text-sm text-muted-foreground">{option.description}</div>
-                    )}
+                    {option.description && <div className='text-sm text-muted-foreground'>{option.description}</div>}
                   </div>
                 </Label>
               </div>
@@ -491,16 +468,12 @@ const SwitchFieldRenderer = <T extends z.ZodType>({
     name={config.name as FieldPath<z.infer<T>>}
     render={({ field }) => (
       <FormItem className={cn('flex flex-row items-center justify-between rounded-lg border p-4', config.className)}>
-        <div className="space-y-0.5">
-          <FormLabel className="text-base">{config.label}</FormLabel>
+        <div className='space-y-0.5'>
+          <FormLabel className='text-base'>{config.label}</FormLabel>
           {config.description && <FormDescription>{config.description}</FormDescription>}
         </div>
         <FormControl>
-          <Switch
-            checked={field.value}
-            onCheckedChange={field.onChange}
-            disabled={isDisabled || config.disabled}
-          />
+          <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isDisabled || config.disabled} />
         </FormControl>
         <FormMessage />
       </FormItem>
@@ -526,11 +499,8 @@ const DateFieldRenderer = <T extends z.ZodType>({
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full pl-3 text-left font-normal',
-                    !field.value && 'text-muted-foreground'
-                  )}
+                  variant='outline'
+                  className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                   disabled={isDisabled || config.disabled}
                 >
                   {field.value ? (
@@ -538,13 +508,13 @@ const DateFieldRenderer = <T extends z.ZodType>({
                   ) : (
                     <span>{config.placeholder || 'Pick a date'}</span>
                   )}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className='w-auto p-0' align='start'>
               <Calendar
-                mode="single"
+                mode='single'
                 selected={field.value}
                 onSelect={(date) => {
                   field.onChange(date)
@@ -580,15 +550,11 @@ const TagsFieldRenderer = <T extends z.ZodType>({
       control={form.control}
       name={config.name as FieldPath<z.infer<T>>}
       render={({ field }) => {
-        const tags = Array.isArray(field.value) ? field.value as string[] : []
+        const tags = Array.isArray(field.value) ? (field.value as string[]) : []
 
         const addTag = (tag: string) => {
           const trimmedTag = tag.trim()
-          if (
-            trimmedTag &&
-            !tags.includes(trimmedTag) &&
-            (!config.maxTags || tags.length < config.maxTags)
-          ) {
+          if (trimmedTag && !tags.includes(trimmedTag) && (!config.maxTags || tags.length < config.maxTags)) {
             field.onChange([...tags, trimmedTag])
             setInputValue('')
           }
@@ -611,20 +577,20 @@ const TagsFieldRenderer = <T extends z.ZodType>({
           <FormItem className={config.className}>
             <FormLabel>{config.label}</FormLabel>
             <FormControl>
-              <div className="min-h-[2.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                <div className="flex flex-wrap gap-1">
+              <div className='min-h-[2.5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2'>
+                <div className='flex flex-wrap gap-1'>
                   {tags.map((tag: string) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                    <Badge key={tag} variant='secondary' className='text-xs'>
                       {tag}
                       <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="ml-1 h-auto p-0 text-muted-foreground hover:text-foreground"
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='ml-1 h-auto p-0 text-muted-foreground hover:text-foreground'
                         onClick={() => removeTag(tag)}
                         disabled={isDisabled || config.disabled}
                       >
-                        <X className="h-3 w-3" />
+                        <X className='h-3 w-3' />
                       </Button>
                     </Badge>
                   ))}
@@ -638,7 +604,7 @@ const TagsFieldRenderer = <T extends z.ZodType>({
                       }
                     }}
                     placeholder={tags.length === 0 ? config.placeholder || 'Add tags...' : ''}
-                    className="flex-1 border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
+                    className='flex-1 border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0'
                     disabled={isDisabled || config.disabled}
                   />
                 </div>
@@ -663,21 +629,16 @@ const FieldGroupRenderer = <T extends z.ZodType>({
   return (
     <div className={cn('space-y-4 rounded-lg border p-4', config.className)}>
       {config.title && (
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">{config.title}</h3>
+        <div className='flex items-center justify-between'>
+          <h3 className='text-lg font-medium'>{config.title}</h3>
           {config.collapsible && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
+            <Button type='button' variant='ghost' size='sm' onClick={() => setIsExpanded(!isExpanded)}>
               {isExpanded ? 'Collapse' : 'Expand'}
             </Button>
           )}
         </div>
       )}
-      {config.description && <p className="text-sm text-muted-foreground">{config.description}</p>}
+      {config.description && <p className='text-sm text-muted-foreground'>{config.description}</p>}
       {(!config.collapsible || isExpanded) && (
         <div
           className={cn(
@@ -733,10 +694,8 @@ const FieldRenderer = <T extends z.ZodType>({ config, form, isDisabled }: FieldR
     case 'array':
       // These will be implemented in the next iteration
       return (
-        <div className="rounded-lg border border-dashed border-muted-foreground/25 p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            {config.type} field type not yet implemented
-          </p>
+        <div className='rounded-lg border border-dashed border-muted-foreground/25 p-4 text-center'>
+          <p className='text-sm text-muted-foreground'>{config.type} field type not yet implemented</p>
         </div>
       )
     default:
@@ -812,7 +771,7 @@ export function FormFactory<T extends z.ZodType>({
           <div className={cn('flex gap-3', styling?.buttonContainerClassName)}>
             {cancelButton && onCancel && (
               <Button
-                type="button"
+                type='button'
                 variant={cancelButton.variant || 'outline'}
                 size={cancelButton.size}
                 onClick={onCancel}
@@ -822,7 +781,7 @@ export function FormFactory<T extends z.ZodType>({
               </Button>
             )}
             <Button
-              type="submit"
+              type='submit'
               variant={submitButton?.variant}
               size={submitButton?.size}
               disabled={isLoading || isDisabled}
@@ -830,12 +789,12 @@ export function FormFactory<T extends z.ZodType>({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   {submitButton?.loadingText || 'Loading...'}
                 </>
               ) : (
                 <>
-                  {submitButton?.icon && <submitButton.icon className="mr-2 h-4 w-4" />}
+                  {submitButton?.icon && <submitButton.icon className='mr-2 h-4 w-4' />}
                   {submitButton?.text || 'Submit'}
                 </>
               )}
@@ -1092,13 +1051,19 @@ export const formValidation = {
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   url: z.string().url('Invalid URL').optional().or(z.literal('')),
-  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number').optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number')
+    .optional(),
   tags: z.array(z.string()).default([]),
   required: (message = 'This field is required') => z.string().min(1, message),
   optional: z.string().optional(),
   positiveNumber: z.number().positive('Must be a positive number'),
   dateRange: (start: Date, end: Date) =>
-    z.date().min(start, `Date must be after ${start.toDateString()}`).max(end, `Date must be before ${end.toDateString()}`)
+    z
+      .date()
+      .min(start, `Date must be after ${start.toDateString()}`)
+      .max(end, `Date must be before ${end.toDateString()}`)
 }
 
 export default FormFactory

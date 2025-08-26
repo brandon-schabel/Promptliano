@@ -89,16 +89,17 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   // Calculate total tokens
   const totalTokens = useMemo(() => {
     // Convert hook prompt format to expected format
-    const prompts = promptData?.map(p => ({
-      id: p.id,
-      title: p.name,
-      content: p.content,
-      description: null,
-      projectId: p.projectId || -1,
-      tags: [],
-      createdAt: p.created,
-      updatedAt: p.updated
-    })) || []
+    const prompts =
+      promptData?.map((p) => ({
+        id: p.id,
+        title: p.name,
+        content: p.content,
+        description: null,
+        projectId: p.projectId || -1,
+        tags: [],
+        createdAt: p.created,
+        updatedAt: p.updated
+      })) || []
     return calculateTotalTokens(prompts, selectedPrompts, localUserPrompt, selectedFiles, projectFileMap)
   }, [promptData, selectedPrompts, localUserPrompt, selectedFiles, projectFileMap])
 
@@ -127,16 +128,17 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     }
 
     // Convert hook prompt format to expected format
-    const prompts = promptData?.map(p => ({
-      id: p.id,
-      title: p.name,
-      content: p.content,
-      description: null,
-      projectId: p.projectId || -1,
-      tags: [],
-      createdAt: p.created,
-      updatedAt: p.updated
-    })) || []
+    const prompts =
+      promptData?.map((p) => ({
+        id: p.id,
+        title: p.name,
+        content: p.content,
+        description: null,
+        projectId: p.projectId || -1,
+        tags: [],
+        createdAt: p.created,
+        updatedAt: p.updated
+      })) || []
 
     return buildPromptContent({
       promptData: prompts,
@@ -310,7 +312,12 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
           <SuggestedPromptsDialog
             open={showPromptSuggestions}
             onClose={() => setShowPromptSuggestions(false)}
-            suggestedPrompts={suggestedPrompts}
+            suggestedPrompts={suggestedPrompts.map((prompt) => ({
+              ...prompt,
+              tags: Array.isArray(prompt.tags)
+                ? prompt.tags.filter((tag): tag is string => typeof tag === 'string')
+                : []
+            }))}
           />
 
           <div className='flex-1 flex flex-col min-h-0'>

@@ -15,7 +15,7 @@ test.describe('User Input Panel Testing', () => {
     appPage = new AppPage(page)
     projectsPage = new ProjectsPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -37,20 +37,18 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Verify user input panel is visible
-      const userInputPanel = appPage.page.locator([
-        '[data-testid="user-input-panel"]',
-        '.user-input-panel',
-        '[data-testid="input-panel"]'
-      ].join(', '))
+      const userInputPanel = appPage.page.locator(
+        ['[data-testid="user-input-panel"]', '.user-input-panel', '[data-testid="input-panel"]'].join(', ')
+      )
 
       await expect(userInputPanel).toBeVisible({ timeout: 10000 })
 
       // Check for main components within the panel
-      const textArea = appPage.page.locator([
-        '[data-testid="prompt-textarea"]',
-        'textarea[placeholder*="prompt"]',
-        '.expandable-textarea textarea'
-      ].join(', '))
+      const textArea = appPage.page.locator(
+        ['[data-testid="prompt-textarea"]', 'textarea[placeholder*="prompt"]', '.expandable-textarea textarea'].join(
+          ', '
+        )
+      )
 
       if (await textArea.isVisible({ timeout: 5000 })) {
         await expect(textArea).toBeVisible()
@@ -66,11 +64,9 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for prompt creation area
-      const promptTextArea = appPage.page.locator([
-        '[data-testid="prompt-textarea"]',
-        'textarea[placeholder*="prompt"]',
-        'textarea'
-      ].join(', '))
+      const promptTextArea = appPage.page.locator(
+        ['[data-testid="prompt-textarea"]', 'textarea[placeholder*="prompt"]', 'textarea'].join(', ')
+      )
 
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         // Type a prompt
@@ -79,24 +75,28 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(500)
 
         // Look for save/create button
-        const saveButton = appPage.page.locator([
-          '[data-testid="save-prompt"]',
-          'button:has-text("Save")',
-          'button:has-text("Create")',
-          '[data-testid="create-prompt"]'
-        ].join(', '))
+        const saveButton = appPage.page.locator(
+          [
+            '[data-testid="save-prompt"]',
+            'button:has-text("Save")',
+            'button:has-text("Create")',
+            '[data-testid="create-prompt"]'
+          ].join(', ')
+        )
 
         if (await saveButton.isVisible({ timeout: 3000 })) {
           await saveButton.click()
           await appPage.page.waitForTimeout(1000)
 
           // Verify prompt was created (look for success feedback)
-          const successMessage = appPage.page.locator([
-            '[data-testid="success-toast"]',
-            '.toast',
-            '[data-sonner-toast]:has-text("success")',
-            'text*="created"'
-          ].join(', '))
+          const successMessage = appPage.page.locator(
+            [
+              '[data-testid="success-toast"]',
+              '.toast',
+              '[data-sonner-toast]:has-text("success")',
+              'text*="created"'
+            ].join(', ')
+          )
 
           if (await successMessage.isVisible({ timeout: 3000 })) {
             expect(await successMessage.isVisible()).toBe(true)
@@ -114,12 +114,11 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // First select some files
-      const fileItems = appPage.page.locator([
-        '[data-testid="file-item"]',
-        '.file-item',
-        'button:has-text(".js")',
-        'button:has-text("package.json")'
-      ].join(', '))
+      const fileItems = appPage.page.locator(
+        ['[data-testid="file-item"]', '.file-item', 'button:has-text(".js")', 'button:has-text("package.json")'].join(
+          ', '
+        )
+      )
 
       const fileCount = await fileItems.count()
       if (fileCount > 0) {
@@ -128,21 +127,20 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(500)
 
         // Now create prompt with selected files
-        const promptTextArea = appPage.page.locator([
-          '[data-testid="prompt-textarea"]',
-          'textarea'
-        ].join(', '))
+        const promptTextArea = appPage.page.locator(['[data-testid="prompt-textarea"]', 'textarea'].join(', '))
 
         if (await promptTextArea.isVisible({ timeout: 3000 })) {
           await promptTextArea.fill('Review the selected files for potential improvements.')
-          
+
           // Look for context indicator showing selected files
-          const selectedFilesContext = appPage.page.locator([
-            '[data-testid="selected-files-context"]',
-            '.selected-files-indicator',
-            'text*="file selected"',
-            'text*="files selected"'
-          ].join(', '))
+          const selectedFilesContext = appPage.page.locator(
+            [
+              '[data-testid="selected-files-context"]',
+              '.selected-files-indicator',
+              'text*="file selected"',
+              'text*="files selected"'
+            ].join(', ')
+          )
 
           if (await selectedFilesContext.isVisible({ timeout: 2000 })) {
             const contextText = await selectedFilesContext.textContent()
@@ -150,11 +148,9 @@ test.describe('User Input Panel Testing', () => {
           }
 
           // Create the prompt
-          const saveButton = appPage.page.locator([
-            '[data-testid="save-prompt"]',
-            'button:has-text("Save")',
-            'button:has-text("Create")'
-          ].join(', '))
+          const saveButton = appPage.page.locator(
+            ['[data-testid="save-prompt"]', 'button:has-text("Save")', 'button:has-text("Create")'].join(', ')
+          )
 
           if (await saveButton.isVisible({ timeout: 2000 })) {
             await saveButton.click()
@@ -180,13 +176,15 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(1000)
 
         // Look for token count display
-        const tokenDisplay = appPage.page.locator([
-          '[data-testid="token-count"]',
-          '.token-count',
-          'text*="token"',
-          'text*="k"', // For abbreviated counts like "10k"
-          'text*="m"'  // For millions
-        ].join(', '))
+        const tokenDisplay = appPage.page.locator(
+          [
+            '[data-testid="token-count"]',
+            '.token-count',
+            'text*="token"',
+            'text*="k"', // For abbreviated counts like "10k"
+            'text*="m"' // For millions
+          ].join(', ')
+        )
 
         if (await tokenDisplay.isVisible({ timeout: 3000 })) {
           const tokenText = await tokenDisplay.textContent()
@@ -226,24 +224,28 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(500)
 
         // Look for copy button
-        const copyButton = appPage.page.locator([
-          '[data-testid="copy-prompt"]',
-          'button[aria-label*="copy"]',
-          'button:has([data-lucide="copy"])',
-          '.copy-button'
-        ].join(', '))
+        const copyButton = appPage.page.locator(
+          [
+            '[data-testid="copy-prompt"]',
+            'button[aria-label*="copy"]',
+            'button:has([data-lucide="copy"])',
+            '.copy-button'
+          ].join(', ')
+        )
 
         if (await copyButton.isVisible({ timeout: 3000 })) {
           await copyButton.click()
           await appPage.page.waitForTimeout(500)
 
           // Verify copy feedback
-          const copyFeedback = appPage.page.locator([
-            '[data-testid="copy-success"]',
-            'button:has([data-lucide="check"])',
-            '.toast:has-text("copied")',
-            'text*="copied"'
-          ].join(', '))
+          const copyFeedback = appPage.page.locator(
+            [
+              '[data-testid="copy-success"]',
+              'button:has([data-lucide="check"])',
+              '.toast:has-text("copied")',
+              'text*="copied"'
+            ].join(', ')
+          )
 
           if (await copyFeedback.isVisible({ timeout: 2000 })) {
             expect(await copyFeedback.isVisible()).toBe(true)
@@ -265,7 +267,7 @@ test.describe('User Input Panel Testing', () => {
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         const originalPrompt = 'Original prompt content'
         await promptTextArea.fill(originalPrompt)
-        
+
         // Save the prompt
         const saveButton = appPage.page.locator('[data-testid="save-prompt"], button:has-text("Save")')
         if (await saveButton.isVisible({ timeout: 2000 })) {
@@ -308,23 +310,25 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(1000)
 
         // Look for file suggestion button or automatic suggestions
-        const suggestFilesButton = appPage.page.locator([
-          '[data-testid="suggest-files"]',
-          'button:has-text("Suggest")',
-          'button:has([data-lucide="search"])',
-          '.suggest-files-button'
-        ].join(', '))
+        const suggestFilesButton = appPage.page.locator(
+          [
+            '[data-testid="suggest-files"]',
+            'button:has-text("Suggest")',
+            'button:has([data-lucide="search"])',
+            '.suggest-files-button'
+          ].join(', ')
+        )
 
         if (await suggestFilesButton.isVisible({ timeout: 3000 })) {
           await suggestFilesButton.click()
           await appPage.page.waitForTimeout(2000) // Wait for AI processing
 
           // Look for suggestions dialog or results
-          const suggestionsDialog = appPage.page.locator([
-            '[data-testid="file-suggestions"]',
-            '[role="dialog"]:has-text("suggest")',
-            '.suggestions-dialog'
-          ].join(', '))
+          const suggestionsDialog = appPage.page.locator(
+            ['[data-testid="file-suggestions"]', '[role="dialog"]:has-text("suggest")', '.suggestions-dialog'].join(
+              ', '
+            )
+          )
 
           if (await suggestionsDialog.isVisible({ timeout: 5000 })) {
             // Should show suggested files
@@ -358,23 +362,25 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(1000)
 
         // Look for prompt suggestion button
-        const suggestPromptsButton = appPage.page.locator([
-          '[data-testid="suggest-prompts"]',
-          'button:has-text("Suggest")',
-          'button:has([data-lucide="lightbulb"])',
-          '.suggest-prompts-button'
-        ].join(', '))
+        const suggestPromptsButton = appPage.page.locator(
+          [
+            '[data-testid="suggest-prompts"]',
+            'button:has-text("Suggest")',
+            'button:has([data-lucide="lightbulb"])',
+            '.suggest-prompts-button'
+          ].join(', ')
+        )
 
         if (await suggestPromptsButton.isVisible({ timeout: 3000 })) {
           await suggestPromptsButton.click()
           await appPage.page.waitForTimeout(2000) // Wait for AI processing
 
           // Look for prompt suggestions
-          const promptSuggestions = appPage.page.locator([
-            '[data-testid="prompt-suggestions"]',
-            '[role="dialog"]:has-text("prompt")',
-            '.prompt-suggestions'
-          ].join(', '))
+          const promptSuggestions = appPage.page.locator(
+            ['[data-testid="prompt-suggestions"]', '[role="dialog"]:has-text("prompt")', '.prompt-suggestions'].join(
+              ', '
+            )
+          )
 
           if (await promptSuggestions.isVisible({ timeout: 5000 })) {
             const suggestedPrompts = promptSuggestions.locator('[data-testid="suggested-prompt"], .prompt-suggestion')
@@ -407,22 +413,17 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Trigger an AI operation
-      const suggestButton = appPage.page.locator([
-        '[data-testid="suggest-files"]',
-        '[data-testid="suggest-prompts"]',
-        'button:has-text("Suggest")'
-      ].join(', '))
+      const suggestButton = appPage.page.locator(
+        ['[data-testid="suggest-files"]', '[data-testid="suggest-prompts"]', 'button:has-text("Suggest")'].join(', ')
+      )
 
       if (await suggestButton.isVisible({ timeout: 3000 })) {
         await suggestButton.click()
 
         // Look for loading indicator
-        const loadingIndicator = appPage.page.locator([
-          '[data-testid="loading"]',
-          '.loading',
-          '.spinner',
-          'svg[data-lucide="loader-2"]'
-        ].join(', '))
+        const loadingIndicator = appPage.page.locator(
+          ['[data-testid="loading"]', '.loading', '.spinner', 'svg[data-lucide="loader-2"]'].join(', ')
+        )
 
         if (await loadingIndicator.isVisible({ timeout: 1000 })) {
           expect(await loadingIndicator.isVisible()).toBe(true)
@@ -430,7 +431,7 @@ test.describe('User Input Panel Testing', () => {
 
         // Wait for loading to finish
         await appPage.page.waitForTimeout(3000)
-        
+
         // Loading should be gone
         if (await loadingIndicator.isVisible({ timeout: 1000 })) {
           expect(await loadingIndicator.isVisible()).toBe(false)
@@ -449,11 +450,9 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for project summary section
-      const summarySection = appPage.page.locator([
-        '[data-testid="project-summary"]',
-        '.project-summary',
-        '.summary-section'
-      ].join(', '))
+      const summarySection = appPage.page.locator(
+        ['[data-testid="project-summary"]', '.project-summary', '.summary-section'].join(', ')
+      )
 
       if (await summarySection.isVisible({ timeout: 5000 })) {
         // Should show summary content or placeholder
@@ -471,21 +470,17 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for generate summary button
-      const generateSummaryButton = appPage.page.locator([
-        '[data-testid="generate-summary"]',
-        'button:has-text("Generate")',
-        'button:has-text("Summary")'
-      ].join(', '))
+      const generateSummaryButton = appPage.page.locator(
+        ['[data-testid="generate-summary"]', 'button:has-text("Generate")', 'button:has-text("Summary")'].join(', ')
+      )
 
       if (await generateSummaryButton.isVisible({ timeout: 3000 })) {
         await generateSummaryButton.click()
 
         // Should show loading state
-        const loadingIndicator = appPage.page.locator([
-          '[data-testid="summary-loading"]',
-          '.loading',
-          'text*="generating"'
-        ].join(', '))
+        const loadingIndicator = appPage.page.locator(
+          ['[data-testid="summary-loading"]', '.loading', 'text*="generating"'].join(', ')
+        )
 
         if (await loadingIndicator.isVisible({ timeout: 2000 })) {
           expect(await loadingIndicator.isVisible()).toBe(true)
@@ -495,10 +490,7 @@ test.describe('User Input Panel Testing', () => {
         await appPage.page.waitForTimeout(5000)
 
         // Should show generated summary
-        const summaryContent = appPage.page.locator([
-          '[data-testid="summary-content"]',
-          '.summary-content'
-        ].join(', '))
+        const summaryContent = appPage.page.locator(['[data-testid="summary-content"]', '.summary-content'].join(', '))
 
         if (await summaryContent.isVisible({ timeout: 3000 })) {
           const content = await summaryContent.textContent()
@@ -516,11 +508,9 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for summary status indicator
-      const summaryStatus = appPage.page.locator([
-        '[data-testid="summary-status"]',
-        '.summary-status',
-        '.status-indicator'
-      ].join(', '))
+      const summaryStatus = appPage.page.locator(
+        ['[data-testid="summary-status"]', '.summary-status', '.status-indicator'].join(', ')
+      )
 
       if (await summaryStatus.isVisible({ timeout: 3000 })) {
         const statusText = await summaryStatus.textContent()
@@ -543,7 +533,7 @@ test.describe('User Input Panel Testing', () => {
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         // Get initial height
         const initialHeight = await promptTextArea.boundingBox()
-        
+
         // Add multiple lines of content
         const longContent = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10'
         await promptTextArea.fill(longContent)
@@ -570,23 +560,23 @@ test.describe('User Input Panel Testing', () => {
       const promptTextArea = appPage.page.locator('[data-testid="prompt-textarea"], textarea')
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         await promptTextArea.focus()
-        
+
         // Type some content
         await promptTextArea.fill('Test content for keyboard shortcuts')
-        
+
         // Test select all
         await appPage.page.keyboard.press('Meta+a')
         await appPage.page.waitForTimeout(200)
-        
+
         // Test copy
         await appPage.page.keyboard.press('Meta+c')
         await appPage.page.waitForTimeout(200)
-        
+
         // Clear and test paste
         await promptTextArea.fill('')
         await appPage.page.keyboard.press('Meta+v')
         await appPage.page.waitForTimeout(200)
-        
+
         // Should have pasted the content back
         const content = await promptTextArea.inputValue()
         expect(content).toBe('Test content for keyboard shortcuts')

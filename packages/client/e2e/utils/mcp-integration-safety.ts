@@ -1,6 +1,6 @@
 /**
  * Advanced MCP Integration Safety Patterns
- * 
+ *
  * This module provides comprehensive safety patterns for MCP integration testing,
  * including circuit breakers, retry logic, timeout handling, and graceful degradation.
  */
@@ -128,7 +128,6 @@ export class MCPIntegrationSafety {
 
       this.updateConnectionState(status, Date.now() - startTime)
       return this.connectionState
-
     } catch (error) {
       this.handleConnectionError(error as Error, Date.now() - startTime)
       return this.connectionState
@@ -215,11 +214,7 @@ export class MCPIntegrationSafety {
   /**
    * Safely execute MCP tool with comprehensive error handling
    */
-  async safelyExecuteMCPTool(
-    toolName: string,
-    params: any,
-    testContext?: string
-  ): Promise<SafeMCPResult> {
+  async safelyExecuteMCPTool(toolName: string, params: any, testContext?: string): Promise<SafeMCPResult> {
     const startTime = Date.now()
     let retryCount = 0
     let lastError: string | undefined
@@ -265,7 +260,6 @@ export class MCPIntegrationSafety {
           lastError = result?.error || 'Unknown error'
           retryCount = attempt
         }
-
       } catch (error) {
         lastError = (error as Error).message
         retryCount = attempt
@@ -302,11 +296,7 @@ export class MCPIntegrationSafety {
   /**
    * Handle MCP unavailable scenarios based on configuration
    */
-  private async handleMCPUnavailable(
-    toolName: string,
-    params: any,
-    testContext?: string
-  ): Promise<SafeMCPResult> {
+  private async handleMCPUnavailable(toolName: string, params: any, testContext?: string): Promise<SafeMCPResult> {
     const executionTime = Date.now()
 
     switch (this.config.fallbackBehavior) {
@@ -363,11 +353,11 @@ export class MCPIntegrationSafety {
     await this.delay(50 + Math.random() * 100)
 
     const mockHandlers: Record<string, (params: any) => any> = {
-      'project_manager': this.mockProjectManager,
-      'ticket_manager': this.mockTicketManager,
-      'queue_processor': this.mockQueueProcessor,
-      'prompt_manager': this.mockPromptManager,
-      'task_manager': this.mockTaskManager
+      project_manager: this.mockProjectManager,
+      ticket_manager: this.mockTicketManager,
+      queue_processor: this.mockQueueProcessor,
+      prompt_manager: this.mockPromptManager,
+      task_manager: this.mockTaskManager
     }
 
     const handler = mockHandlers[toolName]
@@ -524,7 +514,7 @@ export class MCPIntegrationSafety {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**
@@ -582,7 +572,7 @@ export const MCPSafetyUtils = {
    */
   createSafetyManager(page: Page, testInfo?: TestInfo): MCPIntegrationSafety {
     const testName = testInfo?.title || 'unknown-test'
-    
+
     return MCPIntegrationSafety.getInstance(page, {
       connectionTimeout: 3000, // Shorter timeout for tests
       retryAttempts: 2, // Fewer retries for faster tests
@@ -602,7 +592,7 @@ export const MCPSafetyUtils = {
     testFn: (safetyManager: MCPIntegrationSafety) => Promise<T>
   ): Promise<T> {
     const safetyManager = this.createSafetyManager(page)
-    
+
     try {
       console.log(`🛡️ Starting safe MCP test: ${testName}`)
       const result = await testFn(safetyManager)
@@ -638,20 +628,17 @@ export const MCPSafetyUtils = {
   /**
    * Wait for MCP circuit breaker to reset
    */
-  async waitForCircuitBreakerReset(
-    safetyManager: MCPIntegrationSafety,
-    maxWait: number = 35000
-  ): Promise<boolean> {
+  async waitForCircuitBreakerReset(safetyManager: MCPIntegrationSafety, maxWait: number = 35000): Promise<boolean> {
     const startTime = Date.now()
-    
+
     while (Date.now() - startTime < maxWait) {
       const status = safetyManager.getConnectionStatus()
       if (!status.circuitBreakerOpen) {
         return true
       }
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     }
-    
+
     return false
   }
 }

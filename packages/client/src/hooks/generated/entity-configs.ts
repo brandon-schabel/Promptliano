@@ -4,13 +4,13 @@
  * Maps entity types to their API client methods and configurations
  */
 
-import type { 
-  CrudApiClient, 
-  CrudHookConfig, 
+import type {
+  CrudApiClient,
+  CrudHookConfig,
   OptimisticConfig,
-  InvalidationStrategy 
+  InvalidationStrategy
 } from '../factories/crud-hook-factory'
-import { 
+import {
   PROJECT_ENHANCED_KEYS,
   TICKET_ENHANCED_KEYS,
   CHAT_ENHANCED_KEYS,
@@ -68,7 +68,7 @@ type UpdateClaudeAgentBody = UpdateClaudeAgent
 type TaskQueue = typeof QueueSchema._type
 type CreateQueueBody = CreateQueue
 type UpdateQueueBody = UpdateQueue
-// Import the proper ProviderKey type that handles JSON fields correctly  
+// Import the proper ProviderKey type that handles JSON fields correctly
 import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
 type ProviderKey = DatabaseProviderKey
 type CreateProviderKeyBody = CreateProviderKey
@@ -178,8 +178,14 @@ export const projectApiClient: CrudApiClient<Project, CreateProjectBody, UpdateP
 /**
  * Ticket API Client Configuration
  */
-export const ticketApiClient: CrudApiClient<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }> = {
-  list: (client, params) => client.tickets.listTickets(params?.projectId, params?.status).then((r: any) => r?.data || r),
+export const ticketApiClient: CrudApiClient<
+  Ticket,
+  CreateTicketBody,
+  UpdateTicketBody,
+  { projectId: number; status?: string }
+> = {
+  list: (client, params) =>
+    client.tickets.listTickets(params?.projectId, params?.status).then((r: any) => r?.data || r),
   getById: (client, id) => client.tickets.getTicket(id).then((r: any) => r?.data || r),
   create: (client, data) => client.tickets.createTicket(data).then((r: any) => r?.data || r),
   update: (client, id, data) => client.tickets.updateTicket(id, data).then((r: any) => r?.data || r),
@@ -239,11 +245,18 @@ export const promptApiClient: CrudApiClient<Prompt, CreatePromptBody, UpdateProm
 /**
  * Agent API Client Configuration
  */
-export const agentApiClient: CrudApiClient<ClaudeAgent, CreateClaudeAgentBody, UpdateClaudeAgentBody, { projectId?: number }> = {
+export const agentApiClient: CrudApiClient<
+  ClaudeAgent,
+  CreateClaudeAgentBody,
+  UpdateClaudeAgentBody,
+  { projectId?: number }
+> = {
   list: (client, params) => client.agents.listAgents(params?.projectId).then((r: any) => r?.data || r),
-  getById: (client, id) => client.agents.getAgent(typeof id === 'string' ? id : id.toString()).then((r: any) => r?.data || r),
+  getById: (client, id) =>
+    client.agents.getAgent(typeof id === 'string' ? id : id.toString()).then((r: any) => r?.data || r),
   create: (client, data) => client.agents.createAgent(data).then((r: any) => r?.data || r),
-  update: (client, id, data) => client.agents.updateAgent(typeof id === 'string' ? id : id.toString(), data).then((r: any) => r?.data || r),
+  update: (client, id, data) =>
+    client.agents.updateAgent(typeof id === 'string' ? id : id.toString(), data).then((r: any) => r?.data || r),
   delete: (client, id) => client.agents.deleteAgent(typeof id === 'string' ? id : id.toString()).then(() => undefined)
 }
 
@@ -278,16 +291,17 @@ export const keyApiClient: CrudApiClient<ProviderKey, CreateProviderKeyBody, Upd
 
 export const projectOptimisticConfig: OptimisticConfig<Project> = {
   enabled: true,
-  createOptimisticEntity: (data: CreateProjectBody) => ({
-    ...data,
-    id: -Date.now(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    status: 'active',
-    fileCount: 0,
-    totalSizeBytes: 0,
-    lastSyncedAt: null
-  } as Project),
+  createOptimisticEntity: (data: CreateProjectBody) =>
+    ({
+      ...data,
+      id: -Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      status: 'active',
+      fileCount: 0,
+      totalSizeBytes: 0,
+      lastSyncedAt: null
+    }) as Project,
   updateOptimisticEntity: (old, data) => ({
     ...old,
     ...data,
@@ -298,14 +312,15 @@ export const projectOptimisticConfig: OptimisticConfig<Project> = {
 
 export const ticketOptimisticConfig: OptimisticConfig<Ticket> = {
   enabled: true,
-  createOptimisticEntity: (data: CreateTicketBody) => ({
-    ...data,
-    id: -Date.now(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    status: data.status || 'open',
-    priority: data.priority || 3
-  } as Ticket),
+  createOptimisticEntity: (data: CreateTicketBody) =>
+    ({
+      ...data,
+      id: -Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      status: data.status || 'open',
+      priority: data.priority || 3
+    }) as Ticket,
   updateOptimisticEntity: (old, data) => ({
     ...old,
     ...data,
@@ -316,13 +331,14 @@ export const ticketOptimisticConfig: OptimisticConfig<Ticket> = {
 
 export const chatOptimisticConfig: OptimisticConfig<Chat> = {
   enabled: true,
-  createOptimisticEntity: (data: CreateChatBody) => ({
-    ...data,
-    id: -Date.now(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    messageCount: 0
-  } as Chat),
+  createOptimisticEntity: (data: CreateChatBody) =>
+    ({
+      ...data,
+      id: -Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      messageCount: 0
+    }) as Chat,
   updateOptimisticEntity: (old, data) => ({
     ...old,
     ...data,
@@ -333,13 +349,14 @@ export const chatOptimisticConfig: OptimisticConfig<Chat> = {
 
 export const promptOptimisticConfig: OptimisticConfig<Prompt> = {
   enabled: true,
-  createOptimisticEntity: (data: CreatePromptBody) => ({
-    ...data,
-    id: -Date.now(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    tags: data.tags || []
-  } as Prompt),
+  createOptimisticEntity: (data: CreatePromptBody) =>
+    ({
+      ...data,
+      id: -Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      tags: data.tags || []
+    }) as Prompt,
   updateOptimisticEntity: (old, data) => ({
     ...old,
     ...data,
@@ -394,7 +411,12 @@ export const PROJECT_CONFIG: CrudHookConfig<Project, CreateProjectBody, UpdatePr
   prefetch: { enabled: true, prefetchOnHover: true }
 }
 
-export const TICKET_CONFIG: CrudHookConfig<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }> = {
+export const TICKET_CONFIG: CrudHookConfig<
+  Ticket,
+  CreateTicketBody,
+  UpdateTicketBody,
+  { projectId: number; status?: string }
+> = {
   entityName: 'ticket',
   queryKeys: TICKET_ENHANCED_KEYS,
   apiClient: ticketApiClient,
@@ -424,7 +446,12 @@ export const PROMPT_CONFIG: CrudHookConfig<Prompt, CreatePromptBody, UpdatePromp
   prefetch: { enabled: true }
 }
 
-export const AGENT_CONFIG: CrudHookConfig<ClaudeAgent, CreateClaudeAgentBody, UpdateClaudeAgentBody, { projectId?: number }> = {
+export const AGENT_CONFIG: CrudHookConfig<
+  ClaudeAgent,
+  CreateClaudeAgentBody,
+  UpdateClaudeAgentBody,
+  { projectId?: number }
+> = {
   entityName: 'agent',
   queryKeys: AGENT_ENHANCED_KEYS,
   apiClient: agentApiClient,
@@ -473,9 +500,7 @@ export type ConfiguredEntityName = keyof typeof ENTITY_CONFIGS
 /**
  * Get configuration for a specific entity
  */
-export function getEntityConfig<T extends ConfiguredEntityName>(
-  entityName: T
-): typeof ENTITY_CONFIGS[T] {
+export function getEntityConfig<T extends ConfiguredEntityName>(entityName: T): (typeof ENTITY_CONFIGS)[T] {
   return ENTITY_CONFIGS[entityName]
 }
 
@@ -499,8 +524,10 @@ export const ENTITY_MESSAGES = {
     deleteSuccess: 'Chat deleted successfully'
   },
   prompt: {
-    createSuccess: (entity: Prompt) => `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" created successfully`,
-    updateSuccess: (entity: Prompt) => `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" updated successfully`,
+    createSuccess: (entity: Prompt) =>
+      `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" created successfully`,
+    updateSuccess: (entity: Prompt) =>
+      `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" updated successfully`,
     deleteSuccess: 'Prompt deleted successfully'
   },
   agent: {

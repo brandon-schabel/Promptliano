@@ -45,15 +45,15 @@ export function QueueOverviewView({
   const activeQueues = queuesWithStats?.filter((q) => q.queue.isActive === true).length || 0
 
   const handlePauseQueue = async (queue: QueueWithStats) => {
-    await updateQueueMutation.mutateAsync({ 
-      id: queue.queue.id, 
+    await updateQueueMutation.mutateAsync({
+      id: queue.queue.id,
       data: { isActive: false }
     })
   }
 
   const handleResumeQueue = async (queue: QueueWithStats) => {
-    await updateQueueMutation.mutateAsync({ 
-      id: queue.queue.id, 
+    await updateQueueMutation.mutateAsync({
+      id: queue.queue.id,
       data: { isActive: true }
     })
   }

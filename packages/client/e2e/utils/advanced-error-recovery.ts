@@ -1,6 +1,6 @@
 /**
  * Advanced Error Recovery and Test Resilience Patterns
- * 
+ *
  * This module provides comprehensive error recovery patterns for test execution,
  * including state recovery, automatic fallbacks, and intelligent retry mechanisms.
  */
@@ -38,7 +38,7 @@ interface RecoveryStrategy {
 /**
  * Recovery action types
  */
-type RecoveryAction = 
+type RecoveryAction =
   | { type: 'wait'; duration: number }
   | { type: 'reload'; waitForReady: boolean }
   | { type: 'navigate'; url: string }
@@ -72,12 +72,7 @@ export class AdvancedErrorRecovery {
   private recoveryStrategies: Map<ErrorType, RecoveryStrategy> = new Map()
   private errorHistory: Array<{ error: Error; timestamp: number; resolved: boolean }> = []
 
-  constructor(
-    page: Page, 
-    testInfo: TestInfo, 
-    dataManager?: TestDataManager,
-    mcpSafety?: MCPIntegrationSafety
-  ) {
+  constructor(page: Page, testInfo: TestInfo, dataManager?: TestDataManager, mcpSafety?: MCPIntegrationSafety) {
     this.page = page
     this.testInfo = testInfo
     this.dataManager = dataManager
@@ -142,11 +137,14 @@ export class AdvancedErrorRecovery {
       maxAttempts: 2,
       recoveryActions: [
         { type: 'wait', duration: 1000 },
-        { type: 'custom', action: async () => {
-          if (this.mcpSafety) {
-            this.mcpSafety.resetCircuitBreaker()
+        {
+          type: 'custom',
+          action: async () => {
+            if (this.mcpSafety) {
+              this.mcpSafety.resetCircuitBreaker()
+            }
           }
-        }}
+        }
       ]
     })
 
@@ -171,14 +169,14 @@ export class AdvancedErrorRecovery {
     })
 
     // Listen for console errors
-    this.page.on('console', msg => {
+    this.page.on('console', (msg) => {
       if (msg.type() === 'error') {
         this.recordError(new Error(`Console error: ${msg.text()}`), ErrorType.UNKNOWN)
       }
     })
 
     // Listen for failed network requests
-    this.page.on('requestfailed', request => {
+    this.page.on('requestfailed', (request) => {
       this.recordError(
         new Error(`Request failed: ${request.url()} - ${request.failure()?.errorText}`),
         ErrorType.NETWORK
@@ -204,7 +202,7 @@ export class AdvancedErrorRecovery {
    */
   private classifyError(error: Error): ErrorType {
     const message = error.message.toLowerCase()
-    
+
     if (message.includes('timeout')) return ErrorType.TIMEOUT
     if (message.includes('network') || message.includes('net::')) return ErrorType.NETWORK
     if (message.includes('not found') || message.includes('no such element')) return ErrorType.ELEMENT_NOT_FOUND
@@ -213,7 +211,7 @@ export class AdvancedErrorRecovery {
     if (message.includes('mcp') || message.includes('circuit breaker')) return ErrorType.MCP_FAILURE
     if (message.includes('database') || message.includes('sqlite')) return ErrorType.DATABASE_ERROR
     if (message.includes('permission') || message.includes('access')) return ErrorType.PERMISSION_DENIED
-    
+
     return ErrorType.UNKNOWN
   }
 
@@ -228,33 +226,33 @@ export class AdvancedErrorRecovery {
     let attempts = 0
     let lastError: Error
 
-    while (attempts < 5) { // Maximum global attempts
+    while (attempts < 5) {
+      // Maximum global attempts
       try {
         console.log(`🔄 Executing: ${context} (attempt ${attempts + 1})`)
         const result = await operation()
-        
+
         // Mark recent errors as resolved on success
         this.errorHistory
-          .filter(e => !e.resolved && Date.now() - e.timestamp < 30000)
-          .forEach(e => e.resolved = true)
-        
-        return result
+          .filter((e) => !e.resolved && Date.now() - e.timestamp < 30000)
+          .forEach((e) => (e.resolved = true))
 
+        return result
       } catch (error) {
         lastError = error as Error
         attempts++
-        
+
         const errorType = this.classifyError(lastError)
         console.error(`❌ ${context} failed (${errorType}): ${lastError.message}`)
-        
+
         // Record the error
         this.recordError(lastError, errorType)
-        
+
         // Get recovery strategy
-        const strategy = customStrategy 
+        const strategy = customStrategy
           ? { ...this.recoveryStrategies.get(errorType), ...customStrategy }
           : this.recoveryStrategies.get(errorType)
-        
+
         if (!strategy || attempts > strategy.maxAttempts) {
           break
         }
@@ -268,7 +266,7 @@ export class AdvancedErrorRecovery {
         // Execute recovery actions
         console.log(`🛠️ Attempting recovery for ${context} using ${strategy.type} strategy`)
         await this.executeRecoveryActions(strategy.recoveryActions)
-        
+
         // Brief pause before retry
         await this.delay(500)
       }
@@ -277,12 +275,12 @@ export class AdvancedErrorRecovery {
     // All recovery attempts failed - try fallback
     const errorType = this.classifyError(lastError!)
     const strategy = this.recoveryStrategies.get(errorType)
-    
+
     if (strategy?.fallbackAction) {
       try {
         console.log(`🆘 Executing fallback action for ${context}`)
         await strategy.fallbackAction()
-        
+
         // Try operation one more time after fallback
         return await operation()
       } catch (fallbackError) {
@@ -293,8 +291,8 @@ export class AdvancedErrorRecovery {
     // Complete failure
     throw new Error(
       `Operation '${context}' failed after ${attempts} attempts. ` +
-      `Final error: ${lastError!.message}\n` +
-      `Error history: ${this.getRecentErrorSummary()}`
+        `Final error: ${lastError!.message}\n` +
+        `Error history: ${this.getRecentErrorSummary()}`
     )
   }
 
@@ -402,19 +400,22 @@ export class AdvancedErrorRecovery {
     await this.page.goto(checkpoint.pageUrl)
 
     // Restore browser storage
-    await this.page.evaluate((storage) => {
-      localStorage.clear()
-      sessionStorage.clear()
-      Object.entries(storage.localStorage).forEach(([key, value]) => {
-        localStorage.setItem(key, value)
-      })
-      Object.entries(storage.sessionStorage).forEach(([key, value]) => {
-        sessionStorage.setItem(key, value)
-      })
-    }, { 
-      localStorage: checkpoint.localStorage, 
-      sessionStorage: checkpoint.sessionStorage 
-    })
+    await this.page.evaluate(
+      (storage) => {
+        localStorage.clear()
+        sessionStorage.clear()
+        Object.entries(storage.localStorage).forEach(([key, value]) => {
+          localStorage.setItem(key, value)
+        })
+        Object.entries(storage.sessionStorage).forEach(([key, value]) => {
+          sessionStorage.setItem(key, value)
+        })
+      },
+      {
+        localStorage: checkpoint.localStorage,
+        sessionStorage: checkpoint.sessionStorage
+      }
+    )
 
     // Wait for page to stabilize
     await this.page.waitForLoadState('networkidle', { timeout: 10000 })
@@ -438,12 +439,10 @@ export class AdvancedErrorRecovery {
    */
   private getRecentErrorSummary(): string {
     const recentErrors = this.errorHistory
-      .filter(e => Date.now() - e.timestamp < 60000) // Last minute
+      .filter((e) => Date.now() - e.timestamp < 60000) // Last minute
       .slice(-5) // Last 5 errors
 
-    return recentErrors
-      .map(e => `${e.error.message} (${e.resolved ? 'resolved' : 'unresolved'})`)
-      .join('; ')
+    return recentErrors.map((e) => `${e.error.message} (${e.resolved ? 'resolved' : 'unresolved'})`).join('; ')
   }
 
   /**
@@ -464,17 +463,17 @@ export class AdvancedErrorRecovery {
     recentErrors: number
   } {
     const errorsByType = new Map<ErrorType, number>()
-    
-    this.errorHistory.forEach(e => {
+
+    this.errorHistory.forEach((e) => {
       const type = this.classifyError(e.error)
       errorsByType.set(type, (errorsByType.get(type) || 0) + 1)
     })
 
     return {
       totalErrors: this.errorHistory.length,
-      resolvedErrors: this.errorHistory.filter(e => e.resolved).length,
+      resolvedErrors: this.errorHistory.filter((e) => e.resolved).length,
       errorsByType,
-      recentErrors: this.errorHistory.filter(e => Date.now() - e.timestamp < 60000).length
+      recentErrors: this.errorHistory.filter((e) => Date.now() - e.timestamp < 60000).length
     }
   }
 
@@ -491,7 +490,7 @@ export class AdvancedErrorRecovery {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 
@@ -503,7 +502,7 @@ export const ErrorRecoveryUtils = {
    * Create error recovery manager for test
    */
   createRecoveryManager(
-    page: Page, 
+    page: Page,
     testInfo: TestInfo,
     dataManager?: TestDataManager,
     mcpSafety?: MCPIntegrationSafety
@@ -514,12 +513,7 @@ export const ErrorRecoveryUtils = {
   /**
    * Test operation with automatic recovery
    */
-  async testWithRecovery<T>(
-    page: Page,
-    testInfo: TestInfo,
-    operation: () => Promise<T>,
-    context?: string
-  ): Promise<T> {
+  async testWithRecovery<T>(page: Page, testInfo: TestInfo, operation: () => Promise<T>, context?: string): Promise<T> {
     const recovery = new AdvancedErrorRecovery(page, testInfo)
     try {
       return await recovery.executeWithRecovery(operation, context)
@@ -535,11 +529,7 @@ export const ErrorRecoveryUtils = {
     /**
      * Retry with exponential backoff
      */
-    async exponentialBackoff<T>(
-      operation: () => Promise<T>,
-      maxAttempts = 3,
-      baseDelay = 1000
-    ): Promise<T> {
+    async exponentialBackoff<T>(operation: () => Promise<T>, maxAttempts = 3, baseDelay = 1000): Promise<T> {
       let lastError: Error
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -547,11 +537,11 @@ export const ErrorRecoveryUtils = {
           return await operation()
         } catch (error) {
           lastError = error as Error
-          
+
           if (attempt === maxAttempts) break
-          
+
           const delay = baseDelay * Math.pow(2, attempt - 1)
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
 
@@ -561,11 +551,7 @@ export const ErrorRecoveryUtils = {
     /**
      * Circuit breaker pattern
      */
-    createCircuitBreaker<T>(
-      operation: () => Promise<T>,
-      failureThreshold = 5,
-      resetTimeout = 60000
-    ) {
+    createCircuitBreaker<T>(operation: () => Promise<T>, failureThreshold = 5, resetTimeout = 60000) {
       let failures = 0
       let lastFailureTime = 0
       let state: 'closed' | 'open' | 'half-open' = 'closed'
@@ -586,13 +572,13 @@ export const ErrorRecoveryUtils = {
 
         try {
           const result = await operation()
-          
+
           // Reset on success
           if (state === 'half-open') {
             state = 'closed'
           }
           failures = 0
-          
+
           return result
         } catch (error) {
           failures++

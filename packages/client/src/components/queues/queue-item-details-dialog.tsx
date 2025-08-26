@@ -38,7 +38,7 @@ interface QueueItemDetailsDialogProps {
 export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: QueueItemDetailsDialogProps) {
   const [activeTab, setActiveTab] = useState('details')
 
-  // Fetch ticket details if this is a ticket item  
+  // Fetch ticket details if this is a ticket item
   // TODO: Re-enable conditional fetching once type issues are resolved
   const { data: ticket } = useTicket(item.ticketId || 0)
 

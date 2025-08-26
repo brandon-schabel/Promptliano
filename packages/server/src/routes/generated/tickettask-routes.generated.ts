@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR TICKETTASK
  * Generated at: 2025-08-22T23:50:50.383Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -66,9 +66,9 @@ const tickettaskConfig: EntityConfig = {
  */
 export function registerTicketTaskRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, tickettaskConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for TicketTask`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +81,7 @@ export const tickettaskRoutes = {
   list: `GET /api/tickettasks`,
   get: `GET /api/tickettasks/{id}`,
   update: `PUT /api/tickettasks/{id}`,
-  delete: `DELETE /api/tickettasks/{id}`,
+  delete: `DELETE /api/tickettasks/{id}`
 } as const
 
 export type TicketTaskRouteTypes = typeof tickettaskRoutes

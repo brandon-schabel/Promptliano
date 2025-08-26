@@ -15,7 +15,7 @@ test.describe('Project Workflow Tests', () => {
     appPage = new AppPage(page)
     projectsPage = new ProjectsPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -91,8 +91,8 @@ test.describe('Project Workflow Tests', () => {
 
       // Verify nested structure exists
       const structure = testProject.structure
-      expect(structure.some(item => item.includes('src/'))).toBe(true)
-      
+      expect(structure.some((item) => item.includes('src/'))).toBe(true)
+
       await sidebarPage.navigateToSection('projects')
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
 
@@ -102,7 +102,7 @@ test.describe('Project Workflow Tests', () => {
     test('should validate project path before creation', async () => {
       // Try to create project with invalid path
       await sidebarPage.navigateToSection('projects')
-      
+
       const createButton = appPage.page.locator('[data-testid="create-project"], button:has-text("New Project")')
       await createButton.click()
 
@@ -172,14 +172,14 @@ test.describe('Project Workflow Tests', () => {
 
       // Switch to different views within project
       const viewTabs = ['context', 'flow', 'git']
-      
+
       for (const view of viewTabs) {
         try {
           const tabElement = appPage.page.locator(`button:has-text("${view}")`, { timeout: 5000 })
           if (await tabElement.isVisible()) {
             await tabElement.click()
             await appPage.waitForLoadingComplete()
-            
+
             // Verify we're still in the same project
             const currentProject = await appPage.getCurrentProjectName()
             expect(currentProject).toContain(testProject.name)
@@ -226,9 +226,7 @@ test.describe('Project Workflow Tests', () => {
     })
 
     test('should handle project with different file types', async () => {
-      const testProject = await TestProjectHelpers.createTestProject(
-        TestProjectPresets.withBinaryFiles()
-      )
+      const testProject = await TestProjectHelpers.createTestProject(TestProjectPresets.withBinaryFiles())
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
@@ -263,11 +261,9 @@ test.describe('Project Workflow Tests', () => {
       const projectCard = appPage.page.locator(`text="${testProject.name}"`)
       if (await projectCard.isVisible()) {
         await projectCard.click()
-        
+
         // Should show error or handle missing directory
-        await expect(
-          appPage.page.locator('[data-testid="error"], .error')
-        ).toBeVisible({ timeout: 5000 })
+        await expect(appPage.page.locator('[data-testid="error"], .error')).toBeVisible({ timeout: 5000 })
       }
     })
 
@@ -289,7 +285,7 @@ test.describe('Project Workflow Tests', () => {
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
-      
+
       // Should be able to load project with special characters
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
       expect(await TestProjectHelpers.verifyProjectInApp(appPage.page, testProject)).toBe(true)
@@ -377,7 +373,7 @@ test.describe('Project Workflow Tests', () => {
       // For now, just verify the project can be loaded normally
       await sidebarPage.navigateToSection('projects')
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
-      
+
       const stats = await TestProjectHelpers.getProjectStats(testProject)
       expect(stats.fileCount).toBeGreaterThan(5)
     })

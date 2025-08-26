@@ -50,7 +50,7 @@ runs:
         START_ISO=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
         echo "start-time=$START_TIME" >> $GITHUB_OUTPUT
         echo "start-iso=$START_ISO" >> $GITHUB_OUTPUT
-        
+
         echo "📊 Starting telemetry for: ${{ inputs.step-name }}"
         echo "  - Type: ${{ inputs.step-type }}"
         echo "  - Workflow: ${{ inputs.workflow-name }}"
@@ -58,7 +58,7 @@ runs:
         echo "  - Critical: ${{ inputs.critical }}"
         echo "  - Timeout: ${{ inputs.timeout-seconds }}s"
         echo "  - Started: $START_ISO"
-        
+
         # Store telemetry data
         mkdir -p /tmp/workflow-telemetry
         cat > /tmp/workflow-telemetry/${{ inputs.step-name }}.json << EOF
@@ -88,11 +88,11 @@ runs:
         END_ISO=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
         START_TIME=${{ steps.telemetry.outputs.start-time }}
         DURATION=$((END_TIME - START_TIME))
-        
+
         echo "end-time=$END_TIME" >> $GITHUB_OUTPUT
         echo "duration=$DURATION" >> $GITHUB_OUTPUT
         echo "end-iso=$END_ISO" >> $GITHUB_OUTPUT
-        
+
         # Determine status
         if [ "${{ job.status }}" = "success" ]; then
           STATUS="success"
@@ -107,14 +107,14 @@ runs:
           STATUS="unknown"
           ICON="❓"
         fi
-        
+
         echo "status=$STATUS" >> $GITHUB_OUTPUT
-        
+
         echo "$ICON Telemetry completed for: ${{ inputs.step-name }}"
         echo "  - Status: $STATUS"
         echo "  - Duration: ${DURATION}s"
         echo "  - Ended: $END_ISO"
-        
+
         # Update telemetry data
         if [ -f "/tmp/workflow-telemetry/${{ inputs.step-name }}.json" ]; then
           cat > /tmp/workflow-telemetry/${{ inputs.step-name }}.json << EOF
@@ -140,7 +140,7 @@ runs:
         }
         EOF
         fi
-        
+
         # Create summary entry
         echo "## 📊 Step Telemetry: ${{ inputs.step-name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

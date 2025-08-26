@@ -3,7 +3,7 @@ export type { ApiConfig, DataResponseSchema } from './base-client'
 export { PromptlianoError } from './base-client'
 
 // Import and re-export commonly used types from database schemas
-export type { 
+export type {
   CreateChat as CreateChatBody,
   UpdateChat as UpdateChatBody,
   CreateChatMessage,
@@ -30,10 +30,7 @@ export type File = typeof FileSchema._type
 
 // Note: ProjectStatistics available via API types
 
-export type { 
-  CreatePrompt as CreatePromptBody,
-  UpdatePrompt as UpdatePromptBody
-} from '@promptliano/database'
+export type { CreatePrompt as CreatePromptBody, UpdatePrompt as UpdatePromptBody } from '@promptliano/database'
 
 // Use schema type for entity
 import type { PromptSchema } from '@promptliano/database'
@@ -41,7 +38,7 @@ export type Prompt = typeof PromptSchema._type
 
 // Note: OptimizePromptRequest available via API types
 
-export type { 
+export type {
   CreateProviderKey as CreateProviderKeyBody,
   UpdateProviderKey as UpdateProviderKeyBody
 } from '@promptliano/database'
@@ -50,7 +47,7 @@ export type {
 import type { ProviderKeySchema } from '@promptliano/database'
 export type ProviderKey = typeof ProviderKeySchema._type
 
-export type { 
+export type {
   CreateClaudeAgent as CreateClaudeAgentBody,
   UpdateClaudeAgent as UpdateClaudeAgentBody
 } from '@promptliano/database'
@@ -175,7 +172,6 @@ export type FailTaskBody = {
 // Re-export complex types from API generated types
 // These are available via the generated TypeSafe client
 
-
 // MCP types available via API types
 // export type {
 //   MCPServerConfig,
@@ -196,7 +192,6 @@ export type FailTaskBody = {
 //   MCPToolExecution,
 //   MCPExecutionListResponse
 // } from '@promptliano/schemas'
-
 
 // Additional types that will be defined in individual client modules
 // as needed rather than importing from schemas to avoid import errors
@@ -229,7 +224,6 @@ export type MCPProjectConfig = {
   }>
   customInstructions?: string
 }
-
 
 export type MCPInstallationStatus = {
   projectConfig: {
@@ -314,7 +308,6 @@ export type MCPProjectConfigResponse = {
 }
 
 // Note: CreateMCPServerConfigBody and UpdateMCPServerConfigBody are already imported from schemas above
-
 
 // Git-related types that are missing from schemas
 export type GitDiffFile = {
@@ -401,10 +394,7 @@ export type GitDiffRequest = {
 }
 
 // Claude Hooks types available via database schemas
-export type {
-  CreateClaudeHook,
-  UpdateClaudeHook
-} from '@promptliano/database'
+export type { CreateClaudeHook, UpdateClaudeHook } from '@promptliano/database'
 
 // Use schema type for entity
 import type { ClaudeHookSchema } from '@promptliano/database'

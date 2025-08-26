@@ -13,9 +13,9 @@ import { toast } from 'sonner'
 const CLAUDE_HOOKS_KEYS = {
   all: ['claude-hooks'] as const,
   byProject: (projectPath: string) => [...CLAUDE_HOOKS_KEYS.all, 'project', projectPath] as const,
-  detail: (projectPath: string, eventName: HookEventType, matcherIndex: number) => 
+  detail: (projectPath: string, eventName: HookEventType, matcherIndex: number) =>
     [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'detail', eventName, matcherIndex] as const,
-  search: (projectPath: string, query: string) => 
+  search: (projectPath: string, query: string) =>
     [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'search', query] as const
 }
 
@@ -100,24 +100,24 @@ export function createClaudeHooksMutationFactory() {
         onMutate: async (data) => {
           // Cancel outgoing refetches
           await queryClient.cancelQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
-          
+
           // Snapshot the previous value
           const previousHooks = queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath))
-          
+
           // Optimistic update - add the new hook to the list
           queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
             if (!old || !Array.isArray(old)) return old
-            
+
             const optimisticHook = {
               ...data,
               id: `temp-${Date.now()}`, // Temporary ID
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             }
-            
+
             return [...old, optimisticHook]
           })
-          
+
           return { previousHooks }
         },
         onError: (err, data, context) => {
@@ -129,21 +129,24 @@ export function createClaudeHooksMutationFactory() {
           // Update the cache with the actual hook data
           queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
             if (!old || !Array.isArray(old)) return [newHook]
-            
+
             // Replace the optimistic entry with the real data
-            return old.map(hook => 
-              hook.id?.toString().startsWith('temp-') ? newHook : hook
-            )
+            return old.map((hook) => (hook.id?.toString().startsWith('temp-') ? newHook : hook))
           })
-          
+
           // Cache the individual hook if we have the necessary info from newHook response
-          if (newHook && 'eventName' in newHook && 'matcherIndex' in newHook && typeof (newHook as any).matcherIndex === 'number') {
+          if (
+            newHook &&
+            'eventName' in newHook &&
+            'matcherIndex' in newHook &&
+            typeof (newHook as any).matcherIndex === 'number'
+          ) {
             queryClient.setQueryData(
               CLAUDE_HOOKS_KEYS.detail(projectPath, (newHook as any).eventName, (newHook as any).matcherIndex),
               newHook
             )
           }
-          
+
           toast.success('Hook created successfully')
         },
         onSettled: () => {
@@ -177,32 +180,32 @@ export function createClaudeHooksMutationFactory() {
         onMutate: async ({ eventName, matcherIndex, data }) => {
           const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           const listKey = CLAUDE_HOOKS_KEYS.byProject(projectPath)
-          
+
           // Cancel outgoing refetches
           await queryClient.cancelQueries({ queryKey: detailKey })
           await queryClient.cancelQueries({ queryKey: listKey })
-          
+
           // Snapshot previous values
           const previousHook = queryClient.getQueryData(detailKey)
           const previousHooks = queryClient.getQueryData(listKey)
-          
+
           // Optimistic update for individual hook
           queryClient.setQueryData(detailKey, (old: any) => {
             if (!old) return old
             return { ...old, ...data, updatedAt: new Date().toISOString() }
           })
-          
+
           // Optimistic update for hooks list
           queryClient.setQueryData(listKey, (old: any) => {
             if (!old || !Array.isArray(old)) return old
-            return old.map(hook => {
+            return old.map((hook) => {
               if (hook.eventName === eventName && hook.matcherIndex === matcherIndex) {
                 return { ...hook, ...data, updatedAt: new Date().toISOString() }
               }
               return hook
             })
           })
-          
+
           return { previousHook, previousHooks, detailKey, listKey }
         },
         onError: (err, variables, context) => {
@@ -219,24 +222,24 @@ export function createClaudeHooksMutationFactory() {
           // Update caches with server response
           const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           queryClient.setQueryData(detailKey, updatedHook)
-          
+
           queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
             if (!old || !Array.isArray(old)) return old
-            return old.map(hook => {
+            return old.map((hook) => {
               if (hook.eventName === eventName && hook.matcherIndex === matcherIndex) {
                 return updatedHook
               }
               return hook
             })
           })
-          
+
           toast.success('Hook updated successfully')
         },
         onSettled: (_, __, { eventName, matcherIndex }) => {
           // Invalidate relevant queries
           queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
-          queryClient.invalidateQueries({ 
-            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex) 
+          queryClient.invalidateQueries({
+            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           })
         }
       })
@@ -257,24 +260,22 @@ export function createClaudeHooksMutationFactory() {
         onMutate: async ({ eventName, matcherIndex }) => {
           const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           const listKey = CLAUDE_HOOKS_KEYS.byProject(projectPath)
-          
+
           // Cancel outgoing refetches
           await queryClient.cancelQueries({ queryKey: listKey })
-          
+
           // Snapshot previous value
           const previousHooks = queryClient.getQueryData(listKey)
-          
+
           // Optimistic removal from list
           queryClient.setQueryData(listKey, (old: any) => {
             if (!old || !Array.isArray(old)) return old
-            return old.filter(hook => 
-              !(hook.eventName === eventName && hook.matcherIndex === matcherIndex)
-            )
+            return old.filter((hook) => !(hook.eventName === eventName && hook.matcherIndex === matcherIndex))
           })
-          
+
           // Remove individual hook cache
           queryClient.removeQueries({ queryKey: detailKey })
-          
+
           return { previousHooks, listKey }
         },
         onError: (err, variables, context) => {
@@ -290,7 +291,7 @@ export function createClaudeHooksMutationFactory() {
         onSettled: (_, __, { eventName, matcherIndex }) => {
           // Clean up and invalidate
           queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
-          queryClient.removeQueries({ 
+          queryClient.removeQueries({
             queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           })
         }
@@ -351,39 +352,39 @@ export function createClaudeHooksCacheFactory() {
         invalidateProjectHooks: (projectPath: string) => {
           queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
         },
-        
+
         // Invalidate specific hook
         invalidateHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
-          queryClient.invalidateQueries({ 
-            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex) 
+          queryClient.invalidateQueries({
+            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
           })
         },
-        
+
         // Clear search cache
         clearSearchCache: (projectPath: string) => {
-          queryClient.removeQueries({ 
+          queryClient.removeQueries({
             queryKey: [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'search'],
-            exact: false 
+            exact: false
           })
         },
-        
+
         // Prefetch project hooks
         prefetchProjectHooks: async (projectPath: string) => {
           const client = useApiClient()
           if (!client || !projectPath) return
-          
+
           return queryClient.prefetchQuery({
             queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath),
-            queryFn: () => client.claudeHooks.list(projectPath).then(r => r.data),
+            queryFn: () => client.claudeHooks.list(projectPath).then((r) => r.data),
             staleTime: 2 * 60 * 1000
           })
         },
-        
+
         // Get cached hooks without triggering fetch
         getCachedProjectHooks: (projectPath: string) => {
           return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath))
         },
-        
+
         // Get cached hook without triggering fetch
         getCachedHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
           return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex))

@@ -52,12 +52,7 @@ export class GitConfigService extends BaseGitService {
   /**
    * Set git configuration
    */
-  async setConfig(
-    projectId: number,
-    key: string,
-    value: string,
-    options?: { global?: boolean }
-  ): Promise<void> {
+  async setConfig(projectId: number, key: string, value: string, options?: { global?: boolean }): Promise<void> {
     try {
       const { git } = await this.getGitInstance(projectId)
 
@@ -77,11 +72,7 @@ export class GitConfigService extends BaseGitService {
   /**
    * Unset git configuration
    */
-  async unsetConfig(
-    projectId: number,
-    key: string,
-    options?: { global?: boolean }
-  ): Promise<void> {
+  async unsetConfig(projectId: number, key: string, options?: { global?: boolean }): Promise<void> {
     try {
       const { git } = await this.getGitInstance(projectId)
 

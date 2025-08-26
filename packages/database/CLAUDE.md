@@ -24,8 +24,8 @@ export const tickets = sqliteTable('tickets', {
 export const insertTicketSchema = createInsertSchema(tickets)
 export const selectTicketSchema = createSelectSchema(tickets)
 export type Ticket = typeof tickets.$inferSelect
-export type CreateTicket = z.infer<typeof insertTicketSchema.omit({ 
-  id: true, createdAt: true, updatedAt: true 
+export type CreateTicket = z.infer<typeof insertTicketSchema.omit({
+  id: true, createdAt: true, updatedAt: true
 })>
 
 // 3. Define relationships
@@ -55,23 +55,25 @@ packages/database/
 ## Usage Across Stack
 
 ### Import Pattern (ALL Packages)
+
 ```typescript
 // ALWAYS import from @promptliano/database
-import { 
-  type Ticket,           // Auto-inferred type
-  type CreateTicket,     // Creation type
-  insertTicketSchema,    // Zod schema
-  ticketRepository       // Repository instance
+import {
+  type Ticket, // Auto-inferred type
+  type CreateTicket, // Creation type
+  insertTicketSchema, // Zod schema
+  ticketRepository // Repository instance
 } from '@promptliano/database'
 
 // NEVER define your own types or schemas!
 ```
 
 ### Service Layer
+
 ```typescript
 export function createTicketService(deps = {}) {
   const { repository = ticketRepository } = deps
-  
+
   return {
     async create(data: CreateTicket): Promise<Ticket> {
       return await repository.create(data) // Fully typed!
@@ -81,8 +83,10 @@ export function createTicketService(deps = {}) {
 ```
 
 ### API Routes
+
 ```typescript
-app.post('/tickets', 
+app.post(
+  '/tickets',
   zValidator('json', insertTicketSchema.omit({ id: true, createdAt: true, updatedAt: true })),
   async (c) => {
     const data = c.req.valid('json') // Auto-typed!
@@ -93,6 +97,7 @@ app.post('/tickets',
 ```
 
 ### React Components
+
 ```typescript
 const form = useForm<CreateTicket>({
   resolver: zodResolver(createTicketSchema)
@@ -102,15 +107,19 @@ const form = useForm<CreateTicket>({
 ## Repository Pattern
 
 ### Base Repository (Auto-CRUD)
+
 ```typescript
 export function createBaseRepository<TTable>(table: TTable) {
   return {
     async create(data): Promise<TSelect> {
-      const result = await db.insert(table).values({
-        ...data,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }).returning()
+      const result = await db
+        .insert(table)
+        .values({
+          ...data,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+        .returning()
       return result[0]
     },
     async getById(id: number) {
@@ -118,7 +127,8 @@ export function createBaseRepository<TTable>(table: TTable) {
       return result[0] || null
     },
     async update(id: number, data) {
-      const result = await db.update(table)
+      const result = await db
+        .update(table)
         .set({ ...data, updatedAt: Date.now() })
         .where(eq(table.id, id))
         .returning()
@@ -133,6 +143,7 @@ export function createBaseRepository<TTable>(table: TTable) {
 ```
 
 ### Extend for Domain Logic
+
 ```typescript
 export const ticketRepository = {
   ...createBaseRepository(tickets),
@@ -153,6 +164,7 @@ bun drizzle:studio   # Visual database browser
 ## Critical Patterns
 
 ### ✅ DO
+
 - **Single import source:** Always `from '@promptliano/database'`
 - **Schema-driven:** Define in schema.ts, auto-generate everything else
 - **Use repositories:** Never raw database access in services
@@ -160,6 +172,7 @@ bun drizzle:studio   # Visual database browser
 - **Timestamp fields:** Always include createdAt/updatedAt
 
 ### ❌ DON'T
+
 - **Manual types:** Never define entity types outside database package
 - **Type adapters:** No DTO conversions or field mapping
 - **Mixed schemas:** Don't use old @promptliano/schemas package
@@ -170,16 +183,21 @@ bun drizzle:studio   # Visual database browser
 
 ```typescript
 // Indexes for common queries
-export const files = sqliteTable('files', {
-  // ... fields
-}, (table) => ({
-  projectIdx: index('files_project_idx').on(table.projectId),
-  pathIdx: index('files_path_idx').on(table.path),
-  relevantIdx: index('files_relevant_idx').on(table.isRelevant, table.relevanceScore)
-}))
+export const files = sqliteTable(
+  'files',
+  {
+    // ... fields
+  },
+  (table) => ({
+    projectIdx: index('files_project_idx').on(table.projectId),
+    pathIdx: index('files_path_idx').on(table.path),
+    relevantIdx: index('files_relevant_idx').on(table.isRelevant, table.relevanceScore)
+  })
+)
 
 // Prepared statements for hot paths
-const getByProject = db.select()
+const getByProject = db
+  .select()
   .from(tickets)
   .where(eq(tickets.projectId, placeholder('projectId')))
   .prepare()
@@ -190,11 +208,11 @@ const getByProject = db.select()
 ```typescript
 describe('TicketRepository', () => {
   let testDb: Database
-  
+
   beforeEach(async () => {
     testDb = await createTestDatabase()
   })
-  
+
   test('creates ticket with valid data', async () => {
     const ticket = await ticketRepository.create({
       title: 'Test Ticket',
@@ -209,19 +227,20 @@ describe('TicketRepository', () => {
 ## Agent Requirements
 
 **Mandatory agents for database work:**
+
 - `drizzle-migration-architect` - Schema migrations
-- `promptliano-sqlite-expert` - SQLite optimizations  
+- `promptliano-sqlite-expert` - SQLite optimizations
 - `typescript-type-safety-auditor` - Type validation
 - `staff-engineer-code-reviewer` - Review all changes
 
 ## Key Metrics
 
-| Aspect | Impact |
-|--------|--------|
-| **Code Reduction** | 87% less code (10K → 1.3K lines) |
-| **Type Safety** | 100% compile-time validation |
-| **Development Speed** | 24x faster (2 hours → 5 min/entity) |
-| **Maintenance** | Zero sync issues (automatic propagation) |
+| Aspect                | Impact                                   |
+| --------------------- | ---------------------------------------- |
+| **Code Reduction**    | 87% less code (10K → 1.3K lines)         |
+| **Type Safety**       | 100% compile-time validation             |
+| **Development Speed** | 24x faster (2 hours → 5 min/entity)      |
+| **Maintenance**       | Zero sync issues (automatic propagation) |
 
 ---
 

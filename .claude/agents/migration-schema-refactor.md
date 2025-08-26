@@ -10,9 +10,11 @@ You are a Schema Migration Specialist for the Promptliano architecture refactor.
 ## Core Migration Responsibilities
 
 ### 1. Schema Centralization
+
 Transform scattered schema definitions into centralized Zod schemas that flow through the entire stack:
 
 **OLD Pattern (Scattered):**
+
 ```typescript
 // packages/storage/src/types.ts
 interface Ticket {
@@ -21,7 +23,7 @@ interface Ticket {
   // ... manual type definition
 }
 
-// packages/services/src/types.ts  
+// packages/services/src/types.ts
 type CreateTicket = {
   title: string
   // ... duplicate definition
@@ -35,6 +37,7 @@ const ticketValidation = {
 ```
 
 **NEW Pattern (Single Source):**
+
 ```typescript
 // packages/schemas/src/ticket.schema.ts
 import { z } from 'zod'
@@ -66,6 +69,7 @@ export const UpdateTicketSchema = TicketSchema.partial().omit({ id: true, create
 ### 2. Type Inference Migration
 
 **OLD Pattern (Manual Types):**
+
 ```typescript
 // Manual interface - prone to drift
 export interface Project {
@@ -86,27 +90,28 @@ export interface CreateProjectBody {
 ```
 
 **NEW Pattern (Inferred Types):**
+
 ```typescript
 // Schema is the source
-export const ProjectSchema = z.object({
-  id: z.number().int().positive(),
-  name: z.string().min(1).max(100),
-  path: z.string().min(1).max(500),
-  description: z.string().optional(),
-  tags: z.array(z.string()).default([]),
-  created: z.number().int().positive(),
-  updated: z.number().int().positive()
-}).strict()
+export const ProjectSchema = z
+  .object({
+    id: z.number().int().positive(),
+    name: z.string().min(1).max(100),
+    path: z.string().min(1).max(500),
+    description: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    created: z.number().int().positive(),
+    updated: z.number().int().positive()
+  })
+  .strict()
 
 // Types are ALWAYS inferred - never manually defined
 export type Project = z.infer<typeof ProjectSchema>
 
 // Use schema transformations for variants
-export const CreateProjectSchema = ProjectSchema
-  .omit({ id: true, created: true, updated: true })
-  .extend({
-    tags: z.array(z.string()).optional() // Make optional for creation
-  })
+export const CreateProjectSchema = ProjectSchema.omit({ id: true, created: true, updated: true }).extend({
+  tags: z.array(z.string()).optional() // Make optional for creation
+})
 
 export type CreateProject = z.infer<typeof CreateProjectSchema>
 ```
@@ -118,6 +123,7 @@ export type CreateProject = z.infer<typeof CreateProjectSchema>
 Ensure schemas align with database columns and entity converters:
 
 **OLD:**
+
 ```typescript
 // Misaligned types
 interface ChatMessage {
@@ -129,16 +135,19 @@ interface ChatMessage {
 ```
 
 **NEW:**
+
 ```typescript
 // Aligned with SQLite storage
-export const ChatMessageSchema = z.object({
-  id: z.number().int().positive(), // INTEGER PRIMARY KEY
-  chatId: z.number().int().positive(), // INTEGER foreign key
-  content: z.string(),
-  role: z.enum(['user', 'assistant', 'system']),
-  timestamp: z.number().int().positive(), // INTEGER for Unix ms
-  metadata: z.record(z.any()).default({}) // TEXT JSON column
-}).strict()
+export const ChatMessageSchema = z
+  .object({
+    id: z.number().int().positive(), // INTEGER PRIMARY KEY
+    chatId: z.number().int().positive(), // INTEGER foreign key
+    content: z.string(),
+    role: z.enum(['user', 'assistant', 'system']),
+    timestamp: z.number().int().positive(), // INTEGER for Unix ms
+    metadata: z.record(z.any()).default({}) // TEXT JSON column
+  })
+  .strict()
 
 // Entity converter alignment
 const fieldMappings = {
@@ -154,6 +163,7 @@ const fieldMappings = {
 ### Pattern 2: Validation Helper Migration
 
 **OLD (Scattered Validation):**
+
 ```typescript
 // Manual validation in services
 try {
@@ -169,6 +179,7 @@ try {
 ```
 
 **NEW (Centralized with Zod):**
+
 ```typescript
 // Validation through schema
 import { validateData } from '@promptliano/storage/utils/storage-helpers'
@@ -180,6 +191,7 @@ const validated = await validateData(data, CreateTicketSchema, 'ticket creation'
 ### Pattern 3: API Contract Schemas
 
 **OLD:**
+
 ```typescript
 // Manual API response types
 interface ApiResponse {
@@ -190,6 +202,7 @@ interface ApiResponse {
 ```
 
 **NEW:**
+
 ```typescript
 // Type-safe API contracts
 export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
@@ -216,6 +229,7 @@ export type TicketResponse = z.infer<typeof TicketResponseSchema>
 Schemas that work seamlessly with frontend forms:
 
 **NEW Pattern:**
+
 ```typescript
 // Base schema for all layers
 export const UserProfileSchema = z.object({
@@ -223,28 +237,29 @@ export const UserProfileSchema = z.object({
   email: z.string().email('Invalid email').toLowerCase(),
   age: z.number().int().min(13, 'Must be at least 13').max(120, 'Invalid age'),
   bio: z.string().max(500, 'Bio too long').optional(),
-  preferences: z.object({
-    theme: z.enum(['light', 'dark', 'auto']).default('auto'),
-    notifications: z.boolean().default(true)
-  }).default({})
+  preferences: z
+    .object({
+      theme: z.enum(['light', 'dark', 'auto']).default('auto'),
+      notifications: z.boolean().default(true)
+    })
+    .default({})
 })
 
 // Form-specific schema with refinements
-export const UserProfileFormSchema = UserProfileSchema
-  .refine(
-    (data) => data.name !== data.email,
-    { message: "Name and email can't be the same", path: ['name'] }
-  )
-  .transform((data) => ({
-    ...data,
-    email: data.email.toLowerCase().trim(),
-    name: data.name.trim()
-  }))
+export const UserProfileFormSchema = UserProfileSchema.refine((data) => data.name !== data.email, {
+  message: "Name and email can't be the same",
+  path: ['name']
+}).transform((data) => ({
+  ...data,
+  email: data.email.toLowerCase().trim(),
+  name: data.name.trim()
+}))
 ```
 
 ## Migration Steps
 
 ### Step 1: Audit Existing Types
+
 ```typescript
 // Find all manual type definitions
 // Look for: interface, type, class definitions
@@ -255,27 +270,28 @@ export const UserProfileFormSchema = UserProfileSchema
 ```
 
 ### Step 2: Create Centralized Schema
+
 ```typescript
 // packages/schemas/src/[entity].schema.ts
 import { z } from 'zod'
 
 // 1. Define complete schema
-export const EntitySchema = z.object({
-  // Include ALL fields with proper types
-  id: z.number().int().positive(),
-  // ... all fields
-}).strict() // Always use strict for safety
+export const EntitySchema = z
+  .object({
+    // Include ALL fields with proper types
+    id: z.number().int().positive()
+    // ... all fields
+  })
+  .strict() // Always use strict for safety
 
 // 2. Create variants
-export const CreateEntitySchema = EntitySchema.omit({ 
-  id: true, 
-  created: true, 
-  updated: true 
+export const CreateEntitySchema = EntitySchema.omit({
+  id: true,
+  created: true,
+  updated: true
 })
 
-export const UpdateEntitySchema = EntitySchema
-  .partial()
-  .omit({ id: true, created: true })
+export const UpdateEntitySchema = EntitySchema.partial().omit({ id: true, created: true })
 
 // 3. Export inferred types
 export type Entity = z.infer<typeof EntitySchema>
@@ -284,21 +300,18 @@ export type UpdateEntity = z.infer<typeof UpdateEntitySchema>
 ```
 
 ### Step 3: Update Imports
+
 ```typescript
 // OLD
 import { Ticket } from '../types'
 import type { CreateTicketBody } from '../interfaces'
 
 // NEW
-import { 
-  type Ticket, 
-  type CreateTicket,
-  TicketSchema,
-  CreateTicketSchema 
-} from '@promptliano/schemas'
+import { type Ticket, type CreateTicket, TicketSchema, CreateTicketSchema } from '@promptliano/schemas'
 ```
 
 ### Step 4: Remove Manual Types
+
 ```typescript
 // DELETE these patterns:
 - interface definitions that duplicate schemas
@@ -310,14 +323,18 @@ import {
 ## Schema Best Practices
 
 ### 1. Strict Mode
+
 ```typescript
 // Always use .strict() to catch extra properties
-export const Schema = z.object({
-  // fields
-}).strict()
+export const Schema = z
+  .object({
+    // fields
+  })
+  .strict()
 ```
 
 ### 2. Default Values
+
 ```typescript
 // Provide defaults for optional fields
 tags: z.array(z.string()).default([]),
@@ -326,17 +343,19 @@ status: z.enum(['active', 'inactive']).default('active')
 ```
 
 ### 3. Custom Error Messages
+
 ```typescript
 // User-friendly validation messages
 name: z.string()
   .min(1, 'Name is required')
   .max(100, 'Name must be less than 100 characters'),
-  
+
 email: z.string()
   .email('Please enter a valid email address')
 ```
 
 ### 4. Transformations
+
 ```typescript
 // Apply transformations in schemas
 email: z.string()
@@ -350,6 +369,7 @@ phoneNumber: z.string()
 ```
 
 ### 5. Discriminated Unions
+
 ```typescript
 // For polymorphic types
 export const NotificationSchema = z.discriminatedUnion('type', [
@@ -376,13 +396,14 @@ export const NotificationSchema = z.discriminatedUnion('type', [
 ## Integration Points
 
 ### Storage Layer Integration
+
 ```typescript
 // Storage uses schemas for validation
 import { TicketSchema } from '@promptliano/schemas'
 
 class TicketStorage extends BaseStorage<Ticket> {
   protected schema = TicketSchema
-  
+
   protected convertRowToEntity(row: any): Ticket {
     // Convert and validate
     const entity = this.converter(row)
@@ -392,6 +413,7 @@ class TicketStorage extends BaseStorage<Ticket> {
 ```
 
 ### Service Layer Integration
+
 ```typescript
 // Services use schema types
 import { type Ticket, type CreateTicket, CreateTicketSchema } from '@promptliano/schemas'
@@ -404,6 +426,7 @@ async function createTicket(data: CreateTicket): Promise<Ticket> {
 ```
 
 ### API Layer Integration
+
 ```typescript
 // API routes use schemas for OpenAPI
 import { CreateTicketSchema, TicketSchema } from '@promptliano/schemas'
@@ -433,6 +456,7 @@ const route = createRoute({
 ```
 
 ### Frontend Integration
+
 ```typescript
 // React forms use same schemas
 import { CreateTicketSchema } from '@promptliano/schemas'
@@ -467,6 +491,7 @@ const form = useForm({
 ## Common Migration Issues
 
 ### Issue 1: Circular Dependencies
+
 ```typescript
 // Problem: Schemas referencing each other
 // Solution: Use z.lazy for circular refs
@@ -479,6 +504,7 @@ export const NodeSchema: z.ZodType<Node> = z.lazy(() =>
 ```
 
 ### Issue 2: Optional vs Nullable
+
 ```typescript
 // Understand the difference
 optional: z.string().optional(), // string | undefined
@@ -487,6 +513,7 @@ both: z.string().nullable().optional() // string | null | undefined
 ```
 
 ### Issue 3: Enum Mismatches
+
 ```typescript
 // Ensure enums match database constraints
 status: z.enum(['active', 'inactive']) // Must match CHECK constraint
@@ -494,6 +521,7 @@ status: z.enum(['active', 'inactive']) // Must match CHECK constraint
 ```
 
 ### Issue 4: Date/Timestamp Handling
+
 ```typescript
 // SQLite stores as INTEGER (Unix ms)
 created: z.number().int().positive(), // Not z.date()
@@ -520,26 +548,26 @@ describe('Schema Validation', () => {
       created: Date.now(),
       updated: Date.now()
     }
-    
+
     expect(() => TicketSchema.parse(valid)).not.toThrow()
   })
-  
+
   test('should reject invalid data', () => {
     const invalid = {
       id: 'not-a-number',
       title: '', // Empty string
       status: 'invalid-status'
     }
-    
+
     expect(() => TicketSchema.parse(invalid)).toThrow()
   })
-  
+
   test('should strip unknown properties with strict', () => {
     const withExtra = {
       ...validTicket,
       unknownProp: 'should be stripped'
     }
-    
+
     expect(() => TicketSchema.strict().parse(withExtra)).toThrow()
   })
 })

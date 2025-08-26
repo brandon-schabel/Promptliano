@@ -5,19 +5,10 @@
 
 import { eq } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
-import { 
-  providerKeys,
-  type ProviderKey,
-  type InsertProviderKey,
-  selectProviderKeySchema
-} from '../schema'
+import { providerKeys, type ProviderKey, type InsertProviderKey, selectProviderKeySchema } from '../schema'
 
 // Create base provider key repository
-const baseProviderKeyRepository = createBaseRepository(
-  providerKeys,
-  selectProviderKeySchema,
-  'ProviderKey'
-)
+const baseProviderKeyRepository = createBaseRepository(providerKeys, selectProviderKeySchema, 'ProviderKey')
 
 // Extend with domain-specific methods
 export const providerKeyRepository = extendRepository(baseProviderKeyRepository, {

@@ -98,7 +98,9 @@ function QueueItemRow({ itemData, onStatusChange, onDelete, onRetry }: QueueItem
               {item.itemType === 'ticket' && <ListTodo className='h-3 w-3' />}
               {item.itemType === 'task' && <FileText className='h-3 w-3' />}
               {(item.itemType as string) === 'chat' && <MessageCircle className='h-3 w-3' />}
-              <span>{item.itemType} #{item.itemId}</span>
+              <span>
+                {item.itemType} #{item.itemId}
+              </span>
               {ticket && <span className='text-muted-foreground'>• {ticket.title}</span>}
             </div>
             <Badge variant='outline' className='text-xs'>
@@ -175,13 +177,13 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
 
   // API hooks
   const { data: flowData, isLoading } = useGetFlowData(queue.projectId)
-  
+
   // Extract queue items from flow data
   const items: QueueItemWithDetails[] = useMemo(() => {
     if (!flowData?.queues?.[queue.id]) return []
     const queueData = flowData.queues[queue.id]
     const queueItems: QueueItemWithDetails[] = []
-    
+
     // Add tickets as queue items
     queueData.tickets?.forEach((ticket, index) => {
       queueItems.push({
@@ -198,7 +200,7 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
         ticket
       })
     })
-    
+
     // Add tasks as queue items
     queueData.tasks?.forEach((task, index) => {
       queueItems.push({
@@ -215,8 +217,8 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
         task
       })
     })
-    
-    return activeTab === 'all' ? queueItems : queueItems.filter(item => item.queueItem.status === activeTab)
+
+    return activeTab === 'all' ? queueItems : queueItems.filter((item) => item.queueItem.status === activeTab)
   }, [flowData, queue.id, activeTab])
   // Note: Direct queue item operations are no longer supported.
   // Items are now managed through their parent tickets/tasks via the flow service.
@@ -263,7 +265,7 @@ export function QueueDetailsDialog({ queue, open, onOpenChange }: QueueDetailsDi
     in_progress: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'in_progress').length : 0,
     completed: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'completed').length : 0,
     failed: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'failed').length : 0,
-    cancelled: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'cancelled').length : 0,
+    cancelled: Array.isArray(items) ? items.filter((i) => i.queueItem.status === 'cancelled').length : 0
     // timeout status does not exist in the database enum, removing this count
   }
 

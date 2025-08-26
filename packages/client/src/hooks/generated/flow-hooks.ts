@@ -1,7 +1,7 @@
 /**
  * Generated Flow Hooks - Factory Pattern Implementation
  * Migrated from use-flow-api.ts with 5s polling intervals preserved
- * 
+ *
  * Replaces 441 lines of manual hook code with factory-based patterns
  * Maintains all existing functionality including polling and invalidation
  */
@@ -132,7 +132,7 @@ const flowHooks = createCrudHooks(FLOW_CONFIG)
  */
 export function useGetFlowData(projectId: number, enabled = true) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: FLOW_ENHANCED_KEYS.data(projectId),
     queryFn: async () => {
@@ -152,7 +152,7 @@ export function useGetFlowData(projectId: number, enabled = true) {
  */
 export function useGetFlowItems(projectId: number, enabled = true) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: FLOW_ENHANCED_KEYS.items(projectId),
     queryFn: async () => {
@@ -171,7 +171,7 @@ export function useGetFlowItems(projectId: number, enabled = true) {
  */
 export function useGetUnqueuedItems(projectId: number, enabled = true) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: FLOW_ENHANCED_KEYS.unqueued(projectId),
     queryFn: async () => {
@@ -393,7 +393,7 @@ export function useCompleteQueueItem() {
       queryClient.invalidateQueries({ queryKey: ['queues'] })
       queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
       queryClient.invalidateQueries({ queryKey: ['queues-with-stats'] })
-      
+
       toast.success('Item completed successfully')
     },
     onError: commonErrorHandler

@@ -19,7 +19,7 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['json', { outputFile: 'test-results.json' }],
-    ['list'],
+    ['list']
   ],
 
   // Global test settings
@@ -30,7 +30,7 @@ export default defineConfig({
     video: 'retain-on-failure',
     viewport: { width: 1280, height: 720 },
     headless: !!process.env.CI,
-    actionTimeout: 10 * 1000, // 10 seconds for actions
+    actionTimeout: 10 * 1000 // 10 seconds for actions
   },
 
   // Start dev servers before running tests - disabled for now
@@ -58,36 +58,36 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /.*\.setup\.ts/
     },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 5'] },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     },
     {
       name: 'mobile-safari',
       use: { ...devices['iPhone 12'] },
-      dependencies: ['setup'],
-    },
+      dependencies: ['setup']
+    }
   ],
 
   // Global setup/teardown
   globalSetup: './e2e/setup/global-setup.ts',
-  globalTeardown: './e2e/setup/global-teardown.ts',
+  globalTeardown: './e2e/setup/global-teardown.ts'
 })

@@ -1,10 +1,5 @@
 import React, { useState } from 'react'
-import {
-  useGitWorktrees,
-  useAddGitWorktree,
-  useRemoveGitWorktree,
-  useGitBranches
-} from '@/hooks/api-hooks'
+import { useGitWorktrees, useAddGitWorktree, useRemoveGitWorktree, useGitBranches } from '@/hooks/api-hooks'
 import { Button } from '@promptliano/ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
@@ -42,17 +37,17 @@ export function GitWorktreeView({ projectId, className }: GitWorktreeViewProps) 
   const addWorktree = useAddGitWorktree(projectId)
   const removeWorktree = useRemoveGitWorktree(projectId)
   // Temporary stub functions - these hooks don't exist yet
-  const lockWorktree = { 
-    mutateAsync: async (params: any) => console.warn('lockWorktree not implemented', params), 
-    isPending: false 
+  const lockWorktree = {
+    mutateAsync: async (params: any) => console.warn('lockWorktree not implemented', params),
+    isPending: false
   }
-  const unlockWorktree = { 
-    mutateAsync: async (params: any) => console.warn('unlockWorktree not implemented', params), 
-    isPending: false 
+  const unlockWorktree = {
+    mutateAsync: async (params: any) => console.warn('unlockWorktree not implemented', params),
+    isPending: false
   }
-  const pruneWorktrees = { 
-    mutateAsync: async (params: any) => console.warn('pruneWorktrees not implemented', params), 
-    isPending: false 
+  const pruneWorktrees = {
+    mutateAsync: async (params: any) => console.warn('pruneWorktrees not implemented', params),
+    isPending: false
   }
 
   const [deletingWorktree, setDeletingWorktree] = useState<GitWorktree | null>(null)

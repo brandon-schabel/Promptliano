@@ -32,14 +32,18 @@ const listMCPToolsRoute = createRoute({
       serverId: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.object({
-      name: z.string(),
-      description: z.string(),
-      serverId: z.string().optional()
-    }))
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(
+        z.object({
+          name: z.string(),
+          description: z.string(),
+          serverId: z.string().optional()
+        })
+      )
+    })
+  )
 })
 
 // Execute MCP tool
@@ -90,16 +94,18 @@ const readMCPResourceRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      uri: z.string(),
-      name: z.string(),
-      description: z.string(),
-      mimeType: z.string(),
-      content: z.any()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        uri: z.string(),
+        name: z.string(),
+        description: z.string(),
+        mimeType: z.string(),
+        content: z.any()
+      })
     })
-  }))
+  )
 })
 
 // Get builtin tools
@@ -108,14 +114,18 @@ const getBuiltinToolsRoute = createRoute({
   path: '/api/mcp/builtin-tools',
   tags: ['MCP', 'Tools'],
   summary: 'Get list of built-in MCP tools',
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.object({
-      name: z.string(),
-      description: z.string(),
-      category: z.string()
-    }))
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(
+        z.object({
+          name: z.string(),
+          description: z.string(),
+          category: z.string()
+        })
+      )
+    })
+  )
 })
 
 // Start MCP server
@@ -191,7 +201,7 @@ export const mcpExecutionRoutes = new OpenAPIHono()
     const { serverId } = c.req.valid('param')
     await stopMCPServer(parseInt(serverId))
     return c.json({ success: true, message: 'MCP server stopped successfully' })
-  }) as any;
+  }) as any
 
 // Type export
-export type MCPExecutionRouteTypes = typeof mcpExecutionRoutes;
+export type MCPExecutionRouteTypes = typeof mcpExecutionRoutes

@@ -32,7 +32,7 @@ test.describe('Provider Configuration', () => {
       // Verify main elements are visible
       await expect(page.getByRole('button', { name: 'Add Provider' })).toBeVisible()
       await expect(page.getByTestId('providers-list')).toBeVisible()
-      
+
       // Verify page title
       await expect(page.getByRole('heading', { name: 'AI Providers' })).toBeVisible()
     })
@@ -48,7 +48,7 @@ test.describe('Provider Configuration', () => {
 
       // Verify provider appears in list
       await providersPage.verifyProviderInList(lmStudioConfig.name)
-      
+
       // Verify provider card shows correct information
       const providerCard = page.getByTestId(`provider-${lmStudioConfig.name}`)
       await expect(providerCard.getByTestId('provider-type')).toContainText('lmstudio')
@@ -67,7 +67,7 @@ test.describe('Provider Configuration', () => {
 
       // Verify provider appears in list
       await providersPage.verifyProviderInList(openAIConfig.name)
-      
+
       // Verify API key is masked in display
       const providerCard = page.getByTestId(`provider-${openAIConfig.name}`)
       await expect(providerCard.getByTestId('api-key-display')).toContainText('sk-***')
@@ -80,7 +80,7 @@ test.describe('Provider Configuration', () => {
         type: 'lmstudio',
         endpoint: 'http://localhost:1234/v1'
       }
-      
+
       await providersPage.addProvider(originalConfig)
 
       // Edit the provider
@@ -104,7 +104,7 @@ test.describe('Provider Configuration', () => {
         type: 'lmstudio',
         endpoint: 'http://localhost:1234/v1'
       }
-      
+
       await providersPage.addProvider(providerConfig)
       await providersPage.verifyProviderInList(providerConfig.name)
 
@@ -159,7 +159,7 @@ test.describe('Provider Configuration', () => {
       }
 
       // Mock network failure
-      await page.route('**/v1/**', route => route.abort('failed'))
+      await page.route('**/v1/**', (route) => route.abort('failed'))
 
       await providersPage.addProvider(config)
 
@@ -194,7 +194,7 @@ test.describe('Provider Configuration', () => {
 
       // Test all providers
       const results = await providersPage.testAllProviders()
-      
+
       expect(results).toHaveLength(2)
       expect(results[0].name).toBe('LM Studio Test')
       expect(results[1].name).toBe('Mock OpenAI Test')
@@ -216,7 +216,7 @@ test.describe('Provider Configuration', () => {
       }
 
       await providersPage.setupLMStudioProvider()
-      
+
       // Verify model selection worked
       await expect(page.getByRole('combobox', { name: 'Model' })).toContainText('GPT-OSS-20B')
     })
@@ -251,15 +251,12 @@ test.describe('Provider Configuration', () => {
       await providersPage.addProvider(config)
 
       // Mock models response
-      await page.route('**/v1/models', route =>
+      await page.route('**/v1/models', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: [
-              { id: 'test-model-1' },
-              { id: 'test-model-2' }
-            ]
+            data: [{ id: 'test-model-1' }, { id: 'test-model-2' }]
           })
         })
       )
@@ -340,7 +337,7 @@ test.describe('Provider Configuration', () => {
 
       // Verify provider switch worked
       await expect(page.getByRole('combobox', { name: 'Provider' })).toContainText(provider2.name)
-      
+
       // Verify chat history is preserved
       await expect(page.getByText('Test message with provider 1')).toBeVisible()
     })
@@ -358,11 +355,11 @@ test.describe('Provider Configuration', () => {
 
       // Perform health check
       const healthResult = await providersPage.checkProviderHealth(config.name)
-      
+
       // Verify health check result structure
       expect(healthResult).toHaveProperty('available')
       expect(typeof healthResult.available).toBe('boolean')
-      
+
       if (healthResult.available) {
         expect(healthResult).toHaveProperty('responseTime')
         expect(typeof healthResult.responseTime).toBe('number')
@@ -384,10 +381,10 @@ test.describe('Provider Configuration', () => {
       // View provider statistics
       const providerCard = page.getByTestId(`provider-${config.name}`)
       const statsButton = providerCard.getByRole('button', { name: 'View Stats' })
-      
+
       if (await statsButton.isVisible()) {
         await statsButton.click()
-        
+
         // Verify statistics are displayed
         await expect(page.getByTestId('provider-stats')).toBeVisible()
         await expect(page.getByText(/requests/i)).toBeVisible()
@@ -444,7 +441,7 @@ test.describe('Provider Configuration', () => {
       const path = require('path')
       const tempDir = await context.storageState({ path: 'temp-storage' })
       const configPath = path.join('/tmp', 'test-providers.json')
-      
+
       fs.writeFileSync(configPath, JSON.stringify(testConfig))
 
       await providersPage.importProviderConfig(configPath)
@@ -487,7 +484,7 @@ test.describe('Provider Configuration', () => {
       }
 
       // Mock invalid API key response
-      await page.route('**/v1/**', route =>
+      await page.route('**/v1/**', (route) =>
         route.fulfill({
           status: 401,
           contentType: 'application/json',
@@ -516,7 +513,7 @@ test.describe('Provider Configuration', () => {
       }
 
       // Mock timeout
-      await page.route('**/v1/**', route => {
+      await page.route('**/v1/**', (route) => {
         setTimeout(() => route.abort('timedout'), 10000)
       })
 
@@ -536,10 +533,10 @@ test.describe('Provider Configuration', () => {
   test.describe('Performance', () => {
     test('should load providers page within acceptable time', async ({ page }) => {
       const startTime = Date.now()
-      
+
       await providersPage.goto()
       await appPage.waitForAppReady()
-      
+
       const loadTime = Date.now() - startTime
       expect(loadTime).toBeLessThan(3000) // 3 second limit
     })
@@ -556,7 +553,7 @@ test.describe('Provider Configuration', () => {
       }
 
       const startTime = Date.now()
-      
+
       for (const provider of providers) {
         await providersPage.addProvider(provider)
       }

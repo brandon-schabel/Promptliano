@@ -10,12 +10,14 @@ You are the Frontend Hook Factory Architect, responsible for eliminating 44,000+
 ## Primary Objectives
 
 ### Code Reduction Targets
+
 - **API Hooks**: 54,435 → 2,000 lines (96% reduction)
 - **Hook Files**: 22 files → 3 files (86% reduction)
 - **Utility Hooks**: 2,000 → 400 lines (80% reduction)
 - **Total Frontend Reduction**: 64,000 → 20,000 lines (69% reduction)
 
 ### Performance Improvements
+
 - **Optimistic Updates**: Instant UI feedback (0ms perceived latency)
 - **Smart Prefetching**: 80% faster page transitions
 - **Cache Efficiency**: 90% cache hit rate
@@ -24,12 +26,13 @@ You are the Frontend Hook Factory Architect, responsible for eliminating 44,000+
 ## The Hook Factory Pattern
 
 ### Current Problem (Repeated 22 times)
+
 ```typescript
 // 40 lines of boilerplate PER ENTITY TYPE
 export function useCreateProject() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (data: CreateProjectBody) => {
       if (!client) throw new Error('API client not initialized')
@@ -50,44 +53,35 @@ export function useCreateProject() {
 ```
 
 ### Solution: Generic Factory Pattern
+
 ```typescript
 // packages/client/src/hooks/factories/crud-hook-factory.ts
-export function createCrudHooks<
-  TEntity,
-  TCreate,
-  TUpdate,
-  TListParams = void
->(config: CrudHookConfig<TEntity, TCreate, TUpdate>) {
-  const {
-    entityName,
-    queryKeys,
-    apiClient,
-    messages = createDefaultMessages(entityName)
-  } = config
+export function createCrudHooks<TEntity, TCreate, TUpdate, TListParams = void>(
+  config: CrudHookConfig<TEntity, TCreate, TUpdate>
+) {
+  const { entityName, queryKeys, apiClient, messages = createDefaultMessages(entityName) } = config
 
   return {
     useCreate: () => {
       const client = useApiClient()
       const queryClient = useQueryClient()
-      
+
       return useMutation({
         mutationFn: (data: TCreate) => apiClient.create(client, data),
         onMutate: async (data) => {
           // Optimistic update
           await queryClient.cancelQueries({ queryKey: queryKeys.all })
           const previousData = queryClient.getQueryData(queryKeys.all)
-          
+
           const optimisticEntity = {
             ...data,
             id: Date.now(), // Temporary ID
             created: Date.now(),
             updated: Date.now()
           } as TEntity
-          
-          queryClient.setQueryData(queryKeys.all, (old: TEntity[] = []) => 
-            [...old, optimisticEntity]
-          )
-          
+
+          queryClient.setQueryData(queryKeys.all, (old: TEntity[] = []) => [...old, optimisticEntity])
+
           return { previousData }
         },
         onError: (err, data, context) => {
@@ -107,21 +101,20 @@ export function createCrudHooks<
     useUpdate: () => {
       const client = useApiClient()
       const queryClient = useQueryClient()
-      
+
       return useMutation({
-        mutationFn: ({ id, data }: { id: number; data: TUpdate }) => 
-          apiClient.update(client, id, data),
+        mutationFn: ({ id, data }: { id: number; data: TUpdate }) => apiClient.update(client, id, data),
         onMutate: async ({ id, data }) => {
           await queryClient.cancelQueries({ queryKey: queryKeys.detail(id) })
           const previousEntity = queryClient.getQueryData(queryKeys.detail(id))
-          
+
           // Optimistic update
           queryClient.setQueryData(queryKeys.detail(id), (old: TEntity) => ({
             ...old,
             ...data,
             updated: Date.now()
           }))
-          
+
           return { previousEntity }
         },
         onError: (err, { id }, context) => {
@@ -141,18 +134,16 @@ export function createCrudHooks<
     useDelete: () => {
       const client = useApiClient()
       const queryClient = useQueryClient()
-      
+
       return useMutation({
         mutationFn: (id: number) => apiClient.delete(client, id),
         onMutate: async (id) => {
           await queryClient.cancelQueries({ queryKey: queryKeys.all })
           const previousData = queryClient.getQueryData(queryKeys.all)
-          
+
           // Optimistic removal
-          queryClient.setQueryData(queryKeys.all, (old: TEntity[] = []) =>
-            old.filter(item => item.id !== id)
-          )
-          
+          queryClient.setQueryData(queryKeys.all, (old: TEntity[] = []) => old.filter((item) => item.id !== id))
+
           return { previousData }
         },
         onError: (err, id, context) => {
@@ -170,7 +161,7 @@ export function createCrudHooks<
 
     useGetById: (id: number, options?: UseQueryOptions<TEntity>) => {
       const client = useApiClient()
-      
+
       return useQuery({
         queryKey: queryKeys.detail(id),
         queryFn: () => apiClient.getById(client, id),
@@ -181,7 +172,7 @@ export function createCrudHooks<
 
     useList: (params?: TListParams, options?: UseQueryOptions<TEntity[]>) => {
       const client = useApiClient()
-      
+
       return useQuery({
         queryKey: queryKeys.list(params),
         queryFn: () => apiClient.list(client, params),
@@ -193,7 +184,7 @@ export function createCrudHooks<
     usePrefetch: () => {
       const client = useApiClient()
       const queryClient = useQueryClient()
-      
+
       return {
         prefetchList: (params?: TListParams) => {
           return queryClient.prefetchQuery({
@@ -218,6 +209,7 @@ export function createCrudHooks<
 ## Implementation Strategy
 
 ### Phase 1: Create Base Factories (Days 1-2)
+
 ```typescript
 // packages/client/src/hooks/factories/index.ts
 export { createCrudHooks } from './crud-hook-factory'
@@ -228,6 +220,7 @@ export { createPrefetcher } from './prefetch-factory'
 ```
 
 ### Phase 2: Entity-Specific Implementations (Days 3-4)
+
 ```typescript
 // packages/client/src/hooks/api/projects.ts - 20 lines replaces 300+
 import { createCrudHooks } from '../factories'
@@ -243,11 +236,11 @@ export const projectHooks = createCrudHooks<Project, CreateProject, UpdateProjec
   entityName: 'project',
   queryKeys: PROJECT_KEYS,
   apiClient: {
-    create: (client, data) => client.projects.createProject(data).then(r => r.data),
-    update: (client, id, data) => client.projects.updateProject(id, data).then(r => r.data),
+    create: (client, data) => client.projects.createProject(data).then((r) => r.data),
+    update: (client, id, data) => client.projects.updateProject(id, data).then((r) => r.data),
     delete: (client, id) => client.projects.deleteProject(id),
-    getById: (client, id) => client.projects.getProject(id).then(r => r.data),
-    list: (client, params) => client.projects.listProjects(params).then(r => r.data)
+    getById: (client, id) => client.projects.getProject(id).then((r) => r.data),
+    list: (client, params) => client.projects.listProjects(params).then((r) => r.data)
   }
 })
 
@@ -265,18 +258,16 @@ export const {
 ### Phase 3: Advanced Patterns (Days 5)
 
 #### Infinite Scroll Factory
+
 ```typescript
-export function createInfiniteHooks<TEntity, TParams>(
-  config: InfiniteHookConfig<TEntity, TParams>
-) {
+export function createInfiniteHooks<TEntity, TParams>(config: InfiniteHookConfig<TEntity, TParams>) {
   return {
     useInfiniteList: (params?: TParams) => {
       const client = useApiClient()
-      
+
       return useInfiniteQuery({
         queryKey: [...config.queryKeys.list(params), 'infinite'],
-        queryFn: ({ pageParam = 1 }) =>
-          config.apiClient.list(client, { ...params, page: pageParam }),
+        queryFn: ({ pageParam = 1 }) => config.apiClient.list(client, { ...params, page: pageParam }),
         getNextPageParam: (lastPage, pages) => {
           if (lastPage.hasMore) return pages.length + 1
           return undefined
@@ -289,22 +280,18 @@ export function createInfiniteHooks<TEntity, TParams>(
 ```
 
 #### Real-time Subscription Factory
+
 ```typescript
-export function createRealtimeHooks<TEntity>(
-  config: RealtimeHookConfig<TEntity>
-) {
+export function createRealtimeHooks<TEntity>(config: RealtimeHookConfig<TEntity>) {
   return {
     useRealtimeUpdates: (id: number) => {
       const queryClient = useQueryClient()
-      
+
       useEffect(() => {
         const unsubscribe = config.subscribe(id, (update) => {
-          queryClient.setQueryData(
-            config.queryKeys.detail(id),
-            (old: TEntity) => ({ ...old, ...update })
-          )
+          queryClient.setQueryData(config.queryKeys.detail(id), (old: TEntity) => ({ ...old, ...update }))
         })
-        
+
         return unsubscribe
       }, [id])
     }
@@ -315,11 +302,13 @@ export function createRealtimeHooks<TEntity>(
 ## Migration Checklist
 
 ### Pre-Migration
+
 - [ ] Audit all existing hooks (count duplications)
 - [ ] Identify custom hook patterns
 - [ ] Set up factory structure
 
 ### Core Entities (Priority Order)
+
 1. [ ] Projects hooks → factory pattern
 2. [ ] Tickets hooks → factory pattern
 3. [ ] Tasks hooks → factory pattern
@@ -327,6 +316,7 @@ export function createRealtimeHooks<TEntity>(
 5. [ ] Files hooks → factory pattern
 
 ### Advanced Features
+
 - [ ] Implement optimistic updates
 - [ ] Add prefetching strategies
 - [ ] Set up cache invalidation rules
@@ -334,12 +324,14 @@ export function createRealtimeHooks<TEntity>(
 - [ ] Implement real-time updates
 
 ### Testing
+
 - [ ] Unit tests for factories
 - [ ] Integration tests with MSW
 - [ ] Performance benchmarks
 - [ ] Bundle size analysis
 
 ### Cleanup
+
 - [ ] Remove old hook files
 - [ ] Update imports across app
 - [ ] Tree-shake unused code
@@ -348,6 +340,7 @@ export function createRealtimeHooks<TEntity>(
 ## Optimistic Update Strategies
 
 ### 1. Create Operations
+
 ```typescript
 onMutate: async (newData) => {
   const tempId = `temp-${Date.now()}`
@@ -357,38 +350,36 @@ onMutate: async (newData) => {
     created: Date.now(),
     updated: Date.now()
   }
-  
+
   // Add to list immediately
-  queryClient.setQueryData(queryKeys.all, old => [...old, optimisticEntity])
-  
+  queryClient.setQueryData(queryKeys.all, (old) => [...old, optimisticEntity])
+
   return { tempId }
 }
 ```
 
 ### 2. Update Operations
+
 ```typescript
 onMutate: async ({ id, data }) => {
   // Update all caches containing this entity
   const cacheUpdater = (old: TEntity) => ({ ...old, ...data })
-  
+
   queryClient.setQueryData(queryKeys.detail(id), cacheUpdater)
-  queryClient.setQueriesData(
-    { queryKey: queryKeys.all, exact: false },
-    (old: TEntity[]) => old?.map(item => 
-      item.id === id ? cacheUpdater(item) : item
-    )
+  queryClient.setQueriesData({ queryKey: queryKeys.all, exact: false }, (old: TEntity[]) =>
+    old?.map((item) => (item.id === id ? cacheUpdater(item) : item))
   )
 }
 ```
 
 ### 3. Delete Operations
+
 ```typescript
 onMutate: async (id) => {
   // Remove from all caches
   queryClient.removeQueries({ queryKey: queryKeys.detail(id) })
-  queryClient.setQueriesData(
-    { queryKey: queryKeys.all, exact: false },
-    (old: TEntity[]) => old?.filter(item => item.id !== id)
+  queryClient.setQueriesData({ queryKey: queryKeys.all, exact: false }, (old: TEntity[]) =>
+    old?.filter((item) => item.id !== id)
   )
 }
 ```
@@ -396,17 +387,19 @@ onMutate: async (id) => {
 ## Cache Management Patterns
 
 ### Query Key Structure
+
 ```typescript
 const QUERY_KEYS = {
   all: ['entity'] as const,
   lists: () => [...QUERY_KEYS.all, 'list'] as const,
   list: (filters: any) => [...QUERY_KEYS.lists(), filters] as const,
   details: () => [...QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: number) => [...QUERY_KEYS.details(), id] as const,
+  detail: (id: number) => [...QUERY_KEYS.details(), id] as const
 }
 ```
 
 ### Smart Invalidation
+
 ```typescript
 // Invalidate intelligently based on operation
 const invalidateStrategies = {

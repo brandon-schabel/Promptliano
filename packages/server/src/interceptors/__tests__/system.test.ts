@@ -19,7 +19,7 @@ describe('InterceptorSystem', () => {
     system = new InterceptorSystem({ enabled: true })
     mockApp = {
       use: mock(),
-      onError: mock(),
+      onError: mock()
     } as unknown as Hono
   })
 
@@ -37,7 +37,7 @@ describe('InterceptorSystem', () => {
   describe('constructor', () => {
     it('should create system with default configuration', () => {
       const stats = system.getStats()
-      
+
       expect(stats.interceptorCount).toBe(0)
       expect(stats.config.enabled).toBe(true)
     })
@@ -46,10 +46,10 @@ describe('InterceptorSystem', () => {
   describe('register', () => {
     it('should register single interceptor', () => {
       const interceptor = createMockInterceptor()
-      
+
       system.register(interceptor)
       const stats = system.getStats()
-      
+
       expect(stats.interceptorCount).toBe(1)
       expect(stats.enabledCount).toBe(1)
     })
@@ -60,10 +60,10 @@ describe('InterceptorSystem', () => {
         createMockInterceptor({ name: 'interceptor2' }),
         createMockInterceptor({ name: 'interceptor3', enabled: false })
       ]
-      
+
       system.registerMany(interceptors)
       const stats = system.getStats()
-      
+
       expect(stats.interceptorCount).toBe(3)
       expect(stats.enabledCount).toBe(2)
     })
@@ -73,9 +73,9 @@ describe('InterceptorSystem', () => {
     it('should apply interceptor system to Hono app', () => {
       const interceptor = createMockInterceptor()
       system.register(interceptor)
-      
+
       system.applyTo(mockApp)
-      
+
       // Should add context middleware, request interceptors, response interceptors, and error handler
       expect(mockApp.use).toHaveBeenCalledTimes(3)
       expect(mockApp.onError).toHaveBeenCalledTimes(1)
@@ -83,9 +83,9 @@ describe('InterceptorSystem', () => {
 
     it('should not apply if system is disabled', () => {
       system.setEnabled(false)
-      
+
       system.applyTo(mockApp)
-      
+
       expect(mockApp.use).not.toHaveBeenCalled()
       expect(mockApp.onError).not.toHaveBeenCalled()
     })
@@ -94,7 +94,7 @@ describe('InterceptorSystem', () => {
   describe('getRegistry', () => {
     it('should return registry instance', () => {
       const registry = system.getRegistry()
-      
+
       expect(registry).toBeDefined()
       expect(typeof registry.register).toBe('function')
       expect(typeof registry.getAll).toBe('function')
@@ -105,12 +105,12 @@ describe('InterceptorSystem', () => {
     it('should return system statistics', () => {
       const interceptor1 = createMockInterceptor({ name: 'interceptor1' })
       const interceptor2 = createMockInterceptor({ name: 'interceptor2', enabled: false })
-      
+
       system.register(interceptor1)
       system.register(interceptor2)
-      
+
       const stats = system.getStats()
-      
+
       expect(stats.interceptorCount).toBe(2)
       expect(stats.enabledCount).toBe(1)
       expect(stats.registryStats.total).toBe(2)
@@ -124,10 +124,10 @@ describe('InterceptorSystem', () => {
     it('should enable/disable system', () => {
       // System should start enabled due to our explicit config
       expect(system.getStats().config.enabled).toBe(true)
-      
+
       system.setEnabled(false)
       expect(system.getStats().config.enabled).toBe(false)
-      
+
       system.setEnabled(true)
       expect(system.getStats().config.enabled).toBe(true)
     })
@@ -141,10 +141,10 @@ describe('InterceptorSystem', () => {
           timeoutMs: 5000
         }
       }
-      
+
       system.updateConfig(newConfig)
       const config = system.getStats().config
-      
+
       expect(config.chain?.continueOnError).toBe(true)
       expect(config.chain?.timeoutMs).toBe(5000)
     })
@@ -154,11 +154,11 @@ describe('InterceptorSystem', () => {
     it('should clear all interceptors', () => {
       system.register(createMockInterceptor({ name: 'interceptor1' }))
       system.register(createMockInterceptor({ name: 'interceptor2' }))
-      
+
       expect(system.getStats().interceptorCount).toBe(2)
-      
+
       system.clear()
-      
+
       expect(system.getStats().interceptorCount).toBe(0)
     })
   })
@@ -168,7 +168,7 @@ describe('Factory Functions', () => {
   describe('createInterceptorSystem', () => {
     it('should create new system instance', () => {
       const system = createInterceptorSystem()
-      
+
       expect(system).toBeInstanceOf(InterceptorSystem)
       expect(system.getStats().interceptorCount).toBe(0)
     })
@@ -176,7 +176,7 @@ describe('Factory Functions', () => {
     it('should accept config overrides', () => {
       const config = { enabled: false }
       const system = createInterceptorSystem(config)
-      
+
       expect(system.getStats().config.enabled).toBe(false)
     })
   })
@@ -185,7 +185,7 @@ describe('Factory Functions', () => {
     it('should return global system instance', () => {
       const system1 = getGlobalInterceptorSystem()
       const system2 = getGlobalInterceptorSystem()
-      
+
       expect(system1).toBe(system2)
       expect(system1).toBeInstanceOf(InterceptorSystem)
     })
@@ -195,7 +195,7 @@ describe('Factory Functions', () => {
     it('should set global system instance', () => {
       const customSystem = createInterceptorSystem()
       setGlobalInterceptorSystem(customSystem)
-      
+
       const retrievedSystem = getGlobalInterceptorSystem()
       expect(retrievedSystem).toBe(customSystem)
     })
@@ -207,7 +207,7 @@ describe('Factory Functions', () => {
     beforeEach(() => {
       mockApp = {
         use: mock(),
-        onError: mock(),
+        onError: mock()
       } as unknown as Hono
     })
 
@@ -215,7 +215,7 @@ describe('Factory Functions', () => {
       const system = setupInterceptors(mockApp, {
         config: { enabled: true }
       })
-      
+
       expect(system).toBeInstanceOf(InterceptorSystem)
       expect(mockApp.use).toHaveBeenCalled()
     })
@@ -225,11 +225,11 @@ describe('Factory Functions', () => {
         createMockInterceptor({ name: 'custom1' }),
         createMockInterceptor({ name: 'custom2' })
       ]
-      
+
       const system = setupInterceptors(mockApp, {
         interceptors: customInterceptors
       })
-      
+
       expect(system.getStats().interceptorCount).toBe(2)
     })
 
@@ -237,7 +237,7 @@ describe('Factory Functions', () => {
       const system = setupInterceptors(mockApp, {
         config: { enabled: false }
       })
-      
+
       expect(system.getStats().config.enabled).toBe(false)
     })
   })
@@ -247,7 +247,7 @@ describe('InterceptorUtils', () => {
   describe('createLoggingInterceptor', () => {
     it('should create logging interceptor with defaults', () => {
       const interceptor = InterceptorUtils.createLoggingInterceptor()
-      
+
       expect(interceptor.name).toBe('logger')
       expect(interceptor.order).toBe(10)
       expect(interceptor.phase).toBe('request')
@@ -257,7 +257,7 @@ describe('InterceptorUtils', () => {
 
     it('should create logging interceptor with custom name and order', () => {
       const interceptor = InterceptorUtils.createLoggingInterceptor('custom-logger', 5)
-      
+
       expect(interceptor.name).toBe('custom-logger')
       expect(interceptor.order).toBe(5)
     })
@@ -265,7 +265,7 @@ describe('InterceptorUtils', () => {
     it('should log request information', async () => {
       const consoleLogSpy = mock(() => {})
       console.log = consoleLogSpy
-      
+
       const interceptor = InterceptorUtils.createLoggingInterceptor()
       const mockContext = {
         req: { method: 'GET', path: '/api/test' }
@@ -274,9 +274,9 @@ describe('InterceptorUtils', () => {
         requestId: 'req-123'
       } as any
       const mockNext = mock(async () => {})
-      
+
       await interceptor.handler(mockContext, interceptorContext, mockNext)
-      
+
       expect(consoleLogSpy).toHaveBeenCalledTimes(2) // Start and end logs
       expect(mockNext).toHaveBeenCalled()
     })
@@ -285,7 +285,7 @@ describe('InterceptorUtils', () => {
   describe('createTimingInterceptor', () => {
     it('should create timing interceptor', () => {
       const interceptor = InterceptorUtils.createTimingInterceptor()
-      
+
       expect(interceptor.name).toBe('timer')
       expect(interceptor.order).toBe(5)
       expect(interceptor.phase).toBe('request')
@@ -301,23 +301,20 @@ describe('InterceptorUtils', () => {
       } as any
       const mockNext = mock(async () => {
         // Simulate some work
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, 10))
       })
-      
+
       await interceptor.handler(mockContext, interceptorContext, mockNext)
-      
+
       expect(interceptorContext.metadata.responseTime).toBeGreaterThan(0)
-      expect(mockContext.header).toHaveBeenCalledWith(
-        'X-Response-Time',
-        expect.stringMatching(/\d+ms/)
-      )
+      expect(mockContext.header).toHaveBeenCalledWith('X-Response-Time', expect.stringMatching(/\d+ms/))
     })
   })
 
   describe('createRequestIdInterceptor', () => {
     it('should create request ID interceptor', () => {
       const interceptor = InterceptorUtils.createRequestIdInterceptor()
-      
+
       expect(interceptor.name).toBe('request-id')
       expect(interceptor.order).toBe(1)
       expect(interceptor.phase).toBe('request')
@@ -332,9 +329,9 @@ describe('InterceptorUtils', () => {
         requestId: 'req-123'
       } as any
       const mockNext = mock(async () => {})
-      
+
       await interceptor.handler(mockContext, interceptorContext, mockNext)
-      
+
       expect(mockContext.header).toHaveBeenCalledWith('X-Request-ID', 'req-123')
       expect(mockNext).toHaveBeenCalled()
     })
@@ -343,7 +340,7 @@ describe('InterceptorUtils', () => {
   describe('createCorsInterceptor', () => {
     it('should create CORS interceptor with defaults', () => {
       const interceptor = InterceptorUtils.createCorsInterceptor()
-      
+
       expect(interceptor.name).toBe('cors')
       expect(interceptor.order).toBe(15)
       expect(interceptor.phase).toBe('response')
@@ -356,21 +353,12 @@ describe('InterceptorUtils', () => {
       } as any
       const interceptorContext = {} as any
       const mockNext = mock(async () => {})
-      
+
       await interceptor.handler(mockContext, interceptorContext, mockNext)
-      
-      expect(mockContext.header).toHaveBeenCalledWith(
-        'Access-Control-Allow-Origin',
-        'https://example.com'
-      )
-      expect(mockContext.header).toHaveBeenCalledWith(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, OPTIONS'
-      )
-      expect(mockContext.header).toHaveBeenCalledWith(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization'
-      )
+
+      expect(mockContext.header).toHaveBeenCalledWith('Access-Control-Allow-Origin', 'https://example.com')
+      expect(mockContext.header).toHaveBeenCalledWith('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      expect(mockContext.header).toHaveBeenCalledWith('Access-Control-Allow-Headers', 'Content-Type, Authorization')
       expect(mockNext).toHaveBeenCalled()
     })
   })

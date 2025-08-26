@@ -6,11 +6,7 @@
 
 import { taskRepository } from '@promptliano/database'
 import { ErrorFactory } from '@promptliano/shared'
-import { 
-  type TicketTask, 
-  type InsertTicketTask, 
-  type TaskStatus 
-} from '@promptliano/database'
+import { type TicketTask, type InsertTicketTask, type TaskStatus } from '@promptliano/database'
 
 // Export types for external use
 export type { TicketTask, InsertTicketTask, TaskStatus }
@@ -105,9 +101,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
     async updateTask(id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
       try {
         // Ensure status is properly typed if provided
-        const updateData = data.status 
-          ? { ...data, status: data.status as TaskStatus }
-          : data
+        const updateData = data.status ? { ...data, status: data.status as TaskStatus } : data
 
         return await repository.update(id, updateData)
       } catch (error) {
@@ -193,7 +187,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
     async completeTask(id: number): Promise<TicketTask> {
       try {
         // Update both status and done flag for backwards compatibility
-        return await repository.update(id, { 
+        return await repository.update(id, {
           status: 'completed' as TaskStatus,
           done: true
         })
@@ -260,7 +254,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       try {
         const now = Date.now()
         // Ensure all tasks have properly typed status and required timestamps
-        const typedTasksData = tasksData.map(data => ({
+        const typedTasksData = tasksData.map((data) => ({
           ...data,
           status: (data.status || 'pending') as TaskStatus,
           createdAt: now,
@@ -279,7 +273,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
     async getTaskStatistics(ticketId: number) {
       try {
         const tasks = await repository.getByTicket(ticketId)
-        
+
         const stats = {
           total: tasks.length,
           pending: tasks.filter((t: TicketTask) => t.status === 'pending').length,
@@ -291,10 +285,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
 
         return {
           ...stats,
-          completionPercentage: stats.total > 0 ? 
-            Math.round((stats.completed / stats.total) * 100) : 0,
-          activePercentage: stats.total > 0 ? 
-            Math.round(((stats.inProgress + stats.pending) / stats.total) * 100) : 0
+          completionPercentage: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+          activePercentage: stats.total > 0 ? Math.round(((stats.inProgress + stats.pending) / stats.total) * 100) : 0
         }
       } catch (error) {
         throw ErrorFactory.operationFailed('get task statistics', String(error))
@@ -401,31 +393,29 @@ export const taskService = createTaskService()
 /**
  * Create a task using the factory service
  */
-export const createTask = (data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>) => 
+export const createTask = (data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>) =>
   taskService.createTask(data)
 
 /**
  * Get all tasks for a ticket
  */
-export const getTasks = (ticketId: number) => 
-  taskService.getTasksByTicket(ticketId)
+export const getTasks = (ticketId: number) => taskService.getTasksByTicket(ticketId)
 
 /**
  * Update a task
  */
-export const updateTask = (id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>) => 
+export const updateTask = (id: number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>) =>
   taskService.updateTask(id, data)
 
 /**
  * Delete a task
  */
-export const deleteTask = (id: number) => 
-  taskService.deleteTask(id)
+export const deleteTask = (id: number) => taskService.deleteTask(id)
 
 /**
  * Reorder tasks within a ticket
  */
-export const reorderTasks = (ticketId: number, taskOrders: { taskId: number; orderIndex: number }[]) => 
+export const reorderTasks = (ticketId: number, taskOrders: { taskId: number; orderIndex: number }[]) =>
   taskService.reorderTasks(ticketId, taskOrders)
 
 /**
@@ -433,36 +423,36 @@ export const reorderTasks = (ticketId: number, taskOrders: { taskId: number; ord
  */
 export const getTasksForTickets = async (ticketIds: number[]): Promise<Record<number, TicketTask[]>> => {
   const results: Record<number, TicketTask[]> = {}
-  
+
   // Use Promise.all for better performance
   const tasks = await Promise.all(
-    ticketIds.map(async ticketId => ({
+    ticketIds.map(async (ticketId) => ({
       ticketId,
       tasks: await taskService.getTasksByTicket(ticketId)
     }))
   )
-  
+
   tasks.forEach(({ ticketId, tasks }) => {
     results[ticketId] = tasks
   })
-  
+
   return results
 }
 
 /**
  * Create multiple tasks in batch
  */
-export const batchCreateTasks = (tasksData: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>[]) => 
+export const batchCreateTasks = (tasksData: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>[]) =>
   taskService.createTasks(tasksData)
 
 /**
  * Update multiple tasks in batch
  */
-export const batchUpdateTasks = async (updates: { id: number; data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>> }[]): Promise<TicketTask[]> => {
+export const batchUpdateTasks = async (
+  updates: { id: number; data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>> }[]
+): Promise<TicketTask[]> => {
   // Use Promise.all for better performance
-  return await Promise.all(
-    updates.map(({ id, data }) => taskService.updateTask(id, data))
-  )
+  return await Promise.all(updates.map(({ id, data }) => taskService.updateTask(id, data)))
 }
 
 /**
@@ -470,9 +460,7 @@ export const batchUpdateTasks = async (updates: { id: number; data: Partial<Omit
  */
 export const batchDeleteTasks = async (taskIds: number[]): Promise<boolean[]> => {
   // Use Promise.all for better performance
-  return await Promise.all(
-    taskIds.map(id => taskService.deleteTask(id))
-  )
+  return await Promise.all(taskIds.map((id) => taskService.deleteTask(id)))
 }
 
 /**
@@ -489,7 +477,7 @@ export const batchMoveTasks = async (moves: { taskId: number; newOrderIndex: num
  * Filter tasks by various criteria
  */
 export const filterTasks = async (
-  ticketId: number, 
+  ticketId: number,
   filters: {
     status?: TaskStatus
     done?: boolean
@@ -498,25 +486,23 @@ export const filterTasks = async (
   }
 ): Promise<TicketTask[]> => {
   let tasks = await taskService.getTasksByTicket(ticketId)
-  
+
   if (filters.status) {
     tasks = tasks.filter((t: TicketTask) => t.status === filters.status)
   }
-  
+
   if (filters.done !== undefined) {
     tasks = tasks.filter((t: TicketTask) => t.done === filters.done)
   }
-  
+
   if (filters.agentId) {
     tasks = tasks.filter((t: TicketTask) => t.agentId === filters.agentId)
   }
-  
+
   if (filters.tags && filters.tags.length > 0) {
-    tasks = tasks.filter((t: TicketTask) => 
-      filters.tags!.some(tag => t.tags.includes(tag))
-    )
+    tasks = tasks.filter((t: TicketTask) => filters.tags!.some((tag) => t.tags.includes(tag)))
   }
-  
+
   return tasks
 }
 
@@ -526,7 +512,7 @@ export const filterTasks = async (
 export const getTaskWithContext = async (taskId: number) => {
   const task = await taskService.getTaskById(taskId)
   if (!task) return null
-  
+
   return {
     ...task,
     dependenciesCompleted: await taskService.areDependenciesCompleted(taskId)
@@ -539,30 +525,30 @@ export const getTaskWithContext = async (taskId: number) => {
 export const analyzeTaskComplexity = async (taskId: number) => {
   const task = await taskService.getTaskById(taskId)
   if (!task) return null
-  
+
   const complexity = {
     score: 1, // Base complexity
     factors: [] as string[]
   }
-  
+
   // Add complexity for dependencies
   if (task.dependencies.length > 0) {
     complexity.score += task.dependencies.length * 0.5
     complexity.factors.push(`${task.dependencies.length} dependencies`)
   }
-  
+
   // Add complexity for content length
   if (task.content.length > 200) {
     complexity.score += 1
     complexity.factors.push('Detailed description')
   }
-  
+
   // Add complexity for estimated hours
   if (task.estimatedHours && task.estimatedHours > 2) {
     complexity.score += 1
     complexity.factors.push('High time estimate')
   }
-  
+
   return {
     task,
     complexity: Math.min(complexity.score, 5), // Cap at 5
@@ -576,7 +562,7 @@ export const analyzeTaskComplexity = async (taskId: number) => {
 export const suggestFilesForTask = async (taskId: number) => {
   const task = await taskService.getTaskById(taskId)
   if (!task) return []
-  
+
   // For now, return existing suggested files
   // In the future, could use AI to suggest additional relevant files
   return task.suggestedFileIds
@@ -596,7 +582,7 @@ export const enqueueTask = async (taskId: number, queueId?: number, priority?: n
   if (!task) {
     throw ErrorFactory.notFound('Task', taskId)
   }
-  
+
   return taskService.updateTask(taskId, {
     queueId: queueId || null,
     queuePriority: priority || 5,
@@ -630,11 +616,9 @@ export const getNextTaskFromQueue = async (queueId: number) => {
  */
 export const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number, priority: number = 5) => {
   const tasks = await taskService.getTasksByTicket(ticketId)
-  
+
   // Use Promise.all for better performance
-  await Promise.all(
-    tasks.map(task => enqueueTask(task.id, queueId, priority))
-  )
-  
+  await Promise.all(tasks.map((task) => enqueueTask(task.id, queueId, priority)))
+
   return tasks.length
 }

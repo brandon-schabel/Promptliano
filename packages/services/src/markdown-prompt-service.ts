@@ -1,7 +1,7 @@
 /**
  * Markdown Prompt Service - File-based operations with Functional Factory Pattern
  * Handles markdown import/export operations while maintaining file-based nature
- * 
+ *
  * Key improvements:
  * - Functional factory pattern for consistency
  * - ErrorFactory for standardized error handling
@@ -75,10 +75,7 @@ const MAX_CONTENT_LENGTH = 1024 * 1024 // 1MB per prompt content
  * Create Markdown Prompt Service with functional factory pattern
  */
 export function createMarkdownPromptService(deps: MarkdownPromptServiceDeps = {}) {
-  const {
-    promptService = createPromptService(),
-    logger = createServiceLogger('MarkdownPromptService')
-  } = deps
+  const { promptService = createPromptService(), logger = createServiceLogger('MarkdownPromptService') } = deps
 
   return {
     /**
@@ -167,81 +164,81 @@ async function parseMarkdownContent(content: string): Promise<ParsedMarkdownProm
     throw ErrorFactory.invalidInput('content', 'non-empty markdown content', 'empty string')
   }
 
-    // Parse frontmatter and content using gray-matter with safe YAML loading
-    const parsed = matter(content, {
-      // Use yaml.load which is safe by default in js-yaml 4+
-      engines: {
-        yaml: {
-          parse: (str: string) => yaml.load(str) as object,
-          stringify: (data: object) => yaml.dump(data)
-        }
+  // Parse frontmatter and content using gray-matter with safe YAML loading
+  const parsed = matter(content, {
+    // Use yaml.load which is safe by default in js-yaml 4+
+    engines: {
+      yaml: {
+        parse: (str: string) => yaml.load(str) as object,
+        stringify: (data: object) => yaml.dump(data)
       }
+    }
+  })
+
+  // Extract and validate frontmatter
+  const frontmatterData = parsed.data || {}
+
+  // Ensure required name field exists
+  if (!frontmatterData.name || typeof frontmatterData.name !== 'string' || frontmatterData.name.trim().length === 0) {
+    throw ErrorFactory.missingRequired('name', 'markdown frontmatter')
+  }
+
+  // Parse and validate dates if provided
+  let frontmatter: MarkdownFrontmatter
+  try {
+    frontmatter = MarkdownFrontmatterSchema.parse({
+      name: frontmatterData.name.trim(),
+      created: frontmatterData.created
+        ? frontmatterData.created instanceof Date
+          ? frontmatterData.created.toISOString()
+          : frontmatterData.created
+        : undefined,
+      updated: frontmatterData.updated
+        ? frontmatterData.updated instanceof Date
+          ? frontmatterData.updated.toISOString()
+          : frontmatterData.updated
+        : undefined,
+      tags: Array.isArray(frontmatterData.tags)
+        ? frontmatterData.tags.filter((tag) => typeof tag === 'string' && tag.trim().length > 0)
+        : []
     })
-
-    // Extract and validate frontmatter
-    const frontmatterData = parsed.data || {}
-
-    // Ensure required name field exists
-    if (!frontmatterData.name || typeof frontmatterData.name !== 'string' || frontmatterData.name.trim().length === 0) {
-      throw ErrorFactory.missingRequired('name', 'markdown frontmatter')
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw ErrorFactory.validationFailed(error, { entity: 'MarkdownFrontmatter' })
     }
+    throw error
+  }
 
-    // Parse and validate dates if provided
-    let frontmatter: MarkdownFrontmatter
-    try {
-      frontmatter = MarkdownFrontmatterSchema.parse({
-        name: frontmatterData.name.trim(),
-        created: frontmatterData.created
-          ? frontmatterData.created instanceof Date
-            ? frontmatterData.created.toISOString()
-            : frontmatterData.created
-          : undefined,
-        updated: frontmatterData.updated
-          ? frontmatterData.updated instanceof Date
-            ? frontmatterData.updated.toISOString()
-            : frontmatterData.updated
-          : undefined,
-        tags: Array.isArray(frontmatterData.tags)
-          ? frontmatterData.tags.filter((tag) => typeof tag === 'string' && tag.trim().length > 0)
-          : []
-      })
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw ErrorFactory.validationFailed(error, { entity: 'MarkdownFrontmatter' })
-      }
-      throw error
+  // Validate content
+  const promptContent = parsed.content.trim()
+  if (promptContent.length === 0) {
+    throw ErrorFactory.invalidInput('content', 'non-empty prompt content')
+  }
+
+  if (promptContent.length > MAX_CONTENT_LENGTH) {
+    throw ErrorFactory.businessRuleViolation(
+      'content size limit',
+      `Content length ${promptContent.length} exceeds maximum of ${MAX_CONTENT_LENGTH} characters`
+    )
+  }
+
+  const result: ParsedMarkdownPrompt = {
+    frontmatter,
+    content: promptContent,
+    rawContent: content
+  }
+
+  // Validate the complete result
+  try {
+    ParsedMarkdownPromptSchema.parse(result)
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw ErrorFactory.validationFailed(error, { entity: 'ParsedMarkdownPrompt' })
     }
+    throw error
+  }
 
-    // Validate content
-    const promptContent = parsed.content.trim()
-    if (promptContent.length === 0) {
-      throw ErrorFactory.invalidInput('content', 'non-empty prompt content')
-    }
-
-    if (promptContent.length > MAX_CONTENT_LENGTH) {
-      throw ErrorFactory.businessRuleViolation(
-        'content size limit',
-        `Content length ${promptContent.length} exceeds maximum of ${MAX_CONTENT_LENGTH} characters`
-      )
-    }
-
-    const result: ParsedMarkdownPrompt = {
-      frontmatter,
-      content: promptContent,
-      rawContent: content
-    }
-
-    // Validate the complete result
-    try {
-      ParsedMarkdownPromptSchema.parse(result)
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw ErrorFactory.validationFailed(error, { entity: 'ParsedMarkdownPrompt' })
-      }
-      throw error
-    }
-
-    return result
+  return result
 }
 
 /**
@@ -258,28 +255,28 @@ async function convertPromptToMarkdown(prompt: Prompt): Promise<string> {
     throw error
   }
 
-    // Build frontmatter object
-    const frontmatter: Record<string, any> = {
-      name: prompt.title
-    }
+  // Build frontmatter object
+  const frontmatter: Record<string, any> = {
+    name: prompt.title
+  }
 
-    // Add created date if available and not zero
-    if (prompt.createdAt && prompt.createdAt > 0) {
-      frontmatter.created = new Date(prompt.createdAt).toISOString()
-    }
+  // Add created date if available and not zero
+  if (prompt.createdAt && prompt.createdAt > 0) {
+    frontmatter.created = new Date(prompt.createdAt).toISOString()
+  }
 
-    // Add updated date if available and not zero
-    if (prompt.updatedAt && prompt.updatedAt > 0) {
-      frontmatter.updated = new Date(prompt.updatedAt).toISOString()
-    }
+  // Add updated date if available and not zero
+  if (prompt.updatedAt && prompt.updatedAt > 0) {
+    frontmatter.updated = new Date(prompt.updatedAt).toISOString()
+  }
 
-    // Add empty tags array for future extensibility
-    frontmatter.tags = []
+  // Add empty tags array for future extensibility
+  frontmatter.tags = []
 
-    // Generate markdown with frontmatter
-    const markdownContent = matter.stringify(prompt.content, frontmatter)
+  // Generate markdown with frontmatter
+  const markdownContent = matter.stringify(prompt.content, frontmatter)
 
-    return markdownContent
+  return markdownContent
 }
 
 /**
@@ -428,7 +425,7 @@ async function extractMetadata(content: string): Promise<MarkdownFrontmatter> {
     return frontmatter
   } catch (error) {
     if (error instanceof ZodError) {
-      throw ErrorFactory.validationFailed(error, { 
+      throw ErrorFactory.validationFailed(error, {
         entity: 'MarkdownFrontmatter',
         action: 'extract',
         context: 'Expected format: name (string), created/updated (ISO dates), tags (array)'
@@ -446,8 +443,8 @@ async function extractMetadata(content: string): Promise<MarkdownFrontmatter> {
  * Internal function: Handles bulk import of multiple markdown files
  */
 async function performBulkImport(
-  files: File[], 
-  projectId: number | undefined, 
+  files: File[],
+  projectId: number | undefined,
   promptService: PromptService,
   logger: ServiceLogger
 ): Promise<BulkImportResult> {
@@ -463,15 +460,15 @@ async function performBulkImport(
 
   // Process each file
   for (const file of files) {
-      const fileResult: MarkdownImportResult = {
-        success: false,
-        fileName: file.name,
-        promptsProcessed: 0,
-        promptsImported: 0,
-        results: [],
-        errors: [],
-        warnings: []
-      }
+    const fileResult: MarkdownImportResult = {
+      success: false,
+      fileName: file.name,
+      promptsProcessed: 0,
+      promptsImported: 0,
+      results: [],
+      errors: [],
+      warnings: []
+    }
 
     try {
       // Validate file size
@@ -494,15 +491,15 @@ async function performBulkImport(
 
       // Parse the markdown
       const parsedPrompt = await parseMarkdownContent(file.content)
-        fileResult.promptsProcessed = 1
-        totalPrompts += 1
+      fileResult.promptsProcessed = 1
+      totalPrompts += 1
 
-        // Import the prompt
-        const importResult: PromptImportResult = {
-          success: false,
-          promptName: parsedPrompt.frontmatter.name,
-          action: 'skipped'
-        }
+      // Import the prompt
+      const importResult: PromptImportResult = {
+        success: false,
+        promptName: parsedPrompt.frontmatter.name,
+        action: 'skipped'
+      }
 
       try {
         // Check if a prompt with this name already exists in the project
@@ -512,15 +509,15 @@ async function performBulkImport(
         } else {
           existingPromptsRaw = await promptService.getAll()
         }
-        
+
         // Convert database results to proper Prompt type
-        const existingPrompts: Prompt[] = existingPromptsRaw.map(prompt => ({
+        const existingPrompts: Prompt[] = existingPromptsRaw.map((prompt) => ({
           ...prompt,
           description: nullToUndefined(prompt.description),
           tags: jsonToStringArray(prompt.tags)
         }))
 
-          const existingPrompt = existingPrompts.find((p) => p.title === parsedPrompt.frontmatter.name)
+        const existingPrompt = existingPrompts.find((p) => p.title === parsedPrompt.frontmatter.name)
 
         if (existingPrompt) {
           // Update existing prompt
@@ -528,23 +525,25 @@ async function performBulkImport(
             content: parsedPrompt.content
           })
 
-            importResult.success = true
-            importResult.promptId = updatedPrompt.id
-            importResult.action = 'updated'
-            summary.updated++
-            promptsImported++
-            fileResult.promptsImported++
+          importResult.success = true
+          importResult.promptId = updatedPrompt.id
+          importResult.action = 'updated'
+          summary.updated++
+          promptsImported++
+          fileResult.promptsImported++
         } else {
           // Create new prompt - projectId is required
           if (!projectId) {
             throw ErrorFactory.missingRequired('projectId', 'prompt creation')
           }
-          
-          const newPrompt = await promptService.create(addTimestamps({
-            title: parsedPrompt.frontmatter.name,
-            content: parsedPrompt.content,
-            projectId
-          }))
+
+          const newPrompt = await promptService.create(
+            addTimestamps({
+              title: parsedPrompt.frontmatter.name,
+              content: parsedPrompt.content,
+              projectId
+            })
+          )
 
           importResult.success = true
           importResult.promptId = newPrompt.id
@@ -594,10 +593,7 @@ async function performBulkImport(
 /**
  * Internal function: Exports multiple prompts to markdown format
  */
-async function performExportToMarkdown(
-  prompts: Prompt[],
-  options: ExportOptions = {}
-): Promise<MarkdownExportResult> {
+async function performExportToMarkdown(prompts: Prompt[], options: ExportOptions = {}): Promise<MarkdownExportResult> {
   const {
     format = 'single-file',
     includeFrontmatter = true,
@@ -629,197 +625,197 @@ async function performExportToMarkdown(
     throw ErrorFactory.invalidInput('prompts', 'at least one valid prompt')
   }
 
-    // Sort prompts
-    const sortedPrompts = [...validatedPrompts].sort((a, b) => {
-      let aValue: string | number
-      let bValue: string | number
+  // Sort prompts
+  const sortedPrompts = [...validatedPrompts].sort((a, b) => {
+    let aValue: string | number
+    let bValue: string | number
 
-      switch (sortBy) {
-        case 'created':
-          aValue = a.createdAt || 0
-          bValue = b.createdAt || 0
-          break
-        case 'updated':
-          aValue = a.updatedAt || 0
-          bValue = b.updatedAt || 0
-          break
-        case 'name':
-        default:
-          aValue = a.title.toLowerCase()
-          bValue = b.title.toLowerCase()
-          break
-      }
-
-      const comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0
-      return sortOrder === 'desc' ? -comparison : comparison
-    })
-
-    const exportedAt = new Date().toISOString()
-    let totalSize = 0
-
-    if (format === 'single-file') {
-      // Export all prompts to a single file
-      const sections: string[] = []
-
-      for (const prompt of sortedPrompts) {
-        const frontmatter: Record<string, any> = includeFrontmatter
-          ? {
-              name: prompt.title || `prompt-${prompt.id}`
-            }
-          : {}
-
-        if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
-            frontmatter.created = new Date(prompt.createdAt).toISOString()
-          }
-          if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
-            frontmatter.updated = new Date(prompt.updatedAt).toISOString()
-          }
-          if (includeTags) {
-            frontmatter.tags = []
-          }
-        }
-
-        let content = prompt.content
-        if (sanitizeContent) {
-          // Sanitize content to prevent XSS and other security issues
-          // First sanitize HTML/scripts, then escape markdown conflicts
-          content = DOMPurify.sanitize(content, {
-            ALLOWED_TAGS: [], // Remove all HTML tags
-            ALLOWED_ATTR: [],
-            KEEP_CONTENT: true // Keep text content
-          })
-            .replace(/^---/gm, '\\---') // Escape frontmatter delimiters in content
-            .trim()
-        }
-
-        const promptMarkdown = includeFrontmatter ? matter.stringify(content, frontmatter) : content
-
-        sections.push(promptMarkdown)
-      }
-
-      const combinedContent = includeFrontmatter ? sections.join('\n\n---\n\n') : sections.join('\n\n')
-      totalSize = Buffer.byteLength(combinedContent, 'utf8')
-
-      const result: MarkdownExportResult = {
-        success: true,
-        format: 'single-file',
-        promptCount: sortedPrompts.length,
-        fileName: 'exported-prompts.md',
-        content: combinedContent,
-        metadata: {
-          exportedAt,
-          totalSize,
-          settings: {
-            format,
-            includeFrontmatter,
-            includeCreatedDate,
-            includeUpdatedDate,
-            includeTags,
-            sanitizeContent,
-            sortBy,
-            sortOrder
-          }
-        }
-      }
-
-      // Validate the result
-      try {
-        MarkdownExportResultSchema.parse(result)
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
-        }
-        throw error
-      }
-      return result
-    } else {
-      // Export each prompt to a separate file
-      const files: ExportedFile[] = []
-
-      for (const prompt of sortedPrompts) {
-        const frontmatter: Record<string, any> = includeFrontmatter
-          ? {
-              name: prompt.title || `prompt-${prompt.id}`
-            }
-          : {}
-
-        if (includeFrontmatter) {
-          if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
-            frontmatter.created = new Date(prompt.createdAt).toISOString()
-          }
-          if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
-            frontmatter.updated = new Date(prompt.updatedAt).toISOString()
-          }
-          if (includeTags) {
-            frontmatter.tags = []
-          }
-        }
-
-        let content = prompt.content
-        if (sanitizeContent) {
-          // Sanitize content to prevent XSS and other security issues
-          content = DOMPurify.sanitize(content, {
-            ALLOWED_TAGS: [], // Remove all HTML tags
-            ALLOWED_ATTR: [],
-            KEEP_CONTENT: true // Keep text content
-          })
-            .replace(/^---/gm, '\\---')
-            .trim()
-        }
-
-        const promptMarkdown = includeFrontmatter ? matter.stringify(content, frontmatter) : content
-
-        // Generate safe filename
-        const safeFileName =
-          (prompt.title || `prompt-${prompt.id}`)
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .slice(0, 50) + '.md'
-
-        files.push({
-          fileName: safeFileName,
-          content: promptMarkdown,
-          promptId: prompt.id,
-          promptName: prompt.title
-        })
-
-        totalSize += Buffer.byteLength(promptMarkdown, 'utf8')
-      }
-
-      const result: MarkdownExportResult = {
-        success: true,
-        format: 'multi-file',
-        promptCount: sortedPrompts.length,
-        files,
-        metadata: {
-          exportedAt,
-          totalSize,
-          settings: {
-            format,
-            includeFrontmatter,
-            includeCreatedDate,
-            includeUpdatedDate,
-            includeTags,
-            sanitizeContent,
-            sortBy,
-            sortOrder
-          }
-        }
-      }
-
-      // Validate the result
-      try {
-        MarkdownExportResultSchema.parse(result)
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
-        }
-        throw error
-      }
-      return result
+    switch (sortBy) {
+      case 'created':
+        aValue = a.createdAt || 0
+        bValue = b.createdAt || 0
+        break
+      case 'updated':
+        aValue = a.updatedAt || 0
+        bValue = b.updatedAt || 0
+        break
+      case 'name':
+      default:
+        aValue = a.title.toLowerCase()
+        bValue = b.title.toLowerCase()
+        break
     }
+
+    const comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+    return sortOrder === 'desc' ? -comparison : comparison
+  })
+
+  const exportedAt = new Date().toISOString()
+  let totalSize = 0
+
+  if (format === 'single-file') {
+    // Export all prompts to a single file
+    const sections: string[] = []
+
+    for (const prompt of sortedPrompts) {
+      const frontmatter: Record<string, any> = includeFrontmatter
+        ? {
+            name: prompt.title || `prompt-${prompt.id}`
+          }
+        : {}
+
+      if (includeFrontmatter) {
+        if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
+          frontmatter.created = new Date(prompt.createdAt).toISOString()
+        }
+        if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
+          frontmatter.updated = new Date(prompt.updatedAt).toISOString()
+        }
+        if (includeTags) {
+          frontmatter.tags = []
+        }
+      }
+
+      let content = prompt.content
+      if (sanitizeContent) {
+        // Sanitize content to prevent XSS and other security issues
+        // First sanitize HTML/scripts, then escape markdown conflicts
+        content = DOMPurify.sanitize(content, {
+          ALLOWED_TAGS: [], // Remove all HTML tags
+          ALLOWED_ATTR: [],
+          KEEP_CONTENT: true // Keep text content
+        })
+          .replace(/^---/gm, '\\---') // Escape frontmatter delimiters in content
+          .trim()
+      }
+
+      const promptMarkdown = includeFrontmatter ? matter.stringify(content, frontmatter) : content
+
+      sections.push(promptMarkdown)
+    }
+
+    const combinedContent = includeFrontmatter ? sections.join('\n\n---\n\n') : sections.join('\n\n')
+    totalSize = Buffer.byteLength(combinedContent, 'utf8')
+
+    const result: MarkdownExportResult = {
+      success: true,
+      format: 'single-file',
+      promptCount: sortedPrompts.length,
+      fileName: 'exported-prompts.md',
+      content: combinedContent,
+      metadata: {
+        exportedAt,
+        totalSize,
+        settings: {
+          format,
+          includeFrontmatter,
+          includeCreatedDate,
+          includeUpdatedDate,
+          includeTags,
+          sanitizeContent,
+          sortBy,
+          sortOrder
+        }
+      }
+    }
+
+    // Validate the result
+    try {
+      MarkdownExportResultSchema.parse(result)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
+      }
+      throw error
+    }
+    return result
+  } else {
+    // Export each prompt to a separate file
+    const files: ExportedFile[] = []
+
+    for (const prompt of sortedPrompts) {
+      const frontmatter: Record<string, any> = includeFrontmatter
+        ? {
+            name: prompt.title || `prompt-${prompt.id}`
+          }
+        : {}
+
+      if (includeFrontmatter) {
+        if (includeCreatedDate && prompt.createdAt && prompt.createdAt > 0) {
+          frontmatter.created = new Date(prompt.createdAt).toISOString()
+        }
+        if (includeUpdatedDate && prompt.updatedAt && prompt.updatedAt > 0) {
+          frontmatter.updated = new Date(prompt.updatedAt).toISOString()
+        }
+        if (includeTags) {
+          frontmatter.tags = []
+        }
+      }
+
+      let content = prompt.content
+      if (sanitizeContent) {
+        // Sanitize content to prevent XSS and other security issues
+        content = DOMPurify.sanitize(content, {
+          ALLOWED_TAGS: [], // Remove all HTML tags
+          ALLOWED_ATTR: [],
+          KEEP_CONTENT: true // Keep text content
+        })
+          .replace(/^---/gm, '\\---')
+          .trim()
+      }
+
+      const promptMarkdown = includeFrontmatter ? matter.stringify(content, frontmatter) : content
+
+      // Generate safe filename
+      const safeFileName =
+        (prompt.title || `prompt-${prompt.id}`)
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .slice(0, 50) + '.md'
+
+      files.push({
+        fileName: safeFileName,
+        content: promptMarkdown,
+        promptId: prompt.id,
+        promptName: prompt.title
+      })
+
+      totalSize += Buffer.byteLength(promptMarkdown, 'utf8')
+    }
+
+    const result: MarkdownExportResult = {
+      success: true,
+      format: 'multi-file',
+      promptCount: sortedPrompts.length,
+      files,
+      metadata: {
+        exportedAt,
+        totalSize,
+        settings: {
+          format,
+          includeFrontmatter,
+          includeCreatedDate,
+          includeUpdatedDate,
+          includeTags,
+          sanitizeContent,
+          sortBy,
+          sortOrder
+        }
+      }
+    }
+
+    // Validate the result
+    try {
+      MarkdownExportResultSchema.parse(result)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw ErrorFactory.validationFailed(error, { entity: 'MarkdownExportResult' })
+      }
+      throw error
+    }
+    return result
+  }
 }
 
 // Export type for consumers

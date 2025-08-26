@@ -8,7 +8,6 @@ import { storageService, TypedStorageService } from '../repositories/storage-ser
 import { db, rawDb } from '../db'
 
 describe('Drizzle Repository Migration Tests', () => {
-  
   beforeEach(async () => {
     // Clean up test data
     await rawDb.exec('DELETE FROM ticket_tasks')
@@ -29,7 +28,7 @@ describe('Drizzle Repository Migration Tests', () => {
       }
 
       const created = await storageService.projects.create(projectData)
-      
+
       expect(created.id).toBeDefined()
       expect(created.name).toBe('Test Project')
       expect(created.path).toBe('/test/path')
@@ -47,7 +46,7 @@ describe('Drizzle Repository Migration Tests', () => {
       })
 
       // Add small delay to ensure timestamp difference
-      await new Promise(resolve => setTimeout(resolve, 1))
+      await new Promise((resolve) => setTimeout(resolve, 1))
 
       const updated = await storageService.projects.update(project.id, {
         name: 'Updated Name',
@@ -97,7 +96,7 @@ describe('Drizzle Repository Migration Tests', () => {
       }
 
       const ticket = await storageService.tickets.create(ticketData)
-      
+
       expect(ticket.id).toBeDefined()
       expect(ticket.title).toBe('Test Ticket')
       expect(ticket.status).toBe('open')
@@ -119,7 +118,7 @@ describe('Drizzle Repository Migration Tests', () => {
 
       const tickets = await storageService.tickets.getByProject(testProject.id)
       expect(tickets).toHaveLength(2)
-      expect(tickets.map(t => t.title).sort()).toEqual(['Ticket 1', 'Ticket 2'])
+      expect(tickets.map((t) => t.title).sort()).toEqual(['Ticket 1', 'Ticket 2'])
     })
 
     test('should filter tickets by status', async () => {
@@ -169,7 +168,7 @@ describe('Drizzle Repository Migration Tests', () => {
       }
 
       const task = await storageService.tasks.create(taskData)
-      
+
       expect(task.id).toBeDefined()
       expect(task.content).toBe('Test task content')
       expect(task.done).toBe(false)
@@ -240,7 +239,7 @@ describe('Drizzle Repository Migration Tests', () => {
       })
 
       const stats = await storageService.tasks.getTicketStats(testTicket.id)
-      
+
       expect(stats.totalTasks).toBe(3)
       expect(stats.completedTasks).toBe(2)
       expect(stats.pendingTasks).toBe(1)
@@ -278,7 +277,7 @@ describe('Drizzle Repository Migration Tests', () => {
       })
 
       const chatWithMessages = await storageService.chats.getWithMessages(chat.id)
-      
+
       expect(chatWithMessages).toBeTruthy()
       expect(chatWithMessages!.messages).toHaveLength(2)
       expect(chatWithMessages!.messages[0].role).toBe('user')
@@ -308,7 +307,7 @@ describe('Drizzle Repository Migration Tests', () => {
 
       expect(result.ticket.title).toBe('Ticket with Tasks')
       expect(result.tasks).toHaveLength(3)
-      expect(result.tasks.every(task => task.ticketId === result.ticket.id)).toBe(true)
+      expect(result.tasks.every((task) => task.ticketId === result.ticket.id)).toBe(true)
     })
   })
 
@@ -321,7 +320,7 @@ describe('Drizzle Repository Migration Tests', () => {
 
       // Create multiple tickets at once
       const startTime = Date.now()
-      
+
       const ticketData = Array.from({ length: 100 }, (_, i) => ({
         projectId: project.id,
         title: `Bulk Ticket ${i + 1}`,
@@ -333,7 +332,7 @@ describe('Drizzle Repository Migration Tests', () => {
 
       expect(tickets).toHaveLength(100)
       expect(bulkCreateTime).toBeLessThan(1000) // Should be under 1 second
-      
+
       console.log(`✅ Bulk created 100 tickets in ${bulkCreateTime}ms`)
 
       // Query performance test
@@ -343,7 +342,7 @@ describe('Drizzle Repository Migration Tests', () => {
 
       expect(retrievedTickets).toHaveLength(100)
       expect(queryTime).toBeLessThan(100) // Should be under 100ms
-      
+
       console.log(`✅ Queried 100 tickets in ${queryTime}ms`)
     })
   })
@@ -355,25 +354,24 @@ describe('Drizzle Repository Migration Tests', () => {
         name: 'Stats Test',
         path: '/stats'
       })
-      
+
       const ticket = await storageService.tickets.create({
         projectId: project.id,
         title: 'Stats Ticket'
       })
-      
+
       await storageService.tasks.create({
         ticketId: ticket.id,
         content: 'Stats Task'
       })
 
       const stats = await storageService.getStorageStats()
-      
+
       expect(stats.projects).toBeGreaterThanOrEqual(1)
       expect(stats.tickets).toBeGreaterThanOrEqual(1)
       expect(stats.tasks).toBeGreaterThanOrEqual(1)
       expect(stats.total).toBe(
-        stats.projects + stats.tickets + stats.tasks + 
-        stats.chats + stats.prompts + stats.queues
+        stats.projects + stats.tickets + stats.tasks + stats.chats + stats.prompts + stats.queues
       )
     })
 

@@ -24,7 +24,6 @@ Animates children when they come into viewport:
 
 ```tsx
 import { AnimateOnScroll } from '@promptliano/ui'
-
 ;<AnimateOnScroll variants={fadeInUp} delay={0.2}>
   <div>Content appears on scroll</div>
 </AnimateOnScroll>
@@ -36,7 +35,6 @@ Creates parallax scrolling effects:
 
 ```tsx
 import { Parallax } from '@promptliano/ui'
-
 ;<Parallax speed={0.5}>
   <img src='background.jpg' />
 </Parallax>
@@ -48,7 +46,6 @@ Animates text word by word:
 
 ```tsx
 import { AnimatedText } from '@promptliano/ui'
-
 ;<AnimatedText text='Hello World' delay={0.1} />
 ```
 
@@ -58,7 +55,6 @@ Wraps page content for smooth transitions:
 
 ```tsx
 import { PageTransition } from '@promptliano/ui'
-
 ;<PageTransition>
   <div>Page content</div>
 </PageTransition>
@@ -76,6 +72,5 @@ Usage with motion:
 
 ```tsx
 import { motion, hoverScale } from '@promptliano/ui'
-
 ;<motion.button {...hoverScale}>Hover me</motion.button>
 ```

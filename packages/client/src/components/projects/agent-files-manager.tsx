@@ -58,7 +58,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
         // This is a batch operation, we'll need to handle it differently
         const allFiles = [...(filesData?.data?.projectFiles || []), ...(filesData?.data?.globalFiles || [])]
         const results = []
-        
+
         for (const file of allFiles) {
           if (file.exists && file.writable) {
             try {
@@ -72,12 +72,12 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
             }
           }
         }
-        
+
         return { data: { results } }
       } else {
         // For specific files
         const results = []
-        
+
         for (const fileUpdate of files) {
           try {
             const response = await client?.typeSafeClient.createProjectsByProjectIdAgentFilesUpdate(projectId, {
@@ -88,7 +88,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
             console.warn(`Failed to update ${fileUpdate.path}:`, error)
           }
         }
-        
+
         return { data: { results } }
       }
     },
@@ -162,7 +162,8 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
         path: file.path,
         filename: file.path.split('/').pop() || file.name || 'Unknown',
         exists: file.exists,
-        hasInstructions: (statusInfo && typeof statusInfo === 'object' && statusInfo.hasInstructions) || file.hasInstructions || false,
+        hasInstructions:
+          (statusInfo && typeof statusInfo === 'object' && statusInfo.hasInstructions) || file.hasInstructions || false,
         version: (statusInfo && typeof statusInfo === 'object' && statusInfo.instructionVersion) || undefined,
         needsUpdate: (statusInfo && typeof statusInfo === 'object' && statusInfo.isOutdated) || false,
         type: file.type,

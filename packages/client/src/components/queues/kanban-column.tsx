@@ -105,9 +105,7 @@ export function KanbanColumn({
                 </Badge>
                 <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                   <span>{stats.pending} pending</span>
-                  {stats.processing > 0 && (
-                    <span className='text-primary'>{stats.processing} processing</span>
-                  )}
+                  {stats.processing > 0 && <span className='text-primary'>{stats.processing} processing</span>}
                 </div>
               </>
             )

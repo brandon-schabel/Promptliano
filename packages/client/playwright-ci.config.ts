@@ -6,7 +6,7 @@ dotenv.config()
 
 /**
  * CI-Optimized Playwright Configuration
- * 
+ *
  * This configuration is specifically tuned for CI environments with:
  * - Single worker for stable resource usage
  * - Test sharding support
@@ -30,7 +30,7 @@ export default defineConfig({
     ['json', { outputFile: 'test-results-ci.json' }],
     ['junit', { outputFile: 'test-results-junit.xml' }],
     ['github'], // GitHub Actions integration
-    ['list'],
+    ['list']
   ],
 
   // CI-optimized settings
@@ -42,7 +42,7 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
     headless: true, // Always headless in CI
     actionTimeout: 15 * 1000, // Longer actions timeout for CI
-    
+
     // Resource management for CI
     launchOptions: {
       args: [
@@ -59,23 +59,18 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /.*\.setup\.ts/
     },
     {
       name: 'chromium-ci',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // CI-specific browser settings
         launchOptions: {
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-web-security'
-          ]
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security']
         }
       },
-      dependencies: ['setup'],
+      dependencies: ['setup']
     }
   ],
 
@@ -90,5 +85,5 @@ export default defineConfig({
   },
 
   // Test output directory
-  outputDir: 'test-results-ci/',
+  outputDir: 'test-results-ci/'
 })

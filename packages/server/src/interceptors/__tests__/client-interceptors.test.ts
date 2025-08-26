@@ -27,7 +27,7 @@ describe('ClientInterceptorSystem', () => {
   describe('constructor', () => {
     it('should create system with default config', () => {
       const config = system.getConfig()
-      
+
       expect(config.enabled).toBe(true)
       expect(config.timeout).toBe(30000)
       expect(config.retries).toBe(3)
@@ -40,10 +40,10 @@ describe('ClientInterceptorSystem', () => {
         retries: 1,
         baseURL: 'https://api.example.com'
       }
-      
+
       const customSystem = new ClientInterceptorSystem(customConfig)
       const config = customSystem.getConfig()
-      
+
       expect(config.enabled).toBe(false)
       expect(config.timeout).toBe(5000)
       expect(config.retries).toBe(1)
@@ -154,7 +154,7 @@ describe('ClientInterceptorSystem', () => {
       system.addInterceptor(interceptor)
 
       const response = await system.fetch('/api/test')
-      
+
       expect(response).toBeDefined()
       expect(response.status).toBe(200)
     })
@@ -167,13 +167,10 @@ describe('ClientInterceptorSystem', () => {
         handler: async (context) => {
           if (context.response.ok) {
             const data = await context.response.json()
-            context.response = new Response(
-              JSON.stringify({ ...data, transformed: true }),
-              { 
-                status: context.response.status,
-                headers: context.response.headers
-              }
-            )
+            context.response = new Response(JSON.stringify({ ...data, transformed: true }), {
+              status: context.response.status,
+              headers: context.response.headers
+            })
           }
           return context
         }
@@ -183,7 +180,7 @@ describe('ClientInterceptorSystem', () => {
 
       const response = await system.fetch('/api/test')
       const data = await response.json()
-      
+
       expect(data.transformed).toBe(true)
     })
   })
@@ -197,10 +194,7 @@ describe('ClientInterceptorSystem', () => {
         handler: async (context) => {
           context.metadata.errorHandled = true
           // Return a fallback response
-          context.response = new Response(
-            JSON.stringify({ error: 'Handled by interceptor' }),
-            { status: 500 }
-          )
+          context.response = new Response(JSON.stringify({ error: 'Handled by interceptor' }), { status: 500 })
           return context
         }
       })
@@ -212,7 +206,7 @@ describe('ClientInterceptorSystem', () => {
 
       const response = await system.fetch('/api/test')
       const data = await response.json()
-      
+
       expect(data.error).toBe('Handled by interceptor')
     })
 
@@ -230,14 +224,12 @@ describe('ClientInterceptorSystem', () => {
       })
 
       // Mock a 404 response
-      mockFetch.mockResolvedValueOnce(
-        new Response('Not Found', { status: 404 })
-      )
+      mockFetch.mockResolvedValueOnce(new Response('Not Found', { status: 404 }))
 
       system.addInterceptor(errorInterceptor)
 
       const response = await system.fetch('/api/test')
-      
+
       expect(response.status).toBe(404)
     })
   })
@@ -254,7 +246,7 @@ describe('ClientInterceptorSystem', () => {
           const timeout = setTimeout(() => {
             resolve(new Response('Too slow'))
           }, 500)
-          
+
           // Respect the abort signal
           if (options?.signal) {
             options.signal.addEventListener('abort', () => {
@@ -270,16 +262,14 @@ describe('ClientInterceptorSystem', () => {
 
     it('should allow timeout override per request', async () => {
       // Mock a slow response
-      mockFetch.mockImplementationOnce(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve(new Response('OK')), 200)
-        )
+      mockFetch.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(() => resolve(new Response('OK')), 200))
       )
 
       const response = await system.fetch('/api/slow', {
         timeout: 300 // Override timeout to 300ms
       })
-      
+
       expect(response).toBeDefined()
     })
   })
@@ -298,7 +288,7 @@ describe('ClientInterceptorSystem', () => {
       })
 
       const response = await system.fetch('/api/test')
-      
+
       expect(attemptCount).toBe(3)
       expect(response).toBeDefined()
     })
@@ -338,19 +328,23 @@ describe('ClientInterceptorSystem', () => {
     })
 
     it('should clear all interceptors', () => {
-      system.addInterceptor(createClientInterceptor({
-        name: 'interceptor1',
-        type: 'request',
-        order: 10,
-        handler: async (context) => context
-      }))
+      system.addInterceptor(
+        createClientInterceptor({
+          name: 'interceptor1',
+          type: 'request',
+          order: 10,
+          handler: async (context) => context
+        })
+      )
 
-      system.addInterceptor(createClientInterceptor({
-        name: 'interceptor2',
-        type: 'response',
-        order: 10,
-        handler: async (context) => context
-      }))
+      system.addInterceptor(
+        createClientInterceptor({
+          name: 'interceptor2',
+          type: 'response',
+          order: 10,
+          handler: async (context) => context
+        })
+      )
 
       expect(system.getInterceptors()).toHaveLength(2)
 
@@ -367,13 +361,13 @@ describe('ClientInterceptorSystem', () => {
       })
 
       system.addInterceptor(interceptor)
-      
+
       system.setInterceptorEnabled('test-interceptor', false)
-      const disabled = system.getInterceptors().find(i => i.name === 'test-interceptor')
+      const disabled = system.getInterceptors().find((i) => i.name === 'test-interceptor')
       expect(disabled?.enabled).toBe(false)
 
       system.setInterceptorEnabled('test-interceptor', true)
-      const enabled = system.getInterceptors().find(i => i.name === 'test-interceptor')
+      const enabled = system.getInterceptors().find((i) => i.name === 'test-interceptor')
       expect(enabled?.enabled).toBe(true)
     })
   })
@@ -444,7 +438,7 @@ describe('ClientInterceptorSystem', () => {
   describe('system configuration', () => {
     it('should disable system when configured', async () => {
       const disabledSystem = new ClientInterceptorSystem({ enabled: false })
-      
+
       const interceptor = createClientInterceptor({
         name: 'should-not-run',
         type: 'request',
@@ -464,7 +458,7 @@ describe('ClientInterceptorSystem', () => {
     it('should update configuration at runtime', () => {
       system.updateConfig({ timeout: 5000, retries: 1 })
       const config = system.getConfig()
-      
+
       expect(config.timeout).toBe(5000)
       expect(config.retries).toBe(1)
     })

@@ -44,11 +44,21 @@ function createMCPTrackingStorage(logger: ServiceLogger) {
       return []
     },
     async getExecutionTimeline(projectId?: number, period?: string, startDate?: number, endDate?: number) {
-      logger.warn('MCP tracking not fully implemented - getExecutionTimeline called', { projectId, period, startDate, endDate })
+      logger.warn('MCP tracking not fully implemented - getExecutionTimeline called', {
+        projectId,
+        period,
+        startDate,
+        endDate
+      })
       return []
     },
     async createChain(chainId: string, executionId: number, parentExecutionId?: number, position?: number) {
-      logger.warn('MCP tracking not fully implemented - createChain called', { chainId, executionId, parentExecutionId, position })
+      logger.warn('MCP tracking not fully implemented - createChain called', {
+        chainId,
+        executionId,
+        parentExecutionId,
+        position
+      })
     },
     async getChainExecutions(chainId: string) {
       logger.warn('MCP tracking not fully implemented - getChainExecutions called', { chainId })
@@ -75,7 +85,7 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
   const logger = deps.logger || createServiceLogger('MCPTracking')
   const storage = deps.storage || createMCPTrackingStorage(logger)
   const errors = ErrorFactory.forEntity('MCPExecution')
-  
+
   // Global tracking state for active executions within this service instance
   const activeExecutions = new Map<
     number,
@@ -154,11 +164,11 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
         metadata: metadata ? JSON.stringify(metadata) : undefined
       })
 
-      logger.info('Completed MCP tool execution tracking', { 
-        executionId, 
-        status, 
-        durationMs, 
-        toolName: activeExecution.toolName 
+      logger.info('Completed MCP tool execution tracking', {
+        executionId,
+        status,
+        durationMs,
+        toolName: activeExecution.toolName
       })
 
       // Update statistics asynchronously
@@ -271,17 +281,26 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
         const executionTrend = await storage.getExecutionTimeline(projectId, 'day', timelineStartDate, endDate)
 
         // Calculate overview metrics
-        const totalExecutions = topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number), 0)
+        const totalExecutions = topTools.reduce(
+          (sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number),
+          0
+        )
         const uniqueTools = topTools.length
         const overallSuccessRate =
           totalExecutions > 0
-            ? topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number) * (tool.successRate as number), 0) /
-              totalExecutions
+            ? topTools.reduce(
+                (sum: number, tool: MCPToolSummary) =>
+                  sum + (tool.totalExecutions as number) * (tool.successRate as number),
+                0
+              ) / totalExecutions
             : 0
         const avgExecutionTime =
           totalExecutions > 0
-            ? topTools.reduce((sum: number, tool: MCPToolSummary) => sum + (tool.totalExecutions as number) * (tool.avgDurationMs as number), 0) /
-              totalExecutions
+            ? topTools.reduce(
+                (sum: number, tool: MCPToolSummary) =>
+                  sum + (tool.totalExecutions as number) * (tool.avgDurationMs as number),
+                0
+              ) / totalExecutions
             : 0
 
         return {
@@ -502,4 +521,3 @@ export const {
   getTopErrorPatterns,
   cleanupStaleExecutions
 } = mcpTrackingService
-

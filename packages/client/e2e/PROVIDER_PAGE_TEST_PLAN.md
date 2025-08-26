@@ -1,11 +1,13 @@
 # Provider Page Comprehensive Test Plan
 
 ## Overview
+
 The Provider Page is the central configuration hub for AI provider settings in Promptliano, managing API keys, provider availability, and model configurations. It handles both local providers (Ollama, LM Studio) and cloud providers (OpenAI, Anthropic) with proper validation, security, and error handling. This test plan covers provider detection, configuration management, and testing workflows.
 
 ## Test Scope & Requirements
 
 ### Major Components
+
 1. **Local Provider Detection** - Ollama and LM Studio availability detection
 2. **Cloud Provider Configuration** - API key management and validation
 3. **Provider Testing** - Connection testing and model availability
@@ -14,6 +16,7 @@ The Provider Page is the central configuration hub for AI provider settings in P
 6. **Error Handling** - Network issues, invalid keys, service unavailability
 
 ### Technical Integration Points
+
 - **Local Service Detection**: HTTP health checks for Ollama/LM Studio
 - **API Key Validation**: Secure storage and validation of provider credentials
 - **Model Discovery**: Dynamic model list fetching from providers
@@ -23,6 +26,7 @@ The Provider Page is the central configuration hub for AI provider settings in P
 ## Test Data Requirements
 
 ### Shared Test Data Setup
+
 ```typescript
 // Location: e2e/fixtures/provider-page-data.ts
 export const ProviderPageTestData = {
@@ -41,7 +45,7 @@ export const ProviderPageTestData = {
     },
     {
       id: 'lmstudio',
-      name: 'LM Studio', 
+      name: 'LM Studio',
       type: 'local',
       defaultUrl: 'http://localhost:1234',
       healthEndpoint: '/v1/models',
@@ -52,7 +56,7 @@ export const ProviderPageTestData = {
     }
   ],
 
-  // Cloud providers with mock configurations  
+  // Cloud providers with mock configurations
   cloudProviders: [
     {
       id: 'openai',
@@ -107,6 +111,7 @@ export const ProviderPageTestData = {
 ## Page Object Model Extensions
 
 ### ProviderPage Class Implementation
+
 ```typescript
 // Location: e2e/pages/provider-page.ts
 export class ProviderPage extends BasePage {
@@ -217,40 +222,40 @@ export class ProviderPage extends BasePage {
   async checkLocalProviderAvailability(providerId: string): Promise<boolean> {
     const statusIndicator = this.getProviderStatusIndicator(providerId)
     await statusIndicator.waitFor({ timeout: 5000 })
-    
+
     const classes = await statusIndicator.getAttribute('class')
     return classes?.includes('online') || classes?.includes('available') || classes?.includes('connected') || false
   }
 
   async testProviderConnection(providerId: string): Promise<void> {
     await this.getProviderTestButton(providerId).click()
-    
+
     // Wait for test to complete
     await this.page.waitForSelector(`[data-testid="test-result-${providerId}"]`, { timeout: 15000 })
   }
 
   async configureCloudProvider(providerId: string, apiKey: string): Promise<void> {
     const keyInput = this.getApiKeyInput(providerId)
-    
+
     // Clear existing key
     await keyInput.clear()
-    
+
     // Enter new key
     await keyInput.fill(apiKey)
-    
+
     // Save key
     await this.getSaveKeyButton(providerId).click()
-    
+
     // Wait for save confirmation
     await expect(this.page.getByText(/key.*saved|saved.*successfully/i)).toBeVisible({ timeout: 10000 })
   }
 
   async validateApiKey(providerId: string): Promise<boolean> {
     await this.getValidateKeyButton(providerId).click()
-    
+
     // Wait for validation result
     await this.getValidationResult(providerId).waitFor({ timeout: 15000 })
-    
+
     const resultText = await this.getValidationResult(providerId).textContent()
     return resultText?.includes('valid') || resultText?.includes('success') || false
   }
@@ -258,16 +263,16 @@ export class ProviderPage extends BasePage {
   async getAvailableModels(providerId: string): Promise<string[]> {
     const modelsList = this.getModelList(providerId)
     await modelsList.waitFor()
-    
+
     const modelElements = modelsList.getByTestId(/^model-/)
     const count = await modelElements.count()
     const models: string[] = []
-    
+
     for (let i = 0; i < count; i++) {
       const modelText = await modelElements.nth(i).textContent()
       if (modelText) models.push(modelText.trim())
     }
-    
+
     return models
   }
 }
@@ -278,21 +283,22 @@ export class ProviderPage extends BasePage {
 ### 1. Local Provider Detection and Management
 
 #### 1.1 Provider Availability Detection Tests
+
 ```typescript
 test.describe('Local Provider Detection', () => {
   test('should detect available local providers', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     // Mock successful responses for local providers
-    await page.route('**/localhost:11434/api/version', route => {
+    await page.route('**/localhost:11434/api/version', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(ProviderPageTestData.testScenarios.localAvailable.mockOllamaResponse.body)
       })
     })
-    
-    await page.route('**/localhost:1234/v1/models', route => {
+
+    await page.route('**/localhost:1234/v1/models', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -310,7 +316,7 @@ test.describe('Local Provider Detection', () => {
     if (ollamaAvailable) {
       await expect(providerPage.getProviderStatus('ollama')).toContainText(/online|available|connected/i)
       await expect(providerPage.getProviderStatusIndicator('ollama')).toHaveClass(/online|available|connected/)
-      
+
       // Test button should be visible and enabled
       await expect(providerPage.getProviderTestButton('ollama')).toBeVisible()
       await expect(providerPage.getProviderTestButton('ollama')).toBeEnabled()
@@ -332,13 +338,13 @@ test.describe('Local Provider Detection', () => {
 
   test('should handle unavailable local providers gracefully', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     // Mock connection failures
-    await page.route('**/localhost:11434/**', route => {
+    await page.route('**/localhost:11434/**', (route) => {
       route.abort('failed')
     })
-    
-    await page.route('**/localhost:1234/**', route => {
+
+    await page.route('**/localhost:1234/**', (route) => {
       route.abort('failed')
     })
 
@@ -355,16 +361,16 @@ test.describe('Local Provider Detection', () => {
     // Install buttons should contain helpful links or instructions
     const ollamaInstallBtn = providerPage.getProviderInstallButton('ollama')
     await expect(ollamaInstallBtn).toBeVisible()
-    
+
     const lmStudioInstallBtn = providerPage.getProviderInstallButton('lmstudio')
     await expect(lmStudioInstallBtn).toBeVisible()
   })
 
   test('should test local provider connections', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     // Mock Ollama as available
-    await page.route('**/localhost:11434/**', route => {
+    await page.route('**/localhost:11434/**', (route) => {
       const url = route.request().url()
       if (url.includes('/api/version')) {
         route.fulfill({
@@ -374,11 +380,8 @@ test.describe('Local Provider Detection', () => {
       } else if (url.includes('/api/tags')) {
         route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
-            models: [
-              { name: 'llama3:latest' },
-              { name: 'codellama:latest' }
-            ]
+          body: JSON.stringify({
+            models: [{ name: 'llama3:latest' }, { name: 'codellama:latest' }]
           })
         })
       } else {
@@ -414,14 +417,14 @@ test.describe('Local Provider Detection', () => {
 
     // Should allow URL editing (if supported)
     const urlElement = providerPage.getProviderUrl('ollama')
-    if (await urlElement.locator('input').count() > 0) {
+    if ((await urlElement.locator('input').count()) > 0) {
       const urlInput = urlElement.locator('input')
       await urlInput.clear()
       await urlInput.fill('http://localhost:11435')
-      
+
       // Save changes
       await page.keyboard.press('Enter')
-      
+
       // Should update and test new URL
       await expect(providerPage.getProviderUrl('ollama')).toContainText('localhost:11435')
     }
@@ -429,10 +432,10 @@ test.describe('Local Provider Detection', () => {
 
   test('should show install instructions for unavailable providers', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     // Mock providers as unavailable
-    await page.route('**/localhost:11434/**', route => route.abort('failed'))
-    await page.route('**/localhost:1234/**', route => route.abort('failed'))
+    await page.route('**/localhost:11434/**', (route) => route.abort('failed'))
+    await page.route('**/localhost:1234/**', (route) => route.abort('failed'))
 
     await providerPage.goto('/providers')
 
@@ -457,13 +460,14 @@ test.describe('Local Provider Detection', () => {
 ```
 
 #### 1.2 Cloud Provider Configuration Tests
+
 ```typescript
 test.describe('Cloud Provider Configuration', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API endpoints for cloud providers
-    await page.route('**/api.openai.com/v1/**', route => {
+    await page.route('**/api.openai.com/v1/**', (route) => {
       const authHeader = route.request().headers()['authorization']
-      
+
       if (!authHeader || authHeader === 'Bearer invalid-key-format') {
         route.fulfill({
           status: 401,
@@ -472,7 +476,7 @@ test.describe('Cloud Provider Configuration', () => {
       } else {
         route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             data: [
               { id: 'gpt-4', object: 'model' },
               { id: 'gpt-4-turbo', object: 'model' },
@@ -483,9 +487,9 @@ test.describe('Cloud Provider Configuration', () => {
       }
     })
 
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       const authHeader = route.request().headers()['x-api-key']
-      
+
       if (!authHeader || authHeader === 'invalid-anthropic-key') {
         route.fulfill({
           status: 401,
@@ -494,7 +498,7 @@ test.describe('Cloud Provider Configuration', () => {
       } else {
         route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             data: [
               { id: 'claude-3-opus-20240229' },
               { id: 'claude-3-sonnet-20240229' },
@@ -511,7 +515,7 @@ test.describe('Cloud Provider Configuration', () => {
     await providerPage.goto('/providers')
 
     // Configure OpenAI
-    const openaiKey = ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!
+    const openaiKey = ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
     await providerPage.configureCloudProvider('openai', openaiKey)
 
     // Verify key is saved (should be masked)
@@ -567,7 +571,7 @@ test.describe('Cloud Provider Configuration', () => {
     // Click toggle to show
     await toggleButton.click()
     expect(await keyInput.getAttribute('type')).toBe('text')
-    
+
     const visibleValue = await keyInput.inputValue()
     expect(visibleValue).toContain('sk-ant-test123')
 
@@ -581,7 +585,10 @@ test.describe('Cloud Provider Configuration', () => {
     await providerPage.goto('/providers')
 
     // Configure key
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
 
     // Clear key
     await providerPage.getClearKeyButton('openai').click()
@@ -606,13 +613,7 @@ test.describe('Cloud Provider Configuration', () => {
     await providerPage.goto('/providers')
 
     // Try invalid format keys
-    const invalidFormats = [
-      'not-a-key',
-      'sk-',
-      'sk-tooshort',
-      '12345',
-      ''
-    ]
+    const invalidFormats = ['not-a-key', 'sk-', 'sk-tooshort', '12345', '']
 
     for (const invalidKey of invalidFormats) {
       const keyInput = providerPage.getApiKeyInput('openai')
@@ -622,7 +623,7 @@ test.describe('Cloud Provider Configuration', () => {
       // Save button should be disabled or validation error shown
       const saveButton = providerPage.getSaveKeyButton('openai')
       const isEnabled = await saveButton.isEnabled()
-      
+
       if (isEnabled) {
         await saveButton.click()
         // Should show format error
@@ -640,13 +641,14 @@ test.describe('Cloud Provider Configuration', () => {
 ### 2. Provider Testing and Validation
 
 #### 2.1 Connection Testing Tests
+
 ```typescript
 test.describe('Provider Connection Testing', () => {
   test('should test provider connections with real API calls', async ({ page }) => {
     const providerPage = new ProviderPage(page)
 
     // Mock successful API responses
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -662,7 +664,10 @@ test.describe('Provider Connection Testing', () => {
     await providerPage.goto('/providers')
 
     // Configure OpenAI key
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
 
     // Test connection
     const testButton = providerPage.getProviderTestButton('openai')
@@ -687,7 +692,7 @@ test.describe('Provider Connection Testing', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock timeout scenario
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       // Don't respond to simulate timeout
       setTimeout(() => {
         route.fulfill({
@@ -698,7 +703,10 @@ test.describe('Provider Connection Testing', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('anthropic', ProviderPageTestData.cloudProviders.find(p => p.id === 'anthropic')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'anthropic',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'anthropic')?.testKey!
+    )
 
     // Test connection
     await providerPage.getProviderTestButton('anthropic').click()
@@ -713,7 +721,7 @@ test.describe('Provider Connection Testing', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock successful responses for both providers
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       setTimeout(() => {
         route.fulfill({
           status: 200,
@@ -722,7 +730,7 @@ test.describe('Provider Connection Testing', () => {
       }, 1000) // 1 second delay
     })
 
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       setTimeout(() => {
         route.fulfill({
           status: 200,
@@ -734,8 +742,14 @@ test.describe('Provider Connection Testing', () => {
     await providerPage.goto('/providers')
 
     // Configure both providers
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
-    await providerPage.configureCloudProvider('anthropic', ProviderPageTestData.cloudProviders.find(p => p.id === 'anthropic')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
+    await providerPage.configureCloudProvider(
+      'anthropic',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'anthropic')?.testKey!
+    )
 
     // Start both tests
     await Promise.all([
@@ -756,15 +770,15 @@ test.describe('Provider Connection Testing', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock rate limit response
-    await page.route('**/api.openai.com/**', route => {
+    await page.route('**/api.openai.com/**', (route) => {
       route.fulfill({
         status: 429,
         headers: {
           'retry-after': '60',
           'x-ratelimit-remaining': '0'
         },
-        body: JSON.stringify({ 
-          error: { 
+        body: JSON.stringify({
+          error: {
             message: 'Rate limit exceeded',
             type: 'rate_limit_error'
           }
@@ -773,7 +787,10 @@ test.describe('Provider Connection Testing', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
 
     // Test connection
     await providerPage.getProviderTestButton('openai').click()
@@ -790,26 +807,31 @@ test.describe('Provider Connection Testing', () => {
 ```
 
 #### 2.2 Model Discovery and Management Tests
+
 ```typescript
 test.describe('Model Discovery and Management', () => {
   test('should discover and display available models for each provider', async ({ page }) => {
     const providerPage = new ProviderPage(page)
 
     // Mock model discovery for different providers
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({
-          data: ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.models.map(model => ({ id: model, object: 'model' }))
+          data: ProviderPageTestData.cloudProviders
+            .find((p) => p.id === 'openai')
+            ?.models.map((model) => ({ id: model, object: 'model' }))
         })
       })
     })
 
-    await page.route('**/localhost:11434/api/tags', route => {
+    await page.route('**/localhost:11434/api/tags', (route) => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({
-          models: ProviderPageTestData.localProviders.find(p => p.id === 'ollama')?.expectedModels.map(model => ({ name: model }))
+          models: ProviderPageTestData.localProviders
+            .find((p) => p.id === 'ollama')
+            ?.expectedModels.map((model) => ({ name: model }))
         })
       })
     })
@@ -817,7 +839,10 @@ test.describe('Model Discovery and Management', () => {
     await providerPage.goto('/providers')
 
     // Configure OpenAI and test
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
     await providerPage.testProviderConnection('openai')
 
     // Should display OpenAI models
@@ -839,7 +864,7 @@ test.describe('Model Discovery and Management', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock empty model response
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({ data: [] })
@@ -847,7 +872,10 @@ test.describe('Model Discovery and Management', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
     await providerPage.testProviderConnection('openai')
 
     // Should show message about no models
@@ -860,12 +888,13 @@ test.describe('Model Discovery and Management', () => {
     const providerPage = new ProviderPage(page)
 
     let requestCount = 0
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       requestCount++
-      const models = requestCount === 1 
-        ? [{ id: 'claude-3-haiku-20240307' }] 
-        : [{ id: 'claude-3-haiku-20240307' }, { id: 'claude-3-sonnet-20240229' }, { id: 'claude-3-opus-20240229' }]
-      
+      const models =
+        requestCount === 1
+          ? [{ id: 'claude-3-haiku-20240307' }]
+          : [{ id: 'claude-3-haiku-20240307' }, { id: 'claude-3-sonnet-20240229' }, { id: 'claude-3-opus-20240229' }]
+
       route.fulfill({
         status: 200,
         body: JSON.stringify({ data: models })
@@ -873,7 +902,10 @@ test.describe('Model Discovery and Management', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('anthropic', ProviderPageTestData.cloudProviders.find(p => p.id === 'anthropic')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'anthropic',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'anthropic')?.testKey!
+    )
 
     // First test - should show one model
     await providerPage.testProviderConnection('anthropic')
@@ -890,12 +922,12 @@ test.describe('Model Discovery and Management', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock detailed model information
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({
           data: [
-            { 
+            {
               id: 'gpt-4',
               object: 'model',
               owned_by: 'openai',
@@ -905,7 +937,7 @@ test.describe('Model Discovery and Management', () => {
             },
             {
               id: 'gpt-3.5-turbo',
-              object: 'model', 
+              object: 'model',
               owned_by: 'openai',
               context_length: 4096,
               capabilities: ['chat']
@@ -916,7 +948,10 @@ test.describe('Model Discovery and Management', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
     await providerPage.testProviderConnection('openai')
 
     // Should show model details (if UI supports it)
@@ -924,13 +959,13 @@ test.describe('Model Discovery and Management', () => {
     if (await gpt4Model.isVisible()) {
       // Check for context length information
       const contextInfo = gpt4Model.locator('[data-testid="context-length"], .context-length')
-      if (await contextInfo.count() > 0) {
+      if ((await contextInfo.count()) > 0) {
         await expect(contextInfo).toContainText(/8192|8k/)
       }
 
       // Check for capabilities
       const capabilityInfo = gpt4Model.locator('[data-testid="capabilities"], .capabilities')
-      if (await capabilityInfo.count() > 0) {
+      if ((await capabilityInfo.count()) > 0) {
         await expect(capabilityInfo).toContainText(/chat|completion/)
       }
     }
@@ -941,6 +976,7 @@ test.describe('Model Discovery and Management', () => {
 ### 3. Security and Error Handling
 
 #### 3.1 Security Tests
+
 ```typescript
 test.describe('Provider Security and Data Protection', () => {
   test('should mask API keys in UI', async ({ page }) => {
@@ -948,14 +984,14 @@ test.describe('Provider Security and Data Protection', () => {
     await providerPage.goto('/providers')
 
     const testKey = 'sk-test1234567890abcdef1234567890abcdef1234567890abcdef'
-    
+
     // Configure key
     await providerPage.configureCloudProvider('openai', testKey)
 
     // Key should be masked in input
     const keyInput = providerPage.getApiKeyInput('openai')
     const displayValue = await keyInput.inputValue()
-    
+
     // Should not show full key
     expect(displayValue).not.toBe(testKey)
     expect(displayValue).toMatch(/\*+|sk-\*+/)
@@ -1005,7 +1041,7 @@ test.describe('Provider Security and Data Protection', () => {
 
     // Monitor network requests
     const requests: any[] = []
-    page.on('request', req => {
+    page.on('request', (req) => {
       if (req.url().includes('/api/providers') || req.url().includes('/providers')) {
         requests.push({
           url: req.url(),
@@ -1018,19 +1054,19 @@ test.describe('Provider Security and Data Protection', () => {
     // Try to save invalid format key
     const keyInput = providerPage.getApiKeyInput('openai')
     await keyInput.fill('invalid-key')
-    
+
     const saveButton = providerPage.getSaveKeyButton('openai')
-    
+
     // If save button is enabled, clicking should either validate or reject
     if (await saveButton.isEnabled()) {
       await saveButton.click()
-      
+
       // Should either show validation error or not send invalid key
       const hasError = await page.getByText(/invalid.*format|key.*format/i).isVisible()
-      
+
       if (!hasError) {
         // Check that invalid key wasn't transmitted
-        const relevantRequests = requests.filter(r => r.postData?.apiKey)
+        const relevantRequests = requests.filter((r) => r.postData?.apiKey)
         for (const req of relevantRequests) {
           expect(req.postData.apiKey).not.toBe('invalid-key')
         }
@@ -1043,7 +1079,10 @@ test.describe('Provider Security and Data Protection', () => {
     await providerPage.goto('/providers')
 
     // Configure key
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
 
     // Reload page
     await page.reload()
@@ -1052,22 +1091,23 @@ test.describe('Provider Security and Data Protection', () => {
     // Key should still be configured but masked
     const keyInput = providerPage.getApiKeyInput('openai')
     const value = await keyInput.inputValue()
-    
+
     // Should indicate key is saved but not expose it
     expect(value).toMatch(/\*+|configured|saved/)
-    expect(value).not.toContain(ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey)
+    expect(value).not.toContain(ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey)
   })
 })
 ```
 
 #### 3.2 Error Handling and Recovery Tests
+
 ```typescript
 test.describe('Error Handling and Recovery', () => {
   test('should handle provider service outages gracefully', async ({ page }) => {
     const providerPage = new ProviderPage(page)
 
     // Mock service outage
-    await page.route('**/api.openai.com/**', route => {
+    await page.route('**/api.openai.com/**', (route) => {
       route.fulfill({
         status: 503,
         body: JSON.stringify({
@@ -1080,7 +1120,10 @@ test.describe('Error Handling and Recovery', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
 
     // Test connection
     await providerPage.testProviderConnection('openai')
@@ -1096,9 +1139,9 @@ test.describe('Error Handling and Recovery', () => {
 
   test('should recover from network errors', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     let shouldFail = true
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       if (shouldFail) {
         route.abort('failed')
       } else {
@@ -1110,11 +1153,14 @@ test.describe('Error Handling and Recovery', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('anthropic', ProviderPageTestData.cloudProviders.find(p => p.id === 'anthropic')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'anthropic',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'anthropic')?.testKey!
+    )
 
     // First attempt should fail
     await providerPage.testProviderConnection('anthropic')
-    
+
     const errorResult = providerPage.getConnectionError('anthropic')
     await expect(errorResult).toContainText(/network.*error|connection.*failed/i)
 
@@ -1131,7 +1177,7 @@ test.describe('Error Handling and Recovery', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock invalid JSON response
-    await page.route('**/api.openai.com/v1/models', route => {
+    await page.route('**/api.openai.com/v1/models', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -1140,7 +1186,10 @@ test.describe('Error Handling and Recovery', () => {
     })
 
     await providerPage.goto('/providers')
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
     await providerPage.testProviderConnection('openai')
 
     // Should handle parsing error gracefully
@@ -1150,7 +1199,7 @@ test.describe('Error Handling and Recovery', () => {
 
   test('should provide clear error messages for common issues', async ({ page }) => {
     const providerPage = new ProviderPage(page)
-    
+
     // Test various error scenarios
     const errorScenarios = [
       {
@@ -1176,7 +1225,7 @@ test.describe('Error Handling and Recovery', () => {
     ]
 
     for (const scenario of errorScenarios) {
-      await page.route('**/api.openai.com/**', route => {
+      await page.route('**/api.openai.com/**', (route) => {
         route.fulfill({
           status: scenario.status,
           contentType: 'application/json',
@@ -1200,7 +1249,7 @@ test.describe('Error Handling and Recovery', () => {
     const providerPage = new ProviderPage(page)
 
     // Mock different response times for each provider
-    await page.route('**/api.openai.com/**', route => {
+    await page.route('**/api.openai.com/**', (route) => {
       setTimeout(() => {
         route.fulfill({
           status: 200,
@@ -1209,7 +1258,7 @@ test.describe('Error Handling and Recovery', () => {
       }, 1000)
     })
 
-    await page.route('**/api.anthropic.com/**', route => {
+    await page.route('**/api.anthropic.com/**', (route) => {
       setTimeout(() => {
         route.fulfill({
           status: 200,
@@ -1221,8 +1270,14 @@ test.describe('Error Handling and Recovery', () => {
     await providerPage.goto('/providers')
 
     // Configure both providers
-    await providerPage.configureCloudProvider('openai', ProviderPageTestData.cloudProviders.find(p => p.id === 'openai')?.testKey!)
-    await providerPage.configureCloudProvider('anthropic', ProviderPageTestData.cloudProviders.find(p => p.id === 'anthropic')?.testKey!)
+    await providerPage.configureCloudProvider(
+      'openai',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'openai')?.testKey!
+    )
+    await providerPage.configureCloudProvider(
+      'anthropic',
+      ProviderPageTestData.cloudProviders.find((p) => p.id === 'anthropic')?.testKey!
+    )
 
     // Start tests simultaneously
     await Promise.all([
@@ -1244,21 +1299,25 @@ test.describe('Error Handling and Recovery', () => {
 ## Best Practices and Recommendations
 
 ### 1. Environment-Aware Testing
+
 - **Local Provider Detection**: Tests should handle when Ollama/LM Studio are not installed
 - **Mock Strategies**: Use realistic mocks that match actual provider APIs
 - **Network Conditions**: Test various network scenarios (slow, timeout, intermittent)
 
 ### 2. Security Testing
+
 - **Key Masking**: Verify API keys are properly masked in UI and storage
 - **Input Validation**: Test key format validation before transmission
 - **Error Messages**: Ensure error messages don't expose sensitive information
 
 ### 3. Provider Integration
+
 - **Rate Limiting**: Test handling of provider rate limits
 - **API Changes**: Design tests to be resilient to minor API changes
 - **Multiple Providers**: Test simultaneous provider operations
 
 ### 4. User Experience
+
 - **Loading States**: Verify appropriate loading indicators during tests
 - **Error Recovery**: Test user workflows for recovering from errors
 - **Configuration Persistence**: Ensure settings survive page reloads
@@ -1266,17 +1325,20 @@ test.describe('Error Handling and Recovery', () => {
 ## Execution Strategy
 
 ### 1. Test Organization
+
 - **Local Provider Tests**: Can run in parallel, use mocks for unavailable services
 - **Cloud Provider Tests**: Use mocks to avoid API costs and rate limits
 - **Security Tests**: Focus on client-side validation and UI behavior
 - **Error Handling**: Test various failure scenarios systematically
 
 ### 2. Mock Management
+
 - **Realistic Responses**: Use actual provider response formats
 - **Error Simulation**: Cover common error scenarios with appropriate HTTP codes
 - **Performance Testing**: Simulate slow responses and timeouts
 
 ### 3. CI/CD Considerations
+
 - **No Real API Calls**: All tests use mocks to avoid costs and rate limits
 - **Environment Variables**: Use test credentials that don't expose real keys
 - **Parallel Execution**: Tests can run in parallel with proper mock isolation

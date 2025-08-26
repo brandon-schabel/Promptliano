@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { createPromptlianoClient } from '@promptliano/api-client'
-import type { 
-  PromptlianoClient, 
-  CreateClaudeCommandBody, 
-  UpdateClaudeCommandBody, 
+import type {
+  PromptlianoClient,
+  CreateClaudeCommandBody,
+  UpdateClaudeCommandBody,
   ClaudeCommand,
   CommandGenerationRequest,
   SearchCommandsQuery
@@ -19,7 +19,6 @@ import { join, dirname } from 'path'
  * Tests command CRUD, execution, search, suggestions, and AI-powered generation
  */
 describe('Claude Command API Tests', () => {
-  
   /**
    * Test helper to create command files in a test directory
    */
@@ -123,15 +122,15 @@ Generate comprehensive tests for: $ARGUMENTS
     for (const file of commandFiles) {
       const filePath = join(commandsDir, file.name)
       const fileDir = dirname(filePath)
-      
+
       if (!existsSync(fileDir)) {
         mkdirSync(fileDir, { recursive: true })
       }
-      
+
       writeFileSync(filePath, file.content)
     }
 
-    return commandFiles.map(f => ({
+    return commandFiles.map((f) => ({
       name: f.name.replace('.md', '').replace('/', '-'),
       namespace: f.name.includes('/') ? f.name.split('/')[0] : undefined,
       filePath: `.claude/commands/${f.name}`
@@ -157,7 +156,7 @@ Generate comprehensive tests for: $ARGUMENTS
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Claude Command Test Project',
@@ -201,7 +200,7 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.createCommand(testProject.data.id, createData)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.name).toBe(createData.name)
       expect(result.data.namespace).toBe(createData.namespace)
@@ -265,24 +264,24 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.createCommand(testProject.data.id, minimalData)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.name).toBe(minimalData.name)
       expect(result.data.content).toBe(minimalData.content)
       expect(result.data.namespace).toBeUndefined()
       expect(result.data.scope).toBe('project') // default value
       expect(result.data.frontmatter).toEqual({})
-      
+
       dataManager.addCommand(result.data)
     })
 
     test('should list all commands for project', async () => {
       const result = await client.commands.listCommands(testProject.data.id)
-      
+
       assertions.apiSuccess(result)
       expect(Array.isArray(result.data)).toBe(true)
       expect(result.data.length).toBeGreaterThan(0)
-      
+
       // Verify all commands belong to the project
       for (const command of result.data) {
         expect(command.id).toBeTypeOf('string')
@@ -310,12 +309,8 @@ Use appropriate HTTP methods and validate status codes.`,
       dataManager.addCommand(createResult.data)
 
       // Retrieve the command
-      const result = await client.commands.getCommand(
-        testProject.data.id, 
-        createData.name, 
-        createData.namespace
-      )
-      
+      const result = await client.commands.getCommand(testProject.data.id, createData.name, createData.namespace)
+
       assertions.apiSuccess(result)
       expect(result.data.name).toBe(createData.name)
       expect(result.data.namespace).toBe(createData.namespace)
@@ -353,12 +348,8 @@ Use appropriate HTTP methods and validate status codes.`,
         }
       }
 
-      const result = await client.commands.updateCommand(
-        testProject.data.id,
-        createData.name,
-        updateData
-      )
-      
+      const result = await client.commands.updateCommand(testProject.data.id, createData.name, updateData)
+
       assertions.apiSuccess(result)
       expect(result.data.content).toBe(updateData.content)
       expect(result.data.frontmatter).toEqual(updateData.frontmatter)
@@ -388,7 +379,7 @@ Use appropriate HTTP methods and validate status codes.`,
         updateData,
         createData.namespace // original namespace for lookup
       )
-      
+
       assertions.apiSuccess(result)
       expect(result.data.namespace).toBe(updateData.namespace)
       expect(result.data.filePath).toBe('.claude/commands/moved/move-test-command.md')
@@ -411,7 +402,7 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const createResult = await client.commands.createCommand(testProject.data.id, createData)
-      
+
       // Delete the command
       const result = await client.commands.deleteCommand(testProject.data.id, createData.name)
       expect(result).toBe(true)
@@ -438,7 +429,7 @@ Use appropriate HTTP methods and validate status codes.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Search Test Project',
@@ -502,15 +493,15 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBe(2) // security-scan and security-review
-      
+
       for (const command of result.data) {
         expect(
-          command.name.includes('security') || 
-          command.content.includes('security') ||
-          command.frontmatter?.description?.includes('security')
+          command.name.includes('security') ||
+            command.content.includes('security') ||
+            command.frontmatter?.description?.includes('security')
         ).toBe(true)
       }
     })
@@ -521,10 +512,10 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBe(2) // performance-test and unit-test
-      
+
       for (const command of result.data) {
         expect(command.namespace).toBe('testing')
       }
@@ -536,10 +527,10 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBeGreaterThan(0)
-      
+
       for (const command of result.data) {
         expect(command.scope).toBe('project')
       }
@@ -552,16 +543,16 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBeGreaterThan(0)
-      
+
       for (const command of result.data) {
         expect(command.namespace).toBe('testing')
         expect(
-          command.name.includes('test') || 
-          command.content.includes('test') ||
-          command.frontmatter?.description?.includes('test')
+          command.name.includes('test') ||
+            command.content.includes('test') ||
+            command.frontmatter?.description?.includes('test')
         ).toBe(true)
       }
     })
@@ -573,7 +564,7 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBeLessThanOrEqual(2)
     })
@@ -584,21 +575,21 @@ Use appropriate HTTP methods and validate status codes.`,
         limit: 2,
         offset: 0
       })
-      
+
       // Get second page
       const secondPage = await client.commands.listCommands(testProject.data.id, {
         limit: 2,
         offset: 2
       })
-      
+
       assertions.apiSuccess(firstPage)
       assertions.apiSuccess(secondPage)
-      
+
       // Ensure different results (if there are enough commands)
       if (firstPage.data.length === 2 && secondPage.data.length > 0) {
-        const firstPageIds = firstPage.data.map(c => c.id)
-        const secondPageIds = secondPage.data.map(c => c.id)
-        expect(firstPageIds.some(id => secondPageIds.includes(id))).toBe(false)
+        const firstPageIds = firstPage.data.map((c) => c.id)
+        const secondPageIds = secondPage.data.map((c) => c.id)
+        expect(firstPageIds.some((id) => secondPageIds.includes(id))).toBe(false)
       }
     })
 
@@ -608,7 +599,7 @@ Use appropriate HTTP methods and validate status codes.`,
       }
 
       const result = await client.commands.listCommands(testProject.data.id, query)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.length).toBe(0)
     })
@@ -623,7 +614,7 @@ Use appropriate HTTP methods and validate status codes.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Execution Test Project',
@@ -663,26 +654,19 @@ This is a simple test command for execution testing.`,
     })
 
     test('should execute command with arguments successfully', async () => {
-      const result = await client.commands.executeCommand(
-        testProject.data.id,
-        executableCommand.name,
-        'Hello, World!'
-      )
-      
+      const result = await client.commands.executeCommand(testProject.data.id, executableCommand.name, 'Hello, World!')
+
       assertions.apiSuccess(result)
       expect(result.data.result).toBeTypeOf('string')
       expect(result.data.result.length).toBeGreaterThan(0)
-      
+
       // Should contain reference to the arguments
       expect(result.data.result.toLowerCase()).toContain('hello')
     })
 
     test('should execute command without arguments', async () => {
-      const result = await client.commands.executeCommand(
-        testProject.data.id,
-        executableCommand.name
-      )
-      
+      const result = await client.commands.executeCommand(testProject.data.id, executableCommand.name)
+
       assertions.apiSuccess(result)
       expect(result.data.result).toBeTypeOf('string')
     })
@@ -694,12 +678,8 @@ This is a simple test command for execution testing.`,
         options: { verbose: true, includeTests: false }
       })
 
-      const result = await client.commands.executeCommand(
-        testProject.data.id,
-        executableCommand.name,
-        complexArgs
-      )
-      
+      const result = await client.commands.executeCommand(testProject.data.id, executableCommand.name, complexArgs)
+
       assertions.apiSuccess(result)
       expect(result.data.result).toBeTypeOf('string')
     })
@@ -722,30 +702,22 @@ This is a simple test command for execution testing.`,
         'test',
         namespacedData.namespace
       )
-      
+
       assertions.apiSuccess(result)
       expect(result.data.result).toBeTypeOf('string')
     })
 
     test('should fail to execute non-existent command', async () => {
       await expect(async () => {
-        await client.commands.executeCommand(
-          testProject.data.id,
-          'non-existent-command',
-          'test args'
-        )
+        await client.commands.executeCommand(testProject.data.id, 'non-existent-command', 'test args')
       }).toThrow()
     })
 
     test('should handle execution timeout gracefully', async () => {
       // This test depends on the server implementing proper timeout handling
       // and may not fail in all implementations
-      const result = await client.commands.executeCommand(
-        testProject.data.id,
-        executableCommand.name,
-        'test timeout'
-      )
-      
+      const result = await client.commands.executeCommand(testProject.data.id, executableCommand.name, 'test timeout')
+
       // Should complete successfully even with timeout handling
       assertions.apiSuccess(result)
     })
@@ -753,12 +725,8 @@ This is a simple test command for execution testing.`,
     test('should execute command with special characters in arguments', async () => {
       const specialArgs = 'Test with "quotes", $variables, and\nnewlines\t\ttabs'
 
-      const result = await client.commands.executeCommand(
-        testProject.data.id,
-        executableCommand.name,
-        specialArgs
-      )
-      
+      const result = await client.commands.executeCommand(testProject.data.id, executableCommand.name, specialArgs)
+
       assertions.apiSuccess(result)
       expect(result.data.result).toBeTypeOf('string')
     })
@@ -772,7 +740,7 @@ This is a simple test command for execution testing.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project with some existing commands
       testProject = await dataManager.createProject({
         name: 'Suggestions Test Project',
@@ -812,12 +780,12 @@ This is a simple test command for execution testing.`,
         'I need help with testing my React components',
         5
       )
-      
+
       assertions.apiSuccess(result)
       expect(result.data.commands).toBeInstanceOf(Array)
       expect(result.data.commands.length).toBeGreaterThan(0)
       expect(result.data.commands.length).toBeLessThanOrEqual(5)
-      
+
       for (const suggestion of result.data.commands) {
         expect(suggestion.name).toBeTypeOf('string')
         expect(suggestion.name.length).toBeGreaterThan(0)
@@ -827,24 +795,20 @@ This is a simple test command for execution testing.`,
         expect(suggestion.relevanceScore).toBeGreaterThanOrEqual(0)
         expect(suggestion.relevanceScore).toBeLessThanOrEqual(1)
         expect(suggestion.rationale).toBeTypeOf('string')
-        
+
         // Commands should be related to testing/React based on context
         const combined = `${suggestion.name} ${suggestion.description} ${suggestion.suggestedContent}`.toLowerCase()
-        expect(
-          combined.includes('test') || 
-          combined.includes('react') || 
-          combined.includes('component')
-        ).toBe(true)
+        expect(combined.includes('test') || combined.includes('react') || combined.includes('component')).toBe(true)
       }
     })
 
     test('should suggest commands without context', async () => {
       const result = await client.commands.suggestCommands(testProject.data.id)
-      
+
       assertions.apiSuccess(result)
       expect(result.data.commands).toBeInstanceOf(Array)
       expect(result.data.commands.length).toBeGreaterThan(0)
-      
+
       // Should provide general-purpose command suggestions
       for (const suggestion of result.data.commands) {
         expect(suggestion.name).toBeTypeOf('string')
@@ -857,12 +821,8 @@ This is a simple test command for execution testing.`,
 
     test('should limit suggestions to specified count', async () => {
       const limit = 3
-      const result = await client.commands.suggestCommands(
-        testProject.data.id,
-        'general development tasks',
-        limit
-      )
-      
+      const result = await client.commands.suggestCommands(testProject.data.id, 'general development tasks', limit)
+
       assertions.apiSuccess(result)
       expect(result.data.commands.length).toBeLessThanOrEqual(limit)
     })
@@ -873,45 +833,43 @@ This is a simple test command for execution testing.`,
         'I need to improve the security of my application',
         3
       )
-      
+
       assertions.apiSuccess(result)
       expect(result.data.commands.length).toBeGreaterThan(0)
-      
+
       // At least one suggestion should be security-related
-      const hasSecuritySuggestion = result.data.commands.some(suggestion => {
+      const hasSecuritySuggestion = result.data.commands.some((suggestion) => {
         const combined = `${suggestion.name} ${suggestion.description} ${suggestion.suggestedContent}`.toLowerCase()
-        return combined.includes('security') || 
-               combined.includes('vulnerability') || 
-               combined.includes('audit') ||
-               combined.includes('scan')
+        return (
+          combined.includes('security') ||
+          combined.includes('vulnerability') ||
+          combined.includes('audit') ||
+          combined.includes('scan')
+        )
       })
-      
+
       expect(hasSecuritySuggestion).toBe(true)
     })
 
     test('should provide suggestions with proper frontmatter', async () => {
-      const result = await client.commands.suggestCommands(
-        testProject.data.id,
-        'code review automation',
-        2
-      )
-      
+      const result = await client.commands.suggestCommands(testProject.data.id, 'code review automation', 2)
+
       assertions.apiSuccess(result)
-      
+
       for (const suggestion of result.data.commands) {
         if (suggestion.suggestedFrontmatter) {
           // Validate frontmatter structure
           expect(suggestion.suggestedFrontmatter).toBeTypeOf('object')
-          
+
           if (suggestion.suggestedFrontmatter.description) {
             expect(suggestion.suggestedFrontmatter.description).toBeTypeOf('string')
           }
-          
+
           if (suggestion.suggestedFrontmatter['max-turns']) {
             expect(suggestion.suggestedFrontmatter['max-turns']).toBeTypeOf('number')
             expect(suggestion.suggestedFrontmatter['max-turns']).toBeGreaterThan(0)
           }
-          
+
           if (suggestion.suggestedFrontmatter['output-format']) {
             expect(['text', 'json']).toContain(suggestion.suggestedFrontmatter['output-format'])
           }
@@ -928,7 +886,7 @@ This is a simple test command for execution testing.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       // Create test project
       testProject = await dataManager.createProject({
         name: 'Generation Test Project',
@@ -942,112 +900,123 @@ This is a simple test command for execution testing.`,
     })
 
     // Skip AI tests if LMStudio is not available
-    test.skipIf(!process.env.LMSTUDIO_BASE_URL)('should generate command with AI assistance', async () => {
-      const generationRequest: CommandGenerationRequest = {
-        name: 'api-doc-generator',
-        description: 'Generate comprehensive API documentation from source code',
-        userIntent: 'I want a command that analyzes TypeScript API routes and generates OpenAPI/Swagger documentation with examples and validation schemas',
-        namespace: 'documentation',
-        scope: 'project',
-        context: {
-          includeProjectSummary: true,
-          includeFileStructure: true,
-          includeTechStack: true,
-          additionalContext: 'The project uses Hono for API routes with Zod schemas for validation'
+    test.skipIf(!process.env.LMSTUDIO_BASE_URL)(
+      'should generate command with AI assistance',
+      async () => {
+        const generationRequest: CommandGenerationRequest = {
+          name: 'api-doc-generator',
+          description: 'Generate comprehensive API documentation from source code',
+          userIntent:
+            'I want a command that analyzes TypeScript API routes and generates OpenAPI/Swagger documentation with examples and validation schemas',
+          namespace: 'documentation',
+          scope: 'project',
+          context: {
+            includeProjectSummary: true,
+            includeFileStructure: true,
+            includeTechStack: true,
+            additionalContext: 'The project uses Hono for API routes with Zod schemas for validation'
+          }
         }
-      }
 
-      const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
-      
-      assertions.apiSuccess(result)
-      expect(result.data.name).toBe(generationRequest.name)
-      expect(result.data.namespace).toBe(generationRequest.namespace)
-      expect(result.data.content).toBeTypeOf('string')
-      expect(result.data.content.length).toBeGreaterThan(50)
-      expect(result.data.frontmatter).toBeTypeOf('object')
-      expect(result.data.description).toBeTypeOf('string')
-      expect(result.data.rationale).toBeTypeOf('string')
-      
-      // Content should include $ARGUMENTS placeholder
-      expect(result.data.content).toContain('$ARGUMENTS')
-      
-      // Should be relevant to API documentation
-      const combined = `${result.data.content} ${result.data.description}`.toLowerCase()
-      expect(
-        combined.includes('api') || 
-        combined.includes('documentation') || 
-        combined.includes('openapi') || 
-        combined.includes('swagger')
-      ).toBe(true)
-    }, 120000) // Extended timeout for AI operations
+        const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
 
-    test.skipIf(!process.env.LMSTUDIO_BASE_URL)('should generate command with minimal input', async () => {
-      const generationRequest: CommandGenerationRequest = {
-        name: 'code-formatter',
-        description: 'Format code files according to project standards',
-        userIntent: 'I need a simple command to format TypeScript and JavaScript files'
-      }
+        assertions.apiSuccess(result)
+        expect(result.data.name).toBe(generationRequest.name)
+        expect(result.data.namespace).toBe(generationRequest.namespace)
+        expect(result.data.content).toBeTypeOf('string')
+        expect(result.data.content.length).toBeGreaterThan(50)
+        expect(result.data.frontmatter).toBeTypeOf('object')
+        expect(result.data.description).toBeTypeOf('string')
+        expect(result.data.rationale).toBeTypeOf('string')
 
-      const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
-      
-      assertions.apiSuccess(result)
-      expect(result.data.name).toBe(generationRequest.name)
-      expect(result.data.content).toBeTypeOf('string')
-      expect(result.data.content.length).toBeGreaterThan(20)
-      expect(result.data.frontmatter).toBeTypeOf('object')
-      expect(result.data.description).toBeTypeOf('string')
-      expect(result.data.rationale).toBeTypeOf('string')
-    }, 120000)
+        // Content should include $ARGUMENTS placeholder
+        expect(result.data.content).toContain('$ARGUMENTS')
 
-    test.skipIf(!process.env.LMSTUDIO_BASE_URL)('should generate command with specific file context', async () => {
-      const generationRequest: CommandGenerationRequest = {
-        name: 'test-coverage-analyzer',
-        description: 'Analyze test coverage and suggest improvements',
-        userIntent: 'Create a command that checks test coverage for specific files and suggests where tests are missing',
-        context: {
-          selectedFiles: [
-            'packages/api-client/src/tests/test-helpers.ts',
-            'packages/services/src/tests/'
-          ],
-          additionalContext: 'We use Bun test runner and aim for 80% coverage minimum'
+        // Should be relevant to API documentation
+        const combined = `${result.data.content} ${result.data.description}`.toLowerCase()
+        expect(
+          combined.includes('api') ||
+            combined.includes('documentation') ||
+            combined.includes('openapi') ||
+            combined.includes('swagger')
+        ).toBe(true)
+      },
+      120000
+    ) // Extended timeout for AI operations
+
+    test.skipIf(!process.env.LMSTUDIO_BASE_URL)(
+      'should generate command with minimal input',
+      async () => {
+        const generationRequest: CommandGenerationRequest = {
+          name: 'code-formatter',
+          description: 'Format code files according to project standards',
+          userIntent: 'I need a simple command to format TypeScript and JavaScript files'
         }
-      }
 
-      const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
-      
-      assertions.apiSuccess(result)
-      expect(result.data.content).toContain('$ARGUMENTS')
-      
-      // Should reference testing/coverage concepts
-      const combined = `${result.data.content} ${result.data.description}`.toLowerCase()
-      expect(
-        combined.includes('test') || 
-        combined.includes('coverage') || 
-        combined.includes('bun')
-      ).toBe(true)
-    }, 120000)
+        const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
 
-    test.skipIf(!process.env.LMSTUDIO_BASE_URL)('should provide command variations in generation', async () => {
-      const generationRequest: CommandGenerationRequest = {
-        name: 'database-migrator',
-        description: 'Handle database schema migrations',
-        userIntent: 'I need commands to create, run, and rollback database migrations safely'
-      }
+        assertions.apiSuccess(result)
+        expect(result.data.name).toBe(generationRequest.name)
+        expect(result.data.content).toBeTypeOf('string')
+        expect(result.data.content.length).toBeGreaterThan(20)
+        expect(result.data.frontmatter).toBeTypeOf('object')
+        expect(result.data.description).toBeTypeOf('string')
+        expect(result.data.rationale).toBeTypeOf('string')
+      },
+      120000
+    )
 
-      const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
-      
-      assertions.apiSuccess(result)
-      
-      if (result.data.suggestedVariations) {
-        expect(result.data.suggestedVariations).toBeInstanceOf(Array)
-        
-        for (const variation of result.data.suggestedVariations) {
-          expect(variation.name).toBeTypeOf('string')
-          expect(variation.description).toBeTypeOf('string')
-          expect(variation.changes).toBeTypeOf('string')
+    test.skipIf(!process.env.LMSTUDIO_BASE_URL)(
+      'should generate command with specific file context',
+      async () => {
+        const generationRequest: CommandGenerationRequest = {
+          name: 'test-coverage-analyzer',
+          description: 'Analyze test coverage and suggest improvements',
+          userIntent:
+            'Create a command that checks test coverage for specific files and suggests where tests are missing',
+          context: {
+            selectedFiles: ['packages/api-client/src/tests/test-helpers.ts', 'packages/services/src/tests/'],
+            additionalContext: 'We use Bun test runner and aim for 80% coverage minimum'
+          }
         }
-      }
-    }, 120000)
+
+        const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
+
+        assertions.apiSuccess(result)
+        expect(result.data.content).toContain('$ARGUMENTS')
+
+        // Should reference testing/coverage concepts
+        const combined = `${result.data.content} ${result.data.description}`.toLowerCase()
+        expect(combined.includes('test') || combined.includes('coverage') || combined.includes('bun')).toBe(true)
+      },
+      120000
+    )
+
+    test.skipIf(!process.env.LMSTUDIO_BASE_URL)(
+      'should provide command variations in generation',
+      async () => {
+        const generationRequest: CommandGenerationRequest = {
+          name: 'database-migrator',
+          description: 'Handle database schema migrations',
+          userIntent: 'I need commands to create, run, and rollback database migrations safely'
+        }
+
+        const result = await client.commands.generateCommand(testProject.data.id, generationRequest)
+
+        assertions.apiSuccess(result)
+
+        if (result.data.suggestedVariations) {
+          expect(result.data.suggestedVariations).toBeInstanceOf(Array)
+
+          for (const variation of result.data.suggestedVariations) {
+            expect(variation.name).toBeTypeOf('string')
+            expect(variation.description).toBeTypeOf('string')
+            expect(variation.changes).toBeTypeOf('string')
+          }
+        }
+      },
+      120000
+    )
 
     test('should fail generation with invalid command name', async () => {
       await expect(async () => {
@@ -1095,7 +1064,7 @@ This is a simple test command for execution testing.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       testProject = await dataManager.createProject({
         name: 'Error Handling Test Project',
         description: 'Test project for error scenarios',
@@ -1123,12 +1092,7 @@ This is a simple test command for execution testing.`,
     })
 
     test('should validate command name constraints', async () => {
-      const invalidNames = [
-        'NAME_WITH_UNDERSCORES',
-        'name with spaces',
-        'name@with#special$chars',
-        'UPPERCASE-NAME'
-      ]
+      const invalidNames = ['NAME_WITH_UNDERSCORES', 'name with spaces', 'name@with#special$chars', 'UPPERCASE-NAME']
 
       for (const invalidName of invalidNames) {
         await expect(async () => {
@@ -1142,13 +1106,7 @@ This is a simple test command for execution testing.`,
     })
 
     test('should validate namespace format', async () => {
-      const invalidNamespaces = [
-        'UPPERCASE',
-        'with spaces',
-        'with@special#chars',
-        'trailing-slash/',
-        '/leading-slash'
-      ]
+      const invalidNamespaces = ['UPPERCASE', 'with spaces', 'with@special#chars', 'trailing-slash/', '/leading-slash']
 
       for (const invalidNamespace of invalidNamespaces) {
         await expect(async () => {
@@ -1189,10 +1147,10 @@ This is a simple test command for execution testing.`,
 
       // One should succeed, one should fail
       const results = await Promise.allSettled([promise1, promise2])
-      
-      const successes = results.filter(r => r.status === 'fulfilled')
-      const failures = results.filter(r => r.status === 'rejected')
-      
+
+      const successes = results.filter((r) => r.status === 'fulfilled')
+      const failures = results.filter((r) => r.status === 'rejected')
+
       expect(successes.length).toBe(1)
       expect(failures.length).toBe(1)
 
@@ -1244,10 +1202,10 @@ This is a simple test command for execution testing.`,
     test('should handle network timeouts gracefully', async () => {
       // This test simulates timeout scenarios
       // In a real implementation, you might mock the network layer
-      
+
       const result = await client.commands.listCommands(testProject.data.id)
       assertions.apiSuccess(result)
-      
+
       // Basic test to ensure the API is responding
       // Actual timeout testing would require more sophisticated mocking
     })
@@ -1281,7 +1239,7 @@ This is a simple test command for execution testing.`,
     beforeAll(async () => {
       client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
       dataManager = new TestDataManager(client)
-      
+
       testProject = await dataManager.createProject({
         name: 'Performance Test Project',
         description: 'Test project for performance validation',
@@ -1307,10 +1265,10 @@ This is a simple test command for execution testing.`,
           scope: 'project',
           frontmatter: {
             description: `Bulk command ${i} for testing`,
-            'max-turns': i % 5 + 1
+            'max-turns': (i % 5) + 1
           }
         })
-        
+
         commands.push(result.data)
         dataManager.addCommand(result.data)
       }
@@ -1321,7 +1279,7 @@ This is a simple test command for execution testing.`,
       // Should complete within reasonable time (adjust threshold as needed)
       expect(duration).toBeLessThan(10000) // 10 seconds max
       expect(commands.length).toBe(commandCount)
-      
+
       // Verify all commands were created correctly
       for (let i = 0; i < commandCount; i++) {
         expect(commands[i].name).toBe(`bulk-command-${i}`)
@@ -1331,10 +1289,10 @@ This is a simple test command for execution testing.`,
 
     test('should handle bulk listing efficiently', async () => {
       const startTime = Date.now()
-      
+
       // List all commands
       const result = await client.commands.listCommands(testProject.data.id)
-      
+
       const endTime = Date.now()
       const duration = endTime - startTime
 
@@ -1348,7 +1306,7 @@ This is a simple test command for execution testing.`,
       const startTime = Date.now()
 
       // Create multiple concurrent requests
-      const promises = Array.from({ length: concurrentRequests }, (_, i) => 
+      const promises = Array.from({ length: concurrentRequests }, (_, i) =>
         client.commands.listCommands(testProject.data.id, {
           query: `bulk-command-${i}`,
           limit: 5,
@@ -1358,7 +1316,7 @@ This is a simple test command for execution testing.`,
       )
 
       const results = await Promise.all(promises)
-      
+
       const endTime = Date.now()
       const duration = endTime - startTime
 
@@ -1383,26 +1341,26 @@ ${'This is a long paragraph with detailed instructions that should be handled ef
 This command contains a lot of content to test performance with large command definitions.`
 
       const startTime = Date.now()
-      
+
       const result = await client.commands.createCommand(testProject.data.id, {
         name: 'large-content-command',
         content: largeContent,
         scope: 'project'
       })
-      
+
       const endTime = Date.now()
       const duration = endTime - startTime
 
       assertions.apiSuccess(result)
       dataManager.addCommand(result.data)
-      
+
       expect(duration).toBeLessThan(5000) // 5 seconds max
       expect(result.data.content).toBe(largeContent)
     })
 
     test('should handle search with large result sets efficiently', async () => {
       const startTime = Date.now()
-      
+
       // Search for commands that should return multiple results
       const result = await client.commands.listCommands(testProject.data.id, {
         query: 'command', // Should match many commands
@@ -1410,7 +1368,7 @@ This command contains a lot of content to test performance with large command de
         offset: 0,
         includeGlobal: true
       })
-      
+
       const endTime = Date.now()
       const duration = endTime - startTime
 
@@ -1432,13 +1390,13 @@ This command contains a lot of content to test performance with large command de
         })
 
         const getResult = await client.commands.getCommand(testProject.data.id, `rapid-${i}`)
-        
+
         await client.commands.updateCommand(testProject.data.id, `rapid-${i}`, {
           content: `Updated rapid test ${i}: $ARGUMENTS`
         })
 
         await client.commands.deleteCommand(testProject.data.id, `rapid-${i}`)
-        
+
         // Verify operations
         assertions.apiSuccess(createResult)
         assertions.apiSuccess(getResult)

@@ -36,7 +36,7 @@ test.describe('Visual Regression Testing', () => {
   test('Projects page - Visual test suite', async ({ page }) => {
     await TestErrorHandler.safeNavigate(page, '/projects')
     await PageLoadHelper.waitForPageReady(page)
-    
+
     await VisualTesting.createPageVisualSuite(page, 'projects-page', {
       includeResponsive: true,
       includeThemes: true,
@@ -58,7 +58,7 @@ test.describe('Visual Regression Testing', () => {
   test('Chat interface - Component visual tests', async ({ page }) => {
     await TestErrorHandler.safeNavigate(page, '/chat')
     await PageLoadHelper.waitForPageReady(page)
-    
+
     // Test chat-specific components
     const chatComponents = [
       {
@@ -88,34 +88,34 @@ test.describe('Visual Regression Testing', () => {
     // Navigate to a page with forms (could be settings or project creation)
     await TestErrorHandler.safeNavigate(page, '/settings')
     await PageLoadHelper.waitForPageReady(page)
-    
-    await VisualTesting.compareComponentStates(
-      page, 
-      COMMON_COMPONENT_TESTS,
-      VISUAL_TEST_PRESETS.component
-    )
+
+    await VisualTesting.compareComponentStates(page, COMMON_COMPONENT_TESTS, VISUAL_TEST_PRESETS.component)
   })
 
   test('Navigation menu - Interactive states', async ({ page }) => {
-    const navigationComponent = [{
-      name: 'main-navigation',
-      selector: 'nav[role="navigation"], .main-nav, [data-testid="navigation"]',
-      states: [],
-      interactions: [
-        {
-          name: 'menu-open',
-          action: async (locator) => {
-            // Try to open mobile menu if present
-            const menuButton = locator.page().locator('[data-testid="menu-toggle"], .menu-toggle, button[aria-label*="menu" i]')
-            const count = await menuButton.count()
-            if (count > 0) {
-              await menuButton.first().click()
-              await locator.page().waitForTimeout(300)
+    const navigationComponent = [
+      {
+        name: 'main-navigation',
+        selector: 'nav[role="navigation"], .main-nav, [data-testid="navigation"]',
+        states: [],
+        interactions: [
+          {
+            name: 'menu-open',
+            action: async (locator) => {
+              // Try to open mobile menu if present
+              const menuButton = locator
+                .page()
+                .locator('[data-testid="menu-toggle"], .menu-toggle, button[aria-label*="menu" i]')
+              const count = await menuButton.count()
+              if (count > 0) {
+                await menuButton.first().click()
+                await locator.page().waitForTimeout(300)
+              }
             }
           }
-        }
-      ]
-    }]
+        ]
+      }
+    ]
 
     await VisualTesting.compareComponentStates(page, navigationComponent, VISUAL_TEST_PRESETS.component)
   })
@@ -124,27 +124,19 @@ test.describe('Visual Regression Testing', () => {
     // Navigate to a page with data tables
     await TestErrorHandler.safeNavigate(page, '/projects')
     await PageLoadHelper.waitForPageReady(page)
-    
+
     // Wait for table data to load
     const tableLocator = page.locator('table, [data-testid="data-table"], .data-table').first()
-    const tableExists = await tableLocator.count() > 0
-    
+    const tableExists = (await tableLocator.count()) > 0
+
     if (tableExists) {
-      await VisualTesting.compareComponent(
-        tableLocator, 
-        'data-table-loaded',
-        VISUAL_TEST_PRESETS.relaxed
-      )
-      
+      await VisualTesting.compareComponent(tableLocator, 'data-table-loaded', VISUAL_TEST_PRESETS.relaxed)
+
       // Test responsive table behavior
-      await VisualTesting.compareResponsive(
-        page,
-        'data-table-responsive',
-        {
-          ...VISUAL_TEST_PRESETS.component,
-          component: 'table, [data-testid="data-table"], .data-table'
-        }
-      )
+      await VisualTesting.compareResponsive(page, 'data-table-responsive', {
+        ...VISUAL_TEST_PRESETS.component,
+        component: 'table, [data-testid="data-table"], .data-table'
+      })
     } else {
       console.log('⏭️ Skipping data table test - no tables found')
     }
@@ -153,28 +145,28 @@ test.describe('Visual Regression Testing', () => {
   test('Modal dialogs - State testing', async ({ page }) => {
     await TestErrorHandler.safeNavigate(page, '/projects')
     await PageLoadHelper.waitForPageReady(page)
-    
+
     // Look for buttons that trigger modals
-    const modalTriggers = page.locator('button:has-text("Create"), button:has-text("Add"), button:has-text("New"), [data-testid*="create"], [data-testid*="add"]')
+    const modalTriggers = page.locator(
+      'button:has-text("Create"), button:has-text("Add"), button:has-text("New"), [data-testid*="create"], [data-testid*="add"]'
+    )
     const triggerCount = await modalTriggers.count()
-    
+
     if (triggerCount > 0) {
       // Click the first available modal trigger
       await modalTriggers.first().click()
-      
+
       // Wait for modal to appear
       const modal = page.locator('[role="dialog"], .modal, [data-testid*="modal"], [data-testid*="dialog"]')
       await modal.waitFor({ state: 'visible', timeout: 5000 })
-      
+
       // Take screenshot of modal
-      await VisualTesting.compareComponent(
-        modal,
-        'modal-dialog-open',
-        VISUAL_TEST_PRESETS.strict
-      )
-      
+      await VisualTesting.compareComponent(modal, 'modal-dialog-open', VISUAL_TEST_PRESETS.strict)
+
       // Close modal for cleanup
-      const closeButton = modal.locator('[data-dismiss="modal"], .modal-close, button:has-text("Cancel"), [aria-label*="close" i]')
+      const closeButton = modal.locator(
+        '[data-dismiss="modal"], .modal-close, button:has-text("Cancel"), [aria-label*="close" i]'
+      )
       const closeCount = await closeButton.count()
       if (closeCount > 0) {
         await closeButton.first().click()
@@ -191,20 +183,20 @@ test.describe('Visual Regression Testing', () => {
     // Navigate to a non-existent route to test 404 page
     await page.goto('/non-existent-route')
     await PageLoadHelper.waitForPageReady(page, { skipNetworkIdle: true })
-    
+
     // Take screenshot of error state
     await VisualTesting.compareFullPage(page, '404-error-page', VISUAL_TEST_PRESETS.strict)
   })
 
   test('Loading states - Visual validation', async ({ page }) => {
     // Intercept network requests to simulate slow loading
-    await page.route('**/api/**', route => {
+    await page.route('**/api/**', (route) => {
       setTimeout(() => route.continue(), 2000) // 2 second delay
     })
-    
+
     // Navigate and capture loading state
     const navigationPromise = page.goto('/projects')
-    
+
     // Try to capture loading state quickly
     try {
       await page.waitForSelector('[data-testid="loading"], .loading, .spinner', { timeout: 1000 })
@@ -212,11 +204,11 @@ test.describe('Visual Regression Testing', () => {
     } catch (error) {
       console.log('⏭️ Loading state too fast to capture')
     }
-    
+
     // Wait for navigation to complete
     await navigationPromise
     await PageLoadHelper.waitForPageReady(page)
-    
+
     // Clear the route intercept
     await page.unroute('**/api/**')
   })

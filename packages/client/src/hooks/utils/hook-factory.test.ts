@@ -215,9 +215,7 @@ describe('hook-factory', () => {
       const customOptions = { enabled: false, retry: 3 }
       hooks.useTestEntityList(undefined, customOptions)
 
-      expect(mockUseQuery).toHaveBeenCalledWith(
-        expect.objectContaining(customOptions)
-      )
+      expect(mockUseQuery).toHaveBeenCalledWith(expect.objectContaining(customOptions))
     })
 
     test('calls api.list when queryFn is executed', () => {
@@ -230,7 +228,7 @@ describe('hook-factory', () => {
       hooks.useTestEntityList()
       const queryConfig = mockUseQuery.mock.calls[0][0]
       const params = { test: 'value' }
-      
+
       queryConfig.queryFn()
       expect(mockApi.list).toHaveBeenCalled()
     })
@@ -264,15 +262,11 @@ describe('hook-factory', () => {
 
       // Test with 0
       hooks.useTestEntity(0)
-      expect(mockUseQuery).toHaveBeenLastCalledWith(
-        expect.objectContaining({ enabled: false })
-      )
+      expect(mockUseQuery).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 
       // Test with -1
       hooks.useTestEntity(-1)
-      expect(mockUseQuery).toHaveBeenLastCalledWith(
-        expect.objectContaining({ enabled: false })
-      )
+      expect(mockUseQuery).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
     })
 
     test('calls api.get when queryFn is executed', () => {
@@ -285,7 +279,7 @@ describe('hook-factory', () => {
       const id = 123
       hooks.useTestEntity(id)
       const queryConfig = mockUseQuery.mock.calls[0][0]
-      
+
       queryConfig.queryFn()
       expect(mockApi.get).toHaveBeenCalledWith(id)
     })
@@ -317,16 +311,13 @@ describe('hook-factory', () => {
 
       hooks.useCreateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onSuccess(mockEntity)
 
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKeys.all
       })
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        mockQueryKeys.detail(mockEntity.id),
-        mockEntity
-      )
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(mockQueryKeys.detail(mockEntity.id), mockEntity)
       expect(mockToast.success).toHaveBeenCalledWith('TestEntity created successfully')
     })
 
@@ -339,7 +330,7 @@ describe('hook-factory', () => {
 
       hooks.useCreateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onError(mockApiError)
 
       expect(mockToast.error).toHaveBeenCalledWith(mockApiError.message)
@@ -354,7 +345,7 @@ describe('hook-factory', () => {
 
       hooks.useCreateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onError({})
 
       expect(mockToast.error).toHaveBeenCalledWith('Failed to create TestEntity')
@@ -370,9 +361,7 @@ describe('hook-factory', () => {
       const customOptions = { retry: 3 }
       hooks.useCreateTestEntity(customOptions)
 
-      expect(mockUseMutation).toHaveBeenCalledWith(
-        expect.objectContaining(customOptions)
-      )
+      expect(mockUseMutation).toHaveBeenCalledWith(expect.objectContaining(customOptions))
     })
   })
 
@@ -402,7 +391,7 @@ describe('hook-factory', () => {
 
       hooks.useUpdateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       const variables = { id: 123, data: mockUpdateData }
       mutationConfig.mutationFn(variables)
 
@@ -418,17 +407,14 @@ describe('hook-factory', () => {
 
       hooks.useUpdateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       const variables = { id: 123, data: mockUpdateData }
       mutationConfig.onSuccess(mockEntity, variables)
 
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKeys.list()
       })
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        mockQueryKeys.detail(variables.id),
-        mockEntity
-      )
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(mockQueryKeys.detail(variables.id), mockEntity)
       expect(mockToast.success).toHaveBeenCalledWith('TestEntity updated successfully')
     })
   })
@@ -459,7 +445,7 @@ describe('hook-factory', () => {
 
       hooks.useDeleteTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       const id = 123
       mutationConfig.onSuccess(true, id)
 
@@ -547,10 +533,7 @@ describe('hook-factory', () => {
       const invalidateUtils = hooks.useInvalidateTestEntity()
       invalidateUtils.setDetail(mockEntity)
 
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        mockQueryKeys.detail(mockEntity.id),
-        mockEntity
-      )
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(mockQueryKeys.detail(mockEntity.id), mockEntity)
     })
 
     test('removeDetail works correctly', () => {
@@ -574,14 +557,14 @@ describe('hook-factory', () => {
     test('creates a query hook with default options', () => {
       const keyFn = (params: string) => ['test', params] as const
       const queryFn = jest.fn().mockResolvedValue('test data')
-      
+
       const useTestQuery = createQueryHook(keyFn, queryFn)
-      
+
       expect(typeof useTestQuery).toBe('function')
-      
+
       const params = 'test-param'
       useTestQuery(params)
-      
+
       expect(mockUseQuery).toHaveBeenCalledWith({
         queryKey: ['test', params],
         queryFn: expect.any(Function),
@@ -594,13 +577,13 @@ describe('hook-factory', () => {
       const keyFn = (params: string) => ['test', params] as const
       const queryFn = jest.fn().mockResolvedValue('test data')
       const customStaleTime = 10 * 60 * 1000
-      
+
       const useTestQuery = createQueryHook(keyFn, queryFn, {
         staleTime: customStaleTime
       })
-      
+
       useTestQuery('test')
-      
+
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           staleTime: customStaleTime
@@ -612,14 +595,14 @@ describe('hook-factory', () => {
       const keyFn = (params: string) => ['test', params] as const
       const queryFn = jest.fn().mockResolvedValue('test data')
       const enabledFn = jest.fn().mockReturnValue(false)
-      
+
       const useTestQuery = createQueryHook(keyFn, queryFn, {
         enabled: enabledFn
       })
-      
+
       const params = 'test-param'
       useTestQuery(params)
-      
+
       expect(enabledFn).toHaveBeenCalledWith(params)
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -631,43 +614,41 @@ describe('hook-factory', () => {
     test('calls queryFn with correct parameters', () => {
       const keyFn = (params: string) => ['test', params] as const
       const queryFn = jest.fn().mockResolvedValue('test data')
-      
+
       const useTestQuery = createQueryHook(keyFn, queryFn)
-      
+
       const params = 'test-param'
       useTestQuery(params)
-      
+
       const queryConfig = mockUseQuery.mock.calls[0][0]
       queryConfig.queryFn()
-      
+
       expect(queryFn).toHaveBeenCalledWith(params)
     })
 
     test('merges custom query options', () => {
       const keyFn = (params: string) => ['test', params] as const
       const queryFn = jest.fn().mockResolvedValue('test data')
-      
+
       const useTestQuery = createQueryHook(keyFn, queryFn)
-      
+
       const customOptions = { retry: 3, enabled: false }
       useTestQuery('test', customOptions)
-      
-      expect(mockUseQuery).toHaveBeenCalledWith(
-        expect.objectContaining(customOptions)
-      )
+
+      expect(mockUseQuery).toHaveBeenCalledWith(expect.objectContaining(customOptions))
     })
   })
 
   describe('createMutationHook', () => {
     test('creates a mutation hook with basic functionality', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
-      
+
       const useTestMutation = createMutationHook(mutationFn)
-      
+
       expect(typeof useTestMutation).toBe('function')
-      
+
       useTestMutation()
-      
+
       expect(mockUseMutation).toHaveBeenCalledWith({
         mutationFn,
         onSuccess: expect.any(Function),
@@ -678,16 +659,16 @@ describe('hook-factory', () => {
     test('invalidates specified query keys on success', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
       const invalidateKeys = [['key1'], ['key2', 'subkey']]
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         invalidateKeys
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onSuccess('result', 'variables')
-      
+
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledTimes(2)
       expect(mockQueryClient.invalidateQueries).toHaveBeenNthCalledWith(1, {
         queryKey: ['key1']
@@ -700,33 +681,33 @@ describe('hook-factory', () => {
     test('shows success message as string', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
       const successMessage = 'Operation successful'
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         successMessage
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onSuccess('result', 'variables')
-      
+
       expect(mockToast.success).toHaveBeenCalledWith(successMessage)
     })
 
     test('shows success message as function', () => {
       const mutationFn = jest.fn().mockResolvedValue({ id: 1, name: 'Test' })
       const successMessage = jest.fn().mockReturnValue('Dynamic success message')
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         successMessage
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const result = { id: 1, name: 'Test' }
       mutationConfig.onSuccess(result, 'variables')
-      
+
       expect(successMessage).toHaveBeenCalledWith(result)
       expect(mockToast.success).toHaveBeenCalledWith('Dynamic success message')
     })
@@ -734,89 +715,87 @@ describe('hook-factory', () => {
     test('calls custom onSuccess callback', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
       const onSuccess = jest.fn()
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         onSuccess
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onSuccess('result', 'variables')
-      
+
       expect(onSuccess).toHaveBeenCalledWith('result', 'variables')
     })
 
     test('shows error message as string', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
       const errorMessage = 'Custom error message'
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         errorMessage
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onError(mockApiError)
-      
+
       expect(mockToast.error).toHaveBeenCalledWith(errorMessage)
     })
 
     test('shows error message as function', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
       const errorMessage = jest.fn().mockReturnValue('Dynamic error message')
-      
+
       const useTestMutation = createMutationHook(mutationFn, {
         errorMessage
       })
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onError(mockApiError)
-      
+
       expect(errorMessage).toHaveBeenCalledWith(mockApiError)
       expect(mockToast.error).toHaveBeenCalledWith('Dynamic error message')
     })
 
     test('shows default error message when no custom message and no error message', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
-      
+
       const useTestMutation = createMutationHook(mutationFn)
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onError({})
-      
+
       expect(mockToast.error).toHaveBeenCalledWith('An error occurred')
     })
 
     test('shows error.message when available and no custom error message', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
-      
+
       const useTestMutation = createMutationHook(mutationFn)
-      
+
       useTestMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       mutationConfig.onError(mockApiError)
-      
+
       expect(mockToast.error).toHaveBeenCalledWith(mockApiError.message)
     })
 
     test('merges custom mutation options', () => {
       const mutationFn = jest.fn().mockResolvedValue('result')
-      
+
       const useTestMutation = createMutationHook(mutationFn)
-      
+
       const customOptions = { retry: 3 }
       useTestMutation(customOptions)
-      
-      expect(mockUseMutation).toHaveBeenCalledWith(
-        expect.objectContaining(customOptions)
-      )
+
+      expect(mockUseMutation).toHaveBeenCalledWith(expect.objectContaining(customOptions))
     })
   })
 
@@ -834,11 +813,11 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       expect(typeof useOptimisticMutation).toBe('function')
-      
+
       useOptimisticMutation()
-      
+
       expect(mockUseMutation).toHaveBeenCalledWith({
         mutationFn: mockMutationFn,
         onMutate: expect.any(Function),
@@ -854,25 +833,22 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const variables = { id: 1, data: { name: 'Optimistic' } }
       const previousData = { id: 1, name: 'Original' }
-      
+
       mockQueryClient.getQueryData.mockReturnValue(previousData)
-      
+
       const context = await mutationConfig.onMutate(variables)
-      
+
       expect(mockQueryClient.cancelQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKey(variables)
       })
       expect(mockQueryClient.getQueryData).toHaveBeenCalledWith(mockQueryKey(variables))
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        mockQueryKey(variables),
-        expect.any(Function)
-      )
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(mockQueryKey(variables), expect.any(Function))
       expect(context).toEqual({
         previousData,
         queryKey: mockQueryKey(variables)
@@ -885,24 +861,24 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const variables = { id: 1, data: { name: 'Optimistic' } }
       const previousData = { id: 1, name: 'Original' }
-      
+
       mockQueryClient.getQueryData.mockReturnValue(previousData)
-      
+
       await mutationConfig.onMutate(variables)
-      
+
       // Get the function passed to setQueryData
       const setQueryDataCall = mockQueryClient.setQueryData.mock.calls[0]
       const updateFunction = setQueryDataCall[1]
-      
+
       // Call the update function
       updateFunction(previousData)
-      
+
       expect(mockOptimisticUpdate).toHaveBeenCalledWith(previousData, variables)
     })
 
@@ -913,21 +889,18 @@ describe('hook-factory', () => {
         optimisticUpdate: mockOptimisticUpdate,
         errorMessage: 'Custom error'
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const context = {
         queryKey: ['optimistic', 1],
         previousData: { id: 1, name: 'Original' }
       }
-      
+
       mutationConfig.onError(mockApiError, 'variables', context)
-      
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        context.queryKey,
-        context.previousData
-      )
+
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(context.queryKey, context.previousData)
       expect(mockToast.error).toHaveBeenCalledWith('Custom error')
     })
 
@@ -937,13 +910,13 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onError(mockApiError, 'variables', {})
-      
+
       expect(mockToast.error).toHaveBeenCalledWith(mockApiError.message)
     })
 
@@ -953,13 +926,13 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onError({}, 'variables', {})
-      
+
       expect(mockToast.error).toHaveBeenCalledWith('An error occurred')
     })
 
@@ -970,13 +943,13 @@ describe('hook-factory', () => {
         optimisticUpdate: mockOptimisticUpdate,
         successMessage: 'Optimistic success'
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onSuccess()
-      
+
       expect(mockToast.success).toHaveBeenCalledWith('Optimistic success')
     })
 
@@ -986,13 +959,13 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onSuccess()
-      
+
       expect(mockToast.success).not.toHaveBeenCalled()
     })
 
@@ -1002,16 +975,16 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const context = {
         queryKey: ['optimistic', 1]
       }
-      
+
       mutationConfig.onSettled(null, null, null, context)
-      
+
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: context.queryKey
       })
@@ -1023,13 +996,13 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       mutationConfig.onSettled(null, null, null, {})
-      
+
       expect(mockQueryClient.invalidateQueries).not.toHaveBeenCalled()
     })
 
@@ -1039,13 +1012,11 @@ describe('hook-factory', () => {
         queryKey: mockQueryKey,
         optimisticUpdate: mockOptimisticUpdate
       })
-      
+
       const customOptions = { retry: 3 }
       useOptimisticMutation(customOptions)
-      
-      expect(mockUseMutation).toHaveBeenCalledWith(
-        expect.objectContaining(customOptions)
-      )
+
+      expect(mockUseMutation).toHaveBeenCalledWith(expect.objectContaining(customOptions))
     })
   })
 
@@ -1069,21 +1040,18 @@ describe('hook-factory', () => {
       hooks.useCreateTestEntity()
       let mutationConfig = mockUseMutation.mock.calls[mockUseMutation.mock.calls.length - 1][0]
       mutationConfig.onSuccess(mockEntity)
-      
+
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKeys.all
       })
-      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
-        mockQueryKeys.detail(mockEntity.id),
-        mockEntity
-      )
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(mockQueryKeys.detail(mockEntity.id), mockEntity)
 
       // Use update hook and simulate success
       hooks.useUpdateTestEntity()
       mutationConfig = mockUseMutation.mock.calls[mockUseMutation.mock.calls.length - 1][0]
       const updateVariables = { id: mockEntity.id, data: mockUpdateData }
       mutationConfig.onSuccess(mockEntity, updateVariables)
-      
+
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKeys.list()
       })
@@ -1092,7 +1060,7 @@ describe('hook-factory', () => {
       hooks.useDeleteTestEntity()
       mutationConfig = mockUseMutation.mock.calls[mockUseMutation.mock.calls.length - 1][0]
       mutationConfig.onSuccess(true, mockEntity.id)
-      
+
       expect(mockQueryClient.removeQueries).toHaveBeenCalledWith({
         queryKey: mockQueryKeys.detail(mockEntity.id)
       })
@@ -1134,10 +1102,10 @@ describe('hook-factory', () => {
       // Test list with different parameters
       const params1 = { page: 1 }
       const params2 = { page: 2, filter: 'active' }
-      
+
       hooks.useTestEntityList(params1)
       hooks.useTestEntityList(params2)
-      
+
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryKey: mockQueryKeys.list(params1)
@@ -1152,7 +1120,7 @@ describe('hook-factory', () => {
       // Test detail with different IDs
       hooks.useTestEntity(1)
       hooks.useTestEntity(2)
-      
+
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryKey: mockQueryKeys.detail(1)
@@ -1170,11 +1138,11 @@ describe('hook-factory', () => {
     test('handles void params for createQueryHook', () => {
       const keyFn = () => ['test'] as const
       const queryFn = jest.fn().mockResolvedValue('data')
-      
+
       const useTestQuery = createQueryHook<string, void>(keyFn, queryFn)
-      
+
       useTestQuery(undefined)
-      
+
       expect(mockUseQuery).toHaveBeenCalledWith({
         queryKey: ['test'],
         queryFn: expect.any(Function),
@@ -1227,25 +1195,25 @@ describe('hook-factory', () => {
         ...old,
         ...variables.data
       }))
-      
+
       const useOptimisticMutation = createOptimisticMutation({
         mutationFn: testMutationFn,
         queryKey: (variables: any) => ['optimistic', variables.id] as const,
         optimisticUpdate: testOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
-      
+
       // Test with null context
       mutationConfig.onError(mockApiError, 'variables', null)
       expect(mockToast.error).toHaveBeenCalledWith(mockApiError.message)
-      
+
       // Test with undefined context
       mutationConfig.onError(mockApiError, 'variables', undefined)
       expect(mockToast.error).toHaveBeenCalledWith(mockApiError.message)
-      
+
       // Test onSettled with null context
       mutationConfig.onSettled(null, null, null, null)
       // Should not crash or call invalidateQueries
@@ -1264,9 +1232,9 @@ describe('hook-factory', () => {
         // onError intentionally omitted
         retry: 3
       }
-      
+
       hooks.useCreateTestEntity(partialOptions)
-      
+
       expect(mockUseMutation).toHaveBeenCalledWith(
         expect.objectContaining({
           mutationFn: mockApi.create,
@@ -1283,23 +1251,23 @@ describe('hook-factory', () => {
         ...old,
         ...variables.data
       }))
-      
+
       const useOptimisticMutation = createOptimisticMutation({
         mutationFn: testMutationFn,
         queryKey: (variables: any) => ['optimistic', variables.id] as const,
         optimisticUpdate: testOptimisticUpdate
       })
-      
+
       useOptimisticMutation()
-      
+
       const mutationConfig = mockUseMutation.mock.calls[0][0]
       const variables = { id: 1, data: { name: 'Optimistic' } }
-      
+
       // Mock getQueryData to return undefined
       mockQueryClient.getQueryData.mockReturnValue(undefined)
-      
+
       const context = mutationConfig.onMutate(variables)
-      
+
       expect(context).resolves.toEqual({
         previousData: undefined,
         queryKey: ['optimistic', 1]
@@ -1315,11 +1283,11 @@ describe('hook-factory', () => {
 
       hooks.useDeleteTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[mockUseMutation.mock.calls.length - 1][0]
-      
+
       // Test successful delete returning true
       mutationConfig.onSuccess(true, 123)
       expect(mockToast.success).toHaveBeenCalledWith('TestEntity deleted successfully')
-      
+
       // Test failed delete returning false (edge case)
       mutationConfig.onSuccess(false, 123)
       expect(mockToast.success).toHaveBeenCalledWith('TestEntity deleted successfully')
@@ -1334,12 +1302,12 @@ describe('hook-factory', () => {
 
       hooks.useCreateTestEntity()
       const mutationConfig = mockUseMutation.mock.calls[mockUseMutation.mock.calls.length - 1][0]
-      
+
       // Test with error object that has no message property
       const errorWithoutMessage = { status: 500 }
       mutationConfig.onError(errorWithoutMessage)
       expect(mockToast.error).toHaveBeenCalledWith('Failed to create TestEntity')
-      
+
       // Test with null error - protect against accessing properties on null
       const nullError = null as any
       mutationConfig.onError(nullError)
@@ -1356,14 +1324,14 @@ describe('hook-factory', () => {
       // Test that all hooks are functions and return objects from their respective React Query hooks
       mockUseQuery.mockReturnValue({ data: [], isLoading: false })
       mockUseMutation.mockReturnValue({ mutate: jest.fn(), isLoading: false })
-      
+
       const listResult = hooks.useTestEntityList()
       const getResult = hooks.useTestEntity(1)
       const createResult = hooks.useCreateTestEntity()
       const updateResult = hooks.useUpdateTestEntity()
       const deleteResult = hooks.useDeleteTestEntity()
       const invalidateResult = hooks.useInvalidateTestEntity()
-      
+
       expect(listResult).toEqual({ data: [], isLoading: false })
       expect(getResult).toEqual({ data: [], isLoading: false })
       expect(createResult).toEqual({ mutate: expect.any(Function), isLoading: false })

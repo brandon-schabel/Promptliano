@@ -7,12 +7,12 @@
 import { eq, and, desc, asc, count, sum, sql } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
-import { 
-  queues, 
-  queueItems, 
-  type Queue, 
+import {
+  queues,
+  queueItems,
+  type Queue,
   type QueueItem,
-  type InsertQueue, 
+  type InsertQueue,
   type InsertQueueItem,
   type QueueWithItems,
   type QueueStatus,
@@ -21,11 +21,7 @@ import {
 } from '../schema'
 
 // Create base queue repository
-const baseQueueRepository = createBaseRepository(
-  queues,
-  selectQueueSchema,
-  'Queue'
-)
+const baseQueueRepository = createBaseRepository(queues, selectQueueSchema, 'Queue')
 
 // Create base queue items repository
 const baseQueueItemRepository = createBaseRepository(
@@ -126,10 +122,9 @@ export const queueRepository = extendRepository(baseQueueRepository, {
    * Get next queued item (optimized query)
    */
   async getNextItem(queueId: number): Promise<QueueItem | null> {
-    return baseQueueItemRepository.findOneWhere(and(
-      eq(queueItems.queueId, queueId),
-      eq(queueItems.status, 'queued' as QueueStatus)
-    ))
+    return baseQueueItemRepository.findOneWhere(
+      and(eq(queueItems.queueId, queueId), eq(queueItems.status, 'queued' as QueueStatus))
+    )
   },
 
   // =============================================================================
@@ -140,13 +135,14 @@ export const queueRepository = extendRepository(baseQueueRepository, {
    * Get queue statistics
    */
   async getQueueStats(queueId: number) {
-    const [stats] = await db.select({
-      totalItems: count(),
-      queuedItems: sum(sql`CASE WHEN ${queueItems.status} = 'queued' THEN 1 ELSE 0 END`),
-      processingItems: sum(sql`CASE WHEN ${queueItems.status} = 'in_progress' THEN 1 ELSE 0 END`),
-      completedItems: sum(sql`CASE WHEN ${queueItems.status} = 'completed' THEN 1 ELSE 0 END`),
-      failedItems: sum(sql`CASE WHEN ${queueItems.status} = 'failed' THEN 1 ELSE 0 END`)
-    })
+    const [stats] = await db
+      .select({
+        totalItems: count(),
+        queuedItems: sum(sql`CASE WHEN ${queueItems.status} = 'queued' THEN 1 ELSE 0 END`),
+        processingItems: sum(sql`CASE WHEN ${queueItems.status} = 'in_progress' THEN 1 ELSE 0 END`),
+        completedItems: sum(sql`CASE WHEN ${queueItems.status} = 'completed' THEN 1 ELSE 0 END`),
+        failedItems: sum(sql`CASE WHEN ${queueItems.status} = 'failed' THEN 1 ELSE 0 END`)
+      })
       .from(queueItems)
       .where(eq(queueItems.queueId, queueId))
 

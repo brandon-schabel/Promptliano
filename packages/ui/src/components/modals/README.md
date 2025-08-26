@@ -4,18 +4,19 @@ A comprehensive modal factory pattern that standardizes modal dialogs and CRUD o
 
 ## Quick Reference
 
-| Feature | Productivity Gain | Line Reduction | Components |
-|---------|------------------|----------------|------------|
-| **CRUD Modals** | 85% faster modal creation | 300 lines → 50 lines | Create, Edit, Delete, View |
-| **Search Modals** | 90% faster search dialogs | 200 lines → 20 lines | Advanced search & selection |
-| **Workflow Modals** | 80% faster multi-step flows | 400 lines → 80 lines | Step-by-step processes |
-| **Upload Modals** | 75% faster file uploads | 150 lines → 30 lines | File selection & upload |
+| Feature             | Productivity Gain           | Line Reduction       | Components                  |
+| ------------------- | --------------------------- | -------------------- | --------------------------- |
+| **CRUD Modals**     | 85% faster modal creation   | 300 lines → 50 lines | Create, Edit, Delete, View  |
+| **Search Modals**   | 90% faster search dialogs   | 200 lines → 20 lines | Advanced search & selection |
+| **Workflow Modals** | 80% faster multi-step flows | 400 lines → 80 lines | Step-by-step processes      |
+| **Upload Modals**   | 75% faster file uploads     | 150 lines → 30 lines | File selection & upload     |
 
 **Total Impact**: 67% modal code reduction, 1,800 → 600 lines across typical application
 
 ## Core Features
 
 ### 1. CRUD Modal Factory
+
 Generates complete CRUD modal sets with form integration:
 
 ```typescript
@@ -37,6 +38,7 @@ const projectModals = createEnhancedCrudModal<Project>({
 ```
 
 ### 2. Modal State Management
+
 Centralized state management for all modal operations:
 
 ```typescript
@@ -54,6 +56,7 @@ const currentModal = manager.currentModal // 'create' | 'edit' | 'delete' | 'vie
 ```
 
 ### 3. Schema-Driven Form Generation
+
 Automatic form generation from Zod schemas:
 
 ```typescript
@@ -76,13 +79,14 @@ const formConfig = createEntityFormConfig(ProjectSchema, {
 ```
 
 ### 4. Advanced Search Modals
+
 Powerful search and selection dialogs:
 
 ```typescript
 const SearchModal = createSearchModal<Project>({
   title: 'Find Projects',
-  searchable: (projects, query) => 
-    projects.filter(p => 
+  searchable: (projects, query) =>
+    projects.filter(p =>
       p.name.toLowerCase().includes(query.toLowerCase()) ||
       p.tags?.some(tag => tag.includes(query))
     ),
@@ -95,6 +99,7 @@ const SearchModal = createSearchModal<Project>({
 ```
 
 ### 5. Workflow Modals
+
 Multi-step process modals with progress tracking:
 
 ```typescript
@@ -127,6 +132,7 @@ const WorkflowModal = createWorkflowModal({
 ```
 
 ### 6. File Upload Modals
+
 Comprehensive file upload with progress and preview:
 
 ```typescript
@@ -148,6 +154,7 @@ const UploadModal = createUploadModal({
 ## Integration with Existing Patterns
 
 ### Hook Factory Integration
+
 Seamless integration with CRUD hooks:
 
 ```typescript
@@ -168,6 +175,7 @@ const modals = createCrudModal<Project>({
 ```
 
 ### Form Factory Integration
+
 Direct integration with form configurations:
 
 ```typescript
@@ -189,6 +197,7 @@ const modals = createEnhancedCrudModal<Project>({
 ```
 
 ### Error Factory Integration
+
 Consistent error handling across modals:
 
 ```typescript
@@ -202,6 +211,7 @@ const modals = createCrudModal<Project>({
 ```
 
 ## Modal Suite Pattern
+
 Complete modal management for entities:
 
 ```typescript
@@ -232,6 +242,7 @@ function ProjectPage() {
 ## Advanced Features
 
 ### 1. Permissions & Access Control
+
 Fine-grained permission controls:
 
 ```typescript
@@ -247,20 +258,21 @@ const modals = createEnhancedCrudModal<Project>({
 ```
 
 ### 2. Custom Confirmations
+
 Context-aware confirmation messages:
 
 ```typescript
 const modals = createEnhancedCrudModal<Project>({
   entityName: 'Project',
   confirmations: {
-    delete: (project) => 
-      `Delete "${project.name}"? This will remove all ${project.taskCount} tasks.`,
+    delete: (project) => `Delete "${project.name}"? This will remove all ${project.taskCount} tasks.`,
     unsavedChanges: 'You have unsaved changes. Discard them?'
   }
 })
 ```
 
 ### 3. Field Formatters & Validators
+
 Rich data presentation and validation:
 
 ```typescript
@@ -283,6 +295,7 @@ const modals = createEnhancedCrudModal<Project>({
 ```
 
 ### 4. Responsive & Accessible
+
 Built-in responsive design and accessibility:
 
 ```typescript
@@ -298,26 +311,27 @@ const modals = createCrudModal<Project>({
 ## Migration Guide
 
 ### Before: Manual Modal Implementation
+
 ```typescript
 // 300+ lines of boilerplate per entity
 function ProjectCreateModal({ isOpen, onClose }: Props) {
   const [formData, setFormData] = useState<CreateProjectData>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const createProject = useCreateProject()
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     try {
       const validation = ProjectCreateSchema.safeParse(formData)
       if (!validation.success) {
         setErrors(parseZodErrors(validation.error))
         return
       }
-      
+
       await createProject.mutateAsync(formData)
       toast.success('Project created successfully')
       onClose()
@@ -328,14 +342,14 @@ function ProjectCreateModal({ isOpen, onClose }: Props) {
       setIsSubmitting(false)
     }
   }
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -348,10 +362,10 @@ function ProjectCreateModal({ isOpen, onClose }: Props) {
               />
               {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
             </div>
-            
+
             {/* 50+ more lines of form fields */}
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -370,6 +384,7 @@ function ProjectCreateModal({ isOpen, onClose }: Props) {
 ```
 
 ### After: Modal Factory Implementation
+
 ```typescript
 // 50 lines total for complete CRUD modal suite
 const projectModalSuite = createModalSuite<Project>({
@@ -390,7 +405,7 @@ function ProjectPage() {
       <Button onClick={() => projectModalSuite.manager.openCreate()}>
         Create Project
       </Button>
-      
+
       {/* All modals rendered with one call */}
       {projectModalSuite.renderModals()}
     </div>
@@ -401,6 +416,7 @@ function ProjectPage() {
 ## Performance Considerations
 
 ### 1. Lazy Loading
+
 Modals are only rendered when open:
 
 ```typescript
@@ -413,6 +429,7 @@ const modals = createCrudModal(config)
 ```
 
 ### 2. Memoization
+
 Components are memoized to prevent unnecessary re-renders:
 
 ```typescript
@@ -422,6 +439,7 @@ const CreateModal = React.memo(({ formConfig, ...props }) => {
 ```
 
 ### 3. State Optimization
+
 Efficient state management with minimal re-renders:
 
 ```typescript
@@ -432,6 +450,7 @@ const [state, actions] = useModalState()
 ## Best Practices
 
 ### 1. Entity-Specific Configurations
+
 Create reusable configurations per entity:
 
 ```typescript
@@ -445,6 +464,7 @@ export const projectModalConfig = {
 ```
 
 ### 2. Consistent Sizing
+
 Use standard sizes for consistency:
 
 ```typescript
@@ -457,6 +477,7 @@ const modalSizes = {
 ```
 
 ### 3. Error Handling
+
 Implement comprehensive error handling:
 
 ```typescript
@@ -471,13 +492,14 @@ const modals = createCrudModal({
 ```
 
 ### 4. Accessibility
+
 Ensure all modals meet accessibility standards:
 
 ```typescript
 const modals = createCrudModal({
   entityName: 'Project',
   showCloseButton: true,
-  preventEscapeClose: false, // Allow ESC to close
+  preventEscapeClose: false // Allow ESC to close
   // Focus management handled automatically
 })
 ```
@@ -485,6 +507,7 @@ const modals = createCrudModal({
 ## Common Patterns
 
 ### 1. Nested Entity Modals
+
 Handle related entity creation:
 
 ```typescript
@@ -496,6 +519,7 @@ const taskModalSuite = createModalSuite<Task>({
 ```
 
 ### 2. Bulk Operations
+
 Support for bulk actions:
 
 ```typescript
@@ -507,6 +531,7 @@ const modals = createCrudModal({
 ```
 
 ### 3. Draft Management
+
 Handle unsaved changes:
 
 ```typescript
@@ -527,9 +552,9 @@ import { renderModalSuite, mockModalManager } from '@promptliano/ui/testing'
 describe('Project Modals', () => {
   it('should handle project creation', async () => {
     const { manager, getByRole } = renderModalSuite(projectModalSuite)
-    
+
     manager.openCreate()
-    
+
     const createButton = getByRole('button', { name: 'Create' })
     expect(createButton).toBeInTheDocument()
   })
@@ -539,18 +564,21 @@ describe('Project Modals', () => {
 ## Success Metrics
 
 ### Productivity Gains
+
 - **Development Speed**: 75-90% faster modal development
 - **Code Consistency**: 100% consistent modal patterns
 - **Developer Onboarding**: 60% faster for new developers
 - **Maintenance**: 80% reduction in modal-related bugs
 
 ### Code Quality Metrics
+
 - **Line Reduction**: 1,800 → 600 lines (67% reduction)
 - **Type Safety**: 100% TypeScript coverage
 - **Test Coverage**: 95%+ on factory utilities
 - **Bundle Size Impact**: Minimal due to tree-shaking
 
 ### User Experience Metrics
+
 - **Modal Consistency**: 100% across application
 - **Accessibility Score**: 95%+ on all generated modals
 - **Performance**: No measurable impact on render times

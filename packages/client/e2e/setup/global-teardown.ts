@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename)
 
 async function globalTeardown(config: FullConfig) {
   console.log('🧹 Starting global teardown for E2E tests...')
-  
+
   try {
     // Clean up test projects
     console.log('🗂️ Cleaning up test projects...')
@@ -22,7 +22,7 @@ async function globalTeardown(config: FullConfig) {
       fs.unlinkSync(authFile)
       console.log('🗑️  Cleaned up authentication state file')
     }
-    
+
     // Clean up any test artifacts
     const testDataDir = path.join(__dirname, '../fixtures/test-data')
     if (fs.existsSync(testDataDir)) {
@@ -41,9 +41,8 @@ async function globalTeardown(config: FullConfig) {
         // Don't fail teardown if cleanup fails
       }
     }
-    
+
     console.log('✅ Global teardown completed successfully')
-    
   } catch (error) {
     console.error('❌ Global teardown failed:', error)
     throw error

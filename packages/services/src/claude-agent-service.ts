@@ -9,20 +9,24 @@ import { eq } from 'drizzle-orm'
 import { db } from '@promptliano/database/src/db'
 // Agent creation/update types
 export type CreateClaudeAgentBody = Pick<InsertClaudeAgent, 'name' | 'description' | 'instructions' | 'model'>
-export type UpdateClaudeAgentBody = Partial<Pick<InsertClaudeAgent, 'name' | 'description' | 'instructions' | 'model' | 'isActive'>>
+export type UpdateClaudeAgentBody = Partial<
+  Pick<InsertClaudeAgent, 'name' | 'description' | 'instructions' | 'model' | 'isActive'>
+>
 
 // AI generation schemas - define locally for now until schemas package is updated
 import { z } from 'zod'
 
 // Define AgentSuggestions schema locally
 export const AgentSuggestionsSchema = z.object({
-  suggestions: z.array(z.object({
-    name: z.string(),
-    description: z.string(),
-    instructions: z.string(),
-    model: z.string().default('claude-3-sonnet'),
-    specializations: z.array(z.string()).default([])
-  }))
+  suggestions: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      instructions: z.string(),
+      model: z.string().default('claude-3-sonnet'),
+      specializations: z.array(z.string()).default([])
+    })
+  )
 })
 
 export type AgentSuggestions = z.infer<typeof AgentSuggestionsSchema>
@@ -47,12 +51,7 @@ export interface ClaudeAgentServiceDeps {
  * Create Claude Agent Service factory function
  */
 export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
-  const {
-    repository = claudeAgentRepository,
-    logger = console,
-    cache,
-    projectPath = process.cwd()
-  } = deps
+  const { repository = claudeAgentRepository, logger = console, cache, projectPath = process.cwd() } = deps
 
   // Helper function to generate agent ID from name
   const generateAgentId = (name: string): string => {
@@ -80,7 +79,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
       async () => {
         // Generate unique agent ID
         const agentId = generateAgentId(data.name)
-        
+
         // Check if agent already exists
         const [existingAgent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, agentId)).limit(1)
         if (existingAgent) {
@@ -97,12 +96,15 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           isActive: true
         }
 
-        const [agent] = await db.insert(claudeAgents).values({
-          ...agentData,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }).returning()
-        
+        const [agent] = await db
+          .insert(claudeAgents)
+          .values({
+            ...agentData,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
+          .returning()
+
         // Write markdown file if instructions provided
         if (data.instructions) {
           const agentsDir = getAgentsDir(projectPath || process.cwd())
@@ -145,22 +147,26 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         // Get all agents since current schema doesn't have projectId association
         // This can be filtered client-side or enhanced later with project associations
         const agents = await listAgents()
-        return agents.filter(agent => agent.isActive) // Only return active agents
+        return agents.filter((agent) => agent.isActive) // Only return active agents
       },
       { entity: 'Agent', action: 'getByProject', projectId }
     )
   }
 
-  const updateAgent = async (projectPath: string, agentId: string | number, data: UpdateClaudeAgentBody): Promise<ClaudeAgent> => {
+  const updateAgent = async (
+    projectPath: string,
+    agentId: string | number,
+    data: UpdateClaudeAgentBody
+  ): Promise<ClaudeAgent> => {
     return withErrorContext(
       async () => {
         // Convert number ID to string since agent IDs are strings
         const id = String(agentId)
-        
+
         // Verify agent exists
         const [existing] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, id)).limit(1)
         assertExists(existing, 'Agent', id)
-        
+
         // Prepare update data to match current schema
         const updateData: Partial<UpdateClaudeAgentBody> = {
           name: data.name,
@@ -169,25 +175,26 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
           model: data.model,
           isActive: data.isActive
         }
-        
+
         // Remove undefined fields
-        Object.keys(updateData).forEach(key => {
+        Object.keys(updateData).forEach((key) => {
           if (updateData[key as keyof typeof updateData] === undefined) {
             delete updateData[key as keyof typeof updateData]
           }
         })
 
         // Update agent in database
-        const [updatedAgent] = await db.update(claudeAgents)
+        const [updatedAgent] = await db
+          .update(claudeAgents)
           .set({ ...updateData, updatedAt: Date.now() })
           .where(eq(claudeAgents.id, id))
           .returning()
-        
+
         // Update markdown file if instructions changed
         if (data.instructions !== undefined) {
           const agentsDir = getAgentsDir(projectPath || process.cwd())
           const filePath = path.join(agentsDir, `${id}.md`)
-          
+
           if (data.instructions) {
             await writeAgentFile(filePath, data.instructions)
           } else {
@@ -212,7 +219,7 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
       async () => {
         // Convert number ID to string since agent IDs are strings
         const id = String(agentId)
-        
+
         // Verify agent exists
         const [agent] = await db.select().from(claudeAgents).where(eq(claudeAgents.id, id)).limit(1)
         if (!agent) {
@@ -220,16 +227,16 @@ export function createClaudeAgentService(deps: ClaudeAgentServiceDeps = {}) {
         }
 
         // Delete from database
-        const result = await db.delete(claudeAgents)
-          .where(eq(claudeAgents.id, id))
-          .run() as unknown as { changes: number }
-        
+        const result = (await db.delete(claudeAgents).where(eq(claudeAgents.id, id)).run()) as unknown as {
+          changes: number
+        }
+
         const success = result.changes > 0
-        
+
         // Delete markdown file if it exists
         const agentsDir = getAgentsDir(projectPath || process.cwd())
         const filePath = path.join(agentsDir, `${id}.md`)
-        
+
         try {
           await fs.unlink(filePath)
         } catch (error) {
@@ -312,11 +319,11 @@ Based on this project's structure and the user's context, suggest ${limit} speci
       async () => {
         try {
           const agent = await getAgentById(projectPath, agentId)
-          
+
           // Try to read content from markdown file first
           const agentsDir = getAgentsDir(projectPath || process.cwd())
           const filePath = path.join(agentsDir, `${agentId}.md`)
-          
+
           try {
             const fileContent = await fs.readFile(filePath, 'utf-8')
             return fileContent
@@ -341,7 +348,7 @@ Based on this project's structure and the user's context, suggest ${limit} speci
         try {
           const agent = await getAgentById(projectPath, agentId)
           const content = await getAgentContent(projectPath, agentId)
-          
+
           return `## Agent: ${agent.name}
 
 ${content || agent.instructions || 'No instructions available.'}
@@ -369,7 +376,7 @@ This agent could not be loaded. Please proceed with general knowledge.
     return withErrorContext(
       async () => {
         const agents: ClaudeAgent[] = []
-        
+
         for (const agentId of agentIds) {
           try {
             const agent = await getAgentById(deps.projectPath || process.cwd(), agentId)
@@ -378,7 +385,7 @@ This agent could not be loaded. Please proceed with general knowledge.
             logger?.warn(`Could not get agent ${agentId}: ${error instanceof Error ? error.message : String(error)}`)
           }
         }
-        
+
         return agents
       },
       { entity: 'Agent', action: 'getByIds', ids: agentIds }
@@ -393,7 +400,7 @@ This agent could not be loaded. Please proceed with general knowledge.
     return withErrorContext(
       async () => {
         // Get available agents if not provided
-        const agents = availableAgents || await listAgents()
+        const agents = availableAgents || (await listAgents())
         if (agents.length === 0) return null
 
         // Simple heuristic-based matching
@@ -459,15 +466,15 @@ This agent could not be loaded. Please proceed with general knowledge.
     list: () => listAgents(projectPath),
     update: (agentId: string | number, data: UpdateClaudeAgentBody) => updateAgent(projectPath, agentId, data),
     delete: (agentId: string | number) => deleteAgent(projectPath, agentId),
-    
+
     // Query operations
     getByProject: getAgentsByProject,
     getByIds: getAgentsByIds,
-    
+
     // Content operations
     getContent: (agentId: string) => getAgentContent(projectPath, agentId),
     formatContext: (agentId: string) => formatAgentContext(projectPath, agentId),
-    
+
     // AI-powered operations
     suggest: suggestAgents,
     suggestForTask: suggestAgentForTask

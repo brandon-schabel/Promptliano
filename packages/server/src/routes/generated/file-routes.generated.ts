@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR FILE
  * Generated at: 2025-08-22T23:50:50.384Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { fileService } from '@promptliano/services'
-import {
-  FileSchema,
-  CreateFileSchema,
-  UpdateFileSchema
-} from '@promptliano/database'
+import { FileSchema, CreateFileSchema, UpdateFileSchema } from '@promptliano/database'
 import {
   FileIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -66,9 +62,9 @@ const fileConfig: EntityConfig = {
  */
 export function registerFileRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, fileConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for File`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +77,7 @@ export const fileRoutes = {
   list: `GET /api/files`,
   get: `GET /api/files/{id}`,
   update: `PUT /api/files/{id}`,
-  delete: `DELETE /api/files/{id}`,
+  delete: `DELETE /api/files/{id}`
 } as const
 
 export type FileRouteTypes = typeof fileRoutes

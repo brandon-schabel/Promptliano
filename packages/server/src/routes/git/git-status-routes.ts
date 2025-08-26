@@ -11,14 +11,28 @@ import {
   stageFilesRequestSchema as StageFilesBodySchema,
   unstageFilesRequestSchema as UnstageFilesBodySchema
 } from '@promptliano/schemas'
-import { clearGitStatusCache, getProjectGitStatus, stageFiles, unstageFiles, stageAll, unstageAll } from '@promptliano/services'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import {
+  clearGitStatusCache,
+  getProjectGitStatus,
+  stageFiles,
+  unstageFiles,
+  stageAll,
+  unstageAll
+} from '@promptliano/services'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 
 // Response schemas using factories
-const GitStatusResponseSchema = z.object({
-  success: z.literal(true),
-  data: GitStatusResultSchema
-}).openapi('GitStatusResponse')
+const GitStatusResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: GitStatusResultSchema
+  })
+  .openapi('GitStatusResponse')
 
 // Get project git status
 const getProjectGitStatusRoute = createRoute({
@@ -82,11 +96,7 @@ const stageAllRoute = createRoute({
   request: {
     params: ProjectIdParamsSchema
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    200,
-    'All changes staged successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes staged successfully')
 })
 
 // Unstage all changes
@@ -99,67 +109,48 @@ const unstageAllRoute = createRoute({
   request: {
     params: ProjectIdParamsSchema
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    200,
-    'All changes unstaged successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes unstaged successfully')
 })
 
 // Export routes with simplified handlers using route-helpers
 export const gitStatusRoutes = new OpenAPIHono()
-  .openapi(
-    getProjectGitStatusRoute,
-    (async (c: any): Promise<any> => {
-      const { projectId } = c.req.valid('param')
-      const { refresh = false } = c.req.valid('query') || {}
-      
-      // Clear cache if refresh requested
-      if (refresh) {
-        clearGitStatusCache(projectId)
-      }
-      
-      const status = await getProjectGitStatus(projectId)
-      return c.json(successResponse(status))
-    }) as any
-  )
-  .openapi(
-    stageFilesRoute,
-    (async (c: any): Promise<any> => {
-      const { projectId } = c.req.valid('param')
-      const body = c.req.valid('json')
-      await stageFiles(projectId, body.filePaths)
+  .openapi(getProjectGitStatusRoute, (async (c: any): Promise<any> => {
+    const { projectId } = c.req.valid('param')
+    const { refresh = false } = c.req.valid('query') || {}
+
+    // Clear cache if refresh requested
+    if (refresh) {
       clearGitStatusCache(projectId)
-      return c.json(operationSuccessResponse('Files staged successfully'))
-    }) as any
-  )
-  .openapi(
-    unstageFilesRoute,
-    (async (c: any): Promise<any> => {
-      const { projectId } = c.req.valid('param')
-      const body = c.req.valid('json')
-      await unstageFiles(projectId, body.filePaths)
-      clearGitStatusCache(projectId)
-      return c.json(operationSuccessResponse('Files unstaged successfully'))
-    }) as any
-  )
-  .openapi(
-    stageAllRoute,
-    (async (c: any): Promise<any> => {
-      const { projectId } = c.req.valid('param')
-      await stageAll(projectId)
-      clearGitStatusCache(projectId)
-      return c.json(operationSuccessResponse('All changes staged successfully'))
-    }) as any
-  )
-  .openapi(
-    unstageAllRoute,
-    (async (c: any): Promise<any> => {
-      const { projectId } = c.req.valid('param')
-      await unstageAll(projectId)
-      clearGitStatusCache(projectId)
-      return c.json(operationSuccessResponse('All changes unstaged successfully'))
-    }) as any
-  )
+    }
+
+    const status = await getProjectGitStatus(projectId)
+    return c.json(successResponse(status))
+  }) as any)
+  .openapi(stageFilesRoute, (async (c: any): Promise<any> => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    await stageFiles(projectId, body.filePaths)
+    clearGitStatusCache(projectId)
+    return c.json(operationSuccessResponse('Files staged successfully'))
+  }) as any)
+  .openapi(unstageFilesRoute, (async (c: any): Promise<any> => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    await unstageFiles(projectId, body.filePaths)
+    clearGitStatusCache(projectId)
+    return c.json(operationSuccessResponse('Files unstaged successfully'))
+  }) as any)
+  .openapi(stageAllRoute, (async (c: any): Promise<any> => {
+    const { projectId } = c.req.valid('param')
+    await stageAll(projectId)
+    clearGitStatusCache(projectId)
+    return c.json(operationSuccessResponse('All changes staged successfully'))
+  }) as any)
+  .openapi(unstageAllRoute, (async (c: any): Promise<any> => {
+    const { projectId } = c.req.valid('param')
+    await unstageAll(projectId)
+    clearGitStatusCache(projectId)
+    return c.json(operationSuccessResponse('All changes unstaged successfully'))
+  }) as any)
 
 export type GitStatusRouteTypes = typeof gitStatusRoutes

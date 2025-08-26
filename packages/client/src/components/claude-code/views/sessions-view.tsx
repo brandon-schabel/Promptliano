@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
   CardTitle,
   Badge,
   Button,
@@ -22,25 +22,25 @@ import {
 } from '@promptliano/ui'
 import { CopyableInline, CopyableBlock } from '@promptliano/ui'
 import { TokenBadge } from '@promptliano/ui'
-import { 
-  Search, 
-  MessageSquare, 
-  Clock, 
-  GitBranch, 
-  FolderOpen, 
-  RefreshCw, 
-  ChevronRight, 
+import {
+  Search,
+  MessageSquare,
+  Clock,
+  GitBranch,
+  FolderOpen,
+  RefreshCw,
+  ChevronRight,
   Terminal,
   LayoutGrid,
   List,
   Settings2,
   Loader2
 } from 'lucide-react'
-import { 
-  useClaudeSessions, 
+import {
+  useClaudeSessions,
   useClaudeSessionsRecent,
   useClaudeSessionsProgressive,
-  useSessionDuration 
+  useSessionDuration
 } from '@/hooks/api-hooks'
 import { SessionsTableView } from './sessions-table-view'
 import { format } from 'date-fns'
@@ -49,7 +49,7 @@ import { toast } from 'sonner'
 
 /**
  * Enhanced SessionsView with view mode toggle and progressive loading
- * 
+ *
  * Features:
  * - View mode toggle (Cards/Table) with keyboard shortcuts
  * - Progressive loading strategy for optimal performance
@@ -57,10 +57,10 @@ import { toast } from 'sonner'
  * - Responsive design with mobile fallback
  * - Smooth transitions between modes
  * - Advanced loading states and error handling
- * 
+ *
  * Usage:
  * ```tsx
- * <SessionsView 
+ * <SessionsView
  *   projectId={projectId}
  *   projectName="My Project"
  *   onSelectSession={(sessionId) => navigate(`/sessions/${sessionId}`)}
@@ -69,7 +69,7 @@ import { toast } from 'sonner'
  *   tablePreset="detailed"
  * />
  * ```
- * 
+ *
  * Keyboard Shortcuts:
  * - Ctrl+G: Switch to card view
  * - Ctrl+T: Switch to table view
@@ -191,9 +191,9 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
   )
 }
 
-export function SessionsView({ 
-  projectId, 
-  projectName, 
+export function SessionsView({
+  projectId,
+  projectName,
   onSelectSession,
   initialViewMode = 'cards',
   enableViewModeToggle = true,
@@ -204,9 +204,9 @@ export function SessionsView({
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  
+
   const isMobile = useIsMobile()
-  
+
   // Responsive view mode - force cards on mobile for better UX
   const effectiveViewMode = useMemo(() => {
     if (isMobile) return 'cards'
@@ -214,28 +214,21 @@ export function SessionsView({
   }, [isMobile, viewMode])
 
   // Progressive loading strategy
-  const {
-    metadata,
-    sessions,
-    metadataLoading,
-    fullDataLoading,
-    error,
-    hasFullData,
-    refetchAll
-  } = useClaudeSessionsProgressive(
-    projectId,
-    {
-      search: searchQuery || undefined,
-      limit: effectiveViewMode === 'table' ? 50 : 20,
-      sortBy: 'lastUpdate',
-      sortOrder: 'desc'
-    },
-    {
-      enabled: enableProgressiveLoading,
-      loadFullData: effectiveViewMode === 'table'
-    }
-  )
-  
+  const { metadata, sessions, metadataLoading, fullDataLoading, error, hasFullData, refetchAll } =
+    useClaudeSessionsProgressive(
+      projectId,
+      {
+        search: searchQuery || undefined,
+        limit: effectiveViewMode === 'table' ? 50 : 20,
+        sortBy: 'lastUpdate',
+        sortOrder: 'desc'
+      },
+      {
+        enabled: enableProgressiveLoading,
+        loadFullData: effectiveViewMode === 'table'
+      }
+    )
+
   // Recent sessions for fast initial load
   const {
     data: recentSessions,
@@ -245,45 +238,47 @@ export function SessionsView({
     enabled: enableProgressiveLoading && !searchQuery,
     staleTime: 1 * 60 * 1000 // 1 minute
   })
-  
+
   // Fallback to standard hook if progressive loading is disabled
   const {
     data: fallbackSessions,
     isLoading: fallbackLoading,
     error: fallbackError,
     refetch: refetchFallback
-  } = useClaudeSessions(projectId, {
-    search: searchQuery || undefined,
-    limit: 50,
-    offset: 0
-  }, {
-    enabled: !enableProgressiveLoading
-  })
-  
+  } = useClaudeSessions(
+    projectId,
+    {
+      search: searchQuery || undefined,
+      limit: 50,
+      offset: 0
+    },
+    {
+      enabled: !enableProgressiveLoading
+    }
+  )
+
   // Determine which data to use
   const displaySessions = useMemo(() => {
     if (!enableProgressiveLoading) {
       return fallbackSessions || []
     }
-    
+
     // Use progressive data if available
     if (sessions.length > 0) {
       return sessions
     }
-    
+
     // Fall back to recent sessions for instant feedback
     if (!searchQuery && recentSessions) {
       return recentSessions
     }
-    
+
     // Fall back to metadata
     return metadata || []
   }, [enableProgressiveLoading, sessions, recentSessions, metadata, searchQuery, fallbackSessions])
-  
-  const isLoading = enableProgressiveLoading 
-    ? (metadataLoading && recentLoading)
-    : fallbackLoading
-    
+
+  const isLoading = enableProgressiveLoading ? metadataLoading && recentLoading : fallbackLoading
+
   const actualError = enableProgressiveLoading ? error : fallbackError
 
   const handleSessionClick = (sessionId: string) => {
@@ -300,38 +295,41 @@ export function SessionsView({
       setViewMode(savedViewMode as ViewMode)
     }
   }, [])
-  
-  const handleViewModeChange = useCallback(async (newMode: ViewMode) => {
-    if (newMode === viewMode || isMobile) return
-    
-    setIsTransitioning(true)
-    
-    // Smooth transition with animation
-    try {
-      // Save preference
-      localStorage.setItem('sessions-view-mode', newMode)
-      
-      // Small delay for smooth transition
-      await new Promise(resolve => setTimeout(resolve, 150))
-      
-      setViewMode(newMode)
-      
-      // Show helpful message
-      if (newMode === 'table') {
-        toast.success('Switched to table view')
-      } else {
-        toast.success('Switched to card view')
+
+  const handleViewModeChange = useCallback(
+    async (newMode: ViewMode) => {
+      if (newMode === viewMode || isMobile) return
+
+      setIsTransitioning(true)
+
+      // Smooth transition with animation
+      try {
+        // Save preference
+        localStorage.setItem('sessions-view-mode', newMode)
+
+        // Small delay for smooth transition
+        await new Promise((resolve) => setTimeout(resolve, 150))
+
+        setViewMode(newMode)
+
+        // Show helpful message
+        if (newMode === 'table') {
+          toast.success('Switched to table view')
+        } else {
+          toast.success('Switched to card view')
+        }
+      } finally {
+        setIsTransitioning(false)
       }
-    } finally {
-      setIsTransitioning(false)
-    }
-  }, [viewMode, isMobile])
-  
+    },
+    [viewMode, isMobile]
+  )
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (!enableViewModeToggle || isMobile) return
-      
+
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
         switch (event.key.toLowerCase()) {
           case 't':
@@ -339,17 +337,17 @@ export function SessionsView({
             handleViewModeChange('table')
             break
           case 'g':
-            event.preventDefault() 
+            event.preventDefault()
             handleViewModeChange('cards')
             break
         }
       }
     }
-    
+
     document.addEventListener('keydown', handleKeydown)
     return () => document.removeEventListener('keydown', handleKeydown)
   }, [enableViewModeToggle, handleViewModeChange, isMobile])
-  
+
   const handleRefresh = useCallback(() => {
     if (enableProgressiveLoading) {
       refetchAll()
@@ -410,7 +408,7 @@ export function SessionsView({
               )}
             </p>
           </div>
-          
+
           <div className='flex items-center gap-2'>
             {/* View mode toggle */}
             {enableViewModeToggle && !isMobile && (
@@ -418,27 +416,17 @@ export function SessionsView({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <ToggleGroup 
-                        type='single' 
-                        value={effectiveViewMode} 
+                      <ToggleGroup
+                        type='single'
+                        value={effectiveViewMode}
                         onValueChange={(value) => value && handleViewModeChange(value as ViewMode)}
                         className='border border-border rounded-md p-1'
                         disabled={isTransitioning}
                       >
-                        <ToggleGroupItem 
-                          value='cards' 
-                          size='sm'
-                          className='h-7 px-2'
-                          disabled={isTransitioning}
-                        >
+                        <ToggleGroupItem value='cards' size='sm' className='h-7 px-2' disabled={isTransitioning}>
                           <LayoutGrid className='h-3 w-3' />
                         </ToggleGroupItem>
-                        <ToggleGroupItem 
-                          value='table' 
-                          size='sm'
-                          className='h-7 px-2'
-                          disabled={isTransitioning}
-                        >
+                        <ToggleGroupItem value='table' size='sm' className='h-7 px-2' disabled={isTransitioning}>
                           <List className='h-3 w-3' />
                         </ToggleGroupItem>
                       </ToggleGroup>
@@ -455,12 +443,10 @@ export function SessionsView({
                 </Tooltip>
               </div>
             )}
-            
+
             {/* Loading indicator for background refresh */}
-            {(fullDataLoading || isTransitioning) && (
-              <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-            )}
-            
+            {(fullDataLoading || isTransitioning) && <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />}
+
             <Button variant='outline' size='sm' onClick={handleRefresh} disabled={isLoading}>
               <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
               Refresh
@@ -492,10 +478,7 @@ export function SessionsView({
           </CardContent>
         </Card>
       ) : (
-        <div className={cn(
-          'transition-all duration-200 ease-in-out',
-          isTransitioning && 'opacity-50'
-        )}>
+        <div className={cn('transition-all duration-200 ease-in-out', isTransitioning && 'opacity-50')}>
           {effectiveViewMode === 'table' ? (
             <SessionsTableView
               projectId={projectId}
@@ -511,42 +494,40 @@ export function SessionsView({
             <ScrollArea className='h-[calc(100vh-250px)]'>
               <div className='grid gap-4 pr-4'>
                 {/* Show skeleton cards while transitioning or loading */}
-                {(isLoading || isTransitioning) && displaySessions.length === 0 ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i} className='animate-pulse'>
-                      <CardHeader className='pb-3'>
-                        <div className='flex items-start justify-between'>
-                          <div className='space-y-2 flex-1'>
-                            <Skeleton className='h-5 w-3/4' />
-                            <Skeleton className='h-4 w-1/2' />
+                {(isLoading || isTransitioning) && displaySessions.length === 0
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <Card key={i} className='animate-pulse'>
+                        <CardHeader className='pb-3'>
+                          <div className='flex items-start justify-between'>
+                            <div className='space-y-2 flex-1'>
+                              <Skeleton className='h-5 w-3/4' />
+                              <Skeleton className='h-4 w-1/2' />
+                            </div>
+                            <Skeleton className='h-4 w-4' />
                           </div>
-                          <Skeleton className='h-4 w-4' />
-                        </div>
-                      </CardHeader>
-                      <CardContent className='space-y-3'>
-                        <div className='flex items-center gap-4'>
-                          <Skeleton className='h-4 w-20' />
-                          <Skeleton className='h-4 w-24' />
-                        </div>
-                        <Skeleton className='h-4 w-full' />
-                        <div className='flex items-center gap-2'>
-                          <Skeleton className='h-6 w-16' />
-                          <Skeleton className='h-4 w-12' />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  displaySessions.map((session: any) => (
-                    <SessionCard
-                      key={session.sessionId}
-                      session={session}
-                      isSelected={session.sessionId === selectedSessionId}
-                      onClick={() => handleSessionClick(session.sessionId)}
-                    />
-                  ))
-                )}
-                
+                        </CardHeader>
+                        <CardContent className='space-y-3'>
+                          <div className='flex items-center gap-4'>
+                            <Skeleton className='h-4 w-20' />
+                            <Skeleton className='h-4 w-24' />
+                          </div>
+                          <Skeleton className='h-4 w-full' />
+                          <div className='flex items-center gap-2'>
+                            <Skeleton className='h-6 w-16' />
+                            <Skeleton className='h-4 w-12' />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  : displaySessions.map((session: any) => (
+                      <SessionCard
+                        key={session.sessionId}
+                        session={session}
+                        isSelected={session.sessionId === selectedSessionId}
+                        onClick={() => handleSessionClick(session.sessionId)}
+                      />
+                    ))}
+
                 {/* Progressive loading indicator */}
                 {enableProgressiveLoading && fullDataLoading && displaySessions.length > 0 && (
                   <Card className='border-dashed'>

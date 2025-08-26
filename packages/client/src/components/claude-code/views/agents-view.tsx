@@ -24,7 +24,6 @@ interface AgentsViewProps {
   projectName?: string
 }
 
-
 export function AgentsView({ projectId, projectName }: AgentsViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)

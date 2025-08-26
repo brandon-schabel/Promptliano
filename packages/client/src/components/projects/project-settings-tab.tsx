@@ -54,17 +54,17 @@ export function ProjectSettingsTab() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
   const [showInstructionFileSettings, setShowInstructionFileSettings] = useState(false)
   const [showSyncProgress, setShowSyncProgress] = useState(false)
-  
+
   const { syncWithProgress } = useSyncProjectWithProgress()
   const syncProgressRef = useRef<{ updateProgress: (event: SyncProgressEvent) => void } | null>(null)
 
   // Removed auto-sync to prevent blocking - sync is now handled with progress tracking on demand
-  
+
   const handleManualSync = () => {
     if (!projectId || !projectData) return
-    
+
     setShowSyncProgress(true)
-    
+
     syncWithProgress(projectId, (event) => {
       syncProgressRef.current?.updateProgress(event)
     })
@@ -188,7 +188,7 @@ export function ProjectSettingsTab() {
                   </Tooltip>
                 </div>
               </div>
-              
+
               <div className='pt-4 border-t'>
                 <Button variant='outline' onClick={handleManualSync} className='w-full'>
                   <RefreshCw className='h-4 w-4 mr-2' />
@@ -485,7 +485,7 @@ export function ProjectSettingsTab() {
           </div>
         )}
       </div>
-      
+
       {/* Sync Progress Dialog */}
       {projectData && (
         <SyncProgressDialog

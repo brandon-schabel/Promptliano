@@ -15,7 +15,7 @@ export const CreateChatBodySchema = z
   })
   .openapi('CreateChatBody')
 
-// Update Chat Request Body Schema  
+// Update Chat Request Body Schema
 export const UpdateChatBodySchema = z
   .object({
     title: z.string().min(1).max(255)
@@ -43,44 +43,44 @@ export const ForkChatFromMessageBodySchema = z
 // Delete Chat Parameters Schema
 export const DeleteChatParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('DeleteChatParams')
 
 // Update Chat Parameters Schema
 export const UpdateChatParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('UpdateChatParams')
 
 // Get Messages Parameters Schema
 export const GetMessagesParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('GetMessagesParams')
 
 // Fork Chat Parameters Schema
 export const ForkChatParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('ForkChatParams')
 
 // Fork Chat From Message Parameters Schema
 export const ForkChatFromMessageParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10)),
-    messageId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10)),
+    messageId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('ForkChatFromMessageParams')
 
 // Delete Message Parameters Schema
 export const DeleteMessageParamsSchema = z
   .object({
-    chatId: z.string().transform(val => parseInt(val, 10)),
-    messageId: z.string().transform(val => parseInt(val, 10))
+    chatId: z.string().transform((val) => parseInt(val, 10)),
+    messageId: z.string().transform((val) => parseInt(val, 10))
   })
   .openapi('DeleteMessageParams')
 
@@ -96,14 +96,16 @@ export const AiChatStreamRequestSchema = z
     systemMessage: z.string().optional(),
     tempId: z.string().optional(),
     enableChatAutoNaming: z.boolean().optional().default(false),
-    options: z.object({
-      provider: z.string(),
-      model: z.string(),
-      temperature: z.number().min(0).max(2).optional(),
-      maxTokens: z.number().int().positive().optional(),
-      topP: z.number().min(0).max(1).optional(),
-      stream: z.boolean().optional().default(true)
-    }).optional()
+    options: z
+      .object({
+        provider: z.string(),
+        model: z.string(),
+        temperature: z.number().min(0).max(2).optional(),
+        maxTokens: z.number().int().positive().optional(),
+        topP: z.number().min(0).max(1).optional(),
+        stream: z.boolean().optional().default(true)
+      })
+      .optional()
   })
   .openapi('AiChatStreamRequest')
 
@@ -115,14 +117,16 @@ export const AiChatStreamRequestSchema = z
 export const MessageListResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(z.object({
-      id: z.number(),
-      chatId: z.number(),
-      role: MessageRoleEnum,
-      content: z.string(),
-      metadata: z.record(z.any()).nullable(),
-      createdAt: z.number()
-    }))
+    data: z.array(
+      z.object({
+        id: z.number(),
+        chatId: z.number(),
+        role: MessageRoleEnum,
+        content: z.string(),
+        metadata: z.record(z.any()).nullable(),
+        createdAt: z.number()
+      })
+    )
   })
   .openapi('MessageListResponse')
 

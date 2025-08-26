@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter, MetricCard, ComparisonStats } from '@promptliano/ui'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+  MetricCard,
+  ComparisonStats
+} from '@promptliano/ui'
 import {
   Badge,
   Button,
@@ -48,12 +57,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { toast } from 'sonner'
-import {
-  useQueue,
-  useUpdateQueue,
-  useDeleteQueue,
-  useGetFlowData
-} from '@/hooks/api-hooks'
+import { useQueue, useUpdateQueue, useDeleteQueue, useGetFlowData } from '@/hooks/api-hooks'
 import type { TaskQueue, QueueStats, QueueItem } from '@/hooks/generated/types'
 
 interface QueueDashboardProps {
@@ -71,7 +75,7 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   // Fetch queue data
   const { data: queue, isLoading: isLoadingQueue } = useQueue(queueId)
   const { data: flowData } = useGetFlowData(projectId)
-  
+
   // Extract queue stats and items from flow data
   const stats: QueueStats | undefined = useMemo(() => {
     if (!flowData?.queues?.[queueId]) return undefined
@@ -89,12 +93,12 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
       averageProcessingTime: undefined
     }
   }, [flowData, queueId])
-  
+
   const items: QueueItem[] = useMemo(() => {
     if (!flowData?.queues?.[queueId]) return []
     const queueData = flowData.queues[queueId]
     const queueItems: QueueItem[] = []
-    
+
     // Add tickets as queue items
     queueData.tickets?.forEach((ticket, index) => {
       queueItems.push({
@@ -108,7 +112,7 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
         createdAt: ticket.createdAt
       })
     })
-    
+
     // Add tasks as queue items
     queueData.tasks?.forEach((task, index) => {
       queueItems.push({
@@ -122,8 +126,8 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
         createdAt: task.createdAt
       })
     })
-    
-    return selectedStatus === 'all' ? queueItems : queueItems.filter(item => item.status === selectedStatus)
+
+    return selectedStatus === 'all' ? queueItems : queueItems.filter((item) => item.status === selectedStatus)
   }, [flowData, queueId, selectedStatus])
 
   // Mutations
@@ -245,7 +249,7 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
 
       {/* Queue Activity Comparison */}
       <ComparisonStats
-        title="Weekly Processing"
+        title='Weekly Processing'
         current={{
           label: 'This Week',
           value: stats.completedItems
@@ -255,7 +259,11 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
           value: Math.floor(stats.completedItems * 0.75)
         }}
         change={{
-          value: Math.round(((stats.completedItems - Math.floor(stats.completedItems * 0.75)) / Math.floor(stats.completedItems * 0.75)) * 100),
+          value: Math.round(
+            ((stats.completedItems - Math.floor(stats.completedItems * 0.75)) /
+              Math.floor(stats.completedItems * 0.75)) *
+              100
+          ),
           trend: stats.completedItems > Math.floor(stats.completedItems * 0.75) ? 'up' : 'down'
         }}
       />
@@ -284,29 +292,10 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
 
       {/* Statistics Grid */}
       <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-        <MetricCard 
-          label='Queued' 
-          value={stats.pending} 
-          icon={Package} 
-        />
-        <MetricCard
-          label='In Progress'
-          value={stats.processing}
-          icon={Activity}
-          color='orange'
-        />
-        <MetricCard
-          label='Completed'
-          value={stats.completed}
-          icon={CheckCircle2}
-          color='green'
-        />
-        <MetricCard
-          label='Failed'
-          value={stats.failed}
-          icon={XCircle}
-          color='red'
-        />
+        <MetricCard label='Queued' value={stats.pending} icon={Package} />
+        <MetricCard label='In Progress' value={stats.processing} icon={Activity} color='orange' />
+        <MetricCard label='Completed' value={stats.completed} icon={CheckCircle2} color='green' />
+        <MetricCard label='Failed' value={stats.failed} icon={XCircle} color='red' />
       </div>
 
       {/* Performance Metrics */}
@@ -448,7 +437,6 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   )
 }
 
-
 // Metric Item Component
 interface MetricItemProps {
   label: string
@@ -501,7 +489,9 @@ function QueueItemRow({ item, onRemove, onRetry, onSelect }: QueueItemRowProps) 
     <TableRow className='cursor-pointer hover:bg-muted/50' onClick={onSelect}>
       <TableCell>{item.priority}</TableCell>
       <TableCell>
-        <Badge variant='outline'>{item.itemType === 'ticket' ? 'Ticket' : item.itemType === 'task' ? 'Task' : item.itemType}</Badge>
+        <Badge variant='outline'>
+          {item.itemType === 'ticket' ? 'Ticket' : item.itemType === 'task' ? 'Task' : item.itemType}
+        </Badge>
       </TableCell>
       <TableCell className='font-medium max-w-[200px] truncate'>
         {item.itemType} #{item.itemId}

@@ -82,12 +82,7 @@ export * from './src/provider-testing.schemas'
 export * from './src/constants/models-temp-not-allowed'
 
 // Legacy Project File Types (TODO: Migrate these to @promptliano/database)
-export { 
-  type ImportInfo, 
-  type ExportInfo, 
-  type ProjectFile, 
-  type ProjectFileMap 
-} from './src/project.schemas'
+export { type ImportInfo, type ExportInfo, type ProjectFile, type ProjectFileMap } from './src/project.schemas'
 
 // Note: HookConfig, HookEvent, and APIProviders types have been moved to @promptliano/database
 // Import them directly from @promptliano/database instead
@@ -101,19 +96,19 @@ export * from './src/prompt.schemas'
 // =============================================================================
 // DEPRECATED EXPORTS - These now come from @promptliano/database
 // =============================================================================
-// 
-// The following schemas have been moved to @promptliano/database and are 
+//
+// The following schemas have been moved to @promptliano/database and are
 // auto-generated via Drizzle-Zod. Update your imports:
 //
-// OLD: import { ProjectSchema } from '@promptliano/schemas'  
+// OLD: import { ProjectSchema } from '@promptliano/schemas'
 // NEW: import { ProjectSchema } from '@promptliano/database'
 //
 // Deprecated schemas (use @promptliano/database instead):
-// - project.schemas.ts -> ProjectSchema, CreateProject, UpdateProject  
+// - project.schemas.ts -> ProjectSchema, CreateProject, UpdateProject
 // - ticket.schemas.ts -> TicketSchema, CreateTicket, UpdateTicket
 // - chat.schemas.ts -> ChatSchema, CreateChat, UpdateChat
 // - prompt.schemas.ts -> PromptSchema, CreatePrompt, UpdatePrompt
-// - queue.schemas.ts -> QueueSchema, CreateQueue, UpdateQueue  
+// - queue.schemas.ts -> QueueSchema, CreateQueue, UpdateQueue
 // - claude-agent.schemas.ts -> ClaudeAgent, CreateClaudeAgent, UpdateClaudeAgent
 // - claude-command.schemas.ts -> ClaudeCommand, CreateClaudeCommand, UpdateClaudeCommand
 // - claude-hook.schemas.ts -> ClaudeHook, CreateClaudeHook, UpdateClaudeHook

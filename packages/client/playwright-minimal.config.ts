@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['json', { outputFile: 'test-results.json' }],
-    ['list'],
+    ['list']
   ],
 
   // Global test settings
@@ -26,14 +26,14 @@ export default defineConfig({
     video: 'retain-on-failure',
     viewport: { width: 1280, height: 720 },
     headless: !!process.env.CI,
-    actionTimeout: 10 * 1000, // 10 seconds for actions
+    actionTimeout: 10 * 1000 // 10 seconds for actions
   },
 
   // Test projects for different browsers
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
+      use: { ...devices['Desktop Chrome'] }
+    }
+  ]
 })

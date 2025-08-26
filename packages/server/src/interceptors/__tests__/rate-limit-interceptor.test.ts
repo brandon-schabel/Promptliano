@@ -11,7 +11,7 @@ describe('Rate Limit Interceptor', () => {
 
   beforeEach(() => {
     mockStore = new Map()
-    
+
     mockContext = {
       req: {
         method: 'GET',
@@ -43,8 +43,8 @@ describe('Rate Limit Interceptor', () => {
       metadata: {},
       metrics: { interceptorTimings: {} },
       cacheKeys: [],
-      security: { 
-        ip: '192.168.1.1', 
+      security: {
+        ip: '192.168.1.1',
         rateLimitKeys: [],
         userAgent: 'Test Agent'
       },
@@ -152,10 +152,7 @@ describe('Rate Limit Interceptor', () => {
 
       expect(mockNext).toHaveBeenCalled()
       // Should start fresh count
-      expect(mockStore$.set).toHaveBeenCalledWith(
-        'ip:192.168.1.1',
-        expect.objectContaining({ count: 1 })
-      )
+      expect(mockStore$.set).toHaveBeenCalledWith('ip:192.168.1.1', expect.objectContaining({ count: 1 }))
     })
   })
 
@@ -286,7 +283,7 @@ describe('Rate Limit Interceptor', () => {
 
     it('should skip successful requests when configured', async () => {
       ;(mockContext.res as any).status = 200
-      
+
       const mockStore$ = {
         get: mock(() => ({ count: 50, resetTime: Date.now() + 900000 })),
         set: mock(),
@@ -310,7 +307,7 @@ describe('Rate Limit Interceptor', () => {
         ;(mockContext.res as any).status = 404
         throw new Error('Not found')
       })
-      
+
       const mockStore$ = {
         get: mock(() => ({ count: 50, resetTime: Date.now() + 900000 })),
         set: mock(),
@@ -323,7 +320,7 @@ describe('Rate Limit Interceptor', () => {
       })
 
       await expect(interceptor.handler(mockContext, interceptorContext, mockNext)).rejects.toThrow()
-      
+
       // Should not increment counter for failed requests
       expect(mockStore$.set).not.toHaveBeenCalled()
     })
@@ -380,7 +377,9 @@ describe('Rate Limit Interceptor', () => {
   describe('store operations', () => {
     it('should handle store failures gracefully', async () => {
       const mockStore$ = {
-        get: mock(() => { throw new Error('Store error') }),
+        get: mock(() => {
+          throw new Error('Store error')
+        }),
         set: mock(),
         delete: mock()
       }

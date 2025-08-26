@@ -9,9 +9,9 @@ Before this utility, queue field management was prone to inconsistencies:
 ```typescript
 // PROBLEMATIC - mixing null and undefined
 const badUpdate = {
-  queueId: null,           // null
-  queueStatus: undefined,  // undefined  
-  queuePriority: null      // null
+  queueId: null, // null
+  queueStatus: undefined, // undefined
+  queuePriority: null // null
 }
 
 // This could cause runtime errors and type safety issues
@@ -22,7 +22,7 @@ const badUpdate = {
 The queue field utilities ensure consistent, type-safe handling:
 
 ```typescript
-import { 
+import {
   clearQueueFields,
   createEnqueueUpdate,
   createStartProcessingUpdate,
@@ -143,7 +143,7 @@ The queue service has been updated to use these utilities:
 const updatedTicket = await ticketStorage.updateTicket(ticketId, {
   queueId: undefined,
   queueStatus: undefined,
-  queuePriority: undefined,
+  queuePriority: undefined
   // ... many more fields
 })
 
@@ -162,12 +162,14 @@ const updatedTicket = await ticketStorage.updateTicket(ticketId, clearQueueField
 ## Testing
 
 Comprehensive tests ensure reliability:
+
 - Unit tests for all utility functions
 - Type safety validation
 - Integration with real data structures
 - Edge case handling
 
 Run tests with:
+
 ```bash
 bun test packages/shared/src/utils/queue-field-utils.test.ts
 ```

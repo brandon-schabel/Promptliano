@@ -366,7 +366,9 @@ export function LocalProviderSection({ providers, onEdit, isLoading }: LocalProv
             <div className='pt-3 border-t space-y-2'>
               <div className='flex items-center justify-between text-sm'>
                 <span className='text-muted-foreground'>Provider Key</span>
-                <code className='text-xs bg-muted px-2 py-1 rounded'>{providerKey.key ? providerKey.key.substring(0, 8) : ''}••••</code>
+                <code className='text-xs bg-muted px-2 py-1 rounded'>
+                  {providerKey.key ? providerKey.key.substring(0, 8) : ''}••••
+                </code>
               </div>
               {providerKey.isDefault && (
                 <Badge variant='secondary' className='text-xs'>

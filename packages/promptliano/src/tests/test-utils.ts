@@ -65,8 +65,8 @@ export class TestEnvironment {
 }
 
 export class MockProcess {
-  static mockSpawn = () => { }
-  static mockExec = () => { }
+  static mockSpawn = () => {}
+  static mockExec = () => {}
 
   static setup() {
     // Bun doesn't have doMock, would need different approach
@@ -99,7 +99,7 @@ export class MockFetch {
       throw new Error(`No mock response for ${urlString}`)
     }
 
-    global.fetch = Object.assign(fetchMock, { preconnect: () => { } }) as typeof fetch
+    global.fetch = Object.assign(fetchMock, { preconnect: () => {} }) as typeof fetch
   }
 
   static reset() {

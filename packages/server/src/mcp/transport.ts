@@ -577,17 +577,16 @@ async function handleResourcesList(
           uri: `promptliano://projects/${projectId}/files/${file.id}`,
           name: file.name,
           description: `File: ${file.path} (${file.size} bytes)`,
-          mimeType:
-            (() => {
-              const extension = file.path.split('.').pop()?.toLowerCase()
-              return extension === 'json'
-                ? 'application/json'
-                : extension === 'md'
-                  ? 'text/markdown'
-                  : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
-                    ? 'text/javascript'
-                    : 'text/plain'
-            })()
+          mimeType: (() => {
+            const extension = file.path.split('.').pop()?.toLowerCase()
+            return extension === 'json'
+              ? 'application/json'
+              : extension === 'md'
+                ? 'text/markdown'
+                : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
+                  ? 'text/javascript'
+                  : 'text/plain'
+          })()
         }))
 
         mcpResources.push(...fileResources)
@@ -788,7 +787,7 @@ async function handleResourcesRead(
         } else if (urlParts[2] === 'files' && urlParts[3]) {
           // Individual file resource
           const fileId = parseInt(urlParts[3])
-          
+
           // Ensure projectId is valid before parsing
           if (!projectId) {
             return {
@@ -800,7 +799,7 @@ async function handleResourcesRead(
               }
             }
           }
-          
+
           const files = await getProjectFiles(parseInt(projectId))
           const file = files?.find((f: any) => f.id === fileId || f.id === String(fileId))
 
@@ -822,17 +821,16 @@ async function handleResourcesRead(
               contents: [
                 {
                   uri,
-                  mimeType:
-                    (() => {
-                      const extension = file.path.split('.').pop()?.toLowerCase()
-                      return extension === 'json'
-                        ? 'application/json'
-                        : extension === 'md'
-                          ? 'text/markdown'
-                          : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
-                            ? 'text/javascript'
-                            : 'text/plain'
-                    })(),
+                  mimeType: (() => {
+                    const extension = file.path.split('.').pop()?.toLowerCase()
+                    return extension === 'json'
+                      ? 'application/json'
+                      : extension === 'md'
+                        ? 'text/markdown'
+                        : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
+                          ? 'text/javascript'
+                          : 'text/plain'
+                  })(),
                   text: file.content
                 }
               ]

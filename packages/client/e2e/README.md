@@ -41,17 +41,20 @@ e2e/
 ### Installation
 
 1. **Install dependencies** (from the client package directory):
+
    ```bash
    cd packages/client
    bun install
    ```
 
 2. **Install Playwright browsers**:
+
    ```bash
    bunx playwright install --with-deps
    ```
 
 3. **Start the development servers** (in separate terminals):
+
    ```bash
    # Terminal 1: Start API server
    cd packages/server
@@ -114,13 +117,14 @@ bunx playwright test --grep "@smoke"
 Tests the complete project lifecycle:
 
 - **Project Creation**: Creating new projects with validation
-- **Project Management**: Editing, deleting, and organizing projects  
+- **Project Management**: Editing, deleting, and organizing projects
 - **Project List**: Searching, filtering, and sorting projects
 - **MCP Integration**: Project operations via MCP tools
 - **Error Handling**: Network errors, validation errors, permission errors
 - **Performance**: Load times and large dataset handling
 
 **Key Test Scenarios:**
+
 ```typescript
 test('should create a new project with valid data', async () => {
   const projectData = TestDataFactory.createProject({
@@ -146,6 +150,7 @@ Comprehensive prompt creation and management:
 - **Performance**: Large content handling and efficient loading
 
 **Key Test Scenarios:**
+
 ```typescript
 test('should create prompt with variable placeholders', async () => {
   const promptData = TestDataFactory.createPrompt({
@@ -170,10 +175,11 @@ End-to-end workflow testing:
 - **Performance**: Large ticket sets and queue processing efficiency
 
 **Key Test Scenarios:**
+
 ```typescript
 test('should complete full development workflow', async () => {
   const scenario = TestDataFactory.createWorkflowScenario()
-  
+
   // Create project, prompts, tickets, and queue
   // Process items through queue
   // Verify completion status
@@ -192,10 +198,11 @@ Model Context Protocol integration testing:
 - **Performance**: MCP operation response times
 
 **Key Test Scenarios:**
+
 ```typescript
 test('should create complete workflow via MCP tools', async () => {
   // Create project via project_manager MCP tool
-  // Create prompts via prompt_manager MCP tool  
+  // Create prompts via prompt_manager MCP tool
   // Create tickets via ticket_manager MCP tool
   // Process via queue_processor MCP tool
   // Verify all operations completed successfully
@@ -212,11 +219,21 @@ Provides common functionality used across all pages:
 
 ```typescript
 export class BasePage {
-  async goto(path: string = '/') { /* navigation */ }
-  async waitForPageLoad() { /* loading states */ }
-  async waitForElement(selector: string) { /* element waiting */ }
-  async takeScreenshot(name: string) { /* screenshots */ }
-  async waitForAPIResponse(urlPattern: string) { /* API monitoring */ }
+  async goto(path: string = '/') {
+    /* navigation */
+  }
+  async waitForPageLoad() {
+    /* loading states */
+  }
+  async waitForElement(selector: string) {
+    /* element waiting */
+  }
+  async takeScreenshot(name: string) {
+    /* screenshots */
+  }
+  async waitForAPIResponse(urlPattern: string) {
+    /* API monitoring */
+  }
   // ... more common utilities
 }
 ```
@@ -237,7 +254,7 @@ Each major feature has its own page object:
 test('example test', async ({ page }) => {
   const projectsPage = new ProjectsPage(page)
   const projectData = TestDataFactory.createProject()
-  
+
   await projectsPage.goto()
   await projectsPage.createProject(projectData)
   expect(await projectsPage.projectExists(projectData.name)).toBe(true)
@@ -275,7 +292,7 @@ Pre-defined templates for common scenarios:
 const webApp = TestDataTemplates.projects.webApp
 const mobileApp = TestDataTemplates.projects.mobileApp
 
-// Use common prompt templates  
+// Use common prompt templates
 const codePrompt = TestDataTemplates.prompts.codeGeneration
 const docsPrompt = TestDataTemplates.prompts.documentationWriter
 
@@ -308,7 +325,7 @@ Custom assertions for common test patterns:
 // API response assertions
 await TestAssertions.assertSuccessfulAPIResponse(page, /\/api\/projects/, 'POST')
 
-// UI state assertions  
+// UI state assertions
 await TestAssertions.assertToastMessage(page, 'Project created successfully')
 await TestAssertions.assertNoErrors(page)
 
@@ -353,27 +370,27 @@ Key configuration settings:
 export default defineConfig({
   testDir: './e2e/tests',
   timeout: 30 * 1000,
-  
+
   // Multi-browser testing
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } }
   ],
-  
+
   // Web server integration
   webServer: [
     {
       command: 'cd ../server && bun run dev',
       url: 'http://localhost:3147',
-      port: 3147,
+      port: 3147
     },
     {
       command: 'bun run dev',
       url: 'http://localhost:1420',
-      port: 1420,
-    },
-  ],
+      port: 1420
+    }
+  ]
 })
 ```
 
@@ -386,7 +403,7 @@ Configure test behavior:
 CI=true                    # Enable CI mode
 NODE_ENV=test             # Set test environment
 
-# Database configuration  
+# Database configuration
 DATABASE_PATH=:memory:    # Use in-memory database for tests
 
 # API configuration
@@ -409,7 +426,7 @@ SLOW_TESTS=false         # Skip slow performance tests
 The project includes a comprehensive GitHub Actions workflow (`.github/workflows/playwright-e2e.yml`) that:
 
 - **Runs tests in parallel** across 4 shards for faster execution
-- **Tests multiple browsers** (Chromium, Firefox, WebKit) 
+- **Tests multiple browsers** (Chromium, Firefox, WebKit)
 - **Handles test artifacts** (reports, screenshots, videos)
 - **Provides test result summaries** and deployment to GitHub Pages
 - **Supports different triggers** (push, PR, manual)
@@ -419,7 +436,7 @@ The project includes a comprehensive GitHub Actions workflow (`.github/workflows
 ```yaml
 strategy:
   matrix:
-    shard: [1, 2, 3, 4]  # Parallel execution across 4 shards
+    shard: [1, 2, 3, 4] # Parallel execution across 4 shards
 
 steps:
   - name: Run Playwright tests
@@ -429,7 +446,7 @@ steps:
 ### Artifact Management
 
 - **HTML Reports**: Comprehensive test reports with screenshots and traces
-- **Test Results**: JSON test result files for analysis  
+- **Test Results**: JSON test result files for analysis
 - **Screenshots**: Failure screenshots for debugging
 - **Videos**: Test execution videos (on failure)
 
@@ -438,11 +455,13 @@ steps:
 ### Local Debugging
 
 1. **Interactive Debug Mode**:
+
    ```bash
    bun run test:e2e:debug
    ```
 
 2. **Using `page.pause()`** in tests:
+
    ```typescript
    test('debug example', async ({ page }) => {
      await page.goto('/')
@@ -461,17 +480,19 @@ steps:
 #### Issue: Tests timing out
 
 **Solution**: Check if servers are running and accessible:
+
 ```bash
 # Verify API server
 curl http://localhost:3147/health
 
-# Verify client server  
+# Verify client server
 curl http://localhost:1420
 ```
 
 #### Issue: MCP tests failing
 
 **Solution**: MCP tests are designed to gracefully handle unavailable MCP servers:
+
 ```bash
 # Skip MCP tests
 SKIP_MCP_TESTS=true bun run test:e2e
@@ -483,6 +504,7 @@ bunx playwright test mcp-integration.spec.ts
 #### Issue: Database conflicts
 
 **Solution**: Tests use isolated databases, but you can force cleanup:
+
 ```bash
 # Clear test database
 rm -rf /tmp/playwright-test-*
@@ -494,6 +516,7 @@ cd packages/database && bun run db:reset
 #### Issue: Port conflicts
 
 **Solution**: Configure different ports:
+
 ```bash
 # Use different ports
 VITE_PORT=1421 API_PORT=3148 bun run test:e2e
@@ -516,7 +539,7 @@ test('should load page within acceptable time', async ({ page }) => {
   const startTime = Date.now()
   await page.goto('/projects')
   const endTime = Date.now()
-  
+
   expect(endTime - startTime).toBeLessThan(3000) // 3 second limit
 })
 ```
@@ -533,7 +556,7 @@ test('should load page within acceptable time', async ({ page }) => {
 
 ### Test Organization
 
-1. **Group Related Tests**: Use `describe` blocks for feature grouping  
+1. **Group Related Tests**: Use `describe` blocks for feature grouping
 2. **Use Descriptive Names**: Test names should describe the scenario
 3. **Order Tests Logically**: From basic functionality to complex workflows
 4. **Share Setup Code**: Use `beforeEach` for common test setup

@@ -12,7 +12,6 @@ describe('FileSearchService', () => {
   beforeAll(async () => {
     // Reset and initialize test database with migrations
     // TODO: Implement test database reset with Drizzle
-    
     // Get database instance
     // db is already imported and available.getDatabase()
   })

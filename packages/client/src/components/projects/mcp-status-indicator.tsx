@@ -48,10 +48,14 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
   // MCP status doesn't have connection status - it shows installation status
   // This component should show MCP installation status instead
   const mcpStatus = data?.data || data
-  const isInstalled = (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.installed : false) || 
-                     (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) || false
-  const hasConfig = (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.configExists : false) ||
-                   (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) || false
+  const isInstalled =
+    (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.installed : false) ||
+    (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) ||
+    false
+  const hasConfig =
+    (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.configExists : false) ||
+    (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) ||
+    false
 
   return (
     <TooltipProvider>

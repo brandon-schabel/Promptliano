@@ -115,16 +115,16 @@ export class LMStudioProvider {
         })
       }
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{
-          finish_reason?: string;
-          message?: { content?: string };
-        }>;
+          finish_reason?: string
+          message?: { content?: string }
+        }>
         usage?: {
-          completion_tokens?: number;
-          prompt_tokens?: number;
-          total_tokens?: number;
-        };
+          completion_tokens?: number
+          prompt_tokens?: number
+          total_tokens?: number
+        }
       }
 
       if (this.debug) {
@@ -230,10 +230,10 @@ export class LMStudioProvider {
         throw new ApiError(response.status, `LM Studio API error: ${errorText}`, 'LMSTUDIO_API_ERROR')
       }
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{
-          message?: { content?: string };
-        }>;
+          message?: { content?: string }
+        }>
       }
       return data.choices?.[0]?.message?.content ?? ''
     } catch (error) {

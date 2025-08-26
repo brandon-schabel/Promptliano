@@ -1,9 +1,9 @@
 /**
  * Unified Error Factory System
- * 
+ *
  * Provides standardized error creation across the entire application.
  * This centralized system eliminates 3,000+ lines of inconsistent error handling code.
- * 
+ *
  * @module ErrorFactory
  */
 
@@ -50,12 +50,12 @@ export class ErrorFactory {
    * Entity already exists error
    */
   static alreadyExists(entity: string, field: string, value: string | number, context?: ErrorContext): ApiError {
-    return new ApiError(
-      409,
-      `${entity} with ${field} '${value}' already exists`,
-      'ALREADY_EXISTS',
-      { entity, field, value, ...context }
-    )
+    return new ApiError(409, `${entity} with ${field} '${value}' already exists`, 'ALREADY_EXISTS', {
+      entity,
+      field,
+      value,
+      ...context
+    })
   }
 
   /**
@@ -75,24 +75,14 @@ export class ErrorFactory {
   static validationFailed(errors: ZodError | any, context?: ErrorContext): ApiError {
     if (errors instanceof ZodError) {
       const formatted = errors.format()
-      return new ApiError(
-        400,
-        'Validation failed',
-        'VALIDATION_ERROR',
-        { 
-          errors: formatted,
-          issues: errors.issues,
-          ...context 
-        }
-      )
+      return new ApiError(400, 'Validation failed', 'VALIDATION_ERROR', {
+        errors: formatted,
+        issues: errors.issues,
+        ...context
+      })
     }
-    
-    return new ApiError(
-      400,
-      'Validation failed',
-      'VALIDATION_ERROR',
-      { errors, ...context }
-    )
+
+    return new ApiError(400, 'Validation failed', 'VALIDATION_ERROR', { errors, ...context })
   }
 
   /**
@@ -139,24 +129,22 @@ export class ErrorFactory {
    * Generic operation failed error
    */
   static operationFailed(operation: string, reason?: string, context?: ErrorContext): ApiError {
-    return new ApiError(
-      500,
-      `Operation '${operation}' failed${reason ? `: ${reason}` : ''}`,
-      'OPERATION_FAILED',
-      { operation, reason, ...context }
-    )
+    return new ApiError(500, `Operation '${operation}' failed${reason ? `: ${reason}` : ''}`, 'OPERATION_FAILED', {
+      operation,
+      reason,
+      ...context
+    })
   }
 
   /**
    * Create operation failed
    */
   static createFailed(entity: string, reason?: string, context?: ErrorContext): ApiError {
-    return new ApiError(
-      500,
-      `Failed to create ${entity}${reason ? `: ${reason}` : ''}`,
-      'CREATE_FAILED',
-      { entity, reason, ...context }
-    )
+    return new ApiError(500, `Failed to create ${entity}${reason ? `: ${reason}` : ''}`, 'CREATE_FAILED', {
+      entity,
+      reason,
+      ...context
+    })
   }
 
   /**
@@ -191,47 +179,32 @@ export class ErrorFactory {
    * Unauthorized error
    */
   static unauthorized(reason?: string, context?: ErrorContext): ApiError {
-    return new ApiError(
-      401,
-      reason || 'Unauthorized',
-      'UNAUTHORIZED',
-      context
-    )
+    return new ApiError(401, reason || 'Unauthorized', 'UNAUTHORIZED', context)
   }
 
   /**
    * Forbidden error
    */
   static forbidden(resource: string, action?: string, context?: ErrorContext): ApiError {
-    return new ApiError(
-      403,
-      `Access to ${resource}${action ? ` for ${action}` : ''} is forbidden`,
-      'FORBIDDEN',
-      { resource, action, ...context }
-    )
+    return new ApiError(403, `Access to ${resource}${action ? ` for ${action}` : ''} is forbidden`, 'FORBIDDEN', {
+      resource,
+      action,
+      ...context
+    })
   }
 
   /**
    * Token expired error
    */
   static tokenExpired(tokenType?: string): ApiError {
-    return new ApiError(
-      401,
-      `${tokenType || 'Token'} has expired`,
-      'TOKEN_EXPIRED',
-      { tokenType }
-    )
+    return new ApiError(401, `${tokenType || 'Token'} has expired`, 'TOKEN_EXPIRED', { tokenType })
   }
 
   /**
    * Invalid credentials error
    */
   static invalidCredentials(): ApiError {
-    return new ApiError(
-      401,
-      'Invalid credentials provided',
-      'INVALID_CREDENTIALS'
-    )
+    return new ApiError(401, 'Invalid credentials provided', 'INVALID_CREDENTIALS')
   }
 
   // ============================================
@@ -242,36 +215,29 @@ export class ErrorFactory {
    * Service unavailable error
    */
   static serviceUnavailable(service: string, retryAfter?: number): ApiError {
-    return new ApiError(
-      503,
-      `${service} is currently unavailable`,
-      'SERVICE_UNAVAILABLE',
-      { service, retryAfter }
-    )
+    return new ApiError(503, `${service} is currently unavailable`, 'SERVICE_UNAVAILABLE', { service, retryAfter })
   }
 
   /**
    * Rate limit exceeded error
    */
   static rateLimitExceeded(limit: number, window: string, retryAfter?: number): ApiError {
-    return new ApiError(
-      429,
-      `Rate limit exceeded: ${limit} requests per ${window}`,
-      'RATE_LIMIT_EXCEEDED',
-      { limit, window, retryAfter }
-    )
+    return new ApiError(429, `Rate limit exceeded: ${limit} requests per ${window}`, 'RATE_LIMIT_EXCEEDED', {
+      limit,
+      window,
+      retryAfter
+    })
   }
 
   /**
    * Database error
    */
   static databaseError(operation: string, reason?: string, context?: ErrorContext): ApiError {
-    return new ApiError(
-      500,
-      `Database error during ${operation}${reason ? `: ${reason}` : ''}`,
-      'DATABASE_ERROR',
-      { operation, reason, ...context }
-    )
+    return new ApiError(500, `Database error during ${operation}${reason ? `: ${reason}` : ''}`, 'DATABASE_ERROR', {
+      operation,
+      reason,
+      ...context
+    })
   }
 
   /**
@@ -290,12 +256,11 @@ export class ErrorFactory {
    * External service error
    */
   static externalServiceError(service: string, statusCode?: number, details?: any): ApiError {
-    return new ApiError(
-      502,
-      `External service '${service}' returned an error`,
-      'EXTERNAL_SERVICE_ERROR',
-      { service, statusCode, details }
-    )
+    return new ApiError(502, `External service '${service}' returned an error`, 'EXTERNAL_SERVICE_ERROR', {
+      service,
+      statusCode,
+      details
+    })
   }
 
   // ============================================
@@ -306,12 +271,11 @@ export class ErrorFactory {
    * Invalid state transition error
    */
   static invalidState(entity: string, currentState: string, attemptedAction: string): ApiError {
-    return new ApiError(
-      400,
-      `Cannot ${attemptedAction} ${entity} in current state: ${currentState}`,
-      'INVALID_STATE',
-      { entity, currentState, attemptedAction }
-    )
+    return new ApiError(400, `Cannot ${attemptedAction} ${entity} in current state: ${currentState}`, 'INVALID_STATE', {
+      entity,
+      currentState,
+      attemptedAction
+    })
   }
 
   /**
@@ -347,12 +311,7 @@ export class ErrorFactory {
    * Conflict error (general purpose)
    */
   static conflict(message: string, details?: any): ApiError {
-    return new ApiError(
-      409,
-      message,
-      'CONFLICT',
-      details
-    )
+    return new ApiError(409, message, 'CONFLICT', details)
   }
 
   // ============================================
@@ -367,44 +326,37 @@ export class ErrorFactory {
     if (error instanceof ApiError) {
       return error
     }
-    
+
     // Handle Zod validation errors
     if (error instanceof ZodError) {
       return this.validationFailed(error)
     }
-    
+
     // Handle generic Error objects
     if (error instanceof Error) {
       // Check for specific error types
       if (error.message.includes('SQLITE_CONSTRAINT')) {
-        return this.conflict('Database constraint violation', { 
-          originalError: error.message 
+        return this.conflict('Database constraint violation', {
+          originalError: error.message
         })
       }
-      
+
       if (error.message.includes('ENOENT')) {
         return this.fileSystemError('access', 'unknown', error.message)
       }
-      
-      return new ApiError(
-        500,
-        context ? `${context}: ${error.message}` : error.message,
-        'INTERNAL_ERROR',
-        { 
-          originalError: error.stack,
-          context 
-        }
-      )
+
+      return new ApiError(500, context ? `${context}: ${error.message}` : error.message, 'INTERNAL_ERROR', {
+        originalError: error.stack,
+        context
+      })
     }
-    
+
     // Handle unknown error types
     const message = String(error)
-    return new ApiError(
-      500,
-      context ? `${context}: ${message}` : message,
-      'INTERNAL_ERROR',
-      { originalError: error, context }
-    )
+    return new ApiError(500, context ? `${context}: ${message}` : message, 'INTERNAL_ERROR', {
+      originalError: error,
+      context
+    })
   }
 
   /**
@@ -412,19 +364,16 @@ export class ErrorFactory {
    */
   static forEntity(entityName: string) {
     return {
-      notFound: (id: number | string, context?: ErrorContext) => 
-        ErrorFactory.notFound(entityName, id, context),
-      alreadyExists: (field: string, value: string | number, context?: ErrorContext) => 
+      notFound: (id: number | string, context?: ErrorContext) => ErrorFactory.notFound(entityName, id, context),
+      alreadyExists: (field: string, value: string | number, context?: ErrorContext) =>
         ErrorFactory.alreadyExists(entityName, field, value, context),
-      createFailed: (reason?: string, context?: ErrorContext) => 
-        ErrorFactory.createFailed(entityName, reason, context),
-      updateFailed: (id: number | string, reason?: string, context?: ErrorContext) => 
+      createFailed: (reason?: string, context?: ErrorContext) => ErrorFactory.createFailed(entityName, reason, context),
+      updateFailed: (id: number | string, reason?: string, context?: ErrorContext) =>
         ErrorFactory.updateFailed(entityName, id, reason, context),
-      deleteFailed: (id: number | string, reason?: string, context?: ErrorContext) => 
+      deleteFailed: (id: number | string, reason?: string, context?: ErrorContext) =>
         ErrorFactory.deleteFailed(entityName, id, reason, context),
-      validationFailed: (errors: any, context?: ErrorContext) => 
-        ErrorFactory.validationFailed(errors, context),
-      invalidState: (currentState: string, attemptedAction: string) => 
+      validationFailed: (errors: any, context?: ErrorContext) => ErrorFactory.validationFailed(errors, context),
+      invalidState: (currentState: string, attemptedAction: string) =>
         ErrorFactory.invalidState(entityName, currentState, attemptedAction)
     }
   }
@@ -437,11 +386,7 @@ export class ErrorFactory {
 /**
  * Assert that a value exists, throw notFound error if not
  */
-export function assertExists<T>(
-  value: T | null | undefined,
-  entity: string,
-  id: number | string
-): asserts value is T {
+export function assertExists<T>(value: T | null | undefined, entity: string, id: number | string): asserts value is T {
   if (value === null || value === undefined) {
     throw ErrorFactory.notFound(entity, id)
   }
@@ -450,11 +395,7 @@ export function assertExists<T>(
 /**
  * Assert that a value is valid according to schema
  */
-export function assertValid<T>(
-  data: unknown,
-  schema: z.ZodSchema<T>,
-  context?: string
-): T {
+export function assertValid<T>(data: unknown, schema: z.ZodSchema<T>, context?: string): T {
   try {
     return schema.parse(data)
   } catch (error) {
@@ -468,11 +409,7 @@ export function assertValid<T>(
 /**
  * Assert that an update operation succeeded
  */
-export function assertUpdateSucceeded(
-  result: any,
-  entity: string,
-  id: number | string
-): void {
+export function assertUpdateSucceeded(result: any, entity: string, id: number | string): void {
   if (!result || (typeof result === 'object' && result.changes === 0)) {
     throw ErrorFactory.updateFailed(entity, id, 'No rows affected')
   }
@@ -481,11 +418,7 @@ export function assertUpdateSucceeded(
 /**
  * Assert that a delete operation succeeded
  */
-export function assertDeleteSucceeded(
-  result: any,
-  entity: string,
-  id: number | string
-): void {
+export function assertDeleteSucceeded(result: any, entity: string, id: number | string): void {
   if (!result || (typeof result === 'object' && result.changes === 0)) {
     throw ErrorFactory.deleteFailed(entity, id, 'No rows affected')
   }
@@ -514,34 +447,28 @@ export function handleZodError(error: ZodError, entity: string, operation: strin
 /**
  * Wrap an async operation with error context
  */
-export async function withErrorContext<T>(
-  operation: () => Promise<T>,
-  context: ErrorContext
-): Promise<T> {
+export async function withErrorContext<T>(operation: () => Promise<T>, context: ErrorContext): Promise<T> {
   try {
     return await operation()
   } catch (error) {
     // Add context to existing ApiError
     if (error instanceof ApiError) {
-      error.details = { 
+      error.details = {
         ...context,
-        ...(error.details as Record<string, any> || {})
+        ...((error.details as Record<string, any>) || {})
       }
       throw error
     }
-    
+
     // Wrap other errors with context
-    const wrappedError = ErrorFactory.wrap(
-      error, 
-      `${context.entity || 'Unknown'}.${context.action || 'operation'}`
-    )
-    
+    const wrappedError = ErrorFactory.wrap(error, `${context.entity || 'Unknown'}.${context.action || 'operation'}`)
+
     // Add full context to the wrapped error
     wrappedError.details = {
       ...context,
-      ...(wrappedError.details as Record<string, any> || {})
+      ...((wrappedError.details as Record<string, any>) || {})
     }
-    
+
     throw wrappedError
   }
 }
@@ -551,20 +478,16 @@ export async function withErrorContext<T>(
  */
 export function createErrorHandler(entityName: string) {
   return {
-    wrap: (error: unknown, action: string) => 
-      ErrorFactory.wrap(error, `${entityName}.${action}`),
-    
+    wrap: (error: unknown, action: string) => ErrorFactory.wrap(error, `${entityName}.${action}`),
+
     withContext: <T>(operation: () => Promise<T>, action: string) =>
       withErrorContext(operation, { entity: entityName, action }),
-    
-    assertExists: <T>(value: T | null | undefined, id: number | string) =>
-      assertExists(value, entityName, id),
-    
-    assertUpdateSucceeded: (result: any, id: number | string) =>
-      assertUpdateSucceeded(result, entityName, id),
-    
-    assertDeleteSucceeded: (result: any, id: number | string) =>
-      assertDeleteSucceeded(result, entityName, id)
+
+    assertExists: <T>(value: T | null | undefined, id: number | string) => assertExists(value, entityName, id),
+
+    assertUpdateSucceeded: (result: any, id: number | string) => assertUpdateSucceeded(result, entityName, id),
+
+    assertDeleteSucceeded: (result: any, id: number | string) => assertDeleteSucceeded(result, entityName, id)
   }
 }
 

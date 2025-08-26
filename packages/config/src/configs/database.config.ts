@@ -71,7 +71,7 @@ export const databaseConfig: DatabaseConfig = {
   // Performance settings
   walMode: getEnvVar('DATABASE_WAL_MODE', 'true') === 'true',
   cacheSize: Number(getEnvVar('DATABASE_CACHE_SIZE', '64')), // 64MB default
-  tempStore: (getEnvVar('DATABASE_TEMP_STORE', 'memory') as 'memory' | 'file'),
+  tempStore: getEnvVar('DATABASE_TEMP_STORE', 'memory') as 'memory' | 'file',
   mmapSize: Number(getEnvVar('DATABASE_MMAP_SIZE', '268435456')), // 256MB default
 
   // Platform-specific paths for reference

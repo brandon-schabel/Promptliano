@@ -3,12 +3,7 @@
  * Creates powerful search and filter hooks with debouncing, caching, and auto-complete
  */
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  type UseQueryOptions
-} from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import { useCallback, useState, useEffect, useRef, useMemo } from 'react'
 import { useDebounce } from '../utility-hooks/use-debounce'
 import type { ApiError } from '@promptliano/shared'
@@ -62,10 +57,9 @@ export interface SearchHookConfig<TEntity, TFilters = Record<string, any>> {
 // Main Factory
 // ============================================================================
 
-export function createSearchHooks<
-  TEntity extends { id: number },
-  TFilters = Record<string, any>
->(config: SearchHookConfig<TEntity, TFilters>) {
+export function createSearchHooks<TEntity extends { id: number }, TFilters = Record<string, any>>(
+  config: SearchHookConfig<TEntity, TFilters>
+) {
   const {
     entityName,
     queryKeys,
@@ -106,27 +100,27 @@ export function createSearchHooks<
     })
 
     const search = useCallback((query: string) => {
-      setSearchParams(prev => ({ ...prev, query, page: 1 }))
+      setSearchParams((prev) => ({ ...prev, query, page: 1 }))
     }, [])
 
     const setFilters = useCallback((filters: Partial<TFilters>) => {
-      setSearchParams(prev => ({ ...prev, ...filters, page: 1 }))
+      setSearchParams((prev) => ({ ...prev, ...filters, page: 1 }))
     }, [])
 
     const setSort = useCallback((sort: string, order: 'asc' | 'desc' = 'desc') => {
-      setSearchParams(prev => ({ ...prev, sort, order }))
+      setSearchParams((prev) => ({ ...prev, sort, order }))
     }, [])
 
     const nextPage = useCallback(() => {
-      setSearchParams(prev => ({ ...prev, page: (prev.page || 1) + 1 }))
+      setSearchParams((prev) => ({ ...prev, page: (prev.page || 1) + 1 }))
     }, [])
 
     const previousPage = useCallback(() => {
-      setSearchParams(prev => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))
+      setSearchParams((prev) => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))
     }, [])
 
     const setPage = useCallback((page: number) => {
-      setSearchParams(prev => ({ ...prev, page }))
+      setSearchParams((prev) => ({ ...prev, page }))
     }, [])
 
     const reset = useCallback(() => {
@@ -157,10 +151,7 @@ export function createSearchHooks<
   // Auto-complete / Suggestions Hook
   // ============================================================================
 
-  function useSuggestions(
-    query: string,
-    options?: UseQueryOptions<string[], ApiError>
-  ) {
+  function useSuggestions(query: string, options?: UseQueryOptions<string[], ApiError>) {
     if (!enableSuggestions || !apiClient.suggest) {
       throw new Error(`Suggestions not enabled for ${entityName}`)
     }
@@ -210,9 +201,9 @@ export function createSearchHooks<
 
     const addToHistory = useCallback((query: string) => {
       if (!query.trim()) return
-      
-      setHistory(prev => {
-        const filtered = prev.filter(q => q !== query)
+
+      setHistory((prev) => {
+        const filtered = prev.filter((q) => q !== query)
         const newHistory = [query, ...filtered].slice(0, maxHistorySize)
         // Optionally persist to localStorage
         localStorage.setItem(`search-history-${entityName}`, JSON.stringify(newHistory))
@@ -238,12 +229,15 @@ export function createSearchHooks<
     }, [])
 
     // Add to history when search is performed
-    const enhancedSearch = useCallback((query: string) => {
-      search.search(query)
-      if (query.trim()) {
-        addToHistory(query)
-      }
-    }, [search, addToHistory])
+    const enhancedSearch = useCallback(
+      (query: string) => {
+        search.search(query)
+        if (query.trim()) {
+          addToHistory(query)
+        }
+      },
+      [search, addToHistory]
+    )
 
     return {
       ...search,
@@ -288,7 +282,7 @@ export function createSearchHooks<
       },
       prefetchSuggestions: (query: string) => {
         if (!apiClient.suggest) return Promise.resolve()
-        
+
         return queryClient.prefetchQuery({
           queryKey: queryKeys.suggest?.(query) || ['search', entityName, 'suggest', query],
           queryFn: () => apiClient.suggest!(undefined, query),
@@ -313,11 +307,14 @@ export function createSearchHooks<
     })
 
     const debouncedQuery = useDebounce(state.query, debounceMs)
-    
-    const searchParams = useMemo(() => ({
-      ...state,
-      query: debouncedQuery
-    }), [state, debouncedQuery])
+
+    const searchParams = useMemo(
+      () => ({
+        ...state,
+        query: debouncedQuery
+      }),
+      [state, debouncedQuery]
+    )
 
     const queryResult = useQuery({
       queryKey: queryKeys.search(searchParams as SearchParams & TFilters),
@@ -337,7 +334,7 @@ export function createSearchHooks<
     } as any)
 
     const updateState = useCallback((updates: Partial<typeof state>) => {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         ...updates,
         // Reset page when query or filters change
@@ -349,17 +346,17 @@ export function createSearchHooks<
       // State
       state,
       searchParams,
-      
+
       // Results
       searchResults: queryResult.data,
       facets: facetsResult.data,
       suggestions: suggestionsResult.data,
-      
+
       // Loading states
       isSearching: queryResult.isFetching,
       isLoadingFacets: facetsResult.isFetching,
       isLoadingSuggestions: suggestionsResult.isFetching,
-      
+
       // Actions
       search: (query: string) => updateState({ query }),
       setFilters: (filters: Partial<TFilters>) => updateState({ filters: { ...state.filters, ...filters } }),
@@ -369,15 +366,16 @@ export function createSearchHooks<
       setLimit: (limit: number) => updateState({ limit, page: 1 }),
       nextPage: () => updateState({ page: state.page + 1 }),
       previousPage: () => updateState({ page: Math.max(1, state.page - 1) }),
-      reset: () => setState({
-        query: '',
-        filters: {} as TFilters,
-        sort: undefined,
-        order: 'desc',
-        page: 1,
-        limit: 20
-      }),
-      
+      reset: () =>
+        setState({
+          query: '',
+          filters: {} as TFilters,
+          sort: undefined,
+          order: 'desc',
+          page: 1,
+          limit: 20
+        }),
+
       // Computed
       hasResults: (queryResult.data?.results.length ?? 0) > 0,
       hasMore: queryResult.data?.hasMore ?? false,

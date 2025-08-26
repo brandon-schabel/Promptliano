@@ -239,9 +239,7 @@ export function CommandsView({ projectId, projectName }: CommandsViewProps) {
 
                       {/* Badges for scope and frontmatter */}
                       <div className='flex flex-wrap gap-2 mb-3'>
-                        <Badge variant='default'>
-                          Command
-                        </Badge>
+                        <Badge variant='default'>Command</Badge>
                       </div>
 
                       <div className='flex items-center gap-4 text-xs text-muted-foreground'>

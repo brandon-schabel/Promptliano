@@ -5,6 +5,7 @@
 The Generated Hook System eliminates repetitive React Query code through powerful factory patterns, achieving 76% code reduction while providing enhanced functionality.
 
 ### Core Architecture
+
 ```
 generated/
 ├── index.ts              # Main factory-generated hooks
@@ -21,6 +22,7 @@ generated/
 ## Factory Pattern Implementation
 
 ### CRUD Hook Factory
+
 ```typescript
 export function createCrudHooks<TEntity, TCreate, TUpdate>(config: {
   entityName: string
@@ -40,6 +42,7 @@ export function createCrudHooks<TEntity, TCreate, TUpdate>(config: {
 ```
 
 ### Client Wrapper Pattern
+
 ```typescript
 function createClientWrapper<TEntity, TCreate, TUpdate>(config) {
   return {
@@ -49,7 +52,7 @@ function createClientWrapper<TEntity, TCreate, TUpdate>(config) {
         const client = useApiClient()
         if (!client) throw new Error('API client not initialized')
         return config.apiClient.list(client, params)
-      },
+      }
       // Wraps all CRUD operations with client injection
     }
   }
@@ -59,6 +62,7 @@ function createClientWrapper<TEntity, TCreate, TUpdate>(config) {
 ## Query Key Management
 
 ### Hierarchical Key Structure
+
 ```typescript
 export const PROJECT_ENHANCED_KEYS = {
   all: ['projects'] as const,
@@ -66,7 +70,7 @@ export const PROJECT_ENHANCED_KEYS = {
   list: (params) => [...PROJECT_ENHANCED_KEYS.lists(), params] as const,
   details: () => [...PROJECT_ENHANCED_KEYS.all, 'detail'] as const,
   detail: (id) => [...PROJECT_ENHANCED_KEYS.details(), id] as const,
-  
+
   // Relationship keys
   files: (projectId) => [...PROJECT_ENHANCED_KEYS.all, 'files', projectId] as const,
   sync: (projectId) => [...PROJECT_ENHANCED_KEYS.all, 'sync', projectId] as const,
@@ -75,6 +79,7 @@ export const PROJECT_ENHANCED_KEYS = {
 ```
 
 ### Relationship-Aware Invalidation
+
 ```typescript
 const ENTITY_RELATIONSHIPS = {
   projects: ['tickets', 'prompts', 'agents', 'files', 'queues'],
@@ -84,18 +89,14 @@ const ENTITY_RELATIONSHIPS = {
   queues: ['queueItems', 'tickets', 'tasks']
 }
 
-export function invalidateWithRelationships(
-  queryClient: QueryClient,
-  entityName: string,
-  cascade = true
-) {
+export function invalidateWithRelationships(queryClient: QueryClient, entityName: string, cascade = true) {
   // Invalidate primary entity
   invalidateEntityQueries(queryClient, entityName)
-  
+
   // Cascade to related entities
   if (cascade) {
     const related = ENTITY_RELATIONSHIPS[entityName]
-    related?.forEach(relatedEntity => {
+    related?.forEach((relatedEntity) => {
       invalidateEntityQueries(queryClient, relatedEntity)
     })
   }
@@ -105,6 +106,7 @@ export function invalidateWithRelationships(
 ## Optimistic Updates
 
 ### Configuration Pattern
+
 ```typescript
 export const projectOptimisticConfig: OptimisticConfig<Project> = {
   enabled: true,
@@ -125,22 +127,23 @@ export const projectOptimisticConfig: OptimisticConfig<Project> = {
 ```
 
 ### Implementation in Factory
+
 ```typescript
 const createMutation = useMutation({
   mutationFn: apiClient.create,
   onMutate: async (newData) => {
     if (!optimistic?.enabled) return
-    
+
     // Cancel in-flight queries
     await queryClient.cancelQueries(queryKeys.all)
-    
+
     // Snapshot current state
     const previousData = queryClient.getQueryData(queryKeys.lists())
-    
+
     // Optimistic update
     const optimisticEntity = optimistic.createOptimisticEntity(newData)
-    queryClient.setQueryData(queryKeys.lists(), old => [...(old || []), optimisticEntity])
-    
+    queryClient.setQueryData(queryKeys.lists(), (old) => [...(old || []), optimisticEntity])
+
     return { previousData }
   },
   onError: (err, newData, context) => {
@@ -159,6 +162,7 @@ const createMutation = useMutation({
 ## Entity Configuration
 
 ### Standard Entity Config
+
 ```typescript
 export const PROJECT_CONFIG = {
   entityName: 'Project',
@@ -183,6 +187,7 @@ export const PROJECT_CONFIG = {
 ### Specialized Hooks
 
 #### AI Chat Hooks
+
 ```typescript
 export function useAIStreamChat({ chatId, provider, model }) {
   const { messages, append, stop, isLoading } = useChat({
@@ -190,33 +195,33 @@ export function useAIStreamChat({ chatId, provider, model }) {
     id: chatId.toString(),
     onError: handleAIError
   })
-  
-  const sendMessage = useCallback(async (content, options?) => {
-    await append(
-      { role: 'user', content, createdAt: new Date() },
-      { body: { chatId, provider, model, options } }
-    )
-  }, [append, chatId, provider, model])
-  
+
+  const sendMessage = useCallback(
+    async (content, options?) => {
+      await append({ role: 'user', content, createdAt: new Date() }, { body: { chatId, provider, model, options } })
+    },
+    [append, chatId, provider, model]
+  )
+
   return { messages, sendMessage, stop, isLoading }
 }
 ```
 
 #### Flow Management Hooks
+
 ```typescript
 export function useFlowOperations() {
   const queryClient = useQueryClient()
-  
+
   return {
     moveItem: useMutation({
-      mutationFn: ({ itemId, targetQueueId }) => 
-        apiClient.flow.move(itemId, targetQueueId),
+      mutationFn: ({ itemId, targetQueueId }) => apiClient.flow.move(itemId, targetQueueId),
       onSuccess: () => {
         queryClient.invalidateQueries(['queues'])
         queryClient.invalidateQueries(['flow'])
       }
     }),
-    
+
     processItem: useMutation({
       mutationFn: ({ itemId }) => apiClient.flow.process(itemId),
       onMutate: async ({ itemId }) => {
@@ -235,24 +240,23 @@ export function useFlowOperations() {
 ```
 
 #### Git Operations Hooks
+
 ```typescript
 export function useGitOperations(projectId: number) {
   const queryClient = useQueryClient()
-  
+
   return {
     commit: useMutation({
-      mutationFn: (message: string) => 
-        apiClient.git.commit(projectId, message),
+      mutationFn: (message: string) => apiClient.git.commit(projectId, message),
       onSuccess: () => {
         queryClient.invalidateQueries(['git', 'status', projectId])
         queryClient.invalidateQueries(['git', 'log', projectId])
         toast.success('Changes committed')
       }
     }),
-    
+
     stage: useMutation({
-      mutationFn: (files: string[]) => 
-        apiClient.git.stage(projectId, files),
+      mutationFn: (files: string[]) => apiClient.git.stage(projectId, files),
       onSuccess: () => {
         queryClient.invalidateQueries(['git', 'status', projectId])
       }
@@ -264,15 +268,16 @@ export function useGitOperations(projectId: number) {
 ## Performance Optimizations
 
 ### Prefetching Strategy
+
 ```typescript
 export function usePrefetchRelatedData(entityName: string, id: number) {
   const queryClient = useQueryClient()
   const config = ENTITY_CONFIGS[entityName]
-  
+
   useEffect(() => {
     // Prefetch related data in background
     const prefetchTasks = []
-    
+
     if (config.relationships?.includes('files')) {
       prefetchTasks.push(
         queryClient.prefetchQuery({
@@ -282,7 +287,7 @@ export function usePrefetchRelatedData(entityName: string, id: number) {
         })
       )
     }
-    
+
     if (config.relationships?.includes('history')) {
       prefetchTasks.push(
         queryClient.prefetchQuery({
@@ -291,18 +296,19 @@ export function usePrefetchRelatedData(entityName: string, id: number) {
         })
       )
     }
-    
+
     Promise.all(prefetchTasks)
   }, [entityName, id])
 }
 ```
 
 ### Batch Operations
+
 ```typescript
 export function useBatchOperations<T>(entityName: string) {
   const queryClient = useQueryClient()
   const config = ENTITY_CONFIGS[entityName]
-  
+
   return {
     batchCreate: useMutation({
       mutationFn: (items: T[]) => config.apiClient.batchCreate(items),
@@ -311,12 +317,10 @@ export function useBatchOperations<T>(entityName: string) {
         toast.success(`Created ${items.length} ${entityName}s`)
       }
     }),
-    
+
     batchUpdate: useMutation({
       mutationFn: (updates: Array<{ id: number; data: Partial<T> }>) =>
-        Promise.all(updates.map(({ id, data }) => 
-          config.apiClient.update(id, data)
-        )),
+        Promise.all(updates.map(({ id, data }) => config.apiClient.update(id, data))),
       onSuccess: () => {
         queryClient.invalidateQueries(config.queryKeys.lists())
         updates.forEach(({ id }) => {
@@ -324,10 +328,9 @@ export function useBatchOperations<T>(entityName: string) {
         })
       }
     }),
-    
+
     batchDelete: useMutation({
-      mutationFn: (ids: number[]) =>
-        Promise.all(ids.map(id => config.apiClient.delete(id))),
+      mutationFn: (ids: number[]) => Promise.all(ids.map((id) => config.apiClient.delete(id))),
       onSuccess: () => {
         queryClient.invalidateQueries(config.queryKeys.all)
         toast.success(`Deleted ${ids.length} items`)
@@ -338,28 +341,30 @@ export function useBatchOperations<T>(entityName: string) {
 ```
 
 ## Stale Time Configuration
+
 ```typescript
 export const STALE_TIMES = {
   // Volatile data - refresh frequently
-  MESSAGES: 0,              // Always fresh
-  TICKETS: 30 * 1000,      // 30 seconds
-  FLOW_ITEMS: 30 * 1000,   // 30 seconds
-  
+  MESSAGES: 0, // Always fresh
+  TICKETS: 30 * 1000, // 30 seconds
+  FLOW_ITEMS: 30 * 1000, // 30 seconds
+
   // Semi-stable data
   PROJECTS: 5 * 60 * 1000, // 5 minutes
-  USERS: 5 * 60 * 1000,    // 5 minutes
-  
+  USERS: 5 * 60 * 1000, // 5 minutes
+
   // Stable data
-  SETTINGS: 10 * 60 * 1000,    // 10 minutes
+  SETTINGS: 10 * 60 * 1000, // 10 minutes
   PROVIDER_KEYS: 10 * 60 * 1000, // 10 minutes
-  
+
   // Static data - rarely changes
   CONFIGURATIONS: 60 * 60 * 1000, // 1 hour
-  METADATA: 60 * 60 * 1000        // 1 hour
+  METADATA: 60 * 60 * 1000 // 1 hour
 }
 ```
 
 ## Error Handling Patterns
+
 ```typescript
 export function createErrorHandler(entityName: string) {
   return (error: any) => {
@@ -378,6 +383,7 @@ export function createErrorHandler(entityName: string) {
 ```
 
 ## Testing Patterns
+
 ```typescript
 describe('Generated Hooks', () => {
   const queryClient = new QueryClient({
@@ -386,7 +392,7 @@ describe('Generated Hooks', () => {
       mutations: { retry: false }
     }
   })
-  
+
   it('should handle CRUD operations', async () => {
     const { result } = renderHook(() => useProjects(), {
       wrapper: ({ children }) => (
@@ -395,21 +401,21 @@ describe('Generated Hooks', () => {
         </QueryClientProvider>
       )
     })
-    
+
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
     })
-    
+
     expect(result.current.data).toBeDefined()
   })
-  
+
   it('should handle optimistic updates', async () => {
     const { result } = renderHook(() => useCreateProject())
-    
+
     act(() => {
       result.current.mutate({ name: 'Test', path: '/test' })
     })
-    
+
     // Verify optimistic update applied immediately
     const cachedData = queryClient.getQueryData(['projects', 'list'])
     expect(cachedData).toContainEqual(
@@ -422,6 +428,7 @@ describe('Generated Hooks', () => {
 ## Migration Strategy
 
 ### Phase 1: Identify Pattern
+
 ```typescript
 // Old: Manual implementation
 export function useGetProjects() {
@@ -438,12 +445,14 @@ export const { useList: useProjects } = projectHooks
 ```
 
 ### Phase 2: Gradual Migration
+
 1. Generate new hooks alongside existing ones
 2. Update imports one component at a time
 3. Test each migrated component
 4. Remove old hooks once all references updated
 
 ### Phase 3: Leverage Advanced Features
+
 - Enable optimistic updates
 - Add prefetching
 - Implement batch operations

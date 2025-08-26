@@ -48,18 +48,12 @@ export function createProviderKeyService() {
         // If this new key is set to default, unset other defaults for the same provider
         if (data.isDefault) {
           const repository = await getRepository()
-          const existingDefaultKeys = await repository.findWhere(
-            eq(providerKeys.provider, data.provider)
-          )
-          
+          const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, data.provider))
+
           // Update all existing default keys for this provider to not be default
-          const defaultKeys = existingDefaultKeys.filter(key => key.isDefault)
+          const defaultKeys = existingDefaultKeys.filter((key) => key.isDefault)
           if (defaultKeys.length > 0) {
-            await Promise.all(
-              defaultKeys.map(key =>
-                repository.update(key.id, { isDefault: false })
-              )
-            )
+            await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
           }
         }
 
@@ -88,7 +82,7 @@ export function createProviderKeyService() {
 
         // Create the key using repository (ID, createdAt, updatedAt handled automatically)
         const repository = await getRepository()
-        const createdKey = await repository.create(newKeyData as any) as ProviderKey
+        const createdKey = (await repository.create(newKeyData as any)) as ProviderKey
 
         // Return the key with decrypted value
         return { ...createdKey, key: data.key || '' }
@@ -103,7 +97,7 @@ export function createProviderKeyService() {
         // Get all keys from repository (already sorted by createdAt desc)
         const repository = await getRepository()
         const allKeys = await repository.getAll('desc')
-        
+
         const keyList = (allKeys as ProviderKey[]).map((key) => {
           // For encrypted keys, we don't decrypt them, just show a generic mask
           if (key.encrypted) {
@@ -112,7 +106,9 @@ export function createProviderKeyService() {
           // For unencrypted keys (legacy), mask them properly
           const keyValue = key.key || ''
           const maskedKey =
-            keyValue.length > 8 ? `${keyValue.substring(0, 4)}****${keyValue.substring(keyValue.length - 4)}` : '********'
+            keyValue.length > 8
+              ? `${keyValue.substring(0, 4)}****${keyValue.substring(keyValue.length - 4)}`
+              : '********'
           return { ...key, key: maskedKey }
         })
 
@@ -125,7 +121,7 @@ export function createProviderKeyService() {
           if (a.createdAt < b.createdAt) return 1
           return 0
         })
-        
+
         return keyList
       },
       { entity: 'ProviderKey', action: 'listCensored' }
@@ -138,7 +134,7 @@ export function createProviderKeyService() {
         // Get all keys from repository (already sorted by createdAt desc)
         const repository = await getRepository()
         const allKeys = await repository.getAll('desc')
-        
+
         const keyList = await Promise.all(
           (allKeys as ProviderKey[]).map(async (key) => {
             // Decrypt key if encrypted
@@ -152,10 +148,10 @@ export function createProviderKeyService() {
                 })
                 return { ...key, key: decryptedKey }
               } catch (error) {
-                logger.error(`Failed to decrypt key ${key.id}`, { 
-                  error, 
+                logger.error(`Failed to decrypt key ${key.id}`, {
+                  error,
                   keyId: key.id,
-                  provider: key.provider 
+                  provider: key.provider
                 })
                 throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${key.id}`)
               }
@@ -172,7 +168,7 @@ export function createProviderKeyService() {
           if (a.createdAt < b.createdAt) return 1
           return 0
         })
-        
+
         return keyList
       },
       { entity: 'ProviderKey', action: 'listUncensored' }
@@ -185,9 +181,9 @@ export function createProviderKeyService() {
    */
   async function getCustomProviders(): Promise<Array<{ id: string; name: string; baseUrl?: string; keyId: number }>> {
     const allKeys = await listKeysUncensored()
-    const customKeys = allKeys.filter(key => key.provider === 'custom' && key.baseUrl)
-    
-    return customKeys.map(key => ({
+    const customKeys = allKeys.filter((key) => key.provider === 'custom' && key.baseUrl)
+
+    return customKeys.map((key) => ({
       id: `custom_${key.id}`,
       name: key.name || 'Custom Provider',
       baseUrl: key.baseUrl || undefined,
@@ -240,24 +236,18 @@ export function createProviderKeyService() {
         // If this key is being set to default, unset other defaults for the same provider
         const targetProvider = data.provider ?? existingKey.provider
         if (data.isDefault === true && existingKey.provider === targetProvider) {
-          const existingDefaultKeys = await repository.findWhere(
-            eq(providerKeys.provider, targetProvider)
-          )
-          
+          const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, targetProvider))
+
           // Update all existing default keys for this provider to not be default (except current key)
-          const defaultKeys = existingDefaultKeys.filter(key => key.isDefault && key.id !== id)
+          const defaultKeys = existingDefaultKeys.filter((key) => key.isDefault && key.id !== id)
           if (defaultKeys.length > 0) {
-            await Promise.all(
-              defaultKeys.map(key =>
-                repository.update(key.id, { isDefault: false })
-              )
-            )
+            await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
           }
         }
 
         // Prepare update data (only include defined fields)
         let updateData: Partial<UpdateProviderKeyInput> = {}
-        
+
         if (data.name !== undefined) updateData.name = data.name
         if (data.provider !== undefined) updateData.provider = data.provider
         if (data.baseUrl !== undefined) updateData.baseUrl = data.baseUrl
@@ -283,7 +273,7 @@ export function createProviderKeyService() {
         }
 
         // Update the key using repository
-        const updatedKey = await repository.update(id, updateData) as ProviderKey
+        const updatedKey = (await repository.update(id, updateData)) as ProviderKey
 
         // Return the key with decrypted value if we have a new key or if it's encrypted
         if (data.key) {
@@ -344,7 +334,7 @@ export function createProviderKeyService() {
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'provider')
       }
-      
+
       // Create extended request for internal testing
       const testRequest = {
         ...request,
@@ -386,15 +376,17 @@ export function createProviderKeyService() {
 
     // Get provider IDs to test
     const providerIds = request.providerIds || []
-    
+
     if (providerIds.length === 0) {
       // If no provider IDs specified, get all active providers
       const allProviders = await listKeysUncensored()
-      providerIds.push(...allProviders.filter((p: ProviderKey) => p.isActive || request.includeInactive).map((p: ProviderKey) => p.id))
+      providerIds.push(
+        ...allProviders.filter((p: ProviderKey) => p.isActive || request.includeInactive).map((p: ProviderKey) => p.id)
+      )
     }
 
     // Create test requests
-    const testRequests: TestProviderRequest[] = providerIds.map(providerId => ({
+    const testRequests: TestProviderRequest[] = providerIds.map((providerId) => ({
       providerId,
       testPrompt: request.testPrompt,
       model: undefined
@@ -421,11 +413,10 @@ export function createProviderKeyService() {
     const totalTime = Date.now() - startTime
 
     // Calculate summary according to schema
-    const successful = results.filter(r => r.success).length
-    const failed = results.filter(r => !r.success).length
-    const averageLatency = results.length > 0 
-      ? results.reduce((sum, r) => sum + r.latency, 0) / results.length 
-      : undefined
+    const successful = results.filter((r) => r.success).length
+    const failed = results.filter((r) => !r.success).length
+    const averageLatency =
+      results.length > 0 ? results.reduce((sum, r) => sum + r.latency, 0) / results.length : undefined
 
     return {
       results,
@@ -492,9 +483,11 @@ export function createProviderKeyService() {
   /**
    * Internal helper function to perform the actual provider test
    */
-  async function performProviderTest(request: TestProviderRequest & { provider: string; apiKey: string; url?: string; timeout?: number }): Promise<{ models: ProviderModel[] }> {
+  async function performProviderTest(
+    request: TestProviderRequest & { provider: string; apiKey: string; url?: string; timeout?: number }
+  ): Promise<{ models: ProviderModel[] }> {
     const { provider, apiKey, url } = request
-    
+
     // Use provider-specific timeout, or fallback to request timeout if specified
     const providerTimeout = getProviderTimeout(provider as APIProviders, 'validation')
     const timeout = request.timeout || providerTimeout
@@ -502,7 +495,7 @@ export function createProviderKeyService() {
     // Create fetch with timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
-    
+
     logger.info(`Testing provider ${provider} with timeout ${timeout}ms`)
 
     try {
@@ -524,7 +517,7 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('OpenAI API request', `${response.status}: ${response.statusText}`)
           }
-          const openaiData = await response.json() as { data?: Array<{ id: string }> }
+          const openaiData = (await response.json()) as { data?: Array<{ id: string }> }
           models =
             openaiData.data?.map((model) => ({
               id: model.id,
@@ -574,7 +567,7 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('Ollama connection', `${response.status}: ${response.statusText}`)
           }
-          const ollamaData = await response.json() as { models?: Array<{ name: string }> }
+          const ollamaData = (await response.json()) as { models?: Array<{ name: string }> }
           models =
             ollamaData.models?.map((model) => ({
               id: model.name,
@@ -591,7 +584,7 @@ export function createProviderKeyService() {
           if (!apiKey) {
             throw ErrorFactory.missingRequired('API key', 'custom provider')
           }
-          
+
           // Test with OpenAI-compatible /v1/models endpoint
           const customUrl = url.endsWith('/v1') ? url : `${url.replace(/\/$/, '')}/v1`
           response = await fetch(`${customUrl}/models`, {
@@ -601,12 +594,15 @@ export function createProviderKeyService() {
             },
             signal: controller.signal
           })
-          
+
           if (!response.ok) {
-            throw ErrorFactory.operationFailed('custom provider API request', `${response.status}: ${response.statusText}`)
+            throw ErrorFactory.operationFailed(
+              'custom provider API request',
+              `${response.status}: ${response.statusText}`
+            )
           }
-          
-          const customData = await response.json() as { data?: Array<{ id?: string; name?: string }> }
+
+          const customData = (await response.json()) as { data?: Array<{ id?: string; name?: string }> }
           models =
             customData.data?.map((model) => {
               const modelId = model.id || 'unknown'
@@ -628,7 +624,7 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('LMStudio connection', `${response.status}: ${response.statusText}`)
           }
-          const lmstudioData = await response.json() as { data?: Array<{ id: string }> }
+          const lmstudioData = (await response.json()) as { data?: Array<{ id: string }> }
           models =
             lmstudioData.data?.map((model) => ({
               id: model.id,
@@ -664,7 +660,7 @@ export function createProviderKeyService() {
 // Create route-compatible wrapper around the main service
 function createRouteCompatibleProviderKeyService() {
   const mainService = createProviderKeyService()
-  
+
   return {
     // Route factory compatible methods
     async list(): Promise<ProviderKey[]> {

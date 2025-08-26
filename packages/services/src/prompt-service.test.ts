@@ -12,11 +12,7 @@ import {
   getPromptProjects,
   getPromptsByIds
 } from './prompt-service'
-import type { 
-  Prompt, 
-  CreatePrompt as CreatePromptBody, 
-  UpdatePrompt as UpdatePromptBody 
-} from '@promptliano/database'
+import type { Prompt, CreatePrompt as CreatePromptBody, UpdatePrompt as UpdatePromptBody } from '@promptliano/database'
 import { ErrorFactory } from '@promptliano/shared'
 
 describe('Prompt Service', () => {
@@ -184,7 +180,7 @@ describe('Prompt Service', () => {
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
-      
+
       // Mock both getById (for existence check) and delete
       mockRepository.getById.mockResolvedValue(prompt)
       mockRepository.delete.mockResolvedValue(true)
@@ -290,7 +286,7 @@ describe('Prompt Service', () => {
 
       // Mock the repository that the legacy function uses
       const originalCreate = mock().mockResolvedValue(createdPrompt)
-      
+
       // Since legacy functions use the singleton service, we need to mock differently
       // For now, we'll just verify the function exists and can be called
       expect(typeof createPrompt).toBe('function')

@@ -103,8 +103,7 @@ export function FileViewerDialog({
   }, [gitStatus, viewedFile])
 
   const hasGitChanges = gitFileStatus && gitFileStatus.status !== 'unchanged'
-  const hasStaged =
-    gitStatus && viewedFile ? (gitStatus as any).data?.staged?.includes(viewedFile.path) : false
+  const hasStaged = gitStatus && viewedFile ? (gitStatus as any).data?.staged?.includes(viewedFile.path) : false
   const hasUnstaged = gitFileStatus ? !gitFileStatus.staged : false
 
   // File diff data
@@ -334,7 +333,9 @@ export function FileViewerDialog({
                       const diffContent = (diffData as any)?.diff || diffData?.content
                       if (!diffContent) return
                       try {
-                        await navigator.clipboard.writeText(typeof diffContent === 'string' ? diffContent : JSON.stringify(diffContent))
+                        await navigator.clipboard.writeText(
+                          typeof diffContent === 'string' ? diffContent : JSON.stringify(diffContent)
+                        )
                         toast.success('Diff copied to clipboard')
                       } catch (error) {
                         toast.error('Failed to copy diff')
@@ -419,7 +420,11 @@ export function FileViewerDialog({
                         </div>
                       ) : (
                         <div className='max-h-full overflow-auto'>
-                          <pre className='text-xs p-2 bg-muted rounded font-mono'>{(diffData as any)?.diff || diffData?.content || (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))}</pre>
+                          <pre className='text-xs p-2 bg-muted rounded font-mono'>
+                            {(diffData as any)?.diff ||
+                              diffData?.content ||
+                              (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))}
+                          </pre>
                         </div>
                       )}
                     </>

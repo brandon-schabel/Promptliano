@@ -392,10 +392,12 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       const tools = await mcpInstallationService.detectInstalledTools()
       const platform = process.platform
 
-      return c.json(successResponse({
-        tools,
-        platform
-      }))
+      return c.json(
+        successResponse({
+          tools,
+          platform
+        })
+      )
     } catch (error) {
       throw new ApiError(500, `Failed to detect tools: ${error}`)
     }
@@ -417,10 +419,12 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       // Get connection status
       const connectionStatus = await mcpConfigManager.getProjectStatus(projectId)
 
-      return c.json(successResponse({
-        projectConfig,
-        connectionStatus
-      }))
+      return c.json(
+        successResponse({
+          projectConfig,
+          connectionStatus
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to get installation status: ${error}`)
@@ -456,12 +460,14 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       const serverName = `promptliano-${project.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
       await mcpConfigManager.addInstalledTool(projectId, tool, result.configPath, serverName)
 
-      return c.json(successResponse({
-        message: result.message,
-        configPath: result.configPath,
-        backedUp: result.backedUp,
-        backupPath: result.backupPath
-      }))
+      return c.json(
+        successResponse({
+          message: result.message,
+          configPath: result.configPath,
+          backedUp: result.backedUp,
+          backupPath: result.backupPath
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to install MCP: ${error}`)

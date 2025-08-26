@@ -1,7 +1,7 @@
 /**
  * Generated Git Hooks - Factory Pattern Implementation
  * Migrated from use-git-api.ts with polling intervals preserved
- * 
+ *
  * Replaces 900+ lines of manual Git hook code with factory-based patterns
  * Maintains all polling intervals: 5s for status, 30s for branches, etc.
  */
@@ -99,10 +99,11 @@ export const GIT_KEYS = {
   branches: (projectId: number) => [...GIT_KEYS.project(projectId), 'branches'] as const,
   branchesEnhanced: (projectId: number) => [...GIT_KEYS.project(projectId), 'branches', 'enhanced'] as const,
   log: (projectId: number, options?: any) => [...GIT_KEYS.project(projectId), 'log', options] as const,
-  logEnhanced: (projectId: number, params?: any) => [...GIT_KEYS.project(projectId), 'log', 'enhanced', params] as const,
-  commitDetail: (projectId: number, hash: string, includeFiles?: boolean) => 
+  logEnhanced: (projectId: number, params?: any) =>
+    [...GIT_KEYS.project(projectId), 'log', 'enhanced', params] as const,
+  commitDetail: (projectId: number, hash: string, includeFiles?: boolean) =>
     [...GIT_KEYS.project(projectId), 'commits', hash, { includeFileContents: includeFiles }] as const,
-  diff: (projectId: number, filePath: string, options?: any) => 
+  diff: (projectId: number, filePath: string, options?: any) =>
     [...GIT_KEYS.project(projectId), 'diff', filePath, options] as const,
   remotes: (projectId: number) => [...GIT_KEYS.project(projectId), 'remotes'] as const,
   tags: (projectId: number) => [...GIT_KEYS.project(projectId), 'tags'] as const,
@@ -126,7 +127,7 @@ export const GIT_KEYS = {
  */
 export function useProjectGitStatus(projectId: number | undefined, enabled = true) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: GIT_KEYS.status(projectId!),
     queryFn: async () => {
@@ -156,7 +157,7 @@ export function useGitFilesWithChanges(projectId: number | undefined) {
     return []
   }
 
-  // Handle both wrapped and unwrapped responses  
+  // Handle both wrapped and unwrapped responses
   const statusData = (gitStatus as any)?.data || gitStatus
   if (!statusData || typeof statusData !== 'object' || !('files' in statusData)) {
     return []
@@ -189,7 +190,7 @@ export function useFileDiff(
       const diffData = response?.data || response
       // Ensure diff property is available for backward compatibility
       if (diffData && typeof diffData === 'object' && 'content' in diffData && !('diff' in diffData)) {
-        (diffData as any).diff = diffData.content
+        ;(diffData as any).diff = diffData.content
       }
       return diffData
     },
@@ -644,7 +645,7 @@ export function useDeleteBranch(projectId: number | undefined) {
 }
 
 // ============================================================================
-// Remote Operations Mutation Hooks  
+// Remote Operations Mutation Hooks
 // ============================================================================
 
 /**
@@ -942,13 +943,15 @@ export function useRemoveGitWorktree(projectId: number | undefined) {
 
 export function useInvalidateGit() {
   const queryClient = useQueryClient()
-  
+
   return {
     invalidateAll: () => queryClient.invalidateQueries({ queryKey: GIT_KEYS.all }),
     invalidateProject: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.project(projectId) }),
     invalidateStatus: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.status(projectId) }),
-    invalidateBranches: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.branches(projectId) }),
-    invalidateWorktrees: (projectId: number) => queryClient.invalidateQueries({ queryKey: GIT_KEYS.worktrees(projectId) })
+    invalidateBranches: (projectId: number) =>
+      queryClient.invalidateQueries({ queryKey: GIT_KEYS.branches(projectId) }),
+    invalidateWorktrees: (projectId: number) =>
+      queryClient.invalidateQueries({ queryKey: GIT_KEYS.worktrees(projectId) })
   }
 }
 

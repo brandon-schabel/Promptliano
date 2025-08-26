@@ -4,10 +4,7 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import {
-  ApiErrorResponseSchema,
-  OperationSuccessResponseSchema
-} from '@promptliano/schemas'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { executeMCPTool } from '@promptliano/services'
 import { createStandardResponses, successResponse } from '../../utils/route-helpers'
 
@@ -30,15 +27,17 @@ const testMCPConnectionRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      connected: z.boolean(),
-      responseTime: z.number(),
-      error: z.string().optional(),
-      serverInfo: z.any().optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        connected: z.boolean(),
+        responseTime: z.number(),
+        error: z.string().optional(),
+        serverInfo: z.any().optional()
+      })
     })
-  }))
+  )
 })
 
 // Test MCP initialize handshake
@@ -53,27 +52,31 @@ const testMCPInitializeRoute = createRoute({
         'application/json': {
           schema: z.object({
             url: z.string().url().describe('MCP server URL to test'),
-            capabilities: z.object({
-              tools: z.boolean().optional().default(true),
-              resources: z.boolean().optional().default(true),
-              prompts: z.boolean().optional().default(false)
-            }).optional()
+            capabilities: z
+              .object({
+                tools: z.boolean().optional().default(true),
+                resources: z.boolean().optional().default(true),
+                prompts: z.boolean().optional().default(false)
+              })
+              .optional()
           })
         }
       },
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      initialized: z.boolean(),
-      sessionId: z.string().optional(),
-      capabilities: z.any().optional(),
-      serverInfo: z.any().optional(),
-      error: z.string().optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        initialized: z.boolean(),
+        sessionId: z.string().optional(),
+        capabilities: z.any().optional(),
+        serverInfo: z.any().optional(),
+        error: z.string().optional()
+      })
     })
-  }))
+  )
 })
 
 // Test tool execution
@@ -97,16 +100,18 @@ const testToolExecutionRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      executed: z.boolean(),
-      result: z.any().optional(),
-      executionTime: z.number(),
-      error: z.string().optional(),
-      validationErrors: z.array(z.string()).optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        executed: z.boolean(),
+        result: z.any().optional(),
+        executionTime: z.number(),
+        error: z.string().optional(),
+        validationErrors: z.array(z.string()).optional()
+      })
     })
-  }))
+  )
 })
 
 // Validate MCP configuration
@@ -130,30 +135,38 @@ const validateMCPConfigRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      valid: z.boolean(),
-      checks: z.object({
-        connectivity: z.object({
-          passed: z.boolean(),
-          message: z.string().optional()
-        }).optional(),
-        capabilities: z.object({
-          passed: z.boolean(),
-          message: z.string().optional(),
-          details: z.any().optional()
-        }).optional(),
-        tools: z.object({
-          passed: z.boolean(),
-          message: z.string().optional(),
-          availableTools: z.array(z.string()).optional()
-        }).optional()
-      }),
-      errors: z.array(z.string()).optional(),
-      warnings: z.array(z.string()).optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        valid: z.boolean(),
+        checks: z.object({
+          connectivity: z
+            .object({
+              passed: z.boolean(),
+              message: z.string().optional()
+            })
+            .optional(),
+          capabilities: z
+            .object({
+              passed: z.boolean(),
+              message: z.string().optional(),
+              details: z.any().optional()
+            })
+            .optional(),
+          tools: z
+            .object({
+              passed: z.boolean(),
+              message: z.string().optional(),
+              availableTools: z.array(z.string()).optional()
+            })
+            .optional()
+        }),
+        errors: z.array(z.string()).optional(),
+        warnings: z.array(z.string()).optional()
+      })
     })
-  }))
+  )
 })
 
 // Debug MCP communication
@@ -169,33 +182,37 @@ const debugMCPCommunicationRoute = createRoute({
           schema: z.object({
             serverId: z.string(),
             action: z.enum(['list-tools', 'list-resources', 'get-capabilities', 'raw-request']),
-            rawRequest: z.object({
-              method: z.string(),
-              params: z.any().optional()
-            }).optional()
+            rawRequest: z
+              .object({
+                method: z.string(),
+                params: z.any().optional()
+              })
+              .optional()
           })
         }
       },
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      request: z.any(),
-      response: z.any(),
-      timing: z.object({
-        start: z.string(),
-        end: z.string(),
-        duration: z.number()
-      }),
-      metadata: z.object({
-        serverId: z.string(),
-        action: z.string(),
-        protocol: z.string().optional()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        request: z.any(),
+        response: z.any(),
+        timing: z.object({
+          start: z.string(),
+          end: z.string(),
+          duration: z.number()
+        }),
+        metadata: z.object({
+          serverId: z.string(),
+          action: z.string(),
+          protocol: z.string().optional()
+        })
       })
     })
-  }))
+  )
 })
 
 // Export routes
@@ -217,25 +234,31 @@ export const mcpTestRoutes = new OpenAPIHono()
       const responseTime = Date.now() - startTime
 
       if (response.ok) {
-        return c.json(successResponse({
-          connected: true,
-          responseTime,
-          serverInfo: response.headers.get('Server')
-        }))
+        return c.json(
+          successResponse({
+            connected: true,
+            responseTime,
+            serverInfo: response.headers.get('Server')
+          })
+        )
       } else {
-        return c.json(successResponse({
-          connected: false,
-          responseTime,
-          error: `HTTP ${response.status}: ${response.statusText}`
-        }))
+        return c.json(
+          successResponse({
+            connected: false,
+            responseTime,
+            error: `HTTP ${response.status}: ${response.statusText}`
+          })
+        )
       }
     } catch (error) {
       const responseTime = Date.now() - startTime
-      return c.json(successResponse({
-        connected: false,
-        responseTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }))
+      return c.json(
+        successResponse({
+          connected: false,
+          responseTime,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      )
     }
   })
   .openapi(testMCPInitializeRoute, async (c) => {
@@ -250,18 +273,20 @@ export const mcpTestRoutes = new OpenAPIHono()
   .openapi(testToolExecutionRoute, async (c) => {
     const body = c.req.valid('json')
     const startTime = Date.now()
-    
+
     try {
       if (body.validateOnly) {
         // TODO: Implement validateToolArguments
         const validationResult = { errors: [] as string[] }
-        return c.json(successResponse({
-          executed: false,
-          executionTime: Date.now() - startTime,
-          validationErrors: validationResult.errors
-        }))
+        return c.json(
+          successResponse({
+            executed: false,
+            executionTime: Date.now() - startTime,
+            validationErrors: validationResult.errors
+          })
+        )
       }
-      
+
       // Fix executeMCPTool call to use correct request structure
       const request = {
         toolId: body.toolName,
@@ -269,18 +294,22 @@ export const mcpTestRoutes = new OpenAPIHono()
         parameters: body.arguments || {}
       }
       const result = await executeMCPTool(1, request)
-      
-      return c.json(successResponse({
-        executed: true,
-        result,
-        executionTime: Date.now() - startTime
-      }))
+
+      return c.json(
+        successResponse({
+          executed: true,
+          result,
+          executionTime: Date.now() - startTime
+        })
+      )
     } catch (error) {
-      return c.json(successResponse({
-        executed: false,
-        executionTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Execution failed'
-      }))
+      return c.json(
+        successResponse({
+          executed: false,
+          executionTime: Date.now() - startTime,
+          error: error instanceof Error ? error.message : 'Execution failed'
+        })
+      )
     }
   })
   .openapi(validateMCPConfigRoute, async (c) => {

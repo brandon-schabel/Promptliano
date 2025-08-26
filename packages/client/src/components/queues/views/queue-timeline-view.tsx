@@ -33,13 +33,13 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
   // Find selected queue
   const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
   const avgProcessingTime = 300000 // Default 5 minutes
-  
+
   // Extract queue items from flow data
   const items: QueueItem[] = useMemo(() => {
     if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
     const queueData = flowData.queues[selectedQueueId]
     const queueItems: QueueItem[] = []
-    
+
     // Add tickets as queue items
     queueData.tickets?.forEach((ticket, index) => {
       queueItems.push({
@@ -53,7 +53,7 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
         createdAt: ticket.createdAt
       })
     })
-    
+
     // Add tasks as queue items
     queueData.tasks?.forEach((task, index) => {
       queueItems.push({
@@ -67,7 +67,7 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
         createdAt: task.createdAt
       })
     })
-    
+
     return queueItems
   }, [flowData, selectedQueueId])
 
@@ -149,13 +149,13 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
 
   // Get task details
   const getTaskDetails = (item: QueueItem) => {
-    if (item.itemType !== 'ticket' && item.itemType !== 'task' || !ticketsWithTasks) return null
-    
+    if ((item.itemType !== 'ticket' && item.itemType !== 'task') || !ticketsWithTasks) return null
+
     if (item.itemType === 'ticket') {
       const ticket = ticketsWithTasks.find((t) => t.id === item.itemId)
       return ticket ? { ticket, task: null } : null
     }
-    
+
     if (item.itemType === 'task') {
       // Find the ticket that contains this task
       for (const ticket of ticketsWithTasks) {

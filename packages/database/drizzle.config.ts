@@ -8,5 +8,5 @@ export default defineConfig({
     url: './data/promptliano.db'
   },
   verbose: true,
-  strict: true,
+  strict: true
 })

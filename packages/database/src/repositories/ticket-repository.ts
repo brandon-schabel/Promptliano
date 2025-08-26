@@ -7,12 +7,12 @@
 import { eq, and, desc, asc, inArray, count, sum, sql, like, gte, lte } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
-import { 
-  tickets, 
-  ticketTasks, 
-  type Ticket, 
+import {
+  tickets,
+  ticketTasks,
+  type Ticket,
   type TicketTask,
-  type InsertTicket, 
+  type InsertTicket,
   type InsertTicketTask,
   type TicketWithTasks,
   type TicketStatus,
@@ -130,7 +130,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
 
   async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<Ticket[]> {
     const tickets = await originalGetAll(orderBy)
-    return tickets.map(ticket => convertTicketFromDb(ticket))
+    return tickets.map((ticket) => convertTicketFromDb(ticket))
   },
 
   async update(id: number, data: TicketUpdateData): Promise<Ticket> {
@@ -148,29 +148,27 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async getByProject(projectId: number): Promise<Ticket[]> {
     const results = await baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
-    return results.map(ticket => convertTicketFromDb(ticket))
+    return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
   /**
    * Get tickets by status (optimized with BaseRepository)
    */
   async getByStatus(projectId: number, status: TicketStatus): Promise<Ticket[]> {
-    const results = await baseTicketRepository.findWhere(and(
-      eq(tickets.projectId, projectId),
-      eq(tickets.status, status)
-    ))
-    return results.map(ticket => convertTicketFromDb(ticket))
+    const results = await baseTicketRepository.findWhere(
+      and(eq(tickets.projectId, projectId), eq(tickets.status, status))
+    )
+    return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
   /**
    * Get tickets by priority (optimized with BaseRepository)
    */
   async getByPriority(projectId: number, priority: TicketPriority): Promise<Ticket[]> {
-    const results = await baseTicketRepository.findWhere(and(
-      eq(tickets.projectId, projectId),
-      eq(tickets.priority, priority)
-    ))
-    return results.map(ticket => convertTicketFromDb(ticket))
+    const results = await baseTicketRepository.findWhere(
+      and(eq(tickets.projectId, projectId), eq(tickets.priority, priority))
+    )
+    return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
   // update() and delete() methods inherited from BaseRepository with better error handling
@@ -180,7 +178,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async deleteByProject(projectId: number): Promise<number> {
     const ticketsToDelete = await baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
-    const ticketIds = ticketsToDelete.map(t => t.id)
+    const ticketIds = ticketsToDelete.map((t) => t.id)
     return baseTicketRepository.deleteMany(ticketIds)
   },
 
@@ -223,7 +221,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async getTasksByTicket(ticketId: number): Promise<TicketTask[]> {
     const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
-    return tasks.map(task => convertTaskFromDb(task))
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   /**
@@ -247,15 +245,13 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
   async reorderTasks(ticketId: number, taskOrders: { taskId: number; orderIndex: number }[]): Promise<void> {
     await db.transaction(async (tx) => {
       for (const { taskId, orderIndex } of taskOrders) {
-        await tx.update(ticketTasks)
-          .set({ 
+        await tx
+          .update(ticketTasks)
+          .set({
             orderIndex,
-            updatedAt: Date.now() 
+            updatedAt: Date.now()
           } as any)
-          .where(and(
-            eq(ticketTasks.id, taskId),
-            eq(ticketTasks.ticketId, ticketId)
-          ))
+          .where(and(eq(ticketTasks.id, taskId), eq(ticketTasks.ticketId, ticketId)))
       }
     })
   },
@@ -280,18 +276,13 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
   /**
    * Add ticket to queue
    */
-  async addToQueue(
-    ticketId: number, 
-    queueId: number, 
-    priority: number = 5,
-    position?: number
-  ): Promise<Ticket> {
+  async addToQueue(ticketId: number, queueId: number, priority: number = 5, position?: number): Promise<Ticket> {
     const ticket = await baseTicketRepository.update(ticketId, {
       queueId,
       queuePosition: position,
       queueStatus: 'queued' as const,
       queuePriority: priority,
-      queuedAt: Date.now(),
+      queuedAt: Date.now()
     } as any)
     return convertTicketFromDb(ticket)
   },
@@ -309,7 +300,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
       queueStartedAt: null,
       queueCompletedAt: null,
       queueAgentId: null,
-      queueErrorMessage: null,
+      queueErrorMessage: null
     } as any)
     return convertTicketFromDb(ticket)
   },
@@ -318,14 +309,14 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Update queue status
    */
   async updateQueueStatus(
-    ticketId: number, 
+    ticketId: number,
     status: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled',
     agentId?: string,
     errorMessage?: string
   ): Promise<Ticket> {
     const now = Date.now()
     const updates: TicketUpdateData = {
-      queueStatus: status,
+      queueStatus: status
     }
 
     if (status === 'in_progress') {
@@ -348,12 +339,13 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Get ticket statistics for a project
    */
   async getProjectStats(projectId: number) {
-    const [stats] = await db.select({
-      totalTickets: count(),
-      openTickets: sum(sql`CASE WHEN ${tickets.status} = 'open' THEN 1 ELSE 0 END`),
-      inProgressTickets: sum(sql`CASE WHEN ${tickets.status} = 'in_progress' THEN 1 ELSE 0 END`),
-      closedTickets: sum(sql`CASE WHEN ${tickets.status} = 'closed' THEN 1 ELSE 0 END`)
-    })
+    const [stats] = await db
+      .select({
+        totalTickets: count(),
+        openTickets: sum(sql`CASE WHEN ${tickets.status} = 'open' THEN 1 ELSE 0 END`),
+        inProgressTickets: sum(sql`CASE WHEN ${tickets.status} = 'in_progress' THEN 1 ELSE 0 END`),
+        closedTickets: sum(sql`CASE WHEN ${tickets.status} = 'closed' THEN 1 ELSE 0 END`)
+      })
       .from(tickets)
       .where(eq(tickets.projectId, projectId))
 
@@ -364,11 +356,12 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Get task completion statistics for a ticket
    */
   async getTaskStats(ticketId: number) {
-    const [stats] = await db.select({
-      totalTasks: count(),
-      completedTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 1 THEN 1 ELSE 0 END`),
-      pendingTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 0 THEN 1 ELSE 0 END`)
-    })
+    const [stats] = await db
+      .select({
+        totalTasks: count(),
+        completedTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 1 THEN 1 ELSE 0 END`),
+        pendingTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 0 THEN 1 ELSE 0 END`)
+      })
       .from(ticketTasks)
       .where(eq(ticketTasks.ticketId, ticketId))
 
@@ -384,7 +377,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async createMany(ticketsData: Omit<InsertTicket, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Ticket[]> {
     const tickets = await baseTicketRepository.createMany(ticketsData as InsertTicket[])
-    return tickets.map(ticket => convertTicketFromDb(ticket))
+    return tickets.map((ticket) => convertTicketFromDb(ticket))
   },
 
   /**
@@ -392,18 +385,15 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    */
   async createManyTasks(tasksData: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<TicketTask[]> {
     const tasks = await baseTaskRepository.createMany(tasksData as InsertTicketTask[])
-    return tasks.map(task => convertTaskFromDb(task))
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   /**
    * Update multiple tickets (using BaseRepository batch operation)
    */
-  async updateMany(
-    ticketIds: number[], 
-    data: TicketUpdateData
-  ): Promise<Ticket[]> {
+  async updateMany(ticketIds: number[], data: TicketUpdateData): Promise<Ticket[]> {
     const tickets = await baseTicketRepository.updateMany(ticketIds, data as any)
-    return tickets.map(ticket => convertTicketFromDb(ticket))
+    return tickets.map((ticket) => convertTicketFromDb(ticket))
   }
 })
 
@@ -422,7 +412,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
 
   async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<TicketTask[]> {
     const tasks = await baseTaskRepository.getAll(orderBy)
-    return tasks.map(task => convertTaskFromDb(task))
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   async update(id: number, data: TaskUpdateData): Promise<TicketTask> {
@@ -440,18 +430,20 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    */
   async getByTicket(ticketId: number): Promise<TicketTask[]> {
     const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
-    return tasks.map(task => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
+    return tasks.map((task) => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
   },
 
   /**
    * Get tasks by task status (optimized with BaseRepository)
    */
-  async getByTaskStatus(ticketId: number, status: 'pending' | 'in_progress' | 'completed' | 'cancelled'): Promise<TicketTask[]> {
-    const tasks = await baseTaskRepository.findWhere(and(
-      eq(ticketTasks.ticketId, ticketId),
-      eq(ticketTasks.status, status)
-    ))
-    return tasks.map(task => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
+  async getByTaskStatus(
+    ticketId: number,
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  ): Promise<TicketTask[]> {
+    const tasks = await baseTaskRepository.findWhere(
+      and(eq(ticketTasks.ticketId, ticketId), eq(ticketTasks.status, status))
+    )
+    return tasks.map((task) => convertTaskFromDb(task)).sort((a, b) => a.orderIndex - b.orderIndex)
   },
 
   /**
@@ -459,7 +451,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    */
   async getByAgent(agentId: string): Promise<TicketTask[]> {
     const tasks = await baseTaskRepository.findWhere(eq(ticketTasks.agentId, agentId))
-    return tasks.map(task => convertTaskFromDb(task))
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   /**
@@ -468,15 +460,13 @@ export const taskRepository = extendRepository(baseTaskRepository, {
   async reorder(ticketId: number, taskOrders: { taskId: number; orderIndex: number }[]): Promise<void> {
     await db.transaction(async (tx) => {
       for (const { taskId, orderIndex } of taskOrders) {
-        await tx.update(ticketTasks)
-          .set({ 
+        await tx
+          .update(ticketTasks)
+          .set({
             orderIndex,
-            updatedAt: Date.now() 
+            updatedAt: Date.now()
           } as any)
-          .where(and(
-            eq(ticketTasks.id, taskId),
-            eq(ticketTasks.ticketId, ticketId)
-          ))
+          .where(and(eq(ticketTasks.id, taskId), eq(ticketTasks.ticketId, ticketId)))
       }
     })
   },
@@ -485,8 +475,8 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    * Move task to different position
    */
   async moveToPosition(taskId: number, newOrderIndex: number): Promise<TicketTask> {
-    const task = await baseTaskRepository.update(taskId, { 
-      orderIndex: newOrderIndex 
+    const task = await baseTaskRepository.update(taskId, {
+      orderIndex: newOrderIndex
     } as any)
     return convertTaskFromDb(task)
   },
@@ -499,11 +489,9 @@ export const taskRepository = extendRepository(baseTaskRepository, {
     if (!task || !task.dependencies || task.dependencies.length === 0) {
       return true
     }
-    
-    const dependencies = await baseTaskRepository.findWhere(
-      inArray(ticketTasks.id, task.dependencies)
-    )
-    
+
+    const dependencies = await baseTaskRepository.findWhere(inArray(ticketTasks.id, task.dependencies))
+
     return dependencies.every((dep: any) => dep.done || dep.status === 'completed')
   },
 
@@ -513,7 +501,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
   async getAvailableTasks(ticketId: number): Promise<TicketTask[]> {
     const tasks = await this.getByTicket(ticketId)
     const availableTasks: TicketTask[] = []
-    
+
     for (const task of tasks) {
       if (task.status === 'pending' || task.status === 'in_progress') {
         const dependenciesCompleted = await this.areDependenciesCompleted(task.id)
@@ -522,7 +510,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
         }
       }
     }
-    
+
     return availableTasks.sort((a, b) => a.orderIndex - b.orderIndex)
   },
 
@@ -532,17 +520,20 @@ export const taskRepository = extendRepository(baseTaskRepository, {
   async getBlockedTasks(ticketId: number): Promise<TicketTask[]> {
     const tasks = await this.getByTicket(ticketId)
     const blockedTasks: TicketTask[] = []
-    
+
     for (const task of tasks) {
-      if ((task.status === 'pending' || task.status === 'in_progress') && 
-          task.dependencies && task.dependencies.length > 0) {
+      if (
+        (task.status === 'pending' || task.status === 'in_progress') &&
+        task.dependencies &&
+        task.dependencies.length > 0
+      ) {
         const dependenciesCompleted = await this.areDependenciesCompleted(task.id)
         if (!dependenciesCompleted) {
           blockedTasks.push(task)
         }
       }
     }
-    
+
     return blockedTasks.sort((a, b) => a.orderIndex - b.orderIndex)
   },
 
@@ -551,24 +542,23 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    */
   async searchByContent(searchTerm: string, ticketId?: number): Promise<TicketTask[]> {
     const conditions = [like(ticketTasks.content, `%${searchTerm}%`)]
-    
+
     if (ticketId) {
       conditions.push(eq(ticketTasks.ticketId, ticketId))
     }
-    
+
     const tasks = await baseTaskRepository.findWhere(and(...conditions))
-    return tasks.map(task => convertTaskFromDb(task))
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   /**
    * Get tasks by time range
    */
   async getByTimeRange(startDate: number, endDate: number): Promise<TicketTask[]> {
-    const tasks = await baseTaskRepository.findWhere(and(
-      gte(ticketTasks.createdAt, startDate),
-      lte(ticketTasks.createdAt, endDate)
-    ))
-    return tasks.map(task => convertTaskFromDb(task))
+    const tasks = await baseTaskRepository.findWhere(
+      and(gte(ticketTasks.createdAt, startDate), lte(ticketTasks.createdAt, endDate))
+    )
+    return tasks.map((task) => convertTaskFromDb(task))
   },
 
   /**
@@ -576,7 +566,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    */
   async deleteByTicket(ticketId: number): Promise<number> {
     const tasksToDelete = await baseTaskRepository.findWhere(eq(ticketTasks.ticketId, ticketId))
-    const taskIds = tasksToDelete.map(t => t.id)
+    const taskIds = tasksToDelete.map((t) => t.id)
     return baseTaskRepository.deleteMany(taskIds)
   }
 })

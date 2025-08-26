@@ -41,7 +41,7 @@ function transformMcpServerConfig(config: McpServerConfig): MCPServerConfig {
   }
 }
 
-// Transform API request body to database-compatible structure  
+// Transform API request body to database-compatible structure
 function transformCreateRequestBody(body: any): Omit<InsertMcpServerConfig, 'projectId'> {
   return {
     name: body.name,

@@ -16,7 +16,7 @@ export class InterceptorContextManager {
       startTime: Date.now(),
       metadata: {},
       metrics: {
-        interceptorTimings: {},
+        interceptorTimings: {}
       },
       cacheKeys: [],
       security: {
@@ -46,27 +46,23 @@ export class InterceptorContextManager {
    */
   static getOrCreate(honoContext: Context): InterceptorContext {
     let context = this.retrieve(honoContext)
-    
+
     if (!context) {
       const ip = this.extractIP(honoContext)
       const userAgent = honoContext.req.header('user-agent')
       const requestId = honoContext.get('requestId') || this.generateRequestId()
-      
+
       context = this.create(requestId, ip, userAgent)
       this.store(honoContext, context)
     }
-    
+
     return context
   }
 
   /**
    * Update metadata in the interceptor context
    */
-  static updateMetadata(
-    honoContext: Context,
-    key: string,
-    value: any
-  ): void {
+  static updateMetadata(honoContext: Context, key: string, value: any): void {
     const context = this.getOrCreate(honoContext)
     context.metadata[key] = value
   }
@@ -74,10 +70,7 @@ export class InterceptorContextManager {
   /**
    * Get metadata from the interceptor context
    */
-  static getMetadata<T = any>(
-    honoContext: Context,
-    key: string
-  ): T | undefined {
+  static getMetadata<T = any>(honoContext: Context, key: string): T | undefined {
     const context = this.retrieve(honoContext)
     return context?.metadata[key] as T
   }
@@ -121,11 +114,7 @@ export class InterceptorContextManager {
   /**
    * Record timing for an interceptor
    */
-  static recordTiming(
-    honoContext: Context,
-    interceptorName: string,
-    timeMs: number
-  ): void {
+  static recordTiming(honoContext: Context, interceptorName: string, timeMs: number): void {
     const context = this.getOrCreate(honoContext)
     context.metrics.interceptorTimings[interceptorName] = timeMs
   }
@@ -144,8 +133,8 @@ export class InterceptorContextManager {
   static getTotalTime(honoContext: Context): number | undefined {
     const context = this.retrieve(honoContext)
     if (!context) return undefined
-    
-    return context.metrics.totalTime || (Date.now() - context.startTime)
+
+    return context.metrics.totalTime || Date.now() - context.startTime
   }
 
   /**
@@ -174,12 +163,12 @@ export class InterceptorContextManager {
    */
   static createLogger(honoContext: Context) {
     const context = this.getOrCreate(honoContext)
-    
+
     return {
       debug: (message: string, data?: any) => this.log('debug', context, message, data),
       info: (message: string, data?: any) => this.log('info', context, message, data),
       warn: (message: string, data?: any) => this.log('warn', context, message, data),
-      error: (message: string, data?: any) => this.log('error', context, message, data),
+      error: (message: string, data?: any) => this.log('error', context, message, data)
     }
   }
 
@@ -206,15 +195,17 @@ export class InterceptorContextManager {
   /**
    * Get context summary for debugging
    */
-  static getSummary(honoContext: Context): {
-    requestId: string
-    totalTime: number
-    interceptorCount: number
-    cacheKeysCount: number
-    rateLimitKeysCount: number
-    hasUser: boolean
-    metadataKeys: string[]
-  } | undefined {
+  static getSummary(honoContext: Context):
+    | {
+        requestId: string
+        totalTime: number
+        interceptorCount: number
+        cacheKeysCount: number
+        rateLimitKeysCount: number
+        hasUser: boolean
+        metadataKeys: string[]
+      }
+    | undefined {
     const context = this.retrieve(honoContext)
     if (!context) return undefined
 
@@ -245,7 +236,7 @@ export class InterceptorContextManager {
         ip: context.security.ip.replace(/\d/g, '*'), // Mask IP for privacy
         userAgent: context.security.userAgent?.substring(0, 50) + '...', // Truncate UA
         rateLimitKeys: context.security.rateLimitKeys
-      },
+      }
       // Note: user and metadata are omitted for security
     }
   }
@@ -258,10 +249,10 @@ export function createContextMiddleware() {
   return async (context: Context, next: () => Promise<void>) => {
     // Create or get existing interceptor context
     InterceptorContextManager.getOrCreate(context)
-    
+
     // Continue with the request
     await next()
-    
+
     // Optional: Log context summary in development
     if (process.env.NODE_ENV === 'development') {
       const summary = InterceptorContextManager.getSummary(context)
@@ -284,7 +275,7 @@ export function withInterceptorContext<T>(
     console.warn('[InterceptorContext] No interceptor context found')
     return undefined
   }
-  
+
   return callback(interceptorContext)
 }
 

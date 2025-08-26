@@ -22,8 +22,7 @@ export default defineConfig({
       name: 'enforce-database-type-imports',
       load(id) {
         // Block direct imports of database runtime modules
-        if (id.includes('@promptliano/database/src/db') ||
-            id.includes('@promptliano/database/src/repositories')) {
+        if (id.includes('@promptliano/database/src/db') || id.includes('@promptliano/database/src/repositories')) {
           console.error(`🚫 BLOCKED: Direct import of database runtime module: ${id}`)
           console.error(`💡 Only import types from @promptliano/database in the client`)
           throw new Error(`Database runtime modules cannot be imported in client code: ${id}`)
@@ -36,7 +35,7 @@ export default defineConfig({
           const lines = code.split('\n')
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim()
-            
+
             // Check for non-type imports from database package
             const importMatch = line.match(/^import\s+(?!type\s).*from\s+['"`]@promptliano\/database['"`]/)
             if (importMatch) {
@@ -56,12 +55,14 @@ export default defineConfig({
       name: 'block-backend-packages',
       resolveId(id, importer) {
         // Aggressively block any attempt to import other backend packages
-        if (id.includes('@promptliano/storage') || 
-            id.includes('@promptliano/services') ||
-            id.includes('@promptliano/config') ||
-            id.includes('encryptionKeyStorage') ||
-            id.includes('crypto.ts') ||
-            id === '@swc/core') {
+        if (
+          id.includes('@promptliano/storage') ||
+          id.includes('@promptliano/services') ||
+          id.includes('@promptliano/config') ||
+          id.includes('encryptionKeyStorage') ||
+          id.includes('crypto.ts') ||
+          id === '@swc/core'
+        ) {
           console.warn(`🚫 BLOCKED backend import attempt: ${id} from ${importer}`)
           return { id: 'data:text/javascript,export default {}', external: false }
         }
@@ -86,10 +87,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: [
-      'fsevents', 
-      '@swc/core', 
-      '@promptliano/services', 
-      '@promptliano/storage', 
+      'fsevents',
+      '@swc/core',
+      '@promptliano/services',
+      '@promptliano/storage',
       '@promptliano/config',
       '@promptliano/database/src/db',
       '@promptliano/database/src/repositories'
@@ -105,11 +106,11 @@ export default defineConfig({
       },
       // Exclude test files from the build and native modules + ALL backend packages
       external: [
-        '**/*.test.ts', 
-        '**/*.test.tsx', 
-        '**/*.spec.ts', 
-        '**/*.spec.tsx', 
-        '**/tests/**', 
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
+        '**/tests/**',
         '**/__tests__/**',
         'fsevents',
         '@swc/core',

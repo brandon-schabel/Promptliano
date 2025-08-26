@@ -24,7 +24,7 @@
     "test:codegen": "playwright codegen http://localhost:5173",
     "test:report": "playwright show-report",
     "test:e2e:production": "bun run e2e/scripts/test-execution-coordinator.ts production",
-    "test:e2e:development": "bun run e2e/scripts/test-execution-coordinator.ts development", 
+    "test:e2e:development": "bun run e2e/scripts/test-execution-coordinator.ts development",
     "test:e2e:smoke": "bun run e2e/scripts/test-execution-coordinator.ts smoke",
     "test:e2e:suite": "bun run e2e/scripts/test-execution-coordinator.ts production && bun run e2e/scripts/test-execution-coordinator.ts ci",
     "test:e2e:comprehensive": "bun run e2e/scripts/test-execution-coordinator.ts production --headed",

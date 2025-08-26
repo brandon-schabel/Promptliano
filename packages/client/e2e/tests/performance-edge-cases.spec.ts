@@ -15,7 +15,7 @@ test.describe('Performance and Edge Case Tests', () => {
     appPage = new AppPage(page)
     projectsPage = new ProjectsPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -42,14 +42,14 @@ test.describe('Performance and Edge Case Tests', () => {
       // Load project
       await sidebarPage.navigateToSection('projects')
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
-      
+
       const loadTime = Date.now() - startTime
       expect(loadTime).toBeLessThan(10000) // Should load within 10 seconds
 
       // Navigate to project
       const navStartTime = Date.now()
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
-      
+
       const navTime = Date.now() - navStartTime
       expect(navTime).toBeLessThan(5000) // Should navigate within 5 seconds
 
@@ -62,10 +62,10 @@ test.describe('Performance and Edge Case Tests', () => {
       if (await searchInput.isVisible()) {
         const searchStartTime = Date.now()
         await searchInput.fill('test')
-        
+
         // Wait for search results
         await appPage.page.waitForTimeout(2000)
-        
+
         const searchTime = Date.now() - searchStartTime
         expect(searchTime).toBeLessThan(3000) // Search should complete within 3 seconds
       }
@@ -94,7 +94,7 @@ test.describe('Performance and Edge Case Tests', () => {
       // Try to expand nested directories
       const expandableItems = appPage.page.locator('[data-testid*="expand"], button[aria-expanded="false"]')
       const expandCount = await expandableItems.count()
-      
+
       if (expandCount > 0) {
         // Expand first few levels
         for (let i = 0; i < Math.min(3, expandCount); i++) {
@@ -112,9 +112,7 @@ test.describe('Performance and Edge Case Tests', () => {
     })
 
     test('should handle projects with mixed large and small files', async () => {
-      const testProject = await TestProjectHelpers.createTestProject(
-        TestProjectPresets.withVariousFileSizes()
-      )
+      const testProject = await TestProjectHelpers.createTestProject(TestProjectPresets.withVariousFileSizes())
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
@@ -127,7 +125,7 @@ test.describe('Performance and Edge Case Tests', () => {
       // Test file selection with various file sizes
       const fileItems = appPage.page.locator('[data-testid*="file-item"], [data-file-type]')
       const fileCount = await fileItems.count()
-      
+
       if (fileCount > 0) {
         // Select multiple files of different sizes
         for (let i = 0; i < Math.min(5, fileCount); i++) {
@@ -163,7 +161,7 @@ test.describe('Performance and Edge Case Tests', () => {
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
-      
+
       // Should be able to load project with special characters
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
       expect(await TestProjectHelpers.verifyProjectInApp(appPage.page, testProject)).toBe(true)
@@ -203,7 +201,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       await sidebarPage.navigateToSection('projects')
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, emptyProject)
-      
+
       expect(await TestProjectHelpers.verifyProjectInApp(appPage.page, emptyProject)).toBe(true)
       await TestProjectHelpers.openProjectInApp(appPage.page, emptyProject)
 
@@ -229,9 +227,7 @@ test.describe('Performance and Edge Case Tests', () => {
     })
 
     test('should handle projects with binary and media files', async () => {
-      const testProject = await TestProjectHelpers.createTestProject(
-        TestProjectPresets.withBinaryFiles()
-      )
+      const testProject = await TestProjectHelpers.createTestProject(TestProjectPresets.withBinaryFiles())
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
@@ -240,7 +236,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       // Verify binary files are handled properly
       const binaryFileTypes = ['.png', '.jpg', '.pdf', '.zip', '.exe']
-      
+
       for (const fileType of binaryFileTypes) {
         const binaryFile = appPage.page.locator(`text*="${fileType}"`).first()
         if (await binaryFile.isVisible({ timeout: 2000 })) {
@@ -326,7 +322,7 @@ test.describe('Performance and Edge Case Tests', () => {
         const project = projects[i % projects.length]
         await TestProjectHelpers.openProjectInApp(appPage.page, project)
         await appPage.page.waitForTimeout(100) // Brief pause
-        
+
         // Go back to projects list
         await sidebarPage.navigateToSection('projects')
         await appPage.page.waitForTimeout(100)
@@ -353,9 +349,12 @@ test.describe('Performance and Edge Case Tests', () => {
         const promises = []
         for (let i = 0; i < Math.min(10, fileCount); i++) {
           promises.push(
-            fileItems.nth(i).click().catch((error) => {
-              console.warn(`Concurrent selection error for file ${i}:`, error.message)
-            })
+            fileItems
+              .nth(i)
+              .click()
+              .catch((error) => {
+                console.warn(`Concurrent selection error for file ${i}:`, error.message)
+              })
           )
         }
 
@@ -406,7 +405,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       // Simulate network offline
       await appPage.page.context().setOffline(true)
-      
+
       // Try to perform operations while offline
       try {
         await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
@@ -417,7 +416,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       // Restore network
       await appPage.page.context().setOffline(false)
-      
+
       // Should be able to perform operations after network restoration
       await appPage.page.waitForTimeout(2000) // Allow reconnection
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
@@ -433,19 +432,19 @@ test.describe('Performance and Edge Case Tests', () => {
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
-      
+
       // Should handle loading corrupted project gracefully
       try {
         await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
-        
+
         // If it loads, verify error handling
         const errorMessages = appPage.page.locator('[data-testid*="error"], .error, [role="alert"]')
-        const hasErrors = await errorMessages.count() > 0
-        
+        const hasErrors = (await errorMessages.count()) > 0
+
         if (hasErrors) {
           console.log('Expected errors detected for corrupted project')
         }
-        
+
         expect(await appPage.isPageResponsive()).toBe(true)
       } catch (error) {
         // Expected behavior for corrupted projects
@@ -458,16 +457,12 @@ test.describe('Performance and Edge Case Tests', () => {
       const longName = 'a'.repeat(255) // Very long file name
       const testProject = await TestProjectHelpers.createTestProject({
         template: 'custom',
-        structure: [
-          `${longName}.txt`,
-          `directory_${'b'.repeat(100)}/nested_file.js`,
-          'normal-file.md'
-        ]
+        structure: [`${longName}.txt`, `directory_${'b'.repeat(100)}/nested_file.js`, 'normal-file.md']
       })
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
-      
+
       try {
         await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
         await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
@@ -488,7 +483,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       // Test different viewport sizes
       const viewportSizes = [
-        { width: 320, height: 568 },  // Mobile
+        { width: 320, height: 568 }, // Mobile
         { width: 768, height: 1024 }, // Tablet
         { width: 1920, height: 1080 } // Desktop
       ]
@@ -499,10 +494,10 @@ test.describe('Performance and Edge Case Tests', () => {
 
         await sidebarPage.navigateToSection('projects')
         await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
-        
+
         // Verify app is usable at this viewport size
         expect(await TestProjectHelpers.verifyProjectInApp(appPage.page, testProject)).toBe(true)
-        
+
         // Check if sidebar is responsive
         const sidebar = appPage.page.locator('[data-testid="app-sidebar"], [data-sidebar="sidebar"]')
         await expect(sidebar).toBeVisible({ timeout: 5000 })
@@ -530,7 +525,7 @@ test.describe('Performance and Edge Case Tests', () => {
 
       // Should restore state after refresh
       expect(await appPage.isPageResponsive()).toBe(true)
-      
+
       // Should still show project context
       const projectContext = appPage.page.locator('[data-testid*="project"], [data-context="project"]')
       if (await projectContext.isVisible({ timeout: 5000 })) {
@@ -549,7 +544,7 @@ test.describe('Performance and Edge Case Tests', () => {
       await appPage.goto('/')
       await appPage.waitForAppReady()
       const appLoadTime = Date.now() - appLoadStart
-      
+
       expect(appLoadTime).toBeLessThan(5000) // App should load within 5 seconds
 
       // Measure project loading time
@@ -604,7 +599,7 @@ test.describe('Performance and Edge Case Tests', () => {
       ]
 
       // Execute operations concurrently
-      await Promise.allSettled(operations.map(op => op()))
+      await Promise.allSettled(operations.map((op) => op()))
 
       // UI should remain responsive
       expect(await appPage.isPageResponsive()).toBe(true)

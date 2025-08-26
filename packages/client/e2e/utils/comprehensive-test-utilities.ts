@@ -1,6 +1,6 @@
 /**
  * Comprehensive Test Utilities for Master Test Coordination
- * 
+ *
  * This module provides a complete suite of utilities for coordinated test execution,
  * including performance measurement, visual testing, data validation, and debugging tools.
  */
@@ -104,12 +104,7 @@ export class ComprehensiveTestUtilities {
       measurePerformance?: boolean
     } = {}
   ): Promise<T> {
-    const {
-      timeout = 30000,
-      retryCount = 0,
-      takeScreenshot = false,
-      measurePerformance = false
-    } = options
+    const { timeout = 30000, retryCount = 0, takeScreenshot = false, measurePerformance = false } = options
 
     const startTime = Date.now()
     let result: T
@@ -145,7 +140,6 @@ export class ComprehensiveTestUtilities {
 
       console.log(`✅ Step completed: ${stepName} (${duration}ms)`)
       return result
-
     } catch (caughtError) {
       error = caughtError as Error
       const duration = Date.now() - startTime
@@ -291,7 +285,7 @@ export class ComprehensiveTestUtilities {
   private async getPerformanceMetrics(): Promise<PerformanceMetrics> {
     return await this.context.page.evaluate(() => {
       const data = (window as any).performanceData || { marks: new Map(), measures: new Map() }
-      
+
       return {
         pageLoadTime: performance.now(),
         firstContentfulPaint: 0,
@@ -377,14 +371,14 @@ export class ComprehensiveTestUtilities {
   ): Promise<void> {
     for (const viewport of viewports) {
       await this.executeStep(`Test responsive behavior: ${viewport.name}`, async () => {
-        await this.context.page.setViewportSize({ 
-          width: viewport.width, 
-          height: viewport.height 
+        await this.context.page.setViewportSize({
+          width: viewport.width,
+          height: viewport.height
         })
-        
+
         // Wait for responsive changes to settle
         await this.delay(500)
-        
+
         await testFn(viewport)
       })
     }
@@ -393,11 +387,13 @@ export class ComprehensiveTestUtilities {
   /**
    * Test accessibility compliance
    */
-  async testAccessibility(options: {
-    includeTags?: string[]
-    excludeTags?: string[]
-    element?: string
-  } = {}): Promise<any> {
+  async testAccessibility(
+    options: {
+      includeTags?: string[]
+      excludeTags?: string[]
+      element?: string
+    } = {}
+  ): Promise<any> {
     const { includeTags = [], excludeTags = [], element } = options
 
     // Inject axe-core for accessibility testing
@@ -405,12 +401,15 @@ export class ComprehensiveTestUtilities {
       url: 'https://unpkg.com/axe-core@4.6.3/axe.min.js'
     })
 
-    const results = await this.context.page.evaluate((testOptions) => {
-      return (window as any).axe.run(testOptions.element || document, {
-        tags: testOptions.includeTags,
-        exclude: testOptions.excludeTags
-      })
-    }, { includeTags, excludeTags, element })
+    const results = await this.context.page.evaluate(
+      (testOptions) => {
+        return (window as any).axe.run(testOptions.element || document, {
+          tags: testOptions.includeTags,
+          exclude: testOptions.excludeTags
+        })
+      },
+      { includeTags, excludeTags, element }
+    )
 
     // Assert no violations
     if (results.violations.length > 0) {
@@ -430,7 +429,7 @@ export class ComprehensiveTestUtilities {
     keys: string[] = ['Tab']
   ): Promise<void> {
     await this.context.page.locator(startElement).focus()
-    
+
     for (let i = 0; i < expectedElements.length; i++) {
       await this.context.page.keyboard.press(keys[0])
       await expect(this.context.page.locator(expectedElements[i])).toBeFocused()
@@ -449,10 +448,10 @@ export class ComprehensiveTestUtilities {
     } = {}
   ): Promise<Locator> {
     const { state = 'visible', timeout = 30000, retryInterval = 1000 } = options
-    
+
     const element = this.context.page.locator(selector)
     await element.waitFor({ state, timeout })
-    
+
     return element
   }
 
@@ -471,9 +470,9 @@ export class ComprehensiveTestUtilities {
 
     for (const [fieldName, value] of Object.entries(formData)) {
       const field = this.context.page.locator(`[name="${fieldName}"]`)
-      
+
       await field.fill(value.toString())
-      
+
       if (validateOnBlur) {
         await field.blur()
         // Wait a brief moment for validation to trigger
@@ -482,10 +481,10 @@ export class ComprehensiveTestUtilities {
     }
 
     if (submitAfterFill) {
-      const submitButton = formSelector 
+      const submitButton = formSelector
         ? this.context.page.locator(`${formSelector} [type="submit"]`)
         : this.context.page.locator('[type="submit"]')
-      
+
       await submitButton.click()
     }
   }
@@ -525,12 +524,7 @@ export class ComprehensiveTestUtilities {
       onRetry?: (attempt: number, error: Error) => void
     } = {}
   ): Promise<T> {
-    const {
-      maxRetries = 3,
-      retryDelay = 1000,
-      retryCondition = () => true,
-      onRetry = () => {}
-    } = options
+    const { maxRetries = 3, retryDelay = 1000, retryCondition = () => true, onRetry = () => {} } = options
 
     let lastError: Error
 
@@ -546,7 +540,7 @@ export class ComprehensiveTestUtilities {
 
         onRetry(attempt, lastError)
         console.log(`🔄 Retry attempt ${attempt}/${maxRetries}: ${lastError.message}`)
-        
+
         // Exponential backoff
         await this.delay(retryDelay * Math.pow(2, attempt - 1))
       }
@@ -561,22 +555,19 @@ export class ComprehensiveTestUtilities {
   private async takeStepScreenshot(stepName: string, status: 'success' | 'error'): Promise<string> {
     const filename = `step-${stepName.replace(/\s+/g, '-')}-${status}-${Date.now()}.png`
     const screenshotPath = `test-results/${this.context.testInfo.testId}/${filename}`
-    
-    await this.context.page.screenshot({ 
+
+    await this.context.page.screenshot({
       path: screenshotPath,
-      fullPage: true 
+      fullPage: true
     })
-    
+
     return screenshotPath
   }
 
   /**
    * Execute operation with timeout
    */
-  private async executeWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeout: number
-  ): Promise<T> {
+  private async executeWithTimeout<T>(operation: () => Promise<T>, timeout: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeout}ms`))
@@ -593,7 +584,7 @@ export class ComprehensiveTestUtilities {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**
@@ -608,14 +599,10 @@ export class ComprehensiveTestUtilities {
     averageStepTime: number
   } {
     const duration = Date.now() - this.context.startTime
-    const successfulSteps = this.context.steps.filter(s => s.success).length
-    const successRate = this.context.steps.length > 0 
-      ? (successfulSteps / this.context.steps.length) * 100 
-      : 0
+    const successfulSteps = this.context.steps.filter((s) => s.success).length
+    const successRate = this.context.steps.length > 0 ? (successfulSteps / this.context.steps.length) * 100 : 0
     const totalOperationTime = this.context.steps.reduce((sum, s) => sum + s.duration, 0)
-    const averageStepTime = this.context.steps.length > 0 
-      ? totalOperationTime / this.context.steps.length 
-      : 0
+    const averageStepTime = this.context.steps.length > 0 ? totalOperationTime / this.context.steps.length : 0
 
     return {
       testInfo: this.context.testInfo,
@@ -646,13 +633,13 @@ export const TestUtilities = {
   async waitForToast(page: Page, message?: string, timeout = 5000): Promise<Locator> {
     const toastSelector = '[data-sonner-toast]'
     const toast = page.locator(toastSelector).first()
-    
+
     await toast.waitFor({ state: 'visible', timeout })
-    
+
     if (message) {
       await expect(toast).toContainText(message)
     }
-    
+
     return toast
   },
 
@@ -661,16 +648,11 @@ export const TestUtilities = {
    */
   async waitForLoadingComplete(page: Page, timeout = 10000): Promise<void> {
     // Wait for common loading indicators to disappear
-    const loadingSelectors = [
-      '[data-testid="loading"]',
-      '.spinner',
-      '.loading',
-      '[aria-label*="loading"]'
-    ]
+    const loadingSelectors = ['[data-testid="loading"]', '.spinner', '.loading', '[aria-label*="loading"]']
 
     for (const selector of loadingSelectors) {
       const loadingElement = page.locator(selector)
-      if (await loadingElement.count() > 0) {
+      if ((await loadingElement.count()) > 0) {
         await loadingElement.waitFor({ state: 'hidden', timeout })
       }
     }
@@ -687,7 +669,7 @@ export const TestUtilities = {
       localStorage.clear()
       sessionStorage.clear()
     })
-    
+
     // Clear cookies
     await page.context().clearCookies()
   },
@@ -711,6 +693,10 @@ export const TestUtilities = {
     url: (path = '') => `https://test-${Date.now()}.example.com${path}`,
     uuid: () => crypto.randomUUID(),
     name: () => `Test User ${Date.now()}`,
-    text: (length = 10) => Array(length).fill(0).map(() => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('')
+    text: (length = 10) =>
+      Array(length)
+        .fill(0)
+        .map(() => String.fromCharCode(97 + Math.floor(Math.random() * 26)))
+        .join('')
   }
 }

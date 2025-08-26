@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR CLAUDECOMMAND
  * Generated at: 2025-08-22T23:50:50.384Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { claudecommandServiceV2 } from '@promptliano/services'
-import {
-  ClaudeCommandSchema,
-  CreateClaudeCommandSchema,
-  UpdateClaudeCommandSchema
-} from '@promptliano/database'
+import { ClaudeCommandSchema, CreateClaudeCommandSchema, UpdateClaudeCommandSchema } from '@promptliano/database'
 import {
   ClaudeCommandIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -66,9 +62,9 @@ const claudecommandConfig: EntityConfig = {
  */
 export function registerClaudeCommandRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, claudecommandConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for ClaudeCommand`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +77,7 @@ export const claudecommandRoutes = {
   list: `GET /api/claudecommands`,
   get: `GET /api/claudecommands/{id}`,
   update: `PUT /api/claudecommands/{id}`,
-  delete: `DELETE /api/claudecommands/{id}`,
+  delete: `DELETE /api/claudecommands/{id}`
 } as const
 
 export type ClaudeCommandRouteTypes = typeof claudecommandRoutes

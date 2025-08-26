@@ -21,9 +21,7 @@ describe('error-handlers', () => {
       try {
         schema.parse({ name: '', age: -5 })
       } catch (error) {
-        expect(() => 
-          handleValidationError(error, 'User', 'creating')
-        ).toThrow(ApiError)
+        expect(() => handleValidationError(error, 'User', 'creating')).toThrow(ApiError)
 
         try {
           handleValidationError(error, 'User', 'creating')
@@ -38,9 +36,7 @@ describe('error-handlers', () => {
     })
 
     test('handles ZodError with additional context', () => {
-      const zodError = new ZodError([
-        { path: ['email'], message: 'Invalid email', code: 'invalid_string' }
-      ])
+      const zodError = new ZodError([{ path: ['email'], message: 'Invalid email', code: 'invalid_string' }])
 
       try {
         handleValidationError(zodError, 'Account', 'updating', { id: 123 })
@@ -63,14 +59,12 @@ describe('error-handlers', () => {
     test('rethrows non-ZodError errors', () => {
       const customError = new Error('Custom error')
 
-      expect(() => 
-        handleValidationError(customError, 'User', 'creating')
-      ).toThrow('Custom error')
+      expect(() => handleValidationError(customError, 'User', 'creating')).toThrow('Custom error')
     })
 
     test('never returns (type safety)', () => {
       const zodError = new ZodError([])
-      
+
       // This should never execute past the error handler
       let executed = false
       try {
@@ -79,16 +73,14 @@ describe('error-handlers', () => {
       } catch {
         // Expected
       }
-      
+
       expect(executed).toBe(false)
     })
   })
 
   describe('throwNotFound', () => {
     test('throws ApiError with 404 status', () => {
-      expect(() => 
-        throwNotFound('User', 123)
-      ).toThrow(ApiError)
+      expect(() => throwNotFound('User', 123)).toThrow(ApiError)
 
       try {
         throwNotFound('User', 123)
@@ -147,16 +139,14 @@ describe('error-handlers', () => {
     })
 
     test('handles ZodError with validation', async () => {
-      const zodError = new ZodError([
-        { path: ['name'], message: 'Required', code: 'invalid_type' }
-      ])
+      const zodError = new ZodError([{ path: ['name'], message: 'Required', code: 'invalid_type' }])
       const method = mock(async () => {
         throw zodError
       })
       const wrapped = withErrorHandling(method, 'User', 'creating')
 
       await expect(wrapped()).rejects.toThrow(ApiError)
-      
+
       try {
         await wrapped()
       } catch (error) {
@@ -198,10 +188,8 @@ describe('error-handlers', () => {
 
     test('creates handleCreate handler', () => {
       const zodError = new ZodError([])
-      
-      expect(() => 
-        handlers.handleCreate(zodError, { name: 'Test' })
-      ).toThrow(ApiError)
+
+      expect(() => handlers.handleCreate(zodError, { name: 'Test' })).toThrow(ApiError)
 
       try {
         handlers.handleCreate(zodError, { name: 'Test' })
@@ -212,32 +200,24 @@ describe('error-handlers', () => {
 
     test('creates handleUpdate handler', () => {
       const zodError = new ZodError([])
-      
-      expect(() => 
-        handlers.handleUpdate(zodError, 123, { name: 'Updated' })
-      ).toThrow(ApiError)
+
+      expect(() => handlers.handleUpdate(zodError, 123, { name: 'Updated' })).toThrow(ApiError)
     })
 
     test('creates handleDelete handler', () => {
       const error = new Error('Delete failed')
-      
-      expect(() => 
-        handlers.handleDelete(error, 456)
-      ).toThrow('Delete failed')
+
+      expect(() => handlers.handleDelete(error, 456)).toThrow('Delete failed')
     })
 
     test('creates handleGet handler', () => {
       const zodError = new ZodError([])
-      
-      expect(() => 
-        handlers.handleGet(zodError, 'abc')
-      ).toThrow(ApiError)
+
+      expect(() => handlers.handleGet(zodError, 'abc')).toThrow(ApiError)
     })
 
     test('creates notFound handler', () => {
-      expect(() => 
-        handlers.notFound(999)
-      ).toThrow(ApiError)
+      expect(() => handlers.notFound(999)).toThrow(ApiError)
 
       try {
         handlers.notFound(999)
@@ -249,7 +229,7 @@ describe('error-handlers', () => {
 
     test('handles entity names with spaces', () => {
       const handlers = createCrudErrorHandlers('Order Item')
-      
+
       try {
         handlers.notFound(123)
       } catch (error) {
@@ -260,9 +240,7 @@ describe('error-handlers', () => {
 
   describe('throwApiError', () => {
     test('throws ApiError with provided parameters', () => {
-      expect(() => 
-        throwApiError(403, 'Forbidden', 'FORBIDDEN', { userId: 123 })
-      ).toThrow(ApiError)
+      expect(() => throwApiError(403, 'Forbidden', 'FORBIDDEN', { userId: 123 })).toThrow(ApiError)
 
       try {
         throwApiError(403, 'Forbidden', 'FORBIDDEN', { userId: 123 })
@@ -291,7 +269,7 @@ describe('error-handlers', () => {
       } catch {
         // Expected
       }
-      
+
       expect(executed).toBe(false)
     })
   })
@@ -299,7 +277,7 @@ describe('error-handlers', () => {
   describe('safeAsync', () => {
     test('returns result on successful operation', async () => {
       const operation = mock(async () => 'success')
-      
+
       const result = await safeAsync(operation, {
         entityName: 'User',
         action: 'creating'
@@ -324,9 +302,7 @@ describe('error-handlers', () => {
     })
 
     test('handles ZodError with validation', async () => {
-      const zodError = new ZodError([
-        { path: ['email'], message: 'Invalid', code: 'invalid_string' }
-      ])
+      const zodError = new ZodError([{ path: ['email'], message: 'Invalid', code: 'invalid_string' }])
       const operation = mock(async () => {
         throw zodError
       })
@@ -417,7 +393,7 @@ describe('error-handlers', () => {
 
     test('preserves operation return type', async () => {
       const operation = async () => ({ id: 1, name: 'Test' })
-      
+
       const result = await safeAsync(operation, {
         entityName: 'User',
         action: 'fetching'

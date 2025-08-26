@@ -14,75 +14,83 @@ import {
 export const GlobalInterceptorConfigSchema = z.object({
   /** Whether the interceptor system is enabled */
   enabled: z.boolean().default(true),
-  
+
   /** Global chain configuration */
   chain: InterceptorChainConfigSchema.optional(),
-  
+
   /** Global configuration for built-in interceptors */
-  interceptors: z.object({
-    /** Authentication interceptor config */
-    auth: AuthInterceptorConfigSchema.optional(),
-    
-    /** Logging interceptor config */
-    logging: LoggingInterceptorConfigSchema.optional(),
-    
-    /** Rate limiting interceptor config */
-    rateLimit: RateLimitInterceptorConfigSchema.optional(),
-    
-    /** Caching interceptor config */
-    cache: CacheInterceptorConfigSchema.optional(),
-  }).optional(),
-  
+  interceptors: z
+    .object({
+      /** Authentication interceptor config */
+      auth: AuthInterceptorConfigSchema.optional(),
+
+      /** Logging interceptor config */
+      logging: LoggingInterceptorConfigSchema.optional(),
+
+      /** Rate limiting interceptor config */
+      rateLimit: RateLimitInterceptorConfigSchema.optional(),
+
+      /** Caching interceptor config */
+      cache: CacheInterceptorConfigSchema.optional()
+    })
+    .optional(),
+
   /** Route-specific interceptor configurations */
-  routes: z.record(
-    z.string(), // Route pattern
-    z.object({
-      /** Override enabled state for specific interceptors */
-      enabled: z.record(z.string(), z.boolean()).optional(),
-      
-      /** Route-specific interceptor configurations */
-      config: z.record(z.string(), z.any()).optional(),
-      
-      /** Additional interceptors to apply only to this route */
-      additional: z.array(InterceptorConfigSchema).optional(),
-    })
-  ).optional(),
-  
+  routes: z
+    .record(
+      z.string(), // Route pattern
+      z.object({
+        /** Override enabled state for specific interceptors */
+        enabled: z.record(z.string(), z.boolean()).optional(),
+
+        /** Route-specific interceptor configurations */
+        config: z.record(z.string(), z.any()).optional(),
+
+        /** Additional interceptors to apply only to this route */
+        additional: z.array(InterceptorConfigSchema).optional()
+      })
+    )
+    .optional(),
+
   /** Environment-specific overrides */
-  environments: z.record(
-    z.string(), // Environment name (development, production, etc.)
-    z.object({
-      /** Override global enabled state */
-      enabled: z.boolean().optional(),
-      
-      /** Override chain configuration */
-      chain: InterceptorChainConfigSchema.partial().optional(),
-      
-      /** Override interceptor configurations */
-      interceptors: z.record(z.string(), z.any()).optional(),
-    })
-  ).optional(),
-  
+  environments: z
+    .record(
+      z.string(), // Environment name (development, production, etc.)
+      z.object({
+        /** Override global enabled state */
+        enabled: z.boolean().optional(),
+
+        /** Override chain configuration */
+        chain: InterceptorChainConfigSchema.partial().optional(),
+
+        /** Override interceptor configurations */
+        interceptors: z.record(z.string(), z.any()).optional()
+      })
+    )
+    .optional(),
+
   /** Performance and monitoring settings */
-  monitoring: z.object({
-    /** Enable performance metrics collection */
-    enableMetrics: z.boolean().default(true),
-    
-    /** Enable detailed logging */
-    enableLogging: z.boolean().default(false),
-    
-    /** Metrics collection interval in milliseconds */
-    metricsInterval: z.number().int().positive().default(60000),
-    
-    /** Maximum number of metrics to keep in memory */
-    maxMetricsHistory: z.number().int().positive().default(1000),
-    
-    /** Whether to log slow interceptors */
-    logSlowInterceptors: z.boolean().default(true),
-    
-    /** Threshold for slow interceptor logging in milliseconds */
-    slowInterceptorThreshold: z.number().int().positive().default(100),
-  }).optional(),
+  monitoring: z
+    .object({
+      /** Enable performance metrics collection */
+      enableMetrics: z.boolean().default(true),
+
+      /** Enable detailed logging */
+      enableLogging: z.boolean().default(false),
+
+      /** Metrics collection interval in milliseconds */
+      metricsInterval: z.number().int().positive().default(60000),
+
+      /** Maximum number of metrics to keep in memory */
+      maxMetricsHistory: z.number().int().positive().default(1000),
+
+      /** Whether to log slow interceptors */
+      logSlowInterceptors: z.boolean().default(true),
+
+      /** Threshold for slow interceptor logging in milliseconds */
+      slowInterceptorThreshold: z.number().int().positive().default(100)
+    })
+    .optional()
 })
 
 export type GlobalInterceptorConfig = z.infer<typeof GlobalInterceptorConfigSchema>
@@ -93,36 +101,38 @@ export type GlobalInterceptorConfig = z.infer<typeof GlobalInterceptorConfigSche
 export const InterceptorDefinitionSchema = z.object({
   /** Interceptor configuration */
   config: InterceptorConfigSchema,
-  
+
   /** Source of this interceptor (built-in, plugin, custom) */
   source: z.enum(['built-in', 'plugin', 'custom']).default('custom'),
-  
+
   /** Version of the interceptor */
   version: z.string().optional(),
-  
+
   /** Description of what this interceptor does */
   description: z.string().optional(),
-  
+
   /** Author/maintainer information */
   author: z.string().optional(),
-  
+
   /** Whether this interceptor requires specific dependencies */
   requiredDependencies: z.array(z.string()).optional(),
-  
+
   /** Performance characteristics */
-  performance: z.object({
-    /** Expected average execution time in milliseconds */
-    averageExecutionTime: z.number().optional(),
-    
-    /** Maximum execution time in milliseconds */
-    maxExecutionTime: z.number().optional(),
-    
-    /** Memory usage characteristics */
-    memoryUsage: z.enum(['low', 'medium', 'high']).optional(),
-    
-    /** CPU usage characteristics */
-    cpuUsage: z.enum(['low', 'medium', 'high']).optional(),
-  }).optional(),
+  performance: z
+    .object({
+      /** Expected average execution time in milliseconds */
+      averageExecutionTime: z.number().optional(),
+
+      /** Maximum execution time in milliseconds */
+      maxExecutionTime: z.number().optional(),
+
+      /** Memory usage characteristics */
+      memoryUsage: z.enum(['low', 'medium', 'high']).optional(),
+
+      /** CPU usage characteristics */
+      cpuUsage: z.enum(['low', 'medium', 'high']).optional()
+    })
+    .optional()
 })
 
 export type InterceptorDefinition = z.infer<typeof InterceptorDefinitionSchema>
@@ -216,14 +226,16 @@ export class InterceptorConfigLoader {
    * Get monitoring configuration
    */
   getMonitoringConfig(): NonNullable<GlobalInterceptorConfig['monitoring']> {
-    return this.config.monitoring || {
-      enableMetrics: true,
-      enableLogging: false,
-      metricsInterval: 60000,
-      maxMetricsHistory: 1000,
-      logSlowInterceptors: true,
-      slowInterceptorThreshold: 100
-    }
+    return (
+      this.config.monitoring || {
+        enableMetrics: true,
+        enableLogging: false,
+        metricsInterval: 60000,
+        maxMetricsHistory: 1000,
+        logSlowInterceptors: true,
+        slowInterceptorThreshold: 100
+      }
+    )
   }
 
   /**
@@ -267,7 +279,7 @@ export class InterceptorConfigLoader {
       if (error instanceof z.ZodError) {
         return {
           valid: false,
-          errors: error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`)
+          errors: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`)
         }
       }
       return {
@@ -314,17 +326,13 @@ export class InterceptorConfigLoader {
    */
   getMatchingRoutePatterns(route: string): string[] {
     const routePatterns = Object.keys(this.config.routes || {})
-    return routePatterns.filter(pattern => this.matchesRoutePattern(route, pattern))
+    return routePatterns.filter((pattern) => this.matchesRoutePattern(route, pattern))
   }
 
   /**
    * Merge configurations with priority order
    */
-  mergeConfigurations<T>(
-    globalConfig: T | undefined,
-    routeConfig: T | undefined,
-    defaults: T
-  ): T {
+  mergeConfigurations<T>(globalConfig: T | undefined, routeConfig: T | undefined, defaults: T): T {
     return {
       ...defaults,
       ...globalConfig,
@@ -440,24 +448,24 @@ export function createInterceptorConfig(
  */
 export function loadConfigFromEnv(): InterceptorConfigLoader {
   const environment = process.env.NODE_ENV || 'development'
-  
+
   const envConfig: Partial<GlobalInterceptorConfig> = {}
-  
+
   // Only apply env overrides if explicitly set
   if (process.env.INTERCEPTORS_ENABLED !== undefined) {
     envConfig.enabled = process.env.INTERCEPTORS_ENABLED !== 'false'
   }
-  
-  if (process.env.INTERCEPTORS_LOG_ENABLED !== undefined || 
-      process.env.INTERCEPTORS_METRICS_ENABLED !== undefined ||
-      process.env.INTERCEPTORS_TIMEOUT_MS !== undefined) {
+
+  if (
+    process.env.INTERCEPTORS_LOG_ENABLED !== undefined ||
+    process.env.INTERCEPTORS_METRICS_ENABLED !== undefined ||
+    process.env.INTERCEPTORS_TIMEOUT_MS !== undefined
+  ) {
     envConfig.chain = {
       continueOnError: false,
       enableLogging: process.env.INTERCEPTORS_LOG_ENABLED === 'true',
       enableMetrics: process.env.INTERCEPTORS_METRICS_ENABLED !== 'false',
-      timeoutMs: process.env.INTERCEPTORS_TIMEOUT_MS 
-        ? parseInt(process.env.INTERCEPTORS_TIMEOUT_MS, 10) 
-        : 30000
+      timeoutMs: process.env.INTERCEPTORS_TIMEOUT_MS ? parseInt(process.env.INTERCEPTORS_TIMEOUT_MS, 10) : 30000
     }
   }
 
@@ -467,9 +475,11 @@ export function loadConfigFromEnv(): InterceptorConfigLoader {
 /**
  * Validate interceptor definition against schema
  */
-export function validateInterceptorDefinition(
-  definition: unknown
-): { valid: boolean; data?: InterceptorDefinition; errors?: string[] } {
+export function validateInterceptorDefinition(definition: unknown): {
+  valid: boolean
+  data?: InterceptorDefinition
+  errors?: string[]
+} {
   try {
     const data = InterceptorDefinitionSchema.parse(definition)
     return { valid: true, data }
@@ -477,7 +487,7 @@ export function validateInterceptorDefinition(
     if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`)
+        errors: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       }
     }
     return {

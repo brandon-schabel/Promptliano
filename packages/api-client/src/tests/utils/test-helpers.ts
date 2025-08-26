@@ -10,13 +10,16 @@ export const assertions = {
   /**
    * Asserts that an API response has the expected success structure
    */
-  assertSuccessResponse<T>(response: any, expectedDataShape?: Partial<T>): asserts response is { success: true; data: T } {
+  assertSuccessResponse<T>(
+    response: any,
+    expectedDataShape?: Partial<T>
+  ): asserts response is { success: true; data: T } {
     expect(response).toBeDefined()
     expect(response.success).toBe(true)
     expect(response.data).toBeDefined()
-    
+
     if (expectedDataShape) {
-      Object.keys(expectedDataShape).forEach(key => {
+      Object.keys(expectedDataShape).forEach((key) => {
         expect(response.data).toHaveProperty(key)
       })
     }
@@ -32,13 +35,17 @@ export const assertions = {
   /**
    * Asserts that an API response has the expected error structure
    */
-  assertErrorResponse(response: any, expectedStatus?: number, expectedCode?: string): asserts response is { success: false; error: any } {
+  assertErrorResponse(
+    response: any,
+    expectedStatus?: number,
+    expectedCode?: string
+  ): asserts response is { success: false; error: any } {
     expect(response).toBeDefined()
     expect(response.success).toBe(false)
     expect(response.error).toBeDefined()
     expect(response.error.message).toBeDefined()
     expect(typeof response.error.message).toBe('string')
-    
+
     if (expectedCode) {
       expect(response.error.code).toBe(expectedCode)
     }
@@ -68,9 +75,9 @@ export const assertions = {
   assertArrayOfItems<T>(array: any, minLength = 0, itemShape?: Partial<T>): asserts array is T[] {
     expect(Array.isArray(array)).toBe(true)
     expect(array.length).toBeGreaterThanOrEqual(minLength)
-    
+
     if (itemShape && array.length > 0) {
-      Object.keys(itemShape).forEach(key => {
+      Object.keys(itemShape).forEach((key) => {
         expect(array[0]).toHaveProperty(key)
       })
     }
@@ -186,13 +193,11 @@ export const assertions = {
     expect(stats.inProgressItems).toBeTypeOf('number')
     expect(stats.completedItems).toBeTypeOf('number')
     expect(stats.failedItems).toBeTypeOf('number')
-    
+
     if (stats.estimatedCompletionTime !== undefined) {
       expect(stats.estimatedCompletionTime).toBeTypeOf('number')
     }
-  },
-
-
+  }
 }
 
 /**
@@ -202,11 +207,13 @@ export const factories = {
   /**
    * Creates test project data
    */
-  createProjectData(overrides: Partial<{
-    name: string
-    description: string
-    path: string
-  }> = {}) {
+  createProjectData(
+    overrides: Partial<{
+      name: string
+      description: string
+      path: string
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       name: `Test Project ${timestamp}`,
@@ -219,10 +226,12 @@ export const factories = {
   /**
    * Creates test chat data
    */
-  createChatData(overrides: Partial<{
-    title: string
-    projectId: number
-  }> = {}) {
+  createChatData(
+    overrides: Partial<{
+      title: string
+      projectId: number
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       title: `Test Chat ${timestamp}`,
@@ -233,12 +242,14 @@ export const factories = {
   /**
    * Creates test ticket data
    */
-  createTicketData(overrides: Partial<{
-    title: string
-    overview: string
-    projectId: number
-    priority: string
-  }> = {}) {
+  createTicketData(
+    overrides: Partial<{
+      title: string
+      overview: string
+      projectId: number
+      priority: string
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       title: `Test Ticket ${timestamp}`,
@@ -251,11 +262,13 @@ export const factories = {
   /**
    * Creates test prompt data
    */
-  createPromptData(overrides: Partial<{
-    title: string
-    content: string
-    projectId: number
-  }> = {}) {
+  createPromptData(
+    overrides: Partial<{
+      title: string
+      content: string
+      projectId: number
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       title: `Test Prompt ${timestamp}`,
@@ -267,11 +280,13 @@ export const factories = {
   /**
    * Creates test provider key data
    */
-  createProviderKeyData(overrides: Partial<{
-    provider: string
-    keyValue: string
-    name: string
-  }> = {}) {
+  createProviderKeyData(
+    overrides: Partial<{
+      provider: string
+      keyValue: string
+      name: string
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       provider: 'openai',
@@ -284,12 +299,14 @@ export const factories = {
   /**
    * Creates test queue data
    */
-  createQueueData(overrides: Partial<{
-    name: string
-    description: string
-    maxParallelItems: number
-    priority: number
-  }> = {}) {
+  createQueueData(
+    overrides: Partial<{
+      name: string
+      description: string
+      maxParallelItems: number
+      priority: number
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       name: `Test Queue ${timestamp}`,
@@ -303,13 +320,15 @@ export const factories = {
   /**
    * Creates test task data
    */
-  createTaskData(overrides: Partial<{
-    content: string
-    description: string
-    estimatedHours: number
-    tags: string[]
-    priority: number
-  }> = {}) {
+  createTaskData(
+    overrides: Partial<{
+      content: string
+      description: string
+      estimatedHours: number
+      tags: string[]
+      priority: number
+    }> = {}
+  ) {
     const timestamp = Date.now()
     return {
       content: `Test Task ${timestamp}`,
@@ -324,19 +343,20 @@ export const factories = {
   /**
    * Creates enqueue item data
    */
-  createEnqueueItemData(overrides: Partial<{
-    type: 'ticket' | 'task'
-    itemId: number
-    priority: number
-  }> = {}) {
+  createEnqueueItemData(
+    overrides: Partial<{
+      type: 'ticket' | 'task'
+      itemId: number
+      priority: number
+    }> = {}
+  ) {
     return {
       type: 'ticket' as const,
       itemId: 1,
       priority: 5,
       ...overrides
     }
-  },
-
+  }
 }
 
 /**
@@ -354,11 +374,7 @@ export class TestDataManager {
   /**
    * Tracks an entity for cleanup
    */
-  track<T extends { id: number }>(
-    type: string,
-    entity: T,
-    deleteFunction: () => Promise<void>
-  ): T {
+  track<T extends { id: number }>(type: string, entity: T, deleteFunction: () => Promise<void>): T {
     this.createdEntities.push({
       type,
       id: entity.id,
@@ -373,7 +389,7 @@ export class TestDataManager {
   async createProject(data = factories.createProjectData()) {
     const result = await this.client.projects.createProject(data)
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('project', result.data, async () => {
       try {
         await this.client.projects.deleteProject(result.data.id)
@@ -412,7 +428,7 @@ export class TestDataManager {
   async createChat(data = factories.createChatData()) {
     const result = await this.client.chats.createChat(data)
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('chat', result.data, async () => {
       try {
         await this.client.chats.deleteChat(result.data.id)
@@ -430,7 +446,7 @@ export class TestDataManager {
   async createTicket(data = factories.createTicketData()) {
     const result = await this.client.tickets.createTicket(data)
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('ticket', result.data, async () => {
       try {
         await this.client.tickets.deleteTicket(result.data.id)
@@ -448,7 +464,7 @@ export class TestDataManager {
   async createQueue(projectId: number, data = factories.createQueueData()) {
     const result = await this.client.queues.createQueue(projectId, data)
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('queue', result.data, async () => {
       try {
         await this.client.queues.deleteQueue(result.data.id)
@@ -466,7 +482,7 @@ export class TestDataManager {
   async createTask(ticketId: number, data = factories.createTaskData()) {
     const result = await this.client.tickets.createTask(ticketId, data)
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('task', result.data, async () => {
       try {
         await this.client.tickets.deleteTask(ticketId, result.data.id)
@@ -497,7 +513,6 @@ export class TestDataManager {
     return command
   }
 
-
   /**
    * Creates and tracks a prompt
    */
@@ -507,7 +522,7 @@ export class TestDataManager {
       content
     })
     assertions.assertSuccessResponse(result)
-    
+
     return this.track('prompt', result.data, async () => {
       try {
         await this.client.prompts.deletePrompt(result.data.id)
@@ -530,8 +545,8 @@ export class TestDataManager {
    * Convenience method for creating test projects
    */
   async createTestProject(name: string, description?: string) {
-    return this.createProject({ 
-      name, 
+    return this.createProject({
+      name,
       description: description || `Test project: ${name}`,
       path: `/tmp/test-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`
     })
@@ -543,42 +558,58 @@ export class TestDataManager {
   async createFlowTestData() {
     // Create project first
     const project = await this.createProject()
-    
+
     // Create tickets with proper projectId
-    const ticket1 = await this.createTicket(factories.createTicketData({ 
-      projectId: project.id,
-      title: 'Flow Test Ticket 1',
-      priority: 'high'
-    }))
-    
-    const ticket2 = await this.createTicket(factories.createTicketData({ 
-      projectId: project.id,
-      title: 'Flow Test Ticket 2',
-      priority: 'normal'
-    }))
-    
+    const ticket1 = await this.createTicket(
+      factories.createTicketData({
+        projectId: project.id,
+        title: 'Flow Test Ticket 1',
+        priority: 'high'
+      })
+    )
+
+    const ticket2 = await this.createTicket(
+      factories.createTicketData({
+        projectId: project.id,
+        title: 'Flow Test Ticket 2',
+        priority: 'normal'
+      })
+    )
+
     // Create tasks for tickets
-    const task1 = await this.createTask(ticket1.id, factories.createTaskData({
-      content: 'Task 1 for Ticket 1',
-      estimatedHours: 3
-    }))
-    
-    const task2 = await this.createTask(ticket1.id, factories.createTaskData({
-      content: 'Task 2 for Ticket 1',
-      estimatedHours: 1
-    }))
-    
-    const task3 = await this.createTask(ticket2.id, factories.createTaskData({
-      content: 'Task 1 for Ticket 2',
-      estimatedHours: 2
-    }))
-    
+    const task1 = await this.createTask(
+      ticket1.id,
+      factories.createTaskData({
+        content: 'Task 1 for Ticket 1',
+        estimatedHours: 3
+      })
+    )
+
+    const task2 = await this.createTask(
+      ticket1.id,
+      factories.createTaskData({
+        content: 'Task 2 for Ticket 1',
+        estimatedHours: 1
+      })
+    )
+
+    const task3 = await this.createTask(
+      ticket2.id,
+      factories.createTaskData({
+        content: 'Task 1 for Ticket 2',
+        estimatedHours: 2
+      })
+    )
+
     // Create queue
-    const queue = await this.createQueue(project.id, factories.createQueueData({
-      name: 'Flow Test Queue',
-      maxParallelItems: 2
-    }))
-    
+    const queue = await this.createQueue(
+      project.id,
+      factories.createQueueData({
+        name: 'Flow Test Queue',
+        maxParallelItems: 2
+      })
+    )
+
     return {
       project,
       tickets: [ticket1, ticket2],
@@ -636,12 +667,7 @@ export async function retryOperation<T>(
     shouldRetry?: (error: any) => boolean
   } = {}
 ): Promise<T> {
-  const {
-    maxRetries = 3,
-    delay = 1000,
-    backoff = true,
-    shouldRetry = () => true
-  } = options
+  const { maxRetries = 3, delay = 1000, backoff = true, shouldRetry = () => true } = options
 
   let lastError: any
   let currentDelay = delay
@@ -657,7 +683,7 @@ export async function retryOperation<T>(
       }
 
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, currentDelay))
+      await new Promise((resolve) => setTimeout(resolve, currentDelay))
 
       // Increase delay for backoff
       if (backoff) {
@@ -680,11 +706,7 @@ export async function waitFor(
     message?: string
   } = {}
 ): Promise<void> {
-  const {
-    timeout = 5000,
-    interval = 100,
-    message = 'Condition not met within timeout'
-  } = options
+  const { timeout = 5000, interval = 100, message = 'Condition not met within timeout' } = options
 
   const start = Date.now()
 
@@ -692,7 +714,7 @@ export async function waitFor(
     if (await condition()) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, interval))
+    await new Promise((resolve) => setTimeout(resolve, interval))
   }
 
   throw new Error(message)

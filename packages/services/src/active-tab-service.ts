@@ -4,29 +4,36 @@
  */
 
 import { ErrorFactory, withErrorContext } from '@promptliano/shared'
-import { activeTabRepository, type ActiveTab, type InsertActiveTab, selectActiveTabSchema, db, activeTabs as activeTabsTable } from '@promptliano/database'
+import {
+  activeTabRepository,
+  type ActiveTab,
+  type InsertActiveTab,
+  selectActiveTabSchema,
+  db,
+  activeTabs as activeTabsTable
+} from '@promptliano/database'
 import { getProjectById } from './project-service'
 
 // Legacy interface compatibility
 interface ActiveTabData {
-  projectId: number;
-  activeTabId: number;
-  clientId?: string;
-  lastUpdated: number;
-  tabMetadata?: any;
+  projectId: number
+  activeTabId: number
+  clientId?: string
+  lastUpdated: number
+  tabMetadata?: any
 }
 
 interface UpdateActiveTabBody {
-  tabId: number;
-  clientId?: string;
-  tabMetadata?: any;
+  tabId: number
+  clientId?: string
+  tabMetadata?: any
 }
 
 interface LegacyActiveTab {
-  id: number;
-  data: ActiveTabData;
-  created: number;
-  updated: number;
+  id: number
+  data: ActiveTabData
+  created: number
+  updated: number
 }
 
 /**
@@ -40,10 +47,10 @@ function mapToLegacyFormat(dbTab: ActiveTab): LegacyActiveTab {
       activeTabId: (dbTab.tabData as any)?.activeTabId || 0,
       clientId: (dbTab.tabData as any)?.clientId,
       lastUpdated: dbTab.lastAccessedAt,
-      tabMetadata: dbTab.tabData,
+      tabMetadata: dbTab.tabData
     },
     created: dbTab.createdAt,
-    updated: dbTab.lastAccessedAt,
+    updated: dbTab.lastAccessedAt
   }
 }
 
@@ -57,11 +64,11 @@ function mapFromLegacyFormat(data: ActiveTabData): Omit<InsertActiveTab, 'id'> {
     tabData: {
       activeTabId: data.activeTabId,
       clientId: data.clientId,
-      ...data.tabMetadata,
+      ...data.tabMetadata
     },
     isActive: true,
     lastAccessedAt: data.lastUpdated,
-    createdAt: Date.now(),
+    createdAt: Date.now()
   }
 }
 
@@ -76,20 +83,20 @@ export async function getActiveTab(projectId: number, clientId?: string): Promis
 
       // Get active tabs for this project
       const dbTabs = await activeTabRepository.getByProject(projectId)
-      
+
       // Find the matching active tab
-      const matchingTab = dbTabs.find(tab => {
+      const matchingTab = dbTabs.find((tab) => {
         if (!tab.isActive) return false
-        
+
         // If clientId specified, must match
         if (clientId) {
           const tabClientId = (tab.tabData as any)?.clientId
           return tabClientId === clientId
         }
-        
+
         return true
       })
-      
+
       return matchingTab ? mapToLegacyFormat(matchingTab) : null
     },
     { entity: 'ActiveTab', action: 'get', projectId, clientId }

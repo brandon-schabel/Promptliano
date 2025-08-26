@@ -10,17 +10,20 @@ export class TestAssertions {
   /**
    * Assert that an API response was successful
    */
-  static async assertSuccessfulAPIResponse(page: Page, urlPattern: string | RegExp, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') {
-    const response = await page.waitForResponse(response =>
-      response.url().match(urlPattern) !== null && 
-      response.request().method() === method
+  static async assertSuccessfulAPIResponse(
+    page: Page,
+    urlPattern: string | RegExp,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
+  ) {
+    const response = await page.waitForResponse(
+      (response) => response.url().match(urlPattern) !== null && response.request().method() === method
     )
-    
+
     expect(response.status()).toBe(200)
-    
+
     const responseBody = await response.json().catch(() => ({}))
     expect(responseBody.success).toBe(true)
-    
+
     return responseBody
   }
 
@@ -38,7 +41,7 @@ export class TestAssertions {
   static async assertAndHandleConfirmation(page: Page, action: 'accept' | 'dismiss' = 'accept') {
     const dialog = page.locator('[role="dialog"], [data-testid="confirmation-dialog"]')
     await expect(dialog).toBeVisible()
-    
+
     if (action === 'accept') {
       await page.locator('button:has-text("Confirm"), button:has-text("Delete"), button:has-text("Yes")').click()
     } else {
@@ -58,13 +61,15 @@ export class TestAssertions {
    */
   static async assertLoadingComplete(page: Page) {
     // Wait for loading spinners to disappear
-    await page.waitForSelector('[data-testid="loading"], .loading, [aria-label*="loading"]', { 
-      state: 'hidden', 
-      timeout: 10000 
-    }).catch(() => {
-      // Ignore if no loading indicators exist
-    })
-    
+    await page
+      .waitForSelector('[data-testid="loading"], .loading, [aria-label*="loading"]', {
+        state: 'hidden',
+        timeout: 10000
+      })
+      .catch(() => {
+        // Ignore if no loading indicators exist
+      })
+
     // Wait for network to be idle
     await page.waitForLoadState('networkidle')
   }
@@ -75,7 +80,7 @@ export class TestAssertions {
   static async assertErrorMessage(page: Page, expectedMessage?: string) {
     const errorElement = page.locator('[data-testid="error"], .error, [role="alert"]')
     await expect(errorElement).toBeVisible()
-    
+
     if (expectedMessage) {
       await expect(errorElement).toContainText(expectedMessage)
     }
@@ -100,11 +105,14 @@ export class MCPTestHelpers {
   static async callMCPTool(page: Page, toolName: string, args: Record<string, any>) {
     // This would depend on how MCP tools are exposed in the browser
     // For now, we'll simulate via the global window object
-    const result = await page.evaluate(async ({ tool, arguments: toolArgs }) => {
-      // @ts-ignore - MCP client would be exposed globally
-      return await window.mcpClient?.call(tool, toolArgs)
-    }, { tool: toolName, arguments: args })
-    
+    const result = await page.evaluate(
+      async ({ tool, arguments: toolArgs }) => {
+        // @ts-ignore - MCP client would be exposed globally
+        return await window.mcpClient?.call(tool, toolArgs)
+      },
+      { tool: toolName, arguments: args }
+    )
+
     return result
   }
 
@@ -156,7 +164,7 @@ export class MCPTestHelpers {
       // @ts-ignore - MCP client would be exposed globally
       return window.mcpClient?.listTools() || []
     })
-    
+
     return availableTools
   }
 }
@@ -169,33 +177,36 @@ export class APITestHelpers {
    * Make direct API call for test setup/teardown
    */
   static async makeAPICall(
-    page: Page, 
-    endpoint: string, 
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', 
+    page: Page,
+    endpoint: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any
   ) {
     const baseUrl = new URL(page.url()).origin.replace(':1420', ':3147') // Client port to API port
-    
-    const response = await page.evaluate(async ({ url, method, body }) => {
-      const options: RequestInit = {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
+
+    const response = await page.evaluate(
+      async ({ url, method, body }) => {
+        const options: RequestInit = {
+          method,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
-      }
-      
-      if (body && method !== 'GET') {
-        options.body = JSON.stringify(body)
-      }
-      
-      const res = await fetch(url, options)
-      return {
-        status: res.status,
-        ok: res.ok,
-        data: await res.json().catch(() => ({}))
-      }
-    }, { url: `${baseUrl}${endpoint}`, method, body })
-    
+
+        if (body && method !== 'GET') {
+          options.body = JSON.stringify(body)
+        }
+
+        const res = await fetch(url, options)
+        return {
+          status: res.status,
+          ok: res.ok,
+          data: await res.json().catch(() => ({}))
+        }
+      },
+      { url: `${baseUrl}${endpoint}`, method, body }
+    )
+
     return response
   }
 
@@ -255,18 +266,17 @@ export class EnhancedAPIHelpers {
    * Wait for and validate API response with proper patterns
    */
   static async waitForAPIResponse(
-    page: Page, 
-    urlPattern: string | RegExp, 
+    page: Page,
+    urlPattern: string | RegExp,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     expectedStatus: number = HTTP_STATUS.OK
   ) {
-    const response = await page.waitForResponse(response =>
-      response.url().match(urlPattern) !== null && 
-      response.request().method() === method
+    const response = await page.waitForResponse(
+      (response) => response.url().match(urlPattern) !== null && response.request().method() === method
     )
-    
+
     expect(response.status()).toBe(expectedStatus)
-    
+
     if (expectedStatus >= 200 && expectedStatus < 300) {
       const responseBody = await response.json()
       if (method === 'POST' || method === 'PUT') {
@@ -276,7 +286,7 @@ export class EnhancedAPIHelpers {
       }
       return responseBody
     }
-    
+
     return response
   }
 
@@ -290,7 +300,7 @@ export class EnhancedAPIHelpers {
     mockResponse: any,
     status: number = HTTP_STATUS.OK
   ) {
-    await page.route(`**${endpoint}`, route => {
+    await page.route(`**${endpoint}`, (route) => {
       if (route.request().method() === method) {
         route.fulfill({
           status,
@@ -307,12 +317,12 @@ export class EnhancedAPIHelpers {
    * Mock AI streaming endpoint for testing
    */
   static async mockAIStreamingEndpoint(page: Page, mockChunks: string[]) {
-    await page.route(`**${API_ENDPOINTS.AI.CHAT}`, route => {
+    await page.route(`**${API_ENDPOINTS.AI.CHAT}`, (route) => {
       if (route.request().method() === 'POST') {
         // Create Server-Sent Events stream
-        const chunks = mockChunks.map(chunk => `data: ${JSON.stringify({ content: chunk })}\n\n`)
+        const chunks = mockChunks.map((chunk) => `data: ${JSON.stringify({ content: chunk })}\n\n`)
         const body = chunks.join('') + 'data: [DONE]\n\n'
-        
+
         route.fulfill({
           status: HTTP_STATUS.OK,
           contentType: 'text/event-stream',
@@ -332,7 +342,7 @@ export class EnhancedAPIHelpers {
     endpoint: string,
     errorType: 'timeout' | 'network' | 'server' | 'validation' = 'server'
   ) {
-    await page.route(`**${endpoint}`, route => {
+    await page.route(`**${endpoint}`, (route) => {
       switch (errorType) {
         case 'timeout':
           // Don't respond to simulate timeout
@@ -374,7 +384,7 @@ export class EnhancedAPIHelpers {
       projects: API_ENDPOINTS.PROJECTS.BASE,
       tickets: API_ENDPOINTS.TICKETS.BASE,
       prompts: API_ENDPOINTS.PROMPTS.BASE,
-      queues: API_ENDPOINTS.QUEUES.BASE,
+      queues: API_ENDPOINTS.QUEUES.BASE
     }[entityType]
 
     const created: T[] = []
@@ -395,7 +405,7 @@ export class EnhancedAPIHelpers {
  */
 export class TestDataManager {
   private createdItems: Array<{ type: string; id: number }> = []
-  
+
   constructor(private page: Page) {}
 
   /**
@@ -437,11 +447,7 @@ export class TestDataManager {
   async cleanup() {
     for (const item of this.createdItems) {
       try {
-        await APITestHelpers.makeAPICall(
-          this.page, 
-          `/api/${item.type}s/${item.id}`, 
-          'DELETE'
-        )
+        await APITestHelpers.makeAPICall(this.page, `/api/${item.type}s/${item.id}`, 'DELETE')
       } catch (error) {
         console.warn(`Failed to cleanup ${item.type} ${item.id}:`, error)
       }
@@ -466,10 +472,10 @@ export class FileSystemHelpers {
    */
   static async createTempDirectory(page: Page, dirName: string): Promise<string> {
     const tempPath = `/tmp/e2e-test-${Date.now()}-${dirName}`
-    
+
     // This would need to be implemented based on how file system access works
     // in your application. It might use Electron APIs or other mechanisms.
-    
+
     return tempPath
   }
 
@@ -500,7 +506,7 @@ export class PerformanceHelpers {
     const startTime = Date.now()
     await page.goto(url, { waitUntil: 'networkidle' })
     const endTime = Date.now()
-    
+
     return {
       loadTime: endTime - startTime,
       navigationTimings: await page.evaluate(() => {
@@ -522,11 +528,9 @@ export class PerformanceHelpers {
    */
   static async measureAPICall(page: Page, urlPattern: string | RegExp) {
     const startTime = Date.now()
-    const response = await page.waitForResponse(resp => 
-      resp.url().match(urlPattern) !== null
-    )
+    const response = await page.waitForResponse((resp) => resp.url().match(urlPattern) !== null)
     const endTime = Date.now()
-    
+
     return {
       responseTime: endTime - startTime,
       status: response.status(),
@@ -545,33 +549,33 @@ export class AccessibilityHelpers {
   static async checkBasicAccessibility(page: Page) {
     const violations = await page.evaluate(() => {
       const issues: string[] = []
-      
+
       // Check for images without alt text
       const imagesWithoutAlt = document.querySelectorAll('img:not([alt])')
       if (imagesWithoutAlt.length > 0) {
         issues.push(`Found ${imagesWithoutAlt.length} images without alt text`)
       }
-      
+
       // Check for buttons without labels
       const buttonsWithoutLabels = document.querySelectorAll('button:not([aria-label]):not([title])')
-      const unlabeledButtons = Array.from(buttonsWithoutLabels).filter(btn => !btn.textContent?.trim())
+      const unlabeledButtons = Array.from(buttonsWithoutLabels).filter((btn) => !btn.textContent?.trim())
       if (unlabeledButtons.length > 0) {
         issues.push(`Found ${unlabeledButtons.length} buttons without labels`)
       }
-      
+
       // Check for form inputs without labels
       const inputsWithoutLabels = document.querySelectorAll('input:not([aria-label]):not([aria-labelledby])')
-      const unlabeledInputs = Array.from(inputsWithoutLabels).filter(input => {
+      const unlabeledInputs = Array.from(inputsWithoutLabels).filter((input) => {
         const id = input.getAttribute('id')
         return !id || !document.querySelector(`label[for="${id}"]`)
       })
       if (unlabeledInputs.length > 0) {
         issues.push(`Found ${unlabeledInputs.length} inputs without labels`)
       }
-      
+
       return issues
     })
-    
+
     return violations
   }
 
@@ -580,18 +584,20 @@ export class AccessibilityHelpers {
    */
   static async testKeyboardNavigation(page: Page, expectedFocusableElements: string[]) {
     const focusedElements: string[] = []
-    
+
     for (let i = 0; i < expectedFocusableElements.length; i++) {
       await page.keyboard.press('Tab')
-      
+
       const focusedElement = await page.evaluate(() => {
         const focused = document.activeElement
-        return focused ? focused.tagName.toLowerCase() + (focused.className ? '.' + focused.className.split(' ').join('.') : '') : ''
+        return focused
+          ? focused.tagName.toLowerCase() + (focused.className ? '.' + focused.className.split(' ').join('.') : '')
+          : ''
       })
-      
+
       focusedElements.push(focusedElement)
     }
-    
+
     return focusedElements
   }
 }
@@ -625,7 +631,7 @@ export class VisualTestHelpers {
    */
   static async compareVisual(page: Page, selector: string, baselineName: string) {
     const element = page.locator(selector)
-    
+
     // This would be expanded with actual visual regression testing tools
     await expect(element).toHaveScreenshot(`${baselineName}.png`)
   }
@@ -641,9 +647,7 @@ export class WaitHelpers {
   static async waitForAll(conditions: Promise<any>[], timeout = 10000) {
     return await Promise.race([
       Promise.all(conditions),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
-      )
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout))
     ])
   }
 
@@ -653,34 +657,28 @@ export class WaitHelpers {
   static async waitForAny(conditions: Promise<any>[], timeout = 10000) {
     return await Promise.race([
       Promise.race(conditions),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
-      )
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout))
     ])
   }
 
   /**
    * Retry an operation until it succeeds
    */
-  static async retryUntilSuccess<T>(
-    operation: () => Promise<T>, 
-    maxAttempts = 5, 
-    delayMs = 1000
-  ): Promise<T> {
+  static async retryUntilSuccess<T>(operation: () => Promise<T>, maxAttempts = 5, delayMs = 1000): Promise<T> {
     let lastError: Error
-    
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await operation()
       } catch (error) {
         lastError = error as Error
-        
+
         if (attempt < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, delayMs))
+          await new Promise((resolve) => setTimeout(resolve, delayMs))
         }
       }
     }
-    
+
     throw new Error(`Operation failed after ${maxAttempts} attempts. Last error: ${lastError!.message}`)
   }
 }

@@ -33,7 +33,7 @@ export function TaskEditDialog({ isOpen, onClose, task, ticketId, projectId }: T
       setContent(task.content || '')
       setDescription(task.description || '')
       setEstimatedHours(task.estimatedHours?.toString() || '')
-      setTags(Array.isArray(task.tags) ? task.tags as string[] : [])
+      setTags(Array.isArray(task.tags) ? (task.tags as string[]) : [])
       setAgentId(task.agentId || '')
     }
   }, [task])

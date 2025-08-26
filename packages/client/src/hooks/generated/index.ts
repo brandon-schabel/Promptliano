@@ -1,27 +1,27 @@
 /**
  * Generated Entity Hooks - Universal Hook Factory Implementation
  * Eliminates 76% of frontend hook code through powerful factory patterns
- * 
+ *
  * This file replaces 28+ individual hook files with a unified factory system
- * 
+ *
  * PHASE 1 MIGRATION COMPLETE:
  * - Flow API: 441+ lines → 105 lines (76% reduction)
  * - Git API: 900+ lines → 225 lines (75% reduction)
- * - MCP Analytics: 337+ lines → 85 lines (75% reduction) 
+ * - MCP Analytics: 337+ lines → 85 lines (75% reduction)
  * - Providers: 277+ lines → 70 lines (75% reduction)
- * 
+ *
  * PHASE 2 MIGRATION COMPLETE:
  * - AI Chats: 607+ lines → 130 lines (78% reduction)
  * - Browse Directory: 18+ lines → 10 lines (44% reduction)
  * - Claude Code API: 823+ lines → 400 lines (51% reduction)
  * - Claude Hooks: 184+ lines → 120 lines (35% reduction)
- * 
+ *
  * EXISTING FACTORY-BASED:
  * - Projects: 300+ lines → 35 lines (88% reduction)
  * - Tickets: 400+ lines → 35 lines (91% reduction)
  * - Prompts: 350+ lines → 35 lines (90% reduction)
  * - And 15+ more entities...
- * 
+ *
  * Total reduction: 64,000+ lines → ~20,000 lines (69% reduction)
  * Migration Status: Phase 1 & 2 Complete - Ready for Phase 3
  */
@@ -128,10 +128,12 @@ const projectHooks = createCrudHooks<Project, CreateProjectBody, UpdateProjectBo
 /**
  * Ticket Hooks - Complete CRUD + Task Management + AI Suggestions
  */
-const ticketHooks = createCrudHooks<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }>({
-  ...TICKET_CONFIG,
-  messages: ENTITY_MESSAGES.ticket
-})
+const ticketHooks = createCrudHooks<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }>(
+  {
+    ...TICKET_CONFIG,
+    messages: ENTITY_MESSAGES.ticket
+  }
+)
 
 /**
  * Chat Hooks - Complete CRUD + Message Management + Streaming
@@ -182,7 +184,7 @@ const keyHooks = createCrudHooks<DatabaseProviderKey, any, any>({
  */
 export function useProjectFiles(projectId: number) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: PROJECT_ENHANCED_KEYS.files(projectId),
     queryFn: () => {
@@ -197,7 +199,7 @@ export function useProjectFiles(projectId: number) {
 export function useProjectSync() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (projectId: number) => {
       if (!client) throw new Error('API client not initialized')
@@ -219,7 +221,7 @@ export function useProjectSync() {
  */
 export function useTicketTasks(ticketId: number) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId),
     queryFn: () => {
@@ -234,14 +236,18 @@ export function useTicketTasks(ticketId: number) {
 export function useCreateTask() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: ({ ticketId, data }: { ticketId: number; data: CreateTaskBody }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.createTask(ticketId, data).then(r => r)
+      return client.tickets.createTask(ticketId, data).then((r) => r)
     },
     onSuccess: (task, variables) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks((task as any).data?.ticketId || (task as any).ticketId || variables.ticketId) })
+      queryClient.invalidateQueries({
+        queryKey: TICKET_ENHANCED_KEYS.tasks(
+          (task as any).data?.ticketId || (task as any).ticketId || variables.ticketId
+        )
+      })
       invalidateWithRelationships(queryClient, 'tickets')
       toast.success('Task created successfully')
     },
@@ -254,14 +260,18 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: ({ ticketId, taskId, data }: { ticketId: number; taskId: number; data: UpdateTaskBody }) => {
       if (!client) throw new Error('API client not initialized')
       return client.tickets.updateTask(ticketId, taskId, data).then((r: any) => r?.data || r)
     },
     onSuccess: (task, variables) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks((task as any).data?.ticketId || (task as any).ticketId || variables.ticketId) })
+      queryClient.invalidateQueries({
+        queryKey: TICKET_ENHANCED_KEYS.tasks(
+          (task as any).data?.ticketId || (task as any).ticketId || variables.ticketId
+        )
+      })
       invalidateWithRelationships(queryClient, 'tickets')
       toast.success('Task updated successfully')
     },
@@ -274,7 +284,7 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: ({ ticketId, taskId }: { ticketId: number; taskId: number }) => {
       if (!client) throw new Error('API client not initialized')
@@ -294,16 +304,18 @@ export function useDeleteTask() {
 export function useAutoGenerateTasks() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.autoGenerateTasks(ticketId).then(r => r)
+      return client.tickets.autoGenerateTasks(ticketId).then((r) => r)
     },
     onSuccess: (tasks, ticketId) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
       invalidateWithRelationships(queryClient, 'tickets')
-      toast.success(`Generated ${Array.isArray((tasks as any)?.data) ? (tasks as any).data.length : Array.isArray(tasks) ? tasks.length : 0} tasks successfully`)
+      toast.success(
+        `Generated ${Array.isArray((tasks as any)?.data) ? (tasks as any).data.length : Array.isArray(tasks) ? tasks.length : 0} tasks successfully`
+      )
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to generate tasks')
@@ -333,7 +345,7 @@ export function useAutoGenerateTasks() {
  */
 export function useInvalidateTicketsEnhanced() {
   const baseInvalidate = useInvalidateTickets()
-  
+
   return {
     ...baseInvalidate,
     invalidateTicketData: (ticketId: number) => {
@@ -352,14 +364,18 @@ export function useInvalidateTicketsEnhanced() {
 export function useCompleteTicket() {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.completeTicket(ticketId).then(r => r)
+      return client.tickets.completeTicket(ticketId).then((r) => r)
     },
     onSuccess: (result, ticketId) => {
-      queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.detail((result as any)?.data?.ticket?.id || (result as any)?.ticket?.id || ticketId) })
+      queryClient.invalidateQueries({
+        queryKey: TICKET_ENHANCED_KEYS.detail(
+          (result as any)?.data?.ticket?.id || (result as any)?.ticket?.id || ticketId
+        )
+      })
       invalidateWithRelationships(queryClient, 'tickets')
       // Also invalidate queue queries since completion may dequeue
       queryClient.invalidateQueries({ queryKey: ['queues'] })
@@ -376,12 +392,12 @@ export function useCompleteTicket() {
  */
 export function useChatMessages(chatId: number) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: CHAT_ENHANCED_KEYS.messages(chatId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.chats.getMessages(chatId).then(r => r)
+      return client.chats.getMessages(chatId).then((r) => r)
     },
     enabled: !!client && !!chatId,
     staleTime: 30 * 1000 // 30 seconds for messages
@@ -391,7 +407,7 @@ export function useChatMessages(chatId: number) {
 // Moved to ai-chat-hooks.ts to avoid duplicate export
 // export function useStreamChat() {
 //   const client = useApiClient()
-//   
+//
 //   return useMutation({
 //     mutationFn: (data: any) => {
 //       if (!client) throw new Error('API client not initialized')
@@ -408,12 +424,12 @@ export function useChatMessages(chatId: number) {
  */
 export function useQueueStats(queueId: number) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: QUEUE_ENHANCED_KEYS.stats(queueId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueStats(queueId).then(r => r)
+      return client.queues.getQueueStats(queueId).then((r) => r)
     },
     enabled: !!client && !!queueId,
     refetchInterval: 5000 // Auto-refresh every 5 seconds
@@ -422,12 +438,12 @@ export function useQueueStats(queueId: number) {
 
 export function useQueueItems(queueId: number, status?: string) {
   const client = useApiClient()
-  
+
   return useQuery({
     queryKey: QUEUE_ENHANCED_KEYS.items(queueId, status),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.getQueueItems(queueId, status).then(r => r)
+      return client.queues.getQueueItems(queueId, status).then((r) => r)
     },
     enabled: !!client && !!queueId
   })
@@ -445,12 +461,12 @@ export function useGetQueuesWithStats(projectId: number) {
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 30 * 1000
   })
-  
+
   return useQuery({
     queryKey: QUEUE_ENHANCED_KEYS.listWithStats(projectId),
     queryFn: () => {
       if (!queues || !flowData) return []
-      
+
       // Combine queue metadata with stats from flow data
       return queues.map((queue: any) => ({
         ...queue,
@@ -476,7 +492,7 @@ export function useGetQueuesWithStats(projectId: number) {
 // export function useEnqueueTicket(queueId: number) {
 //   const client = useApiClient()
 //   const queryClient = useQueryClient()
-//   
+//
 //   return useMutation({
 //     mutationFn: ({ ticketId, priority }: { ticketId: number; priority?: number }) => {
 //       if (!client) throw new Error('API client not initialized')
@@ -577,15 +593,18 @@ export const {
 export function useCreateQueue(projectId: number) {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (data: Omit<CreateQueueBody, 'projectId'>) => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.createQueue(projectId, data).then(r => r)
+      return client.queues.createQueue(projectId, data).then((r) => r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })
-      queryClient.setQueryData(QUEUE_ENHANCED_KEYS.detail(Number((queue as any)?.data?.id || (queue as any)?.id)), queue)
+      queryClient.setQueryData(
+        QUEUE_ENHANCED_KEYS.detail(Number((queue as any)?.data?.id || (queue as any)?.id)),
+        queue
+      )
       toast.success(`Queue "${(queue as any)?.data?.name || (queue as any)?.name || 'Unknown'}" created successfully`)
     },
     onError: (error: any) => {
@@ -603,15 +622,15 @@ export function useCreateQueue(projectId: number) {
  */
 export const useBatchOperations = () => {
   const queryClient = useQueryClient()
-  
+
   return {
     // Batch invalidate multiple entities
     invalidateMultiple: (entityNames: string[]) => {
-      entityNames.forEach(entityName => {
+      entityNames.forEach((entityName) => {
         invalidateWithRelationships(queryClient, entityName as any)
       })
     },
-    
+
     // Prefetch related data for performance
     prefetchProjectData: async (projectId: number) => {
       // Note: This should be called from within a component context where hooks are available
@@ -629,13 +648,13 @@ export const useBatchOperations = () => {
  */
 export const useRealtimeSync = () => {
   const queryClient = useQueryClient()
-  
+
   return {
     // Sync all project-related data with intelligent invalidation
     syncProjectData: (projectId: number) => {
       invalidateWithRelationships(queryClient, 'projects')
     },
-    
+
     // Global refresh for stale data
     refreshAll: () => {
       queryClient.invalidateQueries({ stale: true })
@@ -715,7 +734,7 @@ export function useEnhancedProjects(options?: {
   // Enhanced create with real-time and offline support
   const useEnhancedCreate = () => {
     const standardCreate = standardHooks.useCreate()
-    
+
     return useMutation({
       ...standardCreate,
       mutationFn: async (data: CreateProjectBody) => {
@@ -737,7 +756,7 @@ export function useEnhancedProjects(options?: {
   // Enhanced update with optimistic updates
   const useEnhancedUpdate = () => {
     const standardUpdate = standardHooks.useUpdate()
-    
+
     return useMutation({
       ...standardUpdate,
       mutationFn: async ({ id, data }: { id: number; data: UpdateProjectBody }) => {
@@ -753,14 +772,14 @@ export function useEnhancedProjects(options?: {
   return {
     // Standard hooks
     ...standardHooks,
-    
+
     // Enhanced hooks with real-time features
     useCreate: useEnhancedCreate,
     useUpdate: useEnhancedUpdate,
-    
+
     // Real-time features
     realtimeSubscription: enableRealtime ? realtimeSubscription : null,
-    
+
     // Utility functions
     warmCache: (projectId: number) => warmProjectEcosystem(queryClient, projectId)
   }
@@ -769,16 +788,15 @@ export function useEnhancedProjects(options?: {
 /**
  * Enhanced Ticket Hooks with Real-time Features
  */
-export function useEnhancedTickets(projectId?: number, options?: {
-  enableRealtime?: boolean
-  enablePresence?: boolean
-  autoWarmCache?: boolean
-}) {
-  const {
-    enableRealtime = true,
-    enablePresence = false,
-    autoWarmCache = true
-  } = options || {}
+export function useEnhancedTickets(
+  projectId?: number,
+  options?: {
+    enableRealtime?: boolean
+    enablePresence?: boolean
+    autoWarmCache?: boolean
+  }
+) {
+  const { enableRealtime = true, enablePresence = false, autoWarmCache = true } = options || {}
 
   // Standard ticket hooks
   const standardHooks = ticketHooks
@@ -813,10 +831,10 @@ export function useEnhancedTickets(projectId?: number, options?: {
   return {
     // Standard hooks
     ...standardHooks,
-    
+
     // Enhanced hooks
     useList: useEnhancedList,
-    
+
     // Real-time features
     realtimeSubscription: enableRealtime ? realtimeSubscription : null,
     presence: enablePresence ? entityPresence : []
@@ -831,11 +849,7 @@ export function useEnhancedChats(options?: {
   enablePresence?: boolean
   enableTypingIndicators?: boolean
 }) {
-  const {
-    enableRealtime = true,
-    enablePresence = true,
-    enableTypingIndicators = true
-  } = options || {}
+  const { enableRealtime = true, enablePresence = true, enableTypingIndicators = true } = options || {}
 
   // Standard chat hooks
   const standardHooks = chatHooks
@@ -849,7 +863,7 @@ export function useEnhancedChats(options?: {
   return {
     // Standard hooks
     ...standardHooks,
-    
+
     // Real-time features
     realtimeSubscription: enableRealtime ? realtimeSubscription : null
   }
@@ -858,7 +872,6 @@ export function useEnhancedChats(options?: {
 // ============================================================================
 // Core Hook System - Simplified
 // ============================================================================
-
 
 // ============================================================================
 // Type Exports for External Use
@@ -888,32 +901,32 @@ export {
   useCreateChat as useCreateChatV2, // Avoid conflict with factory version
   useUpdateChat as useUpdateChatV2,
   useDeleteChat as useDeleteChatV2,
-  
+
   // Chat Messages
   useGetMessages,
-  
-  // Advanced Chat Operations  
+
+  // Advanced Chat Operations
   useForkChat,
   useForkChatFromMessage,
   useDeleteMessage,
-  
+
   // AI Streaming Hook (Full Vercel AI SDK Integration)
   useAIChat,
-  
+
   // Generative AI Hooks
   useGenerateText,
   useGenerateStructuredData,
   useStreamText,
   useGetProviders,
   useGetModels,
-  
+
   // Legacy Compatibility
   useStreamChat,
   useAIChatV2,
-  
+
   // Cache Management
   useInvalidateChats as useInvalidateAIChats,
-  
+
   // Query Keys
   CHAT_KEYS as AI_CHAT_KEYS,
   GEN_AI_KEYS
@@ -931,9 +944,9 @@ export {
 export {
   // Core Flow Data Queries
   useGetFlowData,
-  useGetFlowItems, 
+  useGetFlowItems,
   useGetUnqueuedItems,
-  
+
   // Queue Management Mutations
   useEnqueueTicket,
   useEnqueueTask,
@@ -942,15 +955,15 @@ export {
   useMoveItem,
   useBulkMoveItems,
   useCompleteQueueItem,
-  
+
   // Processing Operations
   useStartProcessing,
   useCompleteProcessing,
   useFailProcessing,
-  
+
   // Cache Management
   useInvalidateFlow,
-  
+
   // Query Keys & Types
   FLOW_KEYS,
   type FlowItem,
@@ -963,54 +976,54 @@ export {
   useProjectGitStatus,
   useGitFilesWithChanges,
   useFileDiff,
-  
+
   // Branch Management
   useGitBranches,
   useBranchesEnhanced,
   useCreateBranch,
   useSwitchBranch,
   useDeleteBranch,
-  
+
   // Commit History
   useGitLog,
   useCommitLogEnhanced,
   useCommitDetail,
-  
+
   // File Staging
   useStageFiles,
   useUnstageFiles,
   useStageAll,
   useUnstageAll,
   useCommitChanges,
-  
+
   // Remote Operations
   useGitRemotes,
   useGitPush,
   useGitFetch,
   useGitPull,
-  
+
   // Tag Management
   useGitTags,
   useCreateTag,
-  
+
   // Stash Operations
   useGitStashList,
   useGitStash,
   useGitStashApply,
   useGitStashPop,
   useGitStashDrop,
-  
+
   // Reset Operations
   useGitReset,
-  
+
   // Worktree Operations
   useGitWorktrees,
   useAddGitWorktree,
   useRemoveGitWorktree,
-  
+
   // Cache Management
   useInvalidateGit,
-  
+
   // Query Keys & Types
   GIT_KEYS,
   type GitStatusResult,
@@ -1029,7 +1042,7 @@ export {
   useGetMCPToolStatistics,
   useGetMCPExecutionTimeline,
   useGetMCPErrorPatterns,
-  
+
   // Global MCP Management
   useGetGlobalMCPConfig,
   useGetGlobalInstallations,
@@ -1037,13 +1050,13 @@ export {
   useUpdateGlobalMCPConfig,
   useInstallGlobalMCP,
   useUninstallGlobalMCP,
-  
+
   // Composite Management
   useGlobalMCPManager,
-  
+
   // Cache Management
   useInvalidateMCP,
-  
+
   // Query Keys & Types
   MCP_KEYS,
   type MCPExecutionQuery,
@@ -1064,15 +1077,15 @@ export {
   useCreateProviderKey,
   useUpdateProviderKey,
   useDeleteProviderKey,
-  
+
   // Provider Health & Testing
   useGetProvidersHealth,
   useTestProvider,
   useBatchTestProviders,
-  
+
   // Cache Management
   useInvalidateProviders,
-  
+
   // Query Keys & Types (Legacy compatibility)
   PROVIDER_KEYS,
   providerKeys,
@@ -1085,7 +1098,7 @@ export {
 } from './providers-hooks'
 
 // ============================================================================
-// PHASE 2 HOOK EXPORTS - Advanced UI & Integration Hooks  
+// PHASE 2 HOOK EXPORTS - Advanced UI & Integration Hooks
 // ============================================================================
 
 // Browse Directory Hooks (File System Navigation)
@@ -1104,31 +1117,31 @@ export {
   useClaudeSessionsInfinite,
   useClaudeSessionsTable,
   useClaudeSessionsProgressive,
-  
+
   // Message Management Hooks
   useClaudeMessages,
   useClaudeFullSession,
-  
+
   // Project Data Hooks
   useClaudeProjectData,
-  
+
   // Advanced Features
   useWatchClaudeSessions,
   useClaudeCodeBackgroundData,
   useClaudeCodeInvalidation,
-  
+
   // Utility Hooks
   useCopyToClipboard,
   useFormatClaudeMessage,
   useSessionDuration,
-  
+
   // Factory Exports
   createClaudeCodeSessionHooks,
   createClaudeCodeMessageHooks,
   createClaudeCodeProjectHooks,
   createClaudeCodeAdvancedHooks,
   createClaudeCodeUtilityHooks,
-  
+
   // Query Keys & Types
   CLAUDE_CODE_KEYS,
   type ClaudeSession,
@@ -1143,25 +1156,25 @@ export {
   useGetProjectHooks,
   useGetHook,
   useSearchHooks,
-  
-  // Mutation Hooks  
+
+  // Mutation Hooks
   useCreateHook,
   useUpdateHook,
   useDeleteHook,
-  
+
   // Utility Hooks
   useGenerateHook,
   useTestHook,
-  
+
   // Cache Management
   useClaudeHooksInvalidation,
-  
+
   // Factory Exports
   createClaudeHooksFactory,
   createClaudeHooksMutationFactory,
   createClaudeHooksUtilityFactory,
   createClaudeHooksCacheFactory,
-  
+
   // Query Keys & Types
   CLAUDE_HOOKS_KEYS
   // Types not exported from the module, defined inline where needed

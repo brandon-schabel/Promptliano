@@ -71,13 +71,13 @@ export class SidebarPage extends BasePage {
       chat: this.chatNavItem,
       prompts: this.promptsNavItem,
       providers: this.providersNavItem,
-      settings: this.settingsNavItem,
+      settings: this.settingsNavItem
     }
 
     const navItem = navMap[section]
     await navItem.click()
     await this.waitForLoadingComplete()
-    
+
     // Verify navigation occurred
     await expect(this.page).toHaveURL(new RegExp(section))
   }
@@ -89,7 +89,7 @@ export class SidebarPage extends BasePage {
     const sidebar = this.sidebar
     const state = await sidebar.getAttribute('data-state')
     const collapsible = await sidebar.getAttribute('data-collapsible')
-    
+
     // Check if sidebar is in collapsed state
     return state !== 'collapsed' && collapsible !== 'icon'
   }
@@ -115,11 +115,11 @@ export class SidebarPage extends BasePage {
    */
   async openManageProjects() {
     await this.manageProjectsButton.click()
-    
+
     // Wait for dialog to appear
     const projectDialog = this.page.locator('[role="dialog"]')
     await expect(projectDialog).toBeVisible()
-    
+
     return projectDialog
   }
 
@@ -142,11 +142,11 @@ export class SidebarPage extends BasePage {
       { name: 'chat', locator: this.chatNavItem },
       { name: 'prompts', locator: this.promptsNavItem },
       { name: 'providers', locator: this.providersNavItem },
-      { name: 'settings', locator: this.settingsNavItem },
+      { name: 'settings', locator: this.settingsNavItem }
     ]
 
     const visibleItems: string[] = []
-    
+
     for (const item of navItems) {
       if (await item.locator.isVisible()) {
         visibleItems.push(item.name)
@@ -160,12 +160,7 @@ export class SidebarPage extends BasePage {
    * Get the currently active navigation item
    */
   async getActiveNavItem(): Promise<string | null> {
-    const activeSelectors = [
-      '[data-state="active"]',
-      '[aria-current="page"]',
-      '.active',
-      '[data-active="true"]'
-    ]
+    const activeSelectors = ['[data-state="active"]', '[aria-current="page"]', '.active', '[data-active="true"]']
 
     for (const selector of activeSelectors) {
       const activeElement = this.sidebar.locator(selector).first()
@@ -250,7 +245,7 @@ export class SidebarPage extends BasePage {
     // Tablet - sidebar might be collapsible
     await this.page.setViewportSize({ width: 768, height: 1024 })
     await this.page.waitForTimeout(300) // Allow for responsive changes
-    
+
     // Mobile - sidebar should be toggleable or hidden
     await this.page.setViewportSize({ width: 375, height: 667 })
     await this.page.waitForTimeout(300)
@@ -259,5 +254,4 @@ export class SidebarPage extends BasePage {
     await this.page.setViewportSize({ width: 1200, height: 800 })
     await this.page.waitForTimeout(300)
   }
-
 }

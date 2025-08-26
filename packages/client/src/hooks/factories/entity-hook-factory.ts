@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+  type UseMutationResult
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { PromptlianoClient } from '@promptliano/api-client'
 
@@ -45,7 +51,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
   config: EntityHookConfig<TEntity, TCreate, TUpdate>
 ): EntityHooks<TEntity, TCreate, TUpdate> {
   const { entityName, clientPath, options = {} } = config
-  
+
   // Default query keys if not provided
   const defaultQueryKeys = {
     all: [entityName.toLowerCase()],
@@ -53,7 +59,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
     list: (params?: any) => [...defaultQueryKeys.lists(), params],
     detail: (id: number) => [...defaultQueryKeys.all, 'detail', id]
   }
-  
+
   const queryKeys = config.queryKeys || defaultQueryKeys
   const staleTime = options.staleTime || 5 * 60 * 1000 // 5 minutes default
 
@@ -82,7 +88,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
 
   const useCreate = () => {
     const queryClient = useQueryClient()
-    
+
     return useMutation({
       mutationFn: async (data: TCreate) => {
         // This is a placeholder - actual implementation would use the API client
@@ -100,7 +106,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
 
   const useUpdate = () => {
     const queryClient = useQueryClient()
-    
+
     return useMutation({
       mutationFn: async ({ id, data }: { id: number; data: TUpdate }) => {
         // This is a placeholder - actual implementation would use the API client
@@ -119,7 +125,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
 
   const useDelete = () => {
     const queryClient = useQueryClient()
-    
+
     return useMutation({
       mutationFn: async (id: number) => {
         // This is a placeholder - actual implementation would use the API client
@@ -137,7 +143,7 @@ export function createEntityHooks<TEntity extends { id: number }, TCreate, TUpda
 
   const useInvalidate = () => {
     const queryClient = useQueryClient()
-    
+
     return {
       all: () => queryClient.invalidateQueries({ queryKey: queryKeys.all }),
       lists: () => queryClient.invalidateQueries({ queryKey: queryKeys.lists() }),

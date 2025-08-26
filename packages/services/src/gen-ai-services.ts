@@ -23,7 +23,7 @@ import { nullToUndefined } from './utils/file-utils'
 
 const providersConfig = getProvidersConfig()
 
-// AI SDK compatible options type for function parameters 
+// AI SDK compatible options type for function parameters
 interface AiSdkCompatibleOptions {
   temperature?: number | null
   maxTokens?: number | null
@@ -49,7 +49,7 @@ interface AiChatStreamRequest {
   enableChatAutoNaming?: boolean
 }
 
-// Extended type for chat streaming requests  
+// Extended type for chat streaming requests
 type AiChatRequest = AiChatStreamRequest
 
 // Provider capabilities map - which providers support structured output via generateObject
@@ -87,35 +87,35 @@ function convertDbOptionsToAiSdk(dbOptions: AiSdkCompatibleOptions): {
 } {
   // Filter out null values and convert to undefined, with type validation
   const result: ReturnType<typeof convertDbOptionsToAiSdk> = {}
-  
+
   if (isValidNumber(dbOptions.temperature)) {
     result.temperature = dbOptions.temperature
   }
-  
+
   if (isValidNumber(dbOptions.maxTokens)) {
     result.maxTokens = dbOptions.maxTokens
   }
-  
+
   if (isValidNumber(dbOptions.topP)) {
     result.topP = dbOptions.topP
   }
-  
+
   if (isValidNumber(dbOptions.frequencyPenalty)) {
     result.frequencyPenalty = dbOptions.frequencyPenalty
   }
-  
+
   if (isValidNumber(dbOptions.presencePenalty)) {
     result.presencePenalty = dbOptions.presencePenalty
   }
-  
+
   if (isValidNumber(dbOptions.topK)) {
     result.topK = dbOptions.topK
   }
-  
+
   if (dbOptions.responseFormat !== null && dbOptions.responseFormat !== undefined) {
     result.responseFormat = dbOptions.responseFormat
   }
-  
+
   return result
 }
 
@@ -123,16 +123,16 @@ function convertDbOptionsToAiSdk(dbOptions: AiSdkCompatibleOptions): {
 async function getProviderKeyById(provider: string, debug: boolean = false): Promise<ProviderKey | null> {
   const providerKeyService = createProviderKeyService()
   const keys = await providerKeyService.listKeysUncensored()
-  
+
   // Find the default key for this provider, or the first one
-  const providerKeys = keys.filter(k => k.provider === provider)
-  const defaultKey = providerKeys.find(k => k.isDefault)
+  const providerKeys = keys.filter((k) => k.provider === provider)
+  const defaultKey = providerKeys.find((k) => k.isDefault)
   const key = defaultKey || providerKeys[0]
-  
+
   if (debug && key) {
     console.log(`[UnifiedProviderService] Found provider key for ${provider}: ${key.name}`)
   }
-  
+
   return key || null
 }
 
@@ -184,7 +184,7 @@ export async function handleChatMessage({
   finalAssistantMessageId = initialAssistantMessage.id
 
   const aiSdkOptions = convertDbOptionsToAiSdk(finalOptions)
-  
+
   return streamText({
     model: modelInstance,
     messages: messagesToProcess,
@@ -260,17 +260,20 @@ export async function handleChatMessage({
                 : `Error: ${mappedError.message}`
 
         // Update error message by deleting and recreating
-        chatRepository.deleteMessage(finalAssistantMessageId)
-          .then(() => chatService.addMessage(chatId, {
-            role: 'assistant',
-            content: errorMessage
-          }))
-          .catch((dbError: any) => {
-          console.error(
-            `[UnifiedProviderService] Failed to update message content with stream error in DB for ID ${finalAssistantMessageId}:`,
-            dbError
+        chatRepository
+          .deleteMessage(finalAssistantMessageId)
+          .then(() =>
+            chatService.addMessage(chatId, {
+              role: 'assistant',
+              content: errorMessage
+            })
           )
-        })
+          .catch((dbError: any) => {
+            console.error(
+              `[UnifiedProviderService] Failed to update message content with stream error in DB for ID ${finalAssistantMessageId}:`,
+              dbError
+            )
+          })
       }
     }
   })
@@ -326,24 +329,24 @@ async function getProviderLanguageModelInterface(
       if (!customKey || customKey.provider !== 'custom' || !customKey.baseUrl) {
         throw ErrorFactory.notFound('Custom provider configuration', keyId || 'default')
       }
-      
+
       const baseURL = customKey.baseUrl
       const apiKey = customKey.key
-      
+
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
-      
+
       // Ensure URL is properly formatted for OpenAI compatibility
       const customUrl = baseURL.endsWith('/v1') ? baseURL : `${baseURL.replace(/\/$/, '')}/v1`
-      
+
       if (debug) {
         console.log(`[UnifiedProviderService] Using custom provider at: ${customUrl}`)
       }
-      
+
       // Prepare headers if any custom headers are defined
       const customHeaders = customKey.customHeaders || {}
-      
+
       // Use OpenAI SDK with custom configuration
       return createOpenAI({
         baseURL: customUrl,
@@ -425,35 +428,35 @@ async function getProviderLanguageModelInterface(
       if (!customKey) {
         throw ErrorFactory.notFound('Custom provider configuration', 'default')
       }
-      
+
       const baseURL = customKey.baseUrl
       if (!baseURL) {
         throw ErrorFactory.missingRequired('Base URL', 'custom provider')
       }
-      
+
       const apiKey = await getKey('custom', debug)
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
-      
+
       // Ensure URL is properly formatted for OpenAI compatibility
       const customUrl = baseURL.endsWith('/v1') ? baseURL : `${baseURL.replace(/\/$/, '')}/v1`
-      
+
       if (debug) {
         console.log(`[UnifiedProviderService] Using custom provider at: ${customUrl}`)
       }
-      
+
       // Prepare base headers for API key
       const baseHeaders = {
-        'Authorization': `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`
       }
-      
+
       // Merge with sanitized custom headers
       const sanitizedHeaders = mergeHeaders(baseHeaders, nullToUndefined(customKey.customHeaders))
-      
+
       // Remove the Authorization header since OpenAI SDK handles it separately
       const { Authorization, ...customHeaders } = sanitizedHeaders
-      
+
       // Use OpenAI SDK with custom configuration
       return createOpenAI({
         baseURL: customUrl,
@@ -775,10 +778,7 @@ Start your response with { and end with }`
           )
         }
 
-        throw ErrorFactory.operationFailed(
-          `${provider} JSON generation`,
-          'Model did not return valid JSON response.'
-        )
+        throw ErrorFactory.operationFailed(`${provider} JSON generation`, 'Model did not return valid JSON response.')
       }
 
       // Validate against schema
@@ -892,16 +892,11 @@ export async function genTextStream({
     }
 
     if (messagesToProcess.length === 0) {
-      throw ErrorFactory.invalidInput(
-        'messages',
-        'at least one valid message',
-        messagesToProcess,
-        { 
-          context: 'genTextStream',
-          provider,
-          model: modelInstance?.modelId 
-        }
-      )
+      throw ErrorFactory.invalidInput('messages', 'at least one valid message', messagesToProcess, {
+        context: 'genTextStream',
+        provider,
+        model: modelInstance?.modelId
+      })
     }
 
     if (debug) {

@@ -12,6 +12,7 @@ You are a Configuration Migration Specialist for the Promptliano architecture re
 ### 1. Configuration Consolidation
 
 **OLD Pattern (Scattered):**
+
 ```typescript
 // packages/server/src/config.ts
 const PORT = process.env.PORT || 3147
@@ -33,6 +34,7 @@ export const LOW_MODEL_CONFIG = {
 ```
 
 **NEW Pattern (Centralized):**
+
 ```typescript
 // packages/config/src/index.ts
 import { getServerConfig, getProvidersConfig, getModelConfigs } from './configs'
@@ -54,6 +56,7 @@ const { openai } = config.providers
 ### 2. Environment Variable Migration
 
 **OLD Pattern:**
+
 ```typescript
 // Direct env access - no validation
 const apiKey = process.env.OPENAI_API_KEY
@@ -65,6 +68,7 @@ const port = parseInt(process.env.PORT || '3147')
 ```
 
 **NEW Pattern:**
+
 ```typescript
 // packages/config/src/env.schema.ts
 import { z } from 'zod'
@@ -72,18 +76,21 @@ import { z } from 'zod'
 export const EnvSchema = z.object({
   // Node environment
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  
+
   // Server config
   PORT: z.string().transform(Number).pipe(z.number().int().min(1).max(65535)).optional(),
   CORS_ORIGIN: z.string().default('*'),
-  
+
   // API Keys
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
-  
+
   // Feature flags
-  FEATURE_QUEUE_ENABLED: z.string().transform(v => v === 'true').default('true'),
-  
+  FEATURE_QUEUE_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('true'),
+
   // Database
   DATABASE_PATH: z.string().default('./promptliano.db')
 })
@@ -106,6 +113,7 @@ export function parseEnv(): Env {
 ### Pattern 1: Model Configuration Migration
 
 **OLD (packages/schemas/src/constants/model-default-configs.ts):**
+
 ```typescript
 export const LOW_MODEL_CONFIG = {
   provider: 'openai',
@@ -125,18 +133,21 @@ export const MEDIUM_MODEL_CONFIG = {
 ```
 
 **NEW (packages/config/src/configs/model.config.ts):**
+
 ```typescript
 import { z } from 'zod'
 
 // Schema for validation
-export const ModelConfigSchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'google', 'groq', 'ollama', 'lmstudio']),
-  model: z.string().min(1),
-  temperature: z.number().min(0).max(2).default(0.7),
-  maxTokens: z.number().int().positive().default(4096),
-  topP: z.number().min(0).max(1).default(1),
-  stream: z.boolean().default(true)
-}).strict()
+export const ModelConfigSchema = z
+  .object({
+    provider: z.enum(['openai', 'anthropic', 'google', 'groq', 'ollama', 'lmstudio']),
+    model: z.string().min(1),
+    temperature: z.number().min(0).max(2).default(0.7),
+    maxTokens: z.number().int().positive().default(4096),
+    topP: z.number().min(0).max(1).default(1),
+    stream: z.boolean().default(true)
+  })
+  .strict()
 
 export type ModelConfig = z.infer<typeof ModelConfigSchema>
 
@@ -149,7 +160,7 @@ export const MODEL_CONFIGS = {
     maxTokens: 2048,
     topP: 0.9
   }),
-  
+
   medium: ModelConfigSchema.parse({
     provider: 'openai',
     model: 'gpt-4-turbo',
@@ -157,7 +168,7 @@ export const MODEL_CONFIGS = {
     maxTokens: 4096,
     topP: 0.95
   }),
-  
+
   high: ModelConfigSchema.parse({
     provider: 'anthropic',
     model: 'claude-3-sonnet-20240229',
@@ -176,6 +187,7 @@ export const HIGH_MODEL_CONFIG = MODEL_CONFIGS.high
 ### Pattern 2: Server Configuration Migration
 
 **OLD (packages/server/server.ts):**
+
 ```typescript
 // Scattered configuration
 const PORT = process.env.SERVER_PORT || 3147
@@ -188,6 +200,7 @@ app.listen(PORT)
 ```
 
 **NEW (packages/config/src/configs/server.config.ts):**
+
 ```typescript
 import { z } from 'zod'
 import { parseEnv } from '../env.schema'
@@ -198,7 +211,7 @@ export const ServerConfigSchema = z.object({
   corsOrigin: z.string().default('*'),
   maxRequestSize: z.string().default('50mb'),
   compression: z.boolean().default(true),
-  
+
   // Nested configuration
   security: z.object({
     rateLimit: z.object({
@@ -216,16 +229,17 @@ export type ServerConfig = z.infer<typeof ServerConfigSchema>
 
 export function getServerConfig(): ServerConfig {
   const env = parseEnv()
-  
+
   return ServerConfigSchema.parse({
     port: env.PORT || 3147,
-    corsOrigin: env.CORS_ORIGIN,
+    corsOrigin: env.CORS_ORIGIN
     // Apply environment overrides
   })
 }
 ```
 
 **NEW Usage (packages/server/server.ts):**
+
 ```typescript
 import { getServerConfig } from '@promptliano/config'
 
@@ -248,6 +262,7 @@ app.listen(config.port, config.host)
 ### Pattern 3: Provider Configuration Migration
 
 **OLD (packages/services/src/model-providers/provider-defaults.ts):**
+
 ```typescript
 // Hardcoded provider URLs
 const PROVIDER_DEFAULTS = {
@@ -263,6 +278,7 @@ const PROVIDER_DEFAULTS = {
 ```
 
 **NEW (packages/config/src/configs/providers.config.ts):**
+
 ```typescript
 import { z } from 'zod'
 
@@ -272,16 +288,16 @@ export const ProviderConfigSchema = z.object({
     apiKey: z.string().optional(),
     organization: z.string().optional()
   }),
-  
+
   anthropic: z.object({
     baseURL: z.string().url().default('https://api.anthropic.com'),
     apiKey: z.string().optional()
   }),
-  
+
   ollama: z.object({
     baseURL: z.string().url().default('http://localhost:11434')
   }),
-  
+
   lmstudio: z.object({
     baseURL: z.string().url().default('http://localhost:1234')
   })
@@ -291,7 +307,7 @@ export type ProvidersConfig = z.infer<typeof ProviderConfigSchema>
 
 export function getProvidersConfig(): ProvidersConfig {
   const env = parseEnv()
-  
+
   return ProviderConfigSchema.parse({
     openai: {
       apiKey: env.OPENAI_API_KEY
@@ -312,39 +328,28 @@ export function getProvidersConfig(): ProvidersConfig {
 ### Pattern 4: File Configuration Migration
 
 **OLD (packages/schemas/src/constants/file-sync-options.ts):**
+
 ```typescript
 export const ALLOWED_FILE_CONFIGS = {
   extensions: ['.ts', '.tsx', '.js', '.jsx', '.md', '.json'],
   maxSize: 10 * 1024 * 1024 // 10MB
 }
 
-export const DEFAULT_FILE_EXCLUSIONS = [
-  'node_modules',
-  '.git',
-  'dist',
-  'build'
-]
+export const DEFAULT_FILE_EXCLUSIONS = ['node_modules', '.git', 'dist', 'build']
 ```
 
 **NEW (packages/config/src/configs/files.config.ts):**
+
 ```typescript
 import { z } from 'zod'
 
 export const FilesConfigSchema = z.object({
-  allowedExtensions: z.array(z.string()).default([
-    '.ts', '.tsx', '.js', '.jsx', '.md', '.json', '.yml', '.yaml'
-  ]),
-  
-  defaultExclusions: z.array(z.string()).default([
-    'node_modules',
-    '.git',
-    'dist',
-    'build',
-    'coverage',
-    '.next',
-    '.turbo'
-  ]),
-  
+  allowedExtensions: z.array(z.string()).default(['.ts', '.tsx', '.js', '.jsx', '.md', '.json', '.yml', '.yaml']),
+
+  defaultExclusions: z
+    .array(z.string())
+    .default(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo']),
+
   limits: z.object({
     maxFileSize: z.number().default(10 * 1024 * 1024), // 10MB
     maxFiles: z.number().default(10000),
@@ -360,6 +365,7 @@ export const filesConfig: FilesConfig = FilesConfigSchema.parse({})
 ## Migration Steps
 
 ### Step 1: Install @promptliano/config Dependency
+
 ```json
 // In each package.json that needs config
 {
@@ -372,6 +378,7 @@ export const filesConfig: FilesConfig = FilesConfigSchema.parse({})
 ### Step 2: Update Imports
 
 **Service Layer:**
+
 ```typescript
 // OLD
 import { LOW_MODEL_CONFIG } from '@promptliano/schemas'
@@ -384,6 +391,7 @@ const openaiUrl = config.providers.openai.baseURL
 ```
 
 **Server Layer:**
+
 ```typescript
 // OLD
 const PORT = process.env.PORT || 3147
@@ -394,6 +402,7 @@ const { port } = getServerConfig()
 ```
 
 ### Step 3: Remove Duplicate Configuration Files
+
 ```bash
 # Files to remove after migration
 packages/schemas/src/constants/model-default-configs.ts
@@ -404,6 +413,7 @@ packages/client/src/constants/server-constants.ts
 ```
 
 ### Step 4: Create .env.example
+
 ```bash
 # .env.example at root
 NODE_ENV=development
@@ -433,29 +443,31 @@ FEATURE_MCP_ENABLED=true
 ## Configuration Patterns
 
 ### Hierarchical Configuration
+
 ```typescript
 // Support different environments
 export function getConfig(env: 'development' | 'production' = 'development') {
   const base = getBaseConfig()
   const envConfig = env === 'production' ? getProdConfig() : getDevConfig()
-  
+
   return deepMerge(base, envConfig)
 }
 ```
 
 ### Feature Flags
+
 ```typescript
 export const FeatureFlagsSchema = z.object({
   queue: z.object({
     enabled: z.boolean().default(true),
     maxQueues: z.number().default(10)
   }),
-  
+
   mcp: z.object({
     enabled: z.boolean().default(true),
     tools: z.array(z.string()).default(['*'])
   }),
-  
+
   ai: z.object({
     streaming: z.boolean().default(true),
     functionCalling: z.boolean().default(true)
@@ -469,17 +481,18 @@ export function isFeatureEnabled(feature: string): boolean {
 ```
 
 ### Dynamic Configuration
+
 ```typescript
 // Runtime configuration updates
 export class ConfigManager {
   private config: CompleteConfig
   private watchers: Set<(config: CompleteConfig) => void> = new Set()
-  
+
   updateConfig(updates: Partial<CompleteConfig>) {
     this.config = deepMerge(this.config, updates)
     this.notifyWatchers()
   }
-  
+
   watch(callback: (config: CompleteConfig) => void) {
     this.watchers.add(callback)
     return () => this.watchers.delete(callback)
@@ -498,27 +511,27 @@ describe('Configuration', () => {
     // Reset environment
     process.env = { ...originalEnv }
   })
-  
+
   test('should load default configuration', () => {
     const config = getServerConfig()
-    
+
     expect(config.port).toBe(3147)
     expect(config.corsOrigin).toBe('*')
   })
-  
+
   test('should override with environment variables', () => {
     process.env.PORT = '8080'
     process.env.CORS_ORIGIN = 'https://example.com'
-    
+
     const config = getServerConfig()
-    
+
     expect(config.port).toBe(8080)
     expect(config.corsOrigin).toBe('https://example.com')
   })
-  
+
   test('should validate environment variables', () => {
     process.env.PORT = 'invalid'
-    
+
     expect(() => parseEnv()).toThrow()
   })
 })
@@ -542,6 +555,7 @@ describe('Configuration', () => {
 ## Common Migration Issues
 
 ### Issue 1: Circular Dependencies
+
 ```typescript
 // Problem: Config depends on schemas, schemas depend on config
 // Solution: Move shared types to config package
@@ -550,14 +564,16 @@ export type ModelProvider = 'openai' | 'anthropic' | 'google'
 ```
 
 ### Issue 2: Environment Variable Types
+
 ```typescript
 // Problem: process.env values are always strings
 // Solution: Use Zod transforms
 PORT: z.string().transform(Number).pipe(z.number().int())
-ENABLED: z.string().transform(v => v === 'true')
+ENABLED: z.string().transform((v) => v === 'true')
 ```
 
 ### Issue 3: Optional vs Required
+
 ```typescript
 // Make critical config required
 NODE_ENV: z.enum(['development', 'test', 'production']), // Required
@@ -567,6 +583,7 @@ PORT: z.number().default(3147), // Optional with default
 ```
 
 ### Issue 4: Config Loading Order
+
 ```typescript
 // Ensure proper loading order
 1. Parse and validate environment

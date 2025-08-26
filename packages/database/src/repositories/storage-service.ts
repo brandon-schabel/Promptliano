@@ -11,17 +11,13 @@ import { chatRepository, messageRepository } from './chat-repository'
 import { promptRepository } from './prompt-repository'
 import { queueRepository, queueItemRepository } from './queue-repository'
 import { fileRepository } from './file-repository'
-import { 
-  claudeAgentRepository, 
-  claudeCommandRepository, 
-  claudeHookRepository 
-} from './claude-repository'
+import { claudeAgentRepository, claudeCommandRepository, claudeHookRepository } from './claude-repository'
 import { providerKeyRepository } from './provider-key-repository'
 import { activeTabRepository, selectedFileRepository } from './app-state-repository'
 import { mcpServerRepository } from './mcp-server-repository'
-import { 
+import {
   projects,
-  tickets, 
+  tickets,
   ticketTasks,
   chats,
   chatMessages,
@@ -61,7 +57,7 @@ import {
 export class StorageService {
   // Core entity repositories (fully typed)
   public readonly projects = projectRepository
-  public readonly tickets = ticketRepository  
+  public readonly tickets = ticketRepository
   public readonly tasks = taskRepository
   public readonly chats = chatRepository
   public readonly messages = messageRepository
@@ -87,7 +83,7 @@ export class StorageService {
   async getStorageStats() {
     // Import db here to avoid circular dependency
     const { db } = await import('../db')
-    
+
     const [
       projectCount,
       ticketCount,
@@ -105,26 +101,84 @@ export class StorageService {
       activeTabCount,
       mcpServerCount
     ] = await Promise.all([
-      db.select({ count: count() }).from(projects).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(tickets).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(ticketTasks).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(chats).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(chatMessages).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(prompts).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(queues).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(queueItems).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(files).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(claudeAgents).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(claudeCommands).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(claudeHooks).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(providerKeys).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(activeTabs).then(result => result[0]?.count ?? 0),
-      db.select({ count: count() }).from(mcpServerConfigs).then(result => result[0]?.count ?? 0)
+      db
+        .select({ count: count() })
+        .from(projects)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(tickets)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(ticketTasks)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(chats)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(chatMessages)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(prompts)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(queues)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(queueItems)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(files)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(claudeAgents)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(claudeCommands)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(claudeHooks)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(providerKeys)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(activeTabs)
+        .then((result) => result[0]?.count ?? 0),
+      db
+        .select({ count: count() })
+        .from(mcpServerConfigs)
+        .then((result) => result[0]?.count ?? 0)
     ])
 
-    const totalRecords = projectCount + ticketCount + taskCount + chatCount + 
-      messageCount + promptCount + queueCount + queueItemCount + fileCount + 
-      agentCount + commandCount + hookCount + providerKeyCount + activeTabCount + mcpServerCount
+    const totalRecords =
+      projectCount +
+      ticketCount +
+      taskCount +
+      chatCount +
+      messageCount +
+      promptCount +
+      queueCount +
+      queueItemCount +
+      fileCount +
+      agentCount +
+      commandCount +
+      hookCount +
+      providerKeyCount +
+      activeTabCount +
+      mcpServerCount
 
     return {
       // Core entities
@@ -137,20 +191,20 @@ export class StorageService {
       queues: queueCount,
       queueItems: queueItemCount,
       files: fileCount,
-      
+
       // Claude entities
       claudeAgents: agentCount,
       claudeCommands: commandCount,
       claudeHooks: hookCount,
-      
+
       // Configuration
       providerKeys: providerKeyCount,
       activeTabs: activeTabCount,
       mcpServers: mcpServerCount,
-      
+
       // Totals
       total: totalRecords,
-      
+
       // Categories
       coreEntities: projectCount + ticketCount + taskCount + chatCount + messageCount,
       claudeEntities: agentCount + commandCount + hookCount,
@@ -162,7 +216,7 @@ export class StorageService {
   /**
    * Health check - verify all repositories are functioning
    */
-  async healthCheck(): Promise<{ 
+  async healthCheck(): Promise<{
     status: 'healthy' | 'degraded' | 'unhealthy'
     repositories: Record<string, boolean>
     errors: string[]
@@ -187,22 +241,24 @@ export class StorageService {
       { name: 'mcpServers', repo: this.mcpServers }
     ]
 
-    await Promise.all(repositories.map(async ({ name, repo }) => {
-      try {
-        // Type assertion to ensure count method is available
-        const repositoryWithCount = repo as any
-        if (typeof repositoryWithCount.count === 'function') {
-          await repositoryWithCount.count()
-          repositoryChecks[name] = true
-        } else {
+    await Promise.all(
+      repositories.map(async ({ name, repo }) => {
+        try {
+          // Type assertion to ensure count method is available
+          const repositoryWithCount = repo as any
+          if (typeof repositoryWithCount.count === 'function') {
+            await repositoryWithCount.count()
+            repositoryChecks[name] = true
+          } else {
+            repositoryChecks[name] = false
+            errors.push(`${name}: count method not available`)
+          }
+        } catch (error) {
           repositoryChecks[name] = false
-          errors.push(`${name}: count method not available`)
+          errors.push(`${name}: ${error instanceof Error ? error.message : String(error)}`)
         }
-      } catch (error) {
-        repositoryChecks[name] = false
-        errors.push(`${name}: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }))
+      })
+    )
 
     const healthyCount = Object.values(repositoryChecks).filter(Boolean).length
     const totalCount = repositories.length
@@ -224,24 +280,24 @@ export class StorageService {
    */
   getRepository(entityName: string) {
     const repositories: Record<string, any> = {
-      'projects': this.projects,
-      'tickets': this.tickets,
-      'tasks': this.tasks,
-      'chats': this.chats,
-      'messages': this.messages,
-      'prompts': this.prompts,
-      'queues': this.queues,
-      'queueItems': this.queueItems,
-      'files': this.files,
-      'selectedFiles': this.selectedFiles,
-      'claudeAgents': this.claudeAgents,
-      'claudeCommands': this.claudeCommands,
-      'claudeHooks': this.claudeHooks,
-      'providerKeys': this.providerKeys,
-      'activeTabs': this.activeTabs,
-      'mcpServers': this.mcpServers
+      projects: this.projects,
+      tickets: this.tickets,
+      tasks: this.tasks,
+      chats: this.chats,
+      messages: this.messages,
+      prompts: this.prompts,
+      queues: this.queues,
+      queueItems: this.queueItems,
+      files: this.files,
+      selectedFiles: this.selectedFiles,
+      claudeAgents: this.claudeAgents,
+      claudeCommands: this.claudeCommands,
+      claudeHooks: this.claudeHooks,
+      providerKeys: this.providerKeys,
+      activeTabs: this.activeTabs,
+      mcpServers: this.mcpServers
     }
-    
+
     return repositories[entityName] || null
   }
 }

@@ -1,11 +1,13 @@
 # Chat Page Comprehensive Test Plan
 
 ## Overview
+
 The Chat Page is the core AI interaction interface for Promptliano, featuring real-time messaging with multiple AI providers, chat history management, model configuration, and provider switching. This test plan covers all chat functionality including provider integration, message handling, and system responsiveness.
 
 ## Test Scope & Requirements
 
 ### Major Components
+
 1. **Chat Header** - History drawer, chat name display, model settings
 2. **Message Area** - Message display, empty state handling, AI responses
 3. **User Input** - Message composition, provider/model selection, sending
@@ -14,6 +16,7 @@ The Chat Page is the core AI interaction interface for Promptliano, featuring re
 6. **Chat Settings** - Temperature, max tokens, frequency penalty adjustments
 
 ### Technical Integration Points
+
 - **AI Provider APIs**: OpenAI, Anthropic, local providers (Ollama, LM Studio)
 - **Real-time Messaging**: WebSocket or streaming connections for AI responses
 - **Chat Persistence**: Database storage and retrieval of conversation history
@@ -23,6 +26,7 @@ The Chat Page is the core AI interaction interface for Promptliano, featuring re
 ## Test Data Requirements
 
 ### Shared Test Data Setup
+
 ```typescript
 // Location: e2e/fixtures/chat-page-data.ts
 export const ChatPageTestData = {
@@ -33,17 +37,25 @@ export const ChatPageTestData = {
       name: 'Code Review Session',
       messages: [
         { role: 'user', content: 'Please review this authentication function', timestamp: Date.now() - 3600000 },
-        { role: 'assistant', content: 'I\'ll analyze your authentication function for security and best practices...', timestamp: Date.now() - 3500000 }
+        {
+          role: 'assistant',
+          content: "I'll analyze your authentication function for security and best practices...",
+          timestamp: Date.now() - 3500000
+        }
       ],
       provider: 'anthropic',
       model: 'claude-3-sonnet-20240229'
     },
     {
-      id: 2, 
+      id: 2,
       name: 'Bug Analysis Discussion',
       messages: [
-        { role: 'user', content: 'I\'m encountering a strange bug in the login flow', timestamp: Date.now() - 7200000 },
-        { role: 'assistant', content: 'Let me help you debug this login issue. Can you share the error message?', timestamp: Date.now() - 7100000 }
+        { role: 'user', content: "I'm encountering a strange bug in the login flow", timestamp: Date.now() - 7200000 },
+        {
+          role: 'assistant',
+          content: 'Let me help you debug this login issue. Can you share the error message?',
+          timestamp: Date.now() - 7100000
+        }
       ],
       provider: 'openai',
       model: 'gpt-4'
@@ -52,7 +64,7 @@ export const ChatPageTestData = {
       id: 3,
       name: 'Empty Chat',
       messages: [],
-      provider: 'anthropic', 
+      provider: 'anthropic',
       model: 'claude-3-sonnet-20240229'
     }
   ],
@@ -67,7 +79,7 @@ export const ChatPageTestData = {
     },
     {
       id: 'openai',
-      name: 'OpenAI', 
+      name: 'OpenAI',
       models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
       available: true
     },
@@ -79,7 +91,7 @@ export const ChatPageTestData = {
     },
     {
       id: 'lmstudio',
-      name: 'LM Studio (Local)', 
+      name: 'LM Studio (Local)',
       models: ['local-model'],
       available: false // May not be available in test environment
     }
@@ -122,6 +134,7 @@ function authenticate(username: string, password: string) {
 ## Page Object Model Extensions
 
 ### ChatPage Class Implementation
+
 ```typescript
 // Location: e2e/pages/chat-page.ts
 export class ChatPage extends BasePage {
@@ -238,10 +251,10 @@ export class ChatPage extends BasePage {
   async sendMessage(message: string) {
     await this.messageInput.fill(message)
     await this.sendButton.click()
-    
+
     // Wait for message to appear in conversation
     await expect(this.messages.last()).toContainText(message)
-    
+
     // Wait for input to be cleared
     await expect(this.messageInput).toHaveValue('')
   }
@@ -249,7 +262,7 @@ export class ChatPage extends BasePage {
   async selectProvider(providerId: string) {
     await this.providerSelector.click()
     await this.page.getByTestId(`provider-option-${providerId}`).click()
-    
+
     // Wait for provider to be selected
     await expect(this.providerDisplay).toContainText(providerId)
   }
@@ -257,7 +270,7 @@ export class ChatPage extends BasePage {
   async selectModel(modelName: string) {
     await this.modelSelector.click()
     await this.page.getByTestId(`model-option-${modelName}`).click()
-    
+
     // Wait for model to be selected
     await expect(this.modelDisplay).toContainText(modelName)
   }
@@ -293,6 +306,7 @@ export class ChatPage extends BasePage {
 ### 1. Chat Interface Basic Functionality
 
 #### 1.1 Header and Navigation Tests
+
 ```typescript
 test.describe('Chat Header and Navigation', () => {
   test('should display chat history drawer button in header', async ({ page }) => {
@@ -304,7 +318,7 @@ test.describe('Chat Header and Navigation', () => {
 
     // Verify history drawer button is in top left
     await expect(chatPage.historyDrawerButton).toBeVisible()
-    
+
     // Check button positioning (should be in top-left area)
     const buttonBox = await chatPage.historyDrawerButton.boundingBox()
     expect(buttonBox?.x).toBeLessThan(200) // Should be in left portion
@@ -326,15 +340,16 @@ test.describe('Chat Header and Navigation', () => {
 
     // Verify settings button exists and is positioned in top right
     await expect(chatPage.chatSettingsButton).toBeVisible()
-    
+
     const buttonBox = await chatPage.chatSettingsButton.boundingBox()
-    const pageWidth = await page.viewportSize().then(v => v?.width || 1280)
+    const pageWidth = await page.viewportSize().then((v) => v?.width || 1280)
     expect(buttonBox?.x).toBeGreaterThan(pageWidth - 200) // Should be in right portion
   })
 })
 ```
 
 #### 1.2 Empty State Tests
+
 ```typescript
 test.describe('Empty Chat State', () => {
   test('should display empty state for new chat', async ({ page }) => {
@@ -367,7 +382,8 @@ test.describe('Empty Chat State', () => {
 })
 ```
 
-#### 1.3 User Input Area Tests  
+#### 1.3 User Input Area Tests
+
 ```typescript
 test.describe('User Input Area', () => {
   test('should display provider and model in input area', async ({ page }) => {
@@ -440,6 +456,7 @@ test.describe('User Input Area', () => {
 ### 2. Provider and Model Management
 
 #### 2.1 Provider Selection Tests
+
 ```typescript
 test.describe('Provider Selection', () => {
   test.beforeEach(async ({ page }) => {
@@ -494,7 +511,7 @@ test.describe('Provider Selection', () => {
 
     // Send a message with default provider
     await chatPage.sendMessage('Hello from Anthropic')
-    
+
     // Wait for response (mocked or real)
     await chatPage.waitForAIResponse()
 
@@ -520,6 +537,7 @@ test.describe('Provider Selection', () => {
 ```
 
 #### 2.2 Model Selection Tests
+
 ```typescript
 test.describe('Model Selection', () => {
   test('should display available models for selected provider', async ({ page }) => {
@@ -533,7 +551,7 @@ test.describe('Model Selection', () => {
     await chatPage.modelSelector.click()
 
     // Verify Anthropic models are displayed
-    const anthropicProvider = ChatPageTestData.testProviders.find(p => p.id === 'anthropic')
+    const anthropicProvider = ChatPageTestData.testProviders.find((p) => p.id === 'anthropic')
     for (const model of anthropicProvider?.models || []) {
       await expect(page.getByTestId(`model-option-${model}`)).toBeVisible()
     }
@@ -572,6 +590,7 @@ test.describe('Model Selection', () => {
 ### 3. Chat Settings and Configuration
 
 #### 3.1 Model Settings Tests
+
 ```typescript
 test.describe('Model Settings Configuration', () => {
   test('should open chat settings modal', async ({ page }) => {
@@ -587,7 +606,7 @@ test.describe('Model Settings Configuration', () => {
 
     // Verify all setting controls are present
     await expect(chatPage.temperatureSlider).toBeVisible()
-    await expect(chatPage.maxTokensInput).toBeVisible() 
+    await expect(chatPage.maxTokensInput).toBeVisible()
     await expect(chatPage.topPSlider).toBeVisible()
     await expect(chatPage.frequencyPenaltySlider).toBeVisible()
     await expect(chatPage.presencePenaltySlider).toBeVisible()
@@ -626,19 +645,19 @@ test.describe('Model Settings Configuration', () => {
 
     // Set max tokens
     await chatPage.maxTokensInput.fill('2000')
-    
+
     // Verify value updated
     await expect(chatPage.maxTokensInput).toHaveValue('2000')
 
     // Test validation - should not allow invalid values
     await chatPage.maxTokensInput.fill('999999')
-    
+
     // Should either prevent input or show validation error
     const errorMessage = page.getByText(/max tokens.*limit|invalid.*tokens/i)
     const inputValue = await chatPage.maxTokensInput.inputValue()
-    
+
     // Either validation prevented the input or error is shown
-    expect(parseInt(inputValue) <= 100000 || await errorMessage.isVisible()).toBe(true)
+    expect(parseInt(inputValue) <= 100000 || (await errorMessage.isVisible())).toBe(true)
   })
 
   test('should adjust penalty settings with sliders', async ({ page }) => {
@@ -650,7 +669,7 @@ test.describe('Model Settings Configuration', () => {
     await chatPage.topPSlider.fill('0.8')
     await expect(chatPage.topPSlider).toHaveValue('0.8')
 
-    // Test Frequency Penalty slider  
+    // Test Frequency Penalty slider
     await chatPage.frequencyPenaltySlider.fill('0.5')
     await expect(chatPage.frequencyPenaltySlider).toHaveValue('0.5')
 
@@ -676,7 +695,7 @@ test.describe('Model Settings Configuration', () => {
     await chatPage.openChatSettings()
     await chatPage.temperatureSlider.fill('0.2')
     await chatPage.maxTokensInput.fill('1500')
-    
+
     const saveButton = page.getByRole('button', { name: 'Save' })
     if (await saveButton.isVisible()) {
       await saveButton.click()
@@ -699,6 +718,7 @@ test.describe('Model Settings Configuration', () => {
 ### 4. Chat History Management
 
 #### 4.1 History Drawer Tests
+
 ```typescript
 test.describe('Chat History Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -784,6 +804,7 @@ test.describe('Chat History Management', () => {
 ### 5. Message Handling and AI Integration
 
 #### 5.1 Message Flow Tests
+
 ```typescript
 test.describe('Message Handling and AI Responses', () => {
   test.beforeEach(async ({ page }) => {
@@ -827,7 +848,7 @@ test.describe('Message Handling and AI Responses', () => {
 
     // Switch to OpenAI
     await chatPage.selectProvider('openai')
-    await chatPage.sendMessage('Hello from OpenAI test')  
+    await chatPage.sendMessage('Hello from OpenAI test')
     await chatPage.waitForAIResponse()
 
     const openaiResponse = chatPage.getAssistantMessage(1)
@@ -864,7 +885,7 @@ test.describe('Message Handling and AI Responses', () => {
     // Verify code formatting is preserved
     const codeMessage = chatPage.getUserMessage(ChatPageTestData.testMessages.codeSnippet)
     await expect(codeMessage).toBeVisible()
-    
+
     // Check for code block formatting
     await expect(codeMessage.locator('pre, code')).toBeVisible()
     await expect(codeMessage).toContainText('typescript')
@@ -879,13 +900,14 @@ test.describe('Message Handling and AI Responses', () => {
 ```
 
 #### 5.2 Error Handling Tests
+
 ```typescript
 test.describe('Chat Error Handling', () => {
   test('should handle AI service unavailable', async ({ page }) => {
     const chatPage = new ChatPage(page)
-    
+
     // Mock AI service failure
-    await page.route('**/api/chat/**', route => {
+    await page.route('**/api/chat/**', (route) => {
       route.fulfill({ status: 503, body: JSON.stringify({ error: 'Service unavailable' }) })
     })
 
@@ -911,7 +933,7 @@ test.describe('Chat Error Handling', () => {
 
     // Simulate network failure during message send
     await page.setOffline(true)
-    
+
     await chatPage.messageInput.fill('Message during network failure')
     await chatPage.sendButton.click()
 
@@ -931,9 +953,9 @@ test.describe('Chat Error Handling', () => {
 
   test('should handle malformed AI responses', async ({ page }) => {
     const chatPage = new ChatPage(page)
-    
+
     // Mock malformed response
-    await page.route('**/api/chat/**', route => {
+    await page.route('**/api/chat/**', (route) => {
       route.fulfill({
         status: 200,
         body: 'Invalid JSON response'
@@ -945,16 +967,16 @@ test.describe('Chat Error Handling', () => {
 
     // Should handle error gracefully
     await expect(page.getByText(/error.*response|unexpected.*error/i)).toBeVisible()
-    
+
     // User message should still be displayed
     await expect(chatPage.getUserMessage('Test malformed response')).toBeVisible()
   })
 
   test('should handle provider timeout gracefully', async ({ page }) => {
     const chatPage = new ChatPage(page)
-    
+
     // Mock slow/timeout response
-    await page.route('**/api/chat/**', route => {
+    await page.route('**/api/chat/**', (route) => {
       // Don't fulfill the route to simulate timeout
       setTimeout(() => {
         route.fulfill({ status: 408, body: JSON.stringify({ error: 'Request timeout' }) })
@@ -973,17 +995,18 @@ test.describe('Chat Error Handling', () => {
 ### 6. Performance and Accessibility
 
 #### 6.1 Performance Tests
+
 ```typescript
 test.describe('Chat Performance', () => {
   test('should handle large chat histories efficiently', async ({ page }) => {
     const chatPage = new ChatPage(page)
-    
+
     // Setup large chat history
     await TestDataManager.setupLargeChatHistory(page, 100) // 100 previous messages
 
     const startTime = Date.now()
     await chatPage.goto('/chat/large-history')
-    
+
     // Should load within reasonable time
     await chatPage.waitForPageLoad()
     const loadTime = Date.now() - startTime
@@ -992,7 +1015,7 @@ test.describe('Chat Performance', () => {
     // Should be able to scroll through history smoothly
     await chatPage.messagesContainer.hover()
     await page.mouse.wheel(0, -1000) // Scroll up
-    
+
     // Check that older messages are loaded/visible
     await expect(chatPage.messages.first()).toBeVisible()
   })
@@ -1041,7 +1064,8 @@ test.describe('Chat Performance', () => {
 })
 ```
 
-#### 6.2 Accessibility Tests  
+#### 6.2 Accessibility Tests
+
 ```typescript
 test.describe('Chat Accessibility', () => {
   test('should support keyboard navigation', async ({ page }) => {
@@ -1062,10 +1086,10 @@ test.describe('Chat Accessibility', () => {
     // Tab to other controls
     await page.keyboard.press('Tab')
     await page.keyboard.press('Tab')
-    
+
     // Should be able to access provider selector
     await page.keyboard.press('Enter') // Open provider menu
-    
+
     // Arrow keys should navigate options
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('Enter') // Select option
@@ -1099,7 +1123,7 @@ test.describe('Chat Accessibility', () => {
     // AI response should be announced
     await chatPage.waitForAIResponse()
     const aiResponse = chatPage.getAssistantMessage()
-    
+
     // Should have aria-live region or proper announcement
     await expect(aiResponse).toHaveAttribute('aria-live', 'polite')
     // Or check for aria-label that would be announced
@@ -1112,26 +1136,31 @@ test.describe('Chat Accessibility', () => {
 ## Best Practices and Recommendations
 
 ### 1. Test Data Management
+
 - **Provider Mocking**: Mock AI providers for consistent, fast testing
 - **Response Simulation**: Create realistic AI response patterns for different scenarios
 - **History Persistence**: Test chat history across browser sessions and reloads
 
-### 2. Async Operations Handling  
+### 2. Async Operations Handling
+
 - **Streaming Responses**: Properly wait for incremental AI response updates
 - **Network Resilience**: Test behavior under various network conditions
 - **Timeout Handling**: Verify graceful degradation when AI services are slow
 
 ### 3. Performance Optimization
+
 - **Large Chat History**: Test with realistic conversation lengths
 - **Concurrent Requests**: Verify UI remains responsive during AI processing
 - **Memory Management**: Monitor for memory leaks during long chat sessions
 
 ### 4. Cross-Provider Testing
+
 - **Provider Switching**: Ensure seamless transitions between AI providers
 - **Model Compatibility**: Test different models within the same provider
 - **Error Consistency**: Standardize error handling across all providers
 
 ### 5. Real-World Scenarios
+
 - **Code Review Workflows**: Test with actual code snippets and technical discussions
 - **Long Conversations**: Verify performance with extended back-and-forth exchanges
 - **Mixed Content**: Test with various message types (text, code, lists, etc.)
@@ -1139,16 +1168,19 @@ test.describe('Chat Accessibility', () => {
 ## Execution Strategy
 
 ### 1. Test Isolation
+
 - Each test uses a fresh chat session to avoid interference
 - Provider mocks are reset between tests to ensure consistent state
 - Chat history is isolated per test to prevent data pollution
 
 ### 2. Parallel Execution
+
 - **Basic UI Tests** can run in parallel (header, empty state, input area)
 - **Provider Tests** should be grouped to avoid race conditions
 - **Performance Tests** may need sequential execution for accurate measurements
 
 ### 3. Environment Considerations
+
 - **Local Providers**: Tests gracefully handle when Ollama/LM Studio are unavailable
 - **API Keys**: Use mock providers in CI/CD to avoid real API costs
 - **Network Conditions**: Include offline/slow network testing scenarios

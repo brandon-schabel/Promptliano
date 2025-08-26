@@ -1,9 +1,9 @@
 /**
  * API Hooks - Generated Hook System
- * 
+ *
  * Modern hook system using generated factory patterns for consistency and efficiency
  * Achieving 76% code reduction through powerful factory patterns
- * 
+ *
  * Key benefits:
  * - Generated hooks with consistent patterns
  * - Built-in optimistic updates and smart caching
@@ -25,7 +25,6 @@ export {
   useDeleteProject,
   usePrefetchProjects,
   useInvalidateProjects,
-  
   useTickets,
   useTicket,
   useCreateTicket,
@@ -33,7 +32,6 @@ export {
   useDeleteTicket,
   usePrefetchTickets,
   useInvalidateTickets,
-  
   useChats,
   useChat,
   useCreateChat,
@@ -41,7 +39,7 @@ export {
   useDeleteChat,
   usePrefetchChats,
   useInvalidateChats,
-  
+
   // AI Chat Hooks with Streaming (Phase 2 Complete)
   useGetChats,
   useGetChat,
@@ -57,7 +55,6 @@ export {
   useDeleteMessage,
   useStreamChat,
   useInvalidateAIChats,
-  
   usePrompts,
   usePrompt,
   useCreatePrompt,
@@ -65,7 +62,6 @@ export {
   useDeletePrompt,
   usePrefetchPrompts,
   useInvalidatePrompts,
-  
   useAgents,
   useAgent,
   useCreateAgent,
@@ -73,7 +69,6 @@ export {
   useDeleteAgent,
   usePrefetchAgents,
   useInvalidateAgents,
-  
   useQueues,
   useQueue,
   useCreateQueue,
@@ -81,7 +76,6 @@ export {
   useDeleteQueue,
   usePrefetchQueues,
   useInvalidateQueues,
-  
   useKeys,
   useKey,
   useCreateKey,
@@ -89,7 +83,7 @@ export {
   useDeleteKey,
   usePrefetchKeys,
   useInvalidateKeys,
-  
+
   // Advanced entity-specific hooks
   useProjectFiles,
   useProjectSync,
@@ -100,28 +94,26 @@ export {
   useAutoGenerateTasks,
   useCompleteTicket,
   useChatMessages,
-  
+
   // Queue hooks
   useQueueStats,
   useQueueItems,
   useGetQueuesWithStats,
-  
+
   // Convenience aliases (defined at bottom of file to avoid conflicts)
   // useGetTicket,
   // useGetTasks,
   // useGetQueue,
   // useGetProject,
   useInvalidateTicketsEnhanced,
-  
+
   // Utility hooks
   useBatchOperations,
   useRealtimeSync
 } from './generated'
 
 // Phase 2 Migrated Hooks
-export {
-  useBrowseDirectory
-} from './api/browse-directory-hooks'
+export { useBrowseDirectory } from './api/browse-directory-hooks'
 
 export {
   useClaudeSessions,
@@ -172,9 +164,9 @@ export {
 export {
   // Core Flow Data Queries
   useGetFlowData,
-  useGetFlowItems, 
+  useGetFlowItems,
   useGetUnqueuedItems,
-  
+
   // Queue Management Mutations
   useEnqueueTicket,
   useEnqueueTask,
@@ -183,15 +175,15 @@ export {
   useMoveItem,
   useBulkMoveItems,
   useCompleteQueueItem,
-  
+
   // Processing Operations
   useStartProcessing,
   useCompleteProcessing,
   useFailProcessing,
-  
+
   // Cache Management
   useInvalidateFlow,
-  
+
   // Query Keys & Types
   FLOW_KEYS
 } from './generated/flow-hooks'
@@ -202,54 +194,54 @@ export {
   useProjectGitStatus,
   useGitFilesWithChanges,
   useFileDiff,
-  
+
   // Branch Management
   useGitBranches,
   useBranchesEnhanced,
   useCreateBranch,
   useSwitchBranch,
   useDeleteBranch,
-  
+
   // Commit History
   useGitLog,
   useCommitLogEnhanced,
   useCommitDetail,
-  
+
   // File Staging
   useStageFiles,
   useUnstageFiles,
   useStageAll,
   useUnstageAll,
   useCommitChanges,
-  
+
   // Remote Operations
   useGitRemotes,
   useGitPush,
   useGitFetch,
   useGitPull,
-  
+
   // Tag Management
   useGitTags,
   useCreateTag,
-  
+
   // Stash Operations
   useGitStashList,
   useGitStash,
   useGitStashApply,
   useGitStashPop,
   useGitStashDrop,
-  
+
   // Reset Operations
   useGitReset,
-  
+
   // Worktree Operations
   useGitWorktrees,
   useAddGitWorktree,
   useRemoveGitWorktree,
-  
+
   // Cache Management
   useInvalidateGit,
-  
+
   // Query Keys & Types
   GIT_KEYS
 } from './generated/git-hooks'
@@ -262,7 +254,7 @@ export {
   useGetMCPToolStatistics,
   useGetMCPExecutionTimeline,
   useGetMCPErrorPatterns,
-  
+
   // Global MCP Management
   useGetGlobalMCPConfig,
   useGetGlobalInstallations,
@@ -270,16 +262,16 @@ export {
   useUpdateGlobalMCPConfig,
   useInstallGlobalMCP,
   useUninstallGlobalMCP,
-  
+
   // Composite Management
   useGlobalMCPManager,
-  
+
   // Cache Management
   useInvalidateMCP,
-  
+
   // Query Keys & Types
   MCP_KEYS,
-  
+
   // Type exports
   type MCPExecutionQuery,
   type MCPToolExecution,
@@ -294,11 +286,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from './api/use-api-client'
 import { toast } from 'sonner'
 import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
-import { 
-  PROJECT_ENHANCED_KEYS,
-  PROMPT_ENHANCED_KEYS,
-  invalidateWithRelationships 
-} from './generated/query-keys'
+import { PROJECT_ENHANCED_KEYS, PROMPT_ENHANCED_KEYS, invalidateWithRelationships } from './generated/query-keys'
 import type {
   OptimizePromptRequest,
   MarkdownImportRequest,
@@ -325,19 +313,14 @@ export function useSyncProjectWithProgress() {
   const queryClient = useQueryClient()
 
   return {
-    syncWithProgress: async (
-      projectId: number,
-      onProgress?: (event: any) => void,
-      abortSignal?: AbortSignal
-    ) => {
+    syncWithProgress: async (projectId: number, onProgress?: (event: any) => void, abortSignal?: AbortSignal) => {
       if (!client) throw new Error('API client not initialized')
 
       try {
         // Start SSE sync with progress tracking
-        const eventSource = new EventSource(
-          `${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/sync/stream`,
-          { withCredentials: true }
-        )
+        const eventSource = new EventSource(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/sync/stream`, {
+          withCredentials: true
+        })
 
         return new Promise((resolve, reject) => {
           // Handle abort signal
@@ -356,11 +339,11 @@ export function useSyncProjectWithProgress() {
               // Check if sync is complete
               if (progressEvent.type === 'complete') {
                 eventSource.close()
-                
+
                 // Invalidate queries on completion
                 queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(projectId) })
                 queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.detail(projectId) })
-                
+
                 resolve(progressEvent.data)
               } else if (progressEvent.type === 'error') {
                 eventSource.close()
@@ -378,10 +361,13 @@ export function useSyncProjectWithProgress() {
           }
 
           // Timeout after 5 minutes
-          setTimeout(() => {
-            eventSource.close()
-            reject(new Error('Sync timeout'))
-          }, 5 * 60 * 1000)
+          setTimeout(
+            () => {
+              eventSource.close()
+              reject(new Error('Sync timeout'))
+            },
+            5 * 60 * 1000
+          )
         })
       } catch (error) {
         throw new Error(`Failed to start sync: ${error}`)
@@ -397,7 +383,7 @@ export function useGetProjectSummary(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.summary(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectSummary(projectId).then(r => r)
+      return client.projects.getProjectSummary(projectId).then((r) => r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 10 * 60 * 1000 // 10 minutes for summary
@@ -411,7 +397,7 @@ export function useGetProjectStatistics(projectId: number) {
     queryKey: PROJECT_ENHANCED_KEYS.statistics(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectStatistics(projectId).then(r => r?.data || r)
+      return client.projects.getProjectStatistics(projectId).then((r) => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000 // 5 minutes cache for statistics
@@ -426,7 +412,7 @@ export function useGetProjectFilesWithoutContent(projectId: number) {
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
       // Use getProjectFiles method instead as getProjectFilesWithoutContent may not exist
-      return client.projects.getProjectFiles(projectId).then(r => r?.data || r)
+      return client.projects.getProjectFiles(projectId).then((r) => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000, // 5 minutes for file metadata
@@ -555,7 +541,7 @@ export function useGetProjectPrompts(projectId: number) {
     queryKey: PROMPT_ENHANCED_KEYS.projectPrompts(projectId),
     queryFn: () => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.getProjectPrompts(projectId).then(r => r?.data || r)
+      return client.prompts.getProjectPrompts(projectId).then((r) => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000
@@ -957,25 +943,25 @@ export function useMigrationAnalytics() {
 
   return {
     ...analytics,
-    
+
     // Calculate migration benefits
     getMigrationBenefits: () => {
       const stats = analytics.getCacheStats()
-      
+
       return {
         // Performance metrics
         cacheEfficiency: (stats.successQueries / stats.totalQueries) * 100,
         errorRate: (stats.errorQueries / stats.totalQueries) * 100,
-        
+
         // Code reduction metrics
         estimatedLinesReduced: 44000, // Based on our calculations
         estimatedFilesReduced: 19, // 22 files -> 3 files
         codeReductionPercentage: 76,
-        
+
         // Developer experience metrics
         averageHookCreationTime: '5 minutes', // vs 2 hours manually
         velocityImprovement: '15x faster',
-        
+
         // Type safety improvements
         compileTimeErrorCatch: '100%',
         runtimeErrorReduction: '90%'
@@ -990,38 +976,38 @@ export function useMigrationAnalytics() {
 
 /**
  * Export Summary:
- * 
+ *
  * GENERATED HOOKS (Primary Interface):
  * - 7 core entities with full CRUD operations
  * - 35 lines per entity vs 300+ lines manually
  * - Optimistic updates, caching, prefetching built-in
  * - Type-safe with full IntelliSense support
- * 
+ *
  * SPECIALIZED HOOKS (Custom Operations):
  * - Project file management and sync operations
  * - Prompt project associations and AI optimization
  * - Chat message management and streaming
  * - Markdown import/export operations
  * - Queue stats and item management
- * 
+ *
  * UTILITY HOOKS (Cross-cutting Concerns):
  * - Batch operations and relationship invalidation
  * - Real-time synchronization
  * - Performance analytics and monitoring
  * - Migration benefits tracking
- * 
+ *
  * BACKWARD COMPATIBILITY:
  * - All existing hook names preserved as aliases
  * - No breaking changes to existing components
  * - Gradual migration path available
- * 
+ *
  * PHASE 2 COMPLETION IMPACT:
- * - Browse Directory: 18 lines → 10 lines (44% reduction)  
+ * - Browse Directory: 18 lines → 10 lines (44% reduction)
  * - Claude Code API: 823 lines → 400 lines (51% reduction)
  * - Claude Hooks: 184 lines → 120 lines (35% reduction)
- * 
+ *
  * TOTAL IMPACT:
- * - 64,000+ lines → ~19,000 lines (70% reduction) 
+ * - 64,000+ lines → ~19,000 lines (70% reduction)
  * - 25 hook files → 6 factory files (76% reduction)
  * - 10-15x faster development velocity
  * - 100% type safety and compile-time validation

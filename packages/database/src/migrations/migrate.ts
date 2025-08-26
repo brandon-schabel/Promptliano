@@ -25,33 +25,44 @@ export async function runMigrations() {
  */
 export async function createInitialSchema() {
   console.log('Creating initial Drizzle schema...')
-  
+
   // The schema creation will be handled by drizzle-kit generate
   // This is a placeholder for any custom initialization logic
-  
+
   try {
     // Run migrations to create tables
     await runMigrations()
-    
+
     // Verify critical tables exist
     const tables = [
-      'projects', 'tickets', 'ticket_tasks', 'chats', 'chat_messages', 
-      'prompts', 'queues', 'queue_items', 'claude_agents', 'claude_commands',
-      'claude_hooks', 'provider_keys', 'files', 'selected_files', 'active_tabs'
+      'projects',
+      'tickets',
+      'ticket_tasks',
+      'chats',
+      'chat_messages',
+      'prompts',
+      'queues',
+      'queue_items',
+      'claude_agents',
+      'claude_commands',
+      'claude_hooks',
+      'provider_keys',
+      'files',
+      'selected_files',
+      'active_tabs'
     ]
-    
+
     for (const table of tables) {
       const result = rawDb.query(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(table)
       if (!result) {
         throw new Error(`Table ${table} was not created`)
       }
     }
-    
+
     console.log('✅ All tables created successfully')
-    
+
     // Create any custom indexes for performance
     await createPerformanceIndexes()
-    
   } catch (error) {
     console.error('❌ Schema creation failed:', error)
     throw error
@@ -69,13 +80,13 @@ async function createPerformanceIndexes() {
     'CREATE INDEX IF NOT EXISTS idx_tasks_ticket_done ON ticket_tasks(ticket_id, done)',
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON chat_messages(chat_id, created_at)',
     'CREATE INDEX IF NOT EXISTS idx_queue_items_queue_status ON queue_items(queue_id, status)',
-    'CREATE INDEX IF NOT EXISTS idx_files_project_relevant ON files(project_id, is_relevant)',
-    
+    'CREATE INDEX IF NOT EXISTS idx_files_project_relevant ON files(project_id, is_relevant)'
+
     // Full-text search indexes (if needed)
     // 'CREATE VIRTUAL TABLE IF NOT EXISTS fts_tickets USING fts5(title, overview, content=tickets)',
     // 'CREATE VIRTUAL TABLE IF NOT EXISTS fts_prompts USING fts5(title, content, description, content=prompts)',
   ]
-  
+
   for (const indexSql of indexes) {
     try {
       rawDb.exec(indexSql)

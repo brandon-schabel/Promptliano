@@ -15,7 +15,7 @@ test.describe('Prompt Overview Panel Testing', () => {
     appPage = new AppPage(page)
     projectsPage = new ProjectsPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -37,26 +37,20 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Verify prompt overview panel is visible
-      const promptOverviewPanel = appPage.page.locator([
-        '[data-testid="prompt-overview-panel"]',
-        '.prompt-overview-panel',
-        '[data-testid="prompt-panel"]'
-      ].join(', '))
+      const promptOverviewPanel = appPage.page.locator(
+        ['[data-testid="prompt-overview-panel"]', '.prompt-overview-panel', '[data-testid="prompt-panel"]'].join(', ')
+      )
 
       await expect(promptOverviewPanel).toBeVisible({ timeout: 10000 })
 
       // Should contain prompts and selected files sections
-      const promptsSection = appPage.page.locator([
-        '[data-testid="prompts-list"]',
-        '.prompts-list',
-        '.prompts-section'
-      ].join(', '))
+      const promptsSection = appPage.page.locator(
+        ['[data-testid="prompts-list"]', '.prompts-list', '.prompts-section'].join(', ')
+      )
 
-      const selectedFilesSection = appPage.page.locator([
-        '[data-testid="selected-files"]',
-        '.selected-files-list',
-        '.selected-files-section'
-      ].join(', '))
+      const selectedFilesSection = appPage.page.locator(
+        ['[data-testid="selected-files"]', '.selected-files-list', '.selected-files-section'].join(', ')
+      )
 
       if (await promptsSection.isVisible({ timeout: 3000 })) {
         await expect(promptsSection).toBeVisible()
@@ -76,17 +70,19 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for resizable panel divider
-      const resizeHandle = appPage.page.locator([
-        '[data-testid="resize-handle"]',
-        '.resize-handle',
-        '[data-panel-resize-handle-enabled]',
-        '.panel-divider'
-      ].join(', '))
+      const resizeHandle = appPage.page.locator(
+        [
+          '[data-testid="resize-handle"]',
+          '.resize-handle',
+          '[data-panel-resize-handle-enabled]',
+          '.panel-divider'
+        ].join(', ')
+      )
 
       if (await resizeHandle.isVisible({ timeout: 5000 })) {
         // Get initial position
         const initialBounds = await resizeHandle.boundingBox()
-        
+
         if (initialBounds) {
           // Try to drag the resize handle
           await resizeHandle.hover()
@@ -113,24 +109,26 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for collapsible section headers
-      const collapsibleHeaders = appPage.page.locator([
-        '[data-testid="collapsible-header"]',
-        '[data-testid*="collapse"]',
-        'button[aria-expanded]',
-        '.collapsible-trigger'
-      ].join(', '))
+      const collapsibleHeaders = appPage.page.locator(
+        [
+          '[data-testid="collapsible-header"]',
+          '[data-testid*="collapse"]',
+          'button[aria-expanded]',
+          '.collapsible-trigger'
+        ].join(', ')
+      )
 
       const headerCount = await collapsibleHeaders.count()
       if (headerCount > 0) {
         const firstHeader = collapsibleHeaders.first()
-        
+
         // Check initial state
         const initialState = await firstHeader.getAttribute('aria-expanded')
-        
+
         // Toggle collapse
         await firstHeader.click()
         await appPage.page.waitForTimeout(500)
-        
+
         // Verify state changed
         const newState = await firstHeader.getAttribute('aria-expanded')
         expect(newState).not.toBe(initialState)
@@ -138,7 +136,7 @@ test.describe('Prompt Overview Panel Testing', () => {
         // Toggle back
         await firstHeader.click()
         await appPage.page.waitForTimeout(500)
-        
+
         // Should return to initial state
         const finalState = await firstHeader.getAttribute('aria-expanded')
         expect(finalState).toBe(initialState)
@@ -159,15 +157,15 @@ test.describe('Prompt Overview Panel Testing', () => {
         const initialState = await collapsibleHeader.first().getAttribute('aria-expanded')
         await collapsibleHeader.first().click()
         await appPage.page.waitForTimeout(500)
-        
+
         // Reload the page
         await appPage.page.reload()
         await appPage.waitForAppReady()
-        
+
         // Navigate back to the project
         await sidebarPage.navigateToSection('projects')
         await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
-        
+
         // Check if state was persisted
         if (await collapsibleHeader.first().isVisible({ timeout: 5000 })) {
           const persistedState = await collapsibleHeader.first().getAttribute('aria-expanded')
@@ -187,16 +185,18 @@ test.describe('Prompt Overview Panel Testing', () => {
       // Test different viewport sizes
       const viewports = [
         { width: 1920, height: 1080 }, // Desktop
-        { width: 768, height: 1024 },  // Tablet
-        { width: 375, height: 667 }    // Mobile
+        { width: 768, height: 1024 }, // Tablet
+        { width: 375, height: 667 } // Mobile
       ]
 
       for (const viewport of viewports) {
         await appPage.page.setViewportSize(viewport)
         await appPage.page.waitForTimeout(500)
 
-        const promptOverviewPanel = appPage.page.locator('[data-testid="prompt-overview-panel"], .prompt-overview-panel')
-        
+        const promptOverviewPanel = appPage.page.locator(
+          '[data-testid="prompt-overview-panel"], .prompt-overview-panel'
+        )
+
         if (await promptOverviewPanel.isVisible({ timeout: 3000 })) {
           // Panel should adapt to different screen sizes
           const bounds = await promptOverviewPanel.boundingBox()
@@ -224,18 +224,16 @@ test.describe('Prompt Overview Panel Testing', () => {
       // Select some files first
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       const fileCount = await fileItems.count()
-      
+
       if (fileCount > 0) {
         // Select first file
         await fileItems.first().click()
         await appPage.page.waitForTimeout(1000)
 
         // Check selected files display
-        const selectedFilesDisplay = appPage.page.locator([
-          '[data-testid="selected-files-display"]',
-          '.selected-files-list',
-          '.selected-file-item'
-        ].join(', '))
+        const selectedFilesDisplay = appPage.page.locator(
+          ['[data-testid="selected-files-display"]', '.selected-files-list', '.selected-file-item'].join(', ')
+        )
 
         if (await selectedFilesDisplay.isVisible({ timeout: 3000 })) {
           // Should show file path
@@ -263,23 +261,25 @@ test.describe('Prompt Overview Panel Testing', () => {
       // Select multiple files
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       const fileCount = await fileItems.count()
-      
+
       if (fileCount > 1) {
         await fileItems.first().click()
         await appPage.page.waitForTimeout(500)
-        
-        await fileItems.nth(1).click({ 
-          modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control'] 
+
+        await fileItems.nth(1).click({
+          modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control']
         })
         await appPage.page.waitForTimeout(1000)
 
         // Look for remove buttons in selected files
-        const removeButtons = appPage.page.locator([
-          '[data-testid="remove-file"]',
-          'button[aria-label*="remove"]',
-          '.remove-file-button',
-          'button:has([data-lucide="x"])'
-        ].join(', '))
+        const removeButtons = appPage.page.locator(
+          [
+            '[data-testid="remove-file"]',
+            'button[aria-label*="remove"]',
+            '.remove-file-button',
+            'button:has([data-lucide="x"])'
+          ].join(', ')
+        )
 
         const removeButtonCount = await removeButtons.count()
         if (removeButtonCount > 0) {
@@ -306,23 +306,25 @@ test.describe('Prompt Overview Panel Testing', () => {
       // Select multiple files
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       const fileCount = await fileItems.count()
-      
+
       if (fileCount > 0) {
         // Select multiple files
         for (let i = 0; i < Math.min(3, fileCount); i++) {
-          await fileItems.nth(i).click({ 
-            modifiers: i > 0 ? (process.platform === 'darwin' ? ['Meta'] : ['Control']) : [] 
+          await fileItems.nth(i).click({
+            modifiers: i > 0 ? (process.platform === 'darwin' ? ['Meta'] : ['Control']) : []
           })
           await appPage.page.waitForTimeout(300)
         }
 
         // Look for clear all button
-        const clearAllButton = appPage.page.locator([
-          '[data-testid="clear-all-files"]',
-          'button:has-text("Clear")',
-          'button:has-text("Clear All")',
-          '.clear-all-button'
-        ].join(', '))
+        const clearAllButton = appPage.page.locator(
+          [
+            '[data-testid="clear-all-files"]',
+            'button:has-text("Clear")',
+            'button:has-text("Clear All")',
+            '.clear-all-button'
+          ].join(', ')
+        )
 
         if (await clearAllButton.isVisible({ timeout: 3000 })) {
           await clearAllButton.click()
@@ -352,19 +354,16 @@ test.describe('Prompt Overview Panel Testing', () => {
 
         // Find selected file in the overview panel
         const selectedFile = appPage.page.locator('.selected-file-item').first()
-        
+
         if (await selectedFile.isVisible({ timeout: 3000 })) {
           // Hover over the selected file
           await selectedFile.hover()
           await appPage.page.waitForTimeout(500)
 
           // Look for preview tooltip or popup
-          const preview = appPage.page.locator([
-            '[data-testid="file-preview"]',
-            '.file-preview',
-            '[role="tooltip"]',
-            '.preview-popup'
-          ].join(', '))
+          const preview = appPage.page.locator(
+            ['[data-testid="file-preview"]', '.file-preview', '[role="tooltip"]', '.preview-popup'].join(', ')
+          )
 
           if (await preview.isVisible({ timeout: 2000 })) {
             const previewContent = await preview.textContent()
@@ -388,17 +387,14 @@ test.describe('Prompt Overview Panel Testing', () => {
       const promptTextArea = appPage.page.locator('[data-testid="prompt-textarea"], textarea')
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         await promptTextArea.fill('Test prompt for display in overview panel')
-        
+
         const saveButton = appPage.page.locator('[data-testid="save-prompt"], button:has-text("Save")')
         if (await saveButton.isVisible({ timeout: 2000 })) {
           await saveButton.click()
           await appPage.page.waitForTimeout(1000)
 
           // Check prompts list in overview panel
-          const promptsList = appPage.page.locator([
-            '[data-testid="prompts-list"]',
-            '.prompts-list'
-          ].join(', '))
+          const promptsList = appPage.page.locator(['[data-testid="prompts-list"]', '.prompts-list'].join(', '))
 
           if (await promptsList.isVisible({ timeout: 3000 })) {
             const promptItems = promptsList.locator('[data-testid="prompt-item"], .prompt-item')
@@ -424,17 +420,13 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Create multiple prompts with different content
-      const prompts = [
-        'JavaScript code review prompt',
-        'CSS styling guidelines prompt',
-        'API documentation prompt'
-      ]
+      const prompts = ['JavaScript code review prompt', 'CSS styling guidelines prompt', 'API documentation prompt']
 
       for (const promptText of prompts) {
         const promptTextArea = appPage.page.locator('[data-testid="prompt-textarea"], textarea')
         if (await promptTextArea.isVisible({ timeout: 3000 })) {
           await promptTextArea.fill(promptText)
-          
+
           const saveButton = appPage.page.locator('[data-testid="save-prompt"], button:has-text("Save")')
           if (await saveButton.isVisible({ timeout: 2000 })) {
             await saveButton.click()
@@ -444,11 +436,9 @@ test.describe('Prompt Overview Panel Testing', () => {
       }
 
       // Look for prompt search functionality
-      const promptSearch = appPage.page.locator([
-        '[data-testid="prompt-search"]',
-        '.prompt-search',
-        'input[placeholder*="search prompt"]'
-      ].join(', '))
+      const promptSearch = appPage.page.locator(
+        ['[data-testid="prompt-search"]', '.prompt-search', 'input[placeholder*="search prompt"]'].join(', ')
+      )
 
       if (await promptSearch.isVisible({ timeout: 3000 })) {
         // Search for specific prompts
@@ -457,7 +447,7 @@ test.describe('Prompt Overview Panel Testing', () => {
 
         const filteredPrompts = appPage.page.locator('[data-testid="prompt-item"], .prompt-item')
         const filteredCount = await filteredPrompts.count()
-        
+
         // Should show fewer prompts after filtering
         if (filteredCount > 0) {
           const promptText = await filteredPrompts.first().textContent()
@@ -475,12 +465,9 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Look for sort options
-      const sortOptions = appPage.page.locator([
-        '[data-testid="prompt-sort"]',
-        '.sort-prompts',
-        'select',
-        '[role="combobox"]'
-      ].join(', '))
+      const sortOptions = appPage.page.locator(
+        ['[data-testid="prompt-sort"]', '.sort-prompts', 'select', '[role="combobox"]'].join(', ')
+      )
 
       if (await sortOptions.isVisible({ timeout: 3000 })) {
         // Try different sort options
@@ -514,7 +501,7 @@ test.describe('Prompt Overview Panel Testing', () => {
       if (await promptTextArea.isVisible({ timeout: 5000 })) {
         const originalPrompt = 'Original prompt for editing test'
         await promptTextArea.fill(originalPrompt)
-        
+
         const saveButton = appPage.page.locator('[data-testid="save-prompt"], button:has-text("Save")')
         if (await saveButton.isVisible({ timeout: 2000 })) {
           await saveButton.click()
@@ -522,7 +509,7 @@ test.describe('Prompt Overview Panel Testing', () => {
 
           // Find the prompt in the list
           const promptItem = appPage.page.locator('[data-testid="prompt-item"], .prompt-item').first()
-          
+
           if (await promptItem.isVisible({ timeout: 3000 })) {
             // Click to select/edit the prompt
             await promptItem.click()
@@ -563,16 +550,15 @@ test.describe('Prompt Overview Panel Testing', () => {
       // Select files in the file panel
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       const fileCount = await fileItems.count()
-      
+
       if (fileCount > 0) {
         await fileItems.first().click()
         await appPage.page.waitForTimeout(1000)
 
         // Check that selection is reflected in overview panel
-        const selectedFilesDisplay = appPage.page.locator([
-          '[data-testid="selected-files-display"]',
-          '.selected-files-list'
-        ].join(', '))
+        const selectedFilesDisplay = appPage.page.locator(
+          ['[data-testid="selected-files-display"]', '.selected-files-list'].join(', ')
+        )
 
         if (await selectedFilesDisplay.isVisible({ timeout: 3000 })) {
           const selectedFileItems = selectedFilesDisplay.locator('.selected-file-item')
@@ -582,8 +568,8 @@ test.describe('Prompt Overview Panel Testing', () => {
 
         // Select another file
         if (fileCount > 1) {
-          await fileItems.nth(1).click({ 
-            modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control'] 
+          await fileItems.nth(1).click({
+            modifiers: process.platform === 'darwin' ? ['Meta'] : ['Control']
           })
           await appPage.page.waitForTimeout(500)
 
@@ -606,7 +592,7 @@ test.describe('Prompt Overview Panel Testing', () => {
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
       // Make changes in different panels and verify consistency
-      
+
       // 1. Select files in file panel
       const fileItems = appPage.page.locator('[data-testid="file-item"], .file-item')
       if (await fileItems.first().isVisible({ timeout: 3000 })) {
@@ -618,7 +604,7 @@ test.describe('Prompt Overview Panel Testing', () => {
       const promptTextArea = appPage.page.locator('[data-testid="prompt-textarea"], textarea')
       if (await promptTextArea.isVisible({ timeout: 3000 })) {
         await promptTextArea.fill('Consistency test prompt')
-        
+
         const saveButton = appPage.page.locator('[data-testid="save-prompt"], button:has-text("Save")')
         if (await saveButton.isVisible({ timeout: 2000 })) {
           await saveButton.click()

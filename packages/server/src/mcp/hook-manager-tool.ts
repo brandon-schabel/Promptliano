@@ -2,11 +2,7 @@ import { z } from '@hono/zod-openapi'
 import type { MCPToolDefinition, MCPToolResponse } from './tools-registry'
 import { MCPError, MCPErrorCode, createMCPError, formatMCPErrorResponse } from './mcp-errors'
 import { trackMCPToolExecution } from '@promptliano/services'
-import {
-  claudeHookService,
-  getProjectById,
-  type HookEvent
-} from '@promptliano/services'
+import { claudeHookService, getProjectById, type HookEvent } from '@promptliano/services'
 import type { ClaudeHook, CreateClaudeHook } from '@promptliano/database'
 
 // Action enum

@@ -12,19 +12,35 @@ import {
   gitCreateBranchRequestSchema as CreateBranchBodySchema,
   gitSwitchBranchRequestSchema as SwitchBranchBodySchema
 } from '@promptliano/schemas'
-import { getBranches, getBranchesEnhanced, createBranch, switchBranch, deleteBranch, clearGitStatusCache } from '@promptliano/services'
-import { createStandardResponses, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
+import {
+  getBranches,
+  getBranchesEnhanced,
+  createBranch,
+  switchBranch,
+  deleteBranch,
+  clearGitStatusCache
+} from '@promptliano/services'
+import {
+  createStandardResponses,
+  createRouteHandler,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 
 // Response schemas
-const BranchListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(GitBranchSchema)
-}).openapi('BranchListResponse')
+const BranchListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(GitBranchSchema)
+  })
+  .openapi('BranchListResponse')
 
-const BranchListEnhancedResponseSchema = z.object({
-  success: z.literal(true),
-  data: GitBranchListEnhancedResponseSchema
-}).openapi('BranchListEnhancedResponse')
+const BranchListEnhancedResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: GitBranchListEnhancedResponseSchema
+  })
+  .openapi('BranchListEnhancedResponse')
 
 // Get branches
 const getBranchesRoute = createRoute({
@@ -128,11 +144,7 @@ export const gitBranchRoutes = new OpenAPIHono()
   .openapi(createBranchRoute, (async (c: any): Promise<any> => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    await createBranch(
-      projectId,
-      body.name,
-      body.startPoint
-    )
+    await createBranch(projectId, body.name, body.startPoint)
     return c.json(operationSuccessResponse('Branch created successfully'), 201)
   }) as any)
   .openapi(switchBranchRoute, (async (c: any): Promise<any> => {

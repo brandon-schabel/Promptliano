@@ -36,10 +36,13 @@ export function SidebarLayout({
 }: SidebarLayoutProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed)
 
-  const handleCollapse = React.useCallback((collapsed: boolean) => {
-    setIsCollapsed(collapsed)
-    onCollapsedChange?.(collapsed)
-  }, [onCollapsedChange])
+  const handleCollapse = React.useCallback(
+    (collapsed: boolean) => {
+      setIsCollapsed(collapsed)
+      onCollapsedChange?.(collapsed)
+    },
+    [onCollapsedChange]
+  )
 
   const sidebarElement = (
     <div
@@ -55,11 +58,7 @@ export function SidebarLayout({
     </div>
   )
 
-  const contentElement = (
-    <div className={cn('flex-1 overflow-auto', contentClassName)}>
-      {content}
-    </div>
-  )
+  const contentElement = <div className={cn('flex-1 overflow-auto', contentClassName)}>{content}</div>
 
   return (
     <div className={cn('flex h-full', className)}>
@@ -112,12 +111,10 @@ export function ResizableSidebarLayout({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!sidebarRef.current) return
-      
+
       const rect = sidebarRef.current.getBoundingClientRect()
-      const newWidth = sidebarPosition === 'left' 
-        ? e.clientX - rect.left
-        : rect.right - e.clientX
-      
+      const newWidth = sidebarPosition === 'left' ? e.clientX - rect.left : rect.right - e.clientX
+
       const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth))
       setWidth(clampedWidth)
       onWidthChange?.(clampedWidth)
@@ -147,7 +144,7 @@ export function ResizableSidebarLayout({
       style={{ width: `${width}px` }}
     >
       {sidebar}
-      
+
       {/* Resize handle */}
       <div
         className={cn(
@@ -160,20 +157,10 @@ export function ResizableSidebarLayout({
     </div>
   )
 
-  const contentElement = (
-    <div className={cn('flex-1 overflow-auto', contentClassName)}>
-      {content}
-    </div>
-  )
+  const contentElement = <div className={cn('flex-1 overflow-auto', contentClassName)}>{content}</div>
 
   return (
-    <div 
-      className={cn(
-        'flex h-full',
-        isResizing && 'select-none',
-        className
-      )}
-    >
+    <div className={cn('flex h-full', isResizing && 'select-none', className)}>
       {sidebarPosition === 'left' ? (
         <>
           {sidebarElement}
@@ -229,12 +216,11 @@ export function SplitPaneLayout({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return
-      
+
       const rect = containerRef.current.getBoundingClientRect()
-      const newRatio = orientation === 'horizontal'
-        ? (e.clientX - rect.left) / rect.width
-        : (e.clientY - rect.top) / rect.height
-      
+      const newRatio =
+        orientation === 'horizontal' ? (e.clientX - rect.left) / rect.width : (e.clientY - rect.top) / rect.height
+
       const clampedRatio = Math.max(minRatio, Math.min(maxRatio, newRatio))
       setRatio(clampedRatio)
       onRatioChange?.(clampedRatio)
@@ -258,26 +244,17 @@ export function SplitPaneLayout({
   return (
     <div
       ref={containerRef}
-      className={cn(
-        'flex h-full',
-        isHorizontal ? 'flex-row' : 'flex-col',
-        isResizing && 'select-none',
-        className
-      )}
+      className={cn('flex h-full', isHorizontal ? 'flex-row' : 'flex-col', isResizing && 'select-none', className)}
     >
       <div
-        className={cn(
-          'overflow-auto',
-          isHorizontal ? 'border-r' : 'border-b',
-          leftClassName
-        )}
+        className={cn('overflow-auto', isHorizontal ? 'border-r' : 'border-b', leftClassName)}
         style={{
           [isHorizontal ? 'width' : 'height']: `${ratio * 100}%`
         }}
       >
         {left}
       </div>
-      
+
       {/* Resize handle */}
       <div
         className={cn(
@@ -287,12 +264,8 @@ export function SplitPaneLayout({
         )}
         onMouseDown={handleMouseDown}
       />
-      
-      <div
-        className={cn('flex-1 overflow-auto', rightClassName)}
-      >
-        {right}
-      </div>
+
+      <div className={cn('flex-1 overflow-auto', rightClassName)}>{right}</div>
     </div>
   )
 }

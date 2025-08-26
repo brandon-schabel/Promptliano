@@ -21,7 +21,9 @@ export class ProjectsPage extends BasePage {
 
   // Project actions
   get createProjectButton() {
-    return this.page.locator('[data-testid="create-project"], button:has-text("New Project"), button:has-text("Create Project")')
+    return this.page.locator(
+      '[data-testid="create-project"], button:has-text("New Project"), button:has-text("Create Project")'
+    )
   }
 
   get importProjectButton() {
@@ -59,7 +61,9 @@ export class ProjectsPage extends BasePage {
 
   // Project card actions
   getProjectCard(projectName: string) {
-    return this.page.locator(`[data-testid="project-card"]:has-text("${projectName}"), .project-card:has-text("${projectName}")`)
+    return this.page.locator(
+      `[data-testid="project-card"]:has-text("${projectName}"), .project-card:has-text("${projectName}")`
+    )
   }
 
   getProjectCardMenu(projectName: string) {
@@ -101,17 +105,13 @@ export class ProjectsPage extends BasePage {
   /**
    * Create a new project
    */
-  async createProject(projectData: {
-    name: string
-    path?: string
-    description?: string
-  }) {
+  async createProject(projectData: { name: string; path?: string; description?: string }) {
     await this.createProjectButton.click()
     await expect(this.projectDialog).toBeVisible()
 
     // Fill project details
     await this.projectNameInput.fill(projectData.name)
-    
+
     if (projectData.path) {
       await this.projectPathInput.fill(projectData.path)
     } else {
@@ -129,11 +129,11 @@ export class ProjectsPage extends BasePage {
 
     // Submit the form
     await this.submitProjectButton.click()
-    
+
     // Wait for project creation to complete
     await this.waitForAPIResponse(/\/api\/projects/, 'POST')
     await this.waitForLoadingComplete()
-    
+
     // Verify project was created
     await expect(this.getProjectCard(projectData.name)).toBeVisible({ timeout: 10000 })
   }
@@ -141,13 +141,16 @@ export class ProjectsPage extends BasePage {
   /**
    * Edit an existing project
    */
-  async editProject(currentName: string, updates: {
-    name?: string
-    description?: string
-  }) {
+  async editProject(
+    currentName: string,
+    updates: {
+      name?: string
+      description?: string
+    }
+  ) {
     await this.openProjectMenu(currentName)
     await this.projectMenuEdit.click()
-    
+
     await expect(this.projectDialog).toBeVisible()
 
     if (updates.name) {
@@ -169,14 +172,14 @@ export class ProjectsPage extends BasePage {
   async deleteProject(projectName: string) {
     await this.openProjectMenu(projectName)
     await this.projectMenuDelete.click()
-    
+
     // Handle confirmation dialog
     await this.handleConfirmationDialog('accept')
-    
+
     // Wait for deletion API call
     await this.waitForAPIResponse(/\/api\/projects/, 'DELETE')
     await this.waitForLoadingComplete()
-    
+
     // Verify project was deleted
     await expect(this.getProjectCard(projectName)).not.toBeVisible()
   }
@@ -187,7 +190,7 @@ export class ProjectsPage extends BasePage {
   async openProject(projectName: string) {
     await this.getProjectCard(projectName).click()
     await this.waitForLoadingComplete()
-    
+
     // Should navigate to project detail/dashboard
     await expect(this.page).toHaveURL(new RegExp('/projects/\\d+'))
   }
@@ -198,13 +201,13 @@ export class ProjectsPage extends BasePage {
   async openProjectMenu(projectName: string) {
     const projectCard = this.getProjectCard(projectName)
     await expect(projectCard).toBeVisible()
-    
+
     // Hover to reveal menu button
     await projectCard.hover()
-    
+
     const menuButton = this.getProjectCardMenu(projectName)
     await menuButton.click()
-    
+
     // Wait for menu to appear
     await expect(this.projectMenuEdit).toBeVisible()
   }
@@ -225,12 +228,12 @@ export class ProjectsPage extends BasePage {
     const cards = this.projectCards
     const count = await cards.count()
     const names: string[] = []
-    
+
     for (let i = 0; i < count; i++) {
       const name = await cards.nth(i).locator('[data-testid="project-name"], .project-name').textContent()
       if (name) names.push(name.trim())
     }
-    
+
     return names
   }
 
@@ -247,12 +250,12 @@ export class ProjectsPage extends BasePage {
   async getProjectInfo(projectName: string) {
     const card = this.getProjectCard(projectName)
     await expect(card).toBeVisible()
-    
+
     const name = await card.locator('[data-testid="project-name"], .project-name').textContent()
     const path = await card.locator('[data-testid="project-path"], .project-path').textContent()
     const description = await card.locator('[data-testid="project-description"], .project-description').textContent()
     const lastModified = await card.locator('[data-testid="project-modified"], .project-modified').textContent()
-    
+
     return {
       name: name?.trim() || '',
       path: path?.trim() || '',

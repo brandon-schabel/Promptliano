@@ -2,11 +2,18 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { PromptlianoClient } from '../../api-client'
 import type { ApiConfig } from '@promptliano/api-client'
 import { createTestEnvironment, withTestData } from './test-environment'
-import { TestDataManager, assertions, factories, retryOperation, waitFor, PerformanceTracker } from './utils/test-helpers'
+import {
+  TestDataManager,
+  assertions,
+  factories,
+  retryOperation,
+  waitFor,
+  PerformanceTracker
+} from './utils/test-helpers'
 import type { TestEnvironment } from './test-environment'
-import type { 
-  BulkImportResponse, 
-  MarkdownExportResponse, 
+import type {
+  BulkImportResponse,
+  MarkdownExportResponse,
   MarkdownImportRequest,
   BatchExportRequest,
   ParsedMarkdownPrompt,
@@ -15,7 +22,7 @@ import type {
 
 /**
  * Comprehensive Markdown Service API Tests
- * 
+ *
  * Tests all Markdown Service operations with proper isolation:
  * - Markdown import operations (single and bulk)
  * - Markdown export operations (single and batch)
@@ -36,7 +43,7 @@ describe('Markdown Service API Tests', () => {
 
   beforeAll(async () => {
     console.log('🚀 Starting Markdown Service API Tests...')
-    
+
     // Create isolated test environment optimized for file processing
     testEnv = await createTestEnvironment({
       useIsolatedServer: true,
@@ -61,24 +68,24 @@ describe('Markdown Service API Tests', () => {
     expect(typeof client.markdown.exportPromptAsMarkdown).toBe('function')
     expect(typeof client.markdown.exportPromptsAsMarkdown).toBe('function')
     expect(typeof client.markdown.importProjectMarkdownPrompts).toBe('function')
-    
+
     // Create test project for markdown operations
     const project = await dataManager.createTestProject('Markdown Test Project')
     testProjectId = project.id
-    
+
     console.log('✅ Test environment initialized successfully')
   })
 
   afterAll(async () => {
     console.log('🧹 Cleaning up markdown test data...')
-    
+
     try {
       await dataManager.cleanup()
       perfTracker.printSummary()
     } catch (error) {
       console.warn('⚠️ Cleanup encountered errors:', error)
     }
-    
+
     await testEnv.cleanup()
     console.log('✅ Markdown API tests cleanup completed')
   })
@@ -114,7 +121,7 @@ Please provide specific, actionable feedback with examples.
 Code to review: {code}`
 
       const file = new File([markdownContent], 'code-review.md', { type: 'text/markdown' })
-      
+
       const result = await perfTracker.measure('import-single-markdown', async () => {
         return client.markdown.importMarkdownPrompts([file])
       })
@@ -126,7 +133,7 @@ Code to review: {code}`
       expect(result.data.filesProcessed).toBe(1)
       expect(result.data.totalPrompts).toBe(1)
       expect(result.data.promptsImported).toBe(1)
-      
+
       // Validate file results
       expect(result.data.fileResults).toHaveLength(1)
       const fileResult = result.data.fileResults[0]
@@ -135,14 +142,14 @@ Code to review: {code}`
       expect(fileResult.promptsProcessed).toBe(1)
       expect(fileResult.promptsImported).toBe(1)
       expect(fileResult.results).toHaveLength(1)
-      
+
       // Validate prompt import result
       const promptResult = fileResult.results[0]
       expect(promptResult.success).toBe(true)
       expect(promptResult.promptName).toBe('Code Review Assistant')
       expect(promptResult.action).toBe('created')
       assertions.assertValidId(promptResult.promptId!)
-      
+
       // Validate summary
       expect(result.data.summary.created).toBe(1)
       expect(result.data.summary.updated).toBe(0)
@@ -166,14 +173,14 @@ Current schema: {schema}
 Desired changes: {changes}`
 
       const file = new File([markdownContent], 'database-migration-helper.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
 
       assertions.assertSuccessResponse(result)
       expect(result.data.success).toBe(true)
       expect(result.data.totalPrompts).toBe(1)
       expect(result.data.promptsImported).toBe(1)
-      
+
       const promptResult = result.data.fileResults[0].results[0]
       expect(promptResult.success).toBe(true)
       // Should use filename as name when no frontmatter
@@ -183,28 +190,46 @@ Desired changes: {changes}`
 
     test('should import multiple markdown files in bulk', async () => {
       const files = [
-        new File([`---
+        new File(
+          [
+            `---
 name: API Documentation Writer
 tags: [documentation, api]
 ---
 
-Generate comprehensive API documentation for: {endpoint}`], 'api-docs.md', { type: 'text/markdown' }),
-        
-        new File([`---
+Generate comprehensive API documentation for: {endpoint}`
+          ],
+          'api-docs.md',
+          { type: 'text/markdown' }
+        ),
+
+        new File(
+          [
+            `---
 name: Test Case Generator
 tags: [testing, automation]
 ---
 
-Create test cases for the following functionality: {feature}`], 'test-generator.md', { type: 'text/markdown' }),
-        
-        new File([`---
+Create test cases for the following functionality: {feature}`
+          ],
+          'test-generator.md',
+          { type: 'text/markdown' }
+        ),
+
+        new File(
+          [
+            `---
 name: Refactoring Assistant
 tags: [refactoring, code-quality]
 ---
 
-Refactor the following code to improve: {code}`], 'refactoring.md', { type: 'text/markdown' })
+Refactor the following code to improve: {code}`
+          ],
+          'refactoring.md',
+          { type: 'text/markdown' }
+        )
       ]
-      
+
       const result = await perfTracker.measure('import-bulk-markdown', async () => {
         return client.markdown.importMarkdownPrompts(files)
       })
@@ -216,7 +241,7 @@ Refactor the following code to improve: {code}`], 'refactoring.md', { type: 'tex
       expect(result.data.totalPrompts).toBe(3)
       expect(result.data.promptsImported).toBe(3)
       expect(result.data.fileResults).toHaveLength(3)
-      
+
       // Validate all files processed successfully
       result.data.fileResults.forEach((fileResult, index) => {
         expect(fileResult.success).toBe(true)
@@ -224,7 +249,7 @@ Refactor the following code to improve: {code}`], 'refactoring.md', { type: 'tex
         expect(fileResult.results[0].success).toBe(true)
         expect(fileResult.results[0].action).toBe('created')
       })
-      
+
       // Validate summary
       expect(result.data.summary.created).toBe(3)
       expect(result.data.summary.failed).toBe(0)
@@ -239,18 +264,18 @@ tags: [project, specific]
 This prompt is for a specific project: {requirement}`
 
       const file = new File([markdownContent], 'project-prompt.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importProjectMarkdownPrompts(testProjectId, [file])
 
       assertions.assertSuccessResponse(result)
       expect(result.data.success).toBe(true)
       expect(result.data.promptsImported).toBe(1)
-      
+
       // Verify the prompt was created and associated with the project
       const promptResult = result.data.fileResults[0].results[0]
       expect(promptResult.success).toBe(true)
       assertions.assertValidId(promptResult.promptId!)
-      
+
       // Check if prompt is associated with project (would need project prompts endpoint)
       // This validates the projectId parameter was properly handled
     })
@@ -300,11 +325,11 @@ invalid_field: this_should_cause_warning
 This markdown has some issues but should still import with warnings.`
 
       const file = new File([invalidMarkdown], 'invalid.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file], { validateContent: true })
 
       assertions.assertSuccessResponse(result)
-      
+
       // Should import but with warnings about unknown frontmatter fields
       const fileResult = result.data.fileResults[0]
       expect(fileResult.success).toBe(true)
@@ -331,7 +356,7 @@ Test content for export operations`
 
       const file = new File([markdownContent], 'export-test.md', { type: 'text/markdown' })
       const importResult = await client.markdown.importMarkdownPrompts([file])
-      
+
       if (importResult.success && importResult.data.promptsImported > 0) {
         testPromptId = importResult.data.fileResults[0].results[0].promptId!
       } else {
@@ -346,13 +371,13 @@ Test content for export operations`
 
       expect(typeof result).toBe('string')
       expect(result.length).toBeGreaterThan(0)
-      
+
       // Validate markdown structure
-      expect(result).toContain('---')  // Frontmatter delimiters
+      expect(result).toContain('---') // Frontmatter delimiters
       expect(result).toContain('name:') // Frontmatter name field
       expect(result).toContain('Export Test Prompt') // Prompt name
       expect(result).toContain('Test content for export') // Prompt content
-      
+
       // Validate frontmatter format
       const frontmatterMatch = result.match(/^---\n([\s\S]*?)\n---\n/)
       expect(frontmatterMatch).toBeTruthy()
@@ -387,24 +412,36 @@ Test content for export operations`
     test('should export multiple prompts in single file format', async () => {
       // Create additional test prompts via import
       const files = [
-        new File([`---
+        new File(
+          [
+            `---
 name: Second Export Prompt
 ---
 
-Second content`], 'second.md', { type: 'text/markdown' }),
-        new File([`---
+Second content`
+          ],
+          'second.md',
+          { type: 'text/markdown' }
+        ),
+        new File(
+          [
+            `---
 name: Third Export Prompt
 ---
 
-Third content`], 'third.md', { type: 'text/markdown' })
+Third content`
+          ],
+          'third.md',
+          { type: 'text/markdown' }
+        )
       ]
-      
+
       const importResult = await client.markdown.importMarkdownPrompts(files)
       assertions.assertSuccessResponse(importResult)
-      
+
       const prompt2 = { id: importResult.data.fileResults[0].results[0].promptId! }
       const prompt3 = { id: importResult.data.fileResults[1].results[0].promptId! }
-      
+
       const result = await perfTracker.measure('export-batch-single-file', async () => {
         return client.markdown.exportPromptsAsMarkdown([testPromptId, prompt2.id, prompt3.id], {
           format: 'single-file',
@@ -417,18 +454,18 @@ Third content`], 'third.md', { type: 'text/markdown' })
       expect(result.data.success).toBe(true)
       expect(result.data.format).toBe('single-file')
       expect(result.data.promptCount).toBe(3)
-      
+
       // Single file export should have content and filename
       expect(result.data.fileName).toBeDefined()
       expect(result.data.content).toBeDefined()
       expect(typeof result.data.content).toBe('string')
       expect(result.data.content!.length).toBeGreaterThan(0)
-      
+
       // Should contain all prompt names
       expect(result.data.content).toContain('Export Test Prompt')
       expect(result.data.content).toContain('Second Export Prompt')
       expect(result.data.content).toContain('Third Export Prompt')
-      
+
       // Validate metadata
       expect(result.data.metadata).toBeDefined()
       expect(result.data.metadata!.exportedAt).toBeDefined()
@@ -438,24 +475,36 @@ Third content`], 'third.md', { type: 'text/markdown' })
     test('should export multiple prompts in multi-file format', async () => {
       // Create test prompts via import
       const files = [
-        new File([`---
+        new File(
+          [
+            `---
 name: Multi File Prompt 1
 ---
 
-Content 1`], 'multi1.md', { type: 'text/markdown' }),
-        new File([`---
+Content 1`
+          ],
+          'multi1.md',
+          { type: 'text/markdown' }
+        ),
+        new File(
+          [
+            `---
 name: Multi File Prompt 2
 ---
 
-Content 2`], 'multi2.md', { type: 'text/markdown' })
+Content 2`
+          ],
+          'multi2.md',
+          { type: 'text/markdown' }
+        )
       ]
-      
+
       const importResult = await client.markdown.importMarkdownPrompts(files)
       assertions.assertSuccessResponse(importResult)
-      
+
       const prompt2 = { id: importResult.data.fileResults[0].results[0].promptId! }
       const prompt3 = { id: importResult.data.fileResults[1].results[0].promptId! }
-      
+
       const result = await client.markdown.exportPromptsAsMarkdown([prompt2.id, prompt3.id], {
         format: 'multi-file',
         includeCreatedDate: false,
@@ -466,24 +515,24 @@ Content 2`], 'multi2.md', { type: 'text/markdown' })
       expect(result.data.success).toBe(true)
       expect(result.data.format).toBe('multi-file')
       expect(result.data.promptCount).toBe(2)
-      
+
       // Multi-file export should have files array
       expect(result.data.files).toBeDefined()
       expect(result.data.files!.length).toBe(2)
-      
+
       // Validate each exported file
-      result.data.files!.forEach(file => {
+      result.data.files!.forEach((file) => {
         expect(file.fileName).toBeDefined()
         expect(file.content).toBeDefined()
         expect(file.promptId).toBeDefined()
         expect(file.promptName).toBeDefined()
         expect(typeof file.content).toBe('string')
         expect(file.content.length).toBeGreaterThan(0)
-        
+
         // Should contain frontmatter
         expect(file.content).toContain('---')
         expect(file.content).toContain('name:')
-        
+
         // Should NOT contain created/updated dates (disabled in options)
         expect(file.content).not.toContain('created:')
         expect(file.content).not.toContain('updated:')
@@ -497,21 +546,21 @@ Content 2`], 'multi2.md', { type: 'text/markdown' })
         new File([`---\nname: Z Prompt\n---\n\nContent Z`], 'z.md', { type: 'text/markdown' }),
         new File([`---\nname: M Prompt\n---\n\nContent M`], 'm.md', { type: 'text/markdown' })
       ]
-      
+
       const importResult = await client.markdown.importMarkdownPrompts(files)
       assertions.assertSuccessResponse(importResult)
-      
+
       const promptA = { id: importResult.data.fileResults[0].results[0].promptId! }
       const promptZ = { id: importResult.data.fileResults[1].results[0].promptId! }
       const promptM = { id: importResult.data.fileResults[2].results[0].promptId! }
-      
+
       // Test ascending sort
       const resultAsc = await client.markdown.exportPromptsAsMarkdown([promptZ.id, promptA.id, promptM.id], {
         format: 'single-file',
         sortBy: 'name',
         sortOrder: 'asc'
       })
-      
+
       assertions.assertSuccessResponse(resultAsc)
       const contentAsc = resultAsc.data.content!
       const posA = contentAsc.indexOf('A Prompt')
@@ -519,14 +568,14 @@ Content 2`], 'multi2.md', { type: 'text/markdown' })
       const posZ = contentAsc.indexOf('Z Prompt')
       expect(posA).toBeLessThan(posM)
       expect(posM).toBeLessThan(posZ)
-      
+
       // Test descending sort
       const resultDesc = await client.markdown.exportPromptsAsMarkdown([promptA.id, promptZ.id, promptM.id], {
         format: 'single-file',
         sortBy: 'name',
         sortOrder: 'desc'
       })
-      
+
       assertions.assertSuccessResponse(resultDesc)
       const contentDesc = resultDesc.data.content!
       const posA2 = contentDesc.indexOf('A Prompt')
@@ -544,7 +593,7 @@ Content 2`], 'multi2.md', { type: 'text/markdown' })
   describe('Validation and Error Handling', () => {
     test('should reject files with invalid extensions', async () => {
       const invalidFile = new File(['Some content'], 'invalid.txt', { type: 'text/plain' })
-      
+
       try {
         await client.markdown.importMarkdownPrompts([invalidFile])
         throw new Error('Expected import to fail with invalid file extension')
@@ -558,7 +607,7 @@ Content 2`], 'multi2.md', { type: 'text/markdown' })
       // Create a file larger than the typical limit (10MB)
       const largeContent = 'A'.repeat(11 * 1024 * 1024) // 11MB
       const largeFile = new File([largeContent], 'large.md', { type: 'text/markdown' })
-      
+
       try {
         await client.markdown.importMarkdownPrompts([largeFile])
         throw new Error('Expected import to fail with large file')
@@ -578,9 +627,9 @@ invalid: : syntax
 Content after malformed frontmatter`
 
       const file = new File([malformedMarkdown], 'malformed.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
-      
+
       // Should handle gracefully with errors in file results
       assertions.assertSuccessResponse(result)
       const fileResult = result.data.fileResults[0]
@@ -591,14 +640,14 @@ Content after malformed frontmatter`
 
     test('should handle empty markdown files', async () => {
       const emptyFile = new File([''], 'empty.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([emptyFile])
-      
+
       assertions.assertSuccessResponse(result)
       const fileResult = result.data.fileResults[0]
       expect(fileResult.promptsProcessed).toBe(0)
       expect(fileResult.promptsImported).toBe(0)
-      expect(fileResult.warnings?.some(w => w.includes('empty') || w.includes('no content'))).toBe(true)
+      expect(fileResult.warnings?.some((w) => w.includes('empty') || w.includes('no content'))).toBe(true)
     })
 
     test('should handle markdown with only frontmatter (no content)', async () => {
@@ -608,16 +657,16 @@ tags: [test]
 ---`
 
       const file = new File([frontmatterOnly], 'frontmatter-only.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
-      
+
       assertions.assertSuccessResponse(result)
       const fileResult = result.data.fileResults[0]
       // Should either import with warning or reject based on validation
       if (fileResult.success) {
-        expect(fileResult.warnings?.some(w => w.includes('empty content') || w.includes('no content'))).toBe(true)
+        expect(fileResult.warnings?.some((w) => w.includes('empty content') || w.includes('no content'))).toBe(true)
       } else {
-        expect(fileResult.errors?.some(e => e.includes('content required') || e.includes('empty content'))).toBe(true)
+        expect(fileResult.errors?.some((e) => e.includes('content required') || e.includes('empty content'))).toBe(true)
       }
     })
 
@@ -642,12 +691,12 @@ const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 - Quotes: "Smart quotes" 'Single quotes' «Guillemets»`
 
       const file = new File([specialCharsMarkdown], 'special-chars.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.promptsImported).toBe(1)
-      
+
       const promptResult = result.data.fileResults[0].results[0]
       expect(promptResult.success).toBe(true)
       expect(promptResult.promptName).toBe('Special Characters Test')
@@ -655,7 +704,7 @@ const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
     test('should validate exported prompt ID exists', async () => {
       const nonExistentId = 999999
-      
+
       try {
         await client.markdown.exportPromptAsMarkdown(nonExistentId)
         throw new Error('Expected export to fail with non-existent prompt ID')
@@ -680,10 +729,10 @@ const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
       const file = new File([`---\nname: Valid Prompt\n---\n\nValid content`], 'valid.md', { type: 'text/markdown' })
       const importResult = await client.markdown.importMarkdownPrompts([file])
       assertions.assertSuccessResponse(importResult)
-      
+
       const validPrompt = { id: importResult.data.fileResults[0].results[0].promptId! }
       const invalidId = 999999
-      
+
       try {
         await client.markdown.exportPromptsAsMarkdown([validPrompt.id, invalidId])
         throw new Error('Expected export to fail with invalid prompt ID in batch')
@@ -724,47 +773,53 @@ ${'const data = "sample data"; '.repeat(100)}
 ## Conclusion
 ${'Final content section with more text. '.repeat(300)}`
 
-      const files = Array.from({ length: 5 }, (_, i) => 
-        new File([largeContent(i + 1)], `large-prompt-${i + 1}.md`, { type: 'text/markdown' })
+      const files = Array.from(
+        { length: 5 },
+        (_, i) => new File([largeContent(i + 1)], `large-prompt-${i + 1}.md`, { type: 'text/markdown' })
       )
-      
+
       const startTime = Date.now()
       const result = await client.markdown.importMarkdownPrompts(files)
       const duration = Date.now() - startTime
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.success).toBe(true)
       expect(result.data.totalFiles).toBe(5)
       expect(result.data.promptsImported).toBe(5)
-      
+
       // Performance assertion - should complete within reasonable time
       expect(duration).toBeLessThan(30000) // 30 seconds max
-      
+
       console.log(`Large file import completed in ${duration}ms`)
     })
 
     test('should handle export of many prompts efficiently', async () => {
       // Create multiple prompts for batch export via import
-      const files = Array.from({ length: 20 }, (_, i) => 
-        new File([`---
+      const files = Array.from(
+        { length: 20 },
+        (_, i) =>
+          new File(
+            [
+              `---
 name: Batch Export Prompt ${i + 1}
 ---
 
-Content for prompt ${i + 1} with some additional text to make it more realistic.`], 
-          `batch-${i + 1}.md`, 
-          { type: 'text/markdown' }
-        )
+Content for prompt ${i + 1} with some additional text to make it more realistic.`
+            ],
+            `batch-${i + 1}.md`,
+            { type: 'text/markdown' }
+          )
       )
-      
+
       const importResult = await client.markdown.importMarkdownPrompts(files)
       assertions.assertSuccessResponse(importResult)
-      
-      const prompts = importResult.data.fileResults.map(fileResult => ({
+
+      const prompts = importResult.data.fileResults.map((fileResult) => ({
         id: fileResult.results[0].promptId!
       }))
-      
-      const promptIds = prompts.map(p => p.id)
-      
+
+      const promptIds = prompts.map((p) => p.id)
+
       const startTime = Date.now()
       const result = await client.markdown.exportPromptsAsMarkdown(promptIds, {
         format: 'single-file',
@@ -772,15 +827,15 @@ Content for prompt ${i + 1} with some additional text to make it more realistic.
         includeCreatedDate: true
       })
       const duration = Date.now() - startTime
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.success).toBe(true)
       expect(result.data.promptCount).toBe(20)
       expect(result.data.content!.length).toBeGreaterThan(1000)
-      
+
       // Performance assertion
       expect(duration).toBeLessThan(15000) // 15 seconds max
-      
+
       console.log(`Batch export of ${promptIds.length} prompts completed in ${duration}ms`)
     })
 
@@ -792,20 +847,18 @@ tags: [concurrent, test-${index}]
 ---
 
 Concurrent content for prompt ${index}`
-        
+
         const file = new File([content], `concurrent-${index}.md`, { type: 'text/markdown' })
         return client.markdown.importMarkdownPrompts([file])
       }
-      
+
       // Run 5 concurrent imports
-      const concurrentImports = Array.from({ length: 5 }, (_, i) => 
-        createConcurrentImport(i + 1)
-      )
-      
+      const concurrentImports = Array.from({ length: 5 }, (_, i) => createConcurrentImport(i + 1))
+
       const startTime = Date.now()
       const results = await Promise.all(concurrentImports)
       const duration = Date.now() - startTime
-      
+
       // All imports should succeed
       results.forEach((result, index) => {
         assertions.assertSuccessResponse(result)
@@ -813,7 +866,7 @@ Concurrent content for prompt ${index}`
         expect(result.data.promptsImported).toBe(1)
         expect(result.data.fileResults[0].results[0].promptName).toBe(`Concurrent Prompt ${index + 1}`)
       })
-      
+
       console.log(`${results.length} concurrent imports completed in ${duration}ms`)
     })
 
@@ -937,22 +990,22 @@ This complex structure tests the parser's ability to handle:
 - Special characters and symbols`
 
       const file = new File([complexMarkdown], 'complex-structure.md', { type: 'text/markdown' })
-      
+
       const startTime = Date.now()
       const result = await client.markdown.importMarkdownPrompts([file])
       const duration = Date.now() - startTime
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.success).toBe(true)
       expect(result.data.promptsImported).toBe(1)
-      
+
       const promptResult = result.data.fileResults[0].results[0]
       expect(promptResult.success).toBe(true)
       expect(promptResult.promptName).toBe('Complex Structure Prompt')
-      
+
       // Should handle complex structure within reasonable time
       expect(duration).toBeLessThan(5000) // 5 seconds max
-      
+
       console.log(`Complex markdown import completed in ${duration}ms`)
     })
   })
@@ -1016,16 +1069,16 @@ in the middle.`
       // Import the markdown
       const file = new File([originalMarkdown], 'formatting-test.md', { type: 'text/markdown' })
       const importResult = await client.markdown.importMarkdownPrompts([file])
-      
+
       assertions.assertSuccessResponse(importResult)
       const promptId = importResult.data.fileResults[0].results[0].promptId!
-      
+
       // Export it back
       const exportedMarkdown = await client.markdown.exportPromptAsMarkdown(promptId, {
         includeFrontmatter: true,
         sanitizeContent: false // Don't sanitize to preserve formatting
       })
-      
+
       // Verify key formatting elements are preserved
       expect(exportedMarkdown).toContain('**exact** preservation of *formatting*')
       expect(exportedMarkdown).toContain('```javascript')
@@ -1034,7 +1087,7 @@ in the middle.`
       expect(exportedMarkdown).toContain('- Bullet item')
       expect(exportedMarkdown).toContain('© ® ™')
       expect(exportedMarkdown).toContain('← → ↑ ↓')
-      
+
       // Check that structure is maintained
       expect(exportedMarkdown).toContain('# Exact Formatting Test')
       expect(exportedMarkdown).toContain('## Code Blocks')
@@ -1087,17 +1140,17 @@ tags: [utf8, encoding, international]
 - Spaces: (em space) (en space) (thin space) (zero-width space)​`
 
       const file = new File([utf8Content], 'utf8-test.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
-      
+
       assertions.assertSuccessResponse(result)
       expect(result.data.promptsImported).toBe(1)
-      
+
       const promptId = result.data.fileResults[0].results[0].promptId!
-      
+
       // Export and verify UTF-8 content is preserved
       const exported = await client.markdown.exportPromptAsMarkdown(promptId)
-      
+
       // Verify various UTF-8 content is preserved
       expect(exported).toContain('Привет, мир!') // Russian
       expect(exported).toContain('こんにちは、世界！') // Japanese
@@ -1141,17 +1194,17 @@ const safe = "This is safe code";
 \`\`\``
 
       const file = new File([unsafeContent], 'unsafe-content.md', { type: 'text/markdown' })
-      
+
       const result = await client.markdown.importMarkdownPrompts([file])
       assertions.assertSuccessResponse(result)
-      
+
       const promptId = result.data.fileResults[0].results[0].promptId!
-      
+
       // Export with sanitization enabled
       const sanitizedExport = await client.markdown.exportPromptAsMarkdown(promptId, {
         sanitizeContent: true
       })
-      
+
       // Verify dangerous content is removed or neutralized
       expect(sanitizedExport).not.toContain('<script>')
       expect(sanitizedExport).not.toContain('javascript:')
@@ -1160,7 +1213,7 @@ const safe = "This is safe code";
       expect(sanitizedExport).not.toContain('<iframe>')
       expect(sanitizedExport).not.toContain('<object>')
       expect(sanitizedExport).not.toContain('<embed>')
-      
+
       // Verify safe content is preserved
       expect(sanitizedExport).toContain('**bold**')
       expect(sanitizedExport).toContain('*italic*')

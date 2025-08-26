@@ -1,9 +1,4 @@
-import type {
-  Ticket,
-  File,
-  FileSuggestionStrategy,
-  RelevanceConfig
-} from '@promptliano/database'
+import type { Ticket, File, FileSuggestionStrategy, RelevanceConfig } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { fileSearchService } from './file-search-service'
 import { fileRelevanceService } from './file-relevance-service'
@@ -27,7 +22,7 @@ interface RelevanceScoreResult {
 
 // Response interface for file suggestions
 export interface FileSuggestionResponse {
-  suggestions: string[]  // File IDs
+  suggestions: string[] // File IDs
   scores?: RelevanceScoreResult[]
   metadata: {
     totalFiles: number

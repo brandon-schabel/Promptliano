@@ -1,6 +1,6 @@
 /**
  * Intelligent Cache Invalidation Engine
- * 
+ *
  * Provides relationship-aware cache invalidation that understands entity
  * dependencies and automatically invalidates related data when entities change.
  */
@@ -64,7 +64,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     bidirectional: false,
     invalidationStrategy: 'immediate'
   },
-  
+
   // Ticket relationships
   {
     entity: 'tickets',
@@ -73,7 +73,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     fields: ['projectId', 'status'],
     invalidationStrategy: 'smart'
   },
-  
+
   // Chat relationships
   {
     entity: 'chats',
@@ -81,7 +81,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     bidirectional: false,
     invalidationStrategy: 'immediate'
   },
-  
+
   // Queue relationships
   {
     entity: 'queues',
@@ -90,7 +90,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     fields: ['projectId'],
     invalidationStrategy: 'immediate'
   },
-  
+
   // Prompt relationships
   {
     entity: 'prompts',
@@ -99,7 +99,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     fields: ['projectId'],
     invalidationStrategy: 'smart'
   },
-  
+
   // Agent relationships
   {
     entity: 'agents',
@@ -108,7 +108,7 @@ const ENTITY_RELATIONSHIPS: EntityRelationship[] = [
     fields: ['projectId'],
     invalidationStrategy: 'smart'
   },
-  
+
   // Task relationships
   {
     entity: 'tasks',
@@ -136,7 +136,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['queues'], strategy: 'invalidate', exact: false }
     ]
   },
-  
+
   // Project deletion removes all related queries
   {
     entity: 'projects',
@@ -149,7 +149,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['queues'], strategy: 'remove', exact: false }
     ]
   },
-  
+
   // Ticket status changes affect project and queue stats
   {
     entity: 'tickets',
@@ -162,7 +162,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['queue_stats'], strategy: 'invalidate', exact: false }
     ]
   },
-  
+
   // Ticket creation affects lists and stats
   {
     entity: 'tickets',
@@ -173,7 +173,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['queue_stats'], strategy: 'invalidate', exact: false }
     ]
   },
-  
+
   // Chat message creation only invalidates message lists
   {
     entity: 'chat_messages',
@@ -183,7 +183,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['chats'], strategy: 'refresh', exact: false }
     ]
   },
-  
+
   // Queue item changes affect queue stats
   {
     entity: 'queue_items',
@@ -194,7 +194,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['queues'], strategy: 'refresh', exact: false }
     ]
   },
-  
+
   // Agent/Prompt changes only affect their own queries and projects
   {
     entity: 'prompts',
@@ -204,7 +204,7 @@ const INVALIDATION_RULES: InvalidationRule[] = [
       { queryKey: ['projects'], strategy: 'refresh', exact: false }
     ]
   },
-  
+
   {
     entity: 'agents',
     operation: '*',
@@ -226,7 +226,7 @@ export class InvalidationEngine {
     entityInvalidations: {},
     averageTargetsPerInvalidation: 0
   }
-  
+
   private eventHistory: InvalidationEvent[] = []
   private readonly maxHistorySize = 100
 
@@ -250,12 +250,12 @@ export class InvalidationEngine {
 
     // Find applicable rules
     const applicableRules = this.findApplicableRules(entity, operation, data)
-    
+
     // Execute each rule
     for (const rule of applicableRules) {
       const ruleId = `${rule.entity}:${rule.operation}`
       triggeredRules.push(ruleId)
-      
+
       for (const target of rule.targets) {
         if (target.condition && !target.condition(data)) {
           continue
@@ -264,7 +264,7 @@ export class InvalidationEngine {
         this.executeInvalidationTarget(queryClient, target, entityId)
         targetsInvalidated++
       }
-      
+
       // Update rule stats
       this.stats.ruleInvalidations[ruleId] = (this.stats.ruleInvalidations[ruleId] || 0) + 1
     }
@@ -310,21 +310,19 @@ export class InvalidationEngine {
 
     // Get all queries related to this entity
     const entityQueries = this.findRelatedQueries(queryClient, entity, entityId)
-    
+
     // Filter by staleness if requested
-    const queriesToInvalidate = onlyStale 
-      ? entityQueries.filter(query => query.isStale())
-      : entityQueries
+    const queriesToInvalidate = onlyStale ? entityQueries.filter((query) => query.isStale()) : entityQueries
 
     // Invalidate queries
-    queriesToInvalidate.forEach(query => {
+    queriesToInvalidate.forEach((query) => {
       queryClient.invalidateQueries({ queryKey: query.queryKey })
     })
 
     // Handle related entities if requested
     if (includeRelated && maxDepth > 0) {
       const relationships = this.getEntityRelationships(entity)
-      
+
       for (const related of relationships) {
         this.smartInvalidate(queryClient, related, entityId, {
           includeRelated: false,
@@ -350,13 +348,16 @@ export class InvalidationEngine {
     }>
   ) {
     const events: InvalidationEvent[] = []
-    
+
     // Group operations by entity to optimize
-    const groupedOps = operations.reduce((acc, op) => {
-      if (!acc[op.entity]) acc[op.entity] = []
-      acc[op.entity].push(op)
-      return acc
-    }, {} as Record<string, typeof operations>)
+    const groupedOps = operations.reduce(
+      (acc, op) => {
+        if (!acc[op.entity]) acc[op.entity] = []
+        acc[op.entity].push(op)
+        return acc
+      },
+      {} as Record<string, typeof operations>
+    )
 
     // Execute invalidations
     for (const [entity, ops] of Object.entries(groupedOps)) {
@@ -379,30 +380,22 @@ export class InvalidationEngine {
   // Rule Processing
   // ============================================================================
 
-  private findApplicableRules(
-    entity: string,
-    operation: string,
-    data?: any
-  ): InvalidationRule[] {
-    return INVALIDATION_RULES.filter(rule => {
+  private findApplicableRules(entity: string, operation: string, data?: any): InvalidationRule[] {
+    return INVALIDATION_RULES.filter((rule) => {
       // Check entity match
       if (rule.entity !== entity) return false
-      
+
       // Check operation match
       if (rule.operation !== '*' && rule.operation !== operation) return false
-      
+
       // Check condition if present
       if (rule.condition && !rule.condition(data)) return false
-      
+
       return true
     })
   }
 
-  private executeInvalidationTarget(
-    queryClient: QueryClient,
-    target: InvalidationTarget,
-    entityId?: number | string
-  ) {
+  private executeInvalidationTarget(queryClient: QueryClient, target: InvalidationTarget, entityId?: number | string) {
     // Build query key with entity ID if provided
     let queryKey = [...target.queryKey]
     if (entityId && !target.exact) {
@@ -414,32 +407,32 @@ export class InvalidationEngine {
 
     switch (target.strategy) {
       case 'invalidate':
-        queryClient.invalidateQueries({ 
-          queryKey, 
-          exact: target.exact || false 
+        queryClient.invalidateQueries({
+          queryKey,
+          exact: target.exact || false
         })
         break
-        
+
       case 'remove':
-        queryClient.removeQueries({ 
-          queryKey, 
-          exact: target.exact || false 
+        queryClient.removeQueries({
+          queryKey,
+          exact: target.exact || false
         })
         break
-        
+
       case 'refresh':
-        queryClient.refetchQueries({ 
-          queryKey, 
-          exact: target.exact || false 
+        queryClient.refetchQueries({
+          queryKey,
+          exact: target.exact || false
         })
         break
-        
+
       case 'update':
         // This would require more sophisticated logic to update data
         // For now, we'll treat it as invalidate
-        queryClient.invalidateQueries({ 
-          queryKey, 
-          exact: target.exact || false 
+        queryClient.invalidateQueries({
+          queryKey,
+          exact: target.exact || false
         })
         break
     }
@@ -450,21 +443,17 @@ export class InvalidationEngine {
   // ============================================================================
 
   private getEntityRelationships(entity: string): string[] {
-    const relationship = ENTITY_RELATIONSHIPS.find(rel => rel.entity === entity)
+    const relationship = ENTITY_RELATIONSHIPS.find((rel) => rel.entity === entity)
     return relationship ? relationship.related : []
   }
 
-  private getRelationshipTargets(
-    entity: string,
-    operation: string,
-    entityId?: number | string
-  ): InvalidationTarget[] {
+  private getRelationshipTargets(entity: string, operation: string, entityId?: number | string): InvalidationTarget[] {
     const relationships = this.getEntityRelationships(entity)
     const targets: InvalidationTarget[] = []
 
     for (const related of relationships) {
       // Determine invalidation strategy based on relationship
-      const relationship = ENTITY_RELATIONSHIPS.find(rel => rel.entity === entity)
+      const relationship = ENTITY_RELATIONSHIPS.find((rel) => rel.entity === entity)
       const strategy = relationship?.invalidationStrategy || 'invalidate'
 
       if (strategy === 'immediate') {
@@ -486,19 +475,15 @@ export class InvalidationEngine {
     return targets
   }
 
-  private findRelatedQueries(
-    queryClient: QueryClient,
-    entity: string,
-    entityId?: number | string
-  ) {
+  private findRelatedQueries(queryClient: QueryClient, entity: string, entityId?: number | string) {
     const cache = queryClient.getQueryCache()
-    return cache.getAll().filter(query => {
+    return cache.getAll().filter((query) => {
       const queryKey = query.queryKey
       if (!Array.isArray(queryKey) || queryKey.length === 0) return false
-      
+
       // Direct entity match
       if (queryKey[0] === entity) return true
-      
+
       // Related entity match
       const relationships = this.getEntityRelationships(entity)
       return relationships.includes(queryKey[0] as string)
@@ -512,15 +497,14 @@ export class InvalidationEngine {
   private updateStats(entity: string, targetsInvalidated: number, event: InvalidationEvent) {
     this.stats.totalInvalidations++
     this.stats.entityInvalidations[entity] = (this.stats.entityInvalidations[entity] || 0) + 1
-    
+
     // Update average
     const total = this.stats.totalInvalidations
     const currentAvg = this.stats.averageTargetsPerInvalidation
-    this.stats.averageTargetsPerInvalidation = 
-      (currentAvg * (total - 1) + targetsInvalidated) / total
-    
+    this.stats.averageTargetsPerInvalidation = (currentAvg * (total - 1) + targetsInvalidated) / total
+
     this.stats.lastInvalidation = event
-    
+
     // Add to history
     this.eventHistory.push(event)
     if (this.eventHistory.length > this.maxHistorySize) {
@@ -546,13 +530,13 @@ export class InvalidationEngine {
   getCacheEfficiency(queryClient: QueryClient) {
     const cache = queryClient.getQueryCache()
     const queries = cache.getAll()
-    
+
     return {
       totalQueries: queries.length,
-      staleQueries: queries.filter(q => q.isStale()).length,
-      errorQueries: queries.filter(q => q.state.status === 'error').length,
-      successQueries: queries.filter(q => q.state.status === 'success').length,
-      stalenessRatio: queries.filter(q => q.isStale()).length / queries.length
+      staleQueries: queries.filter((q) => q.isStale()).length,
+      errorQueries: queries.filter((q) => q.state.status === 'error').length,
+      successQueries: queries.filter((q) => q.state.status === 'success').length,
+      stalenessRatio: queries.filter((q) => q.isStale()).length / queries.length
     }
   }
 
@@ -590,13 +574,7 @@ export function invalidateWithRelationships(
   entityId?: number | string,
   data?: any
 ) {
-  return globalInvalidationEngine.invalidateWithRelationships(
-    queryClient,
-    entity,
-    operation,
-    entityId,
-    data
-  )
+  return globalInvalidationEngine.invalidateWithRelationships(queryClient, entity, operation, entityId, data)
 }
 
 /**

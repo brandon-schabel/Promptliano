@@ -17,7 +17,7 @@ const isTestEnv = nodeEnv === 'test'
 
 export const runtimeConfig: RuntimeConfig = {
   // Logging
-  logLevel: (getEnvVar('LOG_LEVEL', isDevEnv ? 'debug' : 'info') as RuntimeConfig['logLevel']),
+  logLevel: getEnvVar('LOG_LEVEL', isDevEnv ? 'debug' : 'info') as RuntimeConfig['logLevel'],
   debugMode: getEnvVar('DEBUG', String(isDevEnv)) === 'true',
 
   // Performance

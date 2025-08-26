@@ -92,7 +92,7 @@ runs:
       run: |
         echo "Verifying Bun and dependency installation..."
         bun --version
-        
+
         # Check if node_modules exists and has content
         if [ -d "node_modules" ] && [ "$(ls -A node_modules)" ]; then
           echo "✅ Dependencies installed successfully"

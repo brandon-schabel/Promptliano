@@ -10,10 +10,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
 
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: 'playwright-report-basic', open: 'never' }],
-  ],
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report-basic', open: 'never' }]],
 
   use: {
     baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
@@ -22,18 +19,18 @@ export default defineConfig({
     video: 'retain-on-failure',
     viewport: { width: 1280, height: 720 },
     headless: true,
-    actionTimeout: 5 * 1000,
+    actionTimeout: 5 * 1000
   },
 
   // Just basic browser testing
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+      use: { ...devices['Desktop Chrome'] }
+    }
   ],
 
   // Basic global setup - no authentication required
   globalSetup: './e2e/setup/global-setup.ts',
-  globalTeardown: './e2e/setup/global-teardown.ts',
+  globalTeardown: './e2e/setup/global-teardown.ts'
 })

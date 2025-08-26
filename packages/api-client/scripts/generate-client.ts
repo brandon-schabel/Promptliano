@@ -40,8 +40,8 @@ function parseOpenApiOperations(spec: any): OperationInfo[] {
 
   Object.entries(paths).forEach(([path, pathItem]: [string, any]) => {
     const httpMethods = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head']
-    
-    httpMethods.forEach(method => {
+
+    httpMethods.forEach((method) => {
       const operation = pathItem[method]
       if (!operation) return
 
@@ -83,35 +83,37 @@ function parseOpenApiOperations(spec: any): OperationInfo[] {
 function pathToMethodName(path: string, method: string): string {
   // Remove /api prefix and clean up the path
   let cleanPath = path.replace(/^\/api\/?/, '').replace(/\/$/, '')
-  
+
   // Handle root path
   if (!cleanPath) {
     return method.toLowerCase() + 'Root'
   }
-  
+
   // Split by slashes and parameters
-  const pathSegments = cleanPath.split('/').filter(segment => segment.length > 0)
-  
+  const pathSegments = cleanPath.split('/').filter((segment) => segment.length > 0)
+
   // Check if this is a simple CRUD operation
-  const isSingleResourceCrud = pathSegments.length === 2 && 
-    (pathSegments[1]?.startsWith('{') || pathSegments[1]?.startsWith(':'))
-  
+  const isSingleResourceCrud =
+    pathSegments.length === 2 && (pathSegments[1]?.startsWith('{') || pathSegments[1]?.startsWith(':'))
+
   const isCollectionCrud = pathSegments.length === 1
-  
+
   // For CRUD operations, use clean method names
   if (isSingleResourceCrud || isCollectionCrud) {
     const entityName = pathSegments[0]
-    const cleanEntityName = entityName ?? 'unknown'
-      .split('-')
-      .map((word, index) => 
-        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      )
-      .join('')
-    
+    const cleanEntityName =
+      entityName ??
+      'unknown'
+        .split('-')
+        .map((word, index) =>
+          index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join('')
+
     // Create clean CRUD method names
     if (method === 'GET') {
       if (isSingleResourceCrud) {
-        // GET /projects/{id} -> getProject  
+        // GET /projects/{id} -> getProject
         return 'get' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1) // Remove trailing 's'
       } else {
         // GET /projects -> getProjects (keep plural for collections)
@@ -124,56 +126,53 @@ function pathToMethodName(path: string, method: string): string {
       // PATCH /projects/{id} -> updateProject
       return 'update' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1)
     } else if (method === 'DELETE') {
-      // DELETE /projects/{id} -> deleteProject  
+      // DELETE /projects/{id} -> deleteProject
       return 'delete' + cleanEntityName.charAt(0).toUpperCase() + cleanEntityName.slice(1).slice(0, -1)
     }
   }
-  
+
   // For complex paths, use the original logic
-  const parts = pathSegments
-    .map(part => {
-      // Convert path parameters {id} to ById, {name} to ByName
-      if (part.startsWith('{') && part.endsWith('}')) {
-        const paramName = part.slice(1, -1)
-        return 'By' + paramName.charAt(0).toUpperCase() + paramName.slice(1)
-      }
-      // Convert :param style parameters to ByParam
-      if (part.startsWith(':')) {
-        const paramName = part.slice(1)
-        return 'By' + paramName.charAt(0).toUpperCase() + paramName.slice(1)
-      }
-      // Convert kebab-case to camelCase
-      return part
-        .split('-')
-        .map((word, index) => 
-          index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join('')
-    })
+  const parts = pathSegments.map((part) => {
+    // Convert path parameters {id} to ById, {name} to ByName
+    if (part.startsWith('{') && part.endsWith('}')) {
+      const paramName = part.slice(1, -1)
+      return 'By' + paramName.charAt(0).toUpperCase() + paramName.slice(1)
+    }
+    // Convert :param style parameters to ByParam
+    if (part.startsWith(':')) {
+      const paramName = part.slice(1)
+      return 'By' + paramName.charAt(0).toUpperCase() + paramName.slice(1)
+    }
+    // Convert kebab-case to camelCase
+    return part
+      .split('-')
+      .map((word, index) =>
+        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
+      .join('')
+  })
 
   // Create method name based on HTTP method
   let methodName = method.toLowerCase()
-  
+
   // Add descriptive prefixes based on HTTP method
   if (method === 'GET') {
     // For GET methods, use 'get' or 'list' based on path structure
-    const hasIdParam = parts.some(part => part.toLowerCase().includes('byid'))
+    const hasIdParam = parts.some((part) => part.toLowerCase().includes('byid'))
     methodName = hasIdParam || parts.length === 1 ? 'get' : 'list'
   } else if (method === 'POST') {
     methodName = 'create'
   } else if (method === 'PUT') {
     methodName = 'update'
   } else if (method === 'PATCH') {
-    methodName = 'update'  
+    methodName = 'update'
   } else if (method === 'DELETE') {
     methodName = 'delete'
   }
 
   // Join parts to create final method name
   const baseName = parts
-    .map((part, index) => 
-      index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
-    )
+    .map((part, index) => (index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)))
     .join('')
 
   return methodName + baseName.charAt(0).toUpperCase() + baseName.slice(1)
@@ -183,11 +182,13 @@ function pathToMethodName(path: string, method: string): string {
  * Normalize path for TypeScript type name generation
  */
 function normalizePathForTypeName(path: string): string {
-  return path
-    // Convert :param to {param} for consistency
-    .replace(/:([^/]+)/g, '{$1}')
-    // Remove any remaining colons that might cause issues
-    .replace(/:/g, '')
+  return (
+    path
+      // Convert :param to {param} for consistency
+      .replace(/:([^/]+)/g, '{$1}')
+      // Remove any remaining colons that might cause issues
+      .replace(/:/g, '')
+  )
 }
 
 /**
@@ -195,19 +196,19 @@ function normalizePathForTypeName(path: string): string {
  */
 function extractPathParams(path: string): string[] {
   const params: string[] = []
-  
+
   // Extract {param} style parameters
   const braceParams = path.match(/\{([^}]+)\}/g)
   if (braceParams) {
-    params.push(...braceParams.map(p => p.slice(1, -1)))
+    params.push(...braceParams.map((p) => p.slice(1, -1)))
   }
-  
+
   // Extract :param style parameters
   const colonParams = path.match(/:([^/]+)/g)
   if (colonParams) {
-    params.push(...colonParams.map(p => p.slice(1)))
+    params.push(...colonParams.map((p) => p.slice(1)))
   }
-  
+
   return params
 }
 
@@ -224,10 +225,10 @@ function isValidPathForTypes(path: string, spec: any): boolean {
  */
 function hasSupportedRequestBody(operation: any): boolean {
   if (!operation.requestBody) return true // No request body is fine
-  
+
   const content = operation.requestBody?.content
   if (!content) return true
-  
+
   // We support application/json and no content
   return !!content['application/json']
 }
@@ -237,36 +238,39 @@ function hasSupportedRequestBody(operation: any): boolean {
  */
 function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods: string } {
   const operations = parseOpenApiOperations(spec)
-  
+
   console.log(`🔍 Found ${operations.length} operations to generate`)
-  
+
   // Filter operations to only include those that are supported
-  const supportedOperations = operations.filter(operation => {
+  const supportedOperations = operations.filter((operation) => {
     const pathExists = isValidPathForTypes(operation.path, spec)
     const supportedRequestBody = hasSupportedRequestBody(operation)
-    
+
     if (!pathExists) {
       console.warn(`⚠️  Skipping operation with path not in types: ${operation.method} ${operation.path}`)
       return false
     }
-    
+
     if (!supportedRequestBody) {
       console.warn(`⚠️  Skipping operation with unsupported request body: ${operation.method} ${operation.path}`)
       return false
     }
-    
+
     return true
   })
-  
+
   console.log(`✅ Generating ${supportedOperations.length} supported operations`)
-  
+
   // Group operations by tags for better organization
-  const operationsByTag = supportedOperations.reduce((acc, op) => {
-    const tag = op.tags?.[0] || 'Default'
-    if (!acc[tag]) acc[tag] = []
-    acc[tag].push(op)
-    return acc
-  }, {} as Record<string, OperationInfo[]>)
+  const operationsByTag = supportedOperations.reduce(
+    (acc, op) => {
+      const tag = op.tags?.[0] || 'Default'
+      if (!acc[tag]) acc[tag] = []
+      acc[tag].push(op)
+      return acc
+    },
+    {} as Record<string, OperationInfo[]>
+  )
 
   // Generate type definitions
   let clientTypes = '// ===== GENERATED TYPES FOR ALL ENDPOINTS =====\n\n'
@@ -274,13 +278,13 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
   // Generate method implementations
   let clientMethods = '  // ===== GENERATED API METHODS =====\n\n'
-  
+
   Object.entries(operationsByTag).forEach(([tag, tagOperations]) => {
     clientMethods += `  // ${tag} Operations\n`
-    
-    tagOperations.forEach(operation => {
+
+    tagOperations.forEach((operation) => {
       const methodName = pathToMethodName(operation.path, operation.method)
-      
+
       // Generate unique type names for this operation
       const typePrefix = methodName.charAt(0).toUpperCase() + methodName.slice(1)
       const requestType = `${typePrefix}Request`
@@ -291,8 +295,9 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
       // Generate request/response types
       if (!generatedTypes.has(responseType)) {
         const responsePath = normalizePathForTypeName(operation.path)
-        const successResponse = operation.responses?.['200'] || operation.responses?.['201'] || operation.responses?.['204']
-        
+        const successResponse =
+          operation.responses?.['200'] || operation.responses?.['201'] || operation.responses?.['204']
+
         if (successResponse?.content?.['application/json']?.schema) {
           // Use the actual success status code (200, 201, or 204)
           const statusCode = operation.responses?.['200'] ? '200' : operation.responses?.['201'] ? '201' : '204'
@@ -314,10 +319,10 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
       methodSignature += `  async ${methodName}(`
 
       const methodParams: string[] = []
-      
+
       // Add path parameters
       if (operation.hasPathParams) {
-        operation.pathParams.forEach(param => {
+        operation.pathParams.forEach((param) => {
           methodParams.push(`${param}: string | number`)
         })
       }
@@ -329,7 +334,7 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
       // Add query parameters as optional object
       if (operation.hasQueryParams) {
-        methodParams.push(`query?: { ${operation.queryParams.map(p => `${p}?: any`).join('; ')} }`)
+        methodParams.push(`query?: { ${operation.queryParams.map((p) => `${p}?: any`).join('; ')} }`)
       }
 
       // Add options parameter
@@ -341,8 +346,8 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
       // Method implementation
       let pathExpression = operation.path
       if (operation.hasPathParams) {
-        pathExpression = 'this.buildPath(`' + operation.path + '`, { ' + 
-          operation.pathParams.map(p => `${p}`).join(', ') + ' })'
+        pathExpression =
+          'this.buildPath(`' + operation.path + '`, { ' + operation.pathParams.map((p) => `${p}`).join(', ') + ' })'
       } else {
         pathExpression = '`' + operation.path + '`'
       }
@@ -365,7 +370,7 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
       clientMethods += methodSignature
     })
-    
+
     clientMethods += '\n'
   })
 
@@ -391,13 +396,13 @@ const config: GenerationConfig = {
  */
 async function fetchOpenApiSpec(): Promise<object> {
   console.log('🔍 Fetching OpenAPI specification...')
-  
+
   try {
     const response = await fetch(`${config.serverUrl}${config.openApiPath}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch OpenAPI spec: ${response.status} ${response.statusText}`)
     }
-    
+
     const spec = await response.json()
     console.log('✅ OpenAPI specification fetched successfully')
     return spec
@@ -412,19 +417,19 @@ async function fetchOpenApiSpec(): Promise<object> {
  */
 async function generateTypes(spec: object): Promise<void> {
   console.log('🏭 Generating TypeScript types...')
-  
+
   // Ensure output directory exists
   if (!existsSync(config.outputDir)) {
     mkdirSync(config.outputDir, { recursive: true })
   }
-  
+
   // Write spec to temporary file
   const specPath = join(config.outputDir, 'openapi-spec.json')
   writeFileSync(specPath, JSON.stringify(spec, null, 2))
-  
+
   // Generate types using openapi-typescript
   const typesPath = join(config.outputDir, 'api-types.ts')
-  
+
   try {
     await execAsync(`bunx openapi-typescript ${specPath} --output ${typesPath}`)
     console.log('✅ TypeScript types generated successfully')
@@ -440,9 +445,9 @@ async function generateTypes(spec: object): Promise<void> {
 function generateTypeSafeClient(spec: any): void {
   console.log('🚀 Generating type-safe API client...')
   console.log(`📊 Processing ${Object.keys(spec.paths || {}).length} API endpoints...`)
-  
+
   const { clientTypes, clientMethods } = generateClientFromSpec(spec)
-  
+
   const clientContent = `/**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
  * Generated at: ${new Date().toISOString()}
@@ -594,10 +599,10 @@ export function createTypeSafeClient(config?: {
   return new TypeSafeApiClient(config)
 }
 `
-  
+
   const clientPath = join(config.outputDir, 'type-safe-client.ts')
   writeFileSync(clientPath, clientContent)
-  
+
   console.log('✅ Type-safe API client generated successfully')
 }
 
@@ -606,7 +611,7 @@ export function createTypeSafeClient(config?: {
  */
 function createGeneratedIndex(): void {
   console.log('📝 Creating generated index file...')
-  
+
   const indexContent = `/**
  * AUTO-GENERATED API CLIENT
  * Generated at: ${new Date().toISOString()}
@@ -625,10 +630,10 @@ export { default as openApiSpec } from './openapi-spec.json'
 
 // Note: Advanced React Query hooks and provider are added by generate-advanced-hooks.ts
 `
-  
+
   const indexPath = join(config.outputDir, 'index.ts')
   writeFileSync(indexPath, indexContent)
-  
+
   console.log('✅ Generated index file created')
 }
 
@@ -639,23 +644,22 @@ async function generateApiClient(): Promise<void> {
   console.log('🎯 Starting API client generation...')
   console.log(`📍 Server URL: ${config.serverUrl}`)
   console.log(`📂 Output directory: ${config.outputDir}`)
-  
+
   try {
     // Step 1: Fetch OpenAPI spec
     const spec = await fetchOpenApiSpec()
-    
+
     // Step 2: Generate TypeScript types
     await generateTypes(spec)
-    
+
     // Step 3: Generate type-safe client
     generateTypeSafeClient(spec)
-    
+
     // Step 4: Create index file
     createGeneratedIndex()
-    
+
     console.log('🎉 API client generation completed successfully!')
     console.log(`📦 Generated files available in: ${config.outputDir}`)
-    
   } catch (error) {
     console.error('💥 API client generation failed:', error)
     process.exit(1)

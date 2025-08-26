@@ -7,11 +7,13 @@ This guide covers the Promptliano server architecture built on **Drizzle → Zod
 The server follows a **Drizzle-first** approach where the database schema is the single source of truth that generates everything else:
 
 **🔄 Data Flow Pipeline:**
+
 ```
 Drizzle Schema → Zod Schemas → Hono OpenAPI → TypeScript Types → Generated CRUD
 ```
 
 **Core Stack:**
+
 - **Drizzle ORM**: Source of truth for all data structures, auto-generates types
 - **Zod Schemas**: Runtime validation derived from Drizzle schemas via `drizzle-zod`
 - **Hono Framework**: Type-safe OpenAPI routes with automatic validation
@@ -67,17 +69,21 @@ When working in this package, these agents MUST be used:
 ## Drizzle-First Development Flow
 
 **1. Drizzle Schema (Source of Truth)**
+
 ```typescript
 // Define once in @promptliano/storage
 export const projects = sqliteTable('projects', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   path: text('path').notNull().unique(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`)
 })
 ```
 
 **2. Auto-Generate Everything**
+
 ```typescript
 // Zod schemas auto-generated via drizzle-zod
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
@@ -88,6 +94,7 @@ type NewProject = typeof projects.$inferInsert
 ```
 
 **3. Type-Safe API Routes**
+
 ```typescript
 // OpenAPI routes with automatic validation
 const createProjectRoute = createRoute({
@@ -99,6 +106,7 @@ const createProjectRoute = createRoute({
 ```
 
 **4. Generated CRUD + MCP Tools**
+
 - Service layer uses inferred types
 - MCP tools provide AI access
 - API client gets full type safety
@@ -138,8 +146,9 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
 ### Generated CRUD Routes
 
 For standard entities, routes follow predictable patterns:
+
 - `GET /api/{entity}` - List with filtering
-- `POST /api/{entity}` - Create with validation  
+- `POST /api/{entity}` - Create with validation
 - `GET /api/{entity}/{id}` - Get by ID
 - `PUT /api/{entity}/{id}` - Update with partial validation
 - `DELETE /api/{entity}/{id}` - Delete with cascading
@@ -167,7 +176,7 @@ export const projectManagerTool: MCPToolDefinition = {
   },
   handler: createTrackedHandler('project_manager', async (args) => {
     const { action, projectId, data } = args
-    
+
     switch (action) {
       case 'overview':
         const overview = await getProjectOverview(projectId)
@@ -184,7 +193,7 @@ export const projectManagerTool: MCPToolDefinition = {
 ### Tool Categories
 
 - **project/** - File operations, project management
-- **workflow/** - Tickets, tasks, queues 
+- **workflow/** - Tickets, tasks, queues
 - **content/** - AI agents, prompts
 - **analysis/** - File summarization
 - **git/** - Git operations
@@ -194,6 +203,7 @@ Tools use the same Drizzle-inferred types as API routes for consistency.
 ## Core Patterns
 
 ### Service Integration
+
 ```typescript
 // Routes use services with Drizzle-inferred types
 const project = await getProjectById(projectId) // Fully typed from schema
@@ -201,6 +211,7 @@ const newProject = await createProject(createData) // Validates against Drizzle 
 ```
 
 ### Error Handling
+
 ```typescript
 // Global error middleware handles Zod validation errors automatically
 app.onError((err, c) => {
@@ -212,6 +223,7 @@ app.onError((err, c) => {
 ```
 
 ### WebSocket Integration
+
 ```typescript
 // Real-time updates for job queue and file changes
 const wsManager = getWebSocketManager()
@@ -219,6 +231,7 @@ wsManager.broadcast({ type: 'project-updated', projectId })
 ```
 
 ### Response Format
+
 ```typescript
 // Consistent API responses
 { success: true, data: T }           // Success
@@ -229,7 +242,7 @@ wsManager.broadcast({ type: 'project-updated', projectId })
 
 ```bash
 bun run dev          # Development server
-bun run start        # Production server  
+bun run start        # Production server
 bun run server.ts --mcp-stdio  # MCP mode for AI agents
 ```
 

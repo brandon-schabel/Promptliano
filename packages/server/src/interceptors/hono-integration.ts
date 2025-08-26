@@ -24,7 +24,7 @@ export class HonoInterceptorBridge {
    */
   private createInterceptorContext(honoContext: Context): InterceptorContext {
     const requestId = this.generateRequestId()
-    
+
     return {
       requestId,
       startTime: Date.now(),
@@ -80,7 +80,7 @@ export class HonoInterceptorBridge {
       const interceptorContext = this.createInterceptorContext(c)
       c.set('interceptorContext', interceptorContext)
       c.set('requestId', interceptorContext.requestId)
-      
+
       await next()
     }
   }
@@ -107,7 +107,7 @@ export class HonoInterceptorBridge {
 
         try {
           const startTime = Date.now()
-          
+
           // Create a wrapped next function that prevents further execution if interceptor handles response
           let interceptorHandled = false
           const interceptorNext = async () => {
@@ -115,10 +115,10 @@ export class HonoInterceptorBridge {
           }
 
           await interceptor.handler(c, interceptorContext, interceptorNext)
-          
+
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
-          
+
           // Check if the interceptor set a response (finalized the context)
           if (c.finalized) {
             return c.res
@@ -157,13 +157,13 @@ export class HonoInterceptorBridge {
 
         try {
           const startTime = Date.now()
-          
+
           const interceptorNext = async () => {
             // Response interceptors run after the response is generated
           }
 
           await interceptor.handler(c, interceptorContext, interceptorNext)
-          
+
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
         } catch (error) {
@@ -180,17 +180,20 @@ export class HonoInterceptorBridge {
   createErrorHandler(): (err: Error, c: Context) => Response | Promise<Response> {
     return async (err: Error, c: Context) => {
       const interceptorContext = c.get('interceptorContext') as InterceptorContext
-      
+
       // If no interceptor context, fall back to basic error handling
       if (!interceptorContext) {
         console.error('[HonoInterceptorBridge] No interceptor context found for error handling')
-        const response = c.json({
-          success: false,
-          error: {
-            message: 'Internal Server Error',
-            code: 'INTERNAL_ERROR'
-          }
-        }, 500)
+        const response = c.json(
+          {
+            success: false,
+            error: {
+              message: 'Internal Server Error',
+              code: 'INTERNAL_ERROR'
+            }
+          },
+          500
+        )
         return response
       }
 
@@ -205,16 +208,16 @@ export class HonoInterceptorBridge {
 
         try {
           const startTime = Date.now()
-          
+
           const interceptorNext = async () => {
             // Error interceptors should handle the error and set response
           }
 
           await interceptor.handler(c, interceptorContext, interceptorNext)
-          
+
           // Record timing
           interceptorContext.metrics.interceptorTimings[interceptor.name] = Date.now() - startTime
-          
+
           // If interceptor handled the error by calling c.json() or c.status(), return early
           // Check if the response was actually modified by the interceptor
           if (c.finalized) {
@@ -227,14 +230,17 @@ export class HonoInterceptorBridge {
       }
 
       // If no interceptor handled the error, return default error response
-      const response = c.json({
-        success: false,
-        error: {
-          message: 'Internal Server Error',
-          code: 'INTERNAL_ERROR',
-          requestId: interceptorContext.requestId
-        }
-      }, 500)
+      const response = c.json(
+        {
+          success: false,
+          error: {
+            message: 'Internal Server Error',
+            code: 'INTERNAL_ERROR',
+            requestId: interceptorContext.requestId
+          }
+        },
+        500
+      )
       return response
     }
   }
@@ -247,31 +253,33 @@ export class HonoReplacementInterceptors {
   /**
    * Create CORS interceptor to replace hono/cors
    */
-  static createCorsInterceptor(options: {
-    origin?: string | string[]
-    allowMethods?: string[]
-    allowHeaders?: string[]
-    exposeHeaders?: string[]
-    credentials?: boolean
-    maxAge?: number
-  } = {}): InterceptorHandler {
+  static createCorsInterceptor(
+    options: {
+      origin?: string | string[]
+      allowMethods?: string[]
+      allowHeaders?: string[]
+      exposeHeaders?: string[]
+      credentials?: boolean
+      maxAge?: number
+    } = {}
+  ): InterceptorHandler {
     return async (c: Context, interceptorContext: InterceptorContext, next) => {
       const origin = c.req.header('Origin')
-      
+
       // Handle preflight
       if (c.req.method === 'OPTIONS') {
-        c.header('Access-Control-Allow-Origin', options.origin as string || '*')
+        c.header('Access-Control-Allow-Origin', (options.origin as string) || '*')
         c.header('Access-Control-Allow-Methods', options.allowMethods?.join(', ') || 'GET, POST, PUT, DELETE, OPTIONS')
         c.header('Access-Control-Allow-Headers', options.allowHeaders?.join(', ') || 'Content-Type, Authorization')
-        
+
         if (options.credentials) {
           c.header('Access-Control-Allow-Credentials', 'true')
         }
-        
+
         if (options.maxAge) {
           c.header('Access-Control-Max-Age', options.maxAge.toString())
         }
-        
+
         // Return a proper 204 response for preflight
         // Use body() with empty string to properly finalize the response
         c.status(204)
@@ -321,7 +329,7 @@ export class HonoReplacementInterceptors {
   static createResponseTimeInterceptor(): InterceptorHandler {
     return async (c: Context, interceptorContext: InterceptorContext, next) => {
       await next()
-      
+
       const duration = Date.now() - interceptorContext.startTime
       c.header('X-Response-Time', `${duration}ms`)
       interceptorContext.metadata.responseTime = duration
@@ -332,13 +340,16 @@ export class HonoReplacementInterceptors {
 /**
  * Apply interceptor system to Hono app
  */
-export function applyInterceptorSystem(app: OpenAPIHono, options: {
-  configLoader?: any
-  customInterceptors?: any[]
-  replaceMiddleware?: boolean
-} = {}): void {
+export function applyInterceptorSystem(
+  app: OpenAPIHono,
+  options: {
+    configLoader?: any
+    customInterceptors?: any[]
+    replaceMiddleware?: boolean
+  } = {}
+): void {
   const bridge = new HonoInterceptorBridge()
-  
+
   // Initialize interceptor system if not already done
   if (!getGlobalInterceptorSystem().getStats().interceptorCount) {
     setupDefaultInterceptors(options.configLoader)
@@ -347,7 +358,7 @@ export function applyInterceptorSystem(app: OpenAPIHono, options: {
   // Add custom interceptors if provided
   if (options.customInterceptors) {
     const system = getGlobalInterceptorSystem()
-    options.customInterceptors.forEach(interceptor => {
+    options.customInterceptors.forEach((interceptor) => {
       system.register(interceptor)
     })
   }
@@ -356,7 +367,7 @@ export function applyInterceptorSystem(app: OpenAPIHono, options: {
   app.use('*', bridge.createContextMiddleware())
   app.use('*', bridge.createRequestMiddleware())
   app.use('*', bridge.createResponseMiddleware())
-  
+
   // Set error handler
   app.onError(bridge.createErrorHandler())
 
@@ -412,7 +423,7 @@ export function setupDefaultInterceptors(configLoader?: any): void {
       ...createValidationInterceptor(config.getInterceptorConfig('validation')),
       enabled: config.isInterceptorEnabled('validation')
     },
-    
+
     // Error interceptor
     {
       ...createErrorHandlerInterceptor(config.getInterceptorConfig('errorHandler')),
@@ -421,7 +432,7 @@ export function setupDefaultInterceptors(configLoader?: any): void {
   ]
 
   // Register all interceptors
-  interceptors.forEach(interceptor => {
+  interceptors.forEach((interceptor) => {
     system.register(interceptor)
   })
 
@@ -432,24 +443,29 @@ export function setupDefaultInterceptors(configLoader?: any): void {
 /**
  * Create a configured Hono app with interceptor system
  */
-export function createHonoAppWithInterceptors(options: {
-  configLoader?: any
-  customInterceptors?: any[]
-  enableSwagger?: boolean
-} = {}): OpenAPIHono {
+export function createHonoAppWithInterceptors(
+  options: {
+    configLoader?: any
+    customInterceptors?: any[]
+    enableSwagger?: boolean
+  } = {}
+): OpenAPIHono {
   const app = new OpenAPIHono({
     defaultHook: (result, c) => {
       if (!result.success) {
         console.error('Validation Error:', JSON.stringify(result.error.issues, null, 2))
-        
-        return c.json({
-          success: false,
-          error: {
-            message: 'Validation failed',
-            code: 'VALIDATION_ERROR',
-            details: result.error.flatten().fieldErrors
-          }
-        }, 422)
+
+        return c.json(
+          {
+            success: false,
+            error: {
+              message: 'Validation failed',
+              code: 'VALIDATION_ERROR',
+              details: result.error.flatten().fieldErrors
+            }
+          },
+          422
+        )
       }
     }
   })
@@ -498,10 +514,10 @@ export function migrateToInterceptorSystem(app: OpenAPIHono): {
 
   // Note what was replaced
   replacedMiddleware.push('hono/cors', 'hono/logger', 'rate-limiter', 'custom-error-handler')
-  
+
   migrationNotes.push(
     'CORS middleware replaced with CORS interceptor',
-    'Logger middleware replaced with logging interceptor', 
+    'Logger middleware replaced with logging interceptor',
     'Rate limiter replaced with rate limit interceptor',
     'Error handler replaced with error interceptor system',
     'Request ID generation added via interceptor',
@@ -510,7 +526,7 @@ export function migrateToInterceptorSystem(app: OpenAPIHono): {
 
   console.log('[Migration] Successfully migrated to interceptor system')
   console.log(`[Migration] Replaced middleware: ${replacedMiddleware.join(', ')}`)
-  
+
   return {
     interceptorsApplied: stats.interceptorCount,
     middlewareReplaced: replacedMiddleware,

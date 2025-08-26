@@ -47,7 +47,7 @@ describe('KV Store Schemas', () => {
 
     it('should have sensible default values', () => {
       expect(KVDefaultValues.activeChatId).toBe(-1)
-      expect(KVDefaultValues.activeProjectTabId).toBe(1)
+      expect(KVDefaultValues.activeProjectTabId).toBe(-1)
       expect(KVDefaultValues.appSettings).toBeDefined()
       expect(KVDefaultValues.appSettings.theme).toBe('light')
       expect(KVDefaultValues.projectTabs).toBeDefined()
@@ -107,7 +107,7 @@ describe('KV Store Schemas', () => {
 
       // Should use default for undefined
       const result = KvSchemas.activeProjectTabId.parse(undefined)
-      expect(result).toBe(1)
+      expect(result).toBe(-1)
     })
 
     it('should validate activeChatId schema', () => {

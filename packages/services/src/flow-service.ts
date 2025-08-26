@@ -1,7 +1,7 @@
 /**
  * Flow Service - Functional Factory Pattern
  * Replaces class-based FlowService with unified ticket and queue management
- * 
+ *
  * Key improvements:
  * - Uses Drizzle repositories instead of storage classes
  * - Consistent error handling with ErrorFactory
@@ -15,22 +15,9 @@ import { nullToUndefined, jsonToStringArray, jsonToNumberArray } from './utils/f
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository, queueRepository, tickets, ticketTasks } from '@promptliano/database'
 import { eq, and, isNull } from 'drizzle-orm'
-import type {
-  Ticket,
-  TicketTask,
-  Queue as TaskQueue,
-  InsertTicket,
-  InsertTicketTask
-} from '@promptliano/database'
-import type {
-  TicketWithTasks
-} from '@promptliano/database'
-import type {
-  CreateTicketBody,
-  UpdateTicketBody,
-  CreateTaskBody,
-  UpdateTaskBody
-} from '@promptliano/schemas'
+import type { Ticket, TicketTask, Queue as TaskQueue, InsertTicket, InsertTicketTask } from '@promptliano/database'
+import type { TicketWithTasks } from '@promptliano/database'
+import type { CreateTicketBody, UpdateTicketBody, CreateTaskBody, UpdateTaskBody } from '@promptliano/schemas'
 import { QueueStateMachine, type QueueStatus } from './queue-state-machine'
 
 export interface FlowItem {
@@ -79,7 +66,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     ticketRepository: ticketRepo = ticketRepository,
     taskRepository: taskRepo = taskRepository,
     queueRepository: queueRepo = queueRepository,
-    logger = createServiceLogger('FlowService'),
+    logger = createServiceLogger('FlowService')
   } = deps
 
   const ticketOperations = {
@@ -112,7 +99,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             actualProcessingTime: null
           }
           const ticket = await ticketRepo.create(ticketData as any)
-  
+
           logger.info('Created ticket with queue initialization', { ticketId: ticket.id })
           return ticket
         },
@@ -151,9 +138,9 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             suggestedPromptIds: updates.suggestedPromptIds ? jsonToNumberArray(updates.suggestedPromptIds) : undefined,
             updatedAt: Date.now()
           }
-          
+
           const updatedTicket = await ticketRepo.update(ticketId, convertedUpdates)
-          
+
           logger.info('Updated ticket', { ticketId })
           return updatedTicket
         },
@@ -238,7 +225,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             ...updates,
             updatedAt: Date.now()
           } as any)
-          
+
           logger.info('Updated task', { taskId })
           return updatedTask
         },
@@ -278,7 +265,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
           // Enqueue the ticket
           const ticket = await ticketRepo.addToQueue(ticketId, queueId, priority)
-          
+
           logger.info('Enqueued ticket', { ticketId, queueId, priority })
           return ticket
         },
@@ -305,7 +292,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             queuePriority: priority,
             queuedAt: Date.now()
           })
-          
+
           logger.info('Enqueued task', { taskId, queueId, priority })
           return task
         },
@@ -327,7 +314,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
           for (const task of tasks) {
             await this.enqueueTask(task.id, queueId, priority)
           }
-          
+
           logger.info('Enqueued ticket with tasks', { ticketId, queueId, taskCount: tasks.length })
         },
         { entity: 'Ticket', action: 'enqueueWithTasks', id: ticketId }
@@ -571,7 +558,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
               }
             }
           }
-          
+
           logger.info('Reordered items within queue', { queueId, itemCount: items.length })
         },
         { entity: 'Queue', action: 'reorder', id: queueId }
@@ -631,18 +618,15 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     async getUnqueuedItems(projectId: number): Promise<{ tickets: Ticket[]; tasks: TicketTask[] }> {
       return withErrorContext(
         async () => {
-          const ticketList = await ticketRepo.findWhere(and(
-            eq(tickets.projectId, projectId),
-            isNull(tickets.queueId)
-          ))
-          
+          const ticketList = await ticketRepo.findWhere(and(eq(tickets.projectId, projectId), isNull(tickets.queueId)))
+
           // Get all tasks for the project's tickets that are unqueued
           const allTasks: TicketTask[] = []
           for (const ticket of ticketList) {
             const tasks = await ticketRepo.getTasksByTicket(ticket.id)
-            allTasks.push(...tasks.filter(t => !t.queueId))
+            allTasks.push(...tasks.filter((t) => !t.queueId))
           }
-          
+
           return { tickets: ticketList, tasks: allTasks }
         },
         { entity: 'Project', action: 'getUnqueuedItems', id: projectId }
@@ -788,7 +772,7 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     async getTicketsWithTasks(projectId: number): Promise<TicketWithTasks[]> {
       const tickets = await ticketRepo.getByProject(projectId)
       const results = await Promise.all(
-        tickets.map(async ticket => ({
+        tickets.map(async (ticket) => ({
           ticket,
           tasks: await ticketRepo.getTasksByTicket(ticket.id)
         }))
@@ -844,16 +828,16 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
   return {
     // Ticket operations
     ...ticketOperations,
-    
+
     // Task operations
     ...taskOperations,
-    
-    // Queue operations  
+
+    // Queue operations
     ...queueOperations,
-    
+
     // Flow operations
     ...flowOperations,
-    
+
     // Processing operations
     ...processingOperations
   }

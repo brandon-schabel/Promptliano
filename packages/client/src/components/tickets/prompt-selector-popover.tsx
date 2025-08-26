@@ -51,7 +51,9 @@ export function PromptSelectorPopover({
     if (!searchQuery.trim()) return prompts
     const query = searchQuery.toLowerCase()
     return prompts.filter(
-      (prompt: any) => (prompt.title?.toLowerCase() || prompt.name?.toLowerCase())?.includes(query) || prompt.content.toLowerCase().includes(query)
+      (prompt: any) =>
+        (prompt.title?.toLowerCase() || prompt.name?.toLowerCase())?.includes(query) ||
+        prompt.content.toLowerCase().includes(query)
     )
   }, [prompts, searchQuery])
 
@@ -78,7 +80,7 @@ export function PromptSelectorPopover({
     if (currentPromptIds.length === 0) return 'No prompts'
     if (currentPromptIds.length === 1) {
       const prompt = currentPrompts[0]
-      return prompt ? ((prompt as any).title || (prompt as any).name) : '1 prompt'
+      return prompt ? (prompt as any).title || (prompt as any).name : '1 prompt'
     }
     return `${currentPromptIds.length} prompts`
   }, [currentPromptIds, currentPrompts])

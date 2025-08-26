@@ -18,7 +18,7 @@ test.describe('File Selection Workflow Tests', () => {
     projectsPage = new ProjectsPage(page)
     filesPage = new FilesPage(page)
     sidebarPage = new SidebarPage(page)
-    
+
     await appPage.goto('/')
     await appPage.waitForAppReady()
   })
@@ -47,7 +47,7 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Verify key files and directories are visible
       const expectedStructure = ['src/', 'package.json', 'README.md', 'public/']
-      
+
       for (const item of expectedStructure) {
         const element = appPage.page.locator(`text="${item}"`)
         await expect(element).toBeVisible({ timeout: 5000 })
@@ -76,9 +76,7 @@ test.describe('File Selection Workflow Tests', () => {
     })
 
     test('should navigate deep directory structures', async () => {
-      const testProject = await TestProjectHelpers.createTestProject(
-        TestProjectPresets.largeMonorepo()
-      )
+      const testProject = await TestProjectHelpers.createTestProject(TestProjectPresets.largeMonorepo())
       testProjects.push(testProject)
 
       await sidebarPage.navigateToSection('projects')
@@ -90,7 +88,7 @@ test.describe('File Selection Workflow Tests', () => {
       const packagesDir = appPage.page.locator('text="packages/"').first()
       if (await packagesDir.isVisible()) {
         await packagesDir.click()
-        
+
         // Should show package contents
         await expect(appPage.page.locator('text="core/"')).toBeVisible({ timeout: 3000 })
         await expect(appPage.page.locator('text="ui/"')).toBeVisible({ timeout: 3000 })
@@ -220,10 +218,10 @@ test.describe('File Selection Workflow Tests', () => {
       await filesPage.waitForFilesInterfaceLoad()
 
       const filesToSelect = ['package.json', 'README.md', 'tsconfig.json']
-      
+
       // Test batch selection
       await filesPage.testBatchOperations(filesToSelect, 'select')
-      
+
       // Test batch removal
       await filesPage.testBatchOperations(filesToSelect, 'remove')
     })
@@ -261,9 +259,7 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Should show only TypeScript files
       const visibleFiles = await filesPage.getVisibleFiles()
-      const tsFiles = visibleFiles.filter(file => 
-        file.name.endsWith('.ts') || file.name.endsWith('.tsx')
-      )
+      const tsFiles = visibleFiles.filter((file) => file.name.endsWith('.ts') || file.name.endsWith('.tsx'))
       expect(tsFiles.length).toBeGreaterThan(0)
     })
 
@@ -278,14 +274,14 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Test sorting by name
       await filesPage.sortFilesBy('name')
-      
+
       // Get file list after sorting
       const files = await filesPage.getVisibleFiles()
       expect(files.length).toBeGreaterThan(1)
 
       // Test sorting by size
       await filesPage.sortFilesBy('size')
-      
+
       // Files should still be visible
       const filesAfterSort = await filesPage.getVisibleFiles()
       expect(filesAfterSort.length).toBeGreaterThan(1)
@@ -307,7 +303,8 @@ test.describe('File Selection Workflow Tests', () => {
       expect(tsFiles.length).toBeGreaterThan(0)
 
       // Select TypeScript files
-      for (const tsFile of tsFiles.slice(0, 3)) { // Select first 3 to avoid overwhelming
+      for (const tsFile of tsFiles.slice(0, 3)) {
+        // Select first 3 to avoid overwhelming
         const fileName = tsFile.split('/').pop()
         if (fileName) {
           try {
@@ -338,7 +335,7 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Select config files that should be visible at root level
       const rootConfigFiles = ['package.json', 'tsconfig.json']
-      
+
       for (const configFile of rootConfigFiles) {
         if (configFiles.includes(configFile)) {
           await filesPage.selectFile(configFile)
@@ -360,12 +357,12 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Search and select all JSON files
       await filesPage.searchFiles('.json')
-      
+
       // Select visible JSON files
       const jsonFile = appPage.page.locator('text="package.json"')
       if (await jsonFile.isVisible()) {
         await jsonFile.click()
-        
+
         const selectedCount = await filesPage.getSelectedFilesCount()
         expect(selectedCount).toBeGreaterThan(0)
       }
@@ -385,7 +382,7 @@ test.describe('File Selection Workflow Tests', () => {
       // Get metadata for package.json
       try {
         const metadata = await filesPage.getFileMetadata('package.json')
-        
+
         expect(metadata.name).toBe('package.json')
         expect(metadata.type).toContain('json') // Should contain json type
         expect(metadata.size).toBeTruthy() // Should have size info
@@ -412,7 +409,7 @@ test.describe('File Selection Workflow Tests', () => {
       try {
         await filesPage.toggleViewMode()
         await appPage.waitForLoadingComplete()
-        
+
         // Selection should persist
         const countAfterToggle = await filesPage.getSelectedFilesCount()
         expect(countAfterToggle).toBe(initialCount)
@@ -480,7 +477,7 @@ test.describe('File Selection Workflow Tests', () => {
 
       // Rapidly select and deselect files
       const files = ['package.json', 'README.md', 'tsconfig.json']
-      
+
       for (let i = 0; i < 3; i++) {
         for (const file of files) {
           try {

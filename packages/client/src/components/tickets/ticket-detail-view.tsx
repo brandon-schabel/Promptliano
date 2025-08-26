@@ -51,9 +51,9 @@ import {
   useUpdateTask,
   useDeleteTask,
   useAutoGenerateTasks,
-  useDequeueTicket, 
-  useDequeueTask, 
-  useMoveItem, 
+  useDequeueTicket,
+  useDequeueTask,
+  useMoveItem,
   useGetFlowData,
   useInvalidateTicketsEnhanced,
   useGetTicket,
@@ -301,7 +301,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         <div className='flex items-start justify-between'>
           <div className='space-y-1'>
             <h1 className='text-2xl font-bold'>{ticket.ticket.title}</h1>
-            <p className='text-muted-foreground'>Created {formatDistanceToNow(new Date(ticket.ticket.createdAt))} ago</p>
+            <p className='text-muted-foreground'>
+              Created {formatDistanceToNow(new Date(ticket.ticket.createdAt))} ago
+            </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -697,7 +699,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                             </PopoverContent>
                           </Popover>
                         )}
-{/* <AgentSelectorPopover
+                        {/* <AgentSelectorPopover
                           currentAgentId={task.agentId}
                           onAgentSelect={async (agentId) => {
                             try {
@@ -720,7 +722,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                           placeholder='Select agent'
                         /> */}
                         <span className='text-xs text-muted-foreground'>Agent: {task.agentId || 'None'}</span>
-{/* <PromptSelectorPopover
+                        {/* <PromptSelectorPopover
                           currentPromptIds={task.suggestedPromptIds || []}
                           onPromptsSelect={async (promptIds) => {
                             try {
@@ -931,7 +933,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         ticketQueueName={queueData?.name}
       />
 
-{/* <TaskEditDialog
+      {/* <TaskEditDialog
         isOpen={isTaskEditDialogOpen}
         onClose={() => {
           setIsTaskEditDialogOpen(false)

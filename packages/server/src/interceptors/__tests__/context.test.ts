@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, mock } from 'bun:test'
-import { 
+import {
   InterceptorContextManager,
   createContextMiddleware,
   withInterceptorContext,
@@ -19,13 +19,13 @@ describe('InterceptorContextManager', () => {
           if (name === 'x-forwarded-for') return '192.168.1.1'
           if (name === 'user-agent') return 'Test Agent'
           return undefined
-        }),
+        })
       },
       set: mock(),
       get: mock((key: string) => {
         if (key === 'requestId') return 'req-123'
         return undefined
-      }),
+      })
     } as unknown as Context
   })
 
@@ -54,14 +54,14 @@ describe('InterceptorContextManager', () => {
   describe('store and retrieve', () => {
     it('should store and retrieve context', () => {
       const context = InterceptorContextManager.create()
-      
+
       // Mock the get method to return the stored context
       mockContext.get = mock((key: string) => {
         if (key === 'interceptorContext') return context
         if (key === 'requestId') return 'req-123'
         return undefined
       })
-      
+
       InterceptorContextManager.store(mockContext, context)
       const retrieved = InterceptorContextManager.retrieve(mockContext)
 
@@ -71,7 +71,7 @@ describe('InterceptorContextManager', () => {
 
     it('should return undefined if no context stored', () => {
       mockContext.get = mock(() => undefined)
-      
+
       const retrieved = InterceptorContextManager.retrieve(mockContext)
 
       expect(retrieved).toBeUndefined()
@@ -151,7 +151,7 @@ describe('InterceptorContextManager', () => {
       InterceptorContextManager.addCacheKey(mockContext, 'cache-key-1')
       InterceptorContextManager.addCacheKey(mockContext, 'cache-key-1')
 
-      expect(interceptorContext.cacheKeys.filter(k => k === 'cache-key-1')).toHaveLength(1)
+      expect(interceptorContext.cacheKeys.filter((k) => k === 'cache-key-1')).toHaveLength(1)
     })
   })
 
@@ -173,7 +173,7 @@ describe('InterceptorContextManager', () => {
       InterceptorContextManager.addRateLimitKey(mockContext, 'rate-limit-key-1')
       InterceptorContextManager.addRateLimitKey(mockContext, 'rate-limit-key-1')
 
-      expect(interceptorContext.security.rateLimitKeys.filter(k => k === 'rate-limit-key-1')).toHaveLength(1)
+      expect(interceptorContext.security.rateLimitKeys.filter((k) => k === 'rate-limit-key-1')).toHaveLength(1)
     })
   })
 
@@ -187,7 +187,7 @@ describe('InterceptorContextManager', () => {
 
     it('should set and get user', () => {
       const user = { id: 1, name: 'Test User' }
-      
+
       InterceptorContextManager.setUser(mockContext, user)
       const retrievedUser = InterceptorContextManager.getUser(mockContext)
 
@@ -215,7 +215,7 @@ describe('InterceptorContextManager', () => {
     it('should get total time', () => {
       // Add a small delay to ensure time difference
       interceptorContext.startTime = Date.now() - 10
-      
+
       const totalTime = InterceptorContextManager.getTotalTime(mockContext)
 
       expect(totalTime).toBeGreaterThan(0)
@@ -257,7 +257,7 @@ describe('InterceptorContextManager', () => {
     it('should return context summary', () => {
       // Add a small delay to ensure time difference
       interceptorContext.startTime = Date.now() - 10
-      
+
       const summary = InterceptorContextManager.getSummary(mockContext)
 
       expect(summary).toBeDefined()
@@ -294,10 +294,10 @@ describe('InterceptorContextManager', () => {
 
       expect(exported).toBeDefined()
       expect(exported!.requestId).toBe(interceptorContext.requestId)
-      expect(exported!.security!.ip).toBe('***.***.*.***')  // IP masked
-      expect(exported!.security!.userAgent).toContain('...')  // UA truncated
-      expect(exported!.user).toBeUndefined()  // User omitted for security
-      expect(exported!.metadata).toBeUndefined()  // Metadata omitted for security
+      expect(exported!.security!.ip).toBe('***.***.*.***') // IP masked
+      expect(exported!.security!.userAgent).toContain('...') // UA truncated
+      expect(exported!.user).toBeUndefined() // User omitted for security
+      expect(exported!.metadata).toBeUndefined() // Metadata omitted for security
     })
   })
 })
@@ -308,16 +308,13 @@ describe('createContextMiddleware', () => {
     const mockContext = {
       req: { header: mock(() => undefined) },
       get: mock(() => undefined),
-      set: mock(),
+      set: mock()
     } as unknown as Context
     const mockNext = mock(async () => {})
 
     await middleware(mockContext, mockNext)
 
-    expect(mockContext.set).toHaveBeenCalledWith(
-      'interceptorContext',
-      expect.any(Object)
-    )
+    expect(mockContext.set).toHaveBeenCalledWith('interceptorContext', expect.any(Object))
     expect(mockNext).toHaveBeenCalled()
   })
 })

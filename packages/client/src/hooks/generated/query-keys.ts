@@ -35,20 +35,17 @@ export const PROJECT_ENHANCED_KEYS = {
 export const TICKETS_KEYS: QueryKeyFactory<{ projectId: number; status?: string }> = {
   all: ['tickets'] as const,
   lists: () => [...TICKETS_KEYS.all, 'list'] as const,
-  list: (params?: { projectId: number; status?: string }) => 
-    [...TICKETS_KEYS.lists(), params] as const,
+  list: (params?: { projectId: number; status?: string }) => [...TICKETS_KEYS.lists(), params] as const,
   details: () => [...TICKETS_KEYS.all, 'detail'] as const,
   detail: (id: number) => [...TICKETS_KEYS.details(), id] as const,
-  infinite: (params?: { projectId: number; status?: string }) => 
-    [...TICKETS_KEYS.all, 'infinite', params] as const
+  infinite: (params?: { projectId: number; status?: string }) => [...TICKETS_KEYS.all, 'infinite', params] as const
 } as const
 
 // Enhanced ticket query keys with task relationships
 export const TICKET_ENHANCED_KEYS = {
   ...TICKETS_KEYS,
   tasks: (ticketId: number) => [...TICKETS_KEYS.all, 'tasks', ticketId] as const,
-  withTasks: (projectId: number, status?: string) => 
-    [...TICKETS_KEYS.all, 'withTasks', { projectId, status }] as const,
+  withTasks: (projectId: number, status?: string) => [...TICKETS_KEYS.all, 'withTasks', { projectId, status }] as const,
   withCounts: (projectId: number, status?: string) =>
     [...TICKETS_KEYS.all, 'withCounts', { projectId, status }] as const,
   projectTickets: (projectId: number) => [...TICKETS_KEYS.all, 'project', projectId] as const
@@ -90,8 +87,7 @@ export const PROMPT_ENHANCED_KEYS = {
   ...PROMPTS_KEYS,
   projectPrompts: (projectId: number) => [...PROMPTS_KEYS.all, 'project', projectId] as const,
   templates: () => [...PROMPTS_KEYS.all, 'templates'] as const,
-  suggestions: (projectId: number, context: string) => 
-    [...PROMPTS_KEYS.all, 'suggestions', projectId, context] as const
+  suggestions: (projectId: number, context: string) => [...PROMPTS_KEYS.all, 'suggestions', projectId, context] as const
 } as const
 
 export const AGENTS_KEYS: QueryKeyFactory<{ projectId?: number }> = {
@@ -124,8 +120,7 @@ export const FILE_ENHANCED_KEYS = {
   content: (fileId: number) => [...FILES_KEYS.all, 'content', fileId] as const,
   metadata: (fileId: number) => [...FILES_KEYS.all, 'metadata', fileId] as const,
   versions: (fileId: number) => [...FILES_KEYS.all, 'versions', fileId] as const,
-  search: (projectId: number, query: string) => 
-    [...FILES_KEYS.all, 'search', projectId, query] as const
+  search: (projectId: number, query: string) => [...FILES_KEYS.all, 'search', projectId, query] as const
 } as const
 
 export const QUEUES_KEYS: QueryKeyFactory<{ projectId: number }> = {
@@ -143,8 +138,9 @@ export const QUEUE_ENHANCED_KEYS = {
   allStats: (projectId: number) => [...QUEUES_KEYS.all, 'all-stats', projectId] as const,
   listWithStats: (projectId: number) => [...QUEUES_KEYS.all, 'list-with-stats', projectId] as const,
   items: (queueId: number, status?: string) =>
-    status ? [...QUEUES_KEYS.all, 'items', queueId, status] as const 
-           : [...QUEUES_KEYS.all, 'items', queueId] as const,
+    status
+      ? ([...QUEUES_KEYS.all, 'items', queueId, status] as const)
+      : ([...QUEUES_KEYS.all, 'items', queueId] as const),
   timeline: (queueId: number) => [...QUEUES_KEYS.all, 'timeline', queueId] as const
 } as const
 
@@ -288,7 +284,7 @@ export type EntityName = keyof typeof QUERY_KEY_REGISTRY
 /**
  * Get query keys for a specific entity
  */
-export function getQueryKeys<T extends EntityName>(entityName: T): typeof QUERY_KEY_REGISTRY[T] {
+export function getQueryKeys<T extends EntityName>(entityName: T): (typeof QUERY_KEY_REGISTRY)[T] {
   return QUERY_KEY_REGISTRY[entityName]
 }
 
@@ -329,18 +325,14 @@ export const ENTITY_RELATIONSHIPS = {
 /**
  * Invalidate entity and all related entities
  */
-export function invalidateWithRelationships(
-  queryClient: any, 
-  entityName: EntityName, 
-  cascade = true
-) {
+export function invalidateWithRelationships(queryClient: any, entityName: EntityName, cascade = true) {
   // Invalidate the primary entity
   invalidateEntityQueries(queryClient, entityName)
-  
+
   // Invalidate related entities if cascade is enabled
   if (cascade && entityName in ENTITY_RELATIONSHIPS) {
     const relatedEntities = ENTITY_RELATIONSHIPS[entityName as keyof typeof ENTITY_RELATIONSHIPS]
-    relatedEntities?.forEach(relatedEntity => {
+    relatedEntities?.forEach((relatedEntity) => {
       invalidateEntityQueries(queryClient, relatedEntity as EntityName)
     })
   }

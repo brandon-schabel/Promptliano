@@ -148,7 +148,12 @@ export class FileGroupingService {
   /**
    * Group files using the specified strategy
    */
-  groupFilesByStrategy(files: File[], strategy: GroupingStrategy, projectId: number, options: GroupingOptions = {}): FileGroup[] {
+  groupFilesByStrategy(
+    files: File[],
+    strategy: GroupingStrategy,
+    projectId: number,
+    options: GroupingOptions = {}
+  ): FileGroup[] {
     const {
       maxGroupSize = this.DEFAULT_MAX_GROUP_SIZE,
       minRelationshipStrength = this.DEFAULT_MIN_RELATIONSHIP_STRENGTH,

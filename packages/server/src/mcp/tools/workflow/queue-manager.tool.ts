@@ -124,7 +124,10 @@ Max Parallel Items: ${queue.maxParallelItems}`
             }
 
             const queueList = queues
-              .map((q: Queue) => `${q.id}: ${q.name} [${q.isActive ? 'Active' : 'Inactive'}] - ${q.description || 'No description'}`)
+              .map(
+                (q: Queue) =>
+                  `${q.id}: ${q.name} [${q.isActive ? 'Active' : 'Inactive'}] - ${q.description || 'No description'}`
+              )
               .join('\n')
 
             return {
@@ -284,13 +287,18 @@ Priority: ${task.queuePriority}`
                   type: 'text',
                   text: `Queue Statistics for "${stats.queue.name}":
 Total Items: ${stats.items.length}
-Queued: ${stats.items.filter(item => item.status === 'queued').length}
-In Progress: ${stats.items.filter(item => item.status === 'in_progress').length}
-Completed: ${stats.items.filter(item => item.status === 'completed').length}
-Failed: ${stats.items.filter(item => item.status === 'failed').length}
-Cancelled: ${stats.items.filter(item => item.status === 'cancelled').length}
+Queued: ${stats.items.filter((item) => item.status === 'queued').length}
+In Progress: ${stats.items.filter((item) => item.status === 'in_progress').length}
+Completed: ${stats.items.filter((item) => item.status === 'completed').length}
+Failed: ${stats.items.filter((item) => item.status === 'failed').length}
+Cancelled: ${stats.items.filter((item) => item.status === 'cancelled').length}
 Average Processing Time: N/A
-Current Agents: ${stats.items.filter(item => item.status === 'in_progress' && item.agentId).map(item => item.agentId).join(', ') || 'None'}`
+Current Agents: ${
+                    stats.items
+                      .filter((item) => item.status === 'in_progress' && item.agentId)
+                      .map((item) => item.agentId)
+                      .join(', ') || 'None'
+                  }`
                 }
               ]
             }
@@ -308,7 +316,7 @@ Current Agents: ${stats.items.filter(item => item.status === 'in_progress' && it
 
             const statsSummary = allStats
               .map(
-                ({ queue, stats }: { queue: Queue, stats: any }) =>
+                ({ queue, stats }: { queue: Queue; stats: any }) =>
                   `${queue.name} [${queue.isActive ? 'Active' : 'Inactive'}]:\n` +
                   `  Total: ${stats.totalItems} | Queued: ${stats.queuedItems} | ` +
                   `In Progress: ${stats.inProgressItems} | Completed: ${stats.completedItems}`

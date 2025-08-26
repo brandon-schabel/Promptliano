@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR QUEUEITEM
  * Generated at: 2025-08-22T23:50:50.384Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { queueitemServiceV2 } from '@promptliano/services'
-import {
-  QueueItemSchema,
-  CreateQueueItemSchema,
-  UpdateQueueItemSchema
-} from '@promptliano/database'
+import { QueueItemSchema, CreateQueueItemSchema, UpdateQueueItemSchema } from '@promptliano/database'
 import {
   QueueItemIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -66,9 +62,9 @@ const queueitemConfig: EntityConfig = {
  */
 export function registerQueueItemRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, queueitemConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for QueueItem`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +77,7 @@ export const queueitemRoutes = {
   list: `GET /api/queueitems`,
   get: `GET /api/queueitems/{id}`,
   update: `PUT /api/queueitems/{id}`,
-  delete: `DELETE /api/queueitems/{id}`,
+  delete: `DELETE /api/queueitems/{id}`
 } as const
 
 export type QueueItemRouteTypes = typeof queueitemRoutes

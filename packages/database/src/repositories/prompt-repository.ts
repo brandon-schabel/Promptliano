@@ -9,11 +9,7 @@ import { createBaseRepository, extendRepository } from './base-repository'
 import { prompts, type Prompt, type InsertPrompt, selectPromptSchema } from '../schema'
 
 // Create base prompt repository
-const basePromptRepository = createBaseRepository(
-  prompts,
-  selectPromptSchema,
-  'Prompt'
-)
+const basePromptRepository = createBaseRepository(prompts, selectPromptSchema, 'Prompt')
 
 // Extend with domain-specific methods
 export const promptRepository = extendRepository(basePromptRepository, {

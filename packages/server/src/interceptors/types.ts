@@ -337,7 +337,7 @@ export const InterceptorChainConfigSchema = z.object({
 
 export const AuthInterceptorConfigSchema = z.object({
   requireAuth: z.boolean().default(true),
-  publicRoutes: z.array(z.string()).default([]),
+  publicRoutes: z.array(z.string()).default([])
   // Note: validateToken and onUnauthorized are functions, so not validated by Zod
 })
 
@@ -345,19 +345,27 @@ export const LoggingInterceptorConfigSchema = z.object({
   level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   logRequestBody: z.boolean().default(false),
   logResponseBody: z.boolean().default(false),
-  maxBodySize: z.number().int().positive().default(1024 * 1024), // 1MB
+  maxBodySize: z
+    .number()
+    .int()
+    .positive()
+    .default(1024 * 1024) // 1MB
 })
 
 export const RateLimitInterceptorConfigSchema = z.object({
   maxRequests: z.number().int().positive(),
-  windowMs: z.number().int().positive(),
+  windowMs: z.number().int().positive()
   // Note: keyGenerator, onRateLimitExceeded, and store are functions/objects, so not validated by Zod
 })
 
 export const CacheInterceptorConfigSchema = z.object({
-  defaultTtl: z.number().int().positive().default(5 * 60 * 1000), // 5 minutes
+  defaultTtl: z
+    .number()
+    .int()
+    .positive()
+    .default(5 * 60 * 1000), // 5 minutes
   routes: z.array(z.string()).optional(),
-  methods: z.array(z.string()).default(['GET']),
+  methods: z.array(z.string()).default(['GET'])
 })
 
 /**
@@ -392,17 +400,16 @@ export class InterceptorTimeoutError extends InterceptorError {
 
 export class InterceptorDependencyError extends InterceptorError {
   constructor(interceptorName: string, missingDependency: string) {
-    super(
-      `Interceptor '${interceptorName}' has unmet dependency: '${missingDependency}'`,
-      interceptorName,
-      'request'
-    )
+    super(`Interceptor '${interceptorName}' has unmet dependency: '${missingDependency}'`, interceptorName, 'request')
     this.name = 'InterceptorDependencyError'
   }
 }
 
 export class InterceptorRegistrationError extends Error {
-  constructor(message: string, public interceptorName: string) {
+  constructor(
+    message: string,
+    public interceptorName: string
+  ) {
     super(message)
     this.name = 'InterceptorRegistrationError'
   }

@@ -219,7 +219,6 @@ export const TabManagerSchema = z.object({
   data: z.any().optional()
 })
 
-
 // Markdown Prompt Manager Types
 export enum MarkdownPromptManagerAction {
   IMPORT_MARKDOWN = 'import_markdown',

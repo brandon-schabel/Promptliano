@@ -60,7 +60,7 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           label: 'Last Week',
           value: Math.floor((statistics.ticketStats?.totalTickets || 0) * 0.85)
         }}
-        title="Weekly Activity"
+        title='Weekly Activity'
       />
 
       {/* Metric Cards Row */}

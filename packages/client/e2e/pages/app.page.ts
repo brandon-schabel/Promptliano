@@ -79,13 +79,13 @@ export class AppPage extends BasePage {
       tickets: this.sidebarTicketsLink,
       queue: this.sidebarQueueLink,
       chat: this.sidebarChatLink,
-      settings: this.sidebarSettingsLink,
+      settings: this.sidebarSettingsLink
     }
 
     const link = linkMap[section]
     await link.click()
     await this.waitForLoadingComplete()
-    
+
     // Verify navigation
     await expect(this.page).toHaveURL(new RegExp(section))
   }
@@ -141,15 +141,18 @@ export class AppPage extends BasePage {
    * Wait for the app to be ready
    */
   async waitForAppReady() {
-    // Wait for the main layout elements to be visible
-    await expect(this.sidebar.or(this.mainContent)).toBeVisible()
-    
+    // Wait for the main layout elements to be visible - use first() to avoid strict mode violations
+    await expect(this.sidebar.first().or(this.mainContent.first())).toBeVisible()
+
     // Wait for any initial API calls to complete
     await this.waitForLoadingComplete()
-    
+
     // Check if there are any provider key setup requirements
-    const providerSetupNeeded = await this.isElementVisible('[data-testid="provider-setup"], text="Provider Keys"', 1000)
-    
+    const providerSetupNeeded = await this.isElementVisible(
+      '[data-testid="provider-setup"], text="Provider Keys"',
+      1000
+    )
+
     if (providerSetupNeeded) {
       console.log('ℹ️ Provider setup may be required for full functionality')
     }
@@ -193,13 +196,15 @@ export class AppPage extends BasePage {
    */
   async waitForOperationsComplete() {
     // Wait for any progress indicators
-    await this.page.waitForSelector('[data-testid="progress"], .progress, [role="progressbar"]', {
-      state: 'hidden',
-      timeout: 30000
-    }).catch(() => {
-      // Ignore if no progress indicators exist
-    })
-    
+    await this.page
+      .waitForSelector('[data-testid="progress"], .progress, [role="progressbar"]', {
+        state: 'hidden',
+        timeout: 30000
+      })
+      .catch(() => {
+        // Ignore if no progress indicators exist
+      })
+
     await this.waitForLoadingComplete()
   }
 
@@ -209,28 +214,31 @@ export class AppPage extends BasePage {
   async isPageResponsive(): Promise<boolean> {
     try {
       // Check if main UI elements are still visible and interactable
-      const sidebar = this.sidebar
-      const mainContent = this.mainContent
-      
+      const sidebar = this.sidebar.first()
+      const mainContent = this.mainContent.first()
+
       // Verify core elements are still present
       await expect(sidebar.or(mainContent)).toBeVisible({ timeout: 5000 })
-      
+
       // Check if page is responding to interactions
-      await this.page.waitForFunction(() => {
-        return document.readyState === 'complete' && !document.querySelector('.loading')
-      }, { timeout: 3000 })
-      
+      await this.page.waitForFunction(
+        () => {
+          return document.readyState === 'complete' && !document.querySelector('.loading')
+        },
+        { timeout: 3000 }
+      )
+
       // Verify no JavaScript errors
       const errors = await this.page.evaluate(() => {
         // Check for uncaught errors or performance issues
         return (window as any).__testErrors || []
       })
-      
+
       if (errors.length > 0) {
         console.warn('Page has JavaScript errors:', errors)
         return false
       }
-      
+
       return true
     } catch (error) {
       console.warn('Page responsiveness check failed:', error.message)

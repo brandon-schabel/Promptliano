@@ -1,6 +1,6 @@
 /**
  * Visual Regression Testing Utilities
- * 
+ *
  * Provides comprehensive visual testing capabilities with screenshot comparison,
  * responsive testing, and component-level visual validation.
  */
@@ -48,11 +48,7 @@ export class VisualTesting {
   /**
    * Take a full page screenshot with comparison
    */
-  static async compareFullPage(
-    page: Page,
-    name: string,
-    options: VisualTestOptions = {}
-  ): Promise<void> {
+  static async compareFullPage(page: Page, name: string, options: VisualTestOptions = {}): Promise<void> {
     const {
       threshold = 0.1,
       maxDiffPixels = 100,
@@ -69,7 +65,7 @@ export class VisualTesting {
       threshold,
       maxDiffPixels,
       mask,
-      animations: animations === 'disabled' ? 'disabled' as const : 'allow' as const
+      animations: animations === 'disabled' ? ('disabled' as const) : ('allow' as const)
     }
 
     await expect(page).toHaveScreenshot(`${name}-full-page.png`, screenshotOptions)
@@ -79,17 +75,8 @@ export class VisualTesting {
   /**
    * Take a component-specific screenshot
    */
-  static async compareComponent(
-    locator: Locator,
-    name: string,
-    options: VisualTestOptions = {}
-  ): Promise<void> {
-    const {
-      threshold = 0.1,
-      maxDiffPixels = 50,
-      animations = 'disabled',
-      mask = []
-    } = options
+  static async compareComponent(locator: Locator, name: string, options: VisualTestOptions = {}): Promise<void> {
+    const { threshold = 0.1, maxDiffPixels = 50, animations = 'disabled', mask = [] } = options
 
     const page = locator.page()
     await this.preparePageForVisualTesting(page, { animations })
@@ -97,7 +84,7 @@ export class VisualTesting {
     // Ensure component is visible and stable
     await locator.waitFor({ state: 'visible' })
     await locator.scrollIntoViewIfNeeded()
-    
+
     // Wait for any animations to complete
     await page.waitForTimeout(500)
 
@@ -105,7 +92,7 @@ export class VisualTesting {
       threshold,
       maxDiffPixels,
       mask,
-      animations: animations === 'disabled' ? 'disabled' as const : 'allow' as const
+      animations: animations === 'disabled' ? ('disabled' as const) : ('allow' as const)
     }
 
     await expect(locator).toHaveScreenshot(`${name}-component.png`, screenshotOptions)
@@ -123,11 +110,7 @@ export class VisualTesting {
       component?: string
     } = {}
   ): Promise<void> {
-    const {
-      breakpoints = this.DEFAULT_BREAKPOINTS,
-      component,
-      ...visualOptions
-    } = options
+    const { breakpoints = this.DEFAULT_BREAKPOINTS, component, ...visualOptions } = options
 
     for (const breakpoint of breakpoints) {
       await page.setViewportSize({
@@ -161,10 +144,10 @@ export class VisualTesting {
   ): Promise<void> {
     for (const test of tests) {
       const locator = page.locator(test.selector)
-      
+
       // Default state
       await this.compareComponent(locator, `${test.name}-default`, options)
-      
+
       // Test specific states if defined
       if (test.states) {
         for (const state of test.states) {
@@ -172,7 +155,7 @@ export class VisualTesting {
           await this.compareComponent(locator, `${test.name}-${state}`, options)
         }
       }
-      
+
       // Test interactions if defined
       if (test.interactions) {
         for (const interaction of test.interactions) {
@@ -180,7 +163,7 @@ export class VisualTesting {
           await this.compareComponent(locator, `${test.name}-${interaction.name}`, options)
         }
       }
-      
+
       // Reset to default state
       await this.resetComponentState(page, locator)
     }
@@ -199,15 +182,11 @@ export class VisualTesting {
       themes?: string[]
     } = {}
   ): Promise<void> {
-    const {
-      themes = ['light', 'dark'],
-      component,
-      ...visualOptions
-    } = options
+    const { themes = ['light', 'dark'], component, ...visualOptions } = options
 
     for (const theme of themes) {
       await this.setTheme(page, theme)
-      
+
       const testName = `${name}-${theme}`
 
       if (component) {
@@ -234,12 +213,7 @@ export class VisualTesting {
       customBreakpoints?: ResponsiveBreakpoint[]
     } = {}
   ): Promise<void> {
-    const {
-      includeResponsive = true,
-      includeThemes = true,
-      includeComponents = [],
-      customBreakpoints
-    } = options
+    const { includeResponsive = true, includeThemes = true, includeComponents = [], customBreakpoints } = options
 
     console.log(`🎨 Starting visual test suite for: ${pageName}`)
 
@@ -318,18 +292,24 @@ export class VisualTesting {
         await page.mouse.down()
         break
       case 'disabled':
-        await page.evaluate((el) => {
-          if (el) el.setAttribute('disabled', 'true')
-        }, await locator.elementHandle())
+        await page.evaluate(
+          (el) => {
+            if (el) el.setAttribute('disabled', 'true')
+          },
+          await locator.elementHandle()
+        )
         break
       default:
         // Custom state - try to apply via class or data attribute
-        await page.evaluate(([el, state]) => {
-          if (el) {
-            el.classList.add(`state-${state}`)
-            el.setAttribute(`data-state`, state)
-          }
-        }, [await locator.elementHandle(), state])
+        await page.evaluate(
+          ([el, state]) => {
+            if (el) {
+              el.classList.add(`state-${state}`)
+              el.setAttribute(`data-state`, state)
+            }
+          },
+          [await locator.elementHandle(), state]
+        )
     }
 
     await page.waitForTimeout(200) // Allow state to apply
@@ -341,22 +321,25 @@ export class VisualTesting {
   private static async resetComponentState(page: Page, locator: Locator): Promise<void> {
     // Click elsewhere to remove focus/hover
     await page.mouse.click(0, 0)
-    
+
     // Release mouse if held down
     await page.mouse.up()
-    
+
     // Remove custom state attributes
-    await page.evaluate((el) => {
-      if (el) {
-        el.removeAttribute('disabled')
-        Array.from(el.classList).forEach(cls => {
-          if (cls.startsWith('state-')) {
-            el.classList.remove(cls)
-          }
-        })
-        el.removeAttribute('data-state')
-      }
-    }, await locator.elementHandle())
+    await page.evaluate(
+      (el) => {
+        if (el) {
+          el.removeAttribute('disabled')
+          Array.from(el.classList).forEach((cls) => {
+            if (cls.startsWith('state-')) {
+              el.classList.remove(cls)
+            }
+          })
+          el.removeAttribute('data-state')
+        }
+      },
+      await locator.elementHandle()
+    )
 
     await page.waitForTimeout(200)
   }
@@ -369,22 +352,22 @@ export class VisualTesting {
     await page.evaluate((themeValue) => {
       // Method 1: localStorage
       localStorage.setItem('theme', themeValue)
-      
+
       // Method 2: data attribute on html
       document.documentElement.setAttribute('data-theme', themeValue)
-      
+
       // Method 3: class on html
       document.documentElement.className = document.documentElement.className
         .replace(/theme-\w+/g, '')
         .concat(` theme-${themeValue}`)
-      
+
       // Method 4: CSS variables
       if (themeValue === 'dark') {
         document.documentElement.style.setProperty('--color-scheme', 'dark')
       } else {
         document.documentElement.style.setProperty('--color-scheme', 'light')
       }
-      
+
       // Trigger theme change event if application uses it
       window.dispatchEvent(new CustomEvent('themechange', { detail: themeValue }))
     }, theme)
@@ -405,7 +388,7 @@ export class VisualTesting {
     }>
   ): Promise<string> {
     const totalTests = testResults.length
-    const passedTests = testResults.filter(t => t.passed).length
+    const passedTests = testResults.filter((t) => t.passed).length
     const failedTests = totalTests - passedTests
 
     const report = `
@@ -419,14 +402,14 @@ export class VisualTesting {
 
 ## Failed Tests
 ${testResults
-  .filter(t => !t.passed)
-  .map(t => `- ${t.name}: ${t.diffPixels} pixels changed (threshold: ${t.threshold})`)
+  .filter((t) => !t.passed)
+  .map((t) => `- ${t.name}: ${t.diffPixels} pixels changed (threshold: ${t.threshold})`)
   .join('\n')}
 
 ## Passed Tests
 ${testResults
-  .filter(t => t.passed)
-  .map(t => `- ${t.name}`)
+  .filter((t) => t.passed)
+  .map((t) => `- ${t.name}`)
   .join('\n')}
     `.trim()
 
@@ -450,14 +433,14 @@ export const VISUAL_TEST_PRESETS = {
     maxDiffPixels: 20,
     animations: 'disabled' as const
   },
-  
+
   // Relaxed comparison for dynamic content areas
   relaxed: {
     threshold: 0.2,
     maxDiffPixels: 200,
     animations: 'allow' as const
   },
-  
+
   // Component-focused testing
   component: {
     threshold: 0.1,
@@ -465,7 +448,7 @@ export const VISUAL_TEST_PRESETS = {
     animations: 'disabled' as const,
     fullPage: false
   },
-  
+
   // Mobile-optimized testing
   mobile: {
     threshold: 0.15,

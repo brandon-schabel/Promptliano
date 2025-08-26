@@ -49,11 +49,15 @@ export function GitStashView({ projectId }: GitStashViewProps) {
 
   // Calculate stash statistics
   const trackedChanges = gitStatus?.success
-    ? gitStatus.data.files.filter((f: any) => f.status !== 'unchanged' && f.status !== 'ignored' && f.status !== 'untracked')
+    ? gitStatus.data.files.filter(
+        (f: any) => f.status !== 'unchanged' && f.status !== 'ignored' && f.status !== 'untracked'
+      )
     : []
   const stagedCount = trackedChanges.filter((f: any) => f.staged).length
   const unstagedCount = trackedChanges.filter((f: any) => !f.staged).length
-  const untrackedCount = gitStatus?.success ? gitStatus.data.files.filter((f: any) => f.status === 'untracked').length : 0
+  const untrackedCount = gitStatus?.success
+    ? gitStatus.data.files.filter((f: any) => f.status === 'untracked').length
+    : 0
 
   const handleCreateStash = async () => {
     await createStash.mutateAsync(stashMessage || undefined)

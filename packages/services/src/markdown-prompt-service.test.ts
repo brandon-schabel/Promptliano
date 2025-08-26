@@ -457,7 +457,8 @@ Content.`
         {
           id: 2,
           projectId: 123,
-          title: 'A very long prompt name that should be truncated to meet filename length limits and not cause filesystem issues',
+          title:
+            'A very long prompt name that should be truncated to meet filename length limits and not cause filesystem issues',
           content: 'Content',
           description: null,
           tags: [],

@@ -104,7 +104,7 @@ export class FilesPage extends BasePage {
   async selectMultipleFiles(fileNames: string[]): Promise<void> {
     for (const fileName of fileNames) {
       const fileItem = this.fileList.getByTestId(`file-item-${fileName}`)
-      
+
       if (fileName === fileNames[0]) {
         // First file - regular click
         await fileItem.click()
@@ -147,7 +147,7 @@ export class FilesPage extends BasePage {
     // Use file chooser to select files
     const fileChooserPromise = this.page.waitForEvent('filechooser')
     await this.fileUploadButton.click()
-    
+
     const fileChooser = await fileChooserPromise
     await fileChooser.setFiles(filePaths)
 
@@ -160,7 +160,7 @@ export class FilesPage extends BasePage {
    */
   async dragAndDropFiles(filePaths: string[]): Promise<void> {
     // Create file objects for drag and drop
-    const files = filePaths.map(path => ({
+    const files = filePaths.map((path) => ({
       name: path.split('/').pop() || '',
       type: this.getMimeType(path),
       content: 'Mock file content for testing'
@@ -201,7 +201,7 @@ export class FilesPage extends BasePage {
   async removeSelectedFile(fileName: string): Promise<void> {
     const selectedFileItem = this.selectedFilesList.getByTestId(`selected-file-${fileName}`)
     const removeButton = selectedFileItem.getByRole('button', { name: 'Remove' })
-    
+
     await removeButton.click()
 
     // Verify file is removed from selection
@@ -241,7 +241,7 @@ export class FilesPage extends BasePage {
   async previewFile(fileName: string): Promise<void> {
     const fileItem = this.fileList.getByTestId(`file-item-${fileName}`)
     const previewButton = fileItem.getByRole('button', { name: 'Preview' })
-    
+
     await previewButton.click()
 
     // Verify preview opens
@@ -269,11 +269,11 @@ export class FilesPage extends BasePage {
     modified: string
   }> {
     const fileItem = this.fileList.getByTestId(`file-item-${fileName}`)
-    
-    const name = await fileItem.getByTestId('file-name').textContent() || ''
-    const size = await fileItem.getByTestId('file-size').textContent() || ''
-    const type = await fileItem.getByTestId('file-type').textContent() || ''
-    const modified = await fileItem.getByTestId('file-modified').textContent() || ''
+
+    const name = (await fileItem.getByTestId('file-name').textContent()) || ''
+    const size = (await fileItem.getByTestId('file-size').textContent()) || ''
+    const type = (await fileItem.getByTestId('file-type').textContent()) || ''
+    const modified = (await fileItem.getByTestId('file-modified').textContent()) || ''
 
     return { name, size, type, modified }
   }
@@ -327,11 +327,11 @@ export class FilesPage extends BasePage {
     const files: FileItem[] = []
 
     for (const item of fileItems) {
-      const name = await item.getByTestId('file-name').textContent() || ''
-      const path = await item.getAttribute('data-file-path') || ''
+      const name = (await item.getByTestId('file-name').textContent()) || ''
+      const path = (await item.getAttribute('data-file-path')) || ''
       const type = (await item.getAttribute('data-file-type')) as 'file' | 'directory'
-      const selected = await item.classList.then(classes => 
-        classes.includes('selected') || classes.includes('active')
+      const selected = await item.classList.then(
+        (classes) => classes.includes('selected') || classes.includes('active')
       )
 
       files.push({ name, path, type, selected })
@@ -392,13 +392,13 @@ export class FilesPage extends BasePage {
   async testKeyboardNavigation(): Promise<void> {
     // Focus on first file
     await this.page.keyboard.press('Tab')
-    
+
     const firstFile = this.fileList.getByTestId(/file-item-/).first()
     await expect(firstFile).toBeFocused()
 
     // Navigate with arrow keys
     await this.page.keyboard.press('ArrowDown')
-    
+
     const secondFile = this.fileList.getByTestId(/file-item-/).nth(1)
     await expect(secondFile).toBeFocused()
 
@@ -409,7 +409,7 @@ export class FilesPage extends BasePage {
     // Multi-select with Ctrl+Space
     await this.page.keyboard.press('ArrowDown')
     await this.page.keyboard.press('Control+Space')
-    
+
     const thirdFile = this.fileList.getByTestId(/file-item-/).nth(2)
     await expect(thirdFile).toHaveClass(/selected|active/)
   }
@@ -419,7 +419,7 @@ export class FilesPage extends BasePage {
    */
   async testFileContextMenu(fileName: string): Promise<void> {
     const fileItem = this.fileList.getByTestId(`file-item-${fileName}`)
-    
+
     // Right-click to open context menu
     await fileItem.click({ button: 'right' })
 
@@ -447,10 +447,10 @@ export class FilesPage extends BasePage {
     speed: string
   }> {
     const progressBar = this.uploadProgress.getByRole('progressbar')
-    
+
     const started = await this.uploadProgress.isVisible()
-    const progress = started ? parseInt(await progressBar.getAttribute('aria-valuenow') || '0') : 0
-    const speed = started ? await this.uploadProgress.getByTestId('upload-speed').textContent() || '' : ''
+    const progress = started ? parseInt((await progressBar.getAttribute('aria-valuenow')) || '0') : 0
+    const speed = started ? (await this.uploadProgress.getByTestId('upload-speed').textContent()) || '' : ''
     const completed = progress === 100
 
     return { started, completed, progress, speed }
@@ -473,7 +473,7 @@ export class FilesPage extends BasePage {
       case 'remove':
         // Remove all selected files
         await this.clearAllSelectedFiles()
-        
+
         // Verify none are selected
         const remainingCount = await this.getSelectedFilesCount()
         expect(remainingCount).toBe(0)
@@ -486,18 +486,29 @@ export class FilesPage extends BasePage {
    */
   private getMimeType(filePath: string): string {
     const extension = filePath.split('.').pop()?.toLowerCase()
-    
+
     switch (extension) {
-      case 'txt': return 'text/plain'
-      case 'pdf': return 'application/pdf'
-      case 'jpg': case 'jpeg': return 'image/jpeg'
-      case 'png': return 'image/png'
-      case 'gif': return 'image/gif'
-      case 'json': return 'application/json'
-      case 'js': return 'application/javascript'
-      case 'css': return 'text/css'
-      case 'html': return 'text/html'
-      default: return 'application/octet-stream'
+      case 'txt':
+        return 'text/plain'
+      case 'pdf':
+        return 'application/pdf'
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg'
+      case 'png':
+        return 'image/png'
+      case 'gif':
+        return 'image/gif'
+      case 'json':
+        return 'application/json'
+      case 'js':
+        return 'application/javascript'
+      case 'css':
+        return 'text/css'
+      case 'html':
+        return 'text/html'
+      default:
+        return 'application/octet-stream'
     }
   }
 
@@ -512,10 +523,14 @@ export class FilesPage extends BasePage {
     const unit = match[2].toUpperCase()
 
     switch (unit) {
-      case 'KB': return value * 1024
-      case 'MB': return value * 1024 * 1024
-      case 'GB': return value * 1024 * 1024 * 1024
-      default: return value
+      case 'KB':
+        return value * 1024
+      case 'MB':
+        return value * 1024 * 1024
+      case 'GB':
+        return value * 1024 * 1024 * 1024
+      default:
+        return value
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROMPT
  * Generated at: 2025-08-22T23:50:50.384Z
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,11 +11,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { promptService } from '@promptliano/services'
-import {
-  PromptSchema,
-  CreatePromptSchema,
-  UpdatePromptSchema
-} from '@promptliano/database'
+import { PromptSchema, CreatePromptSchema, UpdatePromptSchema } from '@promptliano/database'
 import {
   PromptIdParamsSchema,
   OperationSuccessResponseSchema,
@@ -66,9 +62,9 @@ const promptConfig: EntityConfig = {
  */
 export function registerPromptRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, promptConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Prompt`)
-  
+
   return updatedApp
 }
 
@@ -81,7 +77,7 @@ export const promptRoutes = {
   list: `GET /api/prompts`,
   get: `GET /api/prompts/{id}`,
   update: `PUT /api/prompts/{id}`,
-  delete: `DELETE /api/prompts/{id}`,
+  delete: `DELETE /api/prompts/{id}`
 } as const
 
 export type PromptRouteTypes = typeof promptRoutes

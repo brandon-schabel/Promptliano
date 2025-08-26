@@ -9,75 +9,109 @@ import {
 } from './schema-utils'
 
 // Import only types from database (not runtime schemas to avoid Vite bundling issues)
-import type { 
-  Ticket as DatabaseTicket,
-  TicketTask as DatabaseTicketTask
-} from '@promptliano/database'
+import type { Ticket as DatabaseTicket, TicketTask as DatabaseTicketTask } from '@promptliano/database'
 
 // Recreate schemas locally to avoid runtime imports from database package
 // These must stay in sync with the database schemas
-export const TicketSchema = z.object({
-  id: z.number(),
-  projectId: z.number(),
-  title: z.string(),
-  overview: z.string().nullable(),
-  status: z.enum(['open', 'in_progress', 'closed']),
-  priority: z.enum(['low', 'normal', 'high']),
-  suggestedFileIds: z.array(z.string()),
-  suggestedAgentIds: z.array(z.string()),
-  suggestedPromptIds: z.array(z.number()),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('Ticket')
+export const TicketSchema = z
+  .object({
+    id: z.number(),
+    projectId: z.number(),
+    title: z.string(),
+    overview: z.string().nullable(),
+    status: z.enum(['open', 'in_progress', 'closed']),
+    priority: z.enum(['low', 'normal', 'high']),
+    suggestedFileIds: z.array(z.string()),
+    suggestedAgentIds: z.array(z.string()),
+    suggestedPromptIds: z.array(z.number()),
 
-export const TicketTaskSchema = z.object({
-  id: z.number(),
-  ticketId: z.number(),
-  content: z.string(),
-  description: z.string().nullable(),
-  done: z.boolean(),
-  orderIndex: z.number(),
-  suggestedFileIds: z.array(z.string()),
-  estimatedHours: z.number().nullable(),
-  dependencies: z.array(z.number()),
-  tags: z.array(z.string()),
-  agentId: z.string().nullable(),
-  suggestedPromptIds: z.array(z.number()),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('TicketTask')
+    // Queue integration fields (unified flow system)
+    queueId: z.number().nullable(),
+    queuePosition: z.number().nullable(),
+    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable(),
+    queuePriority: z.number().nullable(),
+    queuedAt: z.number().nullable(),
+    queueStartedAt: z.number().nullable(),
+    queueCompletedAt: z.number().nullable(),
+    queueAgentId: z.string().nullable(),
+    queueErrorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('Ticket')
+
+export const TicketTaskSchema = z
+  .object({
+    id: z.number(),
+    ticketId: z.number(),
+    content: z.string(),
+    description: z.string().nullable(),
+    suggestedFileIds: z.array(z.string()),
+    done: z.boolean(),
+    status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+    orderIndex: z.number(),
+    estimatedHours: z.number().nullable(),
+    dependencies: z.array(z.number()),
+    tags: z.array(z.string()),
+    agentId: z.string().nullable(),
+    suggestedPromptIds: z.array(z.number()),
+
+    // Queue integration fields (unified flow system)
+    queueId: z.number().nullable(),
+    queuePosition: z.number().nullable(),
+    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable(),
+    queuePriority: z.number().nullable(),
+    queuedAt: z.number().nullable(),
+    queueStartedAt: z.number().nullable(),
+    queueCompletedAt: z.number().nullable(),
+    queueAgentId: z.string().nullable(),
+    queueErrorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('TicketTask')
 
 // Type verification to ensure our schemas match the database types
 // These will cause TypeScript errors if schemas drift out of sync
 const _ticketTypeCheck: z.infer<typeof TicketSchema> = {} as DatabaseTicket
 const _taskTypeCheck: z.infer<typeof TicketTaskSchema> = {} as DatabaseTicketTask
 
-// API Request Body Schemas - derived from database schemas  
+// API Request Body Schemas - derived from database schemas
 export const CreateTicketBodySchema = TicketSchema.pick({
   projectId: true,
-  title: true, 
+  title: true,
   overview: true,
   status: true,
   priority: true,
   suggestedFileIds: true,
   suggestedAgentIds: true,
   suggestedPromptIds: true
-}).extend({
-  title: z.string().min(1),
-  overview: z.string().nullable().default(null),
-  status: z.enum(['open', 'in_progress', 'closed']).default('open'),
-  priority: z.enum(['low', 'normal', 'high']).default('normal')
-}).openapi('CreateTicketBody')
+})
+  .extend({
+    title: z.string().min(1),
+    overview: z.string().nullable().default(null),
+    status: z.enum(['open', 'in_progress', 'closed']).default('open'),
+    priority: z.enum(['low', 'normal', 'high']).default('normal')
+  })
+  .openapi('CreateTicketBody')
 
 export const UpdateTicketBodySchema = CreateTicketBodySchema.pick({
   title: true,
-  overview: true, 
+  overview: true,
   status: true,
   priority: true,
   suggestedFileIds: true,
   suggestedAgentIds: true,
   suggestedPromptIds: true
-}).partial().openapi('UpdateTicketBody')
+})
+  .partial()
+  .openapi('UpdateTicketBody')
 
 export const CreateTaskBodySchema = TicketTaskSchema.pick({
   content: true,
@@ -88,9 +122,11 @@ export const CreateTaskBodySchema = TicketTaskSchema.pick({
   tags: true,
   agentId: true,
   suggestedPromptIds: true
-}).extend({
-  content: z.string().min(1)
-}).openapi('CreateTaskBody')
+})
+  .extend({
+    content: z.string().min(1)
+  })
+  .openapi('CreateTaskBody')
 
 export const UpdateTaskBodySchema = CreateTaskBodySchema.pick({
   content: true,
@@ -101,9 +137,12 @@ export const UpdateTaskBodySchema = CreateTaskBodySchema.pick({
   tags: true,
   agentId: true,
   suggestedPromptIds: true
-}).partial().extend({
-  done: z.boolean().optional()
-}).openapi('UpdateTaskBody')
+})
+  .partial()
+  .extend({
+    done: z.boolean().optional()
+  })
+  .openapi('UpdateTaskBody')
 
 export const ReorderTasksBodySchema = z
   .object({

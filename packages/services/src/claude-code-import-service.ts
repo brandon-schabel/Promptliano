@@ -1,7 +1,7 @@
 /**
  * Claude Code Import Service - Functional Factory Pattern
  * Migrated from class-based to functional pattern with repository integration
- * 
+ *
  * Key improvements:
  * - Uses chatRepository instead of chatStorage
  * - Consistent error handling with ErrorFactory and withErrorContext
@@ -15,12 +15,12 @@ import { ErrorFactory } from '@promptliano/shared'
 import { chatRepository } from '@promptliano/database'
 import { claudeCodeMCPService } from './claude-code-mcp-service'
 // Import database schemas as source of truth
-import { 
-  ChatSchema, 
-  type Chat, 
+import {
+  ChatSchema,
+  type Chat,
   type ChatMessage,
   type ClaudeMessage,
-  type CreateChat as CreateChatBody, 
+  type CreateChat as CreateChatBody,
   type UpdateChat as UpdateChatBody
 } from '@promptliano/database'
 import { normalizeToUnixMs } from '@promptliano/shared'
@@ -39,7 +39,7 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
   const {
     chatRepository: repo = chatRepository,
     claudeCodeMCPService: mcpService = claudeCodeMCPService,
-    logger = createServiceLogger('ClaudeCodeImportService'),
+    logger = createServiceLogger('ClaudeCodeImportService')
   } = deps
 
   // Base CRUD operations for chats (we'll extend with import operations)
@@ -74,7 +74,7 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
 
           // Create a new chat with project association using repository
           const now = normalizeToUnixMs(new Date())
-          
+
           const chatData: CreateChatBody = {
             title: title,
             projectId
@@ -84,21 +84,19 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
 
           // Create chat using base service (with proper validation and error handling)
           const chat = await baseService.create(chatData)
-          
-          logger.info('Created chat from Claude Code session', { 
-            chatId: chat.id, 
-            sessionId, 
+
+          logger.info('Created chat from Claude Code session', {
+            chatId: chat.id,
+            sessionId,
             projectId,
             messageCount: messages.length
           })
 
           // Convert and import messages
-          const importPromises = messages.map((message, index) => 
-            extensions.importMessage(chat.id, message, index)
-          )
+          const importPromises = messages.map((message, index) => extensions.importMessage(chat.id, message, index))
 
           await Promise.all(importPromises)
-          
+
           logger.info('Imported Claude Code session successfully', {
             chatId: chat.id,
             sessionId,
@@ -159,11 +157,11 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
             }
           })
 
-          logger.debug('Imported message', { 
-            chatId, 
-            messageId: message.id, 
+          logger.debug('Imported message', {
+            chatId,
+            messageId: message.id,
             role,
-            order 
+            order
           })
 
           return message
@@ -218,7 +216,7 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
       return withErrorContext(
         async () => {
           const chat = await baseService.getById(chatId)
-          
+
           // Note: Chat table doesn't have metadata field
           // Cannot retrieve import metadata without it
           return {
@@ -239,14 +237,14 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
       return withErrorContext(
         async () => {
           const chatWithMessages = await repo.getWithMessages(chatId)
-          
+
           if (!chatWithMessages) {
             ErrorFactory.notFound('Chat', chatId)
           }
-          
+
           // Ensure chatWithMessages is not null after the error check
           const messages = chatWithMessages!.messages
-          
+
           return messages.map((message, index) => ({
             id: message.id,
             projectId: chatWithMessages!.projectId,
@@ -273,7 +271,7 @@ export function createClaudeCodeImportService(deps: ClaudeCodeImportServiceDeps 
             tokensUsed: null,
             durationMs: null,
             createdAt: message.createdAt,
-            updatedAt: message.createdAt  // ChatMessage doesn't have updatedAt, use createdAt
+            updatedAt: message.createdAt // ChatMessage doesn't have updatedAt, use createdAt
           })) as ClaudeMessage[]
         },
         { entity: 'Chat', action: 'exportToClaude', id: chatId }

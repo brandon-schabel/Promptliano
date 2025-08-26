@@ -1,6 +1,6 @@
 /**
  * Advanced TypeScript Type System for Provider Management
- * 
+ *
  * Demonstrates sophisticated TypeScript patterns including:
  * - Conditional types for provider-specific configurations
  * - Template literal types for model naming patterns
@@ -18,34 +18,52 @@ import type { APIProviders } from '@promptliano/database'
 /**
  * Template literal type for model naming conventions
  */
-type ModelNamePattern<T extends APIProviders> = 
-  T extends 'openai' ? `gpt-${string}` | `o1-${string}` | `text-${string}` :
-  T extends 'anthropic' ? `claude-${string}` :
-  T extends 'google_gemini' ? `gemini-${string}` :
-  T extends 'groq' ? `${string}-groq` | `mixtral-${string}` | `llama-${string}` :
-  T extends 'together' ? `${string}@${string}` :
-  T extends 'xai' ? `grok-${string}` :
-  T extends 'openrouter' ? `${string}/${string}` :
-  T extends 'ollama' | 'lmstudio' ? string :
-  T extends 'custom' ? string :
-  never
+type ModelNamePattern<T extends APIProviders> = T extends 'openai'
+  ? `gpt-${string}` | `o1-${string}` | `text-${string}`
+  : T extends 'anthropic'
+    ? `claude-${string}`
+    : T extends 'google_gemini'
+      ? `gemini-${string}`
+      : T extends 'groq'
+        ? `${string}-groq` | `mixtral-${string}` | `llama-${string}`
+        : T extends 'together'
+          ? `${string}@${string}`
+          : T extends 'xai'
+            ? `grok-${string}`
+            : T extends 'openrouter'
+              ? `${string}/${string}`
+              : T extends 'ollama' | 'lmstudio'
+                ? string
+                : T extends 'custom'
+                  ? string
+                  : never
 
 /**
  * Extract provider from model name using template literal inference
  */
-type InferProviderFromModel<T extends string> =
-  T extends `gpt-${string}` ? 'openai' :
-  T extends `o1-${string}` ? 'openai' :
-  T extends `text-${string}` ? 'openai' :
-  T extends `claude-${string}` ? 'anthropic' :
-  T extends `gemini-${string}` ? 'google_gemini' :
-  T extends `${string}-groq` ? 'groq' :
-  T extends `mixtral-${string}` ? 'groq' :
-  T extends `llama-${string}` ? 'groq' :
-  T extends `${string}@${string}` ? 'together' :
-  T extends `grok-${string}` ? 'xai' :
-  T extends `${string}/${string}` ? 'openrouter' :
-  'custom' | 'ollama' | 'lmstudio'
+type InferProviderFromModel<T extends string> = T extends `gpt-${string}`
+  ? 'openai'
+  : T extends `o1-${string}`
+    ? 'openai'
+    : T extends `text-${string}`
+      ? 'openai'
+      : T extends `claude-${string}`
+        ? 'anthropic'
+        : T extends `gemini-${string}`
+          ? 'google_gemini'
+          : T extends `${string}-groq`
+            ? 'groq'
+            : T extends `mixtral-${string}`
+              ? 'groq'
+              : T extends `llama-${string}`
+                ? 'groq'
+                : T extends `${string}@${string}`
+                  ? 'together'
+                  : T extends `grok-${string}`
+                    ? 'xai'
+                    : T extends `${string}/${string}`
+                      ? 'openrouter'
+                      : 'custom' | 'ollama' | 'lmstudio'
 
 // ============================================================================
 // Conditional Types for Provider-Specific Configurations
@@ -54,54 +72,63 @@ type InferProviderFromModel<T extends string> =
 /**
  * Provider-specific configuration types using conditional types
  */
-type ProviderConfig<T extends APIProviders> = 
-  T extends 'openai' ? {
-    apiKey: string
-    organization?: string
-    project?: string
-    baseURL?: string
-  } :
-  T extends 'anthropic' ? {
-    apiKey: string
-    baseURL?: string
-  } :
-  T extends 'google_gemini' ? {
-    apiKey: string
-    baseURL?: string
-  } :
-  T extends 'groq' ? {
-    apiKey: string
-    baseURL?: string
-  } :
-  T extends 'together' ? {
-    apiKey: string
-    baseURL?: string
-  } :
-  T extends 'xai' ? {
-    apiKey: string
-    baseURL?: string
-  } :
-  T extends 'openrouter' ? {
-    apiKey: string
-    baseURL?: string
-    httpReferer?: string
-    xTitle?: string
-  } :
-  T extends 'ollama' ? {
-    baseURL: string
-    timeout?: number
-  } :
-  T extends 'lmstudio' ? {
-    baseURL: string
-    timeout?: number
-  } :
-  T extends 'custom' ? {
-    baseURL: string
-    apiKey?: string
-    headers?: Record<string, string>
-    timeout?: number
-  } :
-  never
+type ProviderConfig<T extends APIProviders> = T extends 'openai'
+  ? {
+      apiKey: string
+      organization?: string
+      project?: string
+      baseURL?: string
+    }
+  : T extends 'anthropic'
+    ? {
+        apiKey: string
+        baseURL?: string
+      }
+    : T extends 'google_gemini'
+      ? {
+          apiKey: string
+          baseURL?: string
+        }
+      : T extends 'groq'
+        ? {
+            apiKey: string
+            baseURL?: string
+          }
+        : T extends 'together'
+          ? {
+              apiKey: string
+              baseURL?: string
+            }
+          : T extends 'xai'
+            ? {
+                apiKey: string
+                baseURL?: string
+              }
+            : T extends 'openrouter'
+              ? {
+                  apiKey: string
+                  baseURL?: string
+                  httpReferer?: string
+                  xTitle?: string
+                }
+              : T extends 'ollama'
+                ? {
+                    baseURL: string
+                    timeout?: number
+                  }
+                : T extends 'lmstudio'
+                  ? {
+                      baseURL: string
+                      timeout?: number
+                    }
+                  : T extends 'custom'
+                    ? {
+                        baseURL: string
+                        apiKey?: string
+                        headers?: Record<string, string>
+                        timeout?: number
+                      }
+                    : never
 
 /**
  * Provider capabilities mapped type
@@ -109,18 +136,44 @@ type ProviderConfig<T extends APIProviders> =
 type ProviderCapabilities<T extends APIProviders> = {
   readonly supportsStreaming: T extends 'ollama' | 'lmstudio' | 'custom' ? boolean : true
   readonly supportsVision: T extends 'openai' | 'anthropic' | 'google_gemini' | 'openrouter' ? true : false
-  readonly supportsFunctionCalling: T extends 'openai' | 'anthropic' | 'google_gemini' | 'groq' | 'together' | 'openrouter' ? true : false
-  readonly supportsSystemPrompts: T extends 'openai' | 'anthropic' | 'google_gemini' | 'groq' | 'together' | 'xai' | 'openrouter' ? true : 
-                                  T extends 'ollama' | 'lmstudio' | 'custom' ? boolean : false
-  readonly maxContextLength: T extends 'openai' ? 128000 | 200000 :
-                            T extends 'anthropic' ? 200000 :
-                            T extends 'google_gemini' ? 1000000 | 2000000 :
-                            T extends 'groq' ? 32768 | 131072 :
-                            T extends 'together' ? 32768 | 200000 :
-                            T extends 'xai' ? 131072 :
-                            T extends 'openrouter' ? number :
-                            T extends 'ollama' | 'lmstudio' | 'custom' ? number :
-                            never
+  readonly supportsFunctionCalling: T extends
+    | 'openai'
+    | 'anthropic'
+    | 'google_gemini'
+    | 'groq'
+    | 'together'
+    | 'openrouter'
+    ? true
+    : false
+  readonly supportsSystemPrompts: T extends
+    | 'openai'
+    | 'anthropic'
+    | 'google_gemini'
+    | 'groq'
+    | 'together'
+    | 'xai'
+    | 'openrouter'
+    ? true
+    : T extends 'ollama' | 'lmstudio' | 'custom'
+      ? boolean
+      : false
+  readonly maxContextLength: T extends 'openai'
+    ? 128000 | 200000
+    : T extends 'anthropic'
+      ? 200000
+      : T extends 'google_gemini'
+        ? 1000000 | 2000000
+        : T extends 'groq'
+          ? 32768 | 131072
+          : T extends 'together'
+            ? 32768 | 200000
+            : T extends 'xai'
+              ? 131072
+              : T extends 'openrouter'
+                ? number
+                : T extends 'ollama' | 'lmstudio' | 'custom'
+                  ? number
+                  : never
 }
 
 // ============================================================================
@@ -130,7 +183,7 @@ type ProviderCapabilities<T extends APIProviders> = {
 /**
  * Discriminated union for exhaustive provider type checking
  */
-type ProviderType = 
+type ProviderType =
   | { kind: 'cloud'; provider: Exclude<APIProviders, 'ollama' | 'lmstudio' | 'custom'>; requiresKey: true }
   | { kind: 'local'; provider: 'ollama' | 'lmstudio'; requiresKey: false }
   | { kind: 'custom'; provider: 'custom'; requiresKey: boolean }
@@ -148,14 +201,14 @@ export const getProviderType = (provider: APIProviders): ProviderType => {
     case 'xai':
     case 'openrouter':
       return { kind: 'cloud', provider, requiresKey: true }
-    
+
     case 'ollama':
     case 'lmstudio':
       return { kind: 'local', provider, requiresKey: false }
-    
+
     case 'custom':
       return { kind: 'custom', provider: 'custom', requiresKey: false } // Configurable
-    
+
     default:
       // Exhaustive check - this should never be reached
       const _exhaustiveCheck: never = provider
@@ -191,10 +244,12 @@ export type ProviderOperations<T extends APIProviders> = ProviderModelOperations
 /**
  * Model selection constraints based on provider capabilities
  */
-type ModelSelectionConstraint<TProvider extends APIProviders, TFeature extends keyof ProviderCapabilities<TProvider>> = 
-  ProviderCapabilities<TProvider>[TFeature] extends true 
-    ? { available: true; models: ModelNamePattern<TProvider>[] }
-    : ProviderCapabilities<TProvider>[TFeature] extends false
+type ModelSelectionConstraint<
+  TProvider extends APIProviders,
+  TFeature extends keyof ProviderCapabilities<TProvider>
+> = ProviderCapabilities<TProvider>[TFeature] extends true
+  ? { available: true; models: ModelNamePattern<TProvider>[] }
+  : ProviderCapabilities<TProvider>[TFeature] extends false
     ? { available: false; models: never[] }
     : { available: boolean; models: ModelNamePattern<TProvider>[] }
 
@@ -205,12 +260,15 @@ type ModelSelectionConstraint<TProvider extends APIProviders, TFeature extends k
 /**
  * Infer provider configuration from partial data
  */
-type InferProviderFromConfig<T> = 
-  T extends { organization: string } ? 'openai' :
-  T extends { httpReferer: string } ? 'openrouter' :
-  T extends { timeout: number; baseURL: string } & { apiKey?: undefined } ? 'ollama' | 'lmstudio' :
-  T extends { headers: Record<string, string> } ? 'custom' :
-  APIProviders
+type InferProviderFromConfig<T> = T extends { organization: string }
+  ? 'openai'
+  : T extends { httpReferer: string }
+    ? 'openrouter'
+    : T extends { timeout: number; baseURL: string } & { apiKey?: undefined }
+      ? 'ollama' | 'lmstudio'
+      : T extends { headers: Record<string, string> }
+        ? 'custom'
+        : APIProviders
 
 /**
  * Type-safe provider factory with inference
@@ -242,7 +300,7 @@ export const createProviderInstance = <T extends APIProviders>(
 ): ReturnType<ProviderFactory['create']> => {
   const capabilities = getProviderCapabilities(provider)
   const type = getProviderType(provider)
-  
+
   return {
     provider,
     config,
@@ -282,7 +340,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 128000
       } as ProviderCapabilities<T>
-      
+
     case 'anthropic':
       return {
         ...baseCapabilities,
@@ -291,7 +349,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 200000
       } as ProviderCapabilities<T>
-      
+
     case 'google_gemini':
       return {
         ...baseCapabilities,
@@ -300,7 +358,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 1000000
       } as ProviderCapabilities<T>
-      
+
     case 'groq':
       return {
         ...baseCapabilities,
@@ -308,7 +366,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 32768
       } as ProviderCapabilities<T>
-      
+
     case 'together':
       return {
         ...baseCapabilities,
@@ -316,14 +374,14 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 32768
       } as ProviderCapabilities<T>
-      
+
     case 'xai':
       return {
         ...baseCapabilities,
         supportsSystemPrompts: true,
         maxContextLength: 131072
       } as ProviderCapabilities<T>
-      
+
     case 'openrouter':
       return {
         ...baseCapabilities,
@@ -332,7 +390,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 200000
       } as ProviderCapabilities<T>
-      
+
     case 'ollama':
     case 'lmstudio':
       return {
@@ -342,7 +400,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 32768
       } as ProviderCapabilities<T>
-      
+
     case 'custom':
       return {
         supportsStreaming: true,
@@ -351,7 +409,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
         supportsSystemPrompts: true,
         maxContextLength: 32768
       } as ProviderCapabilities<T>
-      
+
     default:
       const _exhaustiveCheck: never = provider
       throw new Error(`Unknown provider: ${_exhaustiveCheck}`)
@@ -361,10 +419,7 @@ function getProviderCapabilities<T extends APIProviders>(provider: T): ProviderC
 /**
  * Validate model name against provider patterns
  */
-function validateModelForProvider<T extends APIProviders>(
-  provider: T,
-  model: string
-): model is ModelNamePattern<T> {
+function validateModelForProvider<T extends APIProviders>(provider: T, model: string): model is ModelNamePattern<T> {
   switch (provider) {
     case 'openai':
       return /^(gpt-|o1-|text-)/.test(model)
@@ -400,7 +455,7 @@ function inferProviderFromModelName(model: string): APIProviders {
   if (/@/.test(model)) return 'together'
   if (/^grok-/.test(model)) return 'xai'
   if (/\//.test(model)) return 'openrouter'
-  
+
   // Default for ambiguous cases
   return 'custom'
 }

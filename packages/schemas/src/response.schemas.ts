@@ -11,8 +11,8 @@ import type {
   ActiveTab as DatabaseActiveTab
 } from '@promptliano/database'
 
-// Import the actual schemas for proper type validation
-import {
+// Import the actual schemas for proper type validation (type-only to avoid bundling issues)
+import type {
   ClaudeAgentSchema as DatabaseClaudeAgentSchema,
   ClaudeCommandSchema as DatabaseClaudeCommandSchema,
   ClaudeHookSchema as DatabaseClaudeHookSchema
@@ -22,12 +22,44 @@ import {
 // These are used in response schemas but don't need full validation
 const TicketSchema = z.object({}).passthrough()
 const ChatSchema = z.object({}).passthrough()
-const QueueSchema = z.object({}).passthrough()  
-const ClaudeCommandSchema = DatabaseClaudeCommandSchema
-const ClaudeHookSchema = DatabaseClaudeHookSchema
-const ClaudeAgentSchema = DatabaseClaudeAgentSchema
+const QueueSchema = z.object({}).passthrough()
 const SelectedFileSchema = z.object({}).passthrough()
 const ActiveTabSchema = z.object({}).passthrough()
+
+// Recreate schema definitions locally based on database schema
+const ClaudeCommandSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  content: z.string(),
+  description: z.string().nullable(),
+  category: z.string().nullable(),
+  projectId: z.number().nullable(),
+  tags: z.string().nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+})
+
+const ClaudeHookSchema = z.object({
+  id: z.number(),
+  projectId: z.number().nullable(),
+  name: z.string(),
+  event: z.string(),
+  command: z.string(),
+  enabled: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+})
+
+const ClaudeAgentSchema = z.object({
+  id: z.string(), // String ID from claude system
+  name: z.string(),
+  description: z.string().nullable(),
+  instructions: z.string().nullable(),
+  model: z.string(),
+  isActive: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+})
 
 // =============================================================================
 // MISSING RESPONSE SCHEMAS FOR AUTO-GENERATED ROUTES
@@ -39,17 +71,19 @@ const ActiveTabSchema = z.object({}).passthrough()
 export const TaskListResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(z.object({
-      id: z.number(),
-      ticketId: z.number(),
-      title: z.string(),
-      description: z.string().nullable(),
-      status: z.enum(['pending', 'in_progress', 'completed']),
-      priority: z.enum(['low', 'normal', 'high']),
-      assignedTo: z.string().nullable(),
-      createdAt: z.number(),
-      updatedAt: z.number()
-    }))
+    data: z.array(
+      z.object({
+        id: z.number(),
+        ticketId: z.number(),
+        title: z.string(),
+        description: z.string().nullable(),
+        status: z.enum(['pending', 'in_progress', 'completed']),
+        priority: z.enum(['low', 'normal', 'high']),
+        assignedTo: z.string().nullable(),
+        createdAt: z.number(),
+        updatedAt: z.number()
+      })
+    )
   })
   .openapi('TaskListResponse')
 
@@ -82,14 +116,16 @@ export const ChatMessageResponseSchema = z
 export const ChatMessageListResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(z.object({
-      id: z.number(),
-      chatId: z.number(),
-      role: z.enum(['user', 'assistant', 'system']),
-      content: z.string(),
-      metadata: z.record(z.any()).nullable(),
-      createdAt: z.number()
-    }))
+    data: z.array(
+      z.object({
+        id: z.number(),
+        chatId: z.number(),
+        role: z.enum(['user', 'assistant', 'system']),
+        content: z.string(),
+        metadata: z.record(z.any()).nullable(),
+        createdAt: z.number()
+      })
+    )
   })
   .openapi('ChatMessageListResponse')
 
@@ -128,16 +164,18 @@ export const HookApiResponseSchema = z
 export const HookListResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(z.object({
-      id: z.number(),
-      projectId: z.number().nullable(),
-      name: z.string(),
-      event: z.string(),
-      command: z.string(),
-      enabled: z.boolean(),
-      createdAt: z.number(),
-      updatedAt: z.number()
-    }))
+    data: z.array(
+      z.object({
+        id: z.number(),
+        projectId: z.number().nullable(),
+        name: z.string(),
+        event: z.string(),
+        command: z.string(),
+        enabled: z.boolean(),
+        createdAt: z.number(),
+        updatedAt: z.number()
+      })
+    )
   })
   .openapi('HookListResponse')
 
@@ -163,9 +201,7 @@ export const UpdateHookRequestSchema = z
   .openapi('UpdateHookRequest')
 
 // Hook Event Schema
-export const HookEventSchema = z
-  .enum(['user-prompt-submit', 'tool-call', 'file-change'])
-  .openapi('HookEvent')
+export const HookEventSchema = z.enum(['user-prompt-submit', 'tool-call', 'file-change']).openapi('HookEvent')
 
 // Hook Generation Request Schema
 export const HookGenerationRequestSchema = z
@@ -279,7 +315,7 @@ export const TicketListResponseSchema = z
   })
   .openapi('TicketListResponse')
 
-// Chat List Response Schema  
+// Chat List Response Schema
 export const ChatListResponseSchema = z
   .object({
     success: z.literal(true),
@@ -341,11 +377,13 @@ export const CommandExecutionResponseSchema = z
     success: z.literal(true),
     data: z.object({
       result: z.string(),
-      usage: z.object({
-        inputTokens: z.number(),
-        outputTokens: z.number(),
-        totalTokens: z.number()
-      }).optional(),
+      usage: z
+        .object({
+          inputTokens: z.number(),
+          outputTokens: z.number(),
+          totalTokens: z.number()
+        })
+        .optional(),
       model: z.string().optional(),
       sessionId: z.string().optional()
     })
@@ -356,12 +394,14 @@ export const CommandExecutionResponseSchema = z
 export const AgentSuggestionsResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(z.object({
-      name: z.string(),
-      description: z.string(),
-      path: z.string(),
-      relevanceScore: z.number()
-    }))
+    data: z.array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        path: z.string(),
+        relevanceScore: z.number()
+      })
+    )
   })
   .openapi('AgentSuggestionsResponse')
 
@@ -370,14 +410,16 @@ export const CommandSuggestionsResponseSchema = z
   .object({
     success: z.literal(true),
     data: z.object({
-      suggestions: z.array(z.object({
-        name: z.string(),
-        description: z.string(),
-        content: z.string(),
-        category: z.string(),
-        useCase: z.string(),
-        difficulty: z.enum(['easy', 'medium', 'hard'])
-      })),
+      suggestions: z.array(
+        z.object({
+          name: z.string(),
+          description: z.string(),
+          content: z.string(),
+          category: z.string(),
+          useCase: z.string(),
+          difficulty: z.enum(['easy', 'medium', 'hard'])
+        })
+      ),
       reasoning: z.string()
     })
   })

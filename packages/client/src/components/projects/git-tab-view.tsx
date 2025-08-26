@@ -88,7 +88,9 @@ export function GitTabView({ projectId }: GitTabViewProps) {
   const { data } = gitStatus
   const allFiles = data.files || []
   const stagedFiles = allFiles.filter((f: GitFileStatus) => f.staged)
-  const unstagedFiles = allFiles.filter((f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored')
+  const unstagedFiles = allFiles.filter(
+    (f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored'
+  )
 
   const handleStageAll = async () => {
     const filesToStage = unstagedFiles.map((f: GitFileStatus) => f.path)

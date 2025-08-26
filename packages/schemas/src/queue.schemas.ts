@@ -11,33 +11,37 @@ import {
 import type { Queue as DatabaseQueue, QueueItem as DatabaseQueueItem } from '@promptliano/database'
 
 // Recreate schemas locally to avoid runtime imports from database package
-export const TaskQueueSchema = z.object({
-  id: z.number(),
-  projectId: z.number(),
-  name: z.string(),
-  description: z.string().nullable(),
-  maxParallelItems: z.number(),
-  isActive: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('TaskQueue')
+export const TaskQueueSchema = z
+  .object({
+    id: z.number(),
+    projectId: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+    maxParallelItems: z.number(),
+    isActive: z.boolean(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('TaskQueue')
 
-export const QueueItemSchema = z.object({
-  id: z.number(),
-  queueId: z.number(),
-  itemType: z.enum(['ticket', 'task', 'chat', 'prompt']),
-  itemId: z.number(),
-  priority: z.number(),
-  status: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']),
-  agentId: z.string().nullable(),
-  errorMessage: z.string().nullable(),
-  estimatedProcessingTime: z.number().nullable(),
-  actualProcessingTime: z.number().nullable(),
-  startedAt: z.number().nullable(),
-  completedAt: z.number().nullable(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('QueueItem')
+export const QueueItemSchema = z
+  .object({
+    id: z.number(),
+    queueId: z.number(),
+    itemType: z.enum(['ticket', 'task', 'chat', 'prompt']),
+    itemId: z.number(),
+    priority: z.number(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']),
+    agentId: z.string().nullable(),
+    errorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+    startedAt: z.number().nullable(),
+    completedAt: z.number().nullable(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('QueueItem')
 
 // Type verification to ensure schemas match database types
 const _queueTypeCheck: z.infer<typeof TaskQueueSchema> = {} as DatabaseQueue
@@ -76,19 +80,24 @@ export const CreateQueueBodySchema = TaskQueueSchema.pick({
   name: true,
   description: true,
   maxParallelItems: true
-}).extend({
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  maxParallelItems: z.number().min(1).max(10).optional()
-}).openapi('CreateQueueBody')
+})
+  .extend({
+    name: z.string().min(1).max(100),
+    description: z.string().optional(),
+    maxParallelItems: z.number().min(1).max(10).optional()
+  })
+  .openapi('CreateQueueBody')
 
 export const UpdateQueueBodySchema = CreateQueueBodySchema.pick({
   name: true,
   description: true,
   maxParallelItems: true
-}).partial().extend({
-  status: QueueStatusEnum.optional()
-}).openapi('UpdateQueueBody')
+})
+  .partial()
+  .extend({
+    status: QueueStatusEnum.optional()
+  })
+  .openapi('UpdateQueueBody')
 
 // Enqueue item body schema
 export const EnqueueItemBodySchema = z

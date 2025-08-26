@@ -36,7 +36,6 @@ interface CommandDialogProps {
   initialData?: ClaudeCommand | null
 }
 
-
 export function CommandDialog({
   open,
   onOpenChange,
@@ -154,7 +153,6 @@ export function CommandDialog({
                     </FormItem>
                   )}
                 />
-
               </div>
 
               <FormField
@@ -193,7 +191,6 @@ export function CommandDialog({
                 )}
               />
 
-
               <DialogFooter>
                 <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                   Cancel
@@ -210,4 +207,3 @@ export function CommandDialog({
     </Dialog>
   )
 }
-

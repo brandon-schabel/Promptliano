@@ -83,10 +83,14 @@ export function SimpleTicketList({
                 <StatusIcon className='h-4 w-4 text-muted-foreground ml-2 flex-shrink-0' />
               </div>
 
-              {ticketWithTasks.overview && <p className='text-xs text-muted-foreground line-clamp-2 mb-2'>{ticketWithTasks.overview}</p>}
+              {ticketWithTasks.overview && (
+                <p className='text-xs text-muted-foreground line-clamp-2 mb-2'>{ticketWithTasks.overview}</p>
+              )}
 
               <div className='flex items-center gap-2 flex-wrap'>
-                {ticketWithTasks.queueId && <QueueBadge item={ticketWithTasks} projectId={projectId} size='sm' clickable={false} />}
+                {ticketWithTasks.queueId && (
+                  <QueueBadge item={ticketWithTasks} projectId={projectId} size='sm' clickable={false} />
+                )}
                 <Badge variant='secondary' className={cn('text-xs', STATUS_COLORS[ticketWithTasks.status || 'open'])}>
                   {(ticketWithTasks.status || 'open').replace('_', ' ')}
                 </Badge>
