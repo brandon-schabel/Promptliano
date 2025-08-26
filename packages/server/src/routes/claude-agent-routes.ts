@@ -176,7 +176,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     }
 
     const createdAgent = await createAgent(body)
-    return c.json({ success: true, data: createdAgent } satisfies z.infer<typeof ClaudeAgentResponseSchema>, 201)
+    return c.json(successResponse(createdAgent), 201)
   })
   .openapi(listAllClaudeAgentsRoute, async (c) => {
     const { projectId } = c.req.valid('query')

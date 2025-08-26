@@ -11,14 +11,21 @@ import type {
   ActiveTab as DatabaseActiveTab
 } from '@promptliano/database'
 
+// Import the actual schemas for proper type validation
+import {
+  ClaudeAgentSchema as DatabaseClaudeAgentSchema,
+  ClaudeCommandSchema as DatabaseClaudeCommandSchema,
+  ClaudeHookSchema as DatabaseClaudeHookSchema
+} from '@promptliano/database'
+
 // Recreate basic schemas locally to avoid runtime imports
 // These are used in response schemas but don't need full validation
 const TicketSchema = z.object({}).passthrough()
 const ChatSchema = z.object({}).passthrough()
 const QueueSchema = z.object({}).passthrough()  
-const ClaudeCommandSchema = z.object({}).passthrough()
-const ClaudeHookSchema = z.object({}).passthrough()
-const ClaudeAgentSchema = z.object({}).passthrough()
+const ClaudeCommandSchema = DatabaseClaudeCommandSchema
+const ClaudeHookSchema = DatabaseClaudeHookSchema
+const ClaudeAgentSchema = DatabaseClaudeAgentSchema
 const SelectedFileSchema = z.object({}).passthrough()
 const ActiveTabSchema = z.object({}).passthrough()
 

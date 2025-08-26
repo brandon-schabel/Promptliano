@@ -291,7 +291,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     /**
      * Summarize multiple files in this project
      */
-    async summarizeFiles(projectId: number, fileIds: number[], force: boolean = false) {
+    async summarizeFiles(projectId: number, fileIds: string[], force: boolean = false) {
       return withErrorContext(
         async () => {
           // Verify project exists  
@@ -317,7 +317,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     /**
      * Remove summaries from files in this project
      */
-    async removeSummariesFromFiles(projectId: number, fileIds: number[]) {
+    async removeSummariesFromFiles(projectId: number, fileIds: string[]) {
       return withErrorContext(
         async () => {
           // Verify project exists
@@ -569,7 +569,10 @@ export const getProjectFileTree = async (projectId: number): Promise<any> => {
 
 // Legacy function for backward compatibility
 export async function resummarizeAllFiles(projectId: number) {
-  // This is now handled by summarizeProjectFiles
-  return await summarizeProjectFiles(projectId)
+  // Get all file IDs for the project and summarize them
+  const projectService = createProjectService()
+  const files = await projectService.getProjectFiles(projectId)
+  const fileIds = files.map((file: ProjectFile) => file.id)
+  return await projectService.summarizeFiles(projectId, fileIds, true)
 }
 

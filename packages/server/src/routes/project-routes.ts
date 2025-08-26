@@ -153,7 +153,7 @@ const FileGroupsResponseSchema = z.object({
         id: z.string(),
         name: z.string(),
         strategy: z.enum(['imports', 'directory', 'semantic', 'mixed']),
-        fileIds: z.array(z.number()),
+        fileIds: z.array(z.string()),
         estimatedTokens: z.number().optional(),
         priority: z.number()
       })
@@ -978,7 +978,7 @@ export const projectRoutes = new OpenAPIHono()
           content: {
             'application/json': {
               schema: z.object({
-                fileIds: z.array(z.number()).min(1).describe('Array of file IDs to summarize'),
+                fileIds: z.array(z.string()).min(1).describe('Array of file IDs to summarize'),
                 force: z
                   .boolean()
                   .optional()
@@ -1040,7 +1040,7 @@ export const projectRoutes = new OpenAPIHono()
           content: {
             'application/json': {
               schema: z.object({
-                fileIds: z.array(z.number()).min(1).describe('Array of file IDs to remove summaries from')
+                fileIds: z.array(z.string()).min(1).describe('Array of file IDs to remove summaries from')
               })
             }
           }
