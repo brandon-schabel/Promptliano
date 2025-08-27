@@ -13,19 +13,24 @@
 
 import { randomBytes } from 'crypto'
 import {
-  db,
-  projectRepository,
-  ticketRepository,
-  queueRepository,
-  chatRepository,
-  promptRepository,
-  fileRepository,
+  createTestDatabase,
+  type TestDatabase
+} from '@promptliano/database'
+import {
+  createBaseRepository,
+  projects,
+  tickets,
+  queues,
+  chats,
+  prompts,
+  files,
   type Project,
   type Ticket,
   type Queue,
   type Chat,
   type Prompt
 } from '@promptliano/database'
+import { eq } from 'drizzle-orm'
 
 /**
  * Resource tracking for automatic cleanup
@@ -52,6 +57,9 @@ export interface TestContext {
   // Test identifiers
   suiteId: string
   testId: string
+  
+  // Database instance for this test
+  testDb: TestDatabase
   
   // Test resources
   resources: TestResource[]
@@ -94,10 +102,32 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
       console.log(`[TEST SETUP] Suite: ${suiteName}, Test: ${testId}`)
     }
     
+    // Create isolated test database for this test
+    const testDb = createTestDatabase({
+      testId: `${suiteId}_${testId}`,
+      verbose,
+      seedData: false // We'll seed manually if needed
+    })
+    
+    // Debug: Check if test database has tables
+    if (verbose) {
+      const tables = (testDb as any).sqlite.query("SELECT name FROM sqlite_master WHERE type='table'").all()
+      console.log(`[TEST DEBUG] Test database has ${(tables as any[]).length} tables:`, tables)
+    }
+    
+    // Create repositories for this test database
+    const projectRepository = createBaseRepository(projects, testDb.db, undefined, 'Project')
+    const ticketRepository = createBaseRepository(tickets, testDb.db, undefined, 'Ticket')
+    const queueRepository = createBaseRepository(queues, testDb.db, undefined, 'Queue')
+    const chatRepository = createBaseRepository(chats, testDb.db, undefined, 'Chat')
+    const promptRepository = createBaseRepository(prompts, testDb.db, undefined, 'Prompt')
+    const fileRepository = createBaseRepository(files, testDb.db, undefined, 'File')
+    
     // Create test context
     const context: TestContext = {
       suiteId,
       testId,
+      testDb,
       resources,
       
       // Helper methods
@@ -127,10 +157,10 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
         
         const ticket = await ticketRepository.create({
           title: `Test Ticket ${testId}`,
-          description: 'Test ticket created by test environment',
+          overview: 'Test ticket created by test environment',
           projectId: targetProjectId || context.testProjectId!,
           status: 'open',
-          priority: 'medium',
+          priority: 'normal',
           createdAt: Date.now(),
           updatedAt: Date.now()
         })
@@ -151,7 +181,8 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
           name: `Test Queue ${testId}`,
           description: 'Test queue created by test environment',
           projectId: targetProjectId || context.testProjectId!,
-          status: 'active',
+          maxParallelItems: 1,
+          isActive: true,
           createdAt: Date.now(),
           updatedAt: Date.now()
         })
@@ -164,9 +195,7 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
         
         const chat = await chatRepository.create({
           title: `Test Chat ${testId}`,
-          model: 'test-model',
-          provider: 'test',
-          projectId: targetProjectId || null,
+          projectId: targetProjectId || context.testProjectId!,
           createdAt: Date.now(),
           updatedAt: Date.now()
         })
@@ -184,7 +213,7 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
         }
         
         const prompt = await promptRepository.create({
-          name: `Test Prompt ${testId}`,
+          title: `Test Prompt ${testId}`,
           content: 'Test prompt content',
           projectId: targetProjectId || context.testProjectId!,
           createdAt: Date.now(),
@@ -203,35 +232,15 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
           console.log(`[TEST CLEANUP] Cleaning up ${resources.length} resources`)
         }
         
-        // Clean up in reverse order to handle dependencies
-        const sortedResources = [...resources].reverse()
-        
-        for (const resource of sortedResources) {
-          try {
-            switch (resource.type) {
-              case 'file':
-                await fileRepository.delete(resource.id)
-                break
-              case 'prompt':
-                await promptRepository.delete(resource.id)
-                break
-              case 'ticket':
-                await ticketRepository.delete(resource.id)
-                break
-              case 'queue':
-                await queueRepository.delete(resource.id)
-                break
-              case 'chat':
-                await chatRepository.delete(resource.id)
-                break
-              case 'project':
-                await projectRepository.delete(resource.id)
-                break
-            }
-          } catch (error) {
-            if (verbose) {
-              console.error(`Failed to delete ${resource.type} ${resource.id}:`, error)
-            }
+        // For test database, we can just reset all tables instead of individual deletes
+        try {
+          await testDb.reset()
+          if (verbose) {
+            console.log('[TEST CLEANUP] Test database reset successfully')
+          }
+        } catch (error) {
+          if (verbose) {
+            console.error('[TEST CLEANUP] Failed to reset test database:', error)
           }
         }
         
@@ -263,6 +272,8 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
   async function cleanupTest(): Promise<void> {
     if (currentContext) {
       await currentContext.cleanupResources()
+      // Close the test database
+      currentContext.testDb.close()
       currentContext = null
     }
   }
@@ -287,7 +298,9 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
     try {
       return await testFn(context)
     } finally {
-      await cleanupTest()
+      // Clean up this specific context
+      await context.cleanupResources()
+      context.testDb.close()
     }
   }
   
@@ -318,6 +331,114 @@ export const testDataGenerators = {
   queueName: (id: string = '') => `Test Queue ${id}`,
   chatTitle: (id: string = '') => `Test Chat ${id}`,
   promptName: (id: string = '') => `Test Prompt ${id}`
+}
+
+/**
+ * Repository Mocking Helpers
+ * 
+ * Standardized patterns for creating test repositories with test databases
+ * to prevent "this.dbInstance.select is not a function" errors
+ * 
+ * Usage Example:
+ * ```typescript
+ * import { createTestEnvironment, testRepositoryHelpers } from './test-utils/test-environment'
+ * 
+ * const testEnv = createTestEnvironment({ suiteName: 'my-service' })
+ * 
+ * beforeEach(async () => {
+ *   const testContext = await testEnv.setupTest()
+ *   
+ *   // Create test repository with proper database connection
+ *   const testRepository = testRepositoryHelpers.createQueueRepository(testContext.testDb.db)
+ *   
+ *   // Pass to service factory
+ *   const service = createQueueService({ queueRepository: testRepository })
+ * })
+ * ```
+ */
+export const testRepositoryHelpers = {
+  /**
+   * Create a test project repository with all necessary methods
+   */
+  createProjectRepository: (testDb: any) => {
+    const baseRepository = createBaseRepository(projects, testDb, undefined, 'Project')
+    
+    // Extend the base repository with project-specific methods
+    const extendedRepository = Object.assign(baseRepository, {
+      async getByPath(path: string) {
+        return baseRepository.findOneWhere(eq(projects.path, path))
+      },
+      async getWithAllRelations(id: number) {
+        const project = await baseRepository.getById(id)
+        if (!project) return null
+        return {
+          ...project,
+          tickets: [],
+          chats: [],
+          prompts: [],
+          queues: [],
+          files: []
+        }
+      }
+    })
+    
+    return extendedRepository
+  },
+
+  /**
+   * Create a test queue repository with all necessary methods
+   */
+  createQueueRepository: (testDb: any) => {
+    const baseRepository = createBaseRepository(queues, testDb, undefined, 'Queue')
+    
+    // Extend the base repository with queue-specific methods
+    const extendedRepository = Object.assign(baseRepository, {
+      async getByProject(projectId: number) {
+        return baseRepository.findWhere(eq(queues.projectId, projectId))
+      },
+      async getActive(projectId?: number) {
+        const conditions = [eq(queues.isActive, true)]
+        if (projectId) {
+          conditions.push(eq(queues.projectId, projectId))
+        }
+        return baseRepository.findWhere(eq(queues.isActive, true))
+      },
+      async getItems(queueId: number) { return [] },
+      async getWithItems(id: number) {
+        const queue = await baseRepository.getById(id)
+        if (!queue) return null
+        return { ...queue, items: [] }
+      },
+      async addItem(data: any) {
+        return { id: Date.now(), ...data, createdAt: Date.now(), updatedAt: Date.now() }
+      },
+      async getItemById(id: number) { return null },
+      async removeItem(id: number) { return true },
+      async updateItem(id: number, data: any) {
+        return { id, ...data, createdAt: Date.now(), updatedAt: Date.now() }
+      },
+      async deleteItem(id: number) { return true },
+      async getNextItem(queueId: number) { return null },
+      async getQueueStats(queueId: number) {
+        return { totalItems: 0, queuedItems: 0, processingItems: 0, completedItems: 0, failedItems: 0 }
+      }
+    })
+    
+    return extendedRepository
+  },
+
+  /**
+   * Create a test ticket repository with all necessary methods
+   */
+  createTicketRepository: (testDb: any) => {
+    const baseRepository = createBaseRepository(tickets, testDb, undefined, 'Ticket')
+    return {
+      ...baseRepository,
+      async getByProject(projectId: number) {
+        return baseRepository.findWhere(eq(tickets.projectId, projectId))
+      }
+    }
+  }
 }
 
 /**
