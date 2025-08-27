@@ -57,7 +57,8 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { toast } from 'sonner'
-import { useQueue, useUpdateQueue, useDeleteQueue, useGetFlowData } from '@/hooks/api-hooks'
+import { useQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
+import { useGetFlowData } from '@/hooks/api-hooks'
 import type { TaskQueue, QueueStats, QueueItem } from '@/hooks/generated/types'
 
 interface QueueDashboardProps {

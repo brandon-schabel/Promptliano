@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { Project } from '@promptliano/database'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { projectsSearchSchema, type ProjectView } from '@/lib/search-schemas'
 import React, { useRef, useState, useEffect } from 'react'
 import { Button } from '@promptliano/ui'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@promptliano/ui'
-import { useGetProjects, useDeleteProject, useGetProject } from '@/hooks/api-hooks'
+import { useProjects, useDeleteProject, useProject } from '@/hooks/generated'
 import { PromptOverviewPanel, type PromptOverviewPanelRef } from '@/components/projects/prompt-overview-panel'
 import { FilePanel, type FilePanelRef } from '@/components/projects/file-panel/file-panel'
 import { UserInputPanel, type UserInputPanelRef } from '@/components/projects/user-input-panel'
@@ -51,7 +52,7 @@ export function ProjectsPage() {
     isLoading: projectsLoading,
     isFetching: projectsFetching,
     isSuccess: projectsQuerySuccess
-  } = useGetProjects()
+  } = useProjects()
   const [tabs] = useGetProjectTabs()
   const updateActiveProjectTab = useUpdateActiveProjectTab()
   const projects = allProjectsData || []
@@ -60,37 +61,19 @@ export function ProjectsPage() {
     activeProjectTabState
   })
 
-  const selectedProjectId = activeProjectTabState?.selectedProjectId
+  const rawSelectedProjectId = activeProjectTabState?.selectedProjectId
+  console.log({ rawSelectedProjectId })
+
+  // Validate selectedProjectId against current projects list
+  const selectedProjectId = React.useMemo(() => {
+    if (!rawSelectedProjectId || rawSelectedProjectId === -1) return undefined
+    if (!projects || projects.length === 0) return undefined
+    return projects.some((p: Project) => p.id === rawSelectedProjectId) ? rawSelectedProjectId : undefined
+  }, [rawSelectedProjectId, projects])
   console.log({ selectedProjectId })
-  // Get the selected project ID with fallback logic
-  // const selectedProjectId = React.useMemo(() => {
-  //   // Primary: Get from active tab state
-  //   if (activeProjectTabState?.selectedProjectId) {
-  //     return activeProjectTabState.selectedProjectId
-  //   }
-
-  //   // Fallback: If we have tabs but no selected project, try to recover
-  //   if (activeProjectTabId && tabs && tabs[activeProjectTabId]) {
-  //     const currentTab = tabs[activeProjectTabId]
-  //     if (currentTab?.selectedProjectId) {
-  //       // Update the active tab state to fix the inconsistency
-  //       updateActiveProjectTab({ selectedProjectId: currentTab.selectedProjectId })
-  //       return currentTab.selectedProjectId
-  //     }
-  //   }
-
-  //   // Last resort: If we have projects but no selection, select the first available project
-  //   if (projects.length > 0 && activeProjectTabId) {
-  //     const firstProject = projects[0]
-  //     updateActiveProjectTab({ selectedProjectId: firstProject.id })
-  //     return firstProject.id
-  //   }
-
-  //   return undefined
-  // }, [activeProjectTabState?.selectedProjectId, activeProjectTabId, tabs, projects, updateActiveProjectTab])
 
   // Only fetch project when we have a valid selection
-  const { data: projectData } = useGetProject(selectedProjectId ?? -1)
+  const { data: projectData } = useProject(selectedProjectId ?? -1)
 
   // Sync active tab with backend
   useActiveTabSync(selectedProjectId)
@@ -146,20 +129,8 @@ export function ProjectsPage() {
   }, [])
   // Filter out non-numeric tab IDs (like 'defaultTab')
   const validTabKeys = Object.keys(tabs || {}).filter((key) => !isNaN(Number(key)))
-  const tabsLen = validTabKeys.length
-  const noTabsYet = validTabKeys.length === 0
-  const tabsArray = validTabKeys.map((key) => tabs[key])
-  const tabsKeys = validTabKeys
-  const { mutate: updateProjectTabs } = useSetKvValue('projectTabs')
 
-  // If the selected project no longer exists (or was an invalid default like 1), clear it
-  useEffect(() => {
-    if (!selectedProjectId || !projects?.length) return
-    const exists = projects.some((p: any) => p.id === selectedProjectId)
-    if (!exists) {
-      updateActiveProjectTab((prev) => ({ ...(prev || {}), selectedProjectId: undefined }))
-    }
-  }, [selectedProjectId, projects, updateActiveProjectTab])
+  const noTabsYet = validTabKeys.length === 0
 
   // Sync tab from URL on initial load
   useEffect(() => {
@@ -233,13 +204,15 @@ export function ProjectsPage() {
   const handleSelectProject = async (id: number) => {
     // If no tabs exist, create a new tab first
     if (noTabsYet) {
-      const project = projects.find((p: any) => p.id === id)
-      const newTabId = createProjectTabFromHook({
+      const project = projects.find((p: Project) => p.id === id)
+      const projectTabData = {
         displayName: project?.name || `Tab ${Date.now().toString().slice(-4)}`,
         selectedProjectId: id,
         selectedFiles: [],
         selectedPrompts: []
-      })
+      }
+      console.log({ projectTabData })
+      const newTabId = createProjectTabFromHook(projectTabData)
       setActiveProjectTabId(newTabId)
     } else {
       // Update existing tab
@@ -363,7 +336,7 @@ export function ProjectsPage() {
               onViewChange={(value) => {
                 // Ensure the value is valid before navigating
                 const validValue = value as ProjectView
-                const newSearch: any = { ...search, activeView: validValue }
+                const newSearch = { ...search, activeView: validValue }
 
                 // If navigating to manage tab, ensure we have a default manageView
                 if (validValue === 'manage' && !search.manageView) {
@@ -389,7 +362,7 @@ export function ProjectsPage() {
               onViewChange={(value) => {
                 // Ensure the value is valid before navigating
                 const validValue = value as ProjectView
-                const newSearch: any = { ...search, activeView: validValue }
+                const newSearch = { ...search, activeView: validValue }
 
                 // If navigating to manage tab, ensure we have a default manageView
                 if (validValue === 'manage' && !search.manageView) {

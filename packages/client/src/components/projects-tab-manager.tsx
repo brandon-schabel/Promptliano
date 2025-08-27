@@ -22,7 +22,7 @@ import {
   useUpdateProjectTabById
 } from '@/hooks/use-kv-local-storage'
 import { toast } from 'sonner'
-import { useGetProjects, useProjectFiles } from '@/hooks/api-hooks'
+import { useProjects, useProjectFiles } from '@/hooks/generated'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGenerateTabName } from '@/hooks/api/use-tab-naming'
 import { Sparkles } from 'lucide-react'
@@ -45,7 +45,7 @@ export function ProjectsTabManager({ className }: ProjectsTabManagerProps) {
   const { updateProjectTabById } = useUpdateProjectTabById()
   const { setActiveProjectTabId } = useSetActiveProjectTabId()
   const [activeTabId] = useGetActiveProjectTabId()
-  const { data: projects } = useGetProjects()
+  const { data: projects } = useProjects()
   const { createProjectTab } = useCreateProjectTab()
 
   const scrollableTabsRef = useRef<HTMLDivElement>(null)

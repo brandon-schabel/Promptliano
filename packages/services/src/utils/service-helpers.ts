@@ -1,6 +1,9 @@
 import { ApiError } from '@promptliano/shared'
 import { ErrorFactory, withErrorContext, assertExists } from '@promptliano/shared/src/error/error-factory'
 
+// Re-export from shared for convenience
+export { withErrorContext, assertExists, ErrorFactory } from '@promptliano/shared/src/error/error-factory'
+
 /**
  * Service layer helpers to reduce duplication
  */

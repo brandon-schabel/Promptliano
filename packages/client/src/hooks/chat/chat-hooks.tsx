@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import { useGetMessages, useCreateChat, useForkChat } from '@/hooks/api-hooks'
+import { useCreateChat, useForkChat } from '@/hooks/generated'
+import { useGetMessages } from '@/hooks/api-hooks'
 import { ForkChatFromMessageBody } from '@promptliano/schemas'
 
 export function useCreateChatHandler() {

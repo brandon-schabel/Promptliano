@@ -26,7 +26,7 @@ import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import {
   type ProviderKeysConfig,
   ModelFetcherService
-} from '@promptliano/services/src/model-providers/model-fetcher-service'
+} from '@promptliano/services'
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
 import { stream } from 'hono/streaming'
 

@@ -32,7 +32,8 @@ export * from './src/kv-store.schemas'
 // Schema Utilities & Helpers
 export * from './src/schema-utils'
 export * from './src/unix-ts-utils'
-export * from './src/schema-factories'
+// Export enhanced factories only (they include everything from schema-factories)
+export * from './src/factories'
 
 // AI & Generation Schemas
 export * from './src/gen-ai.schemas'

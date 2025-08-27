@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { createSuccessResponseSchema } from './factories'
 
 // Directory entry schema
 export const DirectoryEntrySchema = z.object({
@@ -17,14 +18,16 @@ export const BrowseDirectoryRequestSchema = z.object({
 
 export type BrowseDirectoryRequest = z.infer<typeof BrowseDirectoryRequestSchema>
 
+// Browse directory data schema
+const BrowseDirectoryDataSchema = z.object({
+  currentPath: z.string(),
+  parentPath: z.string().nullable(),
+  entries: z.array(DirectoryEntrySchema)
+}).describe('BrowseDirectoryData')
+
 // Browse directory response schema
-export const BrowseDirectoryResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    currentPath: z.string(),
-    parentPath: z.string().nullable(),
-    entries: z.array(DirectoryEntrySchema)
-  })
+export const BrowseDirectoryResponseSchema = createSuccessResponseSchema(BrowseDirectoryDataSchema, { 
+  name: 'BrowseDirectory'
 })
 
 export type BrowseDirectoryResponse = z.infer<typeof BrowseDirectoryResponseSchema>

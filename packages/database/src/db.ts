@@ -6,7 +6,10 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { Database } from 'bun:sqlite'
-import * as schema from './schema'
+import * as mainSchema from './schema'
+import * as mcpSchema from './schema/mcp-executions'
+
+const schema = { ...mainSchema, ...mcpSchema }
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -40,27 +43,41 @@ try {
   // Check if tables exist, if not run the migration SQL directly
   const tables = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all()
   if (tables.length === 0) {
-    // For tests, skip migration file reading and just use drizzle to create tables
     if (process.env.NODE_ENV === 'test') {
-      console.log('📋 Creating test database tables in memory...')
-      // Skip migration file for tests - tables will be created as needed
+      // In test mode, don't auto-create tables - tests should use createTestDatabase()
+      // This prevents the main database from interfering with test isolation
+      console.log('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
+      console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
+      // Don't create tables here - let tests handle their own database setup
     } else {
       console.log('📋 Creating database tables...')
-      // Read and execute the migration SQL
-      const migrationPath = join(process.cwd(), 'packages', 'database', 'drizzle', '0000_loose_bug.sql')
-      try {
-        const migrationSql = readFileSync(migrationPath, 'utf8')
-        const statements = migrationSql.split('--> statement-breakpoint')
+      // Try to read and execute the latest migration SQL
+      const migrationFiles = ['0003_glorious_justice.sql', '0002_*.sql', '0001_*.sql', '0000_loose_bug.sql']
+      let migrationExecuted = false
+      
+      for (const migrationFile of migrationFiles) {
+        try {
+          const migrationPath = join(process.cwd(), 'packages', 'database', 'drizzle', migrationFile)
+          const migrationSql = readFileSync(migrationPath, 'utf8')
+          const statements = migrationSql.split('--> statement-breakpoint')
 
-        for (const statement of statements) {
-          const cleanStatement = statement.trim()
-          if (cleanStatement && !cleanStatement.startsWith('--')) {
-            sqlite.exec(cleanStatement)
+          for (const statement of statements) {
+            const cleanStatement = statement.trim()
+            if (cleanStatement && !cleanStatement.startsWith('--')) {
+              sqlite.exec(cleanStatement)
+            }
           }
+          console.log(`✅ Database tables created successfully using ${migrationFile}`)
+          migrationExecuted = true
+          break
+        } catch (migrationError) {
+          // Continue to next migration file
+          continue
         }
-        console.log('✅ Database tables created successfully')
-      } catch (migrationError) {
-        console.warn('⚠️ Could not read migration file, tables might need manual creation')
+      }
+      
+      if (!migrationExecuted) {
+        console.warn('⚠️ Could not read any migration files, tables might need manual creation')
       }
     }
   }
@@ -69,7 +86,7 @@ try {
 }
 
 // Create Drizzle instance with schema
-export const db = drizzle(sqlite, {
+export const db: ReturnType<typeof drizzle> = drizzle(sqlite, {
   schema,
   logger: process.env.NODE_ENV === 'development'
 })

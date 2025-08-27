@@ -3,30 +3,32 @@ import { logger } from 'hono/logger'
 import { ApiError, ErrorFactory } from '@promptliano/shared'
 // Import generated routes
 import { registerAllGeneratedRoutes } from './routes/generated/index.generated'
-// Revert to manual routes temporarily while fixing generated route issues - KEEPING BOTH FOR NOW
-import { chatRoutes } from './routes/chat-routes'
+// Factory-migrated routes (Phase 4 & 5)
+import { chatRoutes } from './routes/chat-routes-factory'
+import { promptRoutes } from './routes/prompt-routes-factory'
+import { ticketRoutes } from './routes/ticket-routes-factory'
+import { queueRoutes } from './routes/queue-routes-factory'
+import { providerKeyRoutes } from './routes/provider-key-routes-factory'
+import { claudeAgentRoutes } from './routes/claude-agent-routes-factory'
+import { claudeCommandRoutes } from './routes/claude-command-routes-factory'
+import { activeTabRoutes } from './routes/active-tab-routes-factory'
+
+// Manual routes (complex operations)
 import { genAiRoutes } from './routes/gen-ai-routes'
-import { projectRoutes } from './routes/project-routes'
-import { providerKeyRoutes } from './routes/provider-key-routes'
-import { promptRoutes } from './routes/prompt-routes'
-import { ticketRoutes } from './routes/ticket-routes'
-import { queueRoutes } from './routes/queue-routes'
+import { projectRoutes } from './routes/project-routes-factory'
 import { flowRoutes } from './routes/flow-routes'
 import { browseDirectoryRoutes } from './routes/browse-directory-routes'
 import { mcpRoutes } from './routes/mcp'
 import { gitRoutes } from './routes/git'
 import { gitAdvancedRoutes } from './routes/git-advanced-routes'
-import { activeTabRoutes } from './routes/active-tab-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
-import { claudeAgentRoutes } from './routes/claude-agent-routes'
-import { claudeCommandRoutes } from './routes/claude-command-routes'
 import { claudeCodeRoutes } from './routes/claude-code-routes'
-import { claudeHookRoutesSimple } from './routes/claude-hook-routes-simple'
+import { claudeHookRoutes } from './routes/claude-hook-routes-factory'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
-import { mcpProjectConfigApp } from './routes/mcp-project-config-routes'
-import { mcpGlobalConfigRoutes } from './routes/mcp-global-config-routes'
+import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
+import type { Context } from 'hono'
 import packageJson from '../package.json'
 import { getServerConfig, getRateLimitConfig } from '@promptliano/config'
 import { rateLimiter } from 'hono-rate-limiter'
@@ -79,20 +81,23 @@ app.use('*', cors(serverConfig.corsConfig))
 app.use('*', logger())
 
 // Helper function to get client IP with better localhost detection
-const getClientIP = (c: any) => {
+const getClientIP = (c: Context) => {
   // Check for forwarded headers first (production)
   const forwarded = c.req.header('x-forwarded-for') || c.req.header('x-real-ip')
   if (forwarded) return forwarded
 
-  // For local development, try to get the actual connection IP
-  const connection = c.env?.incoming?.socket || c.req.raw?.connection || c.req.raw?.socket
-  const remoteAddress = connection?.remoteAddress
-
-  // Check if it's a localhost IP
-  if (remoteAddress === '::1' || remoteAddress === '127.0.0.1' || remoteAddress === 'localhost') {
+  // For local development with Hono/Bun, check common localhost patterns
+  const host = c.req.header('host')
+  if (host && (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('::1'))) {
     return 'localhost'
   }
-  return remoteAddress || 'unknown'
+
+  // Try to get IP from CF-Connecting-IP (Cloudflare) or similar headers
+  const cfIP = c.req.header('cf-connecting-ip')
+  if (cfIP) return cfIP
+
+  // Default fallback
+  return 'unknown'
 }
 
 // General rate limiter - 500 requests per 15 minutes per IP
@@ -203,17 +208,18 @@ app.get('/api/health', (c) => c.json({ success: true }))
 // Register generated routes (CRUD operations for all entities)
 registerAllGeneratedRoutes(app)
 
-// Register manual routes (complex operations only - no CRUD conflicts)
-// COMMENTED OUT: Basic CRUD routes (now handled by generated routes)
-// app.route('/', chatRoutes)        // Basic CRUD -> Generated
-// app.route('/', projectRoutes)     // Basic CRUD -> Generated
-// app.route('/', providerKeyRoutes) // Basic CRUD -> Generated
-// app.route('/', promptRoutes)      // Basic CRUD -> Generated
-// app.route('/', ticketRoutes)      // Basic CRUD -> Generated
-// app.route('/', queueRoutes)       // Basic CRUD -> Generated
-// app.route('/', claudeAgentRoutes) // Basic CRUD -> Generated
-// app.route('/', claudeCommandRoutes) // Basic CRUD -> Generated
-// app.route('/', activeTabRoutes)   // Basic CRUD -> Generated
+// Register factory-migrated routes (standardized CRUD + custom operations)
+app.route('/', chatRoutes)         // Factory: CRUD + fork operations  
+app.route('/', promptRoutes)       // Factory: CRUD + file operations
+app.route('/', ticketRoutes)       // Factory: CRUD + task operations
+app.route('/', queueRoutes)        // Factory: CRUD + processing operations
+app.route('/', providerKeyRoutes)  // Factory: CRUD + validation
+app.route('/', claudeAgentRoutes)  // Factory: CRUD + AI suggestions
+app.route('/', claudeCommandRoutes)// Factory: Project-scoped commands
+app.route('/', activeTabRoutes)    // Factory: Get/Set/Clear operations
+app.route('/', projectRoutes)      // Factory: CRUD + sync, files, summary operations
+app.route('/', claudeHookRoutes)   // Factory: Hook management operations
+app.route('/', mcpConfigRoutes)    // Factory: Global + project MCP config
 
 // KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)
@@ -225,10 +231,7 @@ app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', claudeCodeRoutes)
-app.route('/', claudeHookRoutesSimple)
 app.route('/', mcpInstallationRoutes)
-app.route('/', mcpProjectConfigApp)
-app.route('/', mcpGlobalConfigRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes

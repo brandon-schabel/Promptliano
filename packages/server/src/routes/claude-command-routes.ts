@@ -31,7 +31,8 @@ import {
   createStandardResponses,
   createStandardResponsesWithStatus,
   successResponse,
-  operationSuccessResponse
+  operationSuccessResponse,
+  withErrorHandling
 } from '../utils/route-helpers'
 import type { Context } from 'hono'
 
@@ -177,7 +178,7 @@ const suggestClaudeCommandsRoute = createRoute({
 })
 
 export const claudeCommandRoutes = new OpenAPIHono()
-  .openapi(createClaudeCommandRoute as any, async (c: any) => {
+  .openapi(createClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
 
@@ -188,8 +189,8 @@ export const claudeCommandRoutes = new OpenAPIHono()
 
     const command = await createCommand(Number(projectId), body)
     return c.json(successResponse(command), 201)
-  })
-  .openapi(listClaudeCommandsRoute, async (c: any) => {
+  }))
+  .openapi(listClaudeCommandsRoute, withErrorHandling(async (c) => {
     const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
@@ -200,8 +201,8 @@ export const claudeCommandRoutes = new OpenAPIHono()
 
     const commands = await listCommands(Number(projectId), query)
     return c.json(successResponse(commands))
-  })
-  .openapi(getClaudeCommandRoute, async (c: any) => {
+  }))
+  .openapi(getClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId, commandName } = c.req.valid('param')
     const { namespace } = c.req.valid('query')
 
@@ -212,8 +213,8 @@ export const claudeCommandRoutes = new OpenAPIHono()
 
     const command = await getCommandByName(Number(projectId), commandName)
     return c.json(successResponse(command))
-  })
-  .openapi(updateClaudeCommandRoute, async (c: any) => {
+  }))
+  .openapi(updateClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId, commandName } = c.req.valid('param')
     const { namespace } = c.req.valid('query')
     const body = c.req.valid('json')
@@ -225,8 +226,8 @@ export const claudeCommandRoutes = new OpenAPIHono()
 
     const command = await updateCommand(Number(projectId), commandName, body)
     return c.json(successResponse(command))
-  })
-  .openapi(deleteClaudeCommandRoute, async (c: any) => {
+  }))
+  .openapi(deleteClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId, commandName } = c.req.valid('param')
     const { namespace } = c.req.valid('query')
 
@@ -237,8 +238,8 @@ export const claudeCommandRoutes = new OpenAPIHono()
 
     await deleteCommand(Number(projectId), commandName)
     return c.json(operationSuccessResponse('Command deleted successfully'))
-  })
-  .openapi(executeClaudeCommandRoute, async (c: any) => {
+  }))
+  .openapi(executeClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId, commandName } = c.req.valid('param')
     const { namespace } = c.req.valid('query')
     const body = c.req.valid('json')
@@ -264,18 +265,18 @@ export const claudeCommandRoutes = new OpenAPIHono()
     }
 
     return c.json(successResponse(responseData))
-  })
-  .openapi(generateClaudeCommandRoute, async (c: any) => {
+  }))
+  .openapi(generateClaudeCommandRoute, withErrorHandling(async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
 
     const generatedCommand = await generateCommand(Number(projectId), body)
     return c.json(successResponse(generatedCommand))
-  })
-  .openapi(suggestClaudeCommandsRoute, async (c: any) => {
+  }))
+  .openapi(suggestClaudeCommandsRoute, withErrorHandling(async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
 
     const suggestions = await suggestCommands(Number(projectId), body?.context || '', body?.limit || 5)
     return c.json(successResponse(suggestions))
-  })
+  }))

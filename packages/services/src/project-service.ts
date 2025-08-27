@@ -64,6 +64,27 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
   // Extended domain operations
   const extensions = {
     /**
+     * Create project with path uniqueness validation
+     */
+    async create(data: CreateProjectBody): Promise<Project> {
+      return withErrorContext(
+        async () => {
+          // Check for duplicate path
+          const existing = await repository.getByPath(data.path)
+          if (existing) {
+            throw ErrorFactory.validation.constraintViolation(
+              `Project with path '${data.path}' already exists`
+            )
+          }
+          
+          // Use the base service create method
+          return await baseService.create(data)
+        },
+        { entity: 'Project', action: 'create' }
+      )
+    },
+
+    /**
      * Get project by path (common lookup)
      */
     async getByPath(path: string): Promise<Project | null> {
@@ -72,6 +93,26 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           return await repository.getByPath(path)
         },
         { entity: 'Project', action: 'getByPath' }
+      )
+    },
+
+    /**
+     * List projects with pagination
+     */
+    async listPaginated(options: { limit?: number; offset?: number } = {}): Promise<{
+      data: Project[]
+      total: number
+    }> {
+      return withErrorContext(
+        async () => {
+          const page = Math.floor((options?.offset || 0) / (options?.limit || 10)) + 1
+          const result = await repository.paginate(page, options?.limit || 10)
+          return {
+            data: result.data,
+            total: result.total
+          }
+        },
+        { entity: 'Project', action: 'listPaginated' }
       )
     },
 

@@ -6,31 +6,38 @@ import { gitStashService } from './git-stash-service'
 import { gitRemoteService } from './git-remote-service'
 import { gitWorktreeService } from './git-worktree-service'
 import { gitConfigService } from './git-config-service'
-import { BaseGitService } from './base-git-service'
 
 describe('Modular Git Services', () => {
   describe('Service Instances', () => {
     test('should have singleton instances of all services', () => {
+      // All services are now functional factories returning service objects
       expect(gitStatusService).toBeDefined()
-      expect(gitStatusService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitStatusService).toBe('object')
+      expect(typeof gitStatusService.getProjectGitStatus).toBe('function')
 
       expect(gitCommitService).toBeDefined()
-      expect(gitCommitService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitCommitService).toBe('object')
+      expect(typeof gitCommitService.commitChanges).toBe('function')
 
       expect(gitBranchService).toBeDefined()
-      expect(gitBranchService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitBranchService).toBe('object')
+      expect(typeof gitBranchService.getBranches).toBe('function')
 
       expect(gitStashService).toBeDefined()
-      expect(gitStashService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitStashService).toBe('object')
+      expect(typeof gitStashService.stash).toBe('function')
 
       expect(gitRemoteService).toBeDefined()
-      expect(gitRemoteService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitRemoteService).toBe('object')
+      expect(typeof gitRemoteService.getRemotes).toBe('function')
 
       expect(gitWorktreeService).toBeDefined()
-      expect(gitWorktreeService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitWorktreeService).toBe('object')
+      expect(typeof gitWorktreeService.getWorktrees).toBe('function')
 
       expect(gitConfigService).toBeDefined()
-      expect(gitConfigService).toBeInstanceOf(BaseGitService)
+      expect(typeof gitConfigService).toBe('object')
+      expect(typeof gitConfigService.getConfig).toBe('function')
     })
   })
 
@@ -92,24 +99,39 @@ describe('Modular Git Services', () => {
   })
 
   describe('Service Isolation', () => {
-    test('each service should have its own logger', () => {
-      // Each service should have its own logger instance
-      expect((gitStatusService as any).logger).toBeDefined()
-      expect((gitCommitService as any).logger).toBeDefined()
-      expect((gitBranchService as any).logger).toBeDefined()
-      expect((gitStashService as any).logger).toBeDefined()
-      expect((gitRemoteService as any).logger).toBeDefined()
-      expect((gitWorktreeService as any).logger).toBeDefined()
-      expect((gitConfigService as any).logger).toBeDefined()
-
-      // Logger names should match service class names
-      expect((gitStatusService as any).logger.context).toBe('GitStatusService')
-      expect((gitCommitService as any).logger.context).toBe('GitCommitService')
-      expect((gitBranchService as any).logger.context).toBe('GitBranchService')
-      expect((gitStashService as any).logger.context).toBe('GitStashService')
-      expect((gitRemoteService as any).logger.context).toBe('GitRemoteService')
-      expect((gitWorktreeService as any).logger.context).toBe('GitWorktreeService')
-      expect((gitConfigService as any).logger.context).toBe('GitConfigService')
+    test('each service should be an isolated functional service', () => {
+      // All services are now functional factories
+      // They have their own internal state and error handling
+      // But don't expose loggers externally (encapsulation)
+      
+      // Test that services have all expected methods
+      expect(typeof gitStatusService.getProjectGitStatus).toBe('function')
+      expect(typeof gitStatusService.clearCache).toBe('function')
+      expect(typeof gitStatusService.stageFiles).toBe('function')
+      
+      expect(typeof gitCommitService.commitChanges).toBe('function')
+      expect(typeof gitCommitService.getCommitLog).toBe('function')
+      expect(typeof gitCommitService.getCommitDetails).toBe('function')
+      
+      expect(typeof gitBranchService.getBranches).toBe('function')
+      expect(typeof gitBranchService.createBranch).toBe('function')
+      expect(typeof gitBranchService.switchBranch).toBe('function')
+      
+      expect(typeof gitStashService.stash).toBe('function')
+      expect(typeof gitStashService.stashList).toBe('function')
+      expect(typeof gitStashService.stashApply).toBe('function')
+      
+      expect(typeof gitRemoteService.getRemotes).toBe('function')
+      expect(typeof gitRemoteService.fetch).toBe('function')
+      expect(typeof gitRemoteService.push).toBe('function')
+      
+      expect(typeof gitWorktreeService.getWorktrees).toBe('function')
+      expect(typeof gitWorktreeService.addWorktree).toBe('function')
+      expect(typeof gitWorktreeService.removeWorktree).toBe('function')
+      
+      expect(typeof gitConfigService.getConfig).toBe('function')
+      expect(typeof gitConfigService.setConfig).toBe('function')
+      expect(typeof gitConfigService.getUserName).toBe('function')
     })
   })
 })

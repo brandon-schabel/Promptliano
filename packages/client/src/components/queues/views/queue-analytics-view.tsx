@@ -5,7 +5,8 @@ import { Skeleton } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Progress } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
-import { useQueues, useGetFlowData } from '@/hooks/api-hooks'
+import { useQueues } from '@/hooks/generated'
+import { useGetFlowData } from '@/hooks/api-hooks'
 import type { TaskQueue } from '@/hooks/generated/types'
 import {
   BarChart,

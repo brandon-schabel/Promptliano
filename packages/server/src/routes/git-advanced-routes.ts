@@ -1,4 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+
+// Define valid HTTP status codes that have response bodies (are "contentful")
+type ContentfulStatusCode = 200 | 201 | 202 | 400 | 401 | 403 | 404 | 409 | 422 | 500 | 502 | 503 | 504
+
 import {
   gitOperationResponseSchema,
   gitRemoteSchema,
@@ -20,29 +24,12 @@ import {
   stashApply,
   reset
 } from '@promptliano/services'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import { createStandardResponses, createStandardResponsesWithStatus, createListResponseSchema, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
-// Define reusable response schemas
-const RemotesResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitRemoteSchema)
-  })
-  .openapi('RemotesResponse')
-
-const TagsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitTagSchema)
-  })
-  .openapi('TagsResponse')
-
-const StashListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitStashSchema)
-  })
-  .openapi('StashListResponse')
+// Define reusable response schemas using factory functions
+const RemotesResponseSchema = createListResponseSchema(gitRemoteSchema, 'RemotesResponse')
+const TagsResponseSchema = createListResponseSchema(gitTagSchema, 'TagsResponse')
+const StashListResponseSchema = createListResponseSchema(gitStashSchema, 'StashListResponse')
 
 export const gitAdvancedRoutes = new OpenAPIHono()
 
@@ -119,40 +106,7 @@ const fetchRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Fetched successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Fetch updates from a remote repository'
 })
@@ -176,7 +130,7 @@ gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -184,7 +138,7 @@ gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
         success: false,
         message: 'Failed to fetch from remote'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })
@@ -209,40 +163,7 @@ const pullRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Pulled successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Pull changes from a remote repository'
 })
@@ -266,7 +187,7 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -274,7 +195,7 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
         success: false,
         message: 'Failed to pull changes'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })
@@ -323,40 +244,7 @@ const createTagRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Tag created successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Create a new tag in the git repository'
 })
@@ -380,7 +268,7 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -388,7 +276,7 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
         success: false,
         message: 'Failed to create tag'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })
@@ -415,40 +303,7 @@ const stashRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Changes stashed successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Stash current changes'
 })
@@ -472,7 +327,7 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -480,7 +335,7 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
         success: false,
         message: 'Failed to stash changes'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })
@@ -523,40 +378,7 @@ const applyStashRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Stash applied successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Apply a stash without removing it from the stash list'
 })
@@ -580,7 +402,7 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -588,7 +410,7 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
         success: false,
         message: 'Failed to apply stash'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })
@@ -613,40 +435,7 @@ const resetRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Reset successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Reset current HEAD to a specified state'
 })
@@ -670,7 +459,7 @@ gitAdvancedRoutes.openapi(resetRoute, async (c) => {
           success: false,
           message: error.message
         },
-        500
+        500 as ContentfulStatusCode as ContentfulStatusCode
       )
     }
     return c.json(
@@ -678,7 +467,7 @@ gitAdvancedRoutes.openapi(resetRoute, async (c) => {
         success: false,
         message: 'Failed to reset'
       },
-      500
+      500 as ContentfulStatusCode
     )
   }
 })

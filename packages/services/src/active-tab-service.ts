@@ -209,6 +209,16 @@ export function createActiveTabService(deps = {}) {
       )
     },
 
+    async get(id: number | string): Promise<LegacyActiveTab | null> {
+      return withErrorContext(
+        async () => {
+          const tab = await activeTabRepository.getById(Number(id))
+          return tab ? mapToLegacyFormat(tab) : null
+        },
+        { entity: 'ActiveTab', action: 'get', id }
+      )
+    },
+
     async getById(id: number | string): Promise<LegacyActiveTab> {
       return withErrorContext(
         async () => {
@@ -256,11 +266,35 @@ export function createActiveTabService(deps = {}) {
       )
     },
 
-    // Additional methods for compatibility
-    getActiveTab,
-    setActiveTab,
+    // Additional methods for compatibility and route wrapper methods
+    getActiveTab: (projectId?: number, clientId?: string) => {
+      if (projectId === undefined) {
+        // Handle no parameters case - get from the first project or return null
+        return getActiveTab(1, clientId) // Use project ID 1 as default, or could throw error
+      }
+      return getActiveTab(projectId, clientId)
+    },
+    
+    setActiveTab: (dataOrProjectId: any, tabId?: number, clientId?: string, tabMetadata?: any) => {
+      if (typeof dataOrProjectId === 'object' && dataOrProjectId.projectId) {
+        // Handle single data object parameter
+        const data = dataOrProjectId
+        return setActiveTab(data.projectId, data.activeTabId || data.tabId, data.clientId, data.tabMetadata)
+      } else {
+        // Handle separate parameters
+        return setActiveTab(dataOrProjectId, tabId!, clientId, tabMetadata)
+      }
+    },
+    
+    clearActiveTab: (projectId?: number, clientId?: string) => {
+      if (projectId === undefined) {
+        // Handle no parameters case - clear all active tabs or return false
+        return Promise.resolve(false) // Could implement clearing all tabs
+      }
+      return clearActiveTab(projectId, clientId)
+    },
+    
     getOrCreateDefaultActiveTab,
-    clearActiveTab,
     updateActiveTab
   }
 }

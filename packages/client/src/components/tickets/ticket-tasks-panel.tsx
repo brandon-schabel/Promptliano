@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { useGetTasks, useCreateTask, useUpdateTask, useDeleteTask, useAutoGenerateTasks } from '@/hooks/api-hooks'
+import { useCreateTask, useUpdateTask, useDeleteTask, useAutoGenerateTasks } from '@/hooks/generated'
+import { useGetTasks } from '@/hooks/api-hooks'
 import { Input } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { ArrowDown, ArrowUp, Copy, Plus, RefreshCcw, Trash2, CircleCheckBig, Circle } from 'lucide-react'

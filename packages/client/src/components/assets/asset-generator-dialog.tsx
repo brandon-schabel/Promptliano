@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@promptliano/ui'
 import { toast } from 'sonner'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useGenerateStructuredData } from '@/hooks/api-hooks'
+import { useGenerateStructuredData } from '@/hooks/generated'
 import { Copy, Download, Loader2, Sparkles, Code } from 'lucide-react'
 import { estimateTokenCount, formatTokenCount } from '@promptliano/shared'
 import { SvgPreview } from '@/components/svg-preview'

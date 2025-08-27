@@ -87,7 +87,7 @@ export class BatchSummarizationOptimizer {
     }
 
     // Group related files
-    const fileGroups = this.groupRelatedFiles(filesToProcess, groupingStrategy, projectId, {
+    const fileGroups = await this.groupRelatedFiles(filesToProcess, groupingStrategy, projectId, {
       maxGroupSize: maxFilesPerBatch,
       priorityThreshold
     })
@@ -143,14 +143,14 @@ export class BatchSummarizationOptimizer {
   /**
    * Group related files based on strategy
    */
-  private groupRelatedFiles(
+  private async groupRelatedFiles(
     files: ProjectFile[],
     strategy: string,
     projectId: number,
     options: { maxGroupSize: number; priorityThreshold: number }
-  ): FileGroup[] {
+  ): Promise<FileGroup[]> {
     // Use the existing file grouping service
-    const groups = fileGroupingService.groupFilesByStrategy(files, strategy as any, projectId, options)
+    const groups = await fileGroupingService.groupFilesByStrategy(files, strategy as any, projectId, options)
 
     // Enhance groups with relationship detection
     return groups.map((group) => this.enhanceGroupWithRelationships(group, files))

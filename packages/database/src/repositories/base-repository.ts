@@ -57,10 +57,11 @@ export class BaseRepository<
 
   constructor(
     protected readonly table: TTable,
+    protected readonly dbInstance: DrizzleDb = db,
     protected readonly schema?: z.ZodSchema<TEntity>,
-    protected readonly entityName: string = table._.name
+    protected readonly entityName?: string
   ) {
-    this.errorHandler = createErrorHandler(this.entityName)
+    this.errorHandler = createErrorHandler(entityName || (table as any)?.['_']?.['name'] || 'entity')
   }
 
   /**
@@ -69,7 +70,7 @@ export class BaseRepository<
   async create(data: TInsert): Promise<TEntity> {
     return this.errorHandler.withContext(async () => {
       const now = Date.now()
-      const [entity] = await db
+      const [entity] = await this.dbInstance
         .insert(this.table)
         .values({
           ...data,
@@ -88,7 +89,7 @@ export class BaseRepository<
    */
   async getById(id: TEntity['id']): Promise<TEntity | null> {
     return this.errorHandler.withContext(async () => {
-      const [entity] = await db
+      const [entity] = await this.dbInstance
         .select()
         .from(this.table)
         .where(eq((this.table as any).id, id))
@@ -102,7 +103,7 @@ export class BaseRepository<
    * Get all entities with optional ordering
    */
   async getAll(orderBy: 'asc' | 'desc' = 'desc'): Promise<TEntity[]> {
-    const entities = await db
+    const entities = await this.dbInstance
       .select()
       .from(this.table)
       .orderBy(orderBy === 'desc' ? desc((this.table as any).createdAt) : asc((this.table as any).createdAt))
@@ -115,7 +116,7 @@ export class BaseRepository<
    */
   async update(id: TEntity['id'], data: Partial<TInsert>): Promise<TEntity> {
     return this.errorHandler.withContext(async () => {
-      const [updated] = await db
+      const [updated] = await this.dbInstance
         .update(this.table)
         .set({
           ...data,
@@ -137,7 +138,7 @@ export class BaseRepository<
    */
   async delete(id: TEntity['id']): Promise<boolean> {
     return this.errorHandler.withContext(async () => {
-      const result = (await db
+      const result = (await this.dbInstance
         .delete(this.table)
         .where(eq((this.table as any).id, id))
         .run()) as unknown as { changes: number }
@@ -150,7 +151,7 @@ export class BaseRepository<
    * Check if entity exists
    */
   async exists(id: TEntity['id']): Promise<boolean> {
-    const [result] = await db
+    const [result] = await this.dbInstance
       .select({ count: count() })
       .from(this.table)
       .where(eq((this.table as any).id, id))
@@ -163,7 +164,7 @@ export class BaseRepository<
    * Count entities with optional where clause
    */
   async count(where?: any): Promise<number> {
-    const query = db.select({ count: count() }).from(this.table)
+    const query = this.dbInstance.select({ count: count() }).from(this.table)
 
     if (where) {
       query.where(where)
@@ -187,7 +188,7 @@ export class BaseRepository<
         updatedAt: now
       }))
 
-      const entities = await db
+      const entities = await this.dbInstance
         .insert(this.table)
         .values(values as any)
         .returning()
@@ -202,7 +203,7 @@ export class BaseRepository<
   async updateMany(ids: number[], data: Partial<TInsert>): Promise<TEntity[]> {
     if (ids.length === 0) return []
 
-    const entities = await db
+    const entities = await this.dbInstance
       .update(this.table)
       .set({
         ...data,
@@ -220,7 +221,7 @@ export class BaseRepository<
   async deleteMany(ids: number[]): Promise<number> {
     if (ids.length === 0) return 0
 
-    const result = (await db
+    const result = (await this.dbInstance
       .delete(this.table)
       .where(inArray((this.table as any).id, ids))
       .run()) as unknown as { changes: number }
@@ -232,7 +233,7 @@ export class BaseRepository<
    * Find entities with custom where clause
    */
   async findWhere(where: any): Promise<TEntity[]> {
-    const entities = await db
+    const entities = await this.dbInstance
       .select()
       .from(this.table)
       .where(where)
@@ -245,7 +246,7 @@ export class BaseRepository<
    * Find single entity with custom where clause
    */
   async findOneWhere(where: any): Promise<TEntity | null> {
-    const [entity] = await db.select().from(this.table).where(where).limit(1)
+    const [entity] = await this.dbInstance.select().from(this.table).where(where).limit(1)
 
     return entity ? this.validateEntity(entity) : null
   }
@@ -267,13 +268,13 @@ export class BaseRepository<
     const offset = (page - 1) * limit
 
     // Get total count
-    const countQuery = db.select({ count: count() }).from(this.table)
+    const countQuery = this.dbInstance.select({ count: count() }).from(this.table)
     if (where) countQuery.where(where)
     const countResult = await countQuery
     const total = countResult[0]?.count ?? 0
 
     // Get paginated data
-    const dataQuery = db
+    const dataQuery = this.dbInstance
       .select()
       .from(this.table)
       .orderBy(desc((this.table as any).createdAt))
@@ -296,7 +297,7 @@ export class BaseRepository<
    * Execute custom query with the table
    */
   async customQuery(queryFn: (table: SQLiteTable, db: DrizzleDb) => Promise<any>): Promise<any> {
-    return queryFn(this.table, db)
+    return queryFn(this.table, this.dbInstance)
   }
 
   /**
@@ -305,7 +306,7 @@ export class BaseRepository<
   async upsert(data: TInsert, conflictColumns: string[] = ['id']): Promise<TEntity> {
     // SQLite doesn't have native UPSERT, so we use INSERT OR REPLACE
     const now = Date.now()
-    const [entity] = await db
+    const [entity] = await this.dbInstance
       .insert(this.table)
       .values({
         ...data,
@@ -328,7 +329,7 @@ export class BaseRepository<
    * Transaction wrapper
    */
   async transaction<T>(callback: (tx: DrizzleTransaction) => Promise<T>): Promise<T> {
-    return db.transaction(callback)
+    return this.dbInstance.transaction(callback)
   }
 
   /**
@@ -360,7 +361,7 @@ export class BaseRepository<
    * Get the database instance for advanced operations
    */
   getDb(): DrizzleDb {
-    return db
+    return this.dbInstance
   }
 }
 
@@ -376,7 +377,7 @@ export class SoftDeleteRepository<
    * Override getAll to exclude soft-deleted items by default
    */
   async getAll(orderBy: 'asc' | 'desc' = 'desc', includeDeleted: boolean = false): Promise<TEntity[]> {
-    const query = db.select().from(this.table)
+    const query = this.dbInstance.select().from(this.table)
 
     if (!includeDeleted) {
       query.where(eq((this.table as any).deletedAt, null))
@@ -392,7 +393,7 @@ export class SoftDeleteRepository<
    * Soft delete (mark as deleted without removing from database)
    */
   async softDelete(id: number): Promise<TEntity> {
-    const [deleted] = await db
+    const [deleted] = await this.dbInstance
       .update(this.table)
       .set({
         deletedAt: Date.now(),
@@ -408,7 +409,7 @@ export class SoftDeleteRepository<
    * Restore soft-deleted entity
    */
   async restore(id: number): Promise<TEntity> {
-    const [restored] = await db
+    const [restored] = await this.dbInstance
       .update(this.table)
       .set({
         deletedAt: null,
@@ -431,7 +432,7 @@ export class SoftDeleteRepository<
    * Get only soft-deleted entities
    */
   async getDeleted(): Promise<TEntity[]> {
-    const entities = await db
+    const entities = await this.dbInstance
       .select()
       .from(this.table)
       .where(ne((this.table as any).deletedAt, null))
@@ -474,8 +475,8 @@ export function createBaseRepository<
   TTable extends SQLiteTable,
   TEntity extends BaseEntity = InferSelectModel<TTable> & BaseEntity,
   TInsert extends Record<string, any> = InferInsertModel<TTable>
->(table: TTable, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
-  return new BaseRepository<TEntity, TInsert, TTable>(table, schema, entityName || table._.name)
+>(table: TTable, dbInstance?: DrizzleDb, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
+  return new BaseRepository<TEntity, TInsert, TTable>(table, dbInstance, schema, entityName)
 }
 
 // Repository composition helper - merge BaseRepository with extensions

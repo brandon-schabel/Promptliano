@@ -8,7 +8,9 @@ import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Info, FileText } from 'lucide-react'
 import {
-  useProjectFiles,
+  useProjectFiles
+} from '@/hooks/generated'
+import {
   useGetProjectSummary,
   useRemoveSummariesFromFiles,
   useSummarizeProjectFiles

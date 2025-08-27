@@ -26,6 +26,7 @@ import {
   successResponse,
   operationSuccessResponse
 } from '../../utils/route-helpers'
+import type { Context } from 'hono'
 
 // Response schemas
 const BranchListResponseSchema = z
@@ -131,34 +132,34 @@ const deleteBranchRoute = createRoute({
 
 // Export routes with simplified handlers
 export const gitBranchRoutes = new OpenAPIHono()
-  .openapi(getBranchesRoute, (async (c: any): Promise<any> => {
+  .openapi(getBranchesRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const branches = await getBranches(projectId)
     return c.json(successResponse(branches))
-  }) as any)
-  .openapi(getBranchesEnhancedRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(getBranchesEnhancedRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const result = await getBranchesEnhanced(projectId)
     return c.json(successResponse(result))
-  }) as any)
-  .openapi(createBranchRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(createBranchRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await createBranch(projectId, body.name, body.startPoint)
     return c.json(operationSuccessResponse('Branch created successfully'), 201)
-  }) as any)
-  .openapi(switchBranchRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(switchBranchRoute, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await switchBranch(projectId, body.name)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Branch switched successfully'))
-  }) as any)
-  .openapi(deleteBranchRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(deleteBranchRoute, async (c) => {
     const { projectId, branchName } = c.req.valid('param')
     const { force = false } = c.req.valid('query') || {}
     await deleteBranch(projectId, branchName, force)
     return c.json(operationSuccessResponse('Branch deleted successfully'))
-  }) as any)
+  })
 
 export type GitBranchRouteTypes = typeof gitBranchRoutes

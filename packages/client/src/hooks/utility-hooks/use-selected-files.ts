@@ -7,7 +7,7 @@ import {
 } from '@/hooks/use-kv-local-storage'
 import { useProjectFiles } from '@/hooks/generated'
 // Remove the non-existent import
-// import { useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
+import { useGetProjectFilesWithoutContent } from '@/hooks/api-hooks'
 import { useMemo } from 'react'
 import { buildProjectFileMapWithoutContent, buildProjectFileMap } from '@promptliano/shared'
 import { useClaudeMdDetection } from './use-claude-md-detection'

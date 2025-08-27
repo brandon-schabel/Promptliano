@@ -4,7 +4,7 @@ import { Skeleton } from '@promptliano/ui'
 import { Plus } from 'lucide-react'
 import { QueueStatsCard } from '../queue-stats-card'
 import { QueueDetailsDialog } from '../queue-details-dialog'
-import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
 import { QueueWithStats } from '@promptliano/schemas'
 import { useState } from 'react'
 import {
@@ -42,24 +42,27 @@ export function QueueOverviewView({
   const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.queuedItems || 0), 0) || 0
   const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.inProgressItems || 0), 0) || 0
   const totalCompleted = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.completedItems || 0), 0) || 0
-  const activeQueues = queuesWithStats?.filter((q: any) => q.queue.isActive === true).length || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.status === 'active').length || 0
 
-  const handlePauseQueue = async (queue: QueueWithStats) => {
+  const handlePauseQueue = async (queue: any) => {
+    if (!queue?.id) return
     await updateQueueMutation.mutateAsync({
-      id: queue.queue.id,
-      data: { isActive: false }
+      id: queue.id,
+      data: { status: 'paused' }
     })
   }
 
-  const handleResumeQueue = async (queue: QueueWithStats) => {
+  const handleResumeQueue = async (queue: any) => {
+    if (!queue?.id) return
     await updateQueueMutation.mutateAsync({
-      id: queue.queue.id,
-      data: { isActive: true }
+      id: queue.id,
+      data: { status: 'active' }
     })
   }
 
-  const handleDeleteQueue = async (queue: QueueWithStats) => {
-    await deleteQueueMutation.mutateAsync(queue.queue.id)
+  const handleDeleteQueue = async (queue: any) => {
+    if (!queue?.id) return
+    await deleteQueueMutation.mutateAsync(queue.id)
     setQueueToDelete(null)
   }
 
@@ -110,18 +113,20 @@ export function QueueOverviewView({
           </div>
         ) : queuesWithStats && queuesWithStats.length > 0 ? (
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {queuesWithStats.map((queueWithStats) => (
-              <QueueStatsCard
-                key={queueWithStats.queue.id}
-                queueWithStats={queueWithStats}
-                onPause={() => handlePauseQueue(queueWithStats)}
-                onResume={() => handleResumeQueue(queueWithStats)}
-                onDelete={() => setQueueToDelete(queueWithStats)}
-                onViewDetails={() => setSelectedQueue(queueWithStats)}
-                isSelected={selectedQueueId === queueWithStats.queue.id}
-                onSelect={() => onQueueSelect(queueWithStats.queue.id)}
-              />
-            ))}
+            {queuesWithStats
+              .filter((queueWithStats) => queueWithStats && queueWithStats.id)
+              .map((queueWithStats) => (
+                <QueueStatsCard
+                  key={queueWithStats.id}
+                  queueWithStats={queueWithStats}
+                  onPause={() => handlePauseQueue(queueWithStats)}
+                  onResume={() => handleResumeQueue(queueWithStats)}
+                  onDelete={() => setQueueToDelete(queueWithStats)}
+                  onViewDetails={() => setSelectedQueue(queueWithStats)}
+                  isSelected={selectedQueueId === queueWithStats.id}
+                  onSelect={() => onQueueSelect(queueWithStats.id)}
+                />
+              ))}
           </div>
         ) : (
           <div className='flex flex-col items-center justify-center h-[400px] text-center'>
@@ -146,7 +151,7 @@ export function QueueOverviewView({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Queue</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the queue "{queueToDelete?.queue.name}"? This will also delete all queued
+              Are you sure you want to delete the queue "{queueToDelete?.queue?.name || 'Unnamed Queue'}"? This will also delete all queued
               items. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

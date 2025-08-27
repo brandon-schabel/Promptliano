@@ -1,19 +1,36 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
 import { db } from '@promptliano/database'
-// TODO: Implement test utilities with Drizzle
-import { fileSearchService } from './file-search-service'
-import { fileIndexingService } from './file-indexing-service'
+import { createFileSearchService } from './file-services/file-search-service'
+import { createFileIndexingService } from './file-services/file-indexing-service'
 import type { File as ProjectFile } from '@promptliano/database'
+import { ErrorFactory } from '@promptliano/shared'
 
 describe('FileSearchService', () => {
   const testProjectId = 999999
-  let db: any
+  let fileSearchService: ReturnType<typeof createFileSearchService>
+  let fileIndexingService: ReturnType<typeof createFileIndexingService>
+  let mockLogger: any
 
   beforeAll(async () => {
-    // Reset and initialize test database with migrations
-    // TODO: Implement test database reset with Drizzle
-    // Get database instance
-    // db is already imported and available.getDatabase()
+    // Initialize mock logger
+    mockLogger = {
+      debug: () => {},
+      warn: () => {},
+      error: () => {},
+      info: () => {}
+    }
+
+    // Create service instances with test dependencies
+    fileIndexingService = createFileIndexingService({
+      logger: mockLogger,
+      config: { enableCaching: false }
+    })
+
+    fileSearchService = createFileSearchService({
+      fileIndexingService,
+      logger: mockLogger,
+      config: { enableCaching: false }
+    })
   })
 
   beforeEach(async () => {
@@ -36,8 +53,9 @@ describe('FileSearchService', () => {
   })
 
   afterAll(async () => {
-    // Clean up all test data
-    // TODO: Implement clear all data with Drizzle
+    // Cleanup service instances
+    fileSearchService?.destroy?.()
+    fileIndexingService?.destroy?.()
   })
 
   const createTestFile = (id: string, path: string, content: string): ProjectFile => ({

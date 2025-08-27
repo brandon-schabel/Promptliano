@@ -168,10 +168,56 @@ export * from './src/project-domain-service'
 // Explicit re-export to avoid CleanupResult ambiguity with file-sync-service-unified
 export { cleanupQueueData, resetQueue, moveFailedToDeadLetter, getQueueHealth } from './src/queue-cleanup-service'
 export type { CleanupResult as QueueCleanupResult } from './src/queue-cleanup-service'
-export * from './src/queue-timeout-service'
+export {
+  // Queue Timeout Service  
+  createQueueTimeoutService,
+  getQueueTimeoutService,
+  queueTimeoutService,
+  startQueueTimeoutService,
+  stopQueueTimeoutService,
+  checkAllQueueTimeouts,
+  checkQueueTimeout,
+  getQueueTimeoutStatus,
+  resetQueueTimeoutStats,
+  shutdownQueueTimeoutService,
+  type QueueTimeoutService, // Legacy class export
+  type QueueTimeoutResult,
+  type QueueTimeoutDeps,
+  type QueueTimeoutConfig
+} from './src/queue-timeout-service'
 export * from './src/flow-service'
 export * from './src/queue-state-machine'
-export * from './src/mcp-service'
+export {
+  mcpService,
+  createMCPService,
+  getMCPClientManager,
+  type MCPService,
+  type MCPServiceDeps,
+  create as createMCPConfig,
+  getById as getMCPConfigById,
+  update as updateMCPConfig,
+  deleteMCPConfig,
+  createForProject as createMCPConfigForProject,
+  getConfigById,
+  listForProject as listMCPConfigsForProject,
+  updateConfig,
+  deleteConfig,
+  startServer as startMCPServer,
+  stopServer as stopMCPServer,
+  getServerState as getMCPServerState,
+  listTools as listMCPTools,
+  executeTool as executeMCPTool,
+  listResources as listMCPResources,
+  readResource as readMCPResource,
+  // Legacy exports
+  updateMCPServerConfig,
+  createMCPServerConfig,
+  getMCPServerConfigById,
+  listMCPServerConfigs,
+  deleteMCPServerConfig,
+  startMCPServer as startMCPServerLegacy,
+  stopMCPServer as stopMCPServerLegacy
+} from './src/mcp-service'
 export * from './src/git-service'
 export * from './src/active-tab-service'
 // Do not export agent-logger - it contains Bun imports and should only be used server-side
@@ -200,7 +246,25 @@ export type {
   CleanupOptions,
   CleanupResult as FileServiceCleanupResult
 } from './src/file-services/file-sync-service-unified'
-export * from './src/model-providers/model-fetcher-service'
+export {
+  // Model Fetcher Service
+  createModelFetcherService,
+  getModelFetcherService,
+  modelFetcherService,
+  ModelFetcherServiceClass as ModelFetcherService, // Legacy class export (renamed)
+  type ModelFetcherService as ModelFetcherServiceType,
+  type ModelFetcherDeps,
+  type UnifiedModel,
+  type ProviderKeysConfig,
+  type ListModelsOptions,
+  type GeminiAPIModel,
+  type AnthropicModel,
+  type OpenAIModelObject,
+  type OpenRouterModel,
+  type TogetherModel,
+  type XAIModel,
+  type OllamaModel
+} from './src/model-providers/model-fetcher-service'
 export * from './src/model-providers/provider-defaults'
 export * from './src/gen-ai-services'
 
@@ -232,18 +296,42 @@ export * from './src/utils/compact-file-formatter'
 export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
 export * from './src/file-summarization-tracker'
-export * from './src/tab-name-generation-service'
+export {
+  // Tab Name Generation Service
+  createTabNameGenerationService,
+  getTabNameGenerationService,
+  tabNameGenerationService,
+  generateTabName,
+  generateUniqueTabName,
+  clearTabNameCache,
+  getTabNameCacheStats,
+  type TabNameGenerationService, // Legacy class export
+  type TabNameGenerationResult,
+  type TabNameGenerationDeps
+} from './src/tab-name-generation-service'
 export * from './src/agent-instruction-service'
 export * from './src/agent-file-detection-service'
 // Explicit re-export to avoid VSCodeSettings ambiguity with parsers
-export { MCPInstallationService, mcpInstallationService } from './src/mcp-installation-service'
+export { 
+  createMCPInstallationService,
+  mcpInstallationService 
+} from './src/mcp-installation-service'
 export type {
+  MCPConfig,
+  MCPTool,
+  Platform,
   MCPInstallationOptions,
   MCPInstallationResult,
   MCPToolInfo,
+  MCPInstallationService,
   VSCodeSettings as MCPVSCodeSettings
 } from './src/mcp-installation-service'
-export { VSCodeSettingsSchema as MCPVSCodeSettingsSchema } from './src/mcp-installation-service'
+export { 
+  VSCodeSettingsSchema as MCPVSCodeSettingsSchema,
+  MCPConfigSchema,
+  MCPToolSchema,
+  PlatformSchema
+} from './src/mcp-installation-service'
 export * from './src/mcp-config-manager'
 export * from './src/mcp-project-config-service'
 export * from './src/mcp-project-server-manager'

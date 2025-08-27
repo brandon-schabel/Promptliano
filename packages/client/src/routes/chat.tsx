@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner'
 import { Message } from '@ai-sdk/react'
 
-import { useAIChat } from '@/hooks/api-hooks'
+import { useAIChat } from '@/hooks/generated'
 import { useChatModelParams } from '@/hooks/chat/use-chat-model-params'
 import { SlidingSidebar } from '@/components/sliding-sidebar'
 import {
@@ -30,7 +30,7 @@ import {
   useCreateChat,
   useDeleteMessage,
   useForkChatFromMessage
-} from '@/hooks/api-hooks'
+} from '@/hooks/generated'
 import type { Chat, ChatMessage } from '@promptliano/database'
 import { cn } from '@/lib/utils'
 import {
@@ -60,7 +60,7 @@ import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { useActiveChatId, useSelectSetting, useProjectTabField, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import { useGetModels } from '@/hooks/api-hooks'
+import { useGetModels } from '@/hooks/generated'
 import {
   ProviderModelSelector,
   ModelSettingsPopover as ReusableModelSettingsPopover
@@ -907,7 +907,7 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   const [activeChatId] = useActiveChatId()
   const { data: chatsData } = useGetChats()
 
-  const activeChat = useMemo(() => chatsData?.find((c: any) => c.id === activeChatId), [chatsData, activeChatId])
+  const activeChat = useMemo(() => chatsData?.find((c: Chat) => c.id === activeChatId), [chatsData, activeChatId])
 
   return (
     <div className='flex items-center justify-between gap-x-4 bg-background px-4 py-2 border-b h-14 w-full max-w-7xl xl:rounded-b xl:border-x'>
@@ -999,7 +999,7 @@ function ChatPage() {
 
   const selectedModelName = useMemo(() => {
     return Array.isArray(modelsData)
-      ? (modelsData.find((m: any) => m.id === model)?.name ?? model ?? '...')
+      ? (modelsData.find((m: { id: string; name: string }) => m.id === model)?.name ?? model ?? '...')
       : (model ?? '...')
   }, [modelsData, model])
 

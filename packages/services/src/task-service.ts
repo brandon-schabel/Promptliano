@@ -36,6 +36,17 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
     },
 
     /**
+     * Get task by ID (returns null if not found) - route factory compatible
+     */
+    async get(id: number | string): Promise<TicketTask | null> {
+      try {
+        return await repository.getById(Number(id))
+      } catch (error) {
+        throw ErrorFactory.operationFailed('fetch task', String(error))
+      }
+    },
+
+    /**
      * Get task by ID (route factory compatible)
      */
     async getById(id: number | string): Promise<TicketTask> {
@@ -129,6 +140,13 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch task', String(error))
       }
+    },
+
+    /**
+     * Get tasks by ticket ID (route factory compatible alias)
+     */
+    async getByTicket(ticketId: number): Promise<TicketTask[]> {
+      return this.getTasksByTicket(ticketId)
     },
 
     /**

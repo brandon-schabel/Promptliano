@@ -28,9 +28,9 @@ import {
   useGetMCPExecutions,
   useGetMCPToolStatistics,
   useGetMCPExecutionTimeline,
-  useGetMCPErrorPatterns
-} from '@/hooks/api-hooks'
-import { useGlobalMCPManager } from '@/hooks/api-hooks'
+  useGetMCPErrorPatterns,
+  useGlobalMCPManager
+} from '@/hooks/generated'
 import type { MCPAnalyticsRequest, MCPExecutionQuery, MCPToolSummary, MCPToolExecution } from '@promptliano/schemas'
 
 // Type for tool statistics data structure

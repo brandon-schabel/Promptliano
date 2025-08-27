@@ -5,7 +5,7 @@ import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Plus, ListOrdered, TrendingUp, Clock, LayoutGrid, Pause, Play, AlertCircle } from 'lucide-react'
-import { useGetQueuesWithStats } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats } from '@/hooks/generated'
 import { type QueueView } from '@/lib/search-schemas'
 
 interface QueueSidebarNavProps {
@@ -66,7 +66,7 @@ export function QueueSidebarNav({
   // Calculate summary stats
   const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.queuedItems, 0) || 0
   const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.inProgressItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q: any) => q.queue.status === 'active').length || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.status === 'active').length || 0
 
   return (
     <div className={cn('flex flex-col h-full bg-muted/30', className)}>

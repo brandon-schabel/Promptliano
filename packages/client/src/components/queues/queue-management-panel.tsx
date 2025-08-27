@@ -27,7 +27,8 @@ import { ScrollArea } from '@promptliano/ui'
 import { Plus, Loader2 } from 'lucide-react'
 import { QueueStatsCard } from './queue-stats-card'
 import { QueueDetailsDialog } from './queue-details-dialog'
-import { useGetQueuesWithStats, useCreateQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
+import { useCreateQueue } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
 import { QueueWithStats } from '@promptliano/schemas'
 
@@ -67,22 +68,22 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
     setIsCreateDialogOpen(false)
   }
 
-  const handleDeleteQueue = async (queue: QueueWithStats) => {
-    await deleteQueueMutation.mutateAsync(queue.queue.id)
+  const handleDeleteQueue = async (queue: any) => {
+    await deleteQueueMutation.mutateAsync(queue.id)
     setQueueToDelete(null)
   }
 
-  const handlePauseQueue = async (queue: QueueWithStats) => {
+  const handlePauseQueue = async (queue: any) => {
     await updateQueueMutation.mutateAsync({
-      id: queue.queue.id,
-      data: { isActive: false }
+      id: queue.id,
+      data: { status: 'paused' }
     })
   }
 
-  const handleResumeQueue = async (queue: QueueWithStats) => {
+  const handleResumeQueue = async (queue: any) => {
     await updateQueueMutation.mutateAsync({
-      id: queue.queue.id,
-      data: { isActive: true }
+      id: queue.id,
+      data: { status: 'active' }
     })
   }
 
@@ -92,7 +93,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
     queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0) || 0
   const totalCompleted =
     queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q: QueueWithStats) => q.queue.isActive === true).length || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.status === 'active').length || 0
 
   return (
     <div className='flex flex-col h-full'>
@@ -201,7 +202,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
             {queuesWithStats.map((queueWithStats: QueueWithStats) => (
               <QueueStatsCard
-                key={queueWithStats.queue.id}
+                key={queueWithStats.id}
                 queueWithStats={queueWithStats}
                 onPause={() => handlePauseQueue(queueWithStats)}
                 onResume={() => handleResumeQueue(queueWithStats)}
@@ -233,7 +234,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Queue</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the queue "{queueToDelete?.queue.name}"? This will also delete all queued
+              Are you sure you want to delete the queue "{queueToDelete?.name}"? This will also delete all queued
               items. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -5,7 +5,7 @@ import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Plus, Search, Edit, Trash2, FileText, Calendar, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGetAllAgents, useDeleteAgent } from '@/hooks/api-hooks'
+import { useAgents, useDeleteAgent } from '@/hooks/generated'
 import { Skeleton } from '@promptliano/ui'
 import {
   AlertDialog,
@@ -32,7 +32,7 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
 
   // Fetch agents for this specific project
-  const { data: agentsResponse, isLoading, error } = useGetAllAgents()
+  const { data: agentsResponse, isLoading, error } = useAgents()
   const deleteAgentMutation = useDeleteAgent()
 
   console.log({ agentsResponse })

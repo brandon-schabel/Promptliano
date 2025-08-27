@@ -1,33 +1,33 @@
-import { describe, test, expect, beforeEach, afterAll } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
-import {
-  createQueue,
-  enqueueTicket,
-  getNextTaskFromQueue,
-  getQueueStats,
-  updateQueue,
-  completeQueueItem,
-  failQueueItem
-} from './queue-service'
-import { createProject } from './project-service'
-import { createTicket, updateTicket } from './ticket-service'
-import { db } from '@promptliano/database'
-// TODO: Implement test utilities with Drizzle
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment } from './test-utils/test-environment'
+
+// Create test environment for edge case tests
+const testEnv = createTestEnvironment({ 
+  suiteName: 'queue-edge-cases',
+  isolateDatabase: true,
+  verbose: false
+})
 
 describe('Queue System Edge Cases', () => {
-  let testProjectId: number
+  let queueService: ReturnType<typeof createQueueService>
+  let flowService: ReturnType<typeof createFlowService>
+  let testContext: Awaited<ReturnType<typeof testEnv.setupTest>>
   let testQueueId: number
-  // Database connection already imported
 
   beforeEach(async () => {
-    // TODO: Implement test database reset with Drizzle
-    // db is already imported and available
-
-    const project = await createProject({
-      name: 'Edge Case Test Project',
-      path: '/test/edge-' + Date.now(),
-      created: Date.now(),
-      updated: Date.now()
+    testContext = await testEnv.setupTest()
+    queueService = createQueueService()
+    flowService = createFlowService()
+    
+    await testContext.createTestProject('edge-case-tests')
+    
+    const queue = await queueService.create({
+      projectId: testContext.testProjectId!,
+      name: testContext.generateTestName('Edge Case Queue'),
+      description: 'Queue for edge case testing'
     })
     testProjectId = project.id
 

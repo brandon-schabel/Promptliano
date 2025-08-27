@@ -186,11 +186,13 @@ export function FlowTabWithSidebar({
                         {queuesData && queuesData.length > 0 && (
                           <>
                             <SelectSeparator />
-                            {queuesData.map((queueWithStats: any) => (
-                              <SelectItem key={queueWithStats.queue.id} value={queueWithStats.queue.id.toString()}>
-                                {queueWithStats.queue.name}
-                              </SelectItem>
-                            ))}
+                            {queuesData
+                              .filter((queue: any) => queue && queue.id)
+                              .map((queue: any) => (
+                                <SelectItem key={queue.id} value={queue.id.toString()}>
+                                  {queue.name || 'Unnamed Queue'}
+                                </SelectItem>
+                              ))}
                           </>
                         )}
                       </SelectContent>

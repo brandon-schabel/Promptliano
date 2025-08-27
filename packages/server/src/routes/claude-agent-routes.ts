@@ -45,38 +45,7 @@ const createClaudeAgentRoute = createRoute({
       required: true
     }
   },
-  responses: {
-    201: {
-      content: {
-        'application/json': { schema: ClaudeAgentResponseSchema }
-      },
-      description: 'Agent created successfully'
-    },
-    400: {
-      content: {
-        'application/json': { schema: ApiErrorResponseSchema }
-      },
-      description: 'Bad Request'
-    },
-    404: {
-      content: {
-        'application/json': { schema: ApiErrorResponseSchema }
-      },
-      description: 'Resource Not Found'
-    },
-    422: {
-      content: {
-        'application/json': { schema: ApiErrorResponseSchema }
-      },
-      description: 'Validation Error'
-    },
-    500: {
-      content: {
-        'application/json': { schema: ApiErrorResponseSchema }
-      },
-      description: 'Internal Server Error'
-    }
-  }
+  responses: createStandardResponsesWithStatus(ClaudeAgentResponseSchema, 201, 'Agent created successfully')
 })
 
 const listAllClaudeAgentsRoute = createRoute({

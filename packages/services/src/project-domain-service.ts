@@ -104,7 +104,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
                 status: 'open',
                 priority: 'normal',
                 generateTasks: ticketData.generateTasks
-              })
+              } as any)
               tickets.push({ ticket, tasks })
 
               // Add ticket to queue if queue was created
@@ -292,7 +292,7 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
           const { ticket, tasks } = await services.tickets.createWithTasks({
             projectId,
             ...ticketData
-          })
+          } as any)
 
           // Auto-queue if options provided or default queue exists
           let queueItem = null

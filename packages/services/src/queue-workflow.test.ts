@@ -1,16 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach, afterAll } from 'bun:test'
-import { createTestDatabase, testFactories } from '@promptliano/database'
-import {
-  createQueue,
-  enqueueItem,
-  getNextTaskFromQueue,
-  completeQueueItem,
-  failQueueItem,
-  batchEnqueueItems,
-  getQueueStats
-} from './queue-service'
-import { createProject } from './project-service'
-import { createTicket, createTask, updateTicket, updateTask, getTicketById, getTasks } from './ticket-service'
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment } from './test-utils/test-environment'
+
+const testEnv = createTestEnvironment({ suiteName: 'queue-workflow' })
 
 // Helper functions to match old API signatures
 const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {

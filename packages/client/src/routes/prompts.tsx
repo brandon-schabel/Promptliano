@@ -10,9 +10,9 @@ import {
   useCreatePrompt,
   useUpdatePrompt,
   useDeletePrompt,
-  useGetAllPrompts,
-  useExportPromptAsMarkdown
-} from '@/hooks/api-hooks'
+  usePrompts
+} from '@/hooks/generated'
+import { useExportPromptAsMarkdown } from '@/hooks/api-hooks'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import {
@@ -45,7 +45,7 @@ export function PromptsPage() {
   const [activeProjectTabState] = useActiveProjectTab()
   const selectedProjectId = activeProjectTabState?.selectedProjectId
 
-  const { data: promptsRes, isLoading, error, refetch } = useGetAllPrompts()
+  const { data: promptsRes, isLoading, error, refetch } = usePrompts()
   const prompts = promptsRes as Prompt[]
   const deletePromptMutation = useDeletePrompt()
   const createPromptMutation = useCreatePrompt()

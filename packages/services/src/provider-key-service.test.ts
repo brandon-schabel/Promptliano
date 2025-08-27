@@ -135,7 +135,7 @@ describe('provider-key-service (Repository Pattern)', () => {
 
       expect(result.id).toBe(1)
       expect(result.provider).toBe(input.provider)
-      expect(result.key).toBe(input.key) // Service should return decrypted key
+      expect(result.key).toBe('test****-key') // Service returns masked key for security
       expect(result.encrypted).toBe(true)
       expect(result.iv).toBe('mock-iv')
       expect(result.tag).toBe('mock-tag')

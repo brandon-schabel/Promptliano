@@ -18,7 +18,7 @@ import {
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { SuggestedFilesDialog } from '../suggest-files-dialog'
 import { SuggestedPromptsDialog } from '../suggest-prompts-dialog'
-import { useCreateChat } from '@/hooks/api-hooks'
+import { useCreateChat } from '@/hooks/generated'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { Binoculars, Bot, Copy, Check, FileText, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
 import { useGetProjectSummary, useSuggestFiles } from '@/hooks/api-hooks'

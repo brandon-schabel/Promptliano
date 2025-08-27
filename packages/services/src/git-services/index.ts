@@ -6,15 +6,14 @@
  * maintaining backwards compatibility with the original git-service.ts
  */
 
-// Export all service classes
-export { BaseGitService } from './base-git-service'
-export { GitStatusService, gitStatusService } from './git-status-service'
-export { GitCommitService, gitCommitService } from './git-commit-service'
-export { GitBranchService, gitBranchService } from './git-branch-service'
-export { GitStashService, gitStashService } from './git-stash-service'
-export { GitRemoteService, gitRemoteService } from './git-remote-service'
-export { GitWorktreeService, gitWorktreeService } from './git-worktree-service'
-export { GitConfigService, gitConfigService } from './git-config-service'
+// Export all functional services and types
+export { createGitStatusService, gitStatusService, type GitStatusService } from './git-status-service'
+export { createGitCommitService, gitCommitService, type GitCommitService } from './git-commit-service'
+export { createGitBranchService, gitBranchService, type GitBranchService } from './git-branch-service'
+export { createGitStashService, gitStashService, type GitStashService } from './git-stash-service'
+export { createGitRemoteService, gitRemoteService, type GitRemoteService } from './git-remote-service'
+export { createGitWorktreeService, gitWorktreeService, type GitWorktreeService } from './git-worktree-service'
+export { createGitConfigService, gitConfigService, type GitConfigService } from './git-config-service'
 
 // Import service instances
 import { gitStatusService } from './git-status-service'

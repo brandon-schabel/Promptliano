@@ -1,118 +1,24 @@
 /**
- * API Hooks - Generated Hook System
+ * API Hooks - Specialized Hooks & Backward Compatibility
  *
- * Modern hook system using generated factory patterns for consistency and efficiency
- * Achieving 76% code reduction through powerful factory patterns
+ * This file contains specialized hooks that aren't covered by the generated CRUD factories,
+ * plus backward compatibility aliases for smooth migration.
  *
- * Key benefits:
+ * Most hooks are now imported from './generated' which provides:
  * - Generated hooks with consistent patterns
  * - Built-in optimistic updates and smart caching
  * - 100% type safety with IntelliSense support
- * - 10-15x faster development velocity
+ * - 76% code reduction through factory patterns
  */
 
 // ============================================================================
-// GENERATED HOOKS - Primary Interface
+// RE-EXPORT GENERATED HOOKS - Primary Interface
 // ============================================================================
 
-// Export all generated hooks as the primary interface
-export {
-  // Core CRUD operations for all entities
-  useProjects,
-  useProject,
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject,
-  usePrefetchProjects,
-  useInvalidateProjects,
-  useTickets,
-  useTicket,
-  useCreateTicket,
-  useUpdateTicket,
-  useDeleteTicket,
-  usePrefetchTickets,
-  useInvalidateTickets,
-  useChats,
-  useChat,
-  useCreateChat,
-  useUpdateChat,
-  useDeleteChat,
-  usePrefetchChats,
-  useInvalidateChats,
+// Re-export all generated hooks for backward compatibility
+export * from './generated'
 
-  // AI Chat Hooks with Streaming (Phase 2 Complete)
-  useGetChats,
-  useGetChat,
-  useGetMessages,
-  useAIChat,
-  useGenerateText,
-  useGenerateStructuredData,
-  useStreamText,
-  useGetProviders,
-  useGetModels,
-  useForkChat,
-  useForkChatFromMessage,
-  useDeleteMessage,
-  useStreamChat,
-  useInvalidateAIChats,
-  usePrompts,
-  usePrompt,
-  useCreatePrompt,
-  useUpdatePrompt,
-  useDeletePrompt,
-  usePrefetchPrompts,
-  useInvalidatePrompts,
-  useAgents,
-  useAgent,
-  useCreateAgent,
-  useUpdateAgent,
-  useDeleteAgent,
-  usePrefetchAgents,
-  useInvalidateAgents,
-  useQueues,
-  useQueue,
-  useCreateQueue,
-  useUpdateQueue,
-  useDeleteQueue,
-  usePrefetchQueues,
-  useInvalidateQueues,
-  useKeys,
-  useKey,
-  useCreateKey,
-  useUpdateKey,
-  useDeleteKey,
-  usePrefetchKeys,
-  useInvalidateKeys,
-
-  // Advanced entity-specific hooks
-  useProjectFiles,
-  useProjectSync,
-  useTicketTasks,
-  useCreateTask,
-  useUpdateTask,
-  useDeleteTask,
-  useAutoGenerateTasks,
-  useCompleteTicket,
-  useChatMessages,
-
-  // Queue hooks
-  useQueueStats,
-  useQueueItems,
-  useGetQueuesWithStats,
-
-  // Convenience aliases (defined at bottom of file to avoid conflicts)
-  // useGetTicket,
-  // useGetTasks,
-  // useGetQueue,
-  // useGetProject,
-  useInvalidateTicketsEnhanced,
-
-  // Utility hooks
-  useBatchOperations,
-  useRealtimeSync
-} from './generated'
-
-// Phase 2 Migrated Hooks
+// Re-export specialized hooks from domain-specific modules
 export { useBrowseDirectory } from './api/browse-directory-hooks'
 
 export {
@@ -147,141 +53,6 @@ export {
   CLAUDE_HOOKS_KEYS
 } from './api/claude-hooks'
 
-// Provider Hooks (Phase 1 Complete)
-export {
-  useGetProviderKeys,
-  useGetProviderKey,
-  useCreateProviderKey,
-  useUpdateProviderKey,
-  useDeleteProviderKey,
-  useGetProvidersHealth,
-  useTestProvider,
-  useBatchTestProviders,
-  PROVIDER_KEYS
-} from './generated/providers-hooks'
-
-// Flow API Hooks (Phase 1 Complete)
-export {
-  // Core Flow Data Queries
-  useGetFlowData,
-  useGetFlowItems,
-  useGetUnqueuedItems,
-
-  // Queue Management Mutations
-  useEnqueueTicket,
-  useEnqueueTask,
-  useDequeueTicket,
-  useDequeueTask,
-  useMoveItem,
-  useBulkMoveItems,
-  useCompleteQueueItem,
-
-  // Processing Operations
-  useStartProcessing,
-  useCompleteProcessing,
-  useFailProcessing,
-
-  // Cache Management
-  useInvalidateFlow,
-
-  // Query Keys & Types
-  FLOW_KEYS
-} from './generated/flow-hooks'
-
-// Git API Hooks (Phase 1 Complete)
-export {
-  // Core Git Status & File Operations
-  useProjectGitStatus,
-  useGitFilesWithChanges,
-  useFileDiff,
-
-  // Branch Management
-  useGitBranches,
-  useBranchesEnhanced,
-  useCreateBranch,
-  useSwitchBranch,
-  useDeleteBranch,
-
-  // Commit History
-  useGitLog,
-  useCommitLogEnhanced,
-  useCommitDetail,
-
-  // File Staging
-  useStageFiles,
-  useUnstageFiles,
-  useStageAll,
-  useUnstageAll,
-  useCommitChanges,
-
-  // Remote Operations
-  useGitRemotes,
-  useGitPush,
-  useGitFetch,
-  useGitPull,
-
-  // Tag Management
-  useGitTags,
-  useCreateTag,
-
-  // Stash Operations
-  useGitStashList,
-  useGitStash,
-  useGitStashApply,
-  useGitStashPop,
-  useGitStashDrop,
-
-  // Reset Operations
-  useGitReset,
-
-  // Worktree Operations
-  useGitWorktrees,
-  useAddGitWorktree,
-  useRemoveGitWorktree,
-
-  // Cache Management
-  useInvalidateGit,
-
-  // Query Keys & Types
-  GIT_KEYS
-} from './generated/git-hooks'
-
-// MCP Hooks (Phase 1 Complete)
-export {
-  // MCP Analytics
-  useGetMCPExecutions,
-  useGetMCPAnalyticsOverview,
-  useGetMCPToolStatistics,
-  useGetMCPExecutionTimeline,
-  useGetMCPErrorPatterns,
-
-  // Global MCP Management
-  useGetGlobalMCPConfig,
-  useGetGlobalInstallations,
-  useGetGlobalMCPStatus,
-  useUpdateGlobalMCPConfig,
-  useInstallGlobalMCP,
-  useUninstallGlobalMCP,
-
-  // Composite Management
-  useGlobalMCPManager,
-
-  // Cache Management
-  useInvalidateMCP,
-
-  // Query Keys & Types
-  MCP_KEYS,
-
-  // Type exports
-  type MCPExecutionQuery,
-  type MCPToolExecution,
-  type MCPAnalyticsOverview,
-  type GlobalMCPConfig,
-  type GlobalMCPStatus
-} from './generated/mcp-hooks'
-
-// Remove duplicate exports - these are already exported from generated/index above
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from './api/use-api-client'
 import { toast } from 'sonner'
@@ -313,7 +84,7 @@ export function useSyncProjectWithProgress() {
   const queryClient = useQueryClient()
 
   return {
-    syncWithProgress: async (projectId: number, onProgress?: (event: any) => void, abortSignal?: AbortSignal) => {
+    syncWithProgress: async (projectId: number, onProgress?: (event: MessageEvent) => void, abortSignal?: AbortSignal) => {
       if (!client) throw new Error('API client not initialized')
 
       try {
@@ -888,7 +659,7 @@ export function useValidateMarkdownFile() {
 // BACKWARD COMPATIBILITY ALIASES
 // ============================================================================
 
-// Import hooks first so they can be re-exported as aliases
+// Import hooks from generated to create backward compatibility aliases
 import {
   useProjects,
   useProject,
@@ -904,17 +675,15 @@ import {
   useTicketTasks,
   useProjectSync,
   useProjectFiles,
-  useUpdateTask
+  useUpdateTask,
 } from './generated'
 
 // Provide aliases for existing hook names to ensure backward compatibility
-// Moved convenience aliases here to avoid conflicts with generated exports
 export const useGetProjects = useProjects
 export const useGetProject = useProject
 export const useGetTicket = useTicket
 export const useGetTasks = useTicketTasks
 export const useGetQueue = useQueue
-// Note: useGetChats and useGetChat are already exported from generated hooks (line 46-47)
 export const useGetAllPrompts = usePrompts
 export const useGetPrompt = usePrompt
 export const useGetAllAgents = useAgents
@@ -928,88 +697,3 @@ export const useGetProjectFiles = useProjectFiles
 export const useGetTicketsWithTasks = useTicketTasks // Alias for tickets with tasks
 export const useReorderTasks = useUpdateTask // Alias for task reordering
 export const useSyncProject = useProjectSync
-
-// ============================================================================
-// PERFORMANCE MONITORING AND ANALYTICS
-// ============================================================================
-
-/**
- * Migration Analytics Hook
- * Monitors the performance improvement from using generated hooks
- */
-export function useMigrationAnalytics() {
-  const { useHookAnalytics } = require('./generated')
-  const analytics = useHookAnalytics()
-
-  return {
-    ...analytics,
-
-    // Calculate migration benefits
-    getMigrationBenefits: () => {
-      const stats = analytics.getCacheStats()
-
-      return {
-        // Performance metrics
-        cacheEfficiency: (stats.successQueries / stats.totalQueries) * 100,
-        errorRate: (stats.errorQueries / stats.totalQueries) * 100,
-
-        // Code reduction metrics
-        estimatedLinesReduced: 44000, // Based on our calculations
-        estimatedFilesReduced: 19, // 22 files -> 3 files
-        codeReductionPercentage: 76,
-
-        // Developer experience metrics
-        averageHookCreationTime: '5 minutes', // vs 2 hours manually
-        velocityImprovement: '15x faster',
-
-        // Type safety improvements
-        compileTimeErrorCatch: '100%',
-        runtimeErrorReduction: '90%'
-      }
-    }
-  }
-}
-
-// ============================================================================
-// EXPORT SUMMARY
-// ============================================================================
-
-/**
- * Export Summary:
- *
- * GENERATED HOOKS (Primary Interface):
- * - 7 core entities with full CRUD operations
- * - 35 lines per entity vs 300+ lines manually
- * - Optimistic updates, caching, prefetching built-in
- * - Type-safe with full IntelliSense support
- *
- * SPECIALIZED HOOKS (Custom Operations):
- * - Project file management and sync operations
- * - Prompt project associations and AI optimization
- * - Chat message management and streaming
- * - Markdown import/export operations
- * - Queue stats and item management
- *
- * UTILITY HOOKS (Cross-cutting Concerns):
- * - Batch operations and relationship invalidation
- * - Real-time synchronization
- * - Performance analytics and monitoring
- * - Migration benefits tracking
- *
- * BACKWARD COMPATIBILITY:
- * - All existing hook names preserved as aliases
- * - No breaking changes to existing components
- * - Gradual migration path available
- *
- * PHASE 2 COMPLETION IMPACT:
- * - Browse Directory: 18 lines → 10 lines (44% reduction)
- * - Claude Code API: 823 lines → 400 lines (51% reduction)
- * - Claude Hooks: 184 lines → 120 lines (35% reduction)
- *
- * TOTAL IMPACT:
- * - 64,000+ lines → ~19,000 lines (70% reduction)
- * - 25 hook files → 6 factory files (76% reduction)
- * - 10-15x faster development velocity
- * - 100% type safety and compile-time validation
- * - All advanced features preserved (polling, prefetching, table integration, infinite scroll)
- */

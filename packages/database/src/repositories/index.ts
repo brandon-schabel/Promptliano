@@ -19,6 +19,7 @@ export * from './claude-repository' // Exports claudeAgentRepository, claudeComm
 export * from './provider-key-repository'
 export * from './app-state-repository' // Exports selectedFileRepository, activeTabRepository
 export * from './mcp-server-repository'
+export * from './mcp-execution-repository' // Exports MCP tracking repositories
 
 // Unified storage service (for backward compatibility)
 export * from './storage-service'

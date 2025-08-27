@@ -5,6 +5,7 @@ import { ApiError, ErrorFactory, withErrorContext } from '@promptliano/shared'
 import { ApiErrorResponseSchema, MessageRoleEnum, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import {
   createStandardResponses,
+  createStandardResponsesWithStatus,
   standardResponses,
   successResponse,
   operationSuccessResponse
@@ -58,13 +59,7 @@ const createChatRoute = createRoute({
       description: 'Data for the new chat session'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat created successfully'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat created successfully')
 })
 
 // GET /chats/:chatId/messages
@@ -99,28 +94,12 @@ const postAiChatSdkRoute = createRoute({
     200: {
       content: {
         'text/event-stream': {
-          // Standard content type for SSE/streaming text
           schema: z.string().openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
         }
       },
       description: 'Successfully initiated AI response stream.'
     },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation error (invalid request body)'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Chat session (chatId) not found.'
-    },
-    400: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Bad Request (e.g., missing API key for provider, invalid provider/model)'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error or AI provider communication error'
-    }
+    ...standardResponses
   }
 })
 
@@ -138,13 +117,7 @@ const forkChatRoute = createRoute({
       description: 'Optional message IDs to exclude from the fork'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat forked successfully'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat forked successfully')
 })
 
 // POST /chats/{chatId}/fork/{messageId}
@@ -161,13 +134,7 @@ const forkChatFromMessageRoute = createRoute({
       description: 'Optional message IDs to exclude from the fork'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat forked successfully from message'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat forked successfully from message')
 })
 
 // DELETE /chats/{chatId}/messages/{messageId}

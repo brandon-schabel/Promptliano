@@ -4,7 +4,7 @@ import { Button } from '@promptliano/ui' // Assuming @ui maps to @/components/ui
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { ProjectList } from '@/components/projects/project-list'
 import { ProjectDialog } from '@/components/projects/project-dialog'
-import { useGetProjects, useDeleteProject } from '@/hooks/api-hooks'
+import { useProjects, useDeleteProject } from '@/hooks/generated'
 import { useRecentProjects } from '@/hooks/use-recent-projects'
 import { useHotkeys } from 'react-hotkeys-hook'
 import packageJson from '../../../package.json'
@@ -97,7 +97,7 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const updateActiveProjectTab = useUpdateActiveProjectTab()
   const [activeProjectTabState] = useActiveProjectTab()
   const selectedProjectId = activeProjectTabState?.selectedProjectId
-  const { data: projectData, isLoading: projectsLoading } = useGetProjects()
+  const { data: projectData, isLoading: projectsLoading } = useProjects()
   const { mutate: deleteProject } = useDeleteProject()
   const { recentProjects, addRecentProject } = useRecentProjects()
 

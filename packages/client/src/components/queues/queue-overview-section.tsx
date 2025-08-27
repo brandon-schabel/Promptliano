@@ -3,8 +3,8 @@ import { Badge } from '@promptliano/ui'
 import { Progress } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
-import { useGetQueuesWithStats } from '@/hooks/api-hooks'
-import { QueueWithStats } from '@promptliano/schemas'
+import { useGetQueuesWithStats } from '@/hooks/generated'
+// QueueWithStats type not used - queue data comes from hook with different structure
 import { AlertCircle, Clock, CheckCircle2, PlayCircle, ListPlus, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
@@ -51,13 +51,13 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
   }
 
   // Calculate totals
-  const totalQueued = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.queuedItems, 0)
-  const totalInProgress = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0)
-  const totalCompleted = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0)
-  const totalItems = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + q.stats.totalItems, 0)
-  const totalTickets = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + (q.stats.uniqueTickets || 0), 0)
-  const totalTasks = queuesWithStats.reduce((sum: number, q: QueueWithStats) => sum + (q.stats.taskCount || 0), 0)
-  const activeQueues = queuesWithStats.filter((q: QueueWithStats) => q.queue.isActive === true)
+  const totalQueued = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.pending || 0), 0)
+  const totalInProgress = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.processing || 0), 0)
+  const totalCompleted = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.completed || 0), 0)
+  const totalItems = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.total || q.stats?.totalItems || 0), 0)
+  const totalTickets = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.uniqueTickets || 0), 0)
+  const totalTasks = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.taskCount || 0), 0)
+  const activeQueues = queuesWithStats.filter((q: any) => q.status === 'active')
 
   const progressPercentage = totalItems > 0 ? (totalCompleted / totalItems) * 100 : 0
 
@@ -125,16 +125,16 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
           {activeQueues.length > 0 && (
             <div className='space-y-2 pt-2 border-t'>
               <p className='text-sm font-medium mb-2'>Active Queues:</p>
-              {activeQueues.slice(0, 3).map((queueWithStats) => {
-                const { queue, stats } = queueWithStats
-                const pendingItems = stats.queuedItems + stats.inProgressItems
+              {activeQueues.slice(0, 3).map((queueData: any) => {
+                const stats = queueData.stats || {}
+                const pendingItems = (stats.pending || 0) + (stats.processing || 0)
                 const tickets = stats.uniqueTickets || 0
                 const tasks = stats.taskCount || 0
 
                 return (
-                  <div key={queue.id} className='flex items-center justify-between text-sm'>
+                  <div key={queueData.id} className='flex items-center justify-between text-sm'>
                     <div className='flex items-center gap-2'>
-                      <span className='font-medium'>{queue.name}</span>
+                      <span className='font-medium'>{queueData.name}</span>
                       {pendingItems > 0 && (
                         <Badge variant='secondary' className='text-xs'>
                           {tickets > 0 && `${tickets} ticket${tickets !== 1 ? 's' : ''}`}
@@ -145,7 +145,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
                       )}
                     </div>
                     <div className='flex items-center gap-4 text-muted-foreground'>
-                      {stats.currentAgents.length > 0 && (
+                      {stats.currentAgents && stats.currentAgents.length > 0 && (
                         <span className='text-xs'>{stats.currentAgents.join(', ')}</span>
                       )}
                     </div>

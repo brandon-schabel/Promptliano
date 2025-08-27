@@ -98,8 +98,8 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Validate project exists if projectId provided
-          if (data.projectId && deps.projectService) {
-            await deps.projectService.getById(data.projectId)
+          if ((data as any).projectId && deps.projectService) {
+            await deps.projectService.getById((data as any).projectId)
           }
 
           // Use repository directly with proper type casting
@@ -174,7 +174,7 @@ Return the optimized version that:
             schema: PromptSchema.pick({ content: true })
           })
 
-          return result.object.content
+          return (result as any).object.content
         },
         { entity: 'Prompt', action: 'optimizePrompt', id: promptId }
       )
@@ -193,7 +193,7 @@ Return the optimized version that:
             content: original.content,
             projectId: original.projectId,
             ...modifications
-          }
+          } as any
 
           return (await repository.create(duplicateData as any)) as Prompt
         },

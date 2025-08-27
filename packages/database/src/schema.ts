@@ -1573,10 +1573,27 @@ export type GitWorktree = typeof gitWorktrees.$inferSelect
 
 // Override ClaudeMessage type to fix JSON field types
 type ClaudeMessageInferred = typeof claudeMessages.$inferSelect
+// Define proper types for Claude message content
+export interface ToolUseResult {
+  content?: Array<{
+    type: 'tool_result'
+    tool_use_id: string
+    content: string | Record<string, unknown>
+  }>
+}
+
+export interface ClaudeContentBlock {
+  type: 'text' | 'tool_use'
+  text?: string
+  name?: string
+  input?: Record<string, unknown>
+  id?: string
+}
+
 export type ClaudeMessage = Omit<ClaudeMessageInferred, 'message' | 'toolUseResult' | 'content'> & {
   message: ClaudeMessageContent | null
-  toolUseResult: any | null
-  content: any | null
+  toolUseResult: ToolUseResult | null
+  content: ClaudeContentBlock[] | null
 }
 
 // Override ClaudeSession type to fix JSON field types

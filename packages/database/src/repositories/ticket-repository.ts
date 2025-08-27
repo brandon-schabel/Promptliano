@@ -17,7 +17,8 @@ import {
   type TicketWithTasks,
   type TicketStatus,
   type TicketPriority,
-  selectTicketSchema
+  selectTicketSchema,
+  selectTicketTaskSchema
 } from '../schema'
 
 // Helper functions to convert JSON fields from database to proper types
@@ -94,14 +95,14 @@ type TaskUpdateData = Partial<{
 // Create base ticket repository with full CRUD operations
 const baseTicketRepository = createBaseRepository(
   tickets,
-  undefined, // Skip schema validation for now due to JSON field complexity
+  selectTicketSchema, // Use proper Zod schema for validation
   'Ticket'
 )
 
 // Create base task repository
 const baseTaskRepository = createBaseRepository(
   ticketTasks,
-  undefined, // Will use default validation
+  selectTicketTaskSchema, // Use proper Zod schema for validation
   'TicketTask'
 )
 

@@ -1,23 +1,10 @@
-import { describe, test, expect, beforeEach, afterEach, afterAll } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
-import { createTestDatabase, testFactories } from '@promptliano/database'
-import {
-  createQueue,
-  getQueueById,
-  enqueueItem,
-  getNextTaskFromQueue,
-  pauseQueue,
-  resumeQueue,
-  updateQueue,
-  failQueueItem,
-  completeQueueItem,
-  moveItemToQueue,
-  getQueueStats,
-  deleteQueue,
-  getQueueItems
-} from './queue-service'
-import { createProject } from './project-service'
-import { createTicket, createTask, updateTicket, updateTask, getTicketById } from './ticket-service'
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment } from './test-utils/test-environment'
+
+const testEnv = createTestEnvironment({ suiteName: 'queue-error-handling' })
 
 // Helper functions to match old API signatures
 const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {

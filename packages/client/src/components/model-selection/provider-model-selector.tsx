@@ -3,7 +3,7 @@ import type { APIProviders, ProviderKey } from '@promptliano/database'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
-import { useGetModels, useGetProviders } from '@/hooks/api-hooks'
+import { useGetModels, useGetProviders } from '@/hooks/generated'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import {
   isValidProviderKey,

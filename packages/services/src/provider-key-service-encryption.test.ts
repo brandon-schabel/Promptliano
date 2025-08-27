@@ -137,8 +137,8 @@ describe('Provider Key Service Encryption', () => {
     expect(result.tag).toBeDefined()
     expect(result.salt).toBeDefined()
 
-    // The API returns decrypted keys for developer convenience
-    expect(result.key).toBe(keyData.key)
+    // The API returns masked keys for security
+    expect(result.key).toBe('sk-t*****2345')
 
     expect(mockEncryptKey).toHaveBeenCalledWith('sk-test-12345')
     expect(mockRepository.create).toHaveBeenCalled()
@@ -315,7 +315,7 @@ describe('Provider Key Service Encryption', () => {
     expect(result.iv).not.toBe('old-iv')
     expect(result.salt).not.toBe('old-salt')
 
-    // Should return decrypted key
+    // Should return decrypted key for updates
     expect(result.key).toBe(updatedKey)
 
     expect(mockEncryptKey).toHaveBeenCalledWith(updatedKey)

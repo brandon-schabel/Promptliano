@@ -1,18 +1,9 @@
-import { describe, test, expect, beforeEach, afterAll } from 'bun:test'
-import {
-  createQueue,
-  enqueueTicketWithAllTasks,
-  getNextTaskFromQueue,
-  completeQueueItem,
-  getQueueStats,
-  dequeueTicket,
-  enqueueTask
-} from './queue-service'
-import { createProject, deleteProject } from './project-service'
-import {
-  createTicket,
-  createTask,
-  getTasks,
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment } from './test-utils/test-environment'
+
+const testEnv = createTestEnvironment({ suiteName: 'ticket-task-integration' })
   updateTask,
   deleteTask,
   getTicketById,

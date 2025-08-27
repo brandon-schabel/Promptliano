@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
-import { useCreateProject, useUpdateProject, useGetProject, useSyncProjectWithProgress } from '@/hooks/api-hooks'
+import { useCreateProject, useUpdateProject, useProject } from '@/hooks/generated'
+import { useSyncProjectWithProgress } from '@/hooks/api-hooks'
 import { useEffect, useState, useRef } from 'react'
 import { CreateProjectRequestBody, type SyncProgressEvent } from '@promptliano/schemas'
 import { useUpdateActiveProjectTab } from '@/hooks/use-kv-local-storage'
@@ -33,7 +34,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
 
   const { mutate: createProject, isPending: isCreating } = useCreateProject()
   const { mutate: updateProject, isPending: isUpdating } = useUpdateProject()
-  const { data: projectData } = useGetProject(projectId ?? -1)
+  const { data: projectData } = useProject(projectId ?? -1)
   const { syncWithProgress } = useSyncProjectWithProgress()
 
   // We'll use this state to know when we have a newly created project to sync

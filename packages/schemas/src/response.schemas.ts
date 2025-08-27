@@ -1,4 +1,11 @@
 import { z } from '@hono/zod-openapi'
+import {
+  createSuccessResponseSchema,
+  createListResponseSchema,
+  createOperationResponseSchema,
+  createMetadataResponseSchema
+} from './factories'
+
 // Import only types from database (not runtime schemas to avoid Vite bundling issues)
 import type {
   Ticket as DatabaseTicket,
@@ -67,25 +74,21 @@ const ClaudeAgentSchema = z.object({
 // These schemas are imported by auto-generated routes but were missing from the codebase.
 // They provide standard response formats for various API operations.
 
+// Task Schema
+const TaskSchema = z.object({
+  id: z.number(),
+  ticketId: z.number(),
+  title: z.string(),
+  description: z.string().nullable(),
+  status: z.enum(['pending', 'in_progress', 'completed']),
+  priority: z.enum(['low', 'normal', 'high']),
+  assignedTo: z.string().nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).describe('Task')
+
 // Task List Response Schema
-export const TaskListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(
-      z.object({
-        id: z.number(),
-        ticketId: z.number(),
-        title: z.string(),
-        description: z.string().nullable(),
-        status: z.enum(['pending', 'in_progress', 'completed']),
-        priority: z.enum(['low', 'normal', 'high']),
-        assignedTo: z.string().nullable(),
-        createdAt: z.number(),
-        updatedAt: z.number()
-      })
-    )
-  })
-  .openapi('TaskListResponse')
+export const TaskListResponseSchema = createListResponseSchema(TaskSchema, { name: 'Task' })
 
 // Chat Message Create Schema
 export const ChatMessageCreateSchema = z
@@ -97,87 +100,51 @@ export const ChatMessageCreateSchema = z
   })
   .openapi('ChatMessageCreate')
 
+// Chat Message Schema
+const ChatMessageSchema = z.object({
+  id: z.number(),
+  chatId: z.number(),
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string(),
+  metadata: z.record(z.any()).nullable(),
+  createdAt: z.number()
+}).describe('ChatMessage')
+
 // Chat Message Response Schema
-export const ChatMessageResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      id: z.number(),
-      chatId: z.number(),
-      role: z.enum(['user', 'assistant', 'system']),
-      content: z.string(),
-      metadata: z.record(z.any()).nullable(),
-      createdAt: z.number()
-    })
-  })
-  .openapi('ChatMessageResponse')
+export const ChatMessageResponseSchema = createSuccessResponseSchema(ChatMessageSchema, { name: 'ChatMessage' })
 
 // Chat Message List Response Schema
-export const ChatMessageListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(
-      z.object({
-        id: z.number(),
-        chatId: z.number(),
-        role: z.enum(['user', 'assistant', 'system']),
-        content: z.string(),
-        metadata: z.record(z.any()).nullable(),
-        createdAt: z.number()
-      })
-    )
-  })
-  .openapi('ChatMessageListResponse')
+export const ChatMessageListResponseSchema = createListResponseSchema(ChatMessageSchema, { name: 'ChatMessage' })
+
+// Chat Schema (basic)
+const ChatDataSchema = z.object({
+  id: z.number(),
+  projectId: z.number(),
+  title: z.string(), // Changed from 'name' to 'title' to match database schema
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).describe('Chat')
 
 // Chat Response Schema
-export const ChatResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      id: z.number(),
-      projectId: z.number(),
-      title: z.string(), // Changed from 'name' to 'title' to match database schema
-      createdAt: z.number(),
-      updatedAt: z.number()
-    })
-  })
-  .openapi('ChatResponse')
+export const ChatResponseSchema = createSuccessResponseSchema(ChatDataSchema, { name: 'Chat' })
+
+// Hook Schema
+const HookSchema = z.object({
+  id: z.number(),
+  projectId: z.number().nullable(),
+  name: z.string(),
+  event: z.string(),
+  command: z.string(),
+  enabled: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).describe('Hook')
 
 // Hook API Response Schema
-export const HookApiResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      id: z.number(),
-      projectId: z.number().nullable(),
-      name: z.string(),
-      event: z.string(),
-      command: z.string(),
-      enabled: z.boolean(),
-      createdAt: z.number(),
-      updatedAt: z.number()
-    })
-  })
-  .openapi('HookApiResponse')
+export const HookApiResponseSchema = createSuccessResponseSchema(HookSchema, { name: 'HookApi' })
 
 // Hook List Response Schema
-export const HookListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(
-      z.object({
-        id: z.number(),
-        projectId: z.number().nullable(),
-        name: z.string(),
-        event: z.string(),
-        command: z.string(),
-        enabled: z.boolean(),
-        createdAt: z.number(),
-        updatedAt: z.number()
-      })
-    )
-  })
-  .openapi('HookListResponse')
+export const HookListResponseSchema = createListResponseSchema(HookSchema, { name: 'Hook' })
 
 // Create Hook Request Schema
 export const CreateHookRequestSchema = z
@@ -213,16 +180,13 @@ export const HookGenerationRequestSchema = z
   .openapi('HookGenerationRequest')
 
 // Hook Generation Response Schema
-export const HookGenerationResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      name: z.string(),
-      command: z.string(),
-      description: z.string()
-    })
-  })
-  .openapi('HookGenerationResponse')
+const HookGenerationDataSchema = z.object({
+  name: z.string(),
+  command: z.string(),
+  description: z.string()
+}).describe('HookGeneration')
+
+export const HookGenerationResponseSchema = createSuccessResponseSchema(HookGenerationDataSchema, { name: 'HookGeneration' })
 
 // Hook Test Request Schema
 export const HookTestRequestSchema = z
@@ -233,17 +197,14 @@ export const HookTestRequestSchema = z
   .openapi('HookTestRequest')
 
 // Hook Test Response Schema
-export const HookTestResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      exitCode: z.number(),
-      stdout: z.string(),
-      stderr: z.string(),
-      executionTime: z.number()
-    })
-  })
-  .openapi('HookTestResponse')
+const HookTestDataSchema = z.object({
+  exitCode: z.number(),
+  stdout: z.string(),
+  stderr: z.string(),
+  executionTime: z.number()
+}).describe('HookTest')
+
+export const HookTestResponseSchema = createSuccessResponseSchema(HookTestDataSchema, { name: 'HookTest' })
 
 // Queue Item Create Schema
 export const QueueItemCreateSchema = z
@@ -257,189 +218,126 @@ export const QueueItemCreateSchema = z
   })
   .openapi('QueueItemCreate')
 
+// Queue Item Schema
+const QueueItemSchema = z.object({
+  id: z.number(),
+  queueId: z.number(),
+  type: z.string(),
+  data: z.record(z.any()),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  priority: z.number(),
+  scheduledFor: z.number().nullable(),
+  startedAt: z.number().nullable(),
+  completedAt: z.number().nullable(),
+  error: z.string().nullable(),
+  retryCount: z.number(),
+  maxRetries: z.number(),
+  createdAt: z.number(),
+  updatedAt: z.number()
+}).describe('QueueItem')
+
 // Queue Item Response Schema
-export const QueueItemResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      id: z.number(),
-      queueId: z.number(),
-      type: z.string(),
-      data: z.record(z.any()),
-      status: z.enum(['pending', 'processing', 'completed', 'failed']),
-      priority: z.number(),
-      scheduledFor: z.number().nullable(),
-      startedAt: z.number().nullable(),
-      completedAt: z.number().nullable(),
-      error: z.string().nullable(),
-      retryCount: z.number(),
-      maxRetries: z.number(),
-      createdAt: z.number(),
-      updatedAt: z.number()
-    })
+export const QueueItemResponseSchema = createSuccessResponseSchema(QueueItemSchema, { name: 'QueueItem' })
+
+// Queue Stats Schema
+const QueueStatsDataSchema = z.object({
+  queueId: z.number(),
+  name: z.string(),
+  stats: z.object({
+    totalItems: z.number(),
+    pendingItems: z.number(),
+    processingItems: z.number(),
+    completedItems: z.number(),
+    failedItems: z.number(),
+    averageProcessingTime: z.number(),
+    throughputPerHour: z.number(),
+    errorRate: z.number(),
+    oldestPendingItem: z.number().nullable(),
+    lastProcessedItem: z.number().nullable()
   })
-  .openapi('QueueItemResponse')
+}).describe('QueueStats')
 
 // Queue Stats Response Schema
-export const QueueStatsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      queueId: z.number(),
-      name: z.string(),
-      stats: z.object({
-        totalItems: z.number(),
-        pendingItems: z.number(),
-        processingItems: z.number(),
-        completedItems: z.number(),
-        failedItems: z.number(),
-        averageProcessingTime: z.number(),
-        throughputPerHour: z.number(),
-        errorRate: z.number(),
-        oldestPendingItem: z.number().nullable(),
-        lastProcessedItem: z.number().nullable()
-      })
-    })
-  })
-  .openapi('QueueStatsResponse')
+export const QueueStatsResponseSchema = createSuccessResponseSchema(QueueStatsDataSchema, { name: 'QueueStats' })
 
 // =============================================================================
 // MISSING LIST RESPONSE SCHEMAS
 // =============================================================================
 
 // Ticket List Response Schema
-export const TicketListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(TicketSchema)
-  })
-  .openapi('TicketListResponse')
+export const TicketListResponseSchema = createListResponseSchema(TicketSchema, { name: 'Ticket' })
 
 // Chat List Response Schema
-export const ChatListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(ChatSchema)
-  })
-  .openapi('ChatListResponse')
+export const ChatListResponseSchema = createListResponseSchema(ChatSchema, { name: 'Chat' })
 
 // Queue List Response Schema
-export const QueueListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(QueueSchema)
-  })
-  .openapi('QueueListResponse')
+export const QueueListResponseSchema = createListResponseSchema(QueueSchema, { name: 'Queue' })
 
 // Claude Command List Response Schema
-export const ClaudeCommandListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(ClaudeCommandSchema)
-  })
-  .openapi('ClaudeCommandListResponse')
+export const ClaudeCommandListResponseSchema = createListResponseSchema(ClaudeCommandSchema, { name: 'ClaudeCommand' })
 
 // Claude Hook List Response Schema
-export const ClaudeHookListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(ClaudeHookSchema)
-  })
-  .openapi('ClaudeHookListResponse')
+export const ClaudeHookListResponseSchema = createListResponseSchema(ClaudeHookSchema, { name: 'ClaudeHook' })
 
 // Claude Agent Response Schema
-export const ClaudeAgentResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: ClaudeAgentSchema
-  })
-  .openapi('ClaudeAgentResponse')
+export const ClaudeAgentResponseSchema = createSuccessResponseSchema(ClaudeAgentSchema, { name: 'ClaudeAgent' })
 
 // Claude Agent List Response Schema
-export const ClaudeAgentListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(ClaudeAgentSchema)
-  })
-  .openapi('ClaudeAgentListResponse')
+export const ClaudeAgentListResponseSchema = createListResponseSchema(ClaudeAgentSchema, { name: 'ClaudeAgent' })
 
 // Claude Command Response Schema
-export const ClaudeCommandResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: ClaudeCommandSchema
-  })
-  .openapi('ClaudeCommandResponse')
+export const ClaudeCommandResponseSchema = createSuccessResponseSchema(ClaudeCommandSchema, { name: 'ClaudeCommand' })
 
 // Command Execution Response Schema
-export const CommandExecutionResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      result: z.string(),
-      usage: z
-        .object({
-          inputTokens: z.number(),
-          outputTokens: z.number(),
-          totalTokens: z.number()
-        })
-        .optional(),
-      model: z.string().optional(),
-      sessionId: z.string().optional()
+const CommandExecutionDataSchema = z.object({
+  result: z.string(),
+  usage: z
+    .object({
+      inputTokens: z.number(),
+      outputTokens: z.number(),
+      totalTokens: z.number()
     })
-  })
-  .openapi('CommandExecutionResponse')
+    .optional(),
+  model: z.string().optional(),
+  sessionId: z.string().optional()
+}).describe('CommandExecution')
+
+export const CommandExecutionResponseSchema = createSuccessResponseSchema(CommandExecutionDataSchema, { name: 'CommandExecution' })
+
+// Agent Suggestion Schema
+const AgentSuggestionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  path: z.string(),
+  relevanceScore: z.number()
+}).describe('AgentSuggestion')
 
 // Agent Suggestions Response Schema
-export const AgentSuggestionsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-        path: z.string(),
-        relevanceScore: z.number()
-      })
-    )
-  })
-  .openapi('AgentSuggestionsResponse')
+export const AgentSuggestionsResponseSchema = createListResponseSchema(AgentSuggestionSchema, { name: 'AgentSuggestions' })
+
+// Command Suggestion Schema
+const CommandSuggestionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  content: z.string(),
+  category: z.string(),
+  useCase: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard'])
+}).describe('CommandSuggestion')
 
 // Command Suggestions Response Schema
-export const CommandSuggestionsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      suggestions: z.array(
-        z.object({
-          name: z.string(),
-          description: z.string(),
-          content: z.string(),
-          category: z.string(),
-          useCase: z.string(),
-          difficulty: z.enum(['easy', 'medium', 'hard'])
-        })
-      ),
-      reasoning: z.string()
-    })
-  })
-  .openapi('CommandSuggestionsResponse')
+const CommandSuggestionsDataSchema = z.object({
+  suggestions: z.array(CommandSuggestionSchema),
+  reasoning: z.string()
+}).describe('CommandSuggestions')
+
+export const CommandSuggestionsResponseSchema = createSuccessResponseSchema(CommandSuggestionsDataSchema, { name: 'CommandSuggestions' })
 
 // Selected File List Response Schema
-export const SelectedFileListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(SelectedFileSchema)
-  })
-  .openapi('SelectedFileListResponse')
+export const SelectedFileListResponseSchema = createListResponseSchema(SelectedFileSchema, { name: 'SelectedFile' })
 
 // Active Tab List Response Schema
-export const ActiveTabListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(ActiveTabSchema)
-  })
-  .openapi('ActiveTabListResponse')
+export const ActiveTabListResponseSchema = createListResponseSchema(ActiveTabSchema, { name: 'ActiveTab' })
 
 // =============================================================================
 // TYPE EXPORTS

@@ -32,7 +32,7 @@ import {
   Trophy,
   TrendingUp
 } from 'lucide-react'
-import { useTestProvider } from '@/hooks/api-hooks'
+import { useTestProvider } from '@/hooks/generated'
 import type { ProviderKey } from '@/hooks/generated/providers-hooks'
 import type { TestProviderResponse } from '@promptliano/schemas'
 import type { DataResponseSchema } from '@promptliano/api-client'

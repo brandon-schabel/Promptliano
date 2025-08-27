@@ -40,6 +40,17 @@ export function createProviderKeyService() {
     return providerKeyRepository
   }
 
+  /**
+   * Helper function to mask API keys for security
+   * Shows first 4 and last 4 characters with asterisks in between
+   * @param key The API key to mask
+   * @returns Masked version of the key
+   */
+  function maskApiKey(key: string): string {
+    if (!key || key.length <= 8) return '********'
+    return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
+  }
+
   async function createKey(data: CreateProviderKeyInput & { key?: string }): Promise<ProviderKey> {
     return withErrorContext(
       async () => {
@@ -84,8 +95,9 @@ export function createProviderKeyService() {
         const repository = await getRepository()
         const createdKey = (await repository.create(newKeyData as any)) as ProviderKey
 
-        // Return the key with decrypted value
-        return { ...createdKey, key: data.key || '' }
+        // SECURITY: Return the key with masked value, not the actual decrypted key
+        // This prevents accidental exposure of API keys in logs or responses
+        return { ...createdKey, key: maskApiKey(data.key || '') }
       },
       { entity: 'ProviderKey', action: 'create' }
     )
@@ -99,17 +111,8 @@ export function createProviderKeyService() {
         const allKeys = await repository.getAll('desc')
 
         const keyList = (allKeys as ProviderKey[]).map((key) => {
-          // For encrypted keys, we don't decrypt them, just show a generic mask
-          if (key.encrypted) {
-            return { ...key, key: '********' }
-          }
-          // For unencrypted keys (legacy), mask them properly
-          const keyValue = key.key || ''
-          const maskedKey =
-            keyValue.length > 8
-              ? `${keyValue.substring(0, 4)}****${keyValue.substring(keyValue.length - 4)}`
-              : '********'
-          return { ...key, key: maskedKey }
+          // Use consistent masking function for all keys
+          return { ...key, key: maskApiKey(key.encrypted ? '********' : key.key || '') }
         })
 
         // Sort by provider, then by createdAt descending
@@ -667,6 +670,14 @@ function createRouteCompatibleProviderKeyService() {
       return await mainService.listKeysCensoredKeys()
     },
 
+    async getAll(): Promise<ProviderKey[]> {
+      return await mainService.listKeysCensoredKeys()
+    },
+
+    async get(id: number | string): Promise<ProviderKey | null> {
+      return await mainService.getKeyById(Number(id))
+    },
+
     async getById(id: number | string): Promise<ProviderKey> {
       const key = await mainService.getKeyById(Number(id))
       if (!key) {
@@ -676,6 +687,7 @@ function createRouteCompatibleProviderKeyService() {
     },
 
     async create(data: CreateProviderKeyInput & { key?: string }): Promise<ProviderKey> {
+      // SECURITY: createKey now returns masked key by default
       return await mainService.createKey(data)
     },
 

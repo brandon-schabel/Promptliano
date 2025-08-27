@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect, useMemo } from 'react'
 import type { APIProviders } from '@promptliano/database'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useGetModels } from '@/hooks/api-hooks'
+import { useGetModels } from '@/hooks/generated'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { validateModelsArray, type ValidatedModelData, extractErrorMessage } from '@/utils/type-guards'
 

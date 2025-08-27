@@ -1,105 +1,102 @@
-import { describe, test, expect, beforeEach, afterEach, afterAll } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
-import {
-  createQueue,
-  getQueueById,
-  updateQueue,
-  deleteQueue,
-  pauseQueue,
-  resumeQueue,
-  enqueueTicket,
-  dequeueTicket,
-  enqueueTask,
-  dequeueTask,
-  getQueueStats,
-  completeQueueItem,
-  getNextTaskFromQueue
-} from './queue-service'
-import { createProject, deleteProject } from './project-service'
-import { createTicket, createTask, getTicketById, updateTicket, updateTask, getTasks } from './ticket-service'
-// TODO: Implement test utilities with Drizzle
-import { storageService } from '@promptliano/database'
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment } from './test-utils/test-environment'
+import { queues, createBaseRepository, extendRepository } from '@promptliano/database'
+import { eq } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 
-describe('Queue Core Functionality', () => {
-  let testProjectId: number
-  let testResources: Array<{ type: 'project' | 'ticket' | 'task' | 'queue'; id: number }> = []
+// Create test environment for core functionality tests
+const testEnv = createTestEnvironment({ 
+  suiteName: 'queue-core-functionality',
+  isolateDatabase: true,
+  verbose: false
+})
 
-  // Generate unique suffix for this test suite
-  const suiteId = randomBytes(6).toString('hex')
+describe('Queue Core Functionality', () => {
+  let queueService: ReturnType<typeof createQueueService>
+  let flowService: ReturnType<typeof createFlowService>
+  let testContext: Awaited<ReturnType<typeof testEnv.setupTest>>
+
+  // Test configuration
   const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test'
   const testTimeout = isCI ? 15000 : 10000
-  const asyncWaitTime = isCI ? 100 : 50
 
   beforeEach(async () => {
-    // Reset test resources tracking
-    testResources = []
-
-    // Complete database reset for isolation
-    // TODO: Implement test database reset with Drizzle
-
-    // Add small delay in CI to prevent race conditions
-    if (isCI) {
-      await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-    }
-
-    const projectSuffix = randomBytes(4).toString('hex')
-    const project = await createProject({
-      name: `Core Test Project ${suiteId}-${projectSuffix}`,
-      path: `/test/core-${suiteId}-${projectSuffix}`
+    // Setup test environment with automatic resource tracking
+    testContext = await testEnv.setupTest()
+    
+    // Create queue service with test database and extended repository
+    const baseQueueRepository = createBaseRepository(queues, testContext.testDb.db, undefined, 'Queue')
+    const testQueueRepository = extendRepository(baseQueueRepository, {
+      async getByProject(projectId: number) {
+        return baseQueueRepository.findWhere(eq(queues.projectId, projectId))
+      },
+      async getActive(projectId?: number) {
+        const conditions = [eq(queues.isActive, true)]
+        if (projectId) {
+          conditions.push(eq(queues.projectId, projectId))
+        }
+        return baseQueueRepository.findWhere(eq(queues.isActive, true))
+      },
+      // Add missing methods that the queue service expects
+      async getItems(queueId: number) {
+        return []
+      },
+      async getWithItems(id: number) {
+        const queue = await baseQueueRepository.getById(id)
+        if (!queue) return null
+        return { ...queue, items: [] }
+      },
+      async addItem(data: any) {
+        return { id: Date.now(), ...data, createdAt: Date.now(), updatedAt: Date.now() }
+      },
+      async getItemById(id: number) { return null },
+      async removeItem(id: number) { return true },
+      async updateItem(id: number, data: any) {
+        return { id, ...data, createdAt: Date.now(), updatedAt: Date.now() }
+      },
+      async deleteItem(id: number) { return true },
+      async getNextItem(queueId: number) { return null },
+      async getQueueStats(queueId: number) {
+        return { totalItems: 0, queuedItems: 0, processingItems: 0, completedItems: 0, failedItems: 0 }
+      }
     })
-    testProjectId = project.id
-    testResources.push({ type: 'project', id: project.id })
+    
+    // Create services with test repositories
+    queueService = createQueueService({ queueRepository: testQueueRepository })
+    flowService = createFlowService()
+    
+    // Create default test project
+    await testContext.createTestProject('core-tests')
   })
 
   afterEach(async () => {
-    // Clean up test resources in reverse order to avoid foreign key constraints
-    for (const resource of testResources.reverse()) {
-      try {
-        switch (resource.type) {
-          case 'queue':
-            await deleteQueue(resource.id).catch(() => {})
-            break
-          case 'project':
-            await deleteProject(resource.id).catch(() => {})
-            break
-          // Tickets and tasks are cleaned up via cascading deletes
-        }
-      } catch (error) {
-        // Ignore cleanup errors - database reset will handle remaining items
-      }
-    }
-
-    // Additional delay in CI to prevent race conditions between tests
-    if (isCI) {
-      await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-    }
+    // Cleanup test environment and all tracked resources
+    await testEnv.cleanupTest()
   })
 
-  afterAll(async () => {
-    // TODO: Implement clear all data with Drizzle
-    resetDatabaseInstance()
-  })
 
   describe('Queue CRUD Operations', () => {
     test(
       'should create queue with defaults',
       async () => {
-        const queueSuffix = randomBytes(4).toString('hex')
-        const queue = await createQueue({
-          projectId: testProjectId,
-          name: `Default Queue ${suiteId}-${queueSuffix}`,
+        const queueName = testContext.generateTestName('Default Queue')
+        const queue = await queueService.create({
+          projectId: testContext.testProjectId!,
+          name: queueName,
           description: 'Testing defaults'
         })
-        testResources.push({ type: 'queue', id: queue.id })
+        testContext.trackResource('queue', queue.id)
 
         expect(queue.id).toBeDefined()
-        expect(queue.name).toBe(`Default Queue ${suiteId}-${queueSuffix}`)
+        expect(queue.name).toBe(queueName)
         expect(queue.description).toBe('Testing defaults')
         expect(queue.status).toBe('active')
         expect(queue.maxParallelItems).toBe(1)
-        expect(queue.created).toBeDefined()
-        expect(queue.updated).toBeDefined()
+        expect(queue.createdAt).toBeDefined()
+        expect(queue.updatedAt).toBeDefined()
       },
       testTimeout
     )
@@ -107,27 +104,23 @@ describe('Queue Core Functionality', () => {
     test(
       'should update queue properties',
       async () => {
-        const queueSuffix = randomBytes(4).toString('hex')
-        const queue = await createQueue({
-          projectId: testProjectId,
-          name: `Original Name ${suiteId}-${queueSuffix}`,
+        const originalName = testContext.generateTestName('Original Name')
+        const updatedName = testContext.generateTestName('Updated Name')
+        const queue = await queueService.create({
+          projectId: testContext.testProjectId!,
+          name: originalName,
           description: 'Original'
         })
-        testResources.push({ type: 'queue', id: queue.id })
+        testContext.trackResource('queue', queue.id)
 
-        // Add delay in CI to ensure creation is committed before update
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        const updated = await updateQueue(queue.id, {
-          name: `Updated Name ${suiteId}-${queueSuffix}`,
+        const updated = await queueService.update(queue.id, {
+          name: updatedName,
           description: 'Updated description',
           maxParallelItems: 5
         })
 
         expect(updated.id).toBe(queue.id)
-        expect(updated.name).toBe(`Updated Name ${suiteId}-${queueSuffix}`)
+        expect(updated.name).toBe(updatedName)
         expect(updated.description).toBe('Updated description')
         expect(updated.maxParallelItems).toBe(5)
       },
@@ -137,30 +130,20 @@ describe('Queue Core Functionality', () => {
     test(
       'should pause and resume queue',
       async () => {
-        const queueSuffix = randomBytes(4).toString('hex')
-        const queue = await createQueue({
-          projectId: testProjectId,
-          name: `Pausable Queue ${suiteId}-${queueSuffix}`
+        const queueName = testContext.generateTestName('Pausable Queue')
+        const queue = await queueService.create({
+          projectId: testContext.testProjectId!,
+          name: queueName
         })
-        testResources.push({ type: 'queue', id: queue.id })
+        testContext.trackResource('queue', queue.id)
 
         expect(queue.status).toBe('active')
 
-        // Add delay in CI to ensure creation is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        const paused = await pauseQueue(queue.id)
+        const paused = await queueService.setStatus(queue.id, false)
         expect(paused.status).toBe('paused')
         expect(paused.id).toBe(queue.id)
 
-        // Add delay in CI to ensure pause is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        const resumed = await resumeQueue(queue.id)
+        const resumed = await queueService.setStatus(queue.id, true)
         expect(resumed.status).toBe('active')
         expect(resumed.id).toBe(queue.id)
       },
@@ -170,27 +153,17 @@ describe('Queue Core Functionality', () => {
     test(
       'should delete queue',
       async () => {
-        const queueSuffix = randomBytes(4).toString('hex')
-        const queue = await createQueue({
-          projectId: testProjectId,
-          name: `Deletable Queue ${suiteId}-${queueSuffix}`
+        const queueName = testContext.generateTestName('Deletable Queue')
+        const queue = await queueService.create({
+          projectId: testContext.testProjectId!,
+          name: queueName
         })
-        // Don't add to testResources since we're testing deletion
+        // Don't track in testResources since we're testing deletion
 
-        // Add delay in CI to ensure creation is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
+        await queueService.delete!(queue.id)
 
-        await deleteQueue(queue.id)
-
-        // Add delay in CI to ensure deletion is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        await expect(getQueueById(queue.id)).rejects.toThrow(ApiError)
-        await expect(getQueueById(queue.id)).rejects.toThrow(/not found/)
+        await expect(queueService.getById(queue.id)).rejects.toThrow(ApiError)
+        await expect(queueService.getById(queue.id)).rejects.toThrow(/not found/)
       },
       testTimeout
     )
@@ -200,38 +173,15 @@ describe('Queue Core Functionality', () => {
     let testQueue: any
 
     beforeEach(async () => {
-      const queueSuffix = randomBytes(4).toString('hex')
-      testQueue = await createQueue({
-        projectId: testProjectId,
-        name: `Ticket Queue ${suiteId}-${queueSuffix}`
-      })
-      testResources.push({ type: 'queue', id: testQueue.id })
-
-      // Add delay in CI to ensure queue creation is committed
-      if (isCI) {
-        await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-      }
+      testQueue = await testContext.createTestQueue()
     })
 
     test(
       'should enqueue single ticket',
       async () => {
-        const ticketSuffix = randomBytes(4).toString('hex')
-        const ticket = await createTicket({
-          projectId: testProjectId,
-          title: `Test Ticket ${suiteId}-${ticketSuffix}`,
-          status: 'open',
-          priority: 'high',
-          overview: ''
-        })
-        testResources.push({ type: 'ticket', id: ticket.id })
+        const ticket = await testContext.createTestTicket()
 
-        // Add delay in CI to ensure ticket creation is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        const enqueued = await enqueueTicket(ticket.id, testQueue.id, 10)
+        const enqueued = await flowService.enqueueTicket(ticket.id, testQueue.id, 10)
 
         expect(enqueued.id).toBe(ticket.id)
         expect(enqueued.queueId).toBe(testQueue.id)
@@ -245,30 +195,17 @@ describe('Queue Core Functionality', () => {
     test(
       'should dequeue ticket',
       async () => {
-        const ticketSuffix = randomBytes(4).toString('hex')
-        const ticket = await createTicket({
-          projectId: testProjectId,
-          title: `Dequeue Test ${suiteId}-${ticketSuffix}`,
-          status: 'open',
-          priority: 'normal',
-          overview: ''
-        })
-        testResources.push({ type: 'ticket', id: ticket.id })
+        const ticket = await testContext.createTestTicket()
 
-        await enqueueTicket(ticket.id, testQueue.id, 5)
+        await flowService.enqueueTicket(ticket.id, testQueue.id, 5)
 
-        // Add delay in CI to ensure enqueue is committed
-        if (isCI) {
-          await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
-        }
-
-        const dequeued = await dequeueTicket(ticket.id)
+        const dequeued = await flowService.dequeueTicket(ticket.id)
 
         expect(dequeued.id).toBe(ticket.id)
-        expect(dequeued.queueId).toBeUndefined()
-        expect(dequeued.queueStatus).toBeUndefined()
-        expect(dequeued.queuePriority).toBeUndefined()
-        expect(dequeued.queuedAt == null).toBe(true)
+        expect(dequeued.queueId).toBeNull()
+        expect(dequeued.queueStatus).toBeNull()
+        expect(dequeued.queuePriority).toBeNull()
+        expect(dequeued.queuedAt).toBeNull()
       },
       testTimeout
     )

@@ -48,7 +48,7 @@ import {
   PROVIDER_KEYS_KEYS,
   invalidateWithRelationships
 } from './query-keys'
-import type {
+import {
   ProjectSchema,
   CreateProject,
   UpdateProject,

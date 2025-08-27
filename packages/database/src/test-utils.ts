@@ -155,18 +155,45 @@ function createTestTables(sqlite: Database) {
     )
   `)
 
+  // Prompts table (MISSING!)
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS prompts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES projects(id),
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      description TEXT,
+      tags TEXT DEFAULT '[]' NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+    )
+  `)
+
+  // Chats table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS chats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES projects(id),
+      title TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+    )
+  `)
+
   // Add indexes
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_tickets_project ON tickets(project_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_queue_items_queue ON queue_items(queue_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_queue_items_status ON queue_items(status)')
+  sqlite.exec('CREATE INDEX IF NOT EXISTS idx_prompts_project ON prompts(project_id)')
+  sqlite.exec('CREATE INDEX IF NOT EXISTS idx_chats_project ON chats(project_id)')
 }
 
 /**
  * Clear all data from test database
  */
 function clearAllData(sqlite: Database) {
-  const tables = ['queue_items', 'queues', 'ticket_tasks', 'tickets', 'projects']
+  const tables = ['queue_items', 'queues', 'ticket_tasks', 'tickets', 'prompts', 'chats', 'projects']
 
   for (const table of tables) {
     try {

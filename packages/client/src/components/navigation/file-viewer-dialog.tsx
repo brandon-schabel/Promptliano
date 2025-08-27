@@ -14,7 +14,7 @@ import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 import { ProjectFile } from '@promptliano/schemas'
 import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { useUpdateFileContent } from '@/hooks/api-hooks'
-import { useProjectGitStatus, useFileDiff } from '@/hooks/api-hooks'
+import { useProjectGitStatus, useFileDiff } from '@/hooks/generated'
 import { toast } from 'sonner'
 
 type FileViewerDialogProps = {

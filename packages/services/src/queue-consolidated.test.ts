@@ -1,133 +1,87 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
-import {
-  createQueue,
-  getQueueById,
-  listQueuesByProject,
-  updateQueue,
-  deleteQueue,
-  pauseQueue,
-  resumeQueue,
-  enqueueItem,
-  batchEnqueueItems,
-  dequeueTicket,
-  getNextTaskFromQueue,
-  getQueueStats,
-  getQueuesWithStats,
-  moveItemToQueue,
-  completeQueueItem,
-  failQueueItem,
-  getUnqueuedItems
-} from './queue-service'
-import { createProject, deleteProject } from './project-service'
-import { createTicket, updateTicket, deleteTicket } from './ticket-service'
-import { createTask, updateTask } from './ticket-service'
-import { db } from '@promptliano/database'
-// Database test utilities - to be implemented with Drizzle
+import { createQueueService } from './queue-service'
+import { createFlowService } from './flow-service'
+import { createTestEnvironment, testRepositoryHelpers } from './test-utils/test-environment'
 import { randomBytes } from 'crypto'
 
-// Test database instance - using the global db for now
-let testDb: typeof db = db
-
-// Helper functions to match old API signatures
-const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {
-  return await enqueueItem(queueId, {
-    type: 'ticket',
-    referenceId: ticketId,
-    title: `Ticket ${ticketId}`,
-    priority
-  })
-}
-
-const enqueueTask = async (ticketId: number, taskId: number, queueId: number, priority: number) => {
-  return await enqueueItem(queueId, {
-    type: 'task',
-    referenceId: taskId,
-    title: `Task ${taskId}`,
-    priority
-  })
-}
-
-const dequeueTask = async (ticketId: number, taskId: number) => {
-  // Simplified - in reality would need to find and remove from queue
-  return true
-}
-
-const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number) => {
-  // Simplified version - enqueue ticket and its tasks
-  const { createTask } = await import('./ticket-service')
-  const items = [{ ticketId, priority: 5 }]
-  return await batchEnqueueItems(queueId, items)
-}
+// Create test environment for consolidated tests
+const testEnv = createTestEnvironment({ 
+  suiteName: 'queue-consolidated',
+  isolateDatabase: true,
+  verbose: false
+})
 
 describe('Consolidated Queue System Tests', () => {
-  let testProjectId: number
+  let queueService: ReturnType<typeof createQueueService>
+  let flowService: ReturnType<typeof createFlowService>
+  let testContext: Awaited<ReturnType<typeof testEnv.setupTest>>
   let testQueueId: number
   let testQueueName: string
-  // Generate unique suffix for this test suite
-  const suiteId = randomBytes(4).toString('hex')
 
   beforeEach(async () => {
-    // Database is already initialized through import
-    // TODO: Implement test database reset with Drizzle
+    // Setup test environment with automatic resource tracking
+    testContext = await testEnv.setupTest()
+    
+    // Create queue service with standardized test repository
+    const testQueueRepository = testRepositoryHelpers.createQueueRepository(testContext.testDb.db)
+    
+    // Create services with test repositories
+    queueService = createQueueService({ queueRepository: testQueueRepository })
+    flowService = createFlowService()
+    
+    // Create default test project
+    await testContext.createTestProject('consolidated-tests')
 
-    // Create a test project with unique name
-    const projectSuffix = randomBytes(4).toString('hex')
-    const project = await createProject({
-      name: `Queue Test Project ${suiteId}-${projectSuffix}`,
-      path: `/test/queue-${suiteId}-${projectSuffix}`,
-      description: 'Test project for queue consolidation'
-    })
-    testProjectId = project.id
-
-    // Create a test queue with unique name to avoid conflicts
-    const queueSuffix = randomBytes(4).toString('hex')
-    testQueueName = `Test Queue ${suiteId}-${queueSuffix}`
-    const queue = await createQueue({
-      projectId: testProjectId,
+    // Create a test queue for most tests
+    testQueueName = testContext.generateTestName('Test Queue')
+    const queue = await queueService.create({
+      projectId: testContext.testProjectId!,
       name: testQueueName,
       description: 'Testing consolidated queue system'
     })
     testQueueId = queue.id
+    testContext.trackResource('queue', queue.id)
   })
 
   afterEach(async () => {
-    // Clean up test database - db is shared, don't close it
-    // In a real test setup, we'd use a separate test database
+    // Cleanup test environment and all tracked resources
+    await testEnv.cleanupTest()
   })
 
   describe('Queue CRUD Operations', () => {
     test('should create a queue with default values', async () => {
-      const queueSuffix = randomBytes(4).toString('hex')
-      const queue = await createQueue({
-        projectId: testProjectId,
-        name: `Another Test Queue ${suiteId}-${queueSuffix}`,
+      const queueName = testContext.generateTestName('Another Test Queue')
+      const queue = await queueService.create({
+        projectId: testContext.testProjectId!,
+        name: queueName,
         description: 'Test description'
       })
+      testContext.trackResource('queue', queue.id)
 
       expect(queue).toBeDefined()
-      expect(queue.name).toBe(`Another Test Queue ${suiteId}-${queueSuffix}`)
+      expect(queue.name).toBe(queueName)
       expect(queue.status).toBe('active')
       expect(queue.maxParallelItems).toBe(1)
     })
 
     test('should get queue by ID', async () => {
-      const queue = await getQueueById(testQueueId)
+      const queue = await queueService.getById(testQueueId)
 
       expect(queue).toBeDefined()
       expect(queue.id).toBe(testQueueId)
       expect(queue.name).toBe(testQueueName)
     })
 
-    test.skip('should list queues by project', async () => {
-      const queues = await listQueuesByProject(testProjectId)
+    test('should list queues by project', async () => {
+      const queues = await queueService.getByProject(testContext.testProjectId!)
 
       expect(queues.length).toBeGreaterThan(0)
       expect(queues.some((q) => q.id === testQueueId)).toBe(true)
     })
 
-    test.skip('should update queue properties', async () => {
-      const updated = await updateQueue(testQueueId, {
+    test('should update queue properties', async () => {
+      const updated = await queueService.update(testQueueId, {
         name: 'Updated Queue Name',
         maxParallelItems: 5
       })
@@ -137,10 +91,10 @@ describe('Consolidated Queue System Tests', () => {
     })
 
     test('should pause and resume queue', async () => {
-      const paused = await pauseQueue(testQueueId)
+      const paused = await queueService.setStatus(testQueueId, false)
       expect(paused.status).toBe('paused')
 
-      const resumed = await resumeQueue(testQueueId)
+      const resumed = await queueService.setStatus(testQueueId, true)
       expect(resumed.status).toBe('active')
     })
   })
@@ -150,18 +104,12 @@ describe('Consolidated Queue System Tests', () => {
 
     beforeEach(async () => {
       // Create a test ticket
-      const ticket = await createTicket({
-        projectId: testProjectId,
-        title: 'Test Ticket',
-        overview: 'For queue testing',
-        status: 'open',
-        priority: 'normal'
-      })
+      const ticket = await testContext.createTestTicket()
       testTicketId = ticket.id
     })
 
     test('should enqueue ticket with queue fields', async () => {
-      const enqueued = await enqueueTicket(testTicketId, testQueueId, 5)
+      const enqueued = await flowService.enqueueTicket(testTicketId, testQueueId, 5)
 
       expect(enqueued.queueId).toBe(testQueueId)
       expect(enqueued.queueStatus).toBe('queued')
@@ -169,16 +117,16 @@ describe('Consolidated Queue System Tests', () => {
       expect(enqueued.queuedAt).toBeDefined()
     })
 
-    test.skip('should dequeue ticket by clearing queue fields', async () => {
+    test('should dequeue ticket by clearing queue fields', async () => {
       // First enqueue
-      await enqueueTicket(testTicketId, testQueueId, 5)
+      await flowService.enqueueTicket(testTicketId, testQueueId, 5)
 
       // Then dequeue
-      const dequeued = await dequeueTicket(testTicketId)
+      const dequeued = await flowService.dequeueTicket(testTicketId)
 
       expect(dequeued.queueId).toBeNull()
       expect(dequeued.queueStatus).toBeNull()
-      expect(dequeued.queuePriority).toBe(0)
+      expect(dequeued.queuePriority).toBeNull()
     })
 
     test.skip('should prevent duplicate enqueueing', async () => {

@@ -114,10 +114,10 @@ export function createStandardResponsesWithStatus(
  * Wrapper for route handlers with automatic error handling using ErrorFactory
  * Reduces repetitive try-catch blocks and provides consistent error formatting
  */
-export function withErrorHandling<T extends any[], R>(
-  handler: (c: Context, ...args: T) => Promise<R>
-): (c: Context, ...args: T) => Promise<R> {
-  return async (c: Context, ...args: T): Promise<R> => {
+export function withErrorHandling<C extends Context, T extends any[], R>(
+  handler: (c: C, ...args: T) => Promise<R>
+): (c: C, ...args: T) => Promise<R> {
+  return async (c: C, ...args: T): Promise<R> => {
     try {
       return await handler(c, ...args)
     } catch (error) {

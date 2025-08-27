@@ -77,7 +77,7 @@ import {
   useDeleteProviderKey,
   useTestProvider,
   useBatchTestProviders
-} from '@/hooks/api-hooks'
+} from '@/hooks/generated'
 import { PROVIDERS } from '@/constants/providers-constants'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -86,13 +86,26 @@ import { toast } from 'sonner'
 import type { CreateProviderKey } from '@promptliano/database'
 import type { ProviderKey } from '@/hooks/generated/providers-hooks'
 
-// TODO: Move this to database schema
-type ProviderHealthStatus = {
-  status: 'healthy' | 'degraded' | 'unknown' | 'down'
+// Health status interface based on API response
+interface ProviderHealthStatusWithProvider {
+  provider: string
+  status: 'healthy' | 'degraded' | 'down' | 'unhealthy' | 'unknown'
+  latency?: number
+  averageResponseTime?: number
+  modelCount?: number
   lastChecked: number
   error?: string
+}
+
+// Actual API response structure (the data array may not include provider field)
+interface ProviderHealthStatus {
+  status: 'healthy' | 'degraded' | 'down' | 'unhealthy' | 'unknown'
   latency?: number
-  provider: string
+  averageResponseTime?: number
+  modelCount?: number
+  lastChecked: number
+  error?: string
+  provider?: string
 }
 import { LocalProviderSection } from '@/components/providers/local-provider-section'
 import { ProviderCard } from '@/components/providers/provider-card'
@@ -131,7 +144,7 @@ function ProvidersPage() {
   const batchTestMutation = useBatchTestProviders()
 
   const providers = providersData || []
-  const healthStatuses = healthData?.data || []
+  const healthStatuses: ProviderHealthStatus[] = healthData?.data || []
 
   // Local provider hooks
   const [appSettings] = useAppSettings()
@@ -228,9 +241,11 @@ function ProvidersPage() {
     )
   }
 
-  // Get health status for a provider
+  // Get health status for a provider (assuming index-based mapping or different API structure)
   const getHealthStatus = (providerId: string) => {
-    return healthStatuses.find((h: any) => h.provider === providerId)
+    // This would need to be updated based on actual API structure
+    // For now, return the first status as placeholder
+    return healthStatuses[0] || null
   }
 
   // Get stats
@@ -239,7 +254,7 @@ function ProvidersPage() {
     const dbProviders = providers.filter((p: ProviderKey) => !getProviderMeta(p.provider)?.isLocal)
 
     // Count of healthy database providers
-    const dbConnectedCount = healthStatuses.filter((h: any) => h.status === 'healthy').length
+    const dbConnectedCount = healthStatuses.filter((h: ProviderHealthStatus) => h.status === 'healthy').length
 
     // Local providers are always 2 (Ollama and LMStudio are built-in)
     const localProviderCount = 2

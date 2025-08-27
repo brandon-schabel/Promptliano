@@ -11,7 +11,7 @@ import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Loader2, Sparkles, FileText } from 'lucide-react'
 import { useCreateHook, useUpdateHook, useGenerateHook } from '@/hooks/api-hooks'
-import { useGetProject } from '@/hooks/api-hooks'
+import { useProject } from '@/hooks/generated'
 import { HOOK_TEMPLATES, getTemplatesByCategory, type HookTemplate } from '@promptliano/shared'
 import type { HookEventType, CreateHookConfigBody, UpdateHookConfigBody } from '@promptliano/schemas'
 import { toast } from 'sonner'
@@ -56,7 +56,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
   const [timeout, setTimeout] = useState(initialData?.timeout?.toString() || '')
 
   // API hooks
-  const { data: project } = useGetProject(projectId)
+  const { data: project } = useProject(projectId)
   const projectPath = project?.path || ''
   const createHook = useCreateHook(projectPath)
   const updateHook = useUpdateHook(projectPath)

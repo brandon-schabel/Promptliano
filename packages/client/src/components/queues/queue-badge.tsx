@@ -3,7 +3,7 @@ import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
 import { useNavigate } from '@tanstack/react-router'
-import { useQueue } from '@/hooks/api-hooks'
+import { useQueue } from '@/hooks/generated'
 import { Loader2, Inbox, Pause, Play, AlertCircle, Clock, CheckCircle } from 'lucide-react'
 import type { Ticket, TicketTask } from '@/hooks/generated/types'
 

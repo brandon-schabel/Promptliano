@@ -170,7 +170,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
             }
           }
 
-          return await baseService.update(ticketId, { status })
+          return await baseService.update(ticketId, { status } as UpdateTicketBody)
         },
         { entity: 'Ticket', action: 'updateStatus', id: ticketId }
       )
@@ -271,7 +271,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
 
           let archivedCount = 0
           for (const ticket of oldClosedTickets) {
-            await baseService.update(ticket.id, { status: 'closed' }) // Note: 'archived' is not a valid TicketStatus, using 'closed'
+            await baseService.update(ticket.id, { status: 'closed' } as UpdateTicketBody) // Note: 'archived' is not a valid TicketStatus, using 'closed'
             archivedCount++
           }
 

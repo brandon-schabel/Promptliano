@@ -9,7 +9,7 @@ import { Textarea } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Loader2 } from 'lucide-react'
-import { useCreateAgent, useUpdateAgent, useAgent } from '@/hooks/api-hooks'
+import { useCreateAgent, useUpdateAgent, useAgent } from '@/hooks/generated'
 import type { ClaudeAgent } from '@promptliano/database'
 
 const agentFormSchema = z.object({

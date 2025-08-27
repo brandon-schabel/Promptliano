@@ -9,11 +9,11 @@ import { Slider } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
-import { useGetQueuesWithStats } from '@/hooks/api-hooks'
-import { useEnqueueTicket } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats } from '@/hooks/generated'
+import { useEnqueueTicket } from '@/hooks/generated'
 import { toast } from 'sonner'
 import { Inbox, Clock, CheckCircle2, AlertCircle, Pause, Play, Loader2, ListPlus } from 'lucide-react'
-import type { QueueWithStats } from '@promptliano/schemas'
+// QueueWithStats type not used - queue data comes from hook with different structure
 
 interface AddToQueueDialogProps {
   isOpen: boolean
@@ -61,8 +61,8 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
     }
   }
 
-  const getQueueItemCount = (stats: QueueWithStats['stats']) => {
-    const total = stats.queuedItems + stats.inProgressItems
+  const getQueueItemCount = (stats: any) => {
+    const total = (stats?.pending || 0) + (stats?.processing || 0)
     return total
   }
 
@@ -96,23 +96,23 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues.map((queueData) => {
-                      const isSelected = selectedQueueId === queueData.queue.id
+                    {queues.map((queueData: any) => {
+                      const isSelected = selectedQueueId === queueData.id
                       const itemCount = getQueueItemCount(queueData.stats)
 
                       return (
-                        <div key={queueData.queue.id} className='relative'>
+                        <div key={queueData.id} className='relative'>
                           <RadioGroupItem
-                            value={queueData.queue.id.toString()}
-                            id={`queue-${queueData.queue.id}`}
+                            value={queueData.id.toString()}
+                            id={`queue-${queueData.id}`}
                             className='peer sr-only'
                           />
-                          <Label htmlFor={`queue-${queueData.queue.id}`} className='cursor-pointer'>
+                          <Label htmlFor={`queue-${queueData.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
                                 'transition-all hover:shadow-md',
                                 isSelected && 'ring-2 ring-primary shadow-md',
-                                queueData.queue.status === 'paused' && 'opacity-60'
+                                (queueData.status ?? 'active') === 'paused' && 'opacity-60'
                               )}
                             >
                               <CardContent className='p-3'>
@@ -120,31 +120,31 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
                                   <div className='flex-1'>
                                     <div className='flex items-center gap-2 mb-1'>
                                       <Inbox className='h-4 w-4 text-muted-foreground' />
-                                      <span className='font-medium'>{queueData.queue.name}</span>
+                                      <span className='font-medium'>{queueData.name}</span>
                                     </div>
-                                    {queueData.queue.description && (
+                                    {queueData.description && (
                                       <p className='text-xs text-muted-foreground mb-2 line-clamp-1'>
-                                        {queueData.queue.description}
+                                        {queueData.description}
                                       </p>
                                     )}
                                     <div className='flex items-center gap-3 text-xs'>
                                       <Badge variant='secondary' className='text-xs'>
-                                        {getQueueStatusIcon(queueData.queue.status ?? 'inactive')}
-                                        <span className='ml-1'>{queueData.queue.status}</span>
+                                        {getQueueStatusIcon(queueData.status ?? 'inactive')}
+                                        <span className='ml-1'>{queueData.status ?? 'inactive'}</span>
                                       </Badge>
                                       <span className='text-muted-foreground'>
                                         {itemCount === 0 ? 'Empty' : itemCount === 1 ? '1 item' : `${itemCount} items`}
                                       </span>
-                                      {queueData.stats.failedItems > 0 && (
+                                      {(queueData.stats?.failed || 0) > 0 && (
                                         <span className='flex items-center gap-1 text-red-600'>
                                           <AlertCircle className='h-3 w-3' />
-                                          {queueData.stats.failedItems} failed
+                                          {queueData.stats.failed} failed
                                         </span>
                                       )}
-                                      {queueData.stats.completedItems > 0 && (
+                                      {(queueData.stats?.completed || 0) > 0 && (
                                         <span className='flex items-center gap-1 text-green-600'>
                                           <CheckCircle2 className='h-3 w-3' />
-                                          {queueData.stats.completedItems}
+                                          {queueData.stats.completed}
                                         </span>
                                       )}
                                     </div>

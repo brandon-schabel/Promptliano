@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b tsconfig.app.json && vite build",
+    "build:prod": "tsc -b tsconfig.app.json && vite build",
     "preview": "vite preview",
     "test": "bun test",
     "test:e2e": "playwright test",

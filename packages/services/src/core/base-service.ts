@@ -3,8 +3,14 @@
  * Replaces BaseService class with functional composition approach for 75% code reduction
  */
 
-import { ErrorFactory } from '@promptliano/shared'
+import * as SharedModule from '@promptliano/shared'
 import { z } from 'zod'
+
+// Defensive import to handle potential module resolution issues
+const ErrorFactory = SharedModule.ErrorFactory || SharedModule.default?.ErrorFactory
+if (!ErrorFactory || typeof ErrorFactory.operationFailed !== 'function') {
+  throw new Error('ErrorFactory not properly imported from @promptliano/shared. Available exports: ' + Object.keys(SharedModule).join(', '))
+}
 
 export interface ServiceLogger {
   info(msg: string, meta?: any): void
@@ -86,10 +92,11 @@ export function createServiceLogger(serviceName: string): ServiceLogger {
  */
 export interface StandardServiceInterface<TEntity, TCreate, TUpdate> {
   list: () => Promise<TEntity[]>
+  get: (id: number | string) => Promise<TEntity | null>
   getById: (id: number | string) => Promise<TEntity>
   create: (data: TCreate) => Promise<TEntity>
   update: (id: number | string, data: TUpdate) => Promise<TEntity>
-  delete?: (id: number | string) => Promise<boolean>
+  delete: (id: number | string) => Promise<boolean>
   deleteCascade?: (id: number | string) => Promise<boolean>
 }
 
@@ -130,6 +137,18 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
     },
 
     /**
+     * Get entity by ID (returns null if not found) - route factory compatible
+     */
+    async get(id: number | string): Promise<TEntity | null> {
+      return withErrorContext(
+        async () => {
+          return await repository.getById(id)
+        },
+        { entity: entityName, action: 'get', id }
+      )
+    },
+
+    /**
      * Get entity by ID with existence check (route factory compatible)
      */
     async getById(id: number | string): Promise<TEntity> {
@@ -139,7 +158,7 @@ export function createCrudService<TEntity extends { id: number | string }, TCrea
           assertExists(entity, entityName, id)
           return entity
         },
-        { entity: entityName, action: 'get', id }
+        { entity: entityName, action: 'getById', id }
       )
     },
 
@@ -307,6 +326,23 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
         return []
       }),
 
+    // Ensure get method exists (returns null if not found)
+    get:
+      service.get ||
+      service.findById ||
+      (async (id: number | string) => {
+        // Fallback: try getById and catch errors to return null
+        try {
+          const getByIdFn = service[getByIdMethod] || service.getById
+          if (getByIdFn) {
+            return await getByIdFn(id)
+          }
+          return null
+        } catch {
+          return null
+        }
+      }),
+
     // Ensure getById method exists and handles both string and number IDs
     getById:
       service[getByIdMethod] ||
@@ -331,8 +367,13 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
         throw ErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
       }),
 
-    // Optional delete method
-    delete: service[deleteMethod] || service.delete || undefined,
+    // Required delete method
+    delete:
+      service[deleteMethod] ||
+      service.delete ||
+      (async (id: number | string) => {
+        throw ErrorFactory.operationFailed(`delete ${entityName}`, 'Method not implemented')
+      }),
 
     // Optional cascade delete method
     deleteCascade: service.deleteCascade || undefined

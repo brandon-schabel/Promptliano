@@ -46,7 +46,7 @@ import type { ProviderKey } from '@/hooks/generated/providers-hooks'
 import type { ProviderHealthStatus } from '@promptliano/schemas'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
-import { useGetModels } from '@/hooks/api-hooks'
+import { useGetModels } from '@/hooks/generated'
 import { ModelListPopover } from './model-list-popover'
 import { copyToClipboard } from '@/utils/clipboard'
 

@@ -19,7 +19,7 @@ import {
 import { HookDialog } from '../hook-dialog'
 import type { HookListItem, HookEventType } from '@promptliano/schemas'
 import { useGetProjectHooks, useDeleteHook } from '@/hooks/api-hooks'
-import { useGetProject } from '@/hooks/api-hooks'
+import { useProject } from '@/hooks/generated'
 import { toast } from 'sonner'
 
 interface HooksViewProps {
@@ -50,7 +50,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
   const [deletingHook, setDeletingHook] = useState<HookListItem | null>(null)
 
   // Get project path for API calls
-  const { data: project, isLoading: isProjectLoading, error: projectError } = useGetProject(projectId)
+  const { data: project, isLoading: isProjectLoading, error: projectError } = useProject(projectId)
   const projectPath = project?.path || ''
 
   // Get hooks from API - only enable when we have a project path

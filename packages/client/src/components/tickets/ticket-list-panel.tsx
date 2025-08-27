@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react'
-import { useGetTicketsWithTasks, useDeleteTicket } from '@/hooks/api-hooks'
-import { useGetQueuesWithStats } from '@/hooks/api-hooks'
+import { useDeleteTicket } from '@/hooks/generated'
+import { useGetTicketsWithTasks } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats } from '@/hooks/generated'
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
@@ -263,8 +264,8 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
               <>
                 <SelectSeparator />
                 {queuesData.map((queueWithStats) => (
-                  <SelectItem key={queueWithStats.queue.id} value={queueWithStats.queue.id.toString()}>
-                    {queueWithStats.queue.name}
+                  <SelectItem key={queueWithStats.id} value={queueWithStats.id.toString()}>
+                    {queueWithStats.name}
                   </SelectItem>
                 ))}
               </>

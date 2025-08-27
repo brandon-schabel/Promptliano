@@ -20,7 +20,7 @@ import {
   QUEUE_ENHANCED_KEYS,
   PROVIDER_KEYS_KEYS
 } from './query-keys'
-import type {
+import {
   ProjectSchema,
   CreateProject,
   UpdateProject,

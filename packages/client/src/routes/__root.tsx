@@ -19,7 +19,7 @@ import {
 import { NavigationCommands } from '@/components/navigation/navigation-commands'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { ComponentErrorBoundary } from '@/components/error-boundary/component-error-boundary'
-import { useGetProjects } from '@/hooks/api-hooks'
+import { useProjects } from '@/hooks/generated'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -39,7 +39,7 @@ function GlobalCommandPalette() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const navigate = useNavigate()
-  const { data: projectsData } = useGetProjects()
+  const { data: projectsData } = useProjects()
 
   useHotkeys('mod+k', (evt) => {
     evt.preventDefault()
