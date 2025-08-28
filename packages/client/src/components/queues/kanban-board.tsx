@@ -121,10 +121,10 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
           let completedTaskCount = 0
 
           // Check unqueued tasks
-          flowData.unqueued.tasks?.forEach((task) => {
-            if (task.ticketId === ticket.id) {
+          flowData.unqueued?.tasks?.forEach((task) => {
+            if (task?.ticketId === ticket?.id) {
               totalTaskCount++
-              if (task.done) {
+              if (task?.done) {
                 completedTaskCount++
               }
             }
@@ -133,9 +133,9 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
           // Also check queued tasks
           Object.values(flowData.queues || {}).forEach((queueData) => {
             queueData.tasks?.forEach((task) => {
-              if (task.ticketId === ticket.id) {
+              if (task?.ticketId === ticket?.id) {
                 totalTaskCount++
-                if (task.done) {
+                if (task?.done) {
                   completedTaskCount++
                 }
               }
@@ -160,7 +160,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
         .forEach((task) => {
           // Find parent ticket for title
           let ticketTitle: string | undefined
-          const parentTicket = flowData.unqueued.tickets?.find((t) => t.id === task.ticketId)
+          const parentTicket = flowData.unqueued?.tickets?.find((t) => t.id === task.ticketId)
           if (parentTicket) {
             ticketTitle = parentTicket.title
           } else {
@@ -196,18 +196,18 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
           let completedTaskCount = 0
 
           // Check tasks in all locations
-          flowData.unqueued.tasks?.forEach((task) => {
-            if (task.ticketId === ticket.id) {
+          flowData.unqueued?.tasks?.forEach((task) => {
+            if (task?.ticketId === ticket?.id) {
               totalTaskCount++
-              if (task.done) completedTaskCount++
+              if (task?.done) completedTaskCount++
             }
           })
 
           Object.values(flowData.queues || {}).forEach((q) => {
             q.tasks?.forEach((task) => {
-              if (task.ticketId === ticket.id) {
+              if (task?.ticketId === ticket?.id) {
                 totalTaskCount++
-                if (task.done) completedTaskCount++
+                if (task?.done) completedTaskCount++
               }
             })
           })
@@ -236,7 +236,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
             if (ticket) ticketTitle = ticket.title
           })
           if (!ticketTitle) {
-            const ticket = flowData.unqueued.tickets?.find((t) => t.id === task.ticketId)
+            const ticket = flowData.unqueued?.tickets?.find((t) => t.id === task.ticketId)
             if (ticket) ticketTitle = ticket.title
           }
 
@@ -563,7 +563,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
                 return null
               }
               
-              const queueId = queueWithStats.queue.id.toString()
+              const queueId = queueWithStats?.queue?.id?.toString() || 'unknown'
               
               return (
                 <KanbanColumn

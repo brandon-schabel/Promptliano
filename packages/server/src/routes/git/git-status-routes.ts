@@ -7,7 +7,6 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import {
   gitStatusResultSchema as GitStatusResultSchema,
-  ProjectIdParamsSchema,
   stageFilesRequestSchema as StageFilesBodySchema,
   unstageFilesRequestSchema as UnstageFilesBodySchema
 } from '@promptliano/schemas'
@@ -34,6 +33,13 @@ const GitStatusResponseSchema = z
   })
   .openapi('GitStatusResponse')
 
+// Local params schema matching path placeholder {projectId}
+const ProjectIdParamsProjectIdSchema = z
+  .object({
+    projectId: z.coerce.number().int().positive().openapi({ param: { name: 'projectId', in: 'path' } })
+  })
+  .openapi('ProjectIdParamsProjectId')
+
 // Get project git status
 const getProjectGitStatusRoute = createRoute({
   method: 'get',
@@ -42,7 +48,7 @@ const getProjectGitStatusRoute = createRoute({
   summary: 'Get git status for a project',
   description: 'Retrieves the current git status including staged, unstaged, and untracked files',
   request: {
-    params: ProjectIdParamsSchema,
+    params: ProjectIdParamsProjectIdSchema,
     query: z.object({
       refresh: z.coerce.boolean().optional().default(false).openapi({
         description: 'Force refresh the git status (bypass cache)'
@@ -60,7 +66,7 @@ const stageFilesRoute = createRoute({
   summary: 'Stage files for commit',
   description: 'Stages specified files or patterns for the next commit',
   request: {
-    params: ProjectIdParamsSchema,
+    params: ProjectIdParamsProjectIdSchema,
     body: {
       content: { 'application/json': { schema: StageFilesBodySchema } },
       required: true
@@ -77,7 +83,7 @@ const unstageFilesRoute = createRoute({
   summary: 'Unstage files from commit',
   description: 'Removes specified files from the staging area',
   request: {
-    params: ProjectIdParamsSchema,
+    params: ProjectIdParamsProjectIdSchema,
     body: {
       content: { 'application/json': { schema: UnstageFilesBodySchema } },
       required: true
@@ -94,7 +100,7 @@ const stageAllRoute = createRoute({
   summary: 'Stage all changes',
   description: 'Stages all modified and untracked files for commit',
   request: {
-    params: ProjectIdParamsSchema
+    params: ProjectIdParamsProjectIdSchema
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes staged successfully')
 })
@@ -107,7 +113,7 @@ const unstageAllRoute = createRoute({
   summary: 'Unstage all changes',
   description: 'Removes all files from the staging area',
   request: {
-    params: ProjectIdParamsSchema
+    params: ProjectIdParamsProjectIdSchema
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes unstaged successfully')
 })

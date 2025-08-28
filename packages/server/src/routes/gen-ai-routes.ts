@@ -20,7 +20,8 @@ import {
   generateStructuredData,
   genTextStream,
   providerKeyService,
-  updateProviderSettings
+  updateProviderSettings,
+  handleChatMessage
 } from '@promptliano/services' // Import the service instance
 import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import {
@@ -61,6 +62,26 @@ const ProvidersListResponseSchema = z
   })
   .openapi('ProvidersListResponse')
 
+// Vercel AI SDK-compatible chat request schema (messages-based)
+const AiSdkChatRequestSchema = z
+  .object({
+    id: z.string().optional().describe('Chat/session identifier (maps to chatId)'),
+    messages: z
+      .array(
+        z.object({
+          role: z.enum(['user', 'assistant', 'system']),
+          content: z.string()
+        })
+      )
+      .min(1),
+    provider: z.string().optional().default('openai'),
+    model: z.string(),
+    temperature: z.number().optional(),
+    maxTokens: z.number().int().optional(),
+    topP: z.number().optional()
+  })
+  .openapi('AiSdkChatRequest')
+
 // Use the imported structuredDataSchemas from @promptliano/schemas
 // which now includes all our asset generators
 
@@ -81,6 +102,37 @@ const getModelsRoute = createRoute({
     query: ModelsQuerySchema
   },
   responses: createStandardResponses(ModelsListResponseSchema)
+})
+
+// AI SDK chat endpoint compatible with @ai-sdk/react useChat
+const postAiChatSdkRoute = createRoute({
+  method: 'post',
+  path: '/api/ai/chat',
+  tags: ['AI'],
+  summary: 'Chat completion (Vercel AI SDK compatible, streaming)',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: AiSdkChatRequestSchema
+        }
+      },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      content: {
+        'text/event-stream': {
+          schema: z
+            .string()
+            .openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
+        }
+      },
+      description: 'Successfully initiated AI response stream.'
+    },
+    ...createStandardResponses(z.object({ success: z.literal(true) }))
+  }
 })
 
 const generateTextRoute = createRoute({
@@ -185,6 +237,53 @@ const updateProviderSettingsRoute = createRoute({
 })
 
 export const genAiRoutes = new OpenAPIHono()
+  .openapi(postAiChatSdkRoute, async (c) => {
+    const body = c.req.valid('json') as z.infer<typeof AiSdkChatRequestSchema>
+
+    // Extract the most recent user message and optional system message
+    const lastUser = [...body.messages].reverse().find((m) => m.role === 'user')
+    const systemMsg = body.messages.find((m) => m.role === 'system')?.content
+
+    const chatId = body.id ? Number(body.id) : NaN
+    if (!lastUser || !Number.isFinite(chatId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: !Number.isFinite(chatId)
+              ? 'Missing or invalid chat id'
+              : 'Missing user message',
+            code: 'INVALID_CHAT_REQUEST'
+          }
+        },
+        400
+      )
+    }
+
+    // Prepare unified options expected by the chat handler
+    const unifiedOptions = {
+      provider: body.provider || 'openai',
+      model: body.model,
+      ...(body.temperature !== undefined && { temperature: body.temperature }),
+      ...(body.maxTokens !== undefined && { maxTokens: body.maxTokens }),
+      ...(body.topP !== undefined && { topP: body.topP })
+    }
+
+    c.header('Content-Type', 'text/event-stream; charset=utf-8')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    const readableStream = await handleChatMessage({
+      chatId,
+      userMessage: lastUser.content,
+      options: unifiedOptions,
+      systemMessage: systemMsg
+    })
+
+    return stream(c, async (streamInstance) => {
+      await streamInstance.pipe(readableStream.toDataStream())
+    })
+  })
   .openapi(getProvidersRoute, async (c) => {
     try {
       // Get predefined providers

@@ -188,7 +188,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleDeleteTask = async (taskId: number) => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
       await deleteTask.mutateAsync({ ticketId: ticket.ticket.id, taskId })
@@ -215,7 +215,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const generateMarkdown = () => {
-    if (!ticket) return ''
+    if (!ticket?.ticket?.id) return ''
 
     let markdown = `# ${ticket.ticket.title}\n\n`
 
@@ -249,10 +249,12 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleCompleteTicket = async () => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
+      if (ticket?.ticket?.id) {
       await completeTicket.mutateAsync(ticket.ticket.id)
+    }
       toast.success('Ticket completed successfully')
       setIsCompleteDialogOpen(false)
       onTicketUpdate?.()
@@ -263,7 +265,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
   const handleReopenTicket = async () => {
     try {
-      await updateTicket.mutateAsync({ id: ticket!.ticket.id, data: { status: 'open' } })
+      await updateTicket.mutateAsync({ id: ticket?.ticket?.id, data: { status: 'open' } })
       toast.success('Ticket reopened')
       onTicketUpdate?.()
     } catch (error) {
@@ -272,10 +274,12 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleDeleteTicket = async () => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
+      if (ticket?.ticket?.id) {
       await deleteTicket.mutateAsync(ticket.ticket.id)
+    }
       toast.success('Ticket deleted successfully')
       setIsDeleteDialogOpen(false)
       onTicketUpdate?.()

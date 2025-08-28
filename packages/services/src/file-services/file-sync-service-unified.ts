@@ -698,7 +698,8 @@ export async function syncFileSet(
     return { created: createdCount, updated: updatedCount, deleted: deletedCount, skipped: skippedCount }
   } catch (error) {
     logger.error(`Error during DB batch operations for project ${project.id}`, error)
-    throw new Error(`SyncFileSet failed during storage operations for project ${project.id}`)
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(`SyncFileSet failed during storage operations for project ${project.id}: ${reason}`)
   }
 }
 

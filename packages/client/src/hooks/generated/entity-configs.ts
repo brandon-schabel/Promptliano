@@ -473,7 +473,15 @@ export const PROMPT_CONFIG: CrudHookConfig<Prompt, CreatePromptBody, UpdatePromp
   staleTime: 5 * 60 * 1000,
   optimistic: promptOptimisticConfig,
   invalidation: promptInvalidationStrategy,
-  prefetch: { enabled: true }
+  prefetch: { enabled: true },
+  messages: {
+    createSuccess: 'Prompt created successfully',
+    createError: 'Failed to create prompt',
+    updateSuccess: 'Prompt updated successfully',
+    updateError: 'Failed to update prompt',
+    deleteSuccess: 'Prompt deleted successfully',
+    deleteError: 'Failed to delete prompt'
+  }
 }
 
 export const AGENT_CONFIG: CrudHookConfig<

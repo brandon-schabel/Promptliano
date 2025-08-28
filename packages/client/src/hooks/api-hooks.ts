@@ -89,7 +89,8 @@ export function useSyncProjectWithProgress() {
 
       try {
         // Start SSE sync with progress tracking
-        const eventSource = new EventSource(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/sync/stream`, {
+        // Correct SSE endpoint path: /api/projects/{id}/sync-stream
+        const eventSource = new EventSource(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/sync-stream`, {
           withCredentials: true
         })
 
@@ -145,6 +146,34 @@ export function useSyncProjectWithProgress() {
       }
     }
   }
+}
+
+/**
+ * Automatically sync the active project on an interval.
+ * Silent: no toasts, relies on server-side lock to avoid overlap.
+ */
+export function useAutoProjectSync(projectId?: number, intervalMs: number = 4000) {
+  const client = useApiClient()
+  const queryClient = useQueryClient()
+  
+  useEffect(() => {
+    if (!client || !projectId || projectId === -1) return
+    let cancelled = false
+    const id = setInterval(async () => {
+      if (cancelled) return
+      try {
+        await client.projects.syncProject(projectId)
+        // Lightly refresh file list cache in background
+        queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(projectId) })
+      } catch (_) {
+        // Ignore errors to keep interval running; server lock prevents overlap
+      }
+    }, Math.max(3000, intervalMs))
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [client, projectId, intervalMs, queryClient])
 }
 
 export function useGetProjectSummary(projectId: number) {
@@ -219,7 +248,7 @@ export function useUpdateFileContent() {
       if (!client) throw new Error('API client not initialized')
 
       // Update the file content
-      const result = await client.typeSafeClient.updateProjectsByProjectIdFilesByFileId(projectId, fileId, { content })
+      const result = await client.typeSafeClient.updateProjectsByIdFilesByFileId(projectId, fileId, { content })
 
       // Sync the project to ensure file system and data store are synchronized
       await client.projects.syncProject(projectId)
@@ -689,6 +718,7 @@ import {
   useProjectFiles,
   useUpdateTask,
 } from './generated'
+import { useEffect } from 'react'
 
 // Provide aliases for existing hook names to ensure backward compatibility
 export const useGetProjects = useProjects

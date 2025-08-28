@@ -54,12 +54,25 @@ const schema: Record<string, any> = {
   mcpErrorPatternsRelations
 }
 import { readFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+// Resolve stable paths relative to this package (robust to cwd)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const packageRoot = resolve(__dirname, '..') // packages/database
+const repoRoot = resolve(packageRoot, '..', '..') // monorepo root
+const drizzleDir = join(packageRoot, 'drizzle')
 
 // Performance-optimized SQLite configuration
 const createDatabase = () => {
   // Use in-memory database for tests to avoid file system issues
-  const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : './data/promptliano.db'
+  const dbPath = process.env.NODE_ENV === 'test'
+    ? ':memory:'
+    : (
+        process.env.DATABASE_PATH
+          || (process.env.PROMPTLIANO_DATA_DIR ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db') : join(repoRoot, 'data', 'promptliano.db'))
+      )
   const sqlite = new Database(dbPath, {
     create: true,
     // Performance optimizations
@@ -83,45 +96,61 @@ const sqlite = createDatabase()
 
 // Auto-run migrations and create tables
 try {
-  // Check if tables exist, if not run the migration SQL directly
-  const tables = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all()
-  if (tables.length === 0) {
+  // If no core tables, bootstrap from earliest migration
+  const hasProjectsTable = sqlite
+    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
+    .all().length > 0
+
+  if (!hasProjectsTable) {
     if (process.env.NODE_ENV === 'test') {
       // In test mode, don't auto-create tables - tests should use createTestDatabase()
-      // This prevents the main database from interfering with test isolation
       console.log('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
       console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
-      // Don't create tables here - let tests handle their own database setup
     } else {
-      console.log('📋 Creating database tables...')
-      // Try to read and execute the latest migration SQL
-      const migrationFiles = ['0003_glorious_justice.sql', '0002_*.sql', '0001_*.sql', '0000_loose_bug.sql']
-      let migrationExecuted = false
-      
-      for (const migrationFile of migrationFiles) {
-        try {
-          const migrationPath = join(process.cwd(), 'packages', 'database', 'drizzle', migrationFile)
-          const migrationSql = readFileSync(migrationPath, 'utf8')
-          const statements = migrationSql.split('--> statement-breakpoint')
-
-          for (const statement of statements) {
-            const cleanStatement = statement.trim()
-            if (cleanStatement && !cleanStatement.startsWith('--')) {
-              sqlite.exec(cleanStatement)
-            }
+      console.log('📋 Creating database tables (initial bootstrap)...')
+      const migrationPath = join(drizzleDir, '0000_loose_bug.sql')
+      const migrationSql = readFileSync(migrationPath, 'utf8')
+      const statements = migrationSql.split('--> statement-breakpoint')
+      for (const statement of statements) {
+        const cleanStatement = statement.trim()
+        if (cleanStatement && !cleanStatement.startsWith('--')) {
+          try {
+            sqlite.exec(cleanStatement)
+          } catch (e: any) {
+            const msg = String(e?.message || e)
+            if (!/already exists/i.test(msg)) throw e
           }
-          console.log(`✅ Database tables created successfully using ${migrationFile}`)
-          migrationExecuted = true
-          break
-        } catch (migrationError) {
-          // Continue to next migration file
-          continue
         }
       }
-      
-      if (!migrationExecuted) {
-        console.warn('⚠️ Could not read any migration files, tables might need manual creation')
+      console.log('✅ Core tables created successfully')
+    }
+  }
+
+  // Ensure MCP analytics tables exist (idempotent): apply 0003 if missing
+  const hasMcpStatsTable = sqlite
+    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_tool_statistics'")
+    .all().length > 0
+
+  if (!hasMcpStatsTable && process.env.NODE_ENV !== 'test') {
+    try {
+      console.log('📊 Creating MCP analytics tables (applying 0003_glorious_justice)...')
+      const migrationPath = join(drizzleDir, '0003_glorious_justice.sql')
+      const migrationSql = readFileSync(migrationPath, 'utf8')
+      const statements = migrationSql.split('--> statement-breakpoint')
+      for (const statement of statements) {
+        const cleanStatement = statement.trim()
+        if (cleanStatement && !cleanStatement.startsWith('--')) {
+          try {
+            sqlite.exec(cleanStatement)
+          } catch (e: any) {
+            const msg = String(e?.message || e)
+            if (!/already exists/i.test(msg)) throw e
+          }
+        }
       }
+      console.log('✅ MCP analytics tables created successfully')
+    } catch (e) {
+      console.warn('⚠️ Failed to apply MCP migration automatically. You may need to run drizzle migrations.', e)
     }
   }
 } catch (error) {

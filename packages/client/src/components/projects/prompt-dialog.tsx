@@ -15,8 +15,9 @@ import { UseFormReturn } from 'react-hook-form'
 import { ExpandableTextarea } from '@/components/expandable-textarea'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useCreatePrompt, useUpdatePrompt } from '@/hooks/generated'
-import { useGetProjectPrompts, useAddPromptToProject } from '@/hooks/api-hooks'
-import { toast } from 'sonner'
+import { useGetProjectPrompts } from '@/hooks/api-hooks'
+import { PROMPT_ENHANCED_KEYS } from '@/hooks/generated/query-keys'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
 interface PromptDialogProps {
@@ -31,8 +32,8 @@ interface PromptDialogProps {
 export function PromptDialog({ open, editPromptId, promptForm, projectId, onClose, onSuccess }: PromptDialogProps) {
   const createPromptMutation = useCreatePrompt()
   const updatePromptMutation = useUpdatePrompt()
-  const addPromptToProjectMutation = useAddPromptToProject()
   const { data: promptData } = useGetProjectPrompts(projectId)
+  const queryClient = useQueryClient()
 
   // Populate form when editing
   useEffect(() => {
@@ -62,24 +63,15 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
       })
 
       if (!result) {
-        toast.error('Failed to create prompt')
         return
       }
 
-      try {
-        await addPromptToProjectMutation.mutateAsync({
-          projectId,
-          promptId: result.id
-        })
-      } catch (e) {
-        toast.error('Failed to add prompt to project')
-      }
-
-      toast.success('Prompt created successfully')
+      // Invalidate project prompts explicitly (generated hooks also invalidate all prompts)
+      queryClient.invalidateQueries({ queryKey: PROMPT_ENHANCED_KEYS.projectPrompts(projectId) })
       onSuccess?.()
     } catch (error) {
       console.error('Error creating prompt:', error)
-      toast.error('Failed to create prompt')
+      // Error toasts are handled by the generated hook
     }
   }
 
@@ -94,12 +86,10 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
           content: values.content
         }
       })
-
-      toast.success('Prompt updated successfully')
       onSuccess?.()
     } catch (error) {
       console.error('Error updating prompt:', error)
-      toast.error('Failed to update prompt')
+      // Error toasts are handled by the generated hook
     }
   }
 

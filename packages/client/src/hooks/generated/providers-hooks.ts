@@ -69,8 +69,7 @@ const PROVIDERS_CONFIG = {
   entityName: 'ProviderKey',
   queryKeys: PROVIDERS_ENHANCED_KEYS,
   apiClient: {
-    list: () => {
-      const client = useApiClient()
+    list: (client: any) => {
       if (!client) throw new Error('API client not initialized')
       return client.keys.listKeys().then((r: any) => r.data)
     },
@@ -91,6 +90,8 @@ const PROVIDERS_CONFIG = {
       return client.keys.deleteKey(id).then(() => undefined)
     }
   },
+  // Provide the hook the factory will use to access the API client
+  useApiClient: useApiClient,
   staleTime: 5 * 60 * 1000, // 5 minutes preserved from original
   messages: {
     createSuccess: 'Provider key created successfully',

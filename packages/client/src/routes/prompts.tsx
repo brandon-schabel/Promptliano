@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
+import { Switch } from '@promptliano/ui'
+import { Label } from '@promptliano/ui'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@promptliano/ui'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@promptliano/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@promptliano/ui'
@@ -40,6 +42,7 @@ export function PromptsPage() {
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'default' | 'size_asc' | 'size_desc'>('alphabetical')
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [selectedPrompts, setSelectedPrompts] = useState<Set<number>>(new Set())
+  const [exportMode, setExportMode] = useState(false)
 
   // Get active project from tab state
   const [activeProjectTabState] = useActiveProjectTab()
@@ -89,6 +92,13 @@ export function PromptsPage() {
     setIsImportDialogOpen(false)
   }
 
+  // When leaving export mode, clear any selections
+  useEffect(() => {
+    if (!exportMode && selectedPrompts.size) {
+      setSelectedPrompts(new Set())
+    }
+  }, [exportMode])
+
   return (
     <div className='container mx-auto p-6 space-y-6'>
       <div className='flex justify-between items-center'>
@@ -130,25 +140,32 @@ export function PromptsPage() {
           <Badge>{filteredAndSortedPrompts.length} Prompts</Badge>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='outline' size='sm'>
-              <ArrowUpDown className='h-4 w-4 mr-2' />
-              Sort
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuRadioGroup value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-              <DropdownMenuRadioItem value='alphabetical'>
-                <ArrowDownAZ className='h-4 w-4 mr-2' />
-                Alphabetical
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='size_desc'>Largest first</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='size_asc'>Smallest first</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='default'>Default order</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className='flex items-center gap-4'>
+          <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+            <Label htmlFor='export-mode' className='cursor-pointer'>Export mode</Label>
+            <Switch id='export-mode' checked={exportMode} onCheckedChange={setExportMode} />
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='outline' size='sm'>
+                <ArrowUpDown className='h-4 w-4 mr-2' />
+                Sort
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuRadioGroup value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                <DropdownMenuRadioItem value='alphabetical'>
+                  <ArrowDownAZ className='h-4 w-4 mr-2' />
+                  Alphabetical
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='size_desc'>Largest first</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='size_asc'>Smallest first</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='default'>Default order</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <Tabs defaultValue='all' className='w-full'>
@@ -169,16 +186,20 @@ export function PromptsPage() {
                 <PromptCard
                   key={prompt.id}
                   prompt={prompt}
-                  isSelected={selectedPrompts.has(prompt.id)}
-                  onToggleSelect={(selected) => {
-                    const newSelected = new Set(selectedPrompts)
-                    if (selected) {
-                      newSelected.add(prompt.id)
-                    } else {
-                      newSelected.delete(prompt.id)
-                    }
-                    setSelectedPrompts(newSelected)
-                  }}
+                  isSelected={exportMode ? selectedPrompts.has(prompt.id) : false}
+                  onToggleSelect={
+                    exportMode
+                      ? (selected) => {
+                          const newSelected = new Set(selectedPrompts)
+                          if (selected) {
+                            newSelected.add(prompt.id)
+                          } else {
+                            newSelected.delete(prompt.id)
+                          }
+                          setSelectedPrompts(newSelected)
+                        }
+                      : undefined
+                  }
                   onEdit={() => setSelectedPrompt(prompt)}
                   onDelete={async () => {
                     try {

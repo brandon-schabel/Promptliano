@@ -24,9 +24,6 @@ import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useNavigate } from '@tanstack/react-router'
 import {
   useGetActiveProjectTabId,
-  useGetAppSettings,
-  useGetProjectTab,
-  useGetProjectTabs
 } from '@/hooks/use-kv-local-storage'
 import { MenuIcon } from 'lucide-react' // For a custom trigger example
 import { Button } from '@promptliano/ui'

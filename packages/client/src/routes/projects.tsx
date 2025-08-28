@@ -37,6 +37,7 @@ import { migrateUrlParams, needsUrlMigration, getMigrationMessage } from '@/lib/
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useServerConnection } from '@/hooks/use-server-connection'
+import { useAutoProjectSync } from '@/hooks/api-hooks'
 
 export function ProjectsPage() {
   const filePanelRef = useRef<FilePanelRef>(null)
@@ -77,6 +78,9 @@ export function ProjectsPage() {
 
   // Sync active tab with backend
   useActiveTabSync(selectedProjectId)
+
+  // Auto-sync the active project every ~4s (server lock prevents overlap)
+  useAutoProjectSync(selectedProjectId, 4000)
 
   // Handle backward compatibility - redirect tickets/queues to flow
   useEffect(() => {

@@ -30,7 +30,7 @@ import {
   validateMarkdownContent,
   listPromptsByProject
 } from '@promptliano/services'
-import { withErrorContext } from '@promptliano/shared'
+import { withErrorContext, ErrorFactory } from '@promptliano/shared'
 import { successResponse, operationSuccessResponse } from '../utils/route-helpers'
 import { authMiddleware } from './factories/middleware'
 
@@ -141,6 +141,54 @@ promptCustomRoutes.openapi(listProjectPromptsRoute, async (c) => {
   const projectPrompts = await listPromptsByProject(projectId)
   const transformedPrompts = projectPrompts.map(transformPromptFromDB)
   return c.json(successResponse(transformedPrompts))
+})
+
+// PATCH alias for update to support older clients expecting PATCH
+const patchPromptRoute = createRoute({
+  method: 'patch',
+  path: '/api/prompts/{id}',
+  tags: ['Prompts'],
+  summary: 'Update Prompt (PATCH alias)',
+  request: {
+    params: z.object({ id: z.coerce.number().int().positive() }),
+    body: {
+      content: { 'application/json': { schema: UpdatePromptSchema } },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({ success: z.literal(true), data: PromptSchema as any })
+        }
+      },
+      description: 'Prompt updated'
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: z.object({ success: z.literal(false), error: z.any() })
+        }
+      },
+      description: 'Prompt not found'
+    }
+  }
+})
+
+promptCustomRoutes.openapi(patchPromptRoute, async (c) => {
+  return withErrorContext(
+    async () => {
+      const { id } = c.req.valid('param')
+      const body = c.req.valid('json')
+      const updated = await promptService.update(id, body)
+      if (!updated) {
+        throw ErrorFactory.notFound('Prompt', id.toString())
+      }
+      return c.json(successResponse(transformPromptFromDB(updated)))
+    },
+    { entity: 'Prompt', action: 'updatePatch' }
+  )
 })
 
 // Suggest prompts using AI

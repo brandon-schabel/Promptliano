@@ -51,8 +51,8 @@ export function KanbanColumn({
 
   // Calculate estimated time (simplified since stats structure changed)
   const estimatedTime =
-    stats?.inProgressItems && stats?.totalItems
-      ? Math.round((stats.queuedItems * 5) / 60) // Simplified estimate: 5 minutes per item
+    stats?.inProgressItems || stats?.queuedItems
+      ? Math.round(((stats?.inProgressItems || 0) + (stats?.queuedItems || 0)) * 5 / 60)
       : null
 
   return (
@@ -104,8 +104,8 @@ export function KanbanColumn({
                   {isActive ? 'Active' : 'Paused'}
                 </Badge>
                 <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                  <span>{stats.queuedItems} pending</span>
-                  {stats.inProgressItems > 0 && <span className='text-primary'>{stats.inProgressItems} processing</span>}
+                  <span>{stats?.queuedItems || 0} pending</span>
+                  {stats?.inProgressItems || 0 > 0 && <span className='text-primary'>{stats?.inProgressItems || 0} processing</span>}
                 </div>
               </>
             )

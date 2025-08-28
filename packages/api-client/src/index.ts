@@ -33,6 +33,7 @@ export * from './types' // Common type re-exports
 
 // Import for creating backward-compatible wrapper
 import { TypeSafeApiClient } from './generated/type-safe-client'
+import { BaseApiClient } from './base-client'
 import type { CreateProjectRequest, UpdateProjectRequest } from './generated/type-safe-client'
 import type { ApiConfig } from './base-client'
 
@@ -50,10 +51,12 @@ import type { ApiConfig } from './base-client'
 export class PromptlianoClient {
   private typeSafe: TypeSafeApiClient
   private config: ApiConfig
+  private http: BaseApiClient
 
   constructor(config: ApiConfig) {
     this.config = config
     this.typeSafe = new TypeSafeApiClient({ baseUrl: config.baseUrl })
+    this.http = new BaseApiClient(config)
   }
 
   // DIRECT ACCESS to all 228 generated methods
@@ -68,31 +71,84 @@ export class PromptlianoClient {
     getProject: (projectId: number) => this.typeSafe.getProject(projectId),
     updateProject: (projectId: number, data: UpdateProjectRequest) => this.typeSafe.updateProject(projectId, data),
     deleteProject: (projectId: number) => this.typeSafe.deleteProject(projectId),
-    getProjectFiles: (projectId: number) => this.typeSafe.listProjectsByProjectIdFiles(projectId),
+    getProjectFiles: (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId),
     getProjectTickets: (projectId: number) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
-    syncProject: (projectId: number) => this.typeSafe.createProjectsByProjectIdSync(projectId),
-    refreshProject: (projectId: number, folder?: any) => this.typeSafe.createProjectsByProjectIdRefresh(projectId),
-    getProjectSummary: (projectId: number) => this.typeSafe.listProjectsByProjectIdSummary(projectId),
-    getProjectStatistics: (projectId: number) => this.typeSafe.listProjectsByProjectIdStatistics(projectId),
+    syncProject: (projectId: number) => this.typeSafe.createProjectsByIdSync(projectId),
+    refreshProject: (projectId: number, folder?: any) =>
+      this.typeSafe.createProjectsByIdRefresh(projectId, folder ? { folder } : undefined),
+    getProjectSummary: (projectId: number) => this.typeSafe.getProjectsByIdSummary(projectId),
+    getProjectStatistics: (projectId: number) => this.typeSafe.getProjectsByIdStatistics(projectId),
+    // Queues with stats via Flow
+    getQueuesWithStats: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/flow/queues-with-stats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to get queues with stats (${res.status})`)
+      return res.json()
+    },
     // File suggestions and summarization
     suggestFiles: (projectId: number, data: { prompt: string; limit?: number }) =>
       this.typeSafe.createProjectsByProjectIdSuggestFiles(projectId, data),
     summarizeFiles: (projectId: number, data: { fileIds: number[]; force?: boolean }) =>
-      this.typeSafe.createProjectsByProjectIdFilesSummarize(projectId, data),
-    removeSummariesFromFiles: (projectId: number, data: { fileIds: number[] }) =>
-      this.typeSafe.createProjectsByProjectIdFilesRemoveSummaries(projectId, data),
+      this.typeSafe.createProjectsByIdFilesSummarize(projectId, data),
+    removeSummariesFromFiles: (projectId: number, data: { fileIds: number[] }) => {
+      // Fallback to manual call since generated client may not include this route
+      return fetch(`${this.config.baseUrl}/api/projects/${projectId}/files/remove-summaries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      }).then((r) => r.json())
+    },
     getMCPInstallationStatus: (projectId: number) => this.typeSafe.listClaudeCodeMcpStatusByProjectId(projectId),
-    // ActiveTab methods (for backward compatibility - also available at root level)
-    getActiveTab: (projectId: number, clientId?: string) => {
-      const query = clientId ? { clientId } : undefined
-      return this.typeSafe.listProjectsByProjectIdActiveTab(projectId, query)
+    // ActiveTab methods (factory endpoints)
+    getActiveTab: async (projectId: number, clientId?: string) => {
+      const params: Record<string, any> = { projectId }
+      if (clientId) params.clientId = clientId
+      const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to fetch active tab (${res.status})`)
+      return res.json()
     },
-    setActiveTab: (projectId: number, data: any) => {
-      return this.typeSafe.createProjectsByProjectIdActiveTab(projectId, data)
+    setActiveTab: async (projectId: number, data: any) => {
+      // Translate legacy body { tabId, tabMetadata, clientId? } → factory body { projectId, activeTabId, tabMetadata, clientId? }
+      const body = {
+        projectId,
+        activeTabId: data?.tabId ?? data?.activeTabId,
+        clientId: data?.clientId,
+        tabMetadata: data?.tabMetadata
+      }
+      const res = await fetch(`${this.config.baseUrl}/api/active-tab`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        },
+        body: JSON.stringify(body)
+      })
+      if (!res.ok) throw new Error(`Failed to set active tab (${res.status})`)
+      return res.json()
     },
-    clearActiveTab: (projectId: number, clientId?: string) => {
-      const query = clientId ? { clientId } : undefined
-      return this.typeSafe.deleteProjectsByProjectIdActiveTab(projectId, query)
+    clearActiveTab: async (projectId: number, clientId?: string) => {
+      const params: Record<string, any> = { projectId }
+      if (clientId) params.clientId = clientId
+      const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to clear active tab (${res.status})`)
+      return res.json()
     }
   }
 
@@ -129,6 +185,8 @@ export class PromptlianoClient {
 
   public readonly prompts = {
     getPrompts: () => this.typeSafe.getPrompts(),
+    // Backward-compatible alias used by frontend hooks
+    listPrompts: () => this.typeSafe.getPrompts(),
     createPrompt: (data: any) => this.typeSafe.createPrompt(data),
     getPrompt: (promptId: number) => this.typeSafe.getPrompt(promptId),
     updatePrompt: (promptId: number, data: any) => this.typeSafe.updatePrompt(promptId, data),
@@ -261,26 +319,68 @@ export class PromptlianoClient {
     generateText: (data: any) => this.typeSafe.createGenAiText(data),
     generateStructured: (data: any) => this.typeSafe.createGenAiStructured(data),
     streamText: (data: any) => this.typeSafe.createGenAiStream(data),
-    getProviders: () => this.typeSafe.getProviders(),
-    getModels: (provider?: string, options?: any) => {
-      const query = provider ? { provider } : undefined
-      return this.typeSafe.getModels(query)
+    getProviders: () =>
+      this.typeSafe
+        .getProviders()
+        .then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r)),
+    getModels: (provider?: string, options?: { ollamaUrl?: string; lmstudioUrl?: string }) => {
+      const query: Record<string, any> = {}
+      if (provider) query.provider = provider
+      if (options?.ollamaUrl) query.ollamaUrl = options.ollamaUrl
+      if (options?.lmstudioUrl) query.lmstudioUrl = options.lmstudioUrl
+
+      return this.typeSafe
+        .getModels(Object.keys(query).length ? query : undefined)
+        .then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r))
     }
   }
 
-  // ActiveTab methods - note: these require projectId
-  getActiveTab = (projectId: number, clientId?: string) => {
-    const query = clientId ? { clientId } : undefined
-    return this.typeSafe.listProjectsByProjectIdActiveTab(projectId, query)
+  // ActiveTab methods (factory endpoints) - note: these require projectId
+  getActiveTab = async (projectId: number, clientId?: string) => {
+    const params: Record<string, any> = { projectId }
+    if (clientId) params.clientId = clientId
+    const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.config.headers
+      }
+    })
+    if (!res.ok) throw new Error(`Failed to fetch active tab (${res.status})`)
+    return res.json()
   }
 
-  setActiveTab = (projectId: number, data: any) => {
-    return this.typeSafe.createProjectsByProjectIdActiveTab(projectId, data)
+  setActiveTab = async (projectId: number, data: any) => {
+    const body = {
+      projectId,
+      activeTabId: data?.tabId ?? data?.activeTabId,
+      clientId: data?.clientId,
+      tabMetadata: data?.tabMetadata
+    }
+    const res = await fetch(`${this.config.baseUrl}/api/active-tab`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.config.headers
+      },
+      body: JSON.stringify(body)
+    })
+    if (!res.ok) throw new Error(`Failed to set active tab (${res.status})`)
+    return res.json()
   }
 
-  clearActiveTab = (projectId: number, clientId?: string) => {
-    const query = clientId ? { clientId } : undefined
-    return this.typeSafe.deleteProjectsByProjectIdActiveTab(projectId, query)
+  clearActiveTab = async (projectId: number, clientId?: string) => {
+    const params: Record<string, any> = { projectId }
+    if (clientId) params.clientId = clientId
+    const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.config.headers
+      }
+    })
+    if (!res.ok) throw new Error(`Failed to clear active tab (${res.status})`)
+    return res.json()
   }
 
   // MCP methods
@@ -330,48 +430,44 @@ export class PromptlianoClient {
 
   // Queue methods
   public readonly queues = {
-    listQueues: (projectId: number) => this.typeSafe.listProjectsByProjectIdFlowItems(projectId), // Placeholder
-    getQueue: (queueId: number) => this.typeSafe.listProjectsByProjectIdFlow(queueId), // Placeholder
-    createQueue: async (projectId: number, data: CreateQueueBody) => {
-      // Validate input data to prevent injection attacks
-      const validatedData = CreateQueueBodySchema.parse(data)
-      
-      // Manually construct the request since TypeSafe client doesn't have this method yet
-      const response = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/queues`, {
-        method: 'POST',
+    // List queues via Flow
+    listQueues: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/flow/queues`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           ...this.config.headers
-        },
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to list queues (${res.status})`)
+      return res.json()
+    },
+    // Get a single queue by ID
+    getQueue: (queueId: number) => this.typeSafeClient.getQueue(queueId).then((r) => r),
+    // Create queue via Flow endpoint
+    createQueue: async (data: CreateQueueBody) => {
+      const validatedData = CreateQueueBodySchema.parse(data)
+      const res = await fetch(`${this.config.baseUrl}/api/flow/queues`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
         body: JSON.stringify(validatedData)
       })
-      
-      if (!response.ok) {
-        // Safely handle error without exposing internal details
-        const errorText = await response.text()
-        let errorMessage = `Failed to create queue (${response.status})`
-        
-        try {
-          const errorJson = JSON.parse(errorText)
-          if (errorJson.message && typeof errorJson.message === 'string') {
-            // Only use safe error messages, not internal server details
-            errorMessage = errorJson.message.substring(0, 200) // Limit message length
-          }
-        } catch {
-          // If JSON parsing fails, use generic error
-        }
-        
-        throw new Error(errorMessage)
-      }
-      
-      return response.json()
+      if (!res.ok) throw new Error(`Failed to create queue (${res.status})`)
+      return res.json()
     },
-    updateQueue: (queueId: number, data: any) => this.typeSafe.createFlowMove(data), // Placeholder
-    deleteQueue: (queueId: number) => this.typeSafe.createFlowMove({ queueId }), // Placeholder
-    getQueueStats: (queueId: number) => this.typeSafe.listProjectsByProjectIdFlow(queueId), // Placeholder
-    getQueueItems: (queueId: number, status?: string) => this.typeSafe.listProjectsByProjectIdFlowItems(queueId), // Placeholder
+    // Update queue
+    updateQueue: (queueId: number, data: any) => this.typeSafeClient.updateQueue(queueId, data).then((r) => r),
+    // Delete queue
+    deleteQueue: (queueId: number) => this.typeSafeClient.deleteQueue(queueId).then((r) => r),
+    // Queue stats (GET /api/queues/{queueId}/stats)
+    getQueueStats: (queueId: number) => this.typeSafeClient.listQueuesByQueueIdStats(queueId).then((r) => r),
+    // Queue items endpoint is not part of generated CRUD; keep placeholder until implemented server-side
+    getQueueItems: async (_queueId: number, _status?: string) => {
+      throw new Error('getQueueItems endpoint not implemented')
+    },
+    // Complete queue item via Flow operations
     completeQueueItem: (itemType: string, itemId: number, ticketId?: number) =>
-      this.typeSafe.createFlowProcessComplete({ itemType, itemId, ticketId })
+      this.typeSafeClient.createFlowProcessComplete({ itemType, itemId, ticketId })
   }
 
   // System methods
@@ -421,7 +517,7 @@ export class PromptlianoClient {
   }
 
   // Add missing direct file access method
-  listProjectsByProjectIdFiles = (projectId: number) => this.typeSafe.listProjectsByProjectIdFiles(projectId)
+  listProjectsByProjectIdFiles = (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId)
 
   // Add missing flow reorder method
   createFlowReorder = (data: any) => this.typeSafe.createFlowReorder(data)
@@ -452,8 +548,8 @@ export class ProjectClient {
   listProjects = () => this.client.getProjects()
   createProject = (data: CreateProjectRequest) => this.client.createProject(data)
   getProject = (projectId: number) => this.client.getProject(projectId)
-  syncProject = (projectId: number) => this.client.createProjectsByProjectIdSync(projectId)
-  getProjectFiles = (projectId: number) => this.client.listProjectsByProjectIdFiles(projectId)
+  syncProject = (projectId: number) => this.client.createProjectsByIdSync(projectId)
+  getProjectFiles = (projectId: number) => this.client.getProjectsByIdFiles(projectId)
 }
 
 export class ChatClient {

@@ -18,12 +18,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { nanoid } from 'nanoid'
-// Removed problematic imports - using stub implementations instead
-// import { parseAIError, extractProviderName } from '@/components/errors'
-// import { useAppSettings } from '@/hooks/use-kv-local-storage'
-// import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
-
-const SERVER_HTTP_ENDPOINT = 'http://localhost:3001' // Default fallback
+import { parseAIError, extractProviderName } from '@/components/errors'
+import { useAppSettings } from '@/hooks/use-kv-local-storage'
+import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
 import { createCrudHooks } from '@promptliano/hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import type { ChatSchema, ChatMessageSchema, CreateChat, UpdateChat } from '@promptliano/database'
@@ -79,7 +76,7 @@ export type AiSdkOptions = {
   presencePenalty?: number
 }
 
-export type APIProviders = 'anthropic' | 'openai' | 'ollama' | 'lmstudio'
+export type APIProviders = 'anthropic' | 'openai' | 'openrouter' | 'ollama' | 'lmstudio' | 'google_gemini' | 'groq' | 'together' | 'xai'
 
 // ============================================================================
 // Query Keys
@@ -261,20 +258,7 @@ interface UseAIChatProps {
   enableChatAutoNaming?: boolean
 }
 
-// Stub implementation for missing useAppSettings
-function useAppSettings(): [any] {
-  return [{}]
-}
-
-// Stub implementation for missing parseAIError
-function parseAIError(error: any): any {
-  return { message: error?.message || 'Unknown error' }
-}
-
-// Stub implementation for missing extractProviderName
-function extractProviderName(provider: string): string {
-  return provider
-}
+// useAppSettings, parseAIError and extractProviderName are imported above
 
 export function useAIChat({ chatId, provider, model, systemMessage, enableChatAutoNaming = false }: UseAIChatProps) {
   // Track if initial messages have been loaded to prevent infinite loops
@@ -296,8 +280,8 @@ export function useAIChat({ chatId, provider, model, systemMessage, enableChatAu
         console.error('[useAIChat] API Error:', err)
 
         // Parse the error using stub implementation
-        const providerName = extractProviderName(provider) || provider
-        const parsed = parseAIError(err)
+        const providerName = extractProviderName(err) || provider
+        const parsed = parseAIError(err, providerName)
         setParsedError(parsed)
 
         // Enhanced toast notifications
@@ -391,8 +375,8 @@ export function useAIChat({ chatId, provider, model, systemMessage, enableChatAu
           ...(systemMessage ? [{ role: 'system' as const, content: systemMessage }] : []),
           { role: 'user' as const, content: messageContent.trim() }
         ],
-        model: (sdkOptions as any)?.model || 'gpt-4',
-        provider: (sdkOptions as any)?.provider || provider || 'openai'
+        model: model || (sdkOptions as any)?.model || 'gpt-4',
+        provider: provider || (sdkOptions as any)?.provider || 'openai'
       }
 
       setInput('')

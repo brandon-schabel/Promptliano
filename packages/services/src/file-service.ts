@@ -405,7 +405,9 @@ export function createFileService(deps: FileServiceDeps = {}) {
             if (filesToCreate.length === 0) return []
 
             const filesData = filesToCreate.map((fileData) => ({
-              id: fileData.path, // Use path as ID for files
+              // Use project-scoped ID to avoid collisions across projects
+              // Keep path as-is for lookups; only ID is namespaced
+              id: `${projectId}_${fileData.path}`,
               projectId,
               name: fileData.name,
               path: fileData.path,

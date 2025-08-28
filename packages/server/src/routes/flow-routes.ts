@@ -121,6 +121,74 @@ app.openapi(getUnqueuedItemsRoute, async (c) => {
   return c.json(items)
 })
 
+// === Queue Management (Flow-centric) ===
+
+// Create a queue via Flow
+const createQueueRoute = createRoute({
+  method: 'post',
+  path: '/api/flow/queues',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            projectId: z.coerce.number(),
+            name: z.string().min(1),
+            description: z.string().optional(),
+            maxParallelItems: z.number().min(1).max(10).optional()
+          })
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.any()
+    })
+  ),
+  tags: ['Flow'],
+  summary: 'Create a queue (Flow)'
+})
+
+app.openapi(createQueueRoute, async (c) => {
+  const body = c.req.valid('json')
+  const queue = await flowService.createQueue(body)
+  return c.json(successResponse(queue))
+})
+
+// List queues for project via Flow
+const listQueuesRoute = createRoute({
+  method: 'get',
+  path: '/api/projects/{projectId}/flow/queues',
+  request: { params: z.object({ projectId: z.coerce.number() }) },
+  responses: createStandardResponses(z.array(z.any())),
+  tags: ['Flow'],
+  summary: 'List queues for a project (Flow)'
+})
+
+app.openapi(listQueuesRoute, async (c) => {
+  const { projectId } = c.req.valid('param')
+  const queues = await flowService.listQueues(projectId)
+  return c.json(successResponse(queues))
+})
+
+// Queues with stats via Flow
+const queuesWithStatsRoute = createRoute({
+  method: 'get',
+  path: '/api/projects/{projectId}/flow/queues-with-stats',
+  request: { params: z.object({ projectId: z.coerce.number() }) },
+  responses: createStandardResponses(z.array(z.any())),
+  tags: ['Flow'],
+  summary: 'Get queues with stats (Flow)'
+})
+
+app.openapi(queuesWithStatsRoute, async (c) => {
+  const { projectId } = c.req.valid('param')
+  const data = await flowService.getQueuesWithStats(projectId)
+  return c.json(successResponse(data))
+})
+
 // === Queue Operations ===
 
 // Enqueue a ticket

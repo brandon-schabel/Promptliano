@@ -505,6 +505,73 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
   const flowOperations = {
     /**
+     * Create a queue via Flow (centralized)
+     */
+    async createQueue(data: { projectId: number; name: string; description?: string; maxParallelItems?: number }) {
+      return withErrorContext(
+        async () => {
+          const now = Date.now()
+          const created = await queueRepo.create({
+            projectId: data.projectId,
+            name: data.name,
+            description: data.description ?? null,
+            maxParallelItems: data.maxParallelItems ?? 1,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now
+          } as any)
+          return created
+        },
+        { entity: 'Queue', action: 'create' }
+      )
+    },
+
+    /**
+     * List queues for a project via Flow
+     */
+    async listQueues(projectId: number) {
+      return withErrorContext(
+        async () => {
+          return await queueRepo.getByProject(projectId)
+        },
+        { entity: 'Queue', action: 'list', id: projectId }
+      )
+    },
+
+    /**
+     * Get queues with basic stats via Flow
+     */
+    async getQueuesWithStats(projectId: number) {
+      return withErrorContext(
+        async () => {
+          const queues = await queueRepo.getByProject(projectId)
+          const results: Array<{ queue: any; stats: any }> = []
+          for (const q of queues) {
+            const { tickets, tasks } = await (this as any).getQueueItems(q.id)
+            const items = [
+              ...tickets.map((t: any) => ({ status: t.queueStatus, agentId: t.queueAgentId })),
+              ...tasks.map((t: any) => ({ status: t.queueStatus, agentId: t.queueAgentId }))
+            ]
+            const stats = {
+              queueId: q.id,
+              queueName: q.name,
+              totalItems: items.length,
+              queuedItems: items.filter((i) => i.status === 'queued').length,
+              inProgressItems: items.filter((i) => i.status === 'in_progress').length,
+              completedItems: items.filter((i) => i.status === 'completed').length,
+              failedItems: items.filter((i) => i.status === 'failed').length,
+              cancelledItems: items.filter((i) => i.status === 'cancelled').length,
+              averageProcessingTime: null,
+              currentAgents: Array.from(new Set(items.filter(i => i.status === 'in_progress' && i.agentId).map(i => i.agentId)))
+            }
+            results.push({ queue: q, stats })
+          }
+          return results
+        },
+        { entity: 'Queue', action: 'getQueuesWithStats', id: projectId }
+      )
+    },
+    /**
      * Move item between queues with proper validation
      */
     async moveItem(

@@ -68,6 +68,23 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
   // Extended domain operations
   const extensions = {
     /**
+     * Custom route handler: GET /api/projects/{projectId}/queues
+     * Used by generated project routes (handlerName: 'getQueues')
+     */
+    async getQueues(params: { projectId: number }) {
+      return withErrorContext(
+        async () => {
+          const { projectId } = params
+          // Ensure project exists
+          await baseService.getById(projectId)
+          // Delegate to queue service
+          const { queueService } = await import('./queue-service')
+          return await queueService.getByProject(projectId)
+        },
+        { entity: 'Project', action: 'getQueues' }
+      )
+    },
+    /**
      * Create project with path uniqueness validation
      */
     async create(data: CreateProjectBody): Promise<Project> {
@@ -540,7 +557,7 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
       }))
 
       // Use batch creation from file service
-      return await injectedFileService.batch.createFiles(projectId, files)
+      return await fileService.batch.createFiles(projectId, files)
     },
     { entity: 'Project', action: 'bulkCreateFiles', id: projectId }
   )
@@ -566,7 +583,7 @@ export const bulkUpdateProjectFiles = async (
       // File IDs are already strings in the new schema, so no conversion needed
 
       // Use batch updates from file service
-      return await injectedFileService.batch.updateFiles(projectId, updates)
+      return await fileService.batch.updateFiles(projectId, updates)
     },
     { entity: 'Project', action: 'bulkUpdateFiles', id: projectId }
   )
@@ -592,7 +609,7 @@ export const bulkDeleteProjectFiles = async (
       // File IDs are already strings in the new schema
 
       // Use batch deletion from file service
-      const deletedCount = await injectedFileService.batch.deleteFiles(projectId, fileIds)
+      const deletedCount = await fileService.batch.deleteFiles(projectId, fileIds)
 
       return { deletedCount }
     },

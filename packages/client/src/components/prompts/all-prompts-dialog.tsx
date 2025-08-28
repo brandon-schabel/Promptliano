@@ -56,9 +56,9 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
     }
     try {
       await addPromptToProject.mutateAsync({ promptId, projectId: selectedProjectId })
-      toast.success('Prompt added to project!')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add prompt to project')
+      // Errors are already surfaced by the hook; keep console for debugging
+      console.error(err)
     }
   }
 
@@ -69,9 +69,9 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
     }
     try {
       await removePromptFromProject.mutateAsync({ promptId, projectId: selectedProjectId })
-      toast.success('Prompt removed from project!')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to remove prompt from project')
+      // Errors are already surfaced by the hook; keep console for debugging
+      console.error(err)
     }
   }
 

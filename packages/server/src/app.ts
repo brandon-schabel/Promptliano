@@ -9,6 +9,8 @@ import { promptRoutes } from './routes/prompt-routes-factory'
 import { ticketRoutes } from './routes/ticket-routes-factory'
 import { queueRoutes } from './routes/queue-routes-factory'
 import { providerKeyRoutes } from './routes/provider-key-routes-factory'
+// Legacy provider key routes (supports /api/keys and /api/providers/health)
+import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
 import { claudeAgentRoutes } from './routes/claude-agent-routes-factory'
 import { claudeCommandRoutes } from './routes/claude-command-routes-factory'
 import { activeTabRoutes } from './routes/active-tab-routes-factory'
@@ -22,6 +24,7 @@ import { mcpRoutes } from './routes/mcp'
 import { gitRoutes } from './routes/git'
 import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
+import { projectQueueRoutes } from './routes/project-queue-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { claudeCodeRoutes } from './routes/claude-code-routes'
 import { claudeHookRoutes } from './routes/claude-hook-routes-factory'
@@ -99,6 +102,23 @@ const getClientIP = (c: Context) => {
   // Default fallback
   return 'unknown'
 }
+
+// Initiator metadata middleware (audit-friendly, header echo)
+app.use('*', async (c, next) => {
+  await next()
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
+      const initiator = c.req.header('x-initiator') || c.req.header('x-user-id') || getClientIP(c)
+      const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      c.header('X-Initiator', initiator || 'unknown')
+      c.header('X-Request-Id', requestId)
+      // Lightweight server-side log for traceability
+      console.log(`[Initiator] ${c.req.method} ${c.req.path} by ${initiator} (reqId=${requestId})`)
+    }
+  } catch {
+    // Do not block response on metadata issues
+  }
+})
 
 // General rate limiter - 500 requests per 15 minutes per IP
 const generalLimiter = rateLimiter({
@@ -214,10 +234,14 @@ app.route('/', promptRoutes)       // Factory: CRUD + file operations
 app.route('/', ticketRoutes)       // Factory: CRUD + task operations
 app.route('/', queueRoutes)        // Factory: CRUD + processing operations
 app.route('/', providerKeyRoutes)  // Factory: CRUD + validation
+// Register legacy provider key routes for backward compatibility with clients
+// expecting /api/keys and /api/providers/health endpoints
+app.route('/', providerKeyLegacyRoutes)
 app.route('/', claudeAgentRoutes)  // Factory: CRUD + AI suggestions
 app.route('/', claudeCommandRoutes)// Factory: Project-scoped commands
-app.route('/', activeTabRoutes)    // Factory: Get/Set/Clear operations
+app.route('/', activeTabRoutes)           // Factory: Get/Set/Clear operations (/api/active-tab)
 app.route('/', projectRoutes)      // Factory: CRUD + sync, files, summary operations
+app.route('/', projectQueueRoutes) // Project-scoped queue stats
 app.route('/', claudeHookRoutes)   // Factory: Hook management operations
 app.route('/', mcpConfigRoutes)    // Factory: Global + project MCP config
 

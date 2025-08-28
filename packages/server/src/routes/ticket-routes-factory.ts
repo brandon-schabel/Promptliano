@@ -291,7 +291,7 @@ ticketCustomRoutes.openapi(suggestTasksRoute, async (c) => {
 // Auto-generate tasks using AI
 const autoGenerateTasksRoute = createRoute({
   method: 'post',
-  path: '/api/tickets/{ticketId}/tasks/generate',
+  path: '/api/tickets/{ticketId}/auto-generate-tasks',
   tags: ['Tickets', 'Tasks', 'AI'],
   summary: 'Auto-generate tasks from overview',
   request: {

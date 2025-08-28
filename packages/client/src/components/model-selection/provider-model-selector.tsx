@@ -79,13 +79,15 @@ export function ProviderModelSelector({
       ]
     }
 
-    // Validate and transform provider data with type safety
-    const allProviders = (Array.isArray(providersData) ? providersData : []).filter(isValidProviderKey).map(
-      (p: ProviderKey): ComboboxOption => ({
-        value: p.id?.toString() || p.provider,
-        label: p.name || p.provider
+    // Transform provider data (supports both predefined and custom providers)
+    const allProviders = (Array.isArray(providersData) ? providersData : [])
+      .map((p: any): ComboboxOption | null => {
+        const value = typeof p?.id !== 'undefined' ? String(p.id) : p?.provider
+        const label = p?.name || p?.provider || (typeof value === 'string' ? value : '')
+        if (!value || !label) return null
+        return { value, label }
       })
-    )
+      .filter(Boolean) as ComboboxOption[]
 
     // Apply filter if specified
     if (filterProviders && filterProviders.length > 0) {

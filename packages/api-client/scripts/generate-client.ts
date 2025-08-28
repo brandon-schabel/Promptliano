@@ -81,6 +81,12 @@ function parseOpenApiOperations(spec: any): OperationInfo[] {
  * Convert path to method name
  */
 function pathToMethodName(path: string, method: string): string {
+  const toCamel = (str: string) =>
+    str
+      .split('-')
+      .map((word, index) => (index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+      .join('')
+
   // Remove /api prefix and clean up the path
   let cleanPath = path.replace(/^\/api\/?/, '').replace(/\/$/, '')
 
@@ -101,14 +107,7 @@ function pathToMethodName(path: string, method: string): string {
   // For CRUD operations, use clean method names
   if (isSingleResourceCrud || isCollectionCrud) {
     const entityName = pathSegments[0]
-    const cleanEntityName =
-      entityName ??
-      'unknown'
-        .split('-')
-        .map((word, index) =>
-          index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join('')
+    const cleanEntityName = toCamel(entityName || 'unknown')
 
     // Create clean CRUD method names
     if (method === 'GET') {
@@ -144,12 +143,7 @@ function pathToMethodName(path: string, method: string): string {
       return 'By' + paramName.charAt(0).toUpperCase() + paramName.slice(1)
     }
     // Convert kebab-case to camelCase
-    return part
-      .split('-')
-      .map((word, index) =>
-        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      )
-      .join('')
+    return toCamel(part)
   })
 
   // Create method name based on HTTP method
@@ -396,6 +390,18 @@ const config: GenerationConfig = {
  */
 async function fetchOpenApiSpec(): Promise<object> {
   console.log('🔍 Fetching OpenAPI specification...')
+  // Prefer existing local spec if available (avoids server dependency)
+  const localSpecPath = join(config.outputDir, 'openapi-spec.json')
+  try {
+    if (existsSync(localSpecPath)) {
+      const raw = readFileSync(localSpecPath, 'utf8')
+      const spec = JSON.parse(raw)
+      console.log('✅ Loaded OpenAPI spec from local file')
+      return spec
+    }
+  } catch (e) {
+    console.warn('⚠️  Failed reading local OpenAPI spec, falling back to server fetch')
+  }
 
   try {
     const response = await fetch(`${config.serverUrl}${config.openApiPath}`)
@@ -646,11 +652,16 @@ async function generateApiClient(): Promise<void> {
   console.log(`📂 Output directory: ${config.outputDir}`)
 
   try {
-    // Step 1: Fetch OpenAPI spec
+    // Step 1: Fetch OpenAPI spec (prefer local file)
     const spec = await fetchOpenApiSpec()
 
-    // Step 2: Generate TypeScript types
-    await generateTypes(spec)
+    // Step 2: Generate TypeScript types (skip if already present)
+    const typesPath = join(config.outputDir, 'api-types.ts')
+    if (!existsSync(typesPath)) {
+      await generateTypes(spec)
+    } else {
+      console.log('⏭️  Skipping types generation (api-types.ts exists)')
+    }
 
     // Step 3: Generate type-safe client
     generateTypeSafeClient(spec)

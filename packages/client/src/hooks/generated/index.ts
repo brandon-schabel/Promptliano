@@ -204,7 +204,10 @@ export function useProjectFiles(projectId: number) {
       return client.projects.getProjectFiles(projectId).then((r: any) => r?.data || r)
     },
     enabled: !!client && !!projectId && projectId !== -1,
-    staleTime: 2 * 60 * 1000 // 2 minutes for files
+    staleTime: 2 * 60 * 1000, // 2 minutes for files
+    // Keep the UI fresh while background sync runs every ~4s
+    refetchInterval: 4000,
+    refetchIntervalInBackground: true
   })
 }
 
@@ -463,40 +466,16 @@ export function useQueueItems(queueId: number, status?: string) {
 
 export function useGetQueuesWithStats(projectId: number) {
   const client = useApiClient()
-  const { data: queues } = useQueues({ projectId })
-  const { data: flowData } = useQuery({
-    queryKey: ['flow', 'data', projectId],
-    queryFn: () => {
-      if (!client) throw new Error('API client not initialized')
-      return client.typeSafeClient.listProjectsByProjectIdFlow(projectId)
-    },
-    enabled: !!client && !!projectId && projectId !== -1,
-    staleTime: 30 * 1000
-  })
 
   return useQuery({
     queryKey: QUEUE_ENHANCED_KEYS.listWithStats(projectId),
     queryFn: () => {
-      if (!queues || !flowData) return []
-
-      // Combine queue metadata with stats from flow data
-      return queues.map((queue: any) => ({
-        ...queue,
-        stats: {
-          total: 0,
-          pending: 0,
-          processing: 0,
-          completed: 0,
-          failed: 0,
-          currentAgents: [],
-          completedItems: 0,
-          totalItems: 0
-        }
-      }))
+      if (!client) throw new Error('API client not initialized')
+      return client.projects.getQueuesWithStats(projectId).then((r) => r?.data || r)
     },
-    enabled: !!queues && !!flowData,
-    staleTime: 30 * 1000, // 30 seconds for queue stats
-    refetchInterval: 30 * 1000 // Auto-refresh every 30 seconds
+    enabled: !!client && !!projectId && projectId !== -1,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000
   })
 }
 
@@ -609,7 +588,8 @@ export function useCreateQueue(projectId: number) {
   return useMutation({
     mutationFn: (data: Omit<CreateQueueBody, 'projectId'>) => {
       if (!client) throw new Error('API client not initialized')
-      return client.queues.createQueue(projectId, data).then((r) => r)
+      // Use Flow endpoint for queue creation
+      return client.queues.createQueue({ ...(data as any), projectId } as CreateQueueBody).then((r) => r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })
