@@ -148,7 +148,7 @@ export class RouteGenerator {
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { createAndRegisterEntityRoutes, type EntityConfig } from '../codegen/route-factory'
+import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { ${serviceName} } from '${this.config.imports.services}'
 import {
   ${name}Schema,

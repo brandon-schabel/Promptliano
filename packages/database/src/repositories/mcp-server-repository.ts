@@ -10,6 +10,7 @@ import { db } from '../db'
 // Create base repository with proper schema
 const baseMcpServerRepository = createBaseRepository(
   mcpServerConfigs,
+  undefined, // db instance
   undefined, // Will use default validation
   'McpServerConfig'
 )

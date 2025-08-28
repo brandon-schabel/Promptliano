@@ -13,7 +13,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { fileRepository } from '@promptliano/database'
 import {
   type File as ProjectFile,
@@ -23,7 +23,7 @@ import {
 
 import { resolvePath } from '@promptliano/shared'
 import path from 'node:path'
-import fs from 'node:fs/promises'
+import fs from 'fs/promises'
 
 // Update type for file updates
 type UpdateProjectFileBody = Partial<Omit<CreateProjectFileBody, 'id' | 'createdAt' | 'updatedAt'>>

@@ -55,17 +55,14 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
     }
 
-    // Generate tab name using the AI service
-    const selectedFiles = tabData?.selectedFiles || []
-    const context = tabData?.userPrompt || undefined
-
-    const generatedName = await generateTabName(project.name, selectedFiles.map(String), context)
+    // Generate tab name using the tab generation service
+    const tabGenerationResult = await generateTabName(projectId, tabData || {})
 
     return c.json(
       successResponse({
-        name: generatedName,
-        status: 'success' as const,
-        generatedAt: new Date().toISOString()
+        name: tabGenerationResult.name,
+        status: tabGenerationResult.status,
+        generatedAt: tabGenerationResult.generatedAt.toISOString()
       })
     )
   } catch (error) {

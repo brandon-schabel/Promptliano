@@ -24,13 +24,13 @@ import type {
   ClaudeCommandSchema as DatabaseClaudeCommandSchema,
   ClaudeHookSchema as DatabaseClaudeHookSchema
 } from '@promptliano/database'
+import { SelectedFileSchema } from './entity.schemas'
 
 // Recreate basic schemas locally to avoid runtime imports
 // These are used in response schemas but don't need full validation
 const TicketSchema = z.object({}).passthrough()
 const ChatSchema = z.object({}).passthrough()
 const QueueSchema = z.object({}).passthrough()
-const SelectedFileSchema = z.object({}).passthrough()
 const ActiveTabSchema = z.object({}).passthrough()
 
 // Recreate schema definitions locally based on database schema
@@ -339,6 +339,9 @@ export const SelectedFileListResponseSchema = createListResponseSchema(SelectedF
 // Active Tab List Response Schema
 export const ActiveTabListResponseSchema = createListResponseSchema(ActiveTabSchema, { name: 'ActiveTab' })
 
+// Note: ProjectListResponseSchema and PromptListResponseSchema are exported 
+// from project.schemas.ts and prompt.schemas.ts respectively to avoid duplicates
+
 // =============================================================================
 // TYPE EXPORTS
 // =============================================================================
@@ -373,3 +376,4 @@ export type AgentSuggestionsResponse = z.infer<typeof AgentSuggestionsResponseSc
 export type CommandSuggestionsResponse = z.infer<typeof CommandSuggestionsResponseSchema>
 export type SelectedFileListResponse = z.infer<typeof SelectedFileListResponseSchema>
 export type ActiveTabListResponse = z.infer<typeof ActiveTabListResponseSchema>
+// Note: ProjectListResponse and PromptListResponse types are exported from their respective schema files

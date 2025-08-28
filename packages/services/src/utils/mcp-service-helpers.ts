@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises'
 import { withRetry, withCache } from './service-helpers'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createLogger } from './logger'
 
 const logger = createLogger('MCPServiceHelpers')

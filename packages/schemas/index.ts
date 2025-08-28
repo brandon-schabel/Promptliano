@@ -63,8 +63,11 @@ export * from './src/response.schemas'
 // Chat Request Schemas
 export * from './src/chat-request.schemas'
 
-// Active Tab Request Schemas
-export * from './src/active-tab-request.schemas'
+// Active Tab Request Schemas - using specific exports to avoid conflicts
+export {
+  updateActiveTabSchema,
+  type UpdateActiveTab as UpdateActiveTabRequest
+} from './src/active-tab-request.schemas'
 
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
@@ -88,11 +91,132 @@ export { type ImportInfo, type ExportInfo, type ProjectFile, type ProjectFileMap
 // Note: HookConfig, HookEvent, and APIProviders types have been moved to @promptliano/database
 // Import them directly from @promptliano/database instead
 
-// API Request/Response Schemas (kept for API validation)
+// Entity Schemas (for auto-generated routes) - only export non-conflicting schemas
+export {
+  // Missing entity schemas needed by generated routes
+  ActiveTabSchema,
+  ChatSchema,
+  FileSchema,
+  QueueSchema,
+  SelectedFileSchema,
+  ChatMessageSchema,
+  QueueItemSchema,
+  TicketSchema,
+  TicketTaskSchema,
+  PromptSchema,
+  // Claude schemas - fix naming mismatches
+  ClaudeAgentSchema, // was: ClaudeContentSchema
+  ClaudeCommandSchema,
+  ClaudeHookSchema,
+  ProviderKeySchema, // was: ProviderModelSchema
+  // Create schemas for missing entities
+  CreateActiveTabSchema,
+  CreateChatSchema,
+  CreateFileSchema,
+  CreateQueueSchema,
+  CreateSelectedFileSchema,
+  CreateChatMessageSchema,
+  CreateClaudeAgentSchema, // was: CreateClaudeAgentBodySchema
+  CreateClaudeCommandSchema, // was: CreateClaudeCommandBodySchema  
+  CreateClaudeHookSchema,
+  CreateProviderKeySchema, // was: CreateProviderKeyInputSchema
+  CreateTicketSchema,
+  CreateTicketTaskSchema,
+  CreateQueueItemSchema, // was: CreateQueueSchema per error
+  CreateProjectSchema, // was: CreateProjectBodySchema
+  UpdateProjectSchema, // was: UpdateProjectBodySchema
+  // Update schemas for missing entities
+  UpdateActiveTabSchema,
+  UpdateChatSchema,
+  UpdateFileSchema,
+  UpdateQueueSchema,
+  UpdateSelectedFileSchema,
+  UpdateChatMessageSchema,
+  UpdateClaudeAgentSchema, // was: UpdateClaudeAgentBodySchema
+  UpdateClaudeCommandSchema, // was: UpdateClaudeCommandBodySchema
+  UpdateClaudeHookSchema,
+  UpdateProviderKeySchema,
+  UpdateTicketSchema,
+  UpdateTicketTaskSchema,
+  UpdateQueueItemSchema, // was: UpdateQueueSchema per error
+  // Types for missing entities
+  type ActiveTab,
+  type Chat,
+  type File,
+  type Queue,
+  type SelectedFile,
+  type ChatMessage,
+  type QueueItem,
+  type Ticket,
+  type TicketTask,
+  type Prompt,
+  type ClaudeAgent,
+  type ClaudeCommand,
+  type ClaudeHook,
+  type ProviderKey,
+  type CreateActiveTab,
+  type CreateChat,
+  type CreateFile,
+  type CreateQueue,
+  type CreateSelectedFile,
+  type CreateChatMessage,
+  type CreateClaudeAgent,
+  type CreateClaudeCommand,
+  type CreateClaudeHook,
+  type CreateProviderKey,
+  type CreateTicket,
+  type CreateTicketTask,
+  type CreateQueueItem,
+  type CreateProject,
+  type UpdateProject,
+  type UpdateActiveTab as UpdateActiveTabEntity,
+  type UpdateChat,
+  type UpdateFile,
+  type UpdateQueue,
+  type UpdateSelectedFile,
+  type UpdateChatMessage,
+  type UpdateClaudeAgent,
+  type UpdateClaudeCommand,
+  type UpdateClaudeHook,
+  type UpdateProviderKey,
+  type UpdateTicket,
+  type UpdateTicketTask,
+  type UpdateQueueItem
+} from './src/entity.schemas'
+
+// API Request/Response Schemas (kept for API validation) - be selective to avoid conflicts
 export * from './src/project.schemas'
-export * from './src/ticket.schemas'
-export * from './src/queue.schemas'
 export * from './src/prompt.schemas'
+
+// Explicitly export Prompt API types that might be overridden by entity.schemas.ts
+export type { CreatePromptBody, UpdatePromptBody } from './src/prompt.schemas'
+
+// Export specific non-conflicting schemas from these files
+export {
+  // From ticket.schemas.ts - avoid conflicts with entity.schemas.ts
+  type CreateTicketBody,
+  type UpdateTicketBody,
+  type CreateTaskBody,
+  type UpdateTaskBody,
+  type TicketWithTasks,
+  // Export API validation schemas
+  ticketsApiValidation
+} from './src/ticket.schemas'
+
+export {
+  // From queue.schemas.ts - schemas needed by queue routes
+  TaskQueueSchema,
+  QueueStatsSchema,
+  QueueWithStatsSchema,
+  CreateQueueBodySchema,
+  UpdateQueueBodySchema,
+  GetNextTaskResponseSchema,
+  BatchEnqueueBodySchema,
+  QueueTimelineSchema,
+  // From queue.schemas.ts - avoid conflicts with entity.schemas.ts  
+  type CreateQueueBody,
+  type UpdateQueueBody
+} from './src/queue.schemas'
 
 // =============================================================================
 // DEPRECATED EXPORTS - These now come from @promptliano/database

@@ -28,7 +28,7 @@ import { createQueryKeys, getStaleTimeForDomain, type QueryKeyFactory } from './
  */
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value)
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
@@ -214,7 +214,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
     
     return useInfiniteQuery({
       queryKey: KEYS.infinite(params),
-      queryFn: async ({ pageParam }) => {
+      queryFn: async ({ pageParam }: { pageParam: any }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
         
@@ -260,7 +260,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           return response.data || response
         }
       },
-      getNextPageParam: (lastPage) => {
+      getNextPageParam: (lastPage: any) => {
         if (options.useCursor) {
           // Cursor-based
           return lastPage.hasMore ? lastPage.nextCursor : undefined
@@ -275,7 +275,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           return undefined
         }
       },
-      getPreviousPageParam: (firstPage) => {
+      getPreviousPageParam: (firstPage: any) => {
         if (options.useCursor) {
           // Cursor-based
           return firstPage.prevCursor
@@ -552,7 +552,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
         const api = (client as any)[clientPath]
         
         if (api?.getMany) {
-          return queryClient.prefetchQuery({
+          await queryClient.prefetchQuery({
             queryKey: [...KEYS.all, 'many', ids],
             queryFn: async () => {
               const response = await api.getMany(ids)
@@ -560,11 +560,12 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
             },
             staleTime
           })
+          return
         }
         
         // Prefetch individually
         if (api?.get) {
-          return Promise.all(
+          await Promise.all(
             ids.map(id => 
               queryClient.prefetchQuery({
                 queryKey: KEYS.detail(id),

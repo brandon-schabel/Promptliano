@@ -66,7 +66,20 @@ export function ProjectSettingsTab() {
     setShowSyncProgress(true)
 
     syncWithProgress(projectId, (event) => {
-      syncProgressRef.current?.updateProgress(event)
+      // Parse the event data if it's a MessageEvent, otherwise use as-is
+      let progressData: SyncProgressEvent
+      if (event instanceof MessageEvent) {
+        try {
+          progressData = JSON.parse(event.data)
+        } catch (error) {
+          console.error('Failed to parse progress event:', error)
+          return
+        }
+      } else {
+        progressData = event as SyncProgressEvent
+      }
+      
+      syncProgressRef.current?.updateProgress(progressData)
     })
       .then(() => {
         toast.success('Project synced successfully!')

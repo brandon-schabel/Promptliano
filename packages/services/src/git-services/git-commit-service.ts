@@ -9,7 +9,7 @@ import type {
   GitCommitDetailResponse,
   GitFileDiff
 } from '@promptliano/schemas'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 import * as path from 'path'
 

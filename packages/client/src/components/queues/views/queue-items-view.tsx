@@ -46,9 +46,9 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
 
-  const { data: queues } = useQueues({ projectId })
+  const { data: queues } = (useQueues as any)({ projectId })
   const { data: flowData, isLoading } = useGetFlowData(projectId)
-  const { data: ticketsWithTasks } = useTickets({ projectId })
+  const { data: ticketsWithTasks } = (useTickets as any)({ projectId })
 
   // Extract queue items from flow data
   const items: QueueItem[] = useMemo(() => {

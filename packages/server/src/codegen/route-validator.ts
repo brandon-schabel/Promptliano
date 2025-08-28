@@ -173,7 +173,7 @@ export class RouteValidator {
         // Check for required imports
         const requiredImports = [
           '@hono/zod-openapi',
-          '../codegen/route-factory',
+          '../../codegen/route-factory',
           '@promptliano/services',
           '@promptliano/schemas'
         ]

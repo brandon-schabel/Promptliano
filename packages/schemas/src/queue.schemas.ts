@@ -95,7 +95,8 @@ export const UpdateQueueBodySchema = CreateQueueBodySchema.pick({
 })
   .partial()
   .extend({
-    status: QueueStatusEnum.optional()
+    status: QueueStatusEnum.optional(),
+    isActive: z.boolean().optional()
   })
   .openapi('UpdateQueueBody')
 
@@ -151,12 +152,20 @@ export const QueueWithStatsSchema = z
   })
   .openapi('QueueWithStats')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreateQueueSchema = CreateQueueBodySchema
+export const UpdateQueueSchema = UpdateQueueBodySchema
+export const CreateQueueItemSchema = EnqueueItemBodySchema
+
 // Type exports
 export type TaskQueue = z.infer<typeof TaskQueueSchema>
 export type QueueItem = z.infer<typeof QueueItemSchema>
 export type QueueStats = z.infer<typeof QueueStatsSchema>
 export type CreateQueueBody = z.infer<typeof CreateQueueBodySchema>
 export type UpdateQueueBody = z.infer<typeof UpdateQueueBodySchema>
+export type CreateQueue = z.infer<typeof CreateQueueSchema>
+export type UpdateQueue = z.infer<typeof UpdateQueueSchema>
+export type CreateQueueItem = z.infer<typeof CreateQueueItemSchema>
 export type EnqueueItemBody = z.infer<typeof EnqueueItemBodySchema>
 export type GetNextTaskResponse = z.infer<typeof GetNextTaskResponseSchema>
 export type BatchEnqueueResult = z.infer<typeof BatchEnqueueResultSchema>

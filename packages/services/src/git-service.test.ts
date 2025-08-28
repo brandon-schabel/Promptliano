@@ -1,7 +1,7 @@
 import { describe, test, expect, spyOn, beforeEach, afterEach, Mock, jest } from 'bun:test'
 import { simpleGit, type SimpleGit } from 'simple-git'
 import type { Project } from '@promptliano/database'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 // Import the service creation functions
 import { 
@@ -434,6 +434,72 @@ describe('Git Service - Functional Factory Pattern', () => {
         mockGit.commit = jest.fn().mockRejectedValue(new Error('Failed to commit'))
 
         await expect(gitCommitService.commitChanges(1, 'Test commit')).rejects.toThrow('Failed to commit')
+      })
+
+      test('should handle project not found in commit service', async () => {
+        // Create a fresh service instance with a mock that throws error
+        const projectServiceWithError = {
+          getById: jest.fn().mockRejectedValue(ErrorFactory.notFound('Project', 1))
+        }
+        
+        const testGitCommitService = createGitCommitService({
+          projectService: projectServiceWithError,
+          logger: mockLogger,
+          statusService: gitStatusService
+        })
+
+        await expect(testGitCommitService.commitChanges(1, 'Test commit')).rejects.toThrow('not found')
+      })
+
+      test('should handle project without path in commit service', async () => {
+        // Create a fresh service instance with a mock that returns null path
+        const projectServiceWithNullPath = {
+          getById: jest.fn().mockResolvedValue({ ...mockProject, path: null })
+        }
+        
+        const testGitCommitService = createGitCommitService({
+          projectService: projectServiceWithNullPath,
+          logger: mockLogger,
+          statusService: gitStatusService
+        })
+
+        await expect(testGitCommitService.commitChanges(1, 'Test commit')).rejects.toThrow('missing path')
+      })
+    })
+
+    describe('ErrorFactory Integration Tests', () => {
+      test('should verify ErrorFactory.notFound works correctly', () => {
+        const error = ErrorFactory.notFound('Project', 1)
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('Project with ID 1 not found')
+      })
+
+      test('should verify ErrorFactory.operationFailed works correctly', () => {
+        const error = ErrorFactory.operationFailed('git commit', 'test reason')
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('git commit')
+        expect(error.message).toContain('test reason')
+      })
+
+      test('should verify ErrorFactory.invalidState works correctly', () => {
+        const error = ErrorFactory.invalidState('Project', 'missing path', 'git operations')
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('missing path')
+      })
+
+      test('should verify ErrorFactory.validationFailed works correctly', () => {
+        const testError = new Error('No staged changes')
+        const error = ErrorFactory.validationFailed(testError, { code: 'NO_STAGED_CHANGES' })
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('Validation failed')
+      })
+
+      test('should verify ErrorFactory.wrap works correctly', () => {
+        const originalError = new Error('Original error message')
+        const wrappedError = ErrorFactory.wrap(originalError, 'test context')
+        expect(wrappedError).toBeInstanceOf(Error)
+        expect(wrappedError.message).toContain('test context')
+        expect(wrappedError.message).toContain('Original error message')
       })
     })
   })

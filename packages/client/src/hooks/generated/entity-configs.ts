@@ -33,9 +33,6 @@ import {
   ChatSchema,
   CreateChat,
   UpdateChat,
-  PromptSchema,
-  CreatePrompt,
-  UpdatePrompt,
   ClaudeAgentSchema,
   CreateClaudeAgent,
   UpdateClaudeAgent,
@@ -47,22 +44,38 @@ import {
   UpdateProviderKey
 } from '@promptliano/database'
 
+// Import API body types from schemas package (for proper API request types)
+import { 
+  PromptSchema,
+  CreatePromptBody as SchemasCreatePromptBody,
+  UpdatePromptBody as SchemasUpdatePromptBody,
+  CreateTicketBody as SchemasCreateTicketBody,
+  UpdateTicketBody as SchemasUpdateTicketBody,
+  CreateTaskBody as SchemasCreateTaskBody,
+  UpdateTaskBody as SchemasUpdateTaskBody,
+  // Import proper Ticket type to avoid type inference issues
+  Ticket,
+  TicketTask,
+  Prompt
+} from '@promptliano/schemas'
+
 // Extract proper TypeScript types from schemas
 type Project = typeof ProjectSchema._type
 type CreateProjectBody = CreateProject
 type UpdateProjectBody = UpdateProject
-type Ticket = typeof TicketSchema._type
-type CreateTicketBody = CreateTicket
-type UpdateTicketBody = UpdateTicket
-type TicketTask = typeof TaskSchema._type
-type CreateTaskBody = CreateTask
-type UpdateTaskBody = UpdateTask
+// Use the properly typed imports from schemas package (imported above)
+// type Ticket = typeof TicketSchema._type // This causes type inference issues - use import instead
+type CreateTicketBody = SchemasCreateTicketBody
+type UpdateTicketBody = SchemasUpdateTicketBody
+// type TicketTask = typeof TaskSchema._type // This causes type inference issues - use import instead
+type CreateTaskBody = SchemasCreateTaskBody
+type UpdateTaskBody = SchemasUpdateTaskBody
 type Chat = typeof ChatSchema._type
 type CreateChatBody = CreateChat
 type UpdateChatBody = UpdateChat
-type Prompt = typeof PromptSchema._type
-type CreatePromptBody = CreatePrompt
-type UpdatePromptBody = UpdatePrompt
+// type Prompt = typeof PromptSchema._type // This causes type inference issues - use import instead
+type CreatePromptBody = SchemasCreatePromptBody
+type UpdatePromptBody = SchemasUpdatePromptBody
 type ClaudeAgent = typeof ClaudeAgentSchema._type
 type CreateClaudeAgentBody = CreateClaudeAgent
 type UpdateClaudeAgentBody = UpdateClaudeAgent
@@ -330,7 +343,7 @@ export const ticketOptimisticConfig: OptimisticConfig<Ticket> = {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       status: data.status || 'open',
-      priority: data.priority || 3
+      priority: data.priority || 'normal'
     }) as Ticket,
   updateOptimisticEntity: (old: Ticket, data: UpdateTicketBody) => ({
     ...old,
@@ -364,9 +377,11 @@ export const promptOptimisticConfig: OptimisticConfig<Prompt> = {
     ({
       ...data,
       id: -Date.now(),
+      projectId: data.projectId || 0,
+      description: null,
+      tags: [],
       createdAt: Date.now(),
-      updatedAt: Date.now(),
-      tags: data.tags || []
+      updatedAt: Date.now()
     }) as Prompt,
   updateOptimisticEntity: (old: Prompt, data: UpdatePromptBody) => ({
     ...old,
@@ -402,8 +417,8 @@ export const chatInvalidationStrategy: InvalidationStrategy = {
 }
 
 export const promptInvalidationStrategy: InvalidationStrategy = {
-  onCreate: 'lists',
-  onUpdate: ['lists', 'detail'],
+  onCreate: 'all',  // Changed from 'lists' to 'all' to invalidate project-specific queries too
+  onUpdate: 'all',   // Changed to ensure all prompt queries refresh
   onDelete: 'all',
   cascadeInvalidate: true
 }

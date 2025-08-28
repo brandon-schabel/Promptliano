@@ -12,7 +12,6 @@ import {
   createMCPProjectConfigService,
   type MCPProjectConfigService,
   type ProjectMCPConfig,
-  type ProjectMCPState,
 } from './mcp-project-config-service'
 
 // Set test environment
@@ -20,27 +19,17 @@ process.env.NODE_ENV = 'test'
 
 // Test fixtures
 const mockProjectConfig: ProjectMCPConfig = {
-  projectId: 123,
-  servers: {
+  mcpServers: {
     projectServer: {
       type: 'stdio',
       command: 'node',
       args: ['project-server.js'],
-      env: { PROJECT_ENV: 'test' },
-      enabled: true,
-      autoStart: false
+      env: { PROJECT_ENV: 'test' }
     }
-  },
-  serverUrl: 'http://localhost:3147/api/mcp',
-  debugMode: false,
-  inheritGlobal: true,
-  projectEnv: { PROJECT_VAR: 'project_value' }
+  }
 }
 
-const mockProjectState: ProjectMCPState = {
-  config: mockProjectConfig,
-  lastModified: Date.now()
-}
+// Remove ProjectMCPState import and mock as it doesn't exist in the service
 
 // Mock project service
 const mockProjectService = {
@@ -51,23 +40,7 @@ const mockProjectService = {
   }))
 }
 
-// Mock global config service
-const mockGlobalConfigService = {
-  getGlobalConfig: mock(async () => ({
-    servers: {
-      globalServer: {
-        type: 'stdio' as const,
-        command: 'global-command',
-        args: ['global-args']
-      }
-    },
-    defaultServerUrl: 'http://localhost:3147/api/mcp',
-    debugMode: false,
-    globalEnv: { GLOBAL_VAR: 'global_value' }
-  })),
-  on: mock(),
-  removeAllListeners: mock()
-}
+// Remove unused global config service mock
 
 // Mock file system operations
 const mockFs = {
@@ -113,7 +86,7 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     // Reset all mocks
     Object.values(mockFs).forEach(mock => mock.mockReset())
     Object.values(mockLogger).forEach(mock => mock.mockClear())
-    mockGlobalConfigService.getGlobalConfig.mockClear()
+    mockProjectService.getById.mockClear()
 
     // Setup default mock behaviors
     mockFs.mkdir.mockResolvedValue(undefined)
@@ -125,7 +98,8 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     service = createMCPProjectConfigService({
       projectService: mockProjectService as any,
       enableWatching: false, // Disable for tests
-      logger: mockLogger as any
+      logger: mockLogger as any,
+      cacheConfig: { ttl: 1000, maxEntries: 10 } // Short TTL for tests
     })
   })
 
@@ -146,17 +120,17 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
       expect(locations[0]).toEqual({
         path: expect.stringContaining('.vscode/mcp.json'),
         exists: true,
-        priority: 0
+        priority: 3
       })
       expect(locations[1]).toEqual({
         path: expect.stringContaining('.cursor/mcp.json'),
         exists: false,
-        priority: 1
+        priority: 2
       })
       expect(locations[2]).toEqual({
         path: expect.stringContaining('.mcp.json'),
         exists: true,
-        priority: 2
+        priority: 1
       })
     })
 
@@ -192,7 +166,7 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
       expect(result).toBeTruthy()
       if (result) {
         expect(result.config).toEqual(expect.objectContaining({
-          servers: expect.any(Object)
+          mcpServers: expect.any(Object)
         }))
         expect(result.projectPath).toBe('/test/project/path')
       }
@@ -201,8 +175,8 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     test('should save project configuration', async () => {
       const configToSave = {
         ...mockProjectConfig,
-        servers: {
-          ...mockProjectConfig.servers,
+        mcpServers: {
+          ...mockProjectConfig.mcpServers,
           newServer: {
             type: 'stdio' as const,
             command: 'new-command'
@@ -219,13 +193,13 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
       const mergedConfig = await service.getMergedConfig(projectId)
 
       expect(mergedConfig).toBeDefined()
-      expect(mergedConfig.servers || mergedConfig.mcpServers).toBeDefined()
+      expect(mergedConfig.mcpServers).toBeDefined()
     })
 
     test('should expand variables in configuration', async () => {
       const configWithVars = {
         ...mockProjectConfig,
-        servers: {
+        mcpServers: {
           testServer: {
             type: 'stdio' as const,
             command: '${COMMAND:-node}',
@@ -245,7 +219,7 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
 
       expect(vscodeType).toBe('vscode')
       expect(cursorType).toBe('cursor')
-      expect(genericType).toBe('generic')
+      expect(genericType).toBe('universal')
     })
   })
 
@@ -259,14 +233,14 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
       const mergedConfig = await service.getMergedConfig(projectId)
 
       expect(mergedConfig).toBeDefined()
-      expect(mergedConfig.mcpServers || mergedConfig.servers).toBeDefined()
+      expect(mergedConfig.mcpServers).toBeDefined()
     })
 
     test('should get expanded configuration with variables', async () => {
       const expandedConfig = await service.getExpandedConfig(projectId)
 
       expect(expandedConfig).toBeDefined()
-      expect(expandedConfig.mcpServers || expandedConfig.servers).toBeDefined()
+      expect(expandedConfig.mcpServers).toBeDefined()
     })
 
     test('should get user configuration', async () => {
@@ -357,18 +331,17 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     })
 
     test('should handle missing project service', async () => {
-      mockProjectService.getById.mockRejectedValue(new Error('Project not found'))
+      mockProjectService.getById.mockRejectedValueOnce(new Error('Project not found'))
 
-      const locations = await service.getConfigLocations(projectId)
-      
-      // Should still return default locations
-      expect(Array.isArray(locations)).toBe(true)
+      // This should throw an error since project is required
+      await expect(service.getConfigLocations(projectId)).rejects.toThrow('Project not found')
     })
   })
 
   describe('Caching Behavior', () => {
     test('should cache configuration reads', async () => {
       mockFs.readFile.mockResolvedValue(JSON.stringify(mockProjectConfig))
+      mockFs.access.mockResolvedValue(undefined) // Config file exists
       
       // First call loads from file
       const config1 = await service.loadProjectConfig(projectId)
@@ -381,6 +354,9 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     })
 
     test('should cache merged configuration', async () => {
+      mockFs.readFile.mockResolvedValue(JSON.stringify(mockProjectConfig))
+      mockFs.access.mockResolvedValue(undefined) // Config file exists
+      
       // First call
       const merged1 = await service.getMergedConfig(projectId)
       
@@ -392,6 +368,9 @@ describe('MCP Project Config Service - Functional Factory Pattern', () => {
     })
 
     test('should work with expanded configurations', async () => {
+      mockFs.readFile.mockResolvedValue(JSON.stringify(mockProjectConfig))
+      mockFs.access.mockResolvedValue(undefined) // Config file exists
+      
       const expanded = await service.getExpandedConfig(projectId)
 
       expect(expanded).toBeDefined()

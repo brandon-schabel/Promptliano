@@ -1,14 +1,14 @@
 import { describe, test, expect, spyOn, beforeEach, afterEach, Mock, mock } from 'bun:test'
 import * as fileSyncService from './file-sync-service-unified'
 import * as projectService from '../project-service'
-import * as fs from 'node:fs'
+import * as fs from 'fs'
 import { join } from 'node:path'
 import ignore, { type Ignore } from 'ignore'
 import { getFilesConfig } from '@promptliano/config'
 import type { Project } from '@promptliano/database'
 
 const { defaultExclusions: DEFAULT_FILE_EXCLUSIONS } = getFilesConfig()
-import type { PathLike, Dirent, Stats } from 'node:fs'
+import type { PathLike, Dirent, Stats } from 'fs'
 import { isIgnored, inferChangeType } from './file-sync-service-unified'
 import { createCleanupService } from './file-sync-service-unified'
 import { normalizePathForDb } from '../utils/path-utils'

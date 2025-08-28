@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR SELECTEDFILE
- * Generated at: 2025-08-22T23:50:50.384Z
- *
+ * Generated at: 2025-08-27T15:26:33.554Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,8 +11,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { selectedfileServiceV2 } from '@promptliano/services'
-import { SelectedFileSchema, CreateSelectedFileSchema, UpdateSelectedFileSchema } from '@promptliano/database'
 import {
+  SelectedFileSchema,
+  CreateSelectedFileSchema,
+  UpdateSelectedFileSchema,
   SelectedFileIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -62,9 +64,9 @@ const selectedfileConfig: EntityConfig = {
  */
 export function registerSelectedFileRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, selectedfileConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for SelectedFile`)
-
+  
   return updatedApp
 }
 
@@ -77,7 +79,7 @@ export const selectedfileRoutes = {
   list: `GET /api/selectedfiles`,
   get: `GET /api/selectedfiles/{id}`,
   update: `PUT /api/selectedfiles/{id}`,
-  delete: `DELETE /api/selectedfiles/{id}`
+  delete: `DELETE /api/selectedfiles/{id}`,
 } as const
 
 export type SelectedFileRouteTypes = typeof selectedfileRoutes

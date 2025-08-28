@@ -18,9 +18,15 @@ import type {
   // Tickets & Tasks - use schemas with proper typing for JSON fields
   TicketSchema,
   TicketTaskSchema,
+  CreateTicketBody as SchemasCreateTicketBody,
+  UpdateTicketBody as SchemasUpdateTicketBody,
+  CreateTaskBody as SchemasCreateTaskBody,
+  UpdateTaskBody as SchemasUpdateTaskBody,
 
   // Prompts
   PromptSchema,
+  CreatePromptBody,
+  UpdatePromptBody,
 
   // Export the inferred types directly
   Ticket,
@@ -67,10 +73,10 @@ export type UpdateProjectBody = UpdateProject
 export { Ticket, TicketTask, Prompt, TicketWithTasks }
 
 // Create type aliases for backward compatibility
-export type CreateTicketBody = any // TODO: Add proper create schema types
-export type UpdateTicketBody = any // TODO: Add proper update schema types
-export type CreateTaskBody = any // TODO: Add proper create schema types
-export type UpdateTaskBody = any // TODO: Add proper update schema types
+export type CreateTicketBody = SchemasCreateTicketBody
+export type UpdateTicketBody = SchemasUpdateTicketBody
+export type CreateTaskBody = SchemasCreateTaskBody
+export type UpdateTaskBody = SchemasUpdateTaskBody
 
 export type Chat = typeof ChatSchema._type
 export type CreateChatBody = CreateChat
@@ -83,8 +89,7 @@ export type CreateClaudeAgentBody = CreateClaudeAgent
 export type UpdateClaudeAgentBody = UpdateClaudeAgent
 
 // Prompt types already exported above from schemas package
-export type CreatePromptBody = any // TODO: Add proper create schema types
-export type UpdatePromptBody = any // TODO: Add proper update schema types
+export { CreatePromptBody, UpdatePromptBody }
 
 export type TaskQueue = typeof QueueSchema._type & {
   status?: 'active' | 'paused' | 'completed'
@@ -223,18 +228,24 @@ export type QueueItem = {
 }
 
 export type QueueStats = {
-  total: number
-  pending: number
-  processing: number
-  completed: number
-  failed: number
-  currentAgents: string[]
-  completedItems: number
+  queueId: number
+  queueName: string
   totalItems: number
-  averageProcessingTime?: number
+  queuedItems: number
+  inProgressItems: number
+  completedItems: number
+  failedItems: number
+  cancelledItems: number
+  averageProcessingTime: number | null
+  currentAgents: string[]
+  // Enhanced stats fields (optional for backward compatibility)
+  ticketCount?: number
+  taskCount?: number
+  uniqueTickets?: number
 }
 
-export type QueueWithStats = TaskQueue & {
+export type QueueWithStats = {
+  queue: TaskQueue
   stats: QueueStats
 }
 

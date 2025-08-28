@@ -14,6 +14,7 @@ import {
   operationSuccessResponse,
   withErrorHandling
 } from '../utils/route-helpers'
+import type { Context } from 'hono'
 
 // Define schemas locally (these should be in @promptliano/schemas ideally)
 const ActiveTabDataSchema = z.object({
@@ -51,11 +52,16 @@ const getActiveTabRoute = createRoute({
   responses: createStandardResponses(ActiveTabResponseSchema)
 })
 
-activeTabRoutes.openapi(getActiveTabRoute, withErrorHandling(async (c) => {
-  const { projectId = 1, clientId } = c.req.valid('query')
-  const activeTab = await activeTabService.getActiveTab(projectId, clientId)
-  return c.json(successResponse(activeTab))
-}))
+activeTabRoutes.openapi(getActiveTabRoute, async (c) => {
+  try {
+    const { projectId = 1, clientId } = c.req.valid('query')
+    const activeTab = await activeTabService.getActiveTab(projectId, clientId)
+    return c.json(successResponse(activeTab))
+  } catch (error) {
+    console.error('[GetActiveTab] Error:', error)
+    throw ErrorFactory.wrap(error, 'Get active tab')
+  }
+})
 
 // ============= SET ACTIVE TAB =============
 const setActiveTabRoute = createRoute({
@@ -76,11 +82,16 @@ const setActiveTabRoute = createRoute({
   responses: createStandardResponses(ActiveTabResponseRequiredSchema)
 })
 
-activeTabRoutes.openapi(setActiveTabRoute, withErrorHandling(async (c) => {
-  const data = c.req.valid('json')
-  const updatedTab = await activeTabService.setActiveTab(data)
-  return c.json(successResponse(updatedTab))
-}))
+activeTabRoutes.openapi(setActiveTabRoute, async (c) => {
+  try {
+    const data = c.req.valid('json')
+    const updatedTab = await activeTabService.setActiveTab(data)
+    return c.json(successResponse(updatedTab))
+  } catch (error) {
+    console.error('[SetActiveTab] Error:', error)
+    throw ErrorFactory.wrap(error, 'Set active tab')
+  }
+})
 
 // ============= CLEAR ACTIVE TAB =============
 const clearActiveTabRoute = createRoute({
@@ -100,10 +111,15 @@ const clearActiveTabRoute = createRoute({
   }))
 })
 
-activeTabRoutes.openapi(clearActiveTabRoute, withErrorHandling(async (c) => {
-  const { projectId = 1, clientId } = c.req.valid('query')
-  await activeTabService.clearActiveTab(projectId, clientId)
-  return c.json(operationSuccessResponse('Active tab cleared successfully'))
-}))
+activeTabRoutes.openapi(clearActiveTabRoute, async (c) => {
+  try {
+    const { projectId = 1, clientId } = c.req.valid('query')
+    await activeTabService.clearActiveTab(projectId, clientId)
+    return c.json(operationSuccessResponse('Active tab cleared successfully'))
+  } catch (error) {
+    console.error('[ClearActiveTab] Error:', error)
+    throw ErrorFactory.wrap(error, 'Clear active tab')
+  }
+})
 
 export type ActiveTabRouteTypes = typeof activeTabRoutes

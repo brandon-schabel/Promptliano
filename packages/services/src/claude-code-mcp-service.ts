@@ -115,7 +115,7 @@ export function createClaudeCodeMCPService(deps?: ClaudeCodeMCPDependencies): Cl
     platform = process.platform,
     projectService = { getById: getProjectById },
     fileReaderService = claudeCodeFileReaderService,
-    cacheConfig = MCPCacheConfig.metadata,
+    cacheConfig = MCPCacheConfig.metadata || { ttl: 60000, maxEntries: 100 },
     enableSessionCaching = true
   } = deps || {}
 
@@ -494,8 +494,8 @@ export function createClaudeCodeMCPService(deps?: ClaudeCodeMCPDependencies): Cl
       )
     },
     enableSessionCaching ? { 
-      ttl: (cacheConfig.ttl ?? 300000) / 2, 
-      maxEntries: (cacheConfig.maxEntries ?? 100), 
+      ttl: (cacheConfig?.ttl ?? 300000) / 2, 
+      maxEntries: (cacheConfig?.maxEntries ?? 100), 
       keyGenerator: (projectId) => `status-${projectId}` 
     } : undefined
   )
@@ -580,8 +580,8 @@ export function createClaudeCodeMCPService(deps?: ClaudeCodeMCPDependencies): Cl
       )
     },
     enableSessionCaching ? { 
-      ttl: cacheConfig.ttl, 
-      maxEntries: (cacheConfig.maxEntries ?? 100), 
+      ttl: cacheConfig?.ttl || 60000, 
+      maxEntries: (cacheConfig?.maxEntries ?? 100), 
       keyGenerator: (projectId, limit) => `recent-${projectId}-${limit}` 
     } : undefined
   )
@@ -677,8 +677,8 @@ export function createClaudeCodeMCPService(deps?: ClaudeCodeMCPDependencies): Cl
       )
     },
     enableSessionCaching ? { 
-      ttl: (cacheConfig.ttl ?? 300000) * 2, 
-      maxEntries: (cacheConfig.maxEntries ?? 100), 
+      ttl: (cacheConfig?.ttl ?? 300000) * 2, 
+      maxEntries: (cacheConfig?.maxEntries ?? 100), 
       keyGenerator: (projectId) => `metadata-${projectId}` 
     } : undefined
   )
@@ -804,8 +804,8 @@ export function createClaudeCodeMCPService(deps?: ClaudeCodeMCPDependencies): Cl
       )
     },
     enableSessionCaching ? { 
-      ttl: (cacheConfig.ttl ?? 300000) * 3, 
-      maxEntries: Math.floor((cacheConfig.maxEntries ?? 100) / 2), 
+      ttl: (cacheConfig?.ttl ?? 300000) * 3, 
+      maxEntries: Math.floor((cacheConfig?.maxEntries ?? 100) / 2), 
       keyGenerator: (projectId) => `project-data-${projectId}` 
     } : undefined
   )

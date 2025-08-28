@@ -13,7 +13,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 import type { McpServerConfig, InsertMcpServerConfig } from '@promptliano/database'
 import type { MCPToolExecutionRequest } from '@promptliano/schemas'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { ZodError } from 'zod'
 
 // Set test environment
@@ -81,7 +81,7 @@ const mockMCPServerRepository = {
   getById: mock(async (id: number): Promise<McpServerConfig> => {
     const config = mockMCPConfigs[id]
     if (!config) {
-      throw ErrorFactory.notFound(`MCP server config with ID ${id} not found`)
+      throw new Error(`MCP server config with ID ${id} not found`)
     }
     return config
   }),
@@ -89,7 +89,7 @@ const mockMCPServerRepository = {
   update: mock(async (id: number, data: Partial<InsertMcpServerConfig>): Promise<McpServerConfig> => {
     const existing = mockMCPConfigs[id]
     if (!existing) {
-      throw ErrorFactory.notFound(`MCP server config with ID ${id} not found`)
+      throw new Error(`MCP server config with ID ${id} not found`)
     }
     const updated = { ...existing, ...data, updatedAt: Date.now() }
     mockMCPConfigs[id] = updated
@@ -98,7 +98,7 @@ const mockMCPServerRepository = {
 
   delete: mock(async (id: number): Promise<boolean> => {
     if (!mockMCPConfigs[id]) {
-      throw ErrorFactory.notFound(`MCP server config with ID ${id} not found`)
+      throw new Error(`MCP server config with ID ${id} not found`)
     }
     delete mockMCPConfigs[id]
     return true
@@ -139,7 +139,7 @@ const mockMCPServerRepository = {
 const mockProjectService = {
   getById: mock(async (id: number) => {
     if (!mockProjectExists) {
-      throw ErrorFactory.notFound(`Project with ID ${id} not found`)
+      throw new Error(`Project with ID ${id} not found`)
     }
     return { id, name: `Test Project ${id}` }
   })
@@ -576,7 +576,7 @@ describe('MCP Service - Repository-Based Operations', () => {
 
   describe('Error Handling and Validation', () => {
     test('handles repository errors properly', async () => {
-      mockMCPServerRepository.getById.mockRejectedValueOnce(ErrorFactory.notFound('Server not found'))
+      mockMCPServerRepository.getById.mockRejectedValueOnce(new Error('Server not found'))
 
       await expect(mcpService.getConfigById(999)).rejects.toThrow('Server not found')
     })

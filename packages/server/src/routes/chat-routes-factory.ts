@@ -59,13 +59,18 @@ const getChatMessagesRoute = createRoute({
   }))
 })
 
-customRoutes.openapi(getChatMessagesRoute, withErrorHandling(async (c) => {
-  const { chatId } = c.req.valid('param')
-  const { limit, offset } = c.req.valid('query')
-  
-  const messages = await chatService.getChatMessages(chatId)
-  return c.json(successResponse(messages))
-}))
+customRoutes.openapi(getChatMessagesRoute, async (c) => {
+  try {
+    const { chatId } = c.req.valid('param')
+    const { limit, offset } = c.req.valid('query')
+    
+    const messages = await chatService.getChatMessages(chatId)
+    return c.json(successResponse(messages))
+  } catch (error) {
+    console.error('[GetChatMessages] Error:', error)
+    throw ErrorFactory.wrap(error, 'Get chat messages')
+  }
+})
 
 // ============= FORK CHAT =============
 const forkChatRoute = createRoute({
@@ -95,17 +100,19 @@ const forkChatRoute = createRoute({
   }))
 })
 
-customRoutes.openapi(forkChatRoute, withErrorHandling(async (c) => {
-  const { chatId } = c.req.valid('param')
-  const body = c.req.valid('json')
-  
-  const forkedChat = await chatService.forkChat(chatId, {
-    title: body?.title,
-    includeMessages: body?.includeMessages ?? true
-  })
-  
-  return c.json(successResponse(forkedChat))
-}))
+customRoutes.openapi(forkChatRoute, async (c) => {
+  try {
+    const { chatId } = c.req.valid('param')
+    const body = c.req.valid('json') as { title?: string; includeMessages?: boolean } | undefined
+    
+    const forkedChat = await chatService.forkChat(chatId)
+    
+    return c.json(successResponse(forkedChat))
+  } catch (error) {
+    console.error('[ForkChat] Error:', error)
+    throw ErrorFactory.wrap(error, 'Fork chat')
+  }
+})
 
 // ============= FORK FROM MESSAGE =============
 const forkFromMessageRoute = createRoute({
@@ -125,12 +132,17 @@ const forkFromMessageRoute = createRoute({
   }))
 })
 
-customRoutes.openapi(forkFromMessageRoute, withErrorHandling(async (c) => {
-  const { chatId, messageId } = c.req.valid('param')
-  
-  const forkedChat = await chatService.forkChatFromMessage(chatId, messageId)
-  return c.json(successResponse(forkedChat))
-}))
+customRoutes.openapi(forkFromMessageRoute, async (c) => {
+  try {
+    const { chatId, messageId } = c.req.valid('param')
+    
+    const forkedChat = await chatService.forkChatFromMessage(chatId, messageId)
+    return c.json(successResponse(forkedChat))
+  } catch (error) {
+    console.error('[ForkFromMessage] Error:', error)
+    throw ErrorFactory.wrap(error, 'Fork chat from message')
+  }
+})
 
 // ============= DELETE MESSAGE =============
 const deleteMessageRoute = createRoute({
@@ -150,12 +162,17 @@ const deleteMessageRoute = createRoute({
   }))
 })
 
-customRoutes.openapi(deleteMessageRoute, withErrorHandling(async (c) => {
-  const { chatId, messageId } = c.req.valid('param')
-  
-  await chatService.deleteMessage(chatId, messageId)
-  return c.json(operationSuccessResponse('Message deleted successfully'))
-}))
+customRoutes.openapi(deleteMessageRoute, async (c) => {
+  try {
+    const { chatId, messageId } = c.req.valid('param')
+    
+    await chatService.deleteMessage(chatId, messageId)
+    return c.json(operationSuccessResponse('Message deleted successfully'))
+  } catch (error) {
+    console.error('[DeleteMessage] Error:', error)
+    throw ErrorFactory.wrap(error, 'Delete chat message')
+  }
+})
 
 // Note: AI streaming endpoint would stay in gen-ai-routes as it's complex streaming logic
 
@@ -169,12 +186,7 @@ export const chatRoutes = extendCrudRoutes(
     service: chatService,
     schemas: {
       entity: ChatSchema,
-      create: CreateChatSchema.omit({ 
-        id: true, 
-        createdAt: true, 
-        updatedAt: true,
-        messageCount: true 
-      }),
+      create: CreateChatSchema,
       update: UpdateChatSchema
     }
   },

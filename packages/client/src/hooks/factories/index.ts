@@ -11,6 +11,13 @@
  * - Cross-domain operations and aggregations
  */
 
+// Import functions for internal use in bundle creator
+import { createCrudHooks } from './create-crud-hooks'
+import { createQueryHooks } from './create-query-hooks'  
+import { createMutationHooks } from './create-mutation-hooks'
+import { createRealtimeHooks } from './create-realtime-hooks'
+import { createOptimisticHooks } from './create-optimistic-hooks'
+
 // ============================================================================
 // Core Factory Functions
 // ============================================================================
@@ -149,7 +156,7 @@ export function createEntityHooksBundle<
 
   // Add mutation hooks if enabled
   if (features.mutation) {
-    Object.assign(hooks, createMutationHooks<TEntity, TCreate, TUpdate>({
+    Object.assign(hooks, createMutationHooks<TEntity>({
       entityName: config.entityName,
       clientPath: config.clientPath
     }))

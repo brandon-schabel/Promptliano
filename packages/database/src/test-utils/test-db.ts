@@ -1,25 +1,39 @@
 /**
- * Test Database Factory
+ * Test Database Factory - Enhanced for Test Isolation
  * 
- * Creates isolated in-memory SQLite databases for testing with proper schema initialization.
- * Ensures all tables are created without requiring external migration files.
+ * Creates isolated SQLite databases for testing with proper schema initialization
+ * and query serialization to prevent "Missing parameter '1'" errors.
+ * 
+ * Key improvements:
+ * - File-based databases with WAL mode for better concurrency
+ * - Query serialization to prevent parameter binding corruption
+ * - Proper cleanup with file deletion
+ * - Enhanced error handling and retry logic
  * 
  * Benefits:
- * - Proper schema creation in test environment
- * - Fast in-memory database for tests
- * - Isolated test databases per test suite
- * - No external file dependencies
+ * - Eliminates "Missing parameter '1'" errors
+ * - True test isolation per database instance
+ * - Better performance with WAL mode
+ * - Comprehensive cleanup
  */
 
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { Database } from 'bun:sqlite'
+import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { unlinkSync, existsSync } from 'fs'
 import * as mainSchema from '../schema'
 import * as mcpSchema from '../schema/mcp-executions'
 import { sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import path from 'path'
+import { createSerializedDrizzleClient } from './query-queue'
 
 const schema = { ...mainSchema, ...mcpSchema }
+
+// Track active test databases for global cleanup
+const activeTestDatabases = new Set<string>()
 
 /**
  * Test database configuration interface
@@ -31,16 +45,24 @@ interface TestDbConfig {
   verbose?: boolean
   /** Whether to seed with basic test data */
   seedData?: boolean
+  /** Use in-memory database instead of file-based (less reliable but faster) */
+  useMemory?: boolean
+  /** Timeout for database operations in milliseconds */
+  busyTimeout?: number
 }
 
 /**
- * Test database instance
+ * Test database instance with enhanced isolation
  */
 export interface TestDatabase {
-  /** Drizzle database instance */
-  db: ReturnType<typeof drizzle>
-  /** Raw SQLite instance */
+  /** Serialized Drizzle database instance - ALL operations are queued */
+  db: ReturnType<typeof createSerializedDrizzleClient>
+  /** Raw SQLite instance (use with caution - bypasses serialization) */
   rawDb: Database
+  /** Database file path (null for in-memory) */
+  filePath: string | null
+  /** Test ID for this database */
+  testId: string
   /** Close and cleanup the database */
   close: () => void
   /** Reset all tables (delete all data) */
@@ -49,37 +71,80 @@ export interface TestDatabase {
   getStats: () => {
     tables: string[]
     totalRecords: number
+    filePath: string | null
+    isActive: boolean
   }
+  /** Force a checkpoint (for WAL mode) */
+  checkpoint: () => void
 }
 
 /**
- * Create a test database instance with proper schema initialization
+ * Create a test database instance with enhanced isolation and query serialization
  */
 export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
-  const { testId = 'test', verbose = false, seedData = false } = config
+  const { 
+    testId = `test-${randomBytes(8).toString('hex')}`, 
+    verbose = false, 
+    seedData = false,
+    useMemory = false,
+    busyTimeout = 30000
+  } = config
 
-  console.log(`[TEST DB ENTRY] Creating test database: ${testId}`)
   if (verbose) {
     console.log(`[TEST DB] Creating test database: ${testId}`)
   }
 
-  // Create in-memory SQLite database
-  const rawDb = new Database(':memory:', {
-    create: true,
-    strict: true
-  })
+  let rawDb: Database
+  let filePath: string | null = null
 
-  // Configure SQLite for test performance
-  rawDb.exec('PRAGMA journal_mode = MEMORY') // Memory journal for tests
-  rawDb.exec('PRAGMA synchronous = OFF') // Disable sync for speed
-  rawDb.exec('PRAGMA cache_size = 10000') // Smaller cache for tests
-  rawDb.exec('PRAGMA foreign_keys = ON') // Enable foreign key constraints
-  rawDb.exec('PRAGMA temp_store = MEMORY')
+  if (useMemory) {
+    // In-memory database (legacy mode, less reliable)
+    rawDb = new Database(':memory:', { create: true, strict: true })
+    if (verbose) {
+      console.log(`[TEST DB] Created in-memory database: ${testId}`)
+    }
+  } else {
+    // File-based database with better isolation
+    filePath = join(tmpdir(), `promptliano-test-${testId}.db`)
+    rawDb = new Database(filePath, { create: true, strict: true })
+    activeTestDatabases.add(filePath)
+    
+    if (verbose) {
+      console.log(`[TEST DB] Created file database: ${filePath}`)
+    }
+  }
 
-  // Create Drizzle instance
-  const db = drizzle(rawDb, {
-    schema,
-    logger: verbose
+  // Configure SQLite for test reliability and performance
+  try {
+    if (!useMemory) {
+      // WAL mode for better concurrency (file-based only)
+      rawDb.exec('PRAGMA journal_mode = WAL')
+      rawDb.exec('PRAGMA synchronous = NORMAL') // Balance between safety and speed
+      rawDb.exec('PRAGMA wal_autocheckpoint = 1000') // Checkpoint every 1000 writes
+    } else {
+      // Memory journal for in-memory databases
+      rawDb.exec('PRAGMA journal_mode = MEMORY')
+      rawDb.exec('PRAGMA synchronous = OFF') // Maximum speed for memory
+    }
+    
+    // Common optimizations
+    rawDb.exec(`PRAGMA busy_timeout = ${busyTimeout}`) // Wait for locks
+    rawDb.exec('PRAGMA cache_size = -64000') // 64MB cache
+    rawDb.exec('PRAGMA foreign_keys = ON') // Enable foreign key constraints
+    rawDb.exec('PRAGMA temp_store = MEMORY') // Use memory for temp data
+    rawDb.exec('PRAGMA mmap_size = 268435456') // 256MB memory map (file-based only)
+    
+    if (verbose) {
+      console.log(`[TEST DB] SQLite configuration applied for ${testId}`)
+    }
+  } catch (error) {
+    console.warn(`[TEST DB] Some PRAGMA statements failed for ${testId}:`, error)
+  }
+
+  // Create serialized Drizzle instance to prevent parameter binding issues
+  const db = createSerializedDrizzleClient(rawDb, { 
+    verbose, 
+    schema 
   })
 
   // Create all schema tables manually (bypassing migration files)
@@ -90,15 +155,45 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
     seedTestData(db, verbose)
   }
 
+  const cleanup = () => {
+    if (verbose) {
+      console.log(`[TEST DB] Cleaning up test database: ${testId}`)
+    }
+    
+    try {
+      // Force checkpoint and close
+      if (!useMemory && filePath) {
+        rawDb.exec('PRAGMA wal_checkpoint(TRUNCATE)')
+      }
+      rawDb.close()
+    } catch (error) {
+      console.warn(`[TEST DB] Error closing database ${testId}:`, error)
+    }
+
+    // Clean up database files
+    if (filePath) {
+      activeTestDatabases.delete(filePath)
+      
+      try {
+        if (existsSync(filePath)) unlinkSync(filePath)
+        if (existsSync(`${filePath}-wal`)) unlinkSync(`${filePath}-wal`)
+        if (existsSync(`${filePath}-shm`)) unlinkSync(`${filePath}-shm`)
+        
+        if (verbose) {
+          console.log(`[TEST DB] Deleted database files for ${testId}`)
+        }
+      } catch (error) {
+        console.warn(`[TEST DB] Failed to delete files for ${testId}:`, error)
+      }
+    }
+  }
+
   return {
     db,
     rawDb,
-    close: () => {
-      if (verbose) {
-        console.log(`[TEST DB] Closing test database: ${testId}`)
-      }
-      rawDb.close()
-    },
+    filePath,
+    testId,
+    close: cleanup,
     reset: async () => {
       if (verbose) {
         console.log(`[TEST DB] Resetting test database: ${testId}`)
@@ -112,13 +207,31 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
 
       let totalRecords = 0
       for (const table of tables) {
-        const count = rawDb.query(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number }
-        totalRecords += count.count
+        try {
+          const count = rawDb.query(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number }
+          totalRecords += count.count
+        } catch (error) {
+          console.warn(`[TEST DB] Failed to count records in ${table.name}:`, error)
+        }
       }
 
       return {
         tables: tables.map(t => t.name),
-        totalRecords
+        totalRecords,
+        filePath,
+        isActive: !rawDb.closed
+      }
+    },
+    checkpoint: () => {
+      if (!useMemory && filePath) {
+        try {
+          rawDb.exec('PRAGMA wal_checkpoint(PASSIVE)')
+          if (verbose) {
+            console.log(`[TEST DB] Checkpoint completed for ${testId}`)
+          }
+        } catch (error) {
+          console.warn(`[TEST DB] Checkpoint failed for ${testId}:`, error)
+        }
       }
     }
   }
@@ -524,7 +637,7 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
 /**
  * Reset all tables by deleting all data
  */
-async function resetAllTables(db: ReturnType<typeof drizzle>) {
+async function resetAllTables(db: ReturnType<typeof createSerializedDrizzleClient>) {
   const tableNames = [
     'mcp_executions',
     'active_tabs',
@@ -545,9 +658,10 @@ async function resetAllTables(db: ReturnType<typeof drizzle>) {
   ]
 
   // Delete in reverse order to respect foreign key constraints
+  // The serialized client will queue these operations automatically
   for (const tableName of tableNames) {
     try {
-      await db.run(sql.raw(`DELETE FROM ${tableName}`))
+      await (db as any).run(sql.raw(`DELETE FROM ${tableName}`))
     } catch (error) {
       console.warn(`Failed to clear table ${tableName}:`, error)
     }
@@ -584,10 +698,55 @@ export function resetGlobalTestDb() {
 }
 
 /**
+ * Global cleanup for all active test databases
+ */
+export function cleanupAllTestDatabases(): void {
+  console.log(`[TEST DB] Cleaning up ${activeTestDatabases.size} active test databases`)
+  
+  for (const filePath of activeTestDatabases) {
+    try {
+      if (existsSync(filePath)) unlinkSync(filePath)
+      if (existsSync(`${filePath}-wal`)) unlinkSync(`${filePath}-wal`)
+      if (existsSync(`${filePath}-shm`)) unlinkSync(`${filePath}-shm`)
+    } catch (error) {
+      console.warn(`[TEST DB] Failed to cleanup database file ${filePath}:`, error)
+    }
+  }
+  
+  activeTestDatabases.clear()
+  
+  // Also cleanup global test db if it exists
+  if (globalTestDb) {
+    globalTestDb.close()
+    globalTestDb = null
+  }
+}
+
+/**
+ * Register process exit handlers to ensure cleanup
+ */
+if (typeof process !== 'undefined') {
+  const exitHandler = () => {
+    cleanupAllTestDatabases()
+  }
+  
+  process.on('exit', exitHandler)
+  process.on('SIGINT', exitHandler)
+  process.on('SIGTERM', exitHandler)
+  process.on('uncaughtException', (error) => {
+    console.error('[TEST DB] Uncaught exception, cleaning up databases:', error)
+    exitHandler()
+    process.exit(1)
+  })
+}
+
+/**
  * Test database utilities
  */
 export const testDbUtils = {
   createTestDatabase,
   getGlobalTestDb,
-  resetGlobalTestDb
+  resetGlobalTestDb,
+  cleanupAllTestDatabases,
+  getActiveTestDatabaseCount: () => activeTestDatabases.size
 }

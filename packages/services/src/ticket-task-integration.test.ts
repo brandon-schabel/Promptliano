@@ -1,16 +1,37 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, afterAll } from 'bun:test'
 import { createQueueService } from './queue-service'
 import { createFlowService } from './flow-service'
 import { createTestEnvironment } from './test-utils/test-environment'
+import {
+  createTestDatabase,
+  createProject,
+  createQueue,
+  createTicket,
+  createTask,
+  enqueueTicket,
+  enqueueTask,
+  enqueueItem,
+  getNextTaskFromQueue,
+  completeQueueItem,
+  failQueueItem,
+  updateTicket,
+  getTicketById,
+  deleteQueue,
+  deleteTicket,
+  getQueueById,
+  pauseQueue,
+  resumeQueue,
+  getQueueStats,
+  getQueueItems,
+  moveItemToQueue,
+  getTasks,
+  updateTask,
+  testFactories,
+  enqueueTicketWithAllTasks,
+  batchEnqueueItems
+} from './test-utils/test-helpers'
 
 const testEnv = createTestEnvironment({ suiteName: 'ticket-task-integration' })
-  updateTask,
-  deleteTask,
-  getTicketById,
-  deleteTicket,
-  updateTicket
-} from './ticket-service'
-// TODO: Implement test utilities with Drizzle
 
 describe('Ticket-Task Integration', () => {
   let testProjectId: number
@@ -101,7 +122,7 @@ describe('Ticket-Task Integration', () => {
 
       // Complete first task
       await getNextTaskFromQueue(queue.id, 'agent-1')
-      await completeQueueItem('task', task1.id, ticket.id)
+      await completeQueueItem(task1.id, { success: true })
 
       let tasks = await getTasks(ticket.id)
       const completed1 = tasks.find((t) => t.id === task1.id)
@@ -110,7 +131,7 @@ describe('Ticket-Task Integration', () => {
 
       // Complete second task
       await getNextTaskFromQueue(queue.id, 'agent-2')
-      await completeQueueItem('task', task2.id, ticket.id)
+      await completeQueueItem(task2.id, { success: true })
 
       tasks = await getTasks(ticket.id)
       const completed2 = tasks.find((t) => t.id === task2.id)
@@ -118,7 +139,7 @@ describe('Ticket-Task Integration', () => {
 
       // Complete third task
       await getNextTaskFromQueue(queue.id, 'agent-3')
-      await completeQueueItem('task', task3.id, ticket.id)
+      await completeQueueItem(task3.id, { success: true })
 
       tasks = await getTasks(ticket.id)
       const completed3 = tasks.find((t) => t.id === task3.id)
@@ -198,7 +219,7 @@ describe('Ticket-Task Integration', () => {
       expect(currentTask?.queueStatus).toBe('in_progress')
 
       // Complete the task
-      await completeQueueItem('task', task.id, ticket.id)
+      await completeQueueItem(task.id, { success: true })
 
       // Verify task is marked done
       const finalTasks = await getTasks(ticket.id)
@@ -231,10 +252,10 @@ describe('Ticket-Task Integration', () => {
 
       // Complete both tasks
       await getNextTaskFromQueue(queue.id, 'agent-a')
-      await completeQueueItem('task', task1.id, ticket.id)
+      await completeQueueItem(task1.id, { success: true })
 
       await getNextTaskFromQueue(queue.id, 'agent-b')
-      await completeQueueItem('task', task2.id, ticket.id)
+      await completeQueueItem(task2.id, { success: true })
 
       // Verify both tasks are done
       const tasks = await getTasks(ticket.id)

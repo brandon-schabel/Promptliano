@@ -9,7 +9,7 @@
  */
 
 import type { GitBranch, GitBranchEnhanced, GitBranchListEnhancedResponse } from '@promptliano/schemas'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 
 // SimpleGit types

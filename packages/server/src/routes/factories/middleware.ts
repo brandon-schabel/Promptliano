@@ -144,14 +144,13 @@ export const rateLimitMiddleware = (config: RateLimitConfig) => {
       c.header('X-RateLimit-Reset', entry.resetTime.toString())
       c.header('Retry-After', retryAfter.toString())
       
-      return c.json(
-        {
-          success: false,
-          error: 'Too many requests',
-          retryAfter
-        },
-        429
-      )
+      c.status(429)
+      c.json({
+        success: false,
+        error: 'Too many requests',
+        retryAfter
+      })
+      return // Early return without calling next()
     }
     
     // Increment counter
@@ -206,7 +205,8 @@ export const corsMiddleware = (origins: string[] = ['*']) => {
     
     // Handle preflight requests
     if (c.req.method === 'OPTIONS') {
-      return c.text('', 204)
+      c.status(204)
+      return c.body(null)
     }
     
     await next()

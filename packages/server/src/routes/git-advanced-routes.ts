@@ -112,35 +112,12 @@ const fetchRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { remote, prune } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { remote, prune } = c.req.valid('json')
 
-    await fetch(projectId, remote || 'origin', { prune })
+  await fetch(projectId, remote || 'origin', { prune })
 
-    return c.json({
-      success: true,
-      message: `Successfully fetched from ${remote || 'origin'}`
-    })
-  } catch (error) {
-    console.error('[Fetch] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to fetch from remote'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Successfully fetched from ${remote || 'origin'}`))
 })
 
 // Pull route
@@ -169,35 +146,12 @@ const pullRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(pullRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { remote, branch, rebase } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { remote, branch, rebase } = c.req.valid('json')
 
-    await pull(projectId, remote || 'origin', branch, { rebase })
+  await pull(projectId, remote || 'origin', branch, { rebase })
 
-    return c.json({
-      success: true,
-      message: `Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`
-    })
-  } catch (error) {
-    console.error('[Pull] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to pull changes'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
 })
 
 // ============================================
@@ -250,35 +204,12 @@ const createTagRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { name, message, ref } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { name, message, ref } = c.req.valid('json')
 
-    await createTag(projectId, name, { message, ref })
+  await createTag(projectId, name, { message, ref })
 
-    return c.json({
-      success: true,
-      message: `Tag '${name}' created successfully`
-    })
-  } catch (error) {
-    console.error('[CreateTag] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to create tag'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Tag '${name}' created successfully`))
 })
 
 // ============================================
@@ -309,35 +240,12 @@ const stashRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(stashRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { message } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { message } = c.req.valid('json')
 
-    await stash(projectId, message)
+  await stash(projectId, message)
 
-    return c.json({
-      success: true,
-      message: `Changes stashed successfully${message ? `: ${message}` : ''}`
-    })
-  } catch (error) {
-    console.error('[Stash] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to stash changes'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`))
 })
 
 // Get stash list route
@@ -384,35 +292,12 @@ const applyStashRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { ref } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { ref } = c.req.valid('json')
 
-    await stashApply(projectId, ref || 'stash@{0}')
+  await stashApply(projectId, ref || 'stash@{0}')
 
-    return c.json({
-      success: true,
-      message: `Applied stash: ${ref || 'stash@{0}'}`
-    })
-  } catch (error) {
-    console.error('[ApplyStash] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to apply stash'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Applied stash: ${ref || 'stash@{0}'}`))
 })
 
 // ============================================
@@ -441,33 +326,10 @@ const resetRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(resetRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { ref, mode } = c.req.valid('json')
+  const { projectId } = c.req.valid('param')
+  const { ref, mode } = c.req.valid('json')
 
-    await reset(projectId, ref, mode || 'mixed')
+  await reset(projectId, ref, mode || 'mixed')
 
-    return c.json({
-      success: true,
-      message: `Reset to ${ref} (${mode || 'mixed'} mode)`
-    })
-  } catch (error) {
-    console.error('[Reset] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500 as ContentfulStatusCode as ContentfulStatusCode
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to reset'
-      },
-      500 as ContentfulStatusCode
-    )
-  }
+  return c.json(operationSuccessResponse(`Reset to ${ref} (${mode || 'mixed'} mode)`))
 })

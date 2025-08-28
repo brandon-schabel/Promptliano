@@ -31,8 +31,7 @@ import {
   createStandardResponses,
   createStandardResponsesWithStatus,
   successResponse,
-  operationSuccessResponse,
-  withErrorHandling
+  operationSuccessResponse
 } from '../utils/route-helpers'
 import type { Context } from 'hono'
 
@@ -42,7 +41,9 @@ const createClaudeCommandRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'Create a new Claude command',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({
+      projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+    }),
     body: {
       content: { 'application/json': { schema: CreateClaudeCommandBodySchema } },
       required: true
@@ -57,7 +58,9 @@ const listClaudeCommandsRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'List Claude commands for a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({
+      projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+    }),
     query: SearchCommandsQuerySchema
   },
   responses: createStandardResponses(ClaudeCommandListResponseSchema)
@@ -146,7 +149,9 @@ const generateClaudeCommandRoute = createRoute({
   summary: 'Generate a new Claude command using AI',
   description: 'Uses AI to generate a complete slash command based on user requirements and project context',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({
+      projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+    }),
     body: {
       content: { 'application/json': { schema: CommandGenerationRequestSchema } },
       required: true
@@ -161,7 +166,9 @@ const suggestClaudeCommandsRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'Get AI-powered command suggestions',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({
+      projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+    }),
     body: {
       content: {
         'application/json': {
@@ -178,105 +185,168 @@ const suggestClaudeCommandsRoute = createRoute({
 })
 
 export const claudeCommandRoutes = new OpenAPIHono()
-  .openapi(createClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId } = c.req.valid('param')
-    const body = c.req.valid('json')
+  .openapi(createClaudeCommandRoute, async (c): Promise<any> => {
+    try {
+      const { projectId } = c.req.valid('param')
+      const body = c.req.valid('json')
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
+
+      // Add required timestamps and project context
+      const commandData = {
+        ...body,
+        projectId: Number(projectId),
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      const command = await createCommand(Number(projectId), commandData)
+      return c.json(successResponse(command), 201)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(listClaudeCommandsRoute, async (c) => {
+    try {
+      const { projectId } = c.req.valid('param')
+      const query = c.req.valid('query')
 
-    const command = await createCommand(Number(projectId), body)
-    return c.json(successResponse(command), 201)
-  }))
-  .openapi(listClaudeCommandsRoute, withErrorHandling(async (c) => {
-    const { projectId } = c.req.valid('param')
-    const query = c.req.valid('query')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      const commands = await listCommands(Number(projectId), query)
+      return c.json(successResponse(commands))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(getClaudeCommandRoute, async (c) => {
+    try {
+      const { projectId, commandName } = c.req.valid('param')
+      const { namespace } = c.req.valid('query')
 
-    const commands = await listCommands(Number(projectId), query)
-    return c.json(successResponse(commands))
-  }))
-  .openapi(getClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
-    const { namespace } = c.req.valid('query')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      const command = await getCommandByName(Number(projectId), commandName)
+      return c.json(successResponse(command))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(updateClaudeCommandRoute, async (c) => {
+    try {
+      const { projectId, commandName } = c.req.valid('param')
+      const { namespace } = c.req.valid('query')
+      const body = c.req.valid('json')
 
-    const command = await getCommandByName(Number(projectId), commandName)
-    return c.json(successResponse(command))
-  }))
-  .openapi(updateClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
-    const { namespace } = c.req.valid('query')
-    const body = c.req.valid('json')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      const command = await updateCommand(Number(projectId), commandName, body)
+      return c.json(successResponse(command))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(deleteClaudeCommandRoute, async (c) => {
+    try {
+      const { projectId, commandName } = c.req.valid('param')
+      const { namespace } = c.req.valid('query')
 
-    const command = await updateCommand(Number(projectId), commandName, body)
-    return c.json(successResponse(command))
-  }))
-  .openapi(deleteClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
-    const { namespace } = c.req.valid('query')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      await deleteCommand(Number(projectId), commandName)
+      return c.json(operationSuccessResponse('Command deleted successfully'))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(executeClaudeCommandRoute, async (c) => {
+    try {
+      const { projectId, commandName } = c.req.valid('param')
+      const { namespace } = c.req.valid('query')
+      const body = c.req.valid('json')
 
-    await deleteCommand(Number(projectId), commandName)
-    return c.json(operationSuccessResponse('Command deleted successfully'))
-  }))
-  .openapi(executeClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
-    const { namespace } = c.req.valid('query')
-    const body = c.req.valid('json')
+      const project = await getProjectById(Number(projectId))
+      if (!project) {
+        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      }
 
-    const project = await getProjectById(Number(projectId))
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
+      const result = await executeCommand(Number(projectId), commandName, body?.arguments)
+
+      const responseData = {
+        result: result.result,
+        usage: result.metadata?.usage
+          ? {
+              inputTokens: result.metadata.usage.inputTokens || 0,
+              outputTokens: result.metadata.usage.outputTokens || 0,
+              totalTokens: result.metadata.usage.totalTokens || 0
+            }
+          : undefined,
+        model: result.metadata?.model,
+        sessionId: result.metadata?.sessionId
+      }
+
+      return c.json(successResponse(responseData))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(generateClaudeCommandRoute, async (c) => {
+    try {
+      const { projectId } = c.req.valid('param')
+      const body = c.req.valid('json')
 
-    const result = await executeCommand(Number(projectId), commandName, body?.arguments)
-
-    const responseData = {
-      result: result.result,
-      usage: result.metadata?.usage
-        ? {
-            inputTokens: result.metadata.usage.inputTokens || 0,
-            outputTokens: result.metadata.usage.outputTokens || 0,
-            totalTokens: result.metadata.usage.totalTokens || 0
-          }
-        : undefined,
-      model: result.metadata?.model,
-      sessionId: result.metadata?.sessionId
+      const generatedCommand = await generateCommand(Number(projectId), body)
+      return c.json(successResponse(generatedCommand))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
     }
+  })
+  .openapi(suggestClaudeCommandsRoute, async (c) => {
+    try {
+      const { projectId } = c.req.valid('param')
+      const body = c.req.valid('json')
 
-    return c.json(successResponse(responseData))
-  }))
-  .openapi(generateClaudeCommandRoute, withErrorHandling(async (c) => {
-    const { projectId } = c.req.valid('param')
-    const body = c.req.valid('json')
-
-    const generatedCommand = await generateCommand(Number(projectId), body)
-    return c.json(successResponse(generatedCommand))
-  }))
-  .openapi(suggestClaudeCommandsRoute, withErrorHandling(async (c) => {
-    const { projectId } = c.req.valid('param')
-    const body = c.req.valid('json')
-
-    const suggestions = await suggestCommands(Number(projectId), body?.context || '', body?.limit || 5)
-    return c.json(successResponse(suggestions))
-  }))
+      const suggestions = await suggestCommands(Number(projectId), body?.context || '', body?.limit || 5)
+      return c.json(successResponse(suggestions))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error // Let the error middleware handle it
+      }
+      throw new ApiError(500, 'Internal server error')
+    }
+  })

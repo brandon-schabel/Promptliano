@@ -68,7 +68,7 @@ export const ticketManagerTool: MCPToolDefinition = {
             const tickets = await listTicketsByProject(validProjectId, status)
             const ticketList = tickets
               .map(
-                (t: Ticket) =>
+                (t) =>
                   `${t.id}: ${t.title} [${t.status}/${t.priority}] - ${(t.overview || '').substring(0, 50)}${(t.overview || '').length > 50 ? '...' : ''}`
               )
               .join('\n')
@@ -149,10 +149,10 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
             const status = data?.status as string | undefined
             const tickets = await listTicketsWithTaskCount(validProjectId)
             // Apply status filter if provided
-            const filteredTickets = status ? tickets.filter((t: any) => t.status === status) : tickets
+            const filteredTickets = status ? tickets.filter((t) => t.status === status) : tickets
             const ticketList = filteredTickets
               .map(
-                (t: any) =>
+                (t) =>
                   `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
               )
               .join('\n')
@@ -180,7 +180,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
               if (!ticket) throw createMCPError(MCPErrorCode.TICKET_NOT_FOUND, `Ticket ${ticketId} not found`)
 
               const tasks = await autoGenerateTasksFromOverview(ticketId, ticket.overview || '')
-              const taskList = tasks.map((t: TicketTask) => `${t.id}: ${t.content}`).join('\n')
+              const taskList = tasks.map((t) => `${t.id}: ${t.content}`).join('\n')
               return {
                 content: [{ type: 'text', text: `Generated ${tasks.length} tasks:\n${taskList}` }]
               }
@@ -260,7 +260,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
                 throw createMCPError(MCPErrorCode.NO_SEARCH_RESULTS, 'No tickets found matching your search criteria')
               }
 
-              const ticketList = result.map((t: Ticket) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
+              const ticketList = result.map((t) => `${t.id}: [${t.status}/${t.priority}] ${t.title}`).join('\n')
 
               return {
                 content: [

@@ -195,7 +195,7 @@ function calculateFileStats(files: any[]): ProjectStatistics['fileStats'] {
   }
 }
 
-async function calculateTicketAndTaskStats(tickets: Ticket[]): Promise<{
+async function calculateTicketAndTaskStats(tickets: any[]): Promise<{
   ticketStats: ProjectStatistics['ticketStats']
   taskStats: ProjectStatistics['taskStats']
 }> {
@@ -291,7 +291,7 @@ function calculatePromptStats(prompts: any[]): ProjectStatistics['promptStats'] 
   }
 }
 
-function calculateActivityStats(files: any[], tickets: Ticket[]): ProjectStatistics['activityStats'] {
+function calculateActivityStats(files: any[], tickets: any[]): ProjectStatistics['activityStats'] {
   const now = Date.now()
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000
 

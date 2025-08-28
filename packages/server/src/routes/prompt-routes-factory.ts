@@ -41,6 +41,16 @@ const MARKDOWN_UPLOAD_CONFIG = {
   ALLOWED_MIME_TYPES: ['text/markdown', 'text/x-markdown', 'text/plain']
 } as const
 
+// Transform raw DB types to proper Prompt types
+function transformPromptFromDB(dbPrompt: any): Prompt {
+  return {
+    ...dbPrompt,
+    tags: Array.isArray(dbPrompt.tags) 
+      ? dbPrompt.tags.filter((tag: any): tag is string => typeof tag === 'string')
+      : []
+  }
+}
+
 /**
  * Create CRUD routes for prompts using the factory
  */
@@ -50,10 +60,22 @@ const promptCrudRoutes = createCrudRoutes<Prompt, any, any>({
   tags: ['Prompts'],
   
   service: {
-    list: () => promptService.getAll(),
-    get: (id: number) => promptService.get(id),
-    create: (data: any) => promptService.create(data),
-    update: (id: number, data: any) => promptService.update(id, data),
+    list: async () => {
+      const prompts = await promptService.getAll()
+      return prompts.map(transformPromptFromDB)
+    },
+    get: async (id: number) => {
+      const prompt = await promptService.get(id)
+      return prompt ? transformPromptFromDB(prompt) : null
+    },
+    create: async (data: any) => {
+      const created = await promptService.create(data)
+      return transformPromptFromDB(created)
+    },
+    update: async (id: number, data: any) => {
+      const updated = await promptService.update(id, data)
+      return updated ? transformPromptFromDB(updated) : null
+    },
     delete: (id: number) => promptService.delete(id),
     count: async () => {
       const all = await promptService.getAll()
@@ -62,7 +84,7 @@ const promptCrudRoutes = createCrudRoutes<Prompt, any, any>({
   },
   
   schemas: {
-    entity: PromptSchema,
+    entity: PromptSchema as unknown as z.ZodType<Prompt>,
     create: CreatePromptSchema,
     update: UpdatePromptSchema
   },
@@ -117,7 +139,8 @@ const listProjectPromptsRoute = createRoute({
 promptCustomRoutes.openapi(listProjectPromptsRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const projectPrompts = await listPromptsByProject(projectId)
-  return c.json(successResponse(projectPrompts))
+  const transformedPrompts = projectPrompts.map(transformPromptFromDB)
+  return c.json(successResponse(transformedPrompts))
 })
 
 // Suggest prompts using AI
@@ -146,7 +169,7 @@ const suggestPromptsRoute = createRoute({
   }
 })
 
-promptCustomRoutes.openapi(suggestPromptsRoute, async (c) => {
+promptCustomRoutes.openapi(suggestPromptsRoute, async (c): Promise<any> => {
   const { projectId } = c.req.valid('param')
   const { userInput } = c.req.valid('json')
   const suggestedPrompts = await suggestPrompts(projectId, userInput)
@@ -191,12 +214,7 @@ promptCustomRoutes.openapi(exportPromptRoute, async (c) => {
         throw new Error('Prompt not found')
       }
       
-      const promptForMarkdown = {
-        ...prompt,
-        tags: Array.isArray(prompt.tags) 
-          ? prompt.tags.filter((tag): tag is string => typeof tag === 'string') 
-          : []
-      }
+      const promptForMarkdown = transformPromptFromDB(prompt)
       
       const markdownContent = await promptToMarkdown(promptForMarkdown)
       
@@ -250,7 +268,7 @@ promptCustomRoutes.openapi(exportBatchPromptsRoute, async (c) => {
           if (!prompt) {
             throw new Error(`Prompt with ID ${id} not found`)
           }
-          return prompt
+          return transformPromptFromDB(prompt)
         })
       )
       
@@ -303,7 +321,7 @@ const importPromptsRoute = createRoute({
   }
 })
 
-promptCustomRoutes.openapi(importPromptsRoute, async (c) => {
+promptCustomRoutes.openapi(importPromptsRoute, async (c): Promise<any> => {
   return withErrorContext(
     async () => {
       const body = await c.req.formData()

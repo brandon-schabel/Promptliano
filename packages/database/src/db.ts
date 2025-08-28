@@ -8,8 +8,51 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { Database } from 'bun:sqlite'
 import * as mainSchema from './schema'
 import * as mcpSchema from './schema/mcp-executions'
+import { relations } from 'drizzle-orm'
 
-const schema = { ...mainSchema, ...mcpSchema }
+// Add relations for MCP schema tables to the main project
+const mcpToolExecutionsRelations = relations(mcpSchema.mcpToolExecutions, ({ one }) => ({
+  project: one(mainSchema.projects, {
+    fields: [mcpSchema.mcpToolExecutions.projectId],
+    references: [mainSchema.projects.id]
+  })
+}))
+
+const mcpToolStatisticsRelations = relations(mcpSchema.mcpToolStatistics, ({ one }) => ({
+  project: one(mainSchema.projects, {
+    fields: [mcpSchema.mcpToolStatistics.projectId],
+    references: [mainSchema.projects.id]
+  })
+}))
+
+const mcpExecutionChainsRelations = relations(mcpSchema.mcpExecutionChains, ({ one }) => ({
+  execution: one(mcpSchema.mcpToolExecutions, {
+    fields: [mcpSchema.mcpExecutionChains.executionId],
+    references: [mcpSchema.mcpToolExecutions.id]
+  }),
+  parentExecution: one(mcpSchema.mcpToolExecutions, {
+    fields: [mcpSchema.mcpExecutionChains.parentExecutionId],
+    references: [mcpSchema.mcpToolExecutions.id]
+  })
+}))
+
+const mcpErrorPatternsRelations = relations(mcpSchema.mcpErrorPatterns, ({ one }) => ({
+  project: one(mainSchema.projects, {
+    fields: [mcpSchema.mcpErrorPatterns.projectId],
+    references: [mainSchema.projects.id]
+  })
+}))
+
+// Combine all schema exports with proper typing including MCP relations
+const schema: Record<string, any> = { 
+  ...mainSchema, 
+  ...mcpSchema,
+  // Add MCP relations to the schema
+  mcpToolExecutionsRelations,
+  mcpToolStatisticsRelations,
+  mcpExecutionChainsRelations,
+  mcpErrorPatternsRelations
+}
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -85,11 +128,11 @@ try {
   console.warn('⚠️ Database initialization warning:', error)
 }
 
-// Create Drizzle instance with schema
-export const db: ReturnType<typeof drizzle> = drizzle(sqlite, {
+// Create Drizzle instance with proper schema typing for query API
+export const db = drizzle(sqlite, {
   schema,
   logger: process.env.NODE_ENV === 'development'
-})
+}) as ReturnType<typeof drizzle<typeof schema>>
 
 // Export raw SQLite instance for migrations and special operations
 export const rawDb = sqlite
@@ -154,7 +197,10 @@ export const dbUtils = {
   }
 }
 
-// Export types for external usage
-export type DrizzleDb = typeof db
+// Export types for external usage - proper typing for query API
+export type DrizzleDb = ReturnType<typeof drizzle<typeof schema>>
 export type DatabaseConnection = typeof sqlite
 export type DrizzleTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+// Export schema for type inference in repositories
+export { schema }

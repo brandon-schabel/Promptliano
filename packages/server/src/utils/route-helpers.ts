@@ -107,7 +107,7 @@ export function createStandardResponsesWithStatus(
       description
     },
     ...standardResponses
-  }
+  } as const
 }
 
 /**

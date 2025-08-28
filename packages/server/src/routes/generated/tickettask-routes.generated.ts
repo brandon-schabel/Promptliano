@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR TICKETTASK
- * Generated at: 2025-08-22T23:50:50.383Z
- *
+ * Generated at: 2025-08-27T15:26:33.553Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -12,11 +12,9 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { tickettaskServiceV2 } from '@promptliano/services'
 import {
-  TaskSchema as TicketTaskSchema,
-  CreateTaskSchema as CreateTicketTaskSchema,
-  UpdateTaskSchema as UpdateTicketTaskSchema
-} from '@promptliano/database'
-import {
+  TicketTaskSchema,
+  CreateTicketTaskSchema,
+  UpdateTicketTaskSchema,
   TicketTaskIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -66,9 +64,9 @@ const tickettaskConfig: EntityConfig = {
  */
 export function registerTicketTaskRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, tickettaskConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for TicketTask`)
-
+  
   return updatedApp
 }
 
@@ -81,7 +79,7 @@ export const tickettaskRoutes = {
   list: `GET /api/tickettasks`,
   get: `GET /api/tickettasks/{id}`,
   update: `PUT /api/tickettasks/{id}`,
-  delete: `DELETE /api/tickettasks/{id}`
+  delete: `DELETE /api/tickettasks/{id}`,
 } as const
 
 export type TicketTaskRouteTypes = typeof tickettaskRoutes

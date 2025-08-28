@@ -21,11 +21,12 @@ import {
 } from '../schema'
 
 // Create base queue repository
-const baseQueueRepository = createBaseRepository(queues, selectQueueSchema, 'Queue')
+const baseQueueRepository = createBaseRepository(queues, undefined, selectQueueSchema, 'Queue')
 
 // Create base queue items repository
 const baseQueueItemRepository = createBaseRepository(
   queueItems,
+  undefined, // db instance
   undefined, // Will use default validation
   'QueueItem'
 )
@@ -57,14 +58,15 @@ export const queueRepository = extendRepository(baseQueueRepository, {
    * Get queue with all items
    */
   async getWithItems(id: number): Promise<QueueWithItems | null> {
-    return db.query.queues.findFirst({
+    const result = await db.query.queues?.findFirst({
       where: eq(queues.id, id),
       with: {
         items: {
           orderBy: [asc(queueItems.priority), asc(queueItems.createdAt)]
         }
       }
-    }) as Promise<QueueWithItems | null>
+    })
+    return result as QueueWithItems | null
   },
 
   // =============================================================================

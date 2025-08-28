@@ -102,6 +102,7 @@ export const CreateTicketBodySchema = TicketSchema.pick({
   .openapi('CreateTicketBody')
 
 export const UpdateTicketBodySchema = CreateTicketBodySchema.pick({
+  projectId: true,
   title: true,
   overview: true,
   status: true,
@@ -114,6 +115,7 @@ export const UpdateTicketBodySchema = CreateTicketBodySchema.pick({
   .openapi('UpdateTicketBody')
 
 export const CreateTaskBodySchema = TicketTaskSchema.pick({
+  ticketId: true,
   content: true,
   description: true,
   suggestedFileIds: true,
@@ -140,7 +142,8 @@ export const UpdateTaskBodySchema = CreateTaskBodySchema.pick({
 })
   .partial()
   .extend({
-    done: z.boolean().optional()
+    done: z.boolean().optional(),
+    orderIndex: z.number().optional()
   })
   .openapi('UpdateTaskBody')
 
@@ -207,13 +210,23 @@ export const TicketWithTaskCountSchema = z
   })
   .openapi('TicketWithTaskCount')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreateTicketSchema = CreateTicketBodySchema
+export const UpdateTicketSchema = UpdateTicketBodySchema
+export const CreateTicketTaskSchema = CreateTaskBodySchema
+export const UpdateTicketTaskSchema = UpdateTaskBodySchema
+
 // Type exports
 export type Ticket = z.infer<typeof TicketSchema>
 export type TicketTask = z.infer<typeof TicketTaskSchema>
 export type CreateTicketBody = z.infer<typeof CreateTicketBodySchema>
 export type UpdateTicketBody = z.infer<typeof UpdateTicketBodySchema>
+export type CreateTicket = z.infer<typeof CreateTicketSchema>
+export type UpdateTicket = z.infer<typeof UpdateTicketSchema>
 export type CreateTaskBody = z.infer<typeof CreateTaskBodySchema>
 export type UpdateTaskBody = z.infer<typeof UpdateTaskBodySchema>
+export type CreateTicketTask = z.infer<typeof CreateTicketTaskSchema>
+export type UpdateTicketTask = z.infer<typeof UpdateTicketTaskSchema>
 export type ReorderTasksBody = z.infer<typeof ReorderTasksBodySchema>
 export type TaskSuggestions = z.infer<typeof TaskSuggestionsSchema>
 export type TicketWithTasks = z.infer<typeof TicketWithTasksSchema>

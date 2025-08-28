@@ -157,14 +157,14 @@ const getFileDiffRoute = createRoute({
 // Export routes with simplified handlers
 export const gitCommitRoutes = new OpenAPIHono()
   .openapi(commitRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await commitChanges(projectId, body.message)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Commit created successfully'))
   })
   .openapi(getCommitLogRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
 
@@ -177,7 +177,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     return c.json(successResponse(commits))
   })
   .openapi(getCommitLogEnhancedRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
 
@@ -201,7 +201,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     return c.json(successResponse(detail))
   })
   .openapi(getFileDiffRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { filePath, cached = false } = c.req.valid('query')
     const diff = await getFileDiff(projectId, filePath, { staged: cached })
     return c.json(successResponse(diff))

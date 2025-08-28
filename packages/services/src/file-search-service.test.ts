@@ -3,7 +3,7 @@ import { db } from '@promptliano/database'
 import { createFileSearchService } from './file-services/file-search-service'
 import { createFileIndexingService } from './file-services/file-indexing-service'
 import type { File as ProjectFile } from '@promptliano/database'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 describe('FileSearchService', () => {
   const testProjectId = 999999

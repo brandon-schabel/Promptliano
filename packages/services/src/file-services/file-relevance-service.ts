@@ -1,5 +1,5 @@
 import type { File as ProjectFile, Ticket, TicketTask } from '@promptliano/database'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { getProjectFiles } from '../project-service'
 import { createFileService, createFileFilter, createFileCache, type FileServiceConfig } from './file-service-factory'
 

@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 import { writeJson, readJson, jsonScribe } from './json-scribe'
 import { z, ZodError } from 'zod'
 import path from 'node:path'
-import { rmSync, mkdirSync } from 'node:fs'
+import { rmSync, mkdirSync } from 'fs'
 
 // Test directory for file operations
 const TEST_DIR = path.join(process.cwd(), '.test-json-scribe')

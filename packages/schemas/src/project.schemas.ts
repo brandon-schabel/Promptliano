@@ -80,7 +80,7 @@ export const ProjectFileSchema = z
 // Request Parameter Schemas
 export const ProjectIdParamsSchema = z
   .object({
-    projectId: entityIdCoercibleSchema.openapi({ param: { name: 'projectId', in: 'path' } })
+    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
   })
   .openapi('ProjectIdParams')
 
@@ -293,7 +293,7 @@ export const ProjectFileMapWithoutContentSchema = z
   .openapi('ProjectFileMapWithoutContent')
 
 export type Project = z.infer<typeof ProjectSchema>
-export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema>
+export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema> // Now: { id: number }
 export type ProjectFile = z.infer<typeof ProjectFileSchema>
 export type ProjectFileWithoutContent = z.infer<typeof ProjectFileWithoutContentSchema>
 export type CreateProjectBody = z.infer<typeof CreateProjectBodySchema>

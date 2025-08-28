@@ -75,28 +75,42 @@ import {
   UpdateProviderKey
 } from '@promptliano/database'
 
-// Re-export as proper TypeScript types
-type Project = typeof ProjectSchema._type
-type CreateProjectBody = CreateProject
-type UpdateProjectBody = UpdateProject
-type Ticket = typeof TicketSchema._type
-type CreateTicketBody = CreateTicket
-type UpdateTicketBody = UpdateTicket
-type TicketTask = typeof TaskSchema._type
-type CreateTaskBody = CreateTask
-type UpdateTaskBody = UpdateTask
-type Chat = typeof ChatSchema._type
-type CreateChatBody = CreateChat
-type UpdateChatBody = UpdateChat
-type Prompt = typeof PromptSchema._type
-type CreatePromptBody = CreatePrompt
-type UpdatePromptBody = UpdatePrompt
-type ClaudeAgent = typeof ClaudeAgentSchema._type
-type CreateClaudeAgentBody = CreateClaudeAgent
-type UpdateClaudeAgentBody = UpdateClaudeAgent
-type TaskQueue = typeof QueueSchema._type
-type CreateQueueBody = CreateQueue
-type UpdateQueueBody = UpdateQueue
+// Import proper API body schemas from schemas package
+import type {
+  CreateTicketBody as SchemasCreateTicketBody,
+  UpdateTicketBody as SchemasUpdateTicketBody,
+  CreateTaskBody as SchemasCreateTaskBody,
+  UpdateTaskBody as SchemasUpdateTaskBody
+} from '@promptliano/schemas'
+
+// Import proper types from schemas package that have proper id constraints
+import type {
+  Project,
+  CreateProjectBody,
+  UpdateProjectBody,
+  Ticket,
+  Chat,
+  CreateChatBody,
+  UpdateChatBody,
+  Prompt,
+  CreatePromptBody,
+  UpdatePromptBody,
+  CreateQueueBody,
+  UpdateQueueBody,
+  TaskQueue
+} from './types'
+
+// Import ClaudeAgent from database since it's not in schemas
+import type { ClaudeAgent } from '@promptliano/database'
+import type { 
+  CreateClaudeAgentBody,
+  UpdateClaudeAgentBody
+} from '@promptliano/schemas'
+
+// Use schemas package types for better type constraints
+type TicketTask = Ticket // For now, use Ticket as TicketTask equivalent
+type CreateTaskBody = SchemasCreateTaskBody
+type UpdateTaskBody = SchemasUpdateTaskBody
 // Import the proper ProviderKey type that handles JSON fields correctly
 import type { ProviderKey as DatabaseProviderKey } from '@promptliano/database'
 type ProviderKey = DatabaseProviderKey
@@ -128,12 +142,10 @@ const projectHooks = createCrudHooks<Project, CreateProjectBody, UpdateProjectBo
 /**
  * Ticket Hooks - Complete CRUD + Task Management + AI Suggestions
  */
-const ticketHooks = createCrudHooks<Ticket, CreateTicketBody, UpdateTicketBody, { projectId: number; status?: string }>(
-  {
-    ...TICKET_CONFIG,
-    messages: ENTITY_MESSAGES.ticket
-  }
-)
+const ticketHooks = createCrudHooks<Ticket, SchemasCreateTicketBody, SchemasUpdateTicketBody, { projectId: number; status?: string }>({
+  ...TICKET_CONFIG,
+  messages: ENTITY_MESSAGES.ticket
+})
 
 /**
  * Chat Hooks - Complete CRUD + Message Management + Streaming

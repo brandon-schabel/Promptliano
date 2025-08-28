@@ -126,7 +126,7 @@ export class BaseRepository<
         .returning()
 
       if (!updated) {
-        throw ErrorFactory.updateFailed(this.entityName, id, 'No rows affected')
+        throw ErrorFactory.updateFailed(this.entityName || 'Entity', id, 'No rows affected')
       }
 
       return this.validateEntity(updated)
@@ -476,7 +476,20 @@ export function createBaseRepository<
   TEntity extends BaseEntity = InferSelectModel<TTable> & BaseEntity,
   TInsert extends Record<string, any> = InferInsertModel<TTable>
 >(table: TTable, dbInstance?: DrizzleDb, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
-  return new BaseRepository<TEntity, TInsert, TTable>(table, dbInstance, schema, entityName)
+  // Ensure we have a valid database instance
+  const validDbInstance = dbInstance || db
+  
+  // Validate that the database instance has the required methods for Drizzle operations
+  if (!validDbInstance || typeof validDbInstance.select !== 'function') {
+    const instanceType = validDbInstance ? typeof validDbInstance : 'null/undefined'
+    throw new Error(
+      `Invalid database instance provided to repository. ` +
+      `Expected Drizzle database instance with .select method, got ${instanceType}. ` +
+      `This often happens when tests don't use createTestDatabase() properly.`
+    )
+  }
+  
+  return new BaseRepository<TEntity, TInsert, TTable>(table, validDbInstance, schema, entityName)
 }
 
 // Repository composition helper - merge BaseRepository with extensions
@@ -484,8 +497,27 @@ export function extendRepository<TBase extends BaseRepository<any, any, any>, TE
   baseRepository: TBase,
   extensions: TExtensions
 ): TBase & TExtensions {
-  // Use Object.assign to properly copy class methods from prototype
-  return Object.assign(baseRepository, extensions) as TBase & TExtensions
+  // Create a new object that properly preserves the base repository instance
+  const extended = Object.create(Object.getPrototypeOf(baseRepository))
+  
+  // Copy all properties from the base repository instance
+  Object.assign(extended, baseRepository)
+  
+  // Bind extension methods to the extended object to ensure proper context
+  const boundExtensions: Record<string, any> = {}
+  for (const [key, value] of Object.entries(extensions)) {
+    if (typeof value === 'function') {
+      // Bind the function to the extended object so it has access to the base repository methods
+      boundExtensions[key] = value.bind(extended)
+    } else {
+      boundExtensions[key] = value
+    }
+  }
+  
+  // Add the bound extensions to the extended object
+  Object.assign(extended, boundExtensions)
+  
+  return extended as TBase & TExtensions
 }
 
 // Re-export query operators for convenience

@@ -241,7 +241,7 @@ export function createOptimisticHooks<
         const response = await api.create(data)
         return response.data || response
       },
-      onMutate: async (newData) => {
+      onMutate: async (newData: TCreate) => {
         setIsPending(true)
         
         // Cancel outgoing queries
@@ -269,13 +269,13 @@ export function createOptimisticHooks<
         // Apply optimistic update
         const optimisticEntity = config.transformCreate 
           ? config.transformCreate(newData)
-          : {
+          : ({
               ...newData,
               id: tempId,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               version: 1
-            } as TEntity
+            } as unknown as TEntity)
         
         // Apply delay if configured
         if (strategy === OptimisticStrategy.DELAYED && delay > 0) {
@@ -299,15 +299,18 @@ export function createOptimisticHooks<
         setIsPending(false)
         
         // Rollback optimistic updates
-        if (context?.previousLists) {
-          context.previousLists.forEach(([queryKey, data]) => {
-            queryClient.setQueryData(queryKey, data)
-          })
-        }
-        
-        // Clear temp ID
-        if (context?.tempId) {
-          tempIdsRef.current.delete(context.tempId.toString())
+        if (context && typeof context === 'object' && context !== null) {
+          const optContext = context as { previousLists?: [readonly unknown[], TEntity[] | undefined][]; tempId?: string | number }
+          if (optContext.previousLists) {
+            optContext.previousLists.forEach(([queryKey, data]) => {
+              queryClient.setQueryData(queryKey, data)
+            })
+          }
+          
+          // Clear temp ID
+          if (optContext.tempId) {
+            tempIdsRef.current.delete(optContext.tempId.toString())
+          }
         }
         
         // Custom rollback handler
@@ -323,16 +326,19 @@ export function createOptimisticHooks<
         setIsPending(false)
         
         // Replace temp ID with real ID
-        if (context?.tempId) {
-          tempIdsRef.current.set(context.tempId.toString(), data.id.toString())
-          
-          // Update all queries with real ID
-          queryClient.setQueriesData<TEntity[]>(
-            { queryKey: KEYS.lists() },
-            old => old?.map(item => 
-              item.id === context.tempId ? data : item
+        if (context && typeof context === 'object' && context !== null) {
+          const optContext = context as { tempId?: string | number }
+          if (optContext.tempId) {
+            tempIdsRef.current.set(optContext.tempId.toString(), data.id.toString())
+            
+            // Update all queries with real ID
+            queryClient.setQueriesData<TEntity[]>(
+              { queryKey: KEYS.lists() },
+              old => old?.map(item => 
+                item.id === optContext.tempId ? data : item
+              )
             )
-          )
+          }
         }
         
         // Invalidate queries
@@ -353,7 +359,10 @@ export function createOptimisticHooks<
     return {
       ...mutation,
       tempIds: tempIdsRef.current,
-      isPending
+      isPending: mutation.isPending || isPending
+    } as UseMutationResult<TEntity, Error, TCreate> & {
+      tempIds: Map<string, string>
+      isPending: boolean
     }
   }
 
@@ -373,7 +382,7 @@ export function createOptimisticHooks<
       setConflicts(prev => prev.filter(c => c.id !== id))
     }, [queryClient, KEYS])
 
-    return useMutation({
+    const mutation = useMutation({
       mutationFn: async ({ id, data }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
@@ -382,7 +391,7 @@ export function createOptimisticHooks<
         const response = await api.update(id, data)
         return response.data || response
       },
-      onMutate: async ({ id, data }) => {
+      onMutate: async ({ id, data }: { id: number | string; data: TUpdate }) => {
         // Cancel queries
         await queryClient.cancelQueries({ queryKey: KEYS.detail(id) })
         await queryClient.cancelQueries({ queryKey: KEYS.lists() })
@@ -417,12 +426,12 @@ export function createOptimisticHooks<
         // Apply optimistic update
         const optimisticEntity = config.transformUpdate
           ? config.transformUpdate(previousDetail!, data)
-          : {
+          : ({
               ...previousDetail,
               ...data,
               updatedAt: new Date().toISOString(),
               version: (previousDetail?.version || 0) + 1
-            } as TEntity
+            } as unknown as TEntity)
         
         // Update detail query
         if (previousDetail) {
@@ -443,11 +452,12 @@ export function createOptimisticHooks<
       },
       onError: (error, { id, data }, context) => {
         // Rollback
-        if (context) {
-          if (context.previousDetail) {
-            queryClient.setQueryData(KEYS.detail(id), context.previousDetail)
+        if (context && typeof context === 'object' && context !== null) {
+          const optContext = context as { previousDetail?: TEntity; previousLists?: [readonly unknown[], TEntity[] | undefined][] }
+          if (optContext.previousDetail) {
+            queryClient.setQueryData(KEYS.detail(id), optContext.previousDetail)
           }
-          context.previousLists?.forEach(([queryKey, data]) => {
+          optContext.previousLists?.forEach(([queryKey, data]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }
@@ -461,18 +471,19 @@ export function createOptimisticHooks<
         queryClient.setQueryData(KEYS.detail(id), data)
         
         // Check for server-side conflict
-        if (data.version && context?.previousDetail?.version) {
-          if (data.version <= context.previousDetail.version) {
+        if (data.version && context && typeof context === 'object' && context !== null) {
+          const optContext = context as { previousDetail?: TEntity }
+          if (optContext.previousDetail?.version && data.version <= optContext.previousDetail.version) {
             const conflict = {
               id: id.toString(),
-              local: context.previousDetail,
+              local: optContext.previousDetail,
               remote: data
             }
             setConflicts(prev => [...prev, conflict])
             
             // Handle based on strategy
             if (config.onConflict) {
-              const resolved = config.onConflict(context.previousDetail, data)
+              const resolved = config.onConflict(optContext.previousDetail, data)
               queryClient.setQueryData(KEYS.detail(id), resolved)
             }
           }
@@ -489,9 +500,12 @@ export function createOptimisticHooks<
     })
 
     return {
-      ...useMutation({} as any),
+      ...mutation,
       conflicts,
       resolveConflict
+    } as UseMutationResult<TEntity, Error, { id: number | string; data: TUpdate }> & {
+      conflicts: Array<{ id: string; local: TEntity; remote: TEntity }>
+      resolveConflict: (id: string, resolution: TEntity) => void
     }
   }
 
@@ -505,7 +519,7 @@ export function createOptimisticHooks<
     const client = useApiClient()
     const [canUndo, setCanUndo] = useState(false)
     const undoDataRef = useRef<{ id: number | string; data: TEntity; lists: any[] } | null>(null)
-    const undoTimeoutRef = useRef<NodeJS.Timeout>()
+    const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     const undo = useCallback(() => {
       if (!undoDataRef.current) return
@@ -526,7 +540,7 @@ export function createOptimisticHooks<
       toast.success('Delete undone')
     }, [queryClient, KEYS])
 
-    return useMutation({
+    const mutation = useMutation({
       mutationFn: async (id: number | string) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
@@ -534,7 +548,7 @@ export function createOptimisticHooks<
         
         await api.delete(id)
       },
-      onMutate: async (id) => {
+      onMutate: async (id: number | string) => {
         // Cancel queries
         await queryClient.cancelQueries({ queryKey: KEYS.lists() })
         
@@ -576,12 +590,13 @@ export function createOptimisticHooks<
       },
       onError: (error, id, context) => {
         // Rollback
-        if (context) {
-          context.previousLists?.forEach(([queryKey, data]) => {
+        if (context && typeof context === 'object' && context !== null) {
+          const optContext = context as { previousLists?: [readonly unknown[], TEntity[] | undefined][]; deletedItem?: TEntity }
+          optContext.previousLists?.forEach(([queryKey, data]) => {
             queryClient.setQueryData(queryKey, data)
           })
-          if (context.deletedItem) {
-            queryClient.setQueryData(KEYS.detail(id), context.deletedItem)
+          if (optContext.deletedItem) {
+            queryClient.setQueryData(KEYS.detail(id), optContext.deletedItem)
           }
         }
         
@@ -613,9 +628,12 @@ export function createOptimisticHooks<
     })
 
     return {
-      ...useMutation({} as any),
+      ...mutation,
       undo,
       canUndo
+    } as UseMutationResult<void, Error, number | string> & {
+      undo: () => void
+      canUndo: boolean
     }
   }
 
@@ -640,7 +658,7 @@ export function createOptimisticHooks<
         const tempId = generateTempId()
         const optimistic = config.transformCreate
           ? config.transformCreate(item)
-          : { ...item, id: tempId } as TEntity
+          : ({ ...item, id: tempId } as unknown as TEntity)
         
         tempIds.set(tempId.toString(), tempId.toString())
         return optimistic

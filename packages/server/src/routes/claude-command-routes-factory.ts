@@ -7,7 +7,6 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import {
-  ProjectIdParamsSchema,
   CreateClaudeCommandBodySchema,
   UpdateClaudeCommandBodySchema,
   ExecuteClaudeCommandBodySchema,
@@ -36,10 +35,14 @@ import {
   createStandardResponses,
   createStandardResponsesWithStatus,
   successResponse,
-  operationSuccessResponse,
-  withErrorHandling
+  operationSuccessResponse
 } from '../utils/route-helpers'
 import type { Context } from 'hono'
+
+// Parameter schema for project ID in path
+const ProjectIdParamsSchema = z.object({
+  projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+})
 
 // Helper to validate project exists
 async function validateProject(projectId: number) {
@@ -69,14 +72,21 @@ const createRoute_ = createRoute({
   responses: createStandardResponsesWithStatus(ClaudeCommandResponseSchema, 201, 'Command created successfully')
 })
 
-claudeCommandRoutes.openapi(createRoute_, withErrorHandling(async (c) => {
+claudeCommandRoutes.openapi(createRoute_, async (c): Promise<any> => {
   const { projectId } = c.req.valid('param')
   const body = c.req.valid('json')
   
   await validateProject(projectId)
-  const command = await createCommand(projectId, body)
+  // Add required timestamps and project context
+  const commandData = {
+    ...body,
+    projectId,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+  const command = await createCommand(projectId, commandData)
   return c.json(successResponse(command), 201)
-}))
+})
 
 // ============= LIST COMMANDS =============
 const listRoute = createRoute({
@@ -91,14 +101,14 @@ const listRoute = createRoute({
   responses: createStandardResponses(ClaudeCommandListResponseSchema)
 })
 
-claudeCommandRoutes.openapi(listRoute, withErrorHandling(async (c) => {
+claudeCommandRoutes.openapi(listRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const query = c.req.valid('query')
   
   await validateProject(projectId)
   const commands = await listCommands(projectId, query)
   return c.json(successResponse(commands))
-}))
+})
 
 // ============= GET COMMAND =============
 const getRoute = createRoute({
@@ -118,13 +128,13 @@ const getRoute = createRoute({
   responses: createStandardResponses(ClaudeCommandResponseSchema)
 })
 
-claudeCommandRoutes.openapi(getRoute, withErrorHandling(async (c) => {
-  const { projectId, commandName } = c.req.valid('param')
-  
-  await validateProject(projectId)
-  const command = await getCommandByName(projectId, commandName)
-  return c.json(successResponse(command))
-}))
+claudeCommandRoutes.openapi(getRoute, async (c) => {
+    const { projectId, commandName } = c.req.valid('param')
+    
+    await validateProject(projectId)
+    const command = await getCommandByName(projectId, commandName)
+    return c.json(successResponse(command))
+})
 
 // ============= UPDATE COMMAND =============
 const updateRoute = createRoute({
@@ -148,14 +158,14 @@ const updateRoute = createRoute({
   responses: createStandardResponses(ClaudeCommandResponseSchema)
 })
 
-claudeCommandRoutes.openapi(updateRoute, withErrorHandling(async (c) => {
-  const { projectId, commandName } = c.req.valid('param')
-  const body = c.req.valid('json')
-  
-  await validateProject(projectId)
-  const command = await updateCommand(projectId, commandName, body)
-  return c.json(successResponse(command))
-}))
+claudeCommandRoutes.openapi(updateRoute, async (c) => {
+    const { projectId, commandName } = c.req.valid('param')
+    const body = c.req.valid('json')
+    
+    await validateProject(projectId)
+    const command = await updateCommand(projectId, commandName, body)
+    return c.json(successResponse(command))
+})
 
 // ============= DELETE COMMAND =============
 const deleteRoute = createRoute({
@@ -175,13 +185,13 @@ const deleteRoute = createRoute({
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
-claudeCommandRoutes.openapi(deleteRoute, withErrorHandling(async (c) => {
-  const { projectId, commandName } = c.req.valid('param')
-  
-  await validateProject(projectId)
-  await deleteCommand(projectId, commandName)
-  return c.json(operationSuccessResponse('Command deleted successfully'))
-}))
+claudeCommandRoutes.openapi(deleteRoute, async (c) => {
+    const { projectId, commandName } = c.req.valid('param')
+    
+    await validateProject(projectId)
+    await deleteCommand(projectId, commandName)
+    return c.json(operationSuccessResponse('Command deleted successfully'))
+})
 
 // ============= EXECUTE COMMAND (Custom) =============
 const executeRoute = createRoute({
@@ -205,28 +215,28 @@ const executeRoute = createRoute({
   responses: createStandardResponses(CommandExecutionResponseSchema)
 })
 
-claudeCommandRoutes.openapi(executeRoute, withErrorHandling(async (c) => {
-  const { projectId, commandName } = c.req.valid('param')
-  const body = c.req.valid('json')
-  
-  await validateProject(projectId)
-  const result = await executeCommand(projectId, commandName, body?.arguments)
-  
-  const responseData = {
-    result: result.result,
-    usage: result.metadata?.usage
-      ? {
-          inputTokens: result.metadata.usage.inputTokens || 0,
-          outputTokens: result.metadata.usage.outputTokens || 0,
-          totalTokens: result.metadata.usage.totalTokens || 0
-        }
-      : undefined,
-    model: result.metadata?.model,
-    sessionId: result.metadata?.sessionId
-  }
-  
-  return c.json(successResponse(responseData))
-}))
+claudeCommandRoutes.openapi(executeRoute, async (c) => {
+    const { projectId, commandName } = c.req.valid('param')
+    const body = c.req.valid('json')
+    
+    await validateProject(projectId)
+    const result = await executeCommand(projectId, commandName, body?.arguments)
+    
+    const responseData = {
+      result: result.result,
+      usage: result.metadata?.usage
+        ? {
+            inputTokens: result.metadata.usage.inputTokens || 0,
+            outputTokens: result.metadata.usage.outputTokens || 0,
+            totalTokens: result.metadata.usage.totalTokens || 0
+          }
+        : undefined,
+      model: result.metadata?.model,
+      sessionId: result.metadata?.sessionId
+    }
+    
+    return c.json(successResponse(responseData))
+})
 
 // ============= GENERATE COMMAND (AI) =============
 const generateRoute = createRoute({
@@ -245,14 +255,14 @@ const generateRoute = createRoute({
   responses: createStandardResponses(CommandGenerationResponseSchema)
 })
 
-claudeCommandRoutes.openapi(generateRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const body = c.req.valid('json')
-  
-  await validateProject(projectId)
-  const generatedCommand = await generateCommand(projectId, body)
-  return c.json(successResponse(generatedCommand))
-}))
+claudeCommandRoutes.openapi(generateRoute, async (c) => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    
+    await validateProject(projectId)
+    const generatedCommand = await generateCommand(projectId, body)
+    return c.json(successResponse(generatedCommand))
+})
 
 // ============= SUGGEST COMMANDS (AI) =============
 const suggestRoute = createRoute({
@@ -277,13 +287,13 @@ const suggestRoute = createRoute({
   responses: createStandardResponses(CommandSuggestionsResponseSchema)
 })
 
-claudeCommandRoutes.openapi(suggestRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const body = c.req.valid('json')
-  
-  await validateProject(projectId)
-  const suggestions = await suggestCommands(projectId, body?.context || '', body?.limit || 5)
-  return c.json(successResponse(suggestions))
-}))
+claudeCommandRoutes.openapi(suggestRoute, async (c) => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    
+    await validateProject(projectId)
+    const suggestions = await suggestCommands(projectId, body?.context || '', body?.limit || 5)
+    return c.json(successResponse(suggestions))
+})
 
 export type ClaudeCommandRouteTypes = typeof claudeCommandRoutes

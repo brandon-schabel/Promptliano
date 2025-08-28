@@ -155,14 +155,14 @@ const deleteMCPServerConfigRoute = createRoute({
 // Export routes
 export const mcpConfigRoutes = new OpenAPIHono()
   .openapi(createMCPServerConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     const transformedBody = transformCreateRequestBody(body)
     const config = await createMCPServerConfig(projectId, transformedBody)
     return c.json(successResponse(transformMcpServerConfig(config)), 201)
   })
   .openapi(listMCPServerConfigsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const configs = await listMCPServerConfigs(projectId)
     return c.json(successResponse(configs.map(transformMcpServerConfig)))
   })

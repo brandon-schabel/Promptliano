@@ -80,6 +80,38 @@ mock.module('./utils/logger', () => ({
   createLogger: mock(() => mockLogger)
 }))
 
+// Mock MCP service helpers
+const mockMCPFileOps = {
+  writeJsonFile: mock(async () => ({ backupPath: undefined })),
+  readJsonFile: mock(),
+  fileExists: mock(async () => false),
+  makeExecutable: mock(async () => {})
+}
+
+mock.module('./utils/mcp-service-helpers', () => ({
+  MCPErrorFactory: {
+    configNotFound: mock(() => new Error('Config not found')),
+    configInvalid: mock(() => new Error('Config invalid')),
+    installationFailed: mock(() => new Error('Installation failed'))
+  },
+  MCPFileOps: mockMCPFileOps,
+  MCPRetryConfig: {
+    fileOperation: { maxAttempts: 1, delay: 0, backoff: 1, shouldRetry: () => false },
+    installation: { maxAttempts: 1, delay: 0, backoff: 1, shouldRetry: () => false },
+    configLoad: { maxAttempts: 1, delay: 0, backoff: 1, shouldRetry: () => false }
+  },
+  withMCPCache: (fn: any) => fn, // Pass through for tests
+  MCPCacheConfig: {
+    config: { ttl: 30000, maxEntries: 50 }
+  },
+  createMCPFileWatcher: mock(() => mock()), // Return a cleanup function
+  MCPValidation: {
+    validateRequiredFields: mock(),
+    validateTool: mock(),
+    validatePlatform: mock()
+  }
+}))
+
 describe('MCP Global Config Service - Functional Factory Pattern', () => {
   let configPath: string
   let service: MCPGlobalConfigService
@@ -92,12 +124,17 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
     // Reset all mocks
     Object.values(mockFs).forEach(mock => mock.mockReset())
     Object.values(mockLogger).forEach(mock => mock.mockClear())
+    Object.values(mockMCPFileOps).forEach(mock => mock.mockReset())
 
     // Setup default mock behaviors
     mockFs.mkdir.mockResolvedValue(undefined)
     mockFs.readFile.mockRejectedValue({ code: 'ENOENT' }) // File not found by default
     mockFs.writeFile.mockResolvedValue(undefined)
     mockFs.access.mockRejectedValue({ code: 'ENOENT' })
+    
+    // Setup MCP mock behaviors
+    mockMCPFileOps.writeJsonFile.mockResolvedValue({ backupPath: undefined })
+    mockMCPFileOps.fileExists.mockResolvedValue(false)
 
     // Create service instance
     service = createMCPGlobalConfigService({
@@ -117,7 +154,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
 
       expect(mockFs.mkdir).toHaveBeenCalledWith(path.dirname(configPath), { recursive: true })
       expect(mockFs.readFile).toHaveBeenCalledWith(configPath, 'utf-8')
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
       expect(mockLogger.info).toHaveBeenCalledWith('Creating new global MCP configuration file')
     })
 
@@ -139,7 +176,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
         'Invalid global MCP configuration, creating new one:',
         expect.any(Error)
       )
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
     })
 
     test('should create config directory if it does not exist', async () => {
@@ -185,7 +222,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
 
       expect(updatedConfig.debugMode).toBe(true)
       expect(updatedConfig.defaultTimeout).toBe(30000)
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
       expect(mockLogger.info).toHaveBeenCalledWith('Global MCP configuration updated successfully')
     })
 
@@ -254,7 +291,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
 
       await service.addGlobalInstallation(newInstallation)
 
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
       expect(mockLogger.info).toHaveBeenCalledWith('Added global installation for vscode')
     })
 
@@ -271,7 +308,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Replacing existing installation for claude-desktop'
       )
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
     })
 
     test('should validate installation data on add', async () => {
@@ -286,7 +323,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
     test('should remove installation', async () => {
       await service.removeGlobalInstallation('claude-desktop')
 
-      expect(mockFs.writeFile).toHaveBeenCalled()
+      expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
       expect(mockLogger.info).toHaveBeenCalledWith('Removed global installation for claude-desktop')
     })
 

@@ -42,17 +42,17 @@ export function KanbanColumn({
   onItemCompleted,
   onOpenTicket
 }: KanbanColumnProps) {
-  const id = queue?.id?.toString() || 'unqueued'
+  const id = queue?.queue?.id?.toString() || 'unqueued'
   const { setNodeRef, isOver } = useDroppable({ id })
 
-  const title = isUnqueued ? 'Unqueued Items' : queue?.name || 'Queue'
-  const isActive = queue?.isActive ?? true
+  const title = isUnqueued ? 'Unqueued Items' : queue?.queue?.name || 'Queue'
+  const isActive = queue?.queue?.isActive ?? true
   const stats = queue?.stats
 
   // Calculate estimated time (simplified since stats structure changed)
   const estimatedTime =
-    stats?.processing && stats?.total
-      ? Math.round((stats.pending * 5) / 60) // Simplified estimate: 5 minutes per item
+    stats?.inProgressItems && stats?.totalItems
+      ? Math.round((stats.queuedItems * 5) / 60) // Simplified estimate: 5 minutes per item
       : null
 
   return (
@@ -104,8 +104,8 @@ export function KanbanColumn({
                   {isActive ? 'Active' : 'Paused'}
                 </Badge>
                 <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                  <span>{stats.pending} pending</span>
-                  {stats.processing > 0 && <span className='text-primary'>{stats.processing} processing</span>}
+                  <span>{stats.queuedItems} pending</span>
+                  {stats.inProgressItems > 0 && <span className='text-primary'>{stats.inProgressItems} processing</span>}
                 </div>
               </>
             )

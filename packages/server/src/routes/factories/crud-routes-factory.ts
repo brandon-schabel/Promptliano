@@ -59,6 +59,15 @@ export interface CrudRouteConfig<TEntity, TCreate, TUpdate> {
     export?: boolean            // Enable data export
     versioning?: boolean        // Enable entity versioning
     
+    // Route disabling
+    disableRoutes?: {
+      list?: boolean            // Disable GET /entity route
+      get?: boolean             // Disable GET /entity/{id} route
+      create?: boolean          // Disable POST /entity route
+      update?: boolean          // Disable PUT /entity/{id} route
+      delete?: boolean          // Disable DELETE /entity/{id} route
+    }
+    
     // Middleware configuration
     middleware?: {
       all?: Array<(c: Context, next: () => Promise<void>) => Promise<void>>
@@ -161,6 +170,24 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
 ) {
   const app = new OpenAPIHono()
   const { entityName, path, tags, service, schemas, options } = config
+
+  // Add error handling middleware to properly handle ApiError instances
+  app.onError((err, c) => {
+    console.error('[CRUD Factory Error]', err)
+    
+    // Use ErrorFactory.wrap to handle all error types consistently
+    const apiError = ErrorFactory.wrap(err, `${entityName} CRUD operation`)
+    
+    return c.json(
+      {
+        success: false,
+        error: apiError.message,
+        code: apiError.code,
+        details: apiError.details
+      },
+      apiError.status as any
+    )
+  })
   
   // Apply global middleware for all routes if specified
   if (options?.middleware?.all) {
@@ -179,8 +206,12 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
     })
   })
 
+  // Route disable flags for easy access
+  const disableRoutes = options?.disableRoutes || {}
+  
   // ============= LIST ROUTE =============
-  const listRoute = createRoute({
+  if (!disableRoutes.list) {
+    const listRoute = createRoute({
     method: 'get',
     path: `/${path}`,
     tags,
@@ -274,9 +305,11 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       { entity: entityName, action: 'list' }
     )
   })
+  }
   
   // ============= GET BY ID ROUTE =============
-  const getRoute = createRoute({
+  if (!disableRoutes.get) {
+    const getRoute = createRoute({
     method: 'get',
     path: `/${path}/{id}`,
     tags,
@@ -350,9 +383,11 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       { entity: entityName, action: 'get' }
     )
   })
+  }
   
   // ============= CREATE ROUTE =============
-  const createRouteDefinition = createRoute({
+  if (!disableRoutes.create) {
+    const createRouteDefinition = createRoute({
     method: 'post',
     path: `/${path}`,
     tags,
@@ -443,9 +478,11 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       { entity: entityName, action: 'create' }
     )
   })
+  }
   
   // ============= UPDATE ROUTE =============
-  const updateRoute = createRoute({
+  if (!disableRoutes.update) {
+    const updateRoute = createRoute({
     method: 'put',
     path: `/${path}/{id}`,
     tags,
@@ -550,9 +587,11 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       { entity: entityName, action: 'update' }
     )
   })
+  }
   
   // ============= DELETE ROUTE =============
-  const deleteRoute = createRoute({
+  if (!disableRoutes.delete) {
+    const deleteRoute = createRoute({
     method: 'delete',
     path: `/${path}/{id}`,
     tags,
@@ -645,6 +684,7 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       { entity: entityName, action: 'delete' }
     )
   })
+  }
   
   // ============= BATCH OPERATIONS (if enabled) =============
   if (options?.batch) {

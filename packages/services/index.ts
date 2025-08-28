@@ -396,7 +396,12 @@ export * from './src/enhanced-summarization-service'
 // V2 Service Aliases for backward compatibility with generated routes
 // Now using properly compatible services
 export { activeTabService as activetabServiceV2 } from './src/active-tab-service'
+export { chatService as chatServiceV2 } from './src/chat-service'
 export { chatService as chatmessageServiceV2 } from './src/chat-service'
+export { fileService as fileServiceV2 } from './src/file-service'
+export { queueService as queueServiceV2 } from './src/queue-service'
+export { ticketService as ticketServiceV2 } from './src/ticket-service'
+export { promptService as promptServiceV2 } from './src/prompt-service'
 export { claudeAgentService as claudeagentServiceV2 } from './src/claude-agent-service'
 export { claudeCommandService as claudecommandServiceV2 } from './src/claude-command-service'
 export { claudeHookService as claudehookServiceV2 } from './src/claude-hook-service'

@@ -1,6 +1,6 @@
 import type { StatusResult, FileStatusResult } from 'simple-git'
 import type { GitStatus, GitFileStatus, GitStatusResult, GitFileStatusType } from '@promptliano/schemas'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 import { retryOperation } from '../utils/retry-operation'
 
@@ -158,11 +158,13 @@ export function createGitStatusService(dependencies?: GitStatusServiceDeps) {
             }
           }
 
+          // Use ErrorFactory.wrap to handle unknown errors consistently
+          const wrappedError = ErrorFactory.wrap(error, 'git status operation')
           return {
             success: false,
             error: {
               type: 'unknown',
-              message: errorMessage
+              message: wrappedError.message
             }
           }
         }

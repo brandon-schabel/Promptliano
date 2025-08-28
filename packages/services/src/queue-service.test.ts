@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { ApiError } from '@promptliano/shared'
-import { createQueueService } from './queue-service'
-import { createFlowService } from './flow-service'
+import { createQueueService, createQueue } from './queue-service'
+import { createFlowService, createTicket, createTask, enqueueTicket, enqueueTask, dequeueTicket, dequeueTask, updateTicket, getTicketById, enqueueTicketWithTasks } from './flow-service'
 import { createTestEnvironment, testAssertions } from './test-utils/test-environment'
 import { randomBytes } from 'crypto'
 import { queues, queueItems, createBaseRepository, extendRepository, selectQueueSchema } from '@promptliano/database'
@@ -22,6 +22,12 @@ describe('Queue Service - Flow System', () => {
   // Test configuration
   const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test'
   const testTimeout = isCI ? 15000 : 10000
+  
+  // Variables for backward compatibility with older test sections
+  let testProjectId: number
+  let suiteId: string = 'queue-test'
+  let testResources: Array<{ type: string; id: number }> = []
+  const asyncWaitTime = 100
 
   beforeEach(async () => {
     // Setup test environment with automatic resource tracking
@@ -71,6 +77,10 @@ describe('Queue Service - Flow System', () => {
     
     // Create default test project
     await testContext.createTestProject('queue-tests')
+    
+    // Initialize backward compatibility variables
+    testProjectId = testContext.testProjectId!
+    testResources = []
   })
 
   afterEach(async () => {
@@ -277,9 +287,9 @@ describe('Queue Service - Flow System', () => {
         const dequeued = await flowService.dequeueTicket(ticket.id)
 
         expect(dequeued.id).toBe(ticket.id)
-        expect(dequeued.queueId).toBeNull()
-        expect(dequeued.queueStatus).toBeNull()
-        expect(dequeued.queuePriority).toBeNull()
+        expect(dequeued.queueId).toBeUndefined()
+        expect(dequeued.queueStatus).toBeUndefined()
+        expect(dequeued.queuePriority).toBeUndefined()
       },
       testTimeout
     )
@@ -340,9 +350,9 @@ describe('Queue Service - Flow System', () => {
         const dequeued = await flowService.dequeueTask(task.id)
 
         expect(dequeued.id).toBe(task.id)
-        expect(dequeued.queueId).toBeNull()
-        expect(dequeued.queueStatus).toBeNull()
-        expect(dequeued.queuePriority).toBeNull()
+        expect(dequeued.queueId).toBeUndefined()
+        expect(dequeued.queueStatus).toBeUndefined()
+        expect(dequeued.queuePriority).toBeUndefined()
       },
       testTimeout
     )
@@ -417,14 +427,14 @@ describe('Queue Service - Flow System', () => {
       }
 
       // Get tasks for 2 agents (up to maxParallelItems)
-      const result1 = await getNextTaskFromQueue(testQueue.id, 'agent-1')
-      const result2 = await getNextTaskFromQueue(testQueue.id, 'agent-2')
+      const result1 = await queueService.getNextItem(testQueue.id, 'agent-1')
+      const result2 = await queueService.getNextItem(testQueue.id, 'agent-2')
 
-      expect(result1.item).toBeDefined()
-      expect(result2.item).toBeDefined()
+      expect(result1).toBeDefined()
+      expect(result2).toBeDefined()
 
       // Third agent should not get a task (maxParallelItems = 2)
-      const result3 = await getNextTaskFromQueue(testQueue.id, 'agent-3')
+      const result3 = await queueService.getNextItem(testQueue.id, 'agent-3')
       expect(result3.type).toBe('none')
       expect(result3.message).toContain('parallel limit reached')
     })
@@ -495,7 +505,7 @@ describe('Queue Service - Flow System', () => {
       await updateTicket(ticket2.id, { queueStatus: 'in_progress' })
       await updateTicket(ticket3.id, { queueStatus: 'completed' })
 
-      const stats = await getQueueStats(testQueue.id)
+      const { stats } = await queueService.getWithStats(testQueue.id)
 
       expect(stats.totalItems).toBe(3)
       expect(stats.queuedItems).toBe(1)
@@ -606,7 +616,7 @@ describe('Queue Service - Flow System', () => {
           taskIds.push(task.id)
         }
 
-        await flowService.enqueueTicketWithTasks(ticket.id, testQueue.id, 10)
+        await enqueueTicketWithTasks(ticket.id, testQueue.id, 10)
 
         // Verify ticket is enqueued
         const enqueuedTicket = await flowService.getTicketById(ticket.id)
@@ -698,8 +708,8 @@ describe('Queue Service - Flow System', () => {
           await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
         }
 
-        // Move to second queue
-        await moveItemToQueue('ticket', ticket.id, testQueue2.id)
+        // Move to second queue (using queue service moveItemToQueue)
+        await queueService.moveItemToQueue('ticket', ticket.id, testQueue2.id)
 
         // Add delay in CI to ensure move operation is committed
         if (isCI) {
@@ -718,8 +728,8 @@ describe('Queue Service - Flow System', () => {
         }
 
         // Verify stats
-        const stats1 = await getQueueStats(testQueue1.id)
-        const stats2 = await getQueueStats(testQueue2.id)
+        const { stats: stats1 } = await queueService.getWithStats(testQueue1.id)
+        const { stats: stats2 } = await queueService.getWithStats(testQueue2.id)
 
         expect(stats1.totalItems).toBe(0)
         expect(stats2.totalItems).toBe(1)
@@ -746,8 +756,8 @@ describe('Queue Service - Flow System', () => {
           await new Promise((resolve) => setTimeout(resolve, asyncWaitTime))
         }
 
-        // Remove from queue
-        await moveItemToQueue('ticket', ticket.id, null)
+        // Remove from queue (using queue service moveItemToQueue)
+        await queueService.moveItemToQueue('ticket', ticket.id, null)
 
         // Add delay in CI to ensure move operation is committed
         if (isCI) {

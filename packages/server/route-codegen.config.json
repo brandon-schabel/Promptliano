@@ -100,10 +100,10 @@
         },
         {
           "method": "get",
-          "path": "/{id}/files",
-          "summary": "Get project files",
-          "description": "Get all files in the project",
-          "handlerName": "getFiles",
+          "path": "/{id}/allfiles",
+          "summary": "Get all project files",
+          "description": "Get all files in the project (alternative endpoint)",
+          "handlerName": "getAllFiles",
           "responseSchema": "FileListResponseSchema"
         },
         {

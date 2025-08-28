@@ -89,7 +89,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
     logger = createLogger('ClaudeCodeFileReaderService'),
     platform = process.platform,
     enableCaching = true,
-    cacheConfig = MCPCacheConfig.metadata,
+    cacheConfig = MCPCacheConfig.metadata || { ttl: 60000, maxEntries: 100 },
     enableFileWatching = true,
     maxFileSize = 100 * 1024 * 1024, // 100MB max file size
     maxLinesPerFile = 100000, // 100k lines max
@@ -173,7 +173,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
         { entity: 'ClaudeCode', action: 'checkInstallation' }
       )
     },
-    enableCaching ? { ttl: (cacheConfig.ttl ?? 300000) * 2, maxEntries: 1, keyGenerator: () => 'installed' } : undefined
+    enableCaching ? { ttl: (cacheConfig?.ttl ?? 300000) * 2, maxEntries: 1, keyGenerator: () => 'installed' } : undefined
   )
 
   /**
@@ -197,7 +197,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
         { entity: 'ClaudeCode', action: 'getProjects' }
       )
     },
-    enableCaching ? { ttl: cacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'projects' } : undefined
+    enableCaching ? { ttl: cacheConfig?.ttl || 60000, maxEntries: 1, keyGenerator: () => 'projects' } : undefined
   )
 
   /**
@@ -554,7 +554,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
         { entity: 'ClaudeChatHistory', action: 'read', projectPath }
       )
     },
-    enableCaching ? { ttl: cacheConfig.ttl, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectPath) => `chat-${projectPath}` } : undefined
+    enableCaching ? { ttl: cacheConfig?.ttl || 60000, maxEntries: cacheConfig?.maxEntries || 100, keyGenerator: (projectPath) => `chat-${projectPath}` } : undefined
   )
 
   /**
@@ -850,7 +850,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
         { entity: 'SessionMetadata', action: 'get', projectPath }
       )
     },
-    enableCaching ? { ttl: cacheConfig.ttl, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectPath) => `metadata-${projectPath}` } : undefined
+    enableCaching ? { ttl: cacheConfig?.ttl || 60000, maxEntries: cacheConfig?.maxEntries || 100, keyGenerator: (projectPath) => `metadata-${projectPath}` } : undefined
   )
 
   /**
@@ -907,7 +907,7 @@ export function createClaudeCodeFileReaderService(deps?: ClaudeCodeFileReaderDep
         { entity: 'RecentSessions', action: 'get', projectPath }
       )
     },
-    enableCaching ? { ttl: cacheConfig.ttl, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectPath, limit) => `recent-${projectPath}-${limit}` } : undefined
+    enableCaching ? { ttl: cacheConfig?.ttl || 60000, maxEntries: cacheConfig?.maxEntries || 100, keyGenerator: (projectPath, limit) => `recent-${projectPath}-${limit}` } : undefined
   )
 
   /**

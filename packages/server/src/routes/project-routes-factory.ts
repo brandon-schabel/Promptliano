@@ -47,9 +47,13 @@ import {
   summarizeFiles
 } from '@promptliano/services'
 
-// ============= CRUD ROUTES WITH FACTORY =============
-const crudRoutes = createCrudRoutes({
-  entityName: 'Project',
+// ============= CRUD ROUTES WITH FACTORY (PARTIAL) =============
+// We create separate CRUD routes for list, get, and update
+// Create and Delete are custom due to special requirements
+
+// Separate CRUD app for the operations we want to use
+const partialCrudRoutes = createCrudRoutes({
+  entityName: 'Project', 
   path: 'api/projects',
   tags: ['Projects'],
   service: projectService,
@@ -59,13 +63,15 @@ const crudRoutes = createCrudRoutes({
     update: UpdateProjectSchema
   },
   options: {
-    // Disable create route as we need custom path normalization
-    disableCreate: true,
-    // Keep other CRUD operations
-    disableList: false,
-    disableGet: false,
-    disableUpdate: false,
-    disableDelete: false
+    // Standard CRUD operations without custom requirements
+    pagination: false,
+    search: false,
+    batch: false,
+    // Disable create and delete routes since we have custom implementations
+    disableRoutes: {
+      create: true,  // Custom create route with path normalization
+      delete: true   // Custom delete route with watcher cleanup
+    }
   }
 })
 
@@ -108,8 +114,9 @@ const createProjectRoute = createRoute({
   }
 })
 
-customRoutes.openapi(createProjectRoute, withErrorHandling(async (c) => {
-  const body = c.req.valid('json')
+customRoutes.openapi(createProjectRoute, async (c) => {
+  try {
+    const body = c.req.valid('json')
   
   // Path normalization
   let normalizedPath = body.path
@@ -154,53 +161,145 @@ customRoutes.openapi(createProjectRoute, withErrorHandling(async (c) => {
       ...(syncError && { error: syncError })
     } satisfies z.infer<typeof ProjectResponseMultiStatusSchema>, 207)
   }
-}))
+  } catch (error) {
+    console.error('Create project error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to create project' 
+      } 
+    }, 500)
+  }
+})
 
 // Custom Delete with Watcher Cleanup
 const deleteProjectRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}',
+  path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: 'Delete a project and its associated data',
-  request: { params: ProjectIdParamsSchema },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
+  request: { 
+    params: z.object({ id: z.coerce.number().int().positive() })
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
+      description: 'Project deleted successfully'
+    },
+    400: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Bad Request' 
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(deleteProjectRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
+customRoutes.openapi(deleteProjectRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
   
-  const deleted = await projectService.deleteCascade(projectId)
+  const deleted = await projectService.deleteCascade(id)
   if (deleted) {
-    watchersManager.stopWatchingProject(projectId)
+    watchersManager.stopWatchingProject(id)
   }
   
-  return c.json(operationSuccessResponse('Project deleted successfully'))
-}))
+  return c.json(operationSuccessResponse('Project deleted successfully'), 200)
+  } catch (error) {
+    console.error('Delete project error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to delete project' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= SYNC OPERATIONS =============
 const syncProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/sync',
+  path: '/api/projects/{id}/sync',
   tags: ['Projects', 'Files'],
   summary: 'Manually trigger a full file sync for a project',
-  request: { params: ProjectIdParamsSchema },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
+  request: { 
+    params: z.object({ id: z.coerce.number().int().positive() })
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: OperationSuccessResponseSchema } },
+      description: 'Project sync initiated successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(syncProjectRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const project = await projectService.getById(projectId)
+customRoutes.openapi(syncProjectRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+  const project = await projectService.getById(id)
   await syncProject(project)
-  return c.json(operationSuccessResponse('Project sync initiated.'))
-}))
+  return c.json(operationSuccessResponse('Project sync initiated.'), 200)
+  } catch (error) {
+    console.error('Sync project error:', error) 
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to sync project' 
+      } 
+    }, 500)
+  }
+})
 
 // Streaming sync endpoint
 const syncProjectStreamRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/sync-stream',
+  path: '/api/projects/{id}/sync-stream',
   tags: ['Projects', 'Files'],
   summary: 'Trigger a file sync with real-time progress updates via SSE',
-  request: { params: ProjectIdParamsSchema },
+  request: { 
+    params: z.object({ id: z.coerce.number().int().positive() })
+  },
   responses: {
     200: {
       content: {
@@ -223,9 +322,10 @@ const syncProjectStreamRoute = createRoute({
   }
 })
 
-customRoutes.openapi(syncProjectStreamRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const project = await projectService.getById(projectId)
+customRoutes.openapi(syncProjectStreamRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+  const project = await projectService.getById(id)
 
   // Set up SSE headers
   c.header('Content-Type', 'text/event-stream')
@@ -265,72 +365,153 @@ customRoutes.openapi(syncProjectStreamRoute, withErrorHandling(async (c) => {
       await streamInstance.writeln('')
     }
   })
-}))
+  } catch (error) {
+    console.error('Sync stream error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to start sync stream' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= FILE OPERATIONS =============
 const getProjectFilesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/files',
+  path: '/api/projects/{id}/files',
   tags: ['Projects', 'Files'],
   summary: 'Get the list of files associated with a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: z.object({
       includeAllVersions: z.coerce.boolean().optional().default(false),
       limit: z.coerce.number().int().positive().optional(),
       offset: z.coerce.number().int().nonnegative().optional().default(0)
     })
   },
-  responses: createStandardResponses(FileListResponseSchema)
+  responses: {
+    200: {
+      content: { 
+        'application/json': { 
+          schema: z.object({
+            success: z.literal(true),
+            data: z.array(z.any()) // File structure from service layer
+          })
+        } 
+      },
+      description: 'Files retrieved successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(getProjectFilesRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const { limit, offset } = c.req.valid('query')
+customRoutes.openapi(getProjectFilesRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+    const { limit, offset } = c.req.valid('query')
   
-  await projectService.getById(projectId)
-  const files = await getProjectFiles(projectId, { limit, offset })
-  return c.json(successResponse(files ?? []))
-}))
+  await projectService.getById(id)
+  const files = await getProjectFiles(id, { limit, offset })
+  return c.json(successResponse(files ?? []), 200)
+  } catch (error) {
+    console.error('Get project files error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to get project files' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= AI SUMMARIZATION =============
 const getProjectSummaryRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/summary',
+  path: '/api/projects/{id}/summary',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get a combined summary of all files in the project',
-  request: { params: ProjectIdParamsSchema },
-  responses: createStandardResponses(ProjectSummaryResponseSchema)
+  request: { 
+    params: z.object({ id: z.coerce.number().int().positive() })
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: ProjectSummaryResponseSchema } },
+      description: 'Project summary retrieved successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(getProjectSummaryRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  
+customRoutes.openapi(getProjectSummaryRoute, async (c) => {
   try {
-    const summary = await getFullProjectSummary(projectId)
+    const { id } = c.req.valid('param')
+    
+    const summary = await getFullProjectSummary(id)
     return c.json({
       success: true,
       summary: summary
-    })
+    }, 200)
   } catch (error) {
+    console.error('Get project summary error:', error)
     if (error instanceof ApiError) {
-      throw error
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
     }
-    throw ErrorFactory.operationFailed(
-      'generate project summary',
-      error instanceof Error ? error.message : String(error)
-    )
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to get project summary' 
+      } 
+    }, 500)
   }
-}))
+})
 
 // File summarization
 const summarizeFilesRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/files/summarize',
+  path: '/api/projects/{id}/files/summarize',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Summarize specified files in a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -343,89 +524,202 @@ const summarizeFilesRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      included: z.number(),
-      skipped: z.number(),
-      updatedFiles: z.array(z.any()),
-      skippedReasons: z.object({
-        empty: z.number(),
-        tooLarge: z.number(),
-        errors: z.number()
-      }).optional()
-    })
-  }))
+  responses: {
+    200: {
+      content: { 
+        'application/json': { 
+          schema: z.object({
+            success: z.literal(true),
+            data: z.object({
+              included: z.number(),
+              skipped: z.number(),
+              updatedFiles: z.array(z.any()),
+              skippedReasons: z.object({
+                empty: z.number(),
+                tooLarge: z.number(),
+                errors: z.number()
+              }).optional()
+            })
+          })
+        } 
+      },
+      description: 'Files summarized successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(summarizeFilesRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const { fileIds, force = false } = c.req.valid('json')
+customRoutes.openapi(summarizeFilesRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+    const { fileIds, force = false } = c.req.valid('json')
 
-  await projectService.getById(projectId)
-  const result = await summarizeFiles(projectId, fileIds, force)
+  await projectService.getById(id)
+  const result = await summarizeFiles(id, fileIds, force)
   
-  return c.json(successResponse(result))
-}))
+  return c.json(successResponse(result), 200)
+  } catch (error) {
+    console.error('Summarize files error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to summarize files' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= PROJECT STATISTICS =============
 const getProjectStatisticsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/statistics',
+  path: '/api/projects/{id}/statistics',
   tags: ['Projects', 'Statistics'],
   summary: 'Get comprehensive statistics for a project',
-  request: { params: ProjectIdParamsSchema },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.any() // Complex statistics object
-  }))
+  request: { 
+    params: z.object({ id: z.coerce.number().int().positive() })
+  },
+  responses: {
+    200: {
+      content: { 
+        'application/json': { 
+          schema: z.object({
+            success: z.literal(true),
+            data: z.any() // Complex statistics object
+          })
+        } 
+      },
+      description: 'Project statistics retrieved successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(getProjectStatisticsRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const statistics = await getProjectStatistics(projectId)
-  return c.json(successResponse(statistics))
-}))
+customRoutes.openapi(getProjectStatisticsRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+  const statistics = await getProjectStatistics(id)
+  return c.json(successResponse(statistics), 200)
+  } catch (error) {
+    console.error('Get project statistics error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to get project statistics' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= REFRESH PROJECT =============
 const refreshProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/refresh',
+  path: '/api/projects/{id}/refresh',
   tags: ['Projects', 'Files'],
   summary: 'Refresh project files (sync) optionally limited to a folder',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: z.object({
       folder: z.string().optional()
     })
   },
-  responses: createStandardResponses(FileListResponseSchema)
+  responses: {
+    200: {
+      content: { 
+        'application/json': { 
+          schema: z.object({
+            success: z.literal(true),
+            data: z.array(z.any()) // File structure from service layer
+          })
+        } 
+      },
+      description: 'Project refreshed successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(refreshProjectRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const { folder } = c.req.valid('query')
+customRoutes.openapi(refreshProjectRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+    const { folder } = c.req.valid('query')
   
-  const project = await projectService.getById(projectId)
+  const project = await projectService.getById(id)
   if (folder) {
     await syncProjectFolder(project, folder)
   } else {
     await syncProject(project)
   }
   
-  const files = await getProjectFiles(projectId)
-  return c.json(successResponse(files ?? []))
-}))
+  const files = await getProjectFiles(id)
+  return c.json(successResponse(files ?? []), 200)
+  } catch (error) {
+    console.error('Refresh project error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to refresh project' 
+      } 
+    }, 500)
+  }
+})
 
 // ============= UPDATE FILE CONTENT =============
 const updateFileContentRoute = createRoute({
   method: 'put',
-  path: '/api/projects/{projectId}/files/{fileId}',
+  path: '/api/projects/{id}/files/{fileId}',
   tags: ['Projects', 'Files'],
   summary: 'Update the content of a specific file',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive(),
+      id: z.coerce.number().int().positive(),
       fileId: z.coerce.number().int().positive()
     }),
     body: {
@@ -439,20 +733,53 @@ const updateFileContentRoute = createRoute({
       required: true
     }
   },
-  responses: createStandardResponses(z.any())
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.any() } },
+      description: 'File content updated successfully'
+    },
+    404: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Project or file not found' 
+    },
+    500: { 
+      content: { 'application/json': { schema: ApiErrorResponseSchema } }, 
+      description: 'Internal Server Error' 
+    }
+  }
 })
 
-customRoutes.openapi(updateFileContentRoute, withErrorHandling(async (c) => {
-  const { projectId, fileId } = c.req.valid('param')
-  const { content } = c.req.valid('json')
+customRoutes.openapi(updateFileContentRoute, async (c) => {
+  try {
+    const { id, fileId } = c.req.valid('param')
+    const { content } = c.req.valid('json')
   
-  const updatedFile = await updateFileContent(projectId, fileId.toString(), content)
-  return c.json(successResponse(updatedFile))
-}))
+  const updatedFile = await updateFileContent(id, fileId.toString(), content)
+  return c.json(successResponse(updatedFile), 200)
+  } catch (error) {
+    console.error('Update file content error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ 
+        success: false as const, 
+        error: { 
+          message: error.message, 
+          code: error.code 
+        } 
+      }, error.status as any)
+    }
+    return c.json({ 
+      success: false as const, 
+      error: { 
+        message: 'Failed to update file content' 
+      } 
+    }, 500)
+  }
+})
 
-// Combine factory routes with custom routes
+// Combine factory routes with custom routes  
+// Note: Custom create and delete routes override the factory ones
 export const projectRoutes = new OpenAPIHono()
-  .route('/', crudRoutes)
+  .route('/', partialCrudRoutes)
   .route('/', customRoutes)
 
 export type ProjectRouteTypes = typeof projectRoutes

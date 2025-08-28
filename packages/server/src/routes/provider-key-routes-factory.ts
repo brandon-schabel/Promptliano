@@ -49,7 +49,7 @@ const providerKeyCrudRoutes = createCrudRoutes<ProviderKey, any, any>({
   },
   
   schemas: {
-    entity: ProviderKeySchema,
+    entity: ProviderKeySchema as unknown as z.ZodType<ProviderKey>,
     create: CreateProviderKeySchema,
     update: UpdateProviderKeySchema
   },
@@ -108,12 +108,12 @@ const providerKeyCustomRoutes = new OpenAPIHono()
 // Test provider connection
 const testProviderRoute = createRoute({
   method: 'post',
-  path: '/api/provider-keys/{id}/test',
+  path: '/api/provider-keys/{providerKeyId}/test',
   tags: ['Providers'],
   summary: 'Test provider key connection',
   request: {
     params: z.object({
-      id: z.coerce.number().int().positive()
+      providerKeyId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -150,7 +150,7 @@ const testProviderRoute = createRoute({
 providerKeyCustomRoutes.openapi(testProviderRoute, async (c) => {
   return withErrorContext(
     async () => {
-      const { id } = c.req.valid('param')
+      const { providerKeyId } = c.req.valid('param')
       const body = await c.req.json().catch(() => ({ testPrompt: 'Say "Hello, World!"' }))
       
       const startTime = Date.now()

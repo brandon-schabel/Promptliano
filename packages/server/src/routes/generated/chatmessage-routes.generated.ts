@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR CHATMESSAGE
- * Generated at: 2025-08-22T23:50:50.384Z
- *
+ * Generated at: 2025-08-27T15:26:33.553Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,8 +11,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { chatmessageServiceV2 } from '@promptliano/services'
-import { ChatMessageSchema, CreateChatMessageSchema, UpdateChatMessageSchema } from '@promptliano/database'
 import {
+  ChatMessageSchema,
+  CreateChatMessageSchema,
+  UpdateChatMessageSchema,
   ChatMessageIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -62,9 +64,9 @@ const chatmessageConfig: EntityConfig = {
  */
 export function registerChatMessageRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, chatmessageConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for ChatMessage`)
-
+  
   return updatedApp
 }
 
@@ -77,7 +79,7 @@ export const chatmessageRoutes = {
   list: `GET /api/chatmessages`,
   get: `GET /api/chatmessages/{id}`,
   update: `PUT /api/chatmessages/{id}`,
-  delete: `DELETE /api/chatmessages/{id}`
+  delete: `DELETE /api/chatmessages/{id}`,
 } as const
 
 export type ChatMessageRouteTypes = typeof chatmessageRoutes

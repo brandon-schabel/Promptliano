@@ -42,13 +42,17 @@ export const MCPInputConfigSchema = z.object({
 })
 
 // Support both old 'servers' format and new 'mcpServers' format
-export const ProjectMCPConfigSchema = z
-  .object({
-    mcpServers: z.record(MCPServerConfigSchema).optional(),
-    inputs: z.array(MCPInputConfigSchema).optional(),
-    extends: z.union([z.string(), z.array(z.string())]).optional()
-  })
-  .refine((data) => data.mcpServers, "Config must have either 'mcpServers' or 'servers' field")
+export const ProjectMCPConfigSchema = z.object({
+  mcpServers: z.record(MCPServerConfigSchema).optional(),
+  inputs: z.array(MCPInputConfigSchema).optional(),
+  extends: z.union([z.string(), z.array(z.string())]).optional()
+}).transform((data) => {
+  // Always ensure mcpServers exists, even if empty
+  return {
+    ...data,
+    mcpServers: data.mcpServers || {}
+  }
+})
 
 export type MCPServerConfig = z.infer<typeof MCPServerConfigSchema>
 export type MCPInputConfig = z.infer<typeof MCPInputConfigSchema>
@@ -94,6 +98,9 @@ export interface MCPProjectConfigService {
   saveProjectConfigToLocation(projectId: number, config: ProjectMCPConfig, locationPath: string): Promise<void>
   getEditorType(locationPath: string): string
   getDefaultConfigForLocation(projectId: number, locationPath: string): Promise<ProjectMCPConfig>
+  getProjectConfig(projectId: number): Promise<{ config: ProjectMCPConfig | null; source?: string }>
+  updateProjectConfig(projectId: number, config: ProjectMCPConfig): Promise<{ config: ProjectMCPConfig; source: string }>
+  deleteProjectConfig(projectId: number): Promise<void>
   cleanup(): Promise<void>
   // EventEmitter-like interface for compatibility
   on(event: string, listener: (...args: any[]) => void): void
@@ -102,13 +109,21 @@ export interface MCPProjectConfigService {
 }
 
 export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencies): MCPProjectConfigService {
+  // Provide fallback cache config with proper defaults
+  const defaultCacheConfig = { ttl: 30000, maxEntries: 50 }
   const {
     logger = createLogger('MCPProjectConfigService'),
     projectService = { getById: getProjectById },
     enableWatching = true,
-    cacheConfig = MCPCacheConfig.config,
+    cacheConfig = defaultCacheConfig,
     configFileNames = CONFIG_FILE_NAMES
   } = deps || {}
+
+  // Ensure cache config has proper defaults
+  const safeCacheConfig = {
+    ttl: cacheConfig?.ttl ?? defaultCacheConfig.ttl,
+    maxEntries: cacheConfig?.maxEntries ?? defaultCacheConfig.maxEntries
+  }
 
   // Internal state
   const configCache = new Map<number, ResolvedMCPConfig>()
@@ -163,7 +178,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'getConfigLocations', id: projectId }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectId) => `locations-${projectId}` }
+    { ttl: safeCacheConfig.ttl, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `locations-${projectId}` }
   )
 
   /**
@@ -259,7 +274,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'getUserConfig' }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'user-config' }
+    { ttl: safeCacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'user-config' }
   )
 
   /**
@@ -279,7 +294,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'getGlobalConfig' }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'global-config' }
+    { ttl: safeCacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'global-config' }
   )
 
   /**
@@ -337,7 +352,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'merge', id: projectId }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectId) => `merged-${projectId}` }
+    { ttl: safeCacheConfig.ttl, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `merged-${projectId}` }
   )
 
   /**
@@ -416,7 +431,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'expand', id: projectId }
       )
     },
-    { ttl: (cacheConfig.ttl || 30000) / 2, maxEntries: cacheConfig.maxEntries, keyGenerator: (projectId) => `expanded-${projectId}` }
+    { ttl: safeCacheConfig.ttl / 2, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `expanded-${projectId}` }
   )
 
   /**
@@ -522,6 +537,79 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
       return 'universal'
     }
     return 'unknown'
+  }
+
+  /**
+   * Get project configuration (wrapper around loadProjectConfig for route compatibility)
+   */
+  const getProjectConfig = async (projectId: number): Promise<{ config: ProjectMCPConfig | null; source?: string }> => {
+    return withErrorContext(
+      async () => {
+        const resolved = await loadProjectConfig(projectId)
+        return {
+          config: resolved?.config || null,
+          source: resolved?.source
+        }
+      },
+      { entity: 'MCPProjectConfig', action: 'getProjectConfig', id: projectId }
+    )
+  }
+
+  /**
+   * Update project configuration (wrapper around saveProjectConfig for route compatibility)
+   */
+  const updateProjectConfig = async (projectId: number, config: ProjectMCPConfig): Promise<{ config: ProjectMCPConfig; source: string }> => {
+    return withErrorContext(
+      async () => {
+        await saveProjectConfig(projectId, config)
+        
+        // Return the updated config with its source path
+        const project = await projectService.getById(projectId)
+        if (!project) {
+          throw ErrorFactory.notFound('Project', projectId)
+        }
+        
+        const source = path.join(project.path, '.mcp.json')
+        return { config, source }
+      },
+      { entity: 'MCPProjectConfig', action: 'updateProjectConfig', id: projectId }
+    )
+  }
+
+  /**
+   * Delete project configuration
+   */
+  const deleteProjectConfig = async (projectId: number): Promise<void> => {
+    return withErrorContext(
+      async () => {
+        const project = await projectService.getById(projectId)
+        if (!project) {
+          throw ErrorFactory.notFound('Project', projectId)
+        }
+        
+        // Delete the primary config file
+        const configPath = path.join(project.path, '.mcp.json')
+        
+        try {
+          await fs.unlink(configPath)
+          logger.info(`Deleted MCP config for project ${projectId}`)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+            // File doesn't exist, that's fine
+            logger.debug(`MCP config file not found for project ${projectId}`)
+          } else {
+            throw error
+          }
+        }
+        
+        // Clear cache
+        configCache.delete(projectId)
+        
+        // Emit change event
+        eventEmitter.emit('configDeleted', projectId)
+      },
+      { entity: 'MCPProjectConfig', action: 'deleteProjectConfig', id: projectId }
+    )
   }
 
   /**
@@ -701,6 +789,9 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
     saveProjectConfigToLocation,
     getEditorType,
     getDefaultConfigForLocation,
+    getProjectConfig,
+    updateProjectConfig,
+    deleteProjectConfig,
     cleanup,
     // EventEmitter compatibility
     on: eventEmitter.on.bind(eventEmitter),

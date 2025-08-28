@@ -13,7 +13,7 @@ import { useGetQueuesWithStats } from '@/hooks/generated'
 import { useEnqueueTask } from '@/hooks/generated'
 import { toast } from 'sonner'
 import { Inbox, Clock, CheckCircle2, AlertCircle, Pause, Play, Loader2, ListPlus } from 'lucide-react'
-import type { QueueWithStats, TicketTask } from '@promptliano/schemas'
+import type { QueueWithStats, TicketTask } from '@/hooks/generated/types'
 
 interface AddTaskToQueueDialogProps {
   isOpen: boolean

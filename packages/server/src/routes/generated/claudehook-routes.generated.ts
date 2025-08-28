@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR CLAUDEHOOK
- * Generated at: 2025-08-22T23:50:50.384Z
- *
+ * Generated at: 2025-08-27T15:26:33.553Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,8 +11,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { claudehookServiceV2 } from '@promptliano/services'
-import { ClaudeHookSchema, CreateClaudeHookSchema, UpdateClaudeHookSchema } from '@promptliano/database'
 import {
+  ClaudeHookSchema,
+  CreateClaudeHookSchema,
+  UpdateClaudeHookSchema,
   ClaudeHookIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -62,9 +64,9 @@ const claudehookConfig: EntityConfig = {
  */
 export function registerClaudeHookRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, claudehookConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for ClaudeHook`)
-
+  
   return updatedApp
 }
 
@@ -77,7 +79,7 @@ export const claudehookRoutes = {
   list: `GET /api/claudehooks`,
   get: `GET /api/claudehooks/{id}`,
   update: `PUT /api/claudehooks/{id}`,
-  delete: `DELETE /api/claudehooks/{id}`
+  delete: `DELETE /api/claudehooks/{id}`,
 } as const
 
 export type ClaudeHookRouteTypes = typeof claudehookRoutes

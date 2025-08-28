@@ -3,7 +3,7 @@
  * Manages active tab state for projects using activeTabRepository
  */
 
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import {
   activeTabRepository,
   type ActiveTab,
@@ -135,7 +135,7 @@ export async function setActiveTab(
         const updated = await activeTabRepository.update(existingActiveTab.id, updateData)
         return mapToLegacyFormat(updated)
       } else {
-        // Create new entry
+        
         const createData = mapFromLegacyFormat(activeTabData)
         const created = await activeTabRepository.create(createData)
         return mapToLegacyFormat(created)
@@ -274,7 +274,7 @@ export function createActiveTabService(deps = {}) {
       }
       return getActiveTab(projectId, clientId)
     },
-    
+
     setActiveTab: (dataOrProjectId: any, tabId?: number, clientId?: string, tabMetadata?: any) => {
       if (typeof dataOrProjectId === 'object' && dataOrProjectId.projectId) {
         // Handle single data object parameter
@@ -285,7 +285,7 @@ export function createActiveTabService(deps = {}) {
         return setActiveTab(dataOrProjectId, tabId!, clientId, tabMetadata)
       }
     },
-    
+
     clearActiveTab: (projectId?: number, clientId?: string) => {
       if (projectId === undefined) {
         // Handle no parameters case - clear all active tabs or return false
@@ -293,7 +293,7 @@ export function createActiveTabService(deps = {}) {
       }
       return clearActiveTab(projectId, clientId)
     },
-    
+
     getOrCreateDefaultActiveTab,
     updateActiveTab
   }

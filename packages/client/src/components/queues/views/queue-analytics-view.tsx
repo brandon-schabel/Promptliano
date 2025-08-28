@@ -32,7 +32,7 @@ interface QueueAnalyticsViewProps {
 }
 
 export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalyticsViewProps) {
-  const { data: queues, isLoading } = useQueues({ projectId })
+  const { data: queues, isLoading } = (useQueues as any)({ projectId })
   const { data: flowData } = useGetFlowData(projectId)
 
   // Extract queue items from flow data

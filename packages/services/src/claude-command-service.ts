@@ -13,7 +13,7 @@ import {
   type CommandGenerationResponse,
   CommandGenerationResponseSchema
 } from '@promptliano/schemas'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { ZodError } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
 import { getCompactProjectSummary } from './utils/project-summary-service'

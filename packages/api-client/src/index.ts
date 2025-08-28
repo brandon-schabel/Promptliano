@@ -18,6 +18,9 @@ export { TypeSafeApiClient, createTypeSafeClient } from './generated/type-safe-c
 
 // Export all generated types for full type coverage
 export * from './generated/type-safe-client'
+
+// Import validation schemas for secure API calls
+import { CreateQueueBodySchema, type CreateQueueBody } from '@promptliano/schemas'
 export * from './generated/api-types'
 
 // Export the generated index for convenience
@@ -46,8 +49,10 @@ import type { ApiConfig } from './base-client'
  */
 export class PromptlianoClient {
   private typeSafe: TypeSafeApiClient
+  private config: ApiConfig
 
   constructor(config: ApiConfig) {
+    this.config = config
     this.typeSafe = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
 
@@ -327,7 +332,40 @@ export class PromptlianoClient {
   public readonly queues = {
     listQueues: (projectId: number) => this.typeSafe.listProjectsByProjectIdFlowItems(projectId), // Placeholder
     getQueue: (queueId: number) => this.typeSafe.listProjectsByProjectIdFlow(queueId), // Placeholder
-    createQueue: (projectId: number, data: any) => this.typeSafe.createFlowMove(data), // Placeholder
+    createQueue: async (projectId: number, data: CreateQueueBody) => {
+      // Validate input data to prevent injection attacks
+      const validatedData = CreateQueueBodySchema.parse(data)
+      
+      // Manually construct the request since TypeSafe client doesn't have this method yet
+      const response = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/queues`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        },
+        body: JSON.stringify(validatedData)
+      })
+      
+      if (!response.ok) {
+        // Safely handle error without exposing internal details
+        const errorText = await response.text()
+        let errorMessage = `Failed to create queue (${response.status})`
+        
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.message && typeof errorJson.message === 'string') {
+            // Only use safe error messages, not internal server details
+            errorMessage = errorJson.message.substring(0, 200) // Limit message length
+          }
+        } catch {
+          // If JSON parsing fails, use generic error
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      return response.json()
+    },
     updateQueue: (queueId: number, data: any) => this.typeSafe.createFlowMove(data), // Placeholder
     deleteQueue: (queueId: number) => this.typeSafe.createFlowMove({ queueId }), // Placeholder
     getQueueStats: (queueId: number) => this.typeSafe.listProjectsByProjectIdFlow(queueId), // Placeholder

@@ -1,9 +1,11 @@
 import { eq, providerKeys } from '@promptliano/database'
+import { validateJsonField } from '@promptliano/database/src/schema-transformers'
 import {
   type ProviderKey,
-  type InsertProviderKey,
+  type CreateProviderKey,
+  type UpdateProviderKey,
   type APIProviders,
-  selectProviderKeySchema as ProviderKeySchema
+  ProviderKeySchema
 } from '@promptliano/database'
 import {
   CreateProviderKeyInputSchema,
@@ -26,8 +28,37 @@ import { encryptKey, decryptKey, isEncrypted, type EncryptedData } from '@prompt
 import { getProviderTimeout, createProviderTimeout } from './utils/provider-timeouts'
 
 // Type aliases for clarity
-export type CreateProviderKeyInput = InsertProviderKey
-export type UpdateProviderKeyInput = Partial<InsertProviderKey>
+export type CreateProviderKeyInput = CreateProviderKey
+export type UpdateProviderKeyInput = UpdateProviderKey
+
+/**
+ * Transform raw database provider key to properly typed provider key
+ * This handles the conversion from repository BaseEntity to ProviderKey using database validators
+ */
+function transformProviderKey(rawKey: any): ProviderKey {
+  const result = ProviderKeySchema.safeParse({
+    ...rawKey,
+    customHeaders: validateJsonField.record(rawKey.customHeaders)
+  })
+  if (result.success) {
+    return result.data as ProviderKey
+  }
+  // Fallback with manual transformation using database validators
+  return {
+    ...rawKey,
+    customHeaders: validateJsonField.record(rawKey.customHeaders) || {},
+    isDefault: Boolean(rawKey.isDefault),
+    isActive: Boolean(rawKey.isActive),
+    encrypted: Boolean(rawKey.encrypted)
+  } as ProviderKey
+}
+
+/**
+ * Transform array of raw database provider keys
+ */
+function transformProviderKeys(rawKeys: any[]): ProviderKey[] {
+  return rawKeys.map(transformProviderKey)
+}
 
 /**
  * Returns an object of functions to create, list, update, and delete provider keys,
@@ -62,7 +93,8 @@ export function createProviderKeyService() {
           const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, data.provider))
 
           // Update all existing default keys for this provider to not be default
-          const defaultKeys = existingDefaultKeys.filter((key) => key.isDefault)
+          const transformedKeys = transformProviderKeys(existingDefaultKeys)
+          const defaultKeys = transformedKeys.filter((key) => key.isDefault)
           if (defaultKeys.length > 0) {
             await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
           }
@@ -93,11 +125,12 @@ export function createProviderKeyService() {
 
         // Create the key using repository (ID, createdAt, updatedAt handled automatically)
         const repository = await getRepository()
-        const createdKey = (await repository.create(newKeyData as any)) as ProviderKey
+        const createdKey = await repository.create(newKeyData as any)
+        const transformedKey = transformProviderKey(createdKey)
 
         // SECURITY: Return the key with masked value, not the actual decrypted key
         // This prevents accidental exposure of API keys in logs or responses
-        return { ...createdKey, key: maskApiKey(data.key || '') }
+        return { ...transformedKey, key: maskApiKey(data.key || '') }
       },
       { entity: 'ProviderKey', action: 'create' }
     )
@@ -109,8 +142,9 @@ export function createProviderKeyService() {
         // Get all keys from repository (already sorted by createdAt desc)
         const repository = await getRepository()
         const allKeys = await repository.getAll('desc')
+        const transformedKeys = transformProviderKeys(allKeys)
 
-        const keyList = (allKeys as ProviderKey[]).map((key) => {
+        const keyList = transformedKeys.map((key) => {
           // Use consistent masking function for all keys
           return { ...key, key: maskApiKey(key.encrypted ? '********' : key.key || '') }
         })
@@ -137,9 +171,10 @@ export function createProviderKeyService() {
         // Get all keys from repository (already sorted by createdAt desc)
         const repository = await getRepository()
         const allKeys = await repository.getAll('desc')
+        const transformedKeys = transformProviderKeys(allKeys)
 
         const keyList = await Promise.all(
-          (allKeys as ProviderKey[]).map(async (key) => {
+          transformedKeys.map(async (key) => {
             // Decrypt key if encrypted
             if (key.encrypted && key.iv && key.tag && key.salt) {
               try {
@@ -204,7 +239,7 @@ export function createProviderKeyService() {
           return null
         }
 
-        const typedKey = foundKeyData as ProviderKey
+        const typedKey = transformProviderKey(foundKeyData)
 
         // Decrypt key if encrypted
         if (foundKeyData.encrypted && foundKeyData.iv && foundKeyData.tag && foundKeyData.salt) {
@@ -233,8 +268,9 @@ export function createProviderKeyService() {
       async () => {
         // First, get the existing key to verify it exists
         const repository = await getRepository()
-        const existingKey = await repository.getById(id)
-        assertExists(existingKey, 'Provider Key', id)
+        const rawExistingKey = await repository.getById(id)
+        assertExists(rawExistingKey, 'Provider Key', id)
+        const existingKey = transformProviderKey(rawExistingKey)
 
         // If this key is being set to default, unset other defaults for the same provider
         const targetProvider = data.provider ?? existingKey.provider
@@ -242,7 +278,8 @@ export function createProviderKeyService() {
           const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, targetProvider))
 
           // Update all existing default keys for this provider to not be default (except current key)
-          const defaultKeys = existingDefaultKeys.filter((key) => key.isDefault && key.id !== id)
+          const transformedUpdateKeys = transformProviderKeys(existingDefaultKeys)
+          const defaultKeys = transformedUpdateKeys.filter((key) => key.isDefault && key.id !== id)
           if (defaultKeys.length > 0) {
             await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
           }
@@ -276,7 +313,8 @@ export function createProviderKeyService() {
         }
 
         // Update the key using repository
-        const updatedKey = (await repository.update(id, updateData)) as ProviderKey
+        const rawUpdatedKey = await repository.update(id, updateData)
+        const updatedKey = transformProviderKey(rawUpdatedKey)
 
         // Return the key with decrypted value if we have a new key or if it's encrypted
         if (data.key) {

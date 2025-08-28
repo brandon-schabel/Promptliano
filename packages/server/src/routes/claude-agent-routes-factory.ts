@@ -116,7 +116,7 @@ const suggestAgentsRoute = createRoute({
 
 customRoutes
   .openapi(listProjectAgentsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     
     const project = await projectService.getById(projectId)
     if (!project) {
@@ -128,7 +128,7 @@ customRoutes
     return c.json(successResponse(agents))
   })
   .openapi(suggestAgentsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { userContext, limit } = c.req.valid('json')
     
     const project = await projectService.getById(projectId)

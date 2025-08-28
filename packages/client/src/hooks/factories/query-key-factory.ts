@@ -263,7 +263,7 @@ export class QueryKeyBuilder<T extends string> {
   }
 
   build(): readonly unknown[] {
-    return this.segments as const
+    return Object.freeze([...this.segments])
   }
 
   toString(): string {

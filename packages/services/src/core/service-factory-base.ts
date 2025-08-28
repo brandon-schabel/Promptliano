@@ -14,7 +14,7 @@
  * - Dependency injection support
  */
 
-import { ErrorFactory, withErrorContext, createErrorHandler } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext, createErrorHandler } from '@promptliano/shared/src/error/error-factory'
 import { createServiceLogger, type ServiceLogger } from './base-service'
 
 export interface BaseServiceDependencies {
@@ -78,11 +78,15 @@ export function createGitErrorHandler(serviceName: string) {
       }
       
       if (errorMessage.includes('git: command not found') || errorMessage.includes('git not found')) {
-        throw ErrorFactory.serviceUnavailable('Git', undefined)
+        throw ErrorFactory.serviceUnavailable('Git')
       }
       
       if (errorMessage.includes('permission denied') || errorMessage.includes('access denied')) {
         throw ErrorFactory.forbidden('git repository', operation)
+      }
+      
+      if (errorMessage.includes('missing path')) {
+        throw ErrorFactory.invalidState('Project', 'missing path', 'git operations')
       }
       
       // Generic git operation failure

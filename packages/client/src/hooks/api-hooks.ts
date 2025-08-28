@@ -105,7 +105,7 @@ export function useSyncProjectWithProgress() {
           eventSource.onmessage = (event) => {
             try {
               const progressEvent = JSON.parse(event.data)
-              onProgress?.(progressEvent)
+              onProgress?.(event)
 
               // Check if sync is complete
               if (progressEvent.type === 'complete') {
@@ -310,9 +310,21 @@ export function useGetProjectPrompts(projectId: number) {
 
   return useQuery({
     queryKey: PROMPT_ENHANCED_KEYS.projectPrompts(projectId),
-    queryFn: () => {
+    queryFn: async (): Promise<import('@promptliano/schemas').Prompt[]> => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.getProjectPrompts(projectId).then((r) => r?.data || r)
+      const result = await client.prompts.getProjectPrompts(projectId)
+      const data = result?.data || result
+      // Ensure data matches expected Prompt schema format
+      return Array.isArray(data) ? data.map((item: any) => ({
+        id: item.id,
+        projectId: item.projectId || projectId,
+        title: item.title || item.name || '',
+        content: item.content || '',
+        description: item.description || null,
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        createdAt: item.createdAt || item.created || Date.now(),
+        updatedAt: item.updatedAt || item.updated || Date.now()
+      })) : []
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000
@@ -387,10 +399,10 @@ export function useSuggestPrompts() {
       projectId: number
       userInput: string
       limit?: number
-    }) => {
+    }): Promise<any[]> => {
       if (!client) throw new Error('API client not initialized')
       const response = await client.prompts.suggestPrompts(projectId, { userInput, limit })
-      return response?.data?.prompts || response
+      return response?.data?.prompts || response || []
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to suggest prompts')

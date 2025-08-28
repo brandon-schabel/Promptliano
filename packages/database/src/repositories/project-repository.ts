@@ -10,7 +10,7 @@ import { db } from '../db'
 import { projects, type Project, type InsertProject, selectProjectSchema } from '../schema'
 
 // Create base project repository with full CRUD operations
-const baseProjectRepository = createBaseRepository(projects, selectProjectSchema, 'Project')
+const baseProjectRepository = createBaseRepository(projects, undefined, selectProjectSchema, 'Project')
 
 // Extend with domain-specific methods
 export const projectRepository = extendRepository(baseProjectRepository, {
@@ -28,7 +28,7 @@ export const projectRepository = extendRepository(baseProjectRepository, {
    * Get project with all related data
    */
   async getWithAllRelations(id: number) {
-    return db.query.projects.findFirst({
+    return db.query.projects?.findFirst({
       where: eq(projects.id, id),
       with: {
         tickets: {

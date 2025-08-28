@@ -1,7 +1,7 @@
 import type { File as ProjectFile } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 import { rawDb } from '@promptliano/database'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import type { Database, Statement } from 'bun:sqlite'
 import { createFileService, createFileFilter, createProgressTracker, type FileServiceConfig } from './file-service-factory'
 

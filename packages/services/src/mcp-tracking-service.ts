@@ -15,7 +15,7 @@ import type {
   MCPExecutionTimeline,
   MCPExecutionStatus
 } from '@promptliano/schemas'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createServiceLogger } from './core/base-service'
 import type { ServiceLogger } from './core/base-service'
 

@@ -80,9 +80,9 @@ export const claudeAgentRepository = {
   }
 }
 
-const baseCommandRepository = createBaseRepository(claudeCommands, selectClaudeCommandSchema, 'ClaudeCommand')
+const baseCommandRepository = createBaseRepository(claudeCommands, undefined, selectClaudeCommandSchema, 'ClaudeCommand')
 
-const baseHookRepository = createBaseRepository(claudeHooks, selectClaudeHookSchema, 'ClaudeHook')
+const baseHookRepository = createBaseRepository(claudeHooks, undefined, selectClaudeHookSchema, 'ClaudeHook')
 
 // Claude Commands Repository
 export const claudeCommandRepository = extendRepository(baseCommandRepository, {

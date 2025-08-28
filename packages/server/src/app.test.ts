@@ -53,8 +53,8 @@ describe('App', () => {
       expect(res.headers.get('content-type')).toContain('text/html')
     })
 
-    it.skip('should serve OpenAPI spec', async () => {
-      // TODO: Fix conflicting parameter names in auto-generated routes
+    it('should serve OpenAPI spec', async () => {
+      // Fixed: Conflicting parameter names resolved with contextual parameter naming
       const res = await app.request('/doc')
       expect(res.status).toBe(200)
       const data = await res.json()

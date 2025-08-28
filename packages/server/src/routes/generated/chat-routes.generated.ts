@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR CHAT
- * Generated at: 2025-08-22T23:50:50.383Z
- *
+ * Generated at: 2025-08-27T15:26:33.553Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -10,9 +10,11 @@
 
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
-import { chatService } from '@promptliano/services'
-import { ChatSchema, CreateChatSchema, UpdateChatSchema } from '@promptliano/database'
+import { chatServiceV2 } from '@promptliano/services'
 import {
+  ChatSchema,
+  CreateChatSchema,
+  UpdateChatSchema,
   ChatIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -44,7 +46,7 @@ const chatConfig: EntityConfig = {
     update: UpdateChatSchema,
     id: ChatIdParamsSchema.shape.id
   },
-  service: chatService,
+  service: chatServiceV2,
   options: {
     includeSoftDelete: true,
     enableBatch: false,
@@ -60,7 +62,7 @@ const chatConfig: EntityConfig = {
       request: {
         body: ChatMessageCreateSchema
       },
-      response: ChatMessageResponseSchema
+      response: ChatMessageResponseSchema,
     }
   ]
 }
@@ -75,9 +77,9 @@ const chatConfig: EntityConfig = {
  */
 export function registerChatRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, chatConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Chat`)
-
+  
   return updatedApp
 }
 

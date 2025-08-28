@@ -183,7 +183,7 @@ export type ListModelsOptions = {
  */
 
 import { withErrorContext, createServiceLogger } from '../core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 export interface ModelFetcherDeps {
   logger?: ReturnType<typeof createServiceLogger>

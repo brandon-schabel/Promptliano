@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE TYPE DEFINITIONS
- * Generated at: 2025-08-22T23:50:50.385Z
- *
+ * Generated at: 2025-08-27T15:26:33.554Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
@@ -25,6 +25,7 @@ export interface ProjectRoutes {
   getSelectedFiles: string
   getActiveTabs: string
   sync: string
+  getAllFiles: string
   getSummary: string
 }
 

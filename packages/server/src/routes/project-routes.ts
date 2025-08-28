@@ -637,7 +637,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectByIdRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     try {
       // Service factory includes automatic existence check and error handling
       const project = await projectService.getById(projectId)
@@ -649,7 +649,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(updateProjectRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     try {
       // Service factory includes automatic existence check and validation
@@ -662,7 +662,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(deleteProjectRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     try {
       // Use cascade delete for complete cleanup
       const deleted = await projectService.deleteCascade(projectId)
@@ -677,7 +677,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(syncProjectRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     try {
       // Service factory includes automatic existence check
       const project = await projectService.getById(projectId)
@@ -690,7 +690,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(syncProjectStreamRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     try {
       // Service factory includes automatic existence check
       const project = await projectService.getById(projectId)
@@ -745,7 +745,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectFilesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { limit, offset } = c.req.valid('query')
     try {
       // Service factory includes automatic existence check
@@ -759,7 +759,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectFilesMetadataRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { limit, offset } = c.req.valid('query')
     try {
       // Service factory includes automatic existence check
@@ -775,7 +775,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(bulkUpdateFilesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { updates } = c.req.valid('json')
 
     // Update file content directly
@@ -806,7 +806,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(refreshProjectRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { folder } = c.req.valid('query')
     try {
       // Service factory includes automatic existence check
@@ -825,7 +825,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectSummaryRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const summary = await getFullProjectSummary(projectId)
@@ -849,7 +849,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectSummaryAdvancedRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const options = c.req.valid('json')
 
     try {
@@ -873,7 +873,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(getProjectSummaryMetricsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       // Get summary with metrics enabled
@@ -916,7 +916,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(invalidateProjectSummaryCacheRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       // Service factory includes automatic existence check with proper error handling
@@ -947,7 +947,7 @@ export const projectRoutes = new OpenAPIHono()
   //   return c.json({ success: true, data: responseData }, 200)
   // })
   .openapi(suggestFilesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { prompt, limit = 10 } = c.req.valid('json')
 
     try {
@@ -1001,7 +1001,7 @@ export const projectRoutes = new OpenAPIHono()
       )
     }),
     async (c) => {
-      const { projectId } = c.req.valid('param')
+      const { id: projectId } = c.req.valid('param')
       const { fileIds, force = false } = c.req.valid('json')
 
       const project = await projectService.getById(projectId)
@@ -1050,7 +1050,7 @@ export const projectRoutes = new OpenAPIHono()
       )
     }),
     async (c) => {
-      const { projectId } = c.req.valid('param')
+      const { id: projectId } = c.req.valid('param')
       const { fileIds } = c.req.valid('json')
 
       const project = await projectService.getById(projectId)
@@ -1070,7 +1070,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   )
   .openapi(getProjectStatisticsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     const statistics = await getProjectStatistics(projectId)
 
@@ -1083,7 +1083,7 @@ export const projectRoutes = new OpenAPIHono()
     )
   })
   .openapi(startBatchSummarizationRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { strategy, options } = c.req.valid('json')
 
     const project = await projectService.getById(projectId)
@@ -1194,7 +1194,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSummarizationStatsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     const project = await projectService.getById(projectId)
     if (!project) {
@@ -1222,7 +1222,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   })
   .openapi(previewFileGroupsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { strategy, maxGroupSize, includeStaleFiles } = c.req.valid('json')
 
     const project = await projectService.getById(projectId)

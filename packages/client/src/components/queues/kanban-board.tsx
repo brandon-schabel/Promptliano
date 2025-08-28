@@ -265,16 +265,18 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     if (!openTicketData) return null
 
     // Transform database JSON types to properly typed arrays
+    // Use type assertion since openTicketData should be a full ticket object
+    const ticket = openTicketData as import('@/hooks/generated/types').Ticket
     const transformedTicket = {
-      ...openTicketData,
-      suggestedFileIds: Array.isArray(openTicketData.suggestedFileIds)
-        ? openTicketData.suggestedFileIds.filter((id: any): id is string => typeof id === 'string')
+      ...ticket,
+      suggestedFileIds: Array.isArray(ticket.suggestedFileIds)
+        ? ticket.suggestedFileIds.filter((id: any): id is string => typeof id === 'string')
         : [],
-      suggestedAgentIds: Array.isArray(openTicketData.suggestedAgentIds)
-        ? openTicketData.suggestedAgentIds.filter((id: any): id is string => typeof id === 'string')
+      suggestedAgentIds: Array.isArray(ticket.suggestedAgentIds)
+        ? ticket.suggestedAgentIds.filter((id: any): id is string => typeof id === 'string')
         : [],
-      suggestedPromptIds: Array.isArray(openTicketData.suggestedPromptIds)
-        ? openTicketData.suggestedPromptIds.filter((id: any): id is number => typeof id === 'number')
+      suggestedPromptIds: Array.isArray(ticket.suggestedPromptIds)
+        ? ticket.suggestedPromptIds.filter((id: any): id is number => typeof id === 'number')
         : []
     }
 
@@ -329,7 +331,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     let toQueueId: string | undefined
 
     // If dropped on a column directly
-    if (overId === 'unqueued' || queuesWithStats?.some((q: QueueWithStats) => q.id.toString() === overId)) {
+    if (overId === 'unqueued' || queuesWithStats?.some((q: QueueWithStats) => q?.queue?.id?.toString() === overId)) {
       toQueueId = overId
     } else {
       // If dropped on an item, find which queue contains that item
@@ -463,7 +465,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     async (queue: QueueWithStats) => {
       try {
         // Note: Queue pause/resume functionality needs to be implemented
-        console.log('Pausing queue:', queue.id)
+        console.log('Pausing queue:', queue.queue.id)
         toast.success('Queue paused')
         refetchQueues()
       } catch (error) {
@@ -477,7 +479,7 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
     async (queue: QueueWithStats) => {
       try {
         // Note: Queue pause/resume functionality needs to be implemented
-        console.log('Resuming queue:', queue.id)
+        console.log('Resuming queue:', queue.queue.id)
         toast.success('Queue resumed')
         refetchQueues()
       } catch (error) {
@@ -555,28 +557,33 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
 
             {/* Queue columns */}
             {queuesWithStats?.map((queueWithStats: QueueWithStats) => {
-              console.log({
-                queueWithStats,
-                itemsByQueue
-              })
+              // Add defensive check for queue data
+              if (!queueWithStats?.queue?.id) {
+                console.warn('Queue missing required properties:', queueWithStats)
+                return null
+              }
+              
+              const queueId = queueWithStats.queue.id.toString()
+              
               return (
                 <KanbanColumn
-                  key={queueWithStats.id}
+                  key={queueId}
                   queue={{
                     ...queueWithStats,
-                    stats: {
-                      total: 0,
-                      pending: 0,
-                      processing: 0,
-                      completed: 0,
-                      failed: 0,
-                      currentAgents: [],
+                    stats: queueWithStats.stats || {
+                      queueId: queueWithStats.queue.id,
+                      queueName: queueWithStats.queue.name || 'Unknown Queue',
+                      queuedItems: 0,
+                      inProgressItems: 0,
                       completedItems: 0,
+                      failedItems: 0,
+                      cancelledItems: 0,
+                      currentAgents: [],
                       totalItems: 0,
-                      averageProcessingTime: undefined
+                      averageProcessingTime: null
                     }
                   }}
-                  items={itemsByQueue[queueWithStats.id.toString()] || []}
+                  items={itemsByQueue[queueId] || []}
                   onPauseQueue={() => handlePauseQueue(queueWithStats)}
                   onResumeQueue={() => handleResumeQueue(queueWithStats)}
                   onItemCompleted={async () => {

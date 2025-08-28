@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROVIDERKEY
- * Generated at: 2025-08-22T23:50:50.384Z
- *
+ * Generated at: 2025-08-27T15:26:33.554Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -11,8 +11,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
 import { providerkeyServiceV2 } from '@promptliano/services'
-import { ProviderKeySchema, CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/database'
 import {
+  ProviderKeySchema,
+  CreateProviderKeySchema,
+  UpdateProviderKeySchema,
   ProviderKeyIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -62,9 +64,9 @@ const providerkeyConfig: EntityConfig = {
  */
 export function registerProviderKeyRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, providerkeyConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for ProviderKey`)
-
+  
   return updatedApp
 }
 
@@ -77,7 +79,7 @@ export const providerkeyRoutes = {
   list: `GET /api/providerkeies`,
   get: `GET /api/providerkeies/{id}`,
   update: `PUT /api/providerkeies/{id}`,
-  delete: `DELETE /api/providerkeies/{id}`
+  delete: `DELETE /api/providerkeies/{id}`,
 } as const
 
 export type ProviderKeyRouteTypes = typeof providerkeyRoutes

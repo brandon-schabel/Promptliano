@@ -10,7 +10,7 @@ import { format, addMinutes } from 'date-fns'
 import { Clock, AlertCircle, CheckCircle2, XCircle, Play, Pause, ListTodo, FileText, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
-import type { QueueItem, TaskQueue } from '@/hooks/generated/types'
+import type { QueueItem, TaskQueue, TicketWithTasks } from '@/hooks/generated/types'
 
 interface QueueTimelineViewProps {
   projectId: number
@@ -27,9 +27,9 @@ interface TimelineItem {
 }
 
 export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineViewProps) {
-  const { data: queues } = useQueues({ projectId })
+  const { data: queues } = (useQueues as any)({ projectId })
   const { data: flowData, isLoading } = useGetFlowData(projectId)
-  const { data: ticketsWithTasks } = useTickets({ projectId })
+  const { data: ticketsWithTasks } = (useTickets as any)({ projectId })
 
   // Find selected queue
   const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
@@ -153,8 +153,8 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
     if ((item.itemType !== 'ticket' && item.itemType !== 'task') || !ticketsWithTasks) return null
 
     if (item.itemType === 'ticket') {
-      const ticket = ticketsWithTasks.find((t) => t.id === item.itemId)
-      return ticket ? { ticket, task: null } : null
+      const ticketWithTasks = ticketsWithTasks.find((t: TicketWithTasks) => t.ticket.id === item.itemId)
+      return ticketWithTasks ? { ticket: ticketWithTasks.ticket, task: null } : null
     }
 
     if (item.itemType === 'task') {

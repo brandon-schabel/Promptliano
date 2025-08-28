@@ -103,3 +103,17 @@ async function createPerformanceIndexes() {
 export function generateId(): number {
   return Date.now() + Math.floor(Math.random() * 1000)
 }
+
+// Run migrations when executed directly
+if (import.meta.main) {
+  console.log('📋 Creating database tables...')
+  createInitialSchema()
+    .then(() => {
+      console.log('✅ Database migration completed successfully')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('❌ Database migration failed:', error)
+      process.exit(1)
+    })
+}

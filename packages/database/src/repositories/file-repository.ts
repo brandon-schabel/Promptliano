@@ -23,6 +23,7 @@ import {
 // Create base selected files repository
 const baseSelectedFileRepository = createBaseRepository(
   selectedFiles,
+  undefined, // db instance
   undefined, // Will use default validation
   'SelectedFile'
 )

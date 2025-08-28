@@ -13,8 +13,8 @@
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
 import { nullToUndefined } from './utils/file-utils'
-import { ErrorFactory } from '@promptliano/shared'
-import { promptRepository } from '@promptliano/database'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
+import { promptRepository, projectRepository } from '@promptliano/database'
 import { type Prompt, type CreatePrompt, type UpdatePrompt, PromptSchema } from '@promptliano/database'
 
 type CreatePromptBody = CreatePrompt
@@ -52,6 +52,27 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
 
   // Extended domain operations
   const extensions = {
+    /**
+     * Override base create to add project validation
+     */
+    async create(data: CreatePromptBody): Promise<Prompt> {
+      return withErrorContext(
+        async () => {
+          // Validate project exists if projectId provided
+          if ((data as any).projectId) {
+            const projectExists = await projectRepository.exists((data as any).projectId)
+            if (!projectExists) {
+              throw ErrorFactory.notFound('Project', (data as any).projectId.toString())
+            }
+          }
+
+          // Create the prompt using repository
+          return (await repository.create(data as any)) as Prompt
+        },
+        { entity: 'Prompt', action: 'create' }
+      )
+    },
+
     /**
      * List prompts by project with proper associations
      */

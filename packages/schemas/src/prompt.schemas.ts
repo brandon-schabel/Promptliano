@@ -54,7 +54,7 @@ export const UpdatePromptBodySchema = CreatePromptBodySchema.pick({
 // --- Request Parameter Schemas ---
 export const PromptIdParamsSchema = z
   .object({
-    promptId: entityIdCoercibleSchema.openapi({ param: { name: 'promptId', in: 'path' } })
+    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
   })
   .openapi('PromptIdParams')
 
@@ -79,10 +79,16 @@ export const PromptListResponseSchema = z
   })
   .openapi('PromptListResponse')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreatePromptSchema = CreatePromptBodySchema
+export const UpdatePromptSchema = UpdatePromptBodySchema
+
 // Export types if needed elsewhere
 export type CreatePromptBody = z.infer<typeof CreatePromptBodySchema>
 export type UpdatePromptBody = z.infer<typeof UpdatePromptBodySchema>
-export type PromptIdParams = z.infer<typeof PromptIdParamsSchema>
+export type CreatePrompt = z.infer<typeof CreatePromptSchema>
+export type UpdatePrompt = z.infer<typeof UpdatePromptSchema>
+export type PromptIdParams = z.infer<typeof PromptIdParamsSchema> // Now: { id: number }
 export type ProjectAndPromptIdParams = z.infer<typeof ProjectAndPromptIdParamsSchema>
 // Note: ProjectIdParams is exported from project.schemas.ts to avoid conflicts
 

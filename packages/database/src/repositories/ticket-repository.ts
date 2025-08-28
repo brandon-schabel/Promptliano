@@ -30,7 +30,6 @@ function convertTicketFromDb(ticket: any): Ticket {
     suggestedPromptIds: ticket.suggestedPromptIds || []
   }
 }
-
 function convertTaskFromDb(task: any): TicketTask {
   return {
     ...task,
@@ -95,6 +94,7 @@ type TaskUpdateData = Partial<{
 // Create base ticket repository with full CRUD operations
 const baseTicketRepository = createBaseRepository(
   tickets,
+  undefined, // db instance
   selectTicketSchema, // Use proper Zod schema for validation
   'Ticket'
 )
@@ -102,6 +102,7 @@ const baseTicketRepository = createBaseRepository(
 // Create base task repository
 const baseTaskRepository = createBaseRepository(
   ticketTasks,
+  undefined, // db instance
   selectTicketTaskSchema, // Use proper Zod schema for validation
   'TicketTask'
 )
@@ -187,14 +188,15 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Get ticket with all tasks
    */
   async getWithTasks(id: number): Promise<TicketWithTasks | null> {
-    return db.query.tickets.findFirst({
+    const result = await db.query.tickets?.findFirst({
       where: eq(tickets.id, id),
       with: {
         tasks: {
           orderBy: asc(ticketTasks.orderIndex)
         }
       }
-    }) as Promise<TicketWithTasks | null>
+    })
+    return result as TicketWithTasks | null
   },
 
   // =============================================================================
@@ -487,11 +489,11 @@ export const taskRepository = extendRepository(baseTaskRepository, {
    */
   async areDependenciesCompleted(taskId: number): Promise<boolean> {
     const task = await baseTaskRepository.getById(taskId)
-    if (!task || !task.dependencies || task.dependencies.length === 0) {
+    if (!task || !task.dependencies || (task.dependencies as number[]).length === 0) {
       return true
     }
 
-    const dependencies = await baseTaskRepository.findWhere(inArray(ticketTasks.id, task.dependencies))
+    const dependencies = await baseTaskRepository.findWhere(inArray(ticketTasks.id, task.dependencies as number[]))
 
     return dependencies.every((dep: any) => dep.done || dep.status === 'completed')
   },

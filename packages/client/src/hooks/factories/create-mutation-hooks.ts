@@ -97,6 +97,19 @@ export interface BatchResult<T> {
 }
 
 /**
+ * Batch operation type
+ */
+export type BatchOperation<T> = {
+  operation: 'create' | 'update' | 'delete'
+  data: T | T[] | { id: number | string; data: Partial<T> }
+}
+
+/**
+ * Import/Export configuration (alias for backward compatibility)
+ */
+export type ImportExportConfig = ImportExportOptions
+
+/**
  * Import/Export options
  */
 export interface ImportExportOptions {
@@ -317,7 +330,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     const client = useApiClient()
     const queryClient = useQueryClient()
     const { progress, updateProgress, resetProgress } = useProgressState()
-    const abortControllerRef = useRef<AbortController>()
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     const mutation = useMutation({
       mutationFn: async (items: TEntity[]) => {
@@ -355,7 +368,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
               return responses.map(r => r.data || r)
             },
             updateProgress,
-            abortControllerRef.current.signal
+            abortControllerRef.current?.signal
           )
           
           updateProgress(
@@ -409,7 +422,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     const client = useApiClient()
     const queryClient = useQueryClient()
     const { progress, updateProgress, resetProgress } = useProgressState()
-    const abortControllerRef = useRef<AbortController>()
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     const mutation = useMutation({
       mutationFn: async (updates: Array<{ id: number | string; data: Partial<TEntity> }>) => {
@@ -447,7 +460,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
               return responses.map(r => r.data || r)
             },
             updateProgress,
-            abortControllerRef.current.signal
+            abortControllerRef.current?.signal
           )
           
           updateProgress(
@@ -501,7 +514,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     const client = useApiClient()
     const queryClient = useQueryClient()
     const { progress, updateProgress, resetProgress } = useProgressState()
-    const abortControllerRef = useRef<AbortController>()
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     const mutation = useMutation({
       mutationFn: async (ids: (number | string)[]) => {
@@ -539,7 +552,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
               return batch.map(() => undefined as any)
             },
             updateProgress,
-            abortControllerRef.current.signal
+            abortControllerRef.current?.signal
           )
           
           updateProgress(

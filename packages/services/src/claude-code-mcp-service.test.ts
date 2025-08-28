@@ -3,11 +3,13 @@
  * Tests Claude Code specific MCP integration with database operations
  */
 
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 import {
   createClaudeCodeMCPService,
   type ClaudeCodeMCPService,
 } from './claude-code-mcp-service'
+import { createTestDatabase, type TestDatabase } from '@promptliano/database'
+import { createProject } from './test-utils/test-helpers'
 
 // Set test environment
 process.env.NODE_ENV = 'test'
@@ -23,8 +25,30 @@ const mockProjectConfigService = {
 
 describe('Claude Code MCP Service - Functional Factory Pattern', () => {
   let service: ClaudeCodeMCPService
+  let testDb: TestDatabase
 
   beforeEach(async () => {
+    // Create test database
+    testDb = createTestDatabase({
+      testId: 'claude-mcp-service',
+      verbose: false,
+      seedData: false
+    })
+
+    // Create test project  
+    const testProject = await createProject({
+      name: 'Test Project',
+      path: '/test/project',
+      description: 'Test project for MCP service tests'
+    })
+
+    // Update mock to return the actual project ID
+    mockProjectConfigService.getProjectConfig.mockImplementation(async () => ({
+      projectId: testProject.id,
+      servers: { promptliano: { type: 'stdio', command: 'test' } },
+      serverUrl: 'http://localhost:3147/api/mcp'
+    }))
+
     // Reset all mocks
     mockProjectConfigService.getProjectConfig.mockClear()
 
@@ -32,6 +56,13 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
     service = createClaudeCodeMCPService({
       projectConfigService: mockProjectConfigService as any
     })
+  })
+
+  afterEach(async () => {
+    // Clean up test database
+    if (testDb) {
+      testDb.close()
+    }
   })
 
   describe('Service Initialization', () => {
@@ -59,12 +90,18 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
 
   describe('MCP Status Operations', () => {
     test('should get MCP status for project', async () => {
-      const status = await service.getMCPStatus(123)
+      // Get project ID from the created project
+      const testProject = await createProject({ name: 'Test Project' })
+      const status = await service.getMCPStatus(testProject.id)
 
-      expect(status).toHaveProperty('isInstalled')
-      expect(status).toHaveProperty('isRunning')
-      expect(typeof status.isInstalled).toBe('boolean')
-      expect(typeof status.isRunning).toBe('boolean')
+      expect(status).toHaveProperty('claudeDesktop')
+      expect(status).toHaveProperty('claudeCode')
+      expect(status.claudeDesktop).toHaveProperty('installed')
+      expect(status.claudeDesktop).toHaveProperty('configExists')
+      expect(status.claudeCode).toHaveProperty('globalConfigExists')
+      expect(typeof status.claudeDesktop.installed).toBe('boolean')
+      expect(typeof status.claudeDesktop.configExists).toBe('boolean')
+      expect(typeof status.claudeCode.globalConfigExists).toBe('boolean')
     })
 
     test('should handle invalid project ID', async () => {
@@ -73,20 +110,27 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
   })
 
   describe('Session Operations', () => {
+    let testProjectId: number
+
+    beforeEach(async () => {
+      const testProject = await createProject({ name: 'Session Test Project' })
+      testProjectId = testProject.id
+    })
+
     test('should get sessions for project', async () => {
-      const sessions = await service.getSessions(123)
+      const sessions = await service.getSessions(testProjectId)
 
       expect(Array.isArray(sessions)).toBe(true)
     })
 
     test('should get recent sessions with limit', async () => {
-      const sessions = await service.getRecentSessions(123, 5)
+      const sessions = await service.getRecentSessions(testProjectId, 5)
 
       expect(Array.isArray(sessions)).toBe(true)
     })
 
     test('should get paginated sessions', async () => {
-      const result = await service.getSessionsPaginated(123, 0, 10)
+      const result = await service.getSessionsPaginated(testProjectId, 0, 10)
 
       expect(result).toHaveProperty('sessions')
       expect(result).toHaveProperty('total')
@@ -97,13 +141,13 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
     })
 
     test('should get session metadata', async () => {
-      const metadata = await service.getSessionsMetadata(123)
+      const metadata = await service.getSessionsMetadata(testProjectId)
 
       expect(Array.isArray(metadata)).toBe(true)
     })
 
     test('should get full session by ID', async () => {
-      const session = await service.getFullSession(123, 'session-123')
+      const session = await service.getFullSession(testProjectId, 'session-123')
 
       // Should return session or null
       if (session !== null) {
@@ -113,7 +157,7 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
     })
 
     test('should handle invalid session ID', async () => {
-      const session = await service.getFullSession(123, 'non-existent')
+      const session = await service.getFullSession(testProjectId, 'non-existent')
 
       expect(session).toBeNull()
     })
@@ -122,11 +166,11 @@ describe('Claude Code MCP Service - Functional Factory Pattern', () => {
   describe('Error Handling', () => {
     test('should handle service errors gracefully', async () => {
       // Test with invalid project ID
-      await expect(service.getMCPStatus(0)).rejects.toThrow()
+      await expect(service.getMCPStatus(999999)).rejects.toThrow()
     })
 
     test('should validate project IDs', async () => {
-      const invalidIds = [-1, 0, NaN]
+      const invalidIds = [-1, 0, NaN, 999999]
       
       for (const id of invalidIds) {
         await expect(service.getSessions(id)).rejects.toThrow()

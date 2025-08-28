@@ -236,7 +236,7 @@ const getFullSessionRoute = createRoute({
 
 export const claudeCodeRoutes = new OpenAPIHono()
   .openapi(getMCPStatusRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const status = await claudeCodeMCPService.getMCPStatus(projectId)
@@ -252,7 +252,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
   })
   // Register specific routes FIRST before the generic ones
   .openapi(getSessionsMetadataRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     console.log(`[DEBUG] getSessionsMetadata called with projectId: ${projectId}`)
@@ -299,7 +299,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getRecentSessionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     console.log(`[DEBUG] getRecentSessions called with projectId: ${projectId}, limit: ${query.limit}`)
@@ -321,7 +321,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSessionsPaginatedRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -419,7 +419,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSessionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -525,7 +525,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getProjectDataRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const projectData = await claudeCodeMCPService.getProjectData(projectId)

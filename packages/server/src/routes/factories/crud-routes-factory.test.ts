@@ -109,10 +109,7 @@ describe('CRUD Routes Factory', () => {
     })
     
     const response = await routes.request('/api/test/999')
-    console.log('Response status:', response.status)
-    const text = await response.text()
-    console.log('Response body:', text)
-    const json = JSON.parse(text)
+    const json = await response.json()
     
     expect(response.status).toBe(404)
     expect(json.success).toBe(false)

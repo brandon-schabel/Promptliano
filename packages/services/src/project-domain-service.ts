@@ -7,7 +7,7 @@
  */
 
 import { composeServices, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { createProjectService, type ProjectService } from './project-service'
 import { createTicketService, createTaskService, type TicketService, type TaskService } from './ticket-service'
 import { createChatService, type ChatService } from './chat-service'
@@ -146,9 +146,9 @@ export function createProjectDomainService(deps: ProjectDomainServiceDeps = {}) 
             services.chats.getByProject(projectId).then((chats) => chats.slice(0, 5))
           ])
 
-          // Calculate additional metrics
-          const openTickets = ticketsWithStats.filter((t) => t.status !== 'closed')
-          const inProgressTickets = ticketsWithStats.filter((t) => t.status === 'in_progress')
+          // Calculate additional metrics - access status from the ticket data
+          const openTickets = ticketsWithStats.filter((t: any) => t.status !== 'closed')
+          const inProgressTickets = ticketsWithStats.filter((t: any) => t.status === 'in_progress')
           const totalProgress =
             ticketsWithStats.length > 0
               ? ticketsWithStats.reduce((sum, ticket) => sum + ticket.progress, 0) / ticketsWithStats.length

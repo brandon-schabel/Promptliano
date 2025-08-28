@@ -68,12 +68,12 @@ const queueCustomRoutes = new OpenAPIHono()
 // Process queue items
 const processQueueRoute = createRoute({
   method: 'post',
-  path: '/api/queues/{id}/process',
+  path: '/api/queues/{queueId}/process',
   tags: ['Queues'],
   summary: 'Process items in a queue',
   request: {
     params: z.object({
-      id: z.coerce.number().int().positive()
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -112,7 +112,7 @@ const processQueueRoute = createRoute({
 queueCustomRoutes.openapi(processQueueRoute, async (c) => {
   return withErrorContext(
     async () => {
-      const { id } = c.req.valid('param')
+      const { queueId } = c.req.valid('param')
       const options = await c.req.json().catch(() => ({ limit: 10 }))
       
       // This would call a queue processing service
@@ -132,12 +132,12 @@ queueCustomRoutes.openapi(processQueueRoute, async (c) => {
 // Get queue statistics
 const getQueueStatsRoute = createRoute({
   method: 'get',
-  path: '/api/queues/{id}/stats',
+  path: '/api/queues/{queueId}/stats',
   tags: ['Queues'],
   summary: 'Get queue statistics',
   request: {
     params: z.object({
-      id: z.coerce.number().int().positive()
+      queueId: z.coerce.number().int().positive()
     })
   },
   responses: {
@@ -170,12 +170,12 @@ const getQueueStatsRoute = createRoute({
   }
 })
 
-queueCustomRoutes.openapi(getQueueStatsRoute, async (c) => {
+queueCustomRoutes.openapi(getQueueStatsRoute, async (c): Promise<any> => {
   return withErrorContext(
     async () => {
-      const { id } = c.req.valid('param')
+      const { queueId } = c.req.valid('param')
       
-      const queue = await queueService.get(id)
+      const queue = await queueService.get(queueId)
       if (!queue) {
         throw new Error('Queue not found')
       }
@@ -183,7 +183,7 @@ queueCustomRoutes.openapi(getQueueStatsRoute, async (c) => {
       // This would get real stats from the queue service
       // For now, returning mock data
       const stats = {
-        queueId: id,
+        queueId: queueId,
         name: queue.name || 'Unknown',
         stats: {
           totalItems: 0,
@@ -208,12 +208,12 @@ queueCustomRoutes.openapi(getQueueStatsRoute, async (c) => {
 // Clear queue
 const clearQueueRoute = createRoute({
   method: 'post',
-  path: '/api/queues/{id}/clear',
+  path: '/api/queues/{queueId}/clear',
   tags: ['Queues'],
   summary: 'Clear all items from a queue',
   request: {
     params: z.object({
-      id: z.coerce.number().int().positive()
+      queueId: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -244,7 +244,7 @@ const clearQueueRoute = createRoute({
 queueCustomRoutes.openapi(clearQueueRoute, async (c) => {
   return withErrorContext(
     async () => {
-      const { id } = c.req.valid('param')
+      const { queueId } = c.req.valid('param')
       const options = await c.req.json().catch(() => ({ status: 'all' }))
       
       // This would call queue service to clear items

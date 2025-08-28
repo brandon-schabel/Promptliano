@@ -4,12 +4,43 @@
  * Provides consistent TaskStatus type handling and business rules
  */
 
-import { taskRepository } from '@promptliano/database'
-import { ErrorFactory } from '@promptliano/shared'
-import { type TicketTask, type InsertTicketTask, type TaskStatus } from '@promptliano/database'
+import { taskRepository, TaskSchema, validateJsonField, type InsertTicketTask, type TaskStatus, type TicketTask } from '@promptliano/database'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 // Export types for external use
 export type { TicketTask, InsertTicketTask, TaskStatus }
+
+/**
+ * Transform raw database task to properly typed task
+ * This converts Json fields to proper TypeScript types using database validators
+ */
+function transformTask(rawTask: any): TicketTask {
+  const result = TaskSchema.safeParse({
+    ...rawTask,
+    suggestedFileIds: validateJsonField.stringArray(rawTask.suggestedFileIds),
+    dependencies: validateJsonField.numberArray(rawTask.dependencies),
+    tags: validateJsonField.stringArray(rawTask.tags),
+    suggestedPromptIds: validateJsonField.numberArray(rawTask.suggestedPromptIds)
+  })
+  if (result.success) {
+    return result.data as TicketTask
+  }
+  // Fallback with manual transformation using database validators
+  return {
+    ...rawTask,
+    suggestedFileIds: validateJsonField.stringArray(rawTask.suggestedFileIds),
+    dependencies: validateJsonField.numberArray(rawTask.dependencies),
+    tags: validateJsonField.stringArray(rawTask.tags),
+    suggestedPromptIds: validateJsonField.numberArray(rawTask.suggestedPromptIds)
+  } as TicketTask
+}
+
+/**
+ * Transform array of raw database tasks to properly typed tasks
+ */
+function transformTasks(rawTasks: any[]): TicketTask[] {
+  return rawTasks.map(transformTask)
+}
 
 export interface TaskServiceDependencies {
   repository?: typeof taskRepository
@@ -29,7 +60,9 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async list(): Promise<TicketTask[]> {
       try {
-        return await repository.getAll()
+        const tasks = await repository.getAll()
+        // Transform raw repository results to proper types
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('list tasks', String(error))
       }
@@ -40,7 +73,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async get(id: number | string): Promise<TicketTask | null> {
       try {
-        return await repository.getById(Number(id))
+        const task = await repository.getById(Number(id))
+        return task ? transformTask(task) : null
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch task', String(error))
       }
@@ -55,7 +89,7 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
         if (!task) {
           throw ErrorFactory.notFound('Task', id)
         }
-        return task
+        return transformTask(task)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch task', String(error))
       }
@@ -65,14 +99,16 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      * Create task (route factory compatible)
      */
     async create(data: Omit<InsertTicketTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<TicketTask> {
-      return this.createTask(data)
+      const result = await this.createTask(data)
+      return result
     },
 
     /**
      * Update task (route factory compatible)
      */
     async update(id: number | string, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
-      return this.updateTask(Number(id), data)
+      const result = await this.updateTask(Number(id), data)
+      return result
     },
 
     /**
@@ -100,7 +136,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
           updatedAt: now
         }
 
-        return await repository.create(taskData)
+        const result = await repository.create(taskData)
+        return transformTask(result)
       } catch (error) {
         throw ErrorFactory.operationFailed('create task', String(error))
       }
@@ -114,7 +151,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
         // Ensure status is properly typed if provided
         const updateData = data.status ? { ...data, status: data.status as TaskStatus } : data
 
-        return await repository.update(id, updateData)
+        const result = await repository.update(id, updateData)
+        return transformTask(result)
       } catch (error) {
         throw ErrorFactory.operationFailed('update task', String(error))
       }
@@ -125,7 +163,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async updateTaskStatus(id: number, status: TaskStatus): Promise<TicketTask> {
       try {
-        return await repository.update(id, { status })
+        const result = await repository.update(id, { status })
+        return transformTask(result)
       } catch (error) {
         throw ErrorFactory.operationFailed('update task status', String(error))
       }
@@ -136,7 +175,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTaskById(id: number): Promise<TicketTask | null> {
       try {
-        return await repository.getById(id)
+        const task = await repository.getById(id)
+        return task ? transformTask(task) : null
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch task', String(error))
       }
@@ -154,7 +194,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTasksByTicket(ticketId: number): Promise<TicketTask[]> {
       try {
-        return await repository.getByTicket(ticketId)
+        const tasks = await repository.getByTicket(ticketId)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch tasks for ticket', String(error))
       }
@@ -165,7 +206,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTasksByStatus(ticketId: number, status: TaskStatus): Promise<TicketTask[]> {
       try {
-        return await repository.getByTaskStatus(ticketId, status)
+        const tasks = await repository.getByTaskStatus(ticketId, status)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch tasks by status', String(error))
       }
@@ -205,10 +247,11 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
     async completeTask(id: number): Promise<TicketTask> {
       try {
         // Update both status and done flag for backwards compatibility
-        return await repository.update(id, {
+        const result = await repository.update(id, {
           status: 'completed' as TaskStatus,
           done: true
         })
+        return transformTask(result)
       } catch (error) {
         throw ErrorFactory.operationFailed('complete task', String(error))
       }
@@ -218,7 +261,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      * Cancel a task
      */
     async cancelTask(id: number): Promise<TicketTask> {
-      return this.updateTaskStatus(id, 'cancelled')
+      const result = await this.updateTaskStatus(id, 'cancelled')
+      return result
     },
 
     /**
@@ -237,7 +281,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTasksByAgent(agentId: string): Promise<TicketTask[]> {
       try {
-        return await repository.getByAgent(agentId)
+        const tasks = await repository.getByAgent(agentId)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch tasks for agent', String(error))
       }
@@ -255,10 +300,11 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
 
         // Sync done flag with status
         const newStatus: TaskStatus = task.done ? 'pending' : 'completed'
-        return await repository.update(id, {
+        const result = await repository.update(id, {
           done: !task.done,
           status: newStatus
         })
+        return transformTask(result)
       } catch (error) {
         if (error instanceof Error && (error as any).code) throw error // Re-throw domain errors
         throw ErrorFactory.operationFailed('toggle task', error instanceof Error ? error.message : String(error))
@@ -279,7 +325,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
           updatedAt: now
         }))
 
-        return await repository.createMany(typedTasksData)
+        const results = await repository.createMany(typedTasksData)
+        return transformTasks(results)
       } catch (error) {
         throw ErrorFactory.operationFailed('batch create tasks', String(error))
       }
@@ -290,7 +337,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTaskStatistics(ticketId: number) {
       try {
-        const tasks = await repository.getByTicket(ticketId)
+        const rawTasks = await repository.getByTicket(ticketId)
+        const tasks = transformTasks(rawTasks)
 
         const stats = {
           total: tasks.length,
@@ -327,7 +375,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async moveTaskToPosition(taskId: number, newOrderIndex: number): Promise<TicketTask> {
       try {
-        return await repository.moveToPosition(taskId, newOrderIndex)
+        const result = await repository.moveToPosition(taskId, newOrderIndex)
+        return transformTask(result)
       } catch (error) {
         throw ErrorFactory.operationFailed('move task', String(error))
       }
@@ -349,7 +398,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getAvailableTasks(ticketId: number): Promise<TicketTask[]> {
       try {
-        return await repository.getAvailableTasks(ticketId)
+        const tasks = await repository.getAvailableTasks(ticketId)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch available tasks', String(error))
       }
@@ -360,7 +410,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getBlockedTasks(ticketId: number): Promise<TicketTask[]> {
       try {
-        return await repository.getBlockedTasks(ticketId)
+        const tasks = await repository.getBlockedTasks(ticketId)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch blocked tasks', String(error))
       }
@@ -371,7 +422,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async searchTasks(searchTerm: string, ticketId?: number): Promise<TicketTask[]> {
       try {
-        return await repository.searchByContent(searchTerm, ticketId)
+        const tasks = await repository.searchByContent(searchTerm, ticketId)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('search tasks', String(error))
       }
@@ -382,7 +434,8 @@ export function createTaskService(deps: TaskServiceDependencies = {}) {
      */
     async getTasksByTimeRange(startDate: number, endDate: number): Promise<TicketTask[]> {
       try {
-        return await repository.getByTimeRange(startDate, endDate)
+        const tasks = await repository.getByTimeRange(startDate, endDate)
+        return transformTasks(tasks)
       } catch (error) {
         throw ErrorFactory.operationFailed('fetch tasks by time range', String(error))
       }
@@ -486,9 +539,10 @@ export const batchDeleteTasks = async (taskIds: number[]): Promise<boolean[]> =>
  */
 export const batchMoveTasks = async (moves: { taskId: number; newOrderIndex: number }[]): Promise<TicketTask[]> => {
   // Use Promise.all for better performance
-  return await Promise.all(
+  const results = await Promise.all(
     moves.map(({ taskId, newOrderIndex }) => taskService.moveTaskToPosition(taskId, newOrderIndex))
   )
+  return results
 }
 
 /**
@@ -601,23 +655,25 @@ export const enqueueTask = async (taskId: number, queueId?: number, priority?: n
     throw ErrorFactory.notFound('Task', taskId)
   }
 
-  return taskService.updateTask(taskId, {
+  const result = await taskService.updateTask(taskId, {
     queueId: queueId || null,
     queuePriority: priority || 5,
     queueStatus: 'queued' as const,
     queuedAt: Date.now()
   })
+  return result
 }
 
 /**
  * Dequeue a task (placeholder)
  */
 export const dequeueTask = async (taskId: number) => {
-  return taskService.updateTask(taskId, {
+  const result = await taskService.updateTask(taskId, {
     queueId: null,
     queueStatus: null,
     queuedAt: null
   })
+  return result
 }
 
 /**

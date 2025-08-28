@@ -59,7 +59,7 @@ mock.module('@promptliano/shared/src/utils/crypto', () => ({
 // Import service and types after mocking
 const { createProviderKeyService } = await import('./provider-key-service')
 import type { ProviderKey, CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 describe('Provider Key Service Encryption', () => {
   let service: ReturnType<typeof createProviderKeyService>

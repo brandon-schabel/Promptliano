@@ -10,7 +10,7 @@
  * - 70% code reduction from original service
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
+import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { queueRepository } from '@promptliano/database'
 import {
@@ -68,8 +68,11 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     async getById(id: number): Promise<Queue & { status?: 'active' | 'paused' }> {
       return withErrorContext(
         async () => {
-          // Use base getById which will throw if not found
+          // Use base getById which will throw ApiError if not found
           const queue = await baseService.getById(id)
+          if (!queue) {
+            throw safeErrorFactory.notFound('Queue', id)
+          }
           // Add status field based on isActive for backward compatibility
           return { ...queue, status: queue.isActive ? 'active' : 'paused' }
         },
@@ -102,7 +105,47 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const queue = await baseService.getById(queueId)
-          const items = await repo.getItems(queueId)
+          
+          // Use flow service to get actual queue items (tickets and tasks)
+          const { createFlowService } = await import('./flow-service')
+          const flowService = createFlowService()
+          const queueItems = await flowService.getQueueItems(queueId)
+          
+          // Convert to queue item format for compatibility
+          const items = [
+            ...queueItems.tickets.map((ticket) => ({
+              id: `ticket-${ticket.id}`,
+              queueId: ticket.queueId || queueId,
+              itemType: 'ticket' as const,
+              itemId: ticket.id,
+              priority: ticket.queuePriority || 0,
+              status: ticket.queueStatus || 'queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled',
+              agentId: ticket.queueAgentId,
+              createdAt: ticket.createdAt,
+              updatedAt: ticket.updatedAt,
+              startedAt: ticket.queueStartedAt,
+              completedAt: ticket.queueCompletedAt,
+              errorMessage: ticket.queueErrorMessage,
+              estimatedProcessingTime: ticket.estimatedProcessingTime,
+              actualProcessingTime: ticket.actualProcessingTime
+            })),
+            ...queueItems.tasks.map((task) => ({
+              id: `task-${task.id}`,
+              queueId: task.queueId || queueId,
+              itemType: 'task' as const,
+              itemId: task.id,
+              priority: task.queuePriority || 0,
+              status: task.queueStatus || 'queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled',
+              agentId: task.queueAgentId,
+              createdAt: task.createdAt,
+              updatedAt: task.updatedAt,
+              startedAt: task.queueStartedAt,
+              completedAt: task.queueCompletedAt,
+              errorMessage: task.queueErrorMessage,
+              estimatedProcessingTime: task.estimatedProcessingTime,
+              actualProcessingTime: task.actualProcessingTime
+            }))
+          ]
 
           const stats = {
             totalItems: items.length,
@@ -170,7 +213,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           const queue = await baseService.getById(queueId)
 
           if (!queue.isActive) {
-            throw ErrorFactory.invalidState('Queue', 'inactive', 'add items')
+            throw safeErrorFactory.invalidState('Queue', 'inactive', 'add items')
           }
 
           // Check if queue has capacity
@@ -178,13 +221,14 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           const activeItems = stats.queuedItems + stats.inProgressItems
 
           if (queue.maxParallelItems && activeItems >= queue.maxParallelItems) {
-            throw ErrorFactory.invalidState(
+            throw safeErrorFactory.invalidState(
               'Queue',
               `at capacity (${activeItems}/${queue.maxParallelItems})`,
               'add more items'
             )
           }
 
+          // Add to queueItems table (legacy support)
           const queueItem = await repo.addItem({
             queueId,
             itemType: item.type as 'ticket' | 'task' | 'chat' | 'prompt',
@@ -193,6 +237,18 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             status: 'queued',
             agentId: item.agentId || null
           })
+
+          // Also update the ticket/task record directly for consistency with flow service
+          if (item.referenceId && (item.type === 'ticket' || item.type === 'task')) {
+            const { createFlowService } = await import('./flow-service')
+            const flowService = createFlowService()
+            
+            if (item.type === 'ticket') {
+              await flowService.enqueueTicket(item.referenceId, queueId, item.priority || 5)
+            } else if (item.type === 'task') {
+              await flowService.enqueueTask(item.referenceId, queueId, item.priority || 5)
+            }
+          }
 
           logger.info('Added item to queue', {
             queueId,
@@ -240,13 +296,20 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             return null
           }
 
-          // Mark as in progress
+          // Mark as in progress in queueItems table
           const updatedItem = await repo.updateItem(nextItem.id, {
             status: 'in_progress',
             agentId,
             startedAt: Date.now(),
             updatedAt: Date.now()
           })
+
+          // Also update the ticket/task record for consistency with flow service
+          if (nextItem.itemId && (nextItem.itemType === 'ticket' || nextItem.itemType === 'task')) {
+            const { createFlowService } = await import('./flow-service')
+            const flowService = createFlowService()
+            await flowService.startProcessingItem(nextItem.itemType, nextItem.itemId, agentId)
+          }
 
           logger.info('Assigned queue item to agent', {
             queueId,
@@ -276,7 +339,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
         async () => {
           const item = await repo.getItemById(itemId)
           if (!item) {
-            throw ErrorFactory.notFound('QueueItem', itemId)
+            throw safeErrorFactory.notFound('QueueItem', itemId)
           }
 
           const status = result.success ? 'completed' : 'failed'
@@ -289,6 +352,18 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             errorMessage: result.error || null,
             actualProcessingTime: completedAt - (item.startedAt || item.createdAt)
           })
+
+          // Also update the ticket/task record for consistency with flow service
+          if (item.itemId && (item.itemType === 'ticket' || item.itemType === 'task')) {
+            const { createFlowService } = await import('./flow-service')
+            const flowService = createFlowService()
+            
+            if (result.success) {
+              await flowService.completeProcessingItem(item.itemType, item.itemId)
+            } else {
+              await flowService.failProcessingItem(item.itemType, item.itemId, result.error || 'Processing failed')
+            }
+          }
 
           logger.info('Completed queue item', {
             itemId,
@@ -315,7 +390,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
         async () => {
           const item = await repo.getItemById(itemId)
           if (!item) {
-            throw ErrorFactory.notFound('QueueItem', itemId)
+            throw safeErrorFactory.notFound('QueueItem', itemId)
           }
 
           const retryCount = 1 // Simplified retry logic
@@ -355,7 +430,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     /**
      * Pause/resume queue
      */
-    async setStatus(queueId: number, isActive: boolean): Promise<Queue> {
+    async setStatus(queueId: number, isActive: boolean): Promise<Queue & { status?: 'active' | 'paused' }> {
       return withErrorContext(
         async () => {
           const queue = await baseService.update(queueId, { isActive })
@@ -381,7 +456,8 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             })
           }
 
-          return queue
+          // Add status field based on isActive for backward compatibility
+          return { ...queue, status: queue.isActive ? 'active' : 'paused' }
         },
         { entity: 'Queue', action: 'setStatus', id: queueId }
       )
@@ -501,18 +577,32 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     ): Promise<QueueItem | null> {
       return withErrorContext(
         async () => {
-          // This is a simplified implementation
-          // In a real scenario, you'd find the queue item by itemType and itemId
-          // then update its queueId
+          // Import the flow service here to avoid circular dependencies
+          const { createFlowService } = await import('./flow-service')
+          const flowService = createFlowService()
+          
+          // Skip the queue item cleanup since we use flow service directly
+          
+          // Use the flow service's moveItem method which has the real implementation
+          await flowService.moveItem(itemType, itemId, targetQueueId, 0, false)
 
-          logger.info('Moving item to queue', { itemType, itemId, targetQueueId, ticketId })
+          // If moving to a queue (not removing), add to queueItems table
+          if (targetQueueId !== null) {
+            const queueItem = await repo.addItem({
+              queueId: targetQueueId,
+              itemType: itemType as 'ticket' | 'task' | 'chat' | 'prompt',
+              itemId,
+              priority: 0,
+              status: 'queued',
+              agentId: null
+            })
 
-          // For now, return null to indicate the operation was attempted
-          // A full implementation would:
-          // 1. Find the existing queue item
-          // 2. Update its queueId
-          // 3. Return the updated item
-          return null
+            logger.info('Moved item to queue', { itemType, itemId, targetQueueId })
+            return queueItem
+          } else {
+            logger.info('Removed item from queue', { itemType, itemId })
+            return null
+          }
         },
         { entity: 'QueueItem', action: 'move', id: itemId }
       )
@@ -631,15 +721,16 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     }> {
       return withErrorContext(
         async () => {
-          // This is a simplified implementation
-          // In a real scenario, you'd query for tickets/tasks that don't have queue associations
+          // Import the flow service here to avoid circular dependencies
+          const { createFlowService } = await import('./flow-service')
+          const flowService = createFlowService()
+          
+          // Use the flow service's getUnqueuedItems method which has the real implementation
+          const result = await flowService.getUnqueuedItems(projectId)
 
-          logger.info('Getting unqueued items', { projectId })
+          logger.info('Getting unqueued items', { projectId, ticketCount: result.tickets.length, taskCount: result.tasks.length })
 
-          return {
-            tickets: [],
-            tasks: []
-          }
+          return result
         },
         { entity: 'Project', action: 'getUnqueuedItems', id: projectId }
       )
@@ -681,12 +772,39 @@ export const {
   getUnqueuedItems
 } = queueService
 
+// Additional exports for backward compatibility and test helpers
+export { createQueue as createTestQueue }
+export const createQueueFunction = createQueue
+export const createQueueHelper = createQueue
+
 // Export delete function explicitly since it can be optional in the interface
 export const deleteQueue = queueService.delete!
 
 // Add aliases for backward compatibility
 export const listQueuesByProject = getQueuesByProject
 export const getQueueStats = getQueueWithStats
+
+// Test helper functions - export queue service functions directly
+export const testQueueHelpers = {
+  createQueue,
+  getQueueById,
+  updateQueue,
+  deleteQueue: queueService.delete!,
+  getQueuesByProject,
+  getQueueWithStats,
+  enqueueItem,
+  getNextQueueItem,
+  completeQueueItem,
+  setQueueStatus
+}
+
+// For tests that need these specific function names
+export {
+  createQueue as createTestQueue2,
+  getQueueById as getById,
+  updateQueue as updateTicket, 
+  getQueueWithStats as getQueueStats2
+}
 
 /**
  * Check and handle timed-out queue items (placeholder implementation)

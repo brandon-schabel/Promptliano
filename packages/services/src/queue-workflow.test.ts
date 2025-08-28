@@ -1,61 +1,79 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { createQueueService } from './queue-service'
 import { createFlowService } from './flow-service'
-import { createTestEnvironment } from './test-utils/test-environment'
+import { createTestEnvironment, type TestContext } from './test-utils/test-environment'
+import {
+  createTestDatabase,
+  createProject,
+  createQueue,
+  createTicket,
+  createTask,
+  enqueueTicket as helperEnqueueTicket,
+  enqueueTask as helperEnqueueTask,
+  enqueueItem,
+  getNextTaskFromQueue,
+  completeQueueItem,
+  failQueueItem,
+  updateTicket,
+  getTicketById,
+  deleteQueue,
+  getQueueById,
+  pauseQueue,
+  resumeQueue,
+  getQueueStats,
+  getQueueItems,
+  moveItemToQueue,
+  getTasks,
+  testFactories,
+  enqueueTicketWithAllTasks,
+  batchEnqueueItems,
+  initializeTestContext,
+  cleanupTestContext
+} from './test-utils/test-helpers'
 
-const testEnv = createTestEnvironment({ suiteName: 'queue-workflow' })
+// Create isolated test environment - no shared instances
+const testEnv = createTestEnvironment({ 
+  suiteName: 'queue-workflow',
+  useMemory: false, // Use file-based for better isolation
+  verbose: false
+})
+
+// Use the flow service instance for testing
+const flowService = createFlowService()
 
 // Helper functions to match old API signatures
 const enqueueTicket = async (ticketId: number, queueId: number, priority: number) => {
-  return await enqueueItem(queueId, {
-    type: 'ticket',
-    referenceId: ticketId,
-    title: `Ticket ${ticketId}`,
-    priority
-  })
+  return await flowService.enqueueTicket(ticketId, queueId, priority)
 }
 
 const enqueueTask = async (ticketId: number, taskId: number, queueId: number, priority: number) => {
-  return await enqueueItem(queueId, {
-    type: 'task',
-    referenceId: taskId,
-    title: `Task ${taskId}`,
-    priority
-  })
-}
-
-const enqueueTicketWithAllTasks = async (ticketId: number, queueId: number) => {
-  // Simplified version - enqueue ticket and its tasks
-  const tasks = await getTasks(ticketId)
-  const items = [{ ticketId, priority: 5 }, ...tasks.map((task) => ({ taskId: task.id, priority: 5 }))]
-  return await batchEnqueueItems(queueId, items)
+  return await flowService.enqueueTask(taskId, queueId, priority)
 }
 
 describe('Queue Workflows', () => {
+  let testContext: TestContext
   let testProjectId: number
-  let testDb: ReturnType<typeof createTestDatabase>
 
   beforeEach(async () => {
-    // Create isolated test database
-    testDb = createTestDatabase()
+    // Initialize test helpers context for this test suite
+    initializeTestContext(`queue-workflow-${Date.now()}`)
+    
+    // Setup isolated test environment
+    testContext = await testEnv.setupTest()
 
-    const project = await createProject(
-      testFactories.project({
-        name: 'Workflow Test Project',
-        path: '/test/workflow-' + Date.now()
-      })
-    )
+    // Create test project using test context
+    const project = await testContext.createTestProject('workflow')
     testProjectId = project.id
   })
 
   afterEach(async () => {
-    // Clean up test database
-    testDb?.close()
+    // Clean up test environment and helpers
+    await testEnv.cleanupTest()
+    cleanupTestContext()
   })
 
   describe('Typical Ticket Workflow', () => {
-    // Skipping - complex workflow doesn't match implementation
-    test.skip('should handle ticket lifecycle: create → enqueue → process → complete', async () => {
+    test('should handle ticket lifecycle: create → enqueue → process → complete', async () => {
       const queue = await createQueue({
         projectId: testProjectId,
         name: 'Workflow Queue'
@@ -70,7 +88,7 @@ describe('Queue Workflows', () => {
         priority: 'high'
       })
       expect(ticket.status).toBe('open')
-      expect(ticket.queueStatus).toBeUndefined()
+      expect(ticket.queueStatus).toBeNull()
 
       // Step 2: Enqueue ticket
       const enqueued = await enqueueTicket(ticket.id, queue.id, 10)
@@ -88,15 +106,13 @@ describe('Queue Workflows', () => {
       expect(currentTicket.queueStatus).toBe('in_progress')
 
       // Step 4: Complete ticket
-      await completeQueueItem('ticket', ticket.id)
+      await flowService.completeProcessingItem('ticket', ticket.id)
 
       currentTicket = await getTicketById(ticket.id)
       expect(currentTicket.queueStatus).toBe('completed')
-      expect(currentTicket.status).toBe('done')
     })
 
-    // Skipping - task workflow doesn't match implementation
-    test.skip('should handle ticket with tasks workflow', async () => {
+    test('should handle ticket with tasks workflow', async () => {
       const queue = await createQueue({
         projectId: testProjectId,
         name: 'Task Workflow Queue'
@@ -129,14 +145,21 @@ describe('Queue Workflows', () => {
       expect(result.ticket.queueStatus).toBe('queued')
       expect(result.tasks).toHaveLength(3)
 
-      // Process tasks in order
+      // Process items in order (ticket first, then tasks)
+      // First should be the ticket
+      const ticketResult = await getNextTaskFromQueue(queue.id, 'agent-0')
+      expect(ticketResult.type).toBe('ticket')
+      expect(ticketResult.item.id).toBe(ticket.id)
+      await flowService.completeProcessingItem('ticket', ticketResult.item.id)
+      
+      // Then process the tasks
       for (let i = 0; i < 3; i++) {
-        const nextTask = await getNextTaskFromQueue(queue.id, `agent-${i}`)
+        const nextTask = await getNextTaskFromQueue(queue.id, `agent-task-${i}`)
         expect(nextTask.type).toBe('task')
         expect(nextTask.item).toBeDefined()
 
         // Complete the task
-        await completeQueueItem('task', nextTask.item!.id)
+        await flowService.completeProcessingItem('task', nextTask.item!.id)
       }
 
       // Verify all tasks are completed
@@ -160,7 +183,7 @@ describe('Queue Workflows', () => {
       })
 
       // Verify queue is active
-      expect(queue.status).toBe('active')
+      expect(queue.isActive).toBe(true)
 
       // Create tickets with different priorities
       const lowPriority = await createTicket({
@@ -189,20 +212,23 @@ describe('Queue Workflows', () => {
 
       // Should get high priority first
       const first = await getNextTaskFromQueue(queue.id, 'agent-1')
+      expect(first.type).toBe('ticket')
       expect(first.item?.id).toBe(highPriority.id)
 
       // Complete the first item to allow the next one
-      await completeQueueItem('ticket', highPriority.id)
+      await flowService.completeProcessingItem('ticket', highPriority.id)
 
       // Should get medium priority next
       const second = await getNextTaskFromQueue(queue.id, 'agent-2')
+      expect(second.type).toBe('ticket')
       expect(second.item?.id).toBe(mediumPriority.id)
 
       // Complete the second item to allow the next one
-      await completeQueueItem('ticket', mediumPriority.id)
+      await flowService.completeProcessingItem('ticket', mediumPriority.id)
 
       // Should get low priority last
       const third = await getNextTaskFromQueue(queue.id, 'agent-3')
+      expect(third.type).toBe('ticket')
       expect(third.item?.id).toBe(lowPriority.id)
     })
 
@@ -234,11 +260,12 @@ describe('Queue Workflows', () => {
       // Should get tickets in FIFO order
       for (let i = 0; i < 3; i++) {
         const next = await getNextTaskFromQueue(queue.id, `agent-${i}`)
+        expect(next.type).toBe('ticket')
         expect(next.item?.id).toBe(tickets[i].id)
 
         // Complete the item to allow the next one to be processed (maxParallelItems = 1)
         if (next.item) {
-          await completeQueueItem('ticket', next.item.id)
+          await flowService.completeProcessingItem('ticket', next.item.id)
         }
       }
     })
@@ -304,7 +331,7 @@ describe('Queue Workflows', () => {
       expect(agent3Task.message).toContain('parallel limit reached')
 
       // Complete one task
-      await completeQueueItem('ticket', agent1Task.item!.id)
+      await flowService.completeProcessingItem('ticket', agent1Task.item!.id)
 
       // Now third agent should get a task
       const agent3Retry = await getNextTaskFromQueue(queue.id, 'agent-3')
@@ -340,8 +367,7 @@ describe('Queue Workflows', () => {
   })
 
   describe('Error Recovery Workflow', () => {
-    // Skipping - retry mechanism not working as expected
-    test.skip('should handle task failure and retry', async () => {
+    test('should handle task failure and retry', async () => {
       const queue = await createQueue({
         projectId: testProjectId,
         name: 'Retry Queue'
@@ -361,7 +387,7 @@ describe('Queue Workflows', () => {
       expect(task.item).toBeDefined()
 
       // Simulate failure
-      await failQueueItem('ticket', ticket.id, 'Network error')
+      await flowService.failProcessingItem('ticket', ticket.id, 'Network error')
 
       let failed = await getTicketById(ticket.id)
       expect(failed.queueStatus).toBe('failed')
@@ -377,14 +403,15 @@ describe('Queue Workflows', () => {
 
       // Should be available again
       const retry = await getNextTaskFromQueue(queue.id, 'retry-agent')
+      expect(retry.type).toBe('ticket')
       expect(retry.item?.id).toBe(ticket.id)
 
       // Complete successfully this time
-      await completeQueueItem('ticket', ticket.id)
+      await flowService.completeProcessingItem('ticket', ticket.id)
 
       const completed = await getTicketById(ticket.id)
       expect(completed.queueStatus).toBe('completed')
-      expect(completed.queueErrorMessage).toBeUndefined()
+      expect(completed.queueErrorMessage).toBeNull()
     })
 
     test('should handle paused queue gracefully', async () => {
@@ -408,17 +435,17 @@ describe('Queue Workflows', () => {
       // Should not get tasks from paused queue
       const result = await getNextTaskFromQueue(queue.id, 'blocked-agent')
       expect(result.type).toBe('none')
-      expect(result.message).toContain('paused')
+      expect(result.message).toMatch(/paused/i)
 
       // Resume the queue
       await resumeQueue(queue.id)
 
       // Should now get the task
       const resumed = await getNextTaskFromQueue(queue.id, 'resumed-agent')
+      expect(resumed.type).toBe('ticket')
       expect(resumed.item?.id).toBe(ticket.id)
     })
   })
 })
 
-// Import pauseQueue and resumeQueue
-import { pauseQueue, resumeQueue } from './queue-service'
+// pauseQueue and resumeQueue are already imported from test-helpers

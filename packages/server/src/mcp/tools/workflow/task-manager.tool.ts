@@ -127,7 +127,7 @@ export const taskManagerTool: MCPToolDefinition = {
             await reorderTasks(validTicketId, tasks)
             // Get updated tasks to show the new order
             const updatedTasks = await getTasks(validTicketId)
-            const taskList = updatedTasks.map((t: any) => `${t.id}: ${t.content} (order: ${t.orderIndex})`).join('\n')
+            const taskList = updatedTasks.map((t) => `${t.id}: ${t.content} (order: ${t.orderIndex})`).join('\n')
             return {
               content: [{ type: 'text', text: `Tasks reordered successfully:\n${taskList}` }]
             }

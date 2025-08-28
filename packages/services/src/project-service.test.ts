@@ -81,7 +81,29 @@ describe('Project Service (Functional Factory)', () => {
       }
     })
     
-    projectService = createProjectService({ repository: testProjectRepository })
+    // Create mock file service that returns empty arrays for test database
+    const mockFileService = {
+      getByProject: mock(async (projectId: number) => []),
+      updateContent: mock(async (projectId: number, fileId: string, content: string) => ({
+        id: fileId,
+        projectId,
+        name: 'test-file.txt',
+        path: '/test/test-file.txt',
+        content,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      })),
+      batch: {
+        createFiles: mock(async () => []),
+        updateFiles: mock(async () => []),
+        deleteFiles: mock(async () => 0)
+      }
+    }
+    
+    projectService = createProjectService({ 
+      repository: testProjectRepository,
+      fileService: mockFileService
+    })
     
     // Reset mock call counts
     mockGenerateStructuredData.mockClear()

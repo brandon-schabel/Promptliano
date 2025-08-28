@@ -11,7 +11,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { chatRepository } from '@promptliano/database'
 import { claudeCodeMCPService } from './claude-code-mcp-service'
 // Import database schemas as source of truth

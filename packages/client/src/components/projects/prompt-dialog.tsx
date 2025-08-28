@@ -39,7 +39,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     if (editPromptId && promptData) {
       const prompt = promptData.find((p) => p.id === editPromptId)
       if (prompt) {
-        promptForm.setValue('name', prompt.name)
+        promptForm.setValue('title', prompt.title)
         promptForm.setValue('content', prompt.content)
       }
     } else {
@@ -53,11 +53,11 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     }
   }
 
-  const handleCreatePrompt = async (values: { name: string; content: string }) => {
+  const handleCreatePrompt = async (values: { title: string; content: string }) => {
     try {
       const result = await createPromptMutation.mutateAsync({
         projectId,
-        title: values.name,
+        title: values.title,
         content: values.content
       })
 
@@ -83,14 +83,14 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     }
   }
 
-  const handleUpdatePrompt = async (values: { name: string; content: string }) => {
+  const handleUpdatePrompt = async (values: { title: string; content: string }) => {
     if (!editPromptId) return
 
     try {
       await updatePromptMutation.mutateAsync({
         id: editPromptId,
         data: {
-          title: values.name,
+          title: values.title,
           content: values.content
         }
       })
@@ -131,10 +131,10 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
             >
               <FormField
                 control={promptForm.control}
-                name='name'
+                name='title'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prompt Name</FormLabel>
+                    <FormLabel>Prompt Title</FormLabel>
                     <FormControl>
                       <Input placeholder='e.g. Summarize Document' {...field} />
                     </FormControl>
@@ -169,7 +169,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
                   disabled={createPromptMutation.isPending || updatePromptMutation.isPending}
                   onClick={(e) => {
                     e.preventDefault()
-                    // handle form submit/prompt creation becuase form submit is not working
+                    // handle form submit/prompt creation because form submit is not working
                     if (editPromptId) {
                       handleUpdatePrompt(promptForm.getValues())
                     } else {

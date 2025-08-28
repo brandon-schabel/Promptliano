@@ -20,7 +20,7 @@ import {
 } from '../schema'
 
 // Create base chat repository
-const baseChatRepository = createBaseRepository(chats, selectChatSchema, 'Chat')
+const baseChatRepository = createBaseRepository(chats, undefined, selectChatSchema, 'Chat')
 
 // ChatMessages don't have updatedAt field, so custom implementation needed
 
@@ -40,14 +40,15 @@ export const chatRepository = extendRepository(baseChatRepository, {
    * Get chat with all messages
    */
   async getWithMessages(id: number): Promise<ChatWithMessages | null> {
-    return db.query.chats.findFirst({
+    const result = await db.query.chats?.findFirst({
       where: eq(chats.id, id),
       with: {
         messages: {
           orderBy: asc(chatMessages.createdAt)
         }
       }
-    }) as Promise<ChatWithMessages | null>
+    })
+    return result as ChatWithMessages | null
   },
 
   // =============================================================================

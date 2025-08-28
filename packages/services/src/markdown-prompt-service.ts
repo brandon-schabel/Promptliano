@@ -12,7 +12,7 @@
 
 import { withErrorContext, createServiceLogger, type ServiceLogger } from './core/base-service'
 import { addTimestamps, convertNullsToUndefined, jsonToStringArray, nullToUndefined } from './utils/file-utils'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import {
   type ParsedMarkdownPrompt,
   type MarkdownFrontmatter,

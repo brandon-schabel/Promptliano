@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR QUEUE
- * Generated at: 2025-08-22T23:50:50.384Z
- *
+ * Generated at: 2025-08-27T15:26:33.553Z
+ * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
  * 🏭 Generated from service: @promptliano/services
@@ -10,9 +10,11 @@
 
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { createAndRegisterEntityRoutes, type EntityConfig } from '../../codegen/route-factory'
-import { queueService } from '@promptliano/services'
-import { QueueSchema, CreateQueueSchema, UpdateQueueSchema } from '@promptliano/database'
+import { queueServiceV2 } from '@promptliano/services'
 import {
+  QueueSchema,
+  CreateQueueSchema,
+  UpdateQueueSchema,
   QueueIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
@@ -44,7 +46,7 @@ const queueConfig: EntityConfig = {
     update: UpdateQueueSchema,
     id: QueueIdParamsSchema.shape.id
   },
-  service: queueService,
+  service: queueServiceV2,
   options: {
     includeSoftDelete: true,
     enableBatch: false,
@@ -57,7 +59,7 @@ const queueConfig: EntityConfig = {
       summary: 'Process queue',
       description: 'Start processing items in the queue',
       handlerName: 'process',
-      response: OperationSuccessResponseSchema
+      response: OperationSuccessResponseSchema,
     }
   ]
 }
@@ -72,9 +74,9 @@ const queueConfig: EntityConfig = {
  */
 export function registerQueueRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, queueConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Queue`)
-
+  
   return updatedApp
 }
 

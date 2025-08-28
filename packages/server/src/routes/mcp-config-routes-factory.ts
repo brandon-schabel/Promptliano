@@ -105,7 +105,7 @@ const updateGlobalConfigRoute = createRoute({
 })
 
 mcpGlobalConfigRoutes.openapi(updateGlobalConfigRoute, withErrorHandling(async (c) => {
-  const updates = c.req.valid('json')
+  const updates = await c.req.json()
   await mcpGlobalConfigService.initialize()
   const updatedConfig = await mcpGlobalConfigService.updateGlobalConfig(updates)
   return c.json(successResponse(updatedConfig))
@@ -181,7 +181,7 @@ const installGlobalMCPRoute = createRoute({
 })
 
 mcpGlobalConfigRoutes.openapi(installGlobalMCPRoute, withErrorHandling(async (c) => {
-  const { tool, serverUrl, debug } = c.req.valid('json')
+  const { tool, serverUrl, debug } = await c.req.json()
   const result = await mcpInstallationService.installGlobalMCP(tool, serverUrl, debug)
   
   if (!result.success) {
@@ -223,7 +223,7 @@ const uninstallGlobalMCPRoute = createRoute({
 })
 
 mcpGlobalConfigRoutes.openapi(uninstallGlobalMCPRoute, withErrorHandling(async (c) => {
-  const { tool } = c.req.valid('json')
+  const { tool } = await c.req.json()
   const result = await mcpInstallationService.uninstallGlobalMCP(tool)
   
   if (!result.success) {
@@ -291,7 +291,7 @@ const getConfigLocationsRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(getConfigLocationsRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
+  const projectId = parseInt(c.req.param('projectId')!)
   const locations = await mcpProjectConfigService.getConfigLocations(projectId)
   return c.json(successResponse({ locations }))
 }))
@@ -316,7 +316,7 @@ const getMergedConfigRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(getMergedConfigRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
+  const projectId = parseInt(c.req.param('projectId')!)
   const config = await mcpProjectConfigService.getMergedConfig(projectId)
   return c.json(successResponse({ config }))
 }))
@@ -342,7 +342,7 @@ const getProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(getProjectConfigRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
+  const projectId = parseInt(c.req.param('projectId')!)
   const result = await mcpProjectConfigService.getProjectConfig(projectId)
   return c.json(successResponse(result))
 }))
@@ -376,8 +376,8 @@ const updateProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(updateProjectConfigRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
-  const config = c.req.valid('json')
+  const projectId = parseInt(c.req.param('projectId')!)
+  const config = await c.req.json()
   const result = await mcpProjectConfigService.updateProjectConfig(projectId, config)
   return c.json(successResponse(result))
 }))
@@ -400,7 +400,7 @@ const deleteProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(deleteProjectConfigRoute, withErrorHandling(async (c) => {
-  const { projectId } = c.req.valid('param')
+  const projectId = parseInt(c.req.param('projectId')!)
   await mcpProjectConfigService.deleteProjectConfig(projectId)
   return c.json(operationSuccessResponse('Project configuration deleted successfully'))
 }))

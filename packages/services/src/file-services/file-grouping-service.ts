@@ -5,7 +5,7 @@ import type {
   FileRelationshipType,
   GroupingStrategy
 } from '@promptliano/database'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createFileService, createFileFilter, type FileServiceConfig } from './file-service-factory'
 
 export interface FileRelationshipGraph {

@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { createLogger } from './utils/logger'
 import { EventEmitter } from 'events'
 import { withErrorContext, withRetry } from './utils/service-helpers'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { 
   MCPErrorFactory, 
   MCPFileOps, 
@@ -74,6 +75,18 @@ export interface MCPGlobalConfigService {
   hasGlobalInstallation(tool: string): Promise<boolean>
   getGlobalServerConfig(): Promise<GlobalMCPServerConfig>
   getDefaultConfig(): GlobalMCPConfig
+  getInstallationStatus(): Promise<{
+    configExists: boolean
+    configPath: string
+    lastModified?: number
+    totalInstallations: number
+    installedTools: string[]
+    installation: {
+      supported: boolean
+      scriptPath: string
+      scriptExists: boolean
+    }
+  }>
   cleanup(): Promise<void>
   // EventEmitter-like interface for compatibility
   on(event: string, listener: (...args: any[]) => void): void
@@ -86,7 +99,7 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
     logger = createLogger('MCPGlobalConfigService'),
     configPath = path.join(os.homedir(), '.promptliano', 'global-mcp-config.json'),
     enableWatching = true,
-    cacheConfig = MCPCacheConfig.config
+    cacheConfig = MCPCacheConfig.config || { ttl: 30000, maxEntries: 50 }
   } = deps || {}
 
   // Internal state
@@ -132,7 +145,7 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
         { entity: 'GlobalMCPConfig', action: 'get' }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'global-config' }
+    { ttl: cacheConfig?.ttl || 30000, maxEntries: 1, keyGenerator: () => 'global-config' }
   )
 
   /**
@@ -148,7 +161,9 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
             // Validate updates
             if (updates.servers) {
               for (const [serverName, serverConfig] of Object.entries(updates.servers)) {
-                MCPValidation.validateRequiredFields(serverConfig, ['command'], `server ${serverName}`)
+                if (!serverConfig.command) {
+                  throw ErrorFactory.missingRequired('command', `server ${serverName}`)
+                }
               }
             }
 
@@ -188,7 +203,7 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
         { entity: 'GlobalMCPConfig', action: 'getInstallations' }
       )
     },
-    { ttl: cacheConfig.ttl, maxEntries: 1, keyGenerator: () => 'installations' }
+    { ttl: cacheConfig?.ttl || 30000, maxEntries: 1, keyGenerator: () => 'installations' }
   )
 
   /**
@@ -200,8 +215,18 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
         return withRetry(
           async () => {
             // Validate installation data
-            MCPValidation.validateRequiredFields(installation, ['tool', 'configPath', 'serverName'], 'installation')
-            MCPValidation.validateTool(installation.tool)
+            const requiredFields = ['tool', 'configPath', 'serverName']
+            for (const field of requiredFields) {
+              if (!installation[field as keyof typeof installation]) {
+                throw ErrorFactory.missingRequired(field, 'installation')
+              }
+            }
+            
+            // Validate tool name
+            const validTools = ['claude-desktop', 'vscode', 'cursor', 'continue', 'claude-code', 'windsurf']
+            if (!validTools.includes(installation.tool)) {
+              throw ErrorFactory.invalidInput('tool', validTools.join(', '), installation.tool)
+            }
 
             const state = await loadState()
 
@@ -240,7 +265,11 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
       async () => {
         return withRetry(
           async () => {
-            MCPValidation.validateTool(tool)
+            // Validate tool name
+            const validTools = ['claude-desktop', 'vscode', 'cursor', 'continue', 'claude-code', 'windsurf']
+            if (!validTools.includes(tool)) {
+              throw ErrorFactory.invalidInput('tool', validTools.join(', '), tool)
+            }
             
             const state = await loadState()
             const removed = state.installations.find((i) => i.tool === tool)
@@ -270,7 +299,11 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
   const hasGlobalInstallation = async (tool: string): Promise<boolean> => {
     return withErrorContext(
       async () => {
-        MCPValidation.validateTool(tool)
+        // Validate tool name
+        const validTools = ['claude-desktop', 'vscode', 'cursor', 'continue', 'claude-code', 'windsurf']
+        if (!validTools.includes(tool)) {
+          throw ErrorFactory.invalidInput('tool', validTools.join(', '), tool)
+        }
         const state = await loadState()
         return state.installations.some((i) => i.tool === tool)
       },
@@ -363,6 +396,55 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
       debugMode: false,
       globalEnv: {}
     }
+  }
+
+  /**
+   * Get installation status information
+   */
+  const getInstallationStatus = async () => {
+    return withErrorContext(
+      async () => {
+        const state = await loadState()
+        const installations = state.installations
+        
+        // Get script path
+        let promptlianoPath = process.cwd()
+        if (promptlianoPath.includes('packages/server')) {
+          promptlianoPath = path.resolve(promptlianoPath, '../..')
+        }
+        
+        const scriptPath = process.platform === 'win32'
+          ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+          : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+        
+        const scriptExists = await MCPFileOps.fileExists(scriptPath)
+        const configExists = await MCPFileOps.fileExists(configPath)
+        
+        let lastModified: number | undefined
+        if (configExists) {
+          try {
+            const stats = await fs.stat(configPath)
+            lastModified = stats.mtime.getTime()
+          } catch {
+            // Ignore stat errors
+          }
+        }
+        
+        return {
+          configExists,
+          configPath,
+          lastModified,
+          totalInstallations: installations.length,
+          installedTools: installations.map(i => i.tool),
+          installation: {
+            supported: true,
+            scriptPath,
+            scriptExists
+          }
+        }
+      },
+      { entity: 'GlobalMCPConfig', action: 'getInstallationStatus' }
+    )
   }
 
   /**
@@ -492,6 +574,7 @@ export function createMCPGlobalConfigService(deps?: MCPGlobalConfigDependencies)
     hasGlobalInstallation,
     getGlobalServerConfig,
     getDefaultConfig,
+    getInstallationStatus,
     cleanup,
     // EventEmitter compatibility
     on: eventEmitter.on.bind(eventEmitter),

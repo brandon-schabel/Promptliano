@@ -1,4 +1,4 @@
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import type { File } from '@promptliano/database'
 
 // Utility types for file operations

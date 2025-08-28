@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as os from 'os'
 import { z } from 'zod'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createFileService, createFileCache, type FileServiceConfig } from './file-service-factory'
 
 export const DetectedAgentFileSchema = z.object({

@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { QueueStatsCard } from '../queue-stats-card'
 import { QueueDetailsDialog } from '../queue-details-dialog'
 import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
-import { QueueWithStats } from '@promptliano/schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 import { useState } from 'react'
 import {
   AlertDialog,
@@ -42,27 +42,27 @@ export function QueueOverviewView({
   const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.queuedItems || 0), 0) || 0
   const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.inProgressItems || 0), 0) || 0
   const totalCompleted = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.completedItems || 0), 0) || 0
-  const activeQueues = queuesWithStats?.filter((q: any) => q.status === 'active').length || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.queue?.isActive === true).length || 0
 
-  const handlePauseQueue = async (queue: any) => {
-    if (!queue?.id) return
+  const handlePauseQueue = async (queueWithStats: any) => {
+    if (!queueWithStats?.queue?.id) return
     await updateQueueMutation.mutateAsync({
-      id: queue.id,
-      data: { status: 'paused' }
+      id: queueWithStats.queue.id,
+      data: { isActive: false }
     })
   }
 
-  const handleResumeQueue = async (queue: any) => {
-    if (!queue?.id) return
+  const handleResumeQueue = async (queueWithStats: any) => {
+    if (!queueWithStats?.queue?.id) return
     await updateQueueMutation.mutateAsync({
-      id: queue.id,
-      data: { status: 'active' }
+      id: queueWithStats.queue.id,
+      data: { isActive: true }
     })
   }
 
-  const handleDeleteQueue = async (queue: any) => {
-    if (!queue?.id) return
-    await deleteQueueMutation.mutateAsync(queue.id)
+  const handleDeleteQueue = async (queueWithStats: any) => {
+    if (!queueWithStats?.queue?.id) return
+    await deleteQueueMutation.mutateAsync(queueWithStats.queue.id)
     setQueueToDelete(null)
   }
 
@@ -114,17 +114,17 @@ export function QueueOverviewView({
         ) : queuesWithStats && queuesWithStats.length > 0 ? (
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
             {queuesWithStats
-              .filter((queueWithStats) => queueWithStats && queueWithStats.id)
+              .filter((queueWithStats) => queueWithStats && queueWithStats.queue?.id)
               .map((queueWithStats) => (
                 <QueueStatsCard
-                  key={queueWithStats.id}
+                  key={queueWithStats.queue.id}
                   queueWithStats={queueWithStats}
                   onPause={() => handlePauseQueue(queueWithStats)}
                   onResume={() => handleResumeQueue(queueWithStats)}
                   onDelete={() => setQueueToDelete(queueWithStats)}
                   onViewDetails={() => setSelectedQueue(queueWithStats)}
-                  isSelected={selectedQueueId === queueWithStats.id}
-                  onSelect={() => onQueueSelect(queueWithStats.id)}
+                  isSelected={selectedQueueId === queueWithStats.queue.id}
+                  onSelect={() => onQueueSelect(queueWithStats.queue.id)}
                 />
               ))}
           </div>

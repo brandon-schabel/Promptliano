@@ -11,11 +11,11 @@ import { createStandardResponses, successResponse, operationSuccessResponse } fr
 import {
   TicketSchema,
   TicketTaskSchema,
-  CreateTicketBodySchema,
-  UpdateTicketBodySchema,
-  CreateTaskBodySchema,
-  UpdateTaskBodySchema,
-  TaskQueueSchema,
+  CreateTicketSchema,
+  UpdateTicketSchema,
+  CreateTicketTaskSchema,
+  UpdateTicketTaskSchema,
+  QueueSchema,
   entityIdSchema
 } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
@@ -47,7 +47,7 @@ const FlowDataSchema = z.object({
   queues: z.record(
     z.string(),
     z.object({
-      queue: TaskQueueSchema,
+      queue: QueueSchema,
       tickets: z.array(TicketSchema),
       tasks: z.array(TicketTaskSchema)
     })

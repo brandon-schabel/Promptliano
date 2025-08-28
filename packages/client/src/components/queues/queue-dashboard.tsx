@@ -83,15 +83,16 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
     const queueData = flowData.queues[queueId]
     const total = (queueData.tickets?.length || 0) + (queueData.tasks?.length || 0)
     return {
-      total,
-      pending: total, // All items in queue are pending
-      processing: 0,
-      completed: 0,
-      failed: 0,
-      currentAgents: [], // No agents currently processing items
-      completedItems: 0,
+      queueId,
+      queueName: queue?.name || 'Queue',
       totalItems: total,
-      averageProcessingTime: undefined
+      queuedItems: total, // All items in queue are queued
+      inProgressItems: 0,
+      completedItems: 0,
+      failedItems: 0,
+      cancelledItems: 0,
+      currentAgents: [], // No agents currently processing items
+      averageProcessingTime: null
     }
   }, [flowData, queueId])
 
@@ -153,8 +154,8 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   }
 
   const isActive = queue.isActive
-  const totalItems = stats?.total || 0
-  const processedItems = (stats?.completed || 0) + (stats?.failed || 0)
+  const totalItems = stats?.totalItems || 0
+  const processedItems = (stats?.completedItems || 0) + (stats?.failedItems || 0)
   const progressPercentage = totalItems > 0 ? (processedItems / totalItems) * 100 : 0
 
   const handleToggleStatus = async () => {
@@ -207,7 +208,7 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
           {queue.description && <p className='text-muted-foreground'>{queue.description}</p>}
           <div className='flex items-center gap-2 mt-2'>
             <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Paused'}</Badge>
-            <Badge variant='outline'>Max Parallel: {queue.maxParallelItems}</Badge>
+            <Badge variant='outline'>Max Parallel: {(queue as any).maxParallelItems || (queue as any).maxConcurrency || 1}</Badge>
             {stats.currentAgents.length > 0 && (
               <Badge variant='outline' className='flex items-center gap-1'>
                 <Users className='h-3 w-3' />
@@ -293,10 +294,10 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
 
       {/* Statistics Grid */}
       <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-        <MetricCard label='Queued' value={stats.pending} icon={Package} />
-        <MetricCard label='In Progress' value={stats.processing} icon={Activity} color='orange' />
-        <MetricCard label='Completed' value={stats.completed} icon={CheckCircle2} color='green' />
-        <MetricCard label='Failed' value={stats.failed} icon={XCircle} color='red' />
+        <MetricCard label='Queued' value={stats.queuedItems} icon={Package} />
+        <MetricCard label='In Progress' value={stats.inProgressItems} icon={Activity} color='orange' />
+        <MetricCard label='Completed' value={stats.completedItems} icon={CheckCircle2} color='green' />
+        <MetricCard label='Failed' value={stats.failedItems} icon={XCircle} color='red' />
       </div>
 
       {/* Performance Metrics */}

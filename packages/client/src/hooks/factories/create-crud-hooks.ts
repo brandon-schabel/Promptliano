@@ -267,7 +267,7 @@ export function createCrudHooks<
         const response = await api.update(id, data)
         return response.data || response
       },
-      onMutate: options.optimistic ? async ({ id, data }) => {
+      onMutate: options.optimistic ? async ({ id, data }: { id: number | string; data: TUpdate }) => {
         // Cancel outgoing queries
         await queryClient.cancelQueries({ queryKey: KEYS.detail(id) })
         await queryClient.cancelQueries({ queryKey: KEYS.lists() })
@@ -305,11 +305,12 @@ export function createCrudHooks<
       } : undefined,
       onError: (error, { id }, context) => {
         // Rollback optimistic updates
-        if (options.optimistic && context) {
-          if (context.previousDetail) {
-            queryClient.setQueryData(KEYS.detail(id), context.previousDetail)
+        if (options.optimistic && context && typeof context === 'object' && context !== null && 'previousDetail' in context) {
+          const optContext = context as { previousDetail?: TEntity; previousLists?: [readonly unknown[], TEntity[] | undefined][] }
+          if (optContext.previousDetail) {
+            queryClient.setQueryData(KEYS.detail(id), optContext.previousDetail)
           }
-          context.previousLists?.forEach(([queryKey, data]) => {
+          optContext.previousLists?.forEach(([queryKey, data]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }
@@ -353,7 +354,7 @@ export function createCrudHooks<
         
         await api.delete(id)
       },
-      onMutate: options.optimistic ? async (id) => {
+      onMutate: options.optimistic ? async (id: number | string) => {
         // Cancel outgoing queries
         await queryClient.cancelQueries({ queryKey: KEYS.lists() })
         
@@ -379,8 +380,9 @@ export function createCrudHooks<
       } : undefined,
       onError: (error, id, context) => {
         // Rollback optimistic updates
-        if (options.optimistic && context) {
-          context.previousLists?.forEach(([queryKey, data]) => {
+        if (options.optimistic && context && typeof context === 'object' && context !== null && 'previousLists' in context) {
+          const optContext = context as { previousLists?: [readonly unknown[], TEntity[] | undefined][] }
+          optContext.previousLists?.forEach(([queryKey, data]) => {
             queryClient.setQueryData(queryKey, data)
           })
         }

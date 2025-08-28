@@ -133,23 +133,23 @@ const deleteBranchRoute = createRoute({
 // Export routes with simplified handlers
 export const gitBranchRoutes = new OpenAPIHono()
   .openapi(getBranchesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const branches = await getBranches(projectId)
     return c.json(successResponse(branches))
   })
   .openapi(getBranchesEnhancedRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const result = await getBranchesEnhanced(projectId)
     return c.json(successResponse(result))
   })
   .openapi(createBranchRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await createBranch(projectId, body.name, body.startPoint)
     return c.json(operationSuccessResponse('Branch created successfully'), 201)
   })
   .openapi(switchBranchRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await switchBranch(projectId, body.name)
     clearGitStatusCache(projectId)

@@ -11,7 +11,7 @@
  */
 
 import { withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import type { ProjectTabMetadata } from '@promptliano/database'
 import type { ProjectTabState } from '@promptliano/schemas'
 

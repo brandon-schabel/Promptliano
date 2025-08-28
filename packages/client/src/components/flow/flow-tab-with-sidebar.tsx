@@ -53,10 +53,10 @@ export function FlowTabWithSidebar({
   const isCompact = useMediaQuery('(max-width: 768px)')
 
   // Fetch tickets for the tickets view
-  const { data: rawTickets, isLoading, refetch, error } = useTickets({ projectId })
+  const { data: rawTickets, isLoading, refetch, error } = (useTickets as any)({ projectId })
 
   // Fetch available queues
-  const { data: queuesData } = useQueues({ projectId })
+  const { data: queuesData } = (useQueues as any)({ projectId })
 
   // Transform tickets to include empty tasks array for now
   // TODO: Use proper ticket with tasks hook when available

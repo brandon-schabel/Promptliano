@@ -1,6 +1,6 @@
 import { watch as fsWatch, type FSWatcher, existsSync as fsLibExistsSync } from 'fs'
 import { join, extname, resolve as pathResolve, relative, basename } from 'node:path'
-import { readdirSync, readFileSync, statSync, Dirent, existsSync as nodeFsExistsSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, Dirent, existsSync as nodeFsExistsSync } from 'fs'
 import { type Project, type File as ProjectFile } from '@promptliano/database'
 import { getFilesConfig } from '@promptliano/config'
 import ignorePackage, { type Ignore } from 'ignore'
@@ -29,6 +29,129 @@ const logger = createLogger('FileSync')
 const watcherLogger = logger.child('Watcher')
 const pluginLogger = logger.child('Plugin')
 const cleanupLogger = logger.child('Cleanup')
+
+// -------------------------------------------------------------------------------- //
+// -------------------------------- SYNC OPTIMIZATION UTILITIES -------------------- //
+// -------------------------------------------------------------------------------- //
+
+/**
+ * Debounced sync utility to prevent multiple rapid sync operations
+ */
+class DebouncedSync {
+  private timers = new Map<number, NodeJS.Timeout>()
+  private logger = createLogger('DebouncedSync')
+
+  scheduleSync(
+    projectId: number,
+    syncFn: () => Promise<void>,
+    delay: number = 500
+  ): void {
+    // Cancel existing timer for this project
+    const existingTimer = this.timers.get(projectId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+      this.logger.debug(`Cancelled previous sync timer for project ${projectId}`)
+    }
+
+    // Schedule new sync
+    const timer = setTimeout(async () => {
+      this.timers.delete(projectId)
+      this.logger.debug(`Executing debounced sync for project ${projectId}`)
+      try {
+        await syncFn()
+      } catch (error) {
+        this.logger.error(`Debounced sync failed for project ${projectId}`, error)
+      }
+    }, delay)
+
+    this.timers.set(projectId, timer)
+    this.logger.debug(`Scheduled sync for project ${projectId} in ${delay}ms`)
+  }
+
+  cancelSync(projectId: number): void {
+    const timer = this.timers.get(projectId)
+    if (timer) {
+      clearTimeout(timer)
+      this.timers.delete(projectId)
+      this.logger.debug(`Cancelled sync timer for project ${projectId}`)
+    }
+  }
+
+  cancelAllSyncs(): void {
+    this.timers.forEach((timer, projectId) => {
+      clearTimeout(timer)
+      this.logger.debug(`Cancelled sync timer for project ${projectId}`)
+    })
+    this.timers.clear()
+  }
+}
+
+/**
+ * Sync lock manager to prevent concurrent sync operations
+ */
+class SyncLockManager {
+  private locks = new Map<number, boolean>()
+  private logger = createLogger('SyncLock')
+
+  isLocked(projectId: number): boolean {
+    return this.locks.get(projectId) === true
+  }
+
+  acquire(projectId: number): boolean {
+    if (this.isLocked(projectId)) {
+      this.logger.debug(`Sync lock already held for project ${projectId}`)
+      return false
+    }
+    this.locks.set(projectId, true)
+    this.logger.debug(`Acquired sync lock for project ${projectId}`)
+    return true
+  }
+
+  release(projectId: number): void {
+    this.locks.delete(projectId)
+    this.logger.debug(`Released sync lock for project ${projectId}`)
+  }
+
+  releaseAll(): void {
+    this.locks.clear()
+    this.logger.debug('Released all sync locks')
+  }
+}
+
+/**
+ * Utility to check if file changes should be ignored to prevent sync loops
+ */
+function shouldIgnoreSyncTrigger(filePath: string): boolean {
+  const ignoredPatterns = [
+    // Database files
+    /\.db$/,
+    /\.sqlite$/,
+    /\.db-journal$/,
+    // Log files
+    /\.log$/,
+    // Temporary files
+    /\.tmp$/,
+    /\.temp$/,
+    /~$/,
+    // OS files
+    /\.DS_Store$/,
+    /Thumbs\.db$/,
+    // IDE files
+    /\.vscode\/.*\.json$/,
+    // Build artifacts
+    /node_modules/,
+    /dist/,
+    /build/,
+    // Version control
+    /\.git\//
+  ]
+
+  return ignoredPatterns.some(pattern => pattern.test(filePath))
+}
+
+// Global instances
+const debouncedSync = new DebouncedSync()
+const syncLockManager = new SyncLockManager()
 
 // -------------------------------------------------------------------------------- //
 // -------------------------------- TYPE DEFINITIONS ------------------------------ //
@@ -591,15 +714,22 @@ export async function syncProject(
   project: Project,
   progressTracker?: import('../utils/sync-progress-tracker').SyncProgressTracker
 ): Promise<{ created: number; updated: number; deleted: number; skipped: number }> {
+  // Check if sync is already in progress for this project
+  if (!syncLockManager.acquire(project.id)) {
+    logger.debug(`[SYNC SKIPPED] Sync already in progress for project: ${project.name} (ID: ${project.id})`)
+    return { created: 0, updated: 0, deleted: 0, skipped: 0 }
+  }
+
   const startTime = Date.now()
   logger.info(`[SYNC START] Project: ${project.name} (ID: ${project.id})`)
 
-  // Initialize progress tracking
-  progressTracker?.setPhase('initializing', `Initializing sync for ${project.name}...`)
+  try {
+    // Initialize progress tracking
+    progressTracker?.setPhase('initializing', `Initializing sync for ${project.name}...`)
 
-  // Wrap the sync operation in retry logic for resilience
-  return retryOperation(
-    async () => {
+    // Wrap the sync operation in retry logic for resilience
+    return await retryOperation(
+      async () => {
       const absoluteProjectPath = resolvePath(project.path)
       if (!nodeFsExistsSync(absoluteProjectPath) || !statSync(absoluteProjectPath).isDirectory()) {
         const error = new Error(`Project path is not a valid directory: ${project.path}`)
@@ -671,15 +801,19 @@ export async function syncProject(
         return shouldRetry
       }
     }
-  ).catch((error: any) => {
-    const duration = Date.now() - startTime
-    logger.error(
-      `[SYNC FAILED] Project ${project.id} ${project.name} failed after ${duration}ms and all retry attempts`,
-      error
-    )
-    progressTracker?.error(error)
-    throw error
-  })
+    ).catch((error: any) => {
+      const duration = Date.now() - startTime
+      logger.error(
+        `[SYNC FAILED] Project ${project.id} ${project.name} failed after ${duration}ms and all retry attempts`,
+        error
+      )
+      progressTracker?.error(error)
+      throw error
+    })
+  } finally {
+    // Always release the sync lock, regardless of success or failure
+    syncLockManager.release(project.id)
+  }
 }
 
 /**
@@ -745,45 +879,60 @@ export function createFileChangePlugin() {
       pluginLogger.warn('Project not set, cannot handle file change.')
       return
     }
-    pluginLogger.verbose(`Detected ${event} for ${changedFilePath} in project ${currentProject.id}`)
-    try {
-      // Re-sync the entire project to update DB based on the change
-      // For performance on very large projects, a more targeted sync might be considered,
-      // but full sync ensures consistency.
-      await syncProject(currentProject) // Uses the syncProject defined in this file
 
-      // After sync, the DB should reflect the file's current state (or its absence if deleted)
-      const allFiles = await getProjectFiles(currentProject.id) // From project-service
-      if (!allFiles) {
-        pluginLogger.warn(`No files found for project ${currentProject.id} after sync.`)
-        return
-      }
-
-      const absoluteProjectPath = resolvePath(currentProject.path)
-      const relativeChangedPath = normalizePathForDbUtil(relative(absoluteProjectPath, changedFilePath))
-
-      const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
-
-      if (event === 'deleted') {
-        pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
-        // Potentially trigger other cleanup actions for deleted files if necessary.
-        return
-      }
-
-      if (!updatedFile) {
-        // This might happen if the file was immediately deleted after a create/modify event,
-        // or if syncProject determined it shouldn't be tracked.
-        pluginLogger.verbose(`File ${relativeChangedPath} not found in project records after sync. Event was ${event}.`)
-        return
-      }
-
-      // Re-summarize the (created or modified) file
-      pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
-      await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
-      pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
-    } catch (err) {
-      pluginLogger.error('Error handling file change', err)
+    // Check if this file change should be ignored to prevent sync loops
+    if (shouldIgnoreSyncTrigger(changedFilePath)) {
+      pluginLogger.debug(`Ignoring file change for ${changedFilePath} to prevent sync loops`)
+      return
     }
+
+    pluginLogger.verbose(`Detected ${event} for ${changedFilePath} in project ${currentProject.id}`)
+
+    // Use debounced sync to prevent multiple rapid sync operations
+    const projectId = currentProject.id
+    const project = currentProject // Capture for closure
+    
+    debouncedSync.scheduleSync(projectId, async () => {
+      try {
+        pluginLogger.debug(`Executing debounced sync for file change: ${changedFilePath}`)
+        // Re-sync the entire project to update DB based on the change
+        // For performance on very large projects, a more targeted sync might be considered,
+        // but full sync ensures consistency.
+        await syncProject(project) // Uses the syncProject defined in this file
+
+        // After sync, the DB should reflect the file's current state (or its absence if deleted)
+        const allFiles = await getProjectFiles(project.id) // From project-service
+        if (!allFiles) {
+          pluginLogger.warn(`No files found for project ${project.id} after sync.`)
+          return
+        }
+
+        const absoluteProjectPath = resolvePath(project.path)
+        const relativeChangedPath = normalizePathForDbUtil(relative(absoluteProjectPath, changedFilePath))
+
+        const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
+
+        if (event === 'deleted') {
+          pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
+          // Potentially trigger other cleanup actions for deleted files if necessary.
+          return
+        }
+
+        if (!updatedFile) {
+          // This might happen if the file was immediately deleted after a create/modify event,
+          // or if syncProject determined it shouldn't be tracked.
+          pluginLogger.verbose(`File ${relativeChangedPath} not found in project records after sync. Event was ${event}.`)
+          return
+        }
+
+        // Re-summarize the (created or modified) file
+        pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
+        await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
+        pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
+      } catch (err) {
+        pluginLogger.error('Error in debounced file change sync', err)
+      }
+    }, 500) // 500ms debounce delay - can be made configurable
   }
 
   async function start(project: Project, ignorePatterns: string[] = []): Promise<void> {
@@ -901,26 +1050,58 @@ export function createCleanupService(options: CleanupOptions) {
         cleanupLogger.debug('No projects found to clean up.')
         return []
       }
-      cleanupLogger.debug(`Found ${projectsToClean.length} projects to process.`)
+      cleanupLogger.debug(`Found ${projectsToClean.length} projects to clean up orphaned files.`)
 
       const results: CleanupResult[] = []
 
       for (const project of projectsToClean) {
-        cleanupLogger.verbose(`Processing project ${project.id} (${project.name})`)
+        cleanupLogger.verbose(`Cleaning orphaned files for project ${project.id} (${project.name})`)
         try {
-          // The core "cleanup" action is to sync the project.
-          await syncProject(project) // Uses the syncProject defined in this file
+          // Clean orphaned files from database - files that exist in DB but not on disk
+          let removedCount = 0
+
+          // Get all files for this project from database
+          const projectFiles = await getProjectFiles(project.id)
+          cleanupLogger.debug(`Found ${projectFiles.length} files in database for project ${project.id}`)
+
+          // Check which files no longer exist on disk
+          const projectPath = resolvePath(project.path)
+          const orphanedFiles: string[] = []
+
+          for (const dbFile of projectFiles) {
+            const fullPath = pathResolve(projectPath, dbFile.path)
+            if (!nodeFsExistsSync(fullPath)) {
+              orphanedFiles.push(dbFile.id)
+              cleanupLogger.verbose(`Found orphaned file: ${dbFile.path}`)
+            }
+          }
+
+          // Remove orphaned files from database
+          if (orphanedFiles.length > 0) {
+            await bulkDeleteProjectFiles(project.id, orphanedFiles)
+            removedCount = orphanedFiles.length
+            cleanupLogger.info(`Removed ${removedCount} orphaned files from project ${project.id}`)
+
+            // Also remove from search index
+            try {
+              for (const fileId of orphanedFiles) {
+                await fileIndexingService.removeFileFromIndex(fileId)
+              }
+              cleanupLogger.debug(`Removed ${orphanedFiles.length} files from search index`)
+            } catch (indexError) {
+              cleanupLogger.warn(`Failed to remove some files from search index`, indexError)
+              // Don't fail the cleanup for index errors
+            }
+          } else {
+            cleanupLogger.debug(`No orphaned files found for project ${project.id}`)
+          }
+
           results.push({
             projectId: project.id,
             status: 'success',
-            removedCount: 0 // syncProject doesn't directly return removedCount in this context
-            // This field might need re-evaluation based on what "removedCount" means here.
-            // Assuming it means files removed *by sync*, which syncProject result provides.
-            // However, original cleanup-service hardcoded 0.
-            // For now, keeping it as 0 to match original behavior.
-            // To get actual counts, syncProject's return could be used.
+            removedCount
           })
-          cleanupLogger.verbose(`Successfully processed project ${project.id}.`)
+          cleanupLogger.verbose(`Successfully cleaned project ${project.id}, removed ${removedCount} orphaned files.`)
         } catch (error) {
           cleanupLogger.error(`Error cleaning project ${project.id}`, error)
           results.push({

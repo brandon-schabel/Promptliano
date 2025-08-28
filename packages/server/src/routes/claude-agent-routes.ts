@@ -135,7 +135,7 @@ const suggestClaudeAgentsRoute = createRoute({
 })
 
 export const claudeAgentRoutes = new OpenAPIHono<{}>()
-  .openapi(createClaudeAgentRoute, async (c) => {
+  .openapi(createClaudeAgentRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
     const { projectId } = c.req.valid('query')
 
@@ -172,7 +172,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     return c.json(successResponse(agents))
   })
   .openapi(getClaudeAgentByIdRoute, async (c) => {
-    const { agentId } = c.req.valid('param')
+    const { id: agentId } = c.req.valid('param')
     const { projectId } = c.req.valid('query')
 
     if (!projectId) {
@@ -188,7 +188,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     return c.json(successResponse(agent))
   })
   .openapi(updateClaudeAgentRoute, async (c) => {
-    const { agentId } = c.req.valid('param')
+    const { id: agentId } = c.req.valid('param')
     const body = c.req.valid('json')
     const { projectId } = c.req.valid('query')
 
@@ -205,7 +205,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     return c.json(successResponse(updatedAgent))
   })
   .openapi(deleteClaudeAgentRoute, async (c) => {
-    const { agentId } = c.req.valid('param')
+    const { id: agentId } = c.req.valid('param')
     const { projectId } = c.req.valid('query')
 
     if (!projectId) {
@@ -221,7 +221,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     return c.json(operationSuccessResponse('Agent deleted successfully.'))
   })
   .openapi(listProjectClaudeAgentsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const project = await getProjectById(projectId)
     if (!project) {
       throw new ApiError(404, 'Project not found', 'PROJECT_NOT_FOUND')
@@ -231,7 +231,7 @@ export const claudeAgentRoutes = new OpenAPIHono<{}>()
     return c.json(successResponse(agents))
   })
   .openapi(suggestClaudeAgentsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { userContext, limit } = c.req.valid('json')
     const suggestedAgents = await suggestAgents(projectId, userContext, limit)
     return c.json(successResponse(suggestedAgents))

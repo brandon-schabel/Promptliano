@@ -162,7 +162,9 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
           overview,
           priority,
           status,
-          suggestedFileIds: selectedFileIds
+          suggestedFileIds: selectedFileIds,
+          suggestedAgentIds: [],
+          suggestedPromptIds: []
         })
         // Reset form after successful creation
         resetForm()

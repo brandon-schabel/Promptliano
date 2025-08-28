@@ -53,6 +53,16 @@ export interface SearchHookConfig<TEntity, TFilters = Record<string, any>> {
   enableFacets?: boolean
 }
 
+export interface SearchHooks<TEntity, TFilters = Record<string, any>> {
+  useSearch: (params: SearchParams & TFilters) => any
+  useSuggestions: (query: string) => any
+  useFacets: (filters: TFilters) => any
+  useSearchWithHistory: (params: SearchParams & TFilters) => any
+  useInstantSearch: (params: SearchParams & TFilters) => any
+  usePrefetchSearch: () => any
+  useAdvancedSearch: () => any
+}
+
 // ============================================================================
 // Main Factory
 // ============================================================================

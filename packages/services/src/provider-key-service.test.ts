@@ -37,13 +37,26 @@ mockDecryptKey.mockImplementation(async (data: any) => {
   return 'decrypted_value'
 })
 
+// Mock validateJsonField
+const mockValidateJsonField = {
+  record: mock((value: any) => value || {})
+}
+
 // Mock the database module
 mock.module('@promptliano/database', () => ({
   providerKeyRepository: mockRepository,
   providerKeys: {
     provider: { name: 'provider' }
   },
-  eq: mock((field: any, value: any) => ({ field, value }))
+  eq: mock((field: any, value: any) => ({ field, value })),
+  ProviderKeySchema: {
+    safeParse: mock((data: any) => ({ success: true, data }))
+  }
+}))
+
+// Mock the schema transformers module
+mock.module('@promptliano/database/src/schema-transformers', () => ({
+  validateJsonField: mockValidateJsonField
 }))
 
 // Mock the crypto module
@@ -59,7 +72,7 @@ mock.module('@promptliano/shared/src/utils/crypto', () => ({
 // Import service and types after mocking
 const { createProviderKeyService } = await import('./provider-key-service')
 import type { ProviderKey, CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
-import { ErrorFactory } from '@promptliano/shared'
+import { ApiError } from '@promptliano/shared'
 
 describe('provider-key-service (Repository Pattern)', () => {
   let service: ReturnType<typeof createProviderKeyService>
@@ -239,7 +252,16 @@ describe('provider-key-service (Repository Pattern)', () => {
     test('updateKey throws ApiError if key not found', async () => {
       mockRepository.getById.mockResolvedValue(null)
 
-      await expect(service.updateKey(9999, { key: 'some_key' })).rejects.toThrow('Provider Key with ID 9999 not found')
+      await expect(service.updateKey(9999, { key: 'some_key' })).rejects.toThrow(ApiError)
+      
+      try {
+        await service.updateKey(9999, { key: 'some_key' })
+        expect(false).toBe(true) // Should not reach here
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError)
+        expect(error.message).toContain('Provider Key with ID 9999 not found')
+        expect(error.status).toBe(404)
+      }
 
       expect(mockRepository.getById).toHaveBeenCalledWith(9999)
     })

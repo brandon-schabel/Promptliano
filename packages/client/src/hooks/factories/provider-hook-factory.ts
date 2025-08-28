@@ -372,3 +372,11 @@ class TypeSafeProviderRegistry {
 }
 
 export const providerRegistry = new TypeSafeProviderRegistry()
+
+// ============================================================================
+// Aliases for backward compatibility
+// ============================================================================
+
+export const createProviderHooks = createProviderHookFactory
+export type ProviderHooks<T extends APIProviders> = ProviderHookFactory<T>
+export type { ProviderHookConfig }

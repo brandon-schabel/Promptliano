@@ -51,7 +51,11 @@ export interface ProjectServiceDeps {
  * Create Project Service with functional factory pattern
  */
 export function createProjectService(deps: ProjectServiceDeps = {}) {
-  const { repository = projectRepository, logger = createServiceLogger('ProjectService') } = deps
+  const { 
+    repository = projectRepository, 
+    logger = createServiceLogger('ProjectService'),
+    fileService: injectedFileService = fileService
+  } = deps
 
   // Base CRUD operations using the service factory
   const baseService = createCrudService<Project, CreateProjectBody, UpdateProjectBody>({
@@ -72,9 +76,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Check for duplicate path
           const existing = await repository.getByPath(data.path)
           if (existing) {
-            throw ErrorFactory.validation.constraintViolation(
-              `Project with path '${data.path}' already exists`
-            )
+            throw ErrorFactory.alreadyExists('Project', 'path', data.path)
           }
           
           // Use the base service create method
@@ -154,10 +156,10 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           lines.push('')
 
           // Add tickets section
-          const openTickets = relations.tickets?.filter((t) => t.status !== 'closed') || []
+          const openTickets = relations.tickets?.filter((t: any) => t.status !== 'closed') || []
           lines.push(`=== RECENT TICKETS (${openTickets.length} open) ===`)
           if (openTickets.length > 0) {
-            openTickets.slice(0, 5).forEach((ticket) => {
+            openTickets.slice(0, 5).forEach((ticket: any) => {
               const priority = ticket.priority ? `[${ticket.priority.toUpperCase()}]` : ''
               lines.push(`#${ticket.id}: ${ticket.title} ${priority}`)
             })
@@ -172,10 +174,10 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Add task queues section
           lines.push(`=== TASK QUEUES (${relations.queues?.length || 0} total) ===`)
           if (relations.queues?.length) {
-            relations.queues.forEach((queue) => {
-              const queuedItems = queue.items?.filter((item) => item.status === 'queued').length || 0
-              const inProgressItems = queue.items?.filter((item) => item.status === 'in_progress').length || 0
-              const completedItems = queue.items?.filter((item) => item.status === 'completed').length || 0
+            relations.queues.forEach((queue: any) => {
+              const queuedItems = queue.items?.filter((item: any) => item.status === 'queued').length || 0
+              const inProgressItems = queue.items?.filter((item: any) => item.status === 'in_progress').length || 0
+              const completedItems = queue.items?.filter((item: any) => item.status === 'completed').length || 0
 
               const statusIcon = queue.isActive ? '✓' : '⏸'
               lines.push(
@@ -286,15 +288,15 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
 
           return {
             ticketCount: relations.tickets?.length || 0,
-            openTickets: relations.tickets?.filter((t) => t.status !== 'closed').length || 0,
-            totalTasks: relations.tickets?.reduce((sum, ticket) => sum + (ticket.tasks?.length || 0), 0) || 0,
+            openTickets: relations.tickets?.filter((t: any) => t.status !== 'closed').length || 0,
+            totalTasks: relations.tickets?.reduce((sum: number, ticket: any) => sum + (ticket.tasks?.length || 0), 0) || 0,
             completedTasks:
               relations.tickets?.reduce(
-                (sum, ticket) => sum + (ticket.tasks?.filter((task) => task.status === 'completed').length || 0),
+                (sum: number, ticket: any) => sum + (ticket.tasks?.filter((task: any) => task.status === 'completed').length || 0),
                 0
               ) || 0,
             queueCount: relations.queues?.length || 0,
-            activeQueues: relations.queues?.filter((q) => q.isActive).length || 0,
+            activeQueues: relations.queues?.filter((q: any) => q.isActive).length || 0,
             chatCount: relations.chats?.length || 0,
             promptCount: relations.prompts?.length || 0
           }
@@ -311,7 +313,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists
           await baseService.getById(projectId)
-          return await fileService.getByProject(projectId, options)
+          return await injectedFileService.getByProject(projectId, options)
         },
         { entity: 'Project', action: 'getProjectFiles', id: projectId }
       )
@@ -325,7 +327,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           // Verify project exists
           await baseService.getById(projectId)
-          return await fileService.updateContent(projectId, fileId, content)
+          return await injectedFileService.updateContent(projectId, fileId, content)
         },
         { entity: 'Project', action: 'updateFileContent', id: projectId }
       )
@@ -388,7 +390,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
 
           // Simple file suggestion based on content search
           // TODO: Integrate with proper AI-based file suggestion service
-          const allFiles = await fileService.getByProject(projectId)
+          const allFiles = await injectedFileService.getByProject(projectId)
           const searchTerm = prompt.toLowerCase()
 
           const relevantFiles = allFiles
@@ -453,7 +455,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
             }
 
             // Update in database using file service
-            await fileService.update(file.id, {
+            await injectedFileService.update(file.id, {
               summary: result.object.summary,
               summaryLastUpdated: Date.now()
             } as any)
@@ -523,7 +525,7 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
 
       // Prepare file data with proper IDs and timestamps
       const now = Date.now()
-      const filesData = files.map((fileData) => ({
+      const filesData = files.map((fileData: FileSyncData) => ({
         id: `${projectId}_${fileData.path}`, // Composite ID for files
         projectId,
         name: fileData.name,
@@ -538,7 +540,7 @@ export const bulkCreateProjectFiles = async (projectId: number, files: FileSyncD
       }))
 
       // Use batch creation from file service
-      return await fileService.batch.createFiles(projectId, files)
+      return await injectedFileService.batch.createFiles(projectId, files)
     },
     { entity: 'Project', action: 'bulkCreateFiles', id: projectId }
   )
@@ -564,7 +566,7 @@ export const bulkUpdateProjectFiles = async (
       // File IDs are already strings in the new schema, so no conversion needed
 
       // Use batch updates from file service
-      return await fileService.batch.updateFiles(projectId, updates)
+      return await injectedFileService.batch.updateFiles(projectId, updates)
     },
     { entity: 'Project', action: 'bulkUpdateFiles', id: projectId }
   )
@@ -590,7 +592,7 @@ export const bulkDeleteProjectFiles = async (
       // File IDs are already strings in the new schema
 
       // Use batch deletion from file service
-      const deletedCount = await fileService.batch.deleteFiles(projectId, fileIds)
+      const deletedCount = await injectedFileService.batch.deleteFiles(projectId, fileIds)
 
       return { deletedCount }
     },
@@ -605,7 +607,7 @@ export const getProjectFileTree = async (projectId: number): Promise<any> => {
   return {
     name: 'Project Root',
     type: 'directory',
-    children: files.map((f) => ({
+    children: files.map((f: ProjectFile) => ({
       name: f.path,
       type: 'file',
       content: f.content

@@ -193,29 +193,15 @@ export const chatRoutes = new OpenAPIHono()
       { entity: 'Chat', action: 'list' }
     )
   })
-  .openapi(createChatRoute, async (c) => {
+  .openapi(createChatRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
-
-    return await withErrorContext(
-      async () => {
-        const chat = await chatService.createChat(body.title, {
-          copyExisting: body.copyExisting,
-          currentChatId: body.currentChatId
-        })
-        return c.json(
-          {
-            success: true,
-            data: chat
-          } satisfies z.infer<typeof ChatResponseSchema>,
-          201
-        )
-      },
-      {
-        entity: 'Chat',
-        action: 'create',
-        metadata: { title: body.title, copyExisting: body.copyExisting }
-      }
-    )
+    
+    const chat = await chatService.createChat(body.title, {
+      copyExisting: body.copyExisting,
+      currentChatId: body.currentChatId
+    })
+    
+    return c.json(successResponse(chat), 201)
   })
   .openapi(getChatMessagesRoute, async (c) => {
     const { chatId } = c.req.valid('param')
@@ -269,29 +255,17 @@ export const chatRoutes = new OpenAPIHono()
       }
     )
   })
-  .openapi(forkChatRoute, async (c) => {
+  .openapi(forkChatRoute, async (c): Promise<any> => {
     const { chatId } = c.req.valid('param')
     const { excludedMessageIds } = c.req.valid('json')
     const newChat = await chatService.forkChat(chatId, excludedMessageIds)
-    return c.json(
-      {
-        success: true,
-        data: newChat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
+    return c.json(successResponse(newChat), 201)
   })
-  .openapi(forkChatFromMessageRoute, async (c) => {
+  .openapi(forkChatFromMessageRoute, async (c): Promise<any> => {
     const { chatId, messageId } = c.req.valid('param')
     const { excludedMessageIds } = c.req.valid('json')
     const newChat = await chatService.forkChatFromMessage(chatId, messageId, excludedMessageIds)
-    return c.json(
-      {
-        success: true,
-        data: newChat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
+    return c.json(successResponse(newChat), 201)
   })
   .openapi(deleteMessageRoute, async (c) => {
     const { messageId, chatId } = c.req.valid('param')

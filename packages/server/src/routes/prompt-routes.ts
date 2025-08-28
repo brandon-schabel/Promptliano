@@ -376,18 +376,18 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
   .openapi(getPromptByIdRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
     return c.json(successResponse(prompt))
   })
   .openapi(updatePromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const body = (c.req as any).valid('json')
     const updatedPrompt = await updatePrompt(promptId, body)
     return c.json(successResponse(updatedPrompt))
   })
   .openapi(deletePromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     if (!deletePrompt) {
       throw new Error('Delete prompt function not available')
     }
@@ -456,7 +456,7 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
 
   .openapi(exportPromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
     // Ensure tags are properly typed for the promptToMarkdown function
     const promptForMarkdown = {

@@ -3,14 +3,9 @@
  * Replaces BaseService class with functional composition approach for 75% code reduction
  */
 
-import * as SharedModule from '@promptliano/shared'
+import { ErrorFactory } from '@promptliano/shared'
+import { ApiError } from '@promptliano/shared/src/error/api-error'
 import { z } from 'zod'
-
-// Defensive import to handle potential module resolution issues
-const ErrorFactory = SharedModule.ErrorFactory || SharedModule.default?.ErrorFactory
-if (!ErrorFactory || typeof ErrorFactory.operationFailed !== 'function') {
-  throw new Error('ErrorFactory not properly imported from @promptliano/shared. Available exports: ' + Object.keys(SharedModule).join(', '))
-}
 
 export interface ServiceLogger {
   info(msg: string, meta?: any): void
@@ -55,7 +50,8 @@ export function withErrorContext<T>(
     }
 
     const details = context.id ? ` (ID: ${context.id})` : ''
-    throw ErrorFactory.operationFailed(
+    
+    throw safeErrorFactory.operationFailed(
       `${context.action} ${context.entity}${details}`,
       error instanceof Error ? error.message : String(error)
     )
@@ -71,7 +67,60 @@ export function assertExists<T>(
   id: number | string
 ): asserts entity is T {
   if (!entity) {
-    throw ErrorFactory.notFound(entityName, id)
+    throw safeErrorFactory.notFound(entityName, id)
+  }
+}
+
+/**
+ * Safe ErrorFactory helpers that handle both the static class and instance methods
+ */
+const safeErrorFactory = {
+  operationFailed: (operation: string, reason?: string) => {
+    return ErrorFactory.operationFailed(operation, reason)
+  },
+
+  notFound: (entity: string, id: number | string) => {
+    return ErrorFactory.notFound(entity, id)
+  },
+
+  invalidState: (entity: string, currentState: string, attemptedAction: string) => {
+    return ErrorFactory.invalidState(entity, currentState, attemptedAction)
+  },
+
+  missingRequired: (field: string, context?: string) => {
+    return ErrorFactory.missingRequired(field, context)
+  },
+
+  validationFailed: (errors: any, context?: any) => {
+    return ErrorFactory.validationFailed(errors, context)
+  },
+
+  businessRuleViolation: (rule: string, details?: string) => {
+    return ErrorFactory.businessRuleViolation(rule, details)
+  },
+
+  invalidInput: (field: string, expected: string, received?: any, context?: any) => {
+    return ErrorFactory.invalidInput(field, expected, received, context)
+  },
+
+  alreadyExists: (entity: string, field: string, value: string | number, context?: any) => {
+    return ErrorFactory.alreadyExists(entity, field, value, context)
+  },
+
+  conflict: (message: string, details?: any) => {
+    return ErrorFactory.conflict(message, details)
+  },
+
+  forbidden: (resource: string, action?: string, context?: any) => {
+    return ErrorFactory.forbidden(resource, action, context)
+  },
+
+  duplicate: (entity: string, field: string, value: any, context?: any) => {
+    return ErrorFactory.duplicate(entity, field, value, context)
+  },
+
+  forEntity: (entityName: string) => {
+    return ErrorFactory.forEntity(entityName)
   }
 }
 
@@ -348,7 +397,7 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
       service[getByIdMethod] ||
       service.getById ||
       (async (id: number | string) => {
-        throw ErrorFactory.notFound(entityName, id)
+        throw safeErrorFactory.notFound(entityName, id)
       }),
 
     // Ensure create method exists
@@ -356,7 +405,7 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
       service[createMethod] ||
       service.create ||
       (async (data: TCreate) => {
-        throw ErrorFactory.operationFailed(`create ${entityName}`, 'Method not implemented')
+        throw safeErrorFactory.operationFailed(`create ${entityName}`, 'Method not implemented')
       }),
 
     // Ensure update method exists and handles both string and number IDs
@@ -364,7 +413,7 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
       service[updateMethod] ||
       service.update ||
       (async (id: number | string, data: TUpdate) => {
-        throw ErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
+        throw safeErrorFactory.operationFailed(`update ${entityName}`, 'Method not implemented')
       }),
 
     // Required delete method
@@ -372,7 +421,7 @@ export function makeServiceRouteCompatible<TEntity, TCreate, TUpdate>(
       service[deleteMethod] ||
       service.delete ||
       (async (id: number | string) => {
-        throw ErrorFactory.operationFailed(`delete ${entityName}`, 'Method not implemented')
+        throw safeErrorFactory.operationFailed(`delete ${entityName}`, 'Method not implemented')
       }),
 
     // Optional cascade delete method
@@ -389,3 +438,6 @@ export function composeServices<TServices extends Record<string, any>>(services:
 
 // Backward compatibility exports for existing code
 export { createCrudService as BaseService }
+
+// Export safeErrorFactory for use across services
+export { safeErrorFactory }

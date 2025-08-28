@@ -101,11 +101,23 @@ export interface RouteDefinitions {
 // =============================================================================
 
 /**
- * Create standard parameter schemas
+ * Create contextual parameter schemas with entity-specific naming
  */
-export function createIdParamsSchema(idSchema?: z.ZodSchema<any>) {
+export function createIdParamsSchema(idSchema?: z.ZodSchema<any>, entityName?: string) {
   const schema = idSchema || z.coerce.number().int().positive()
-  return z.object({ id: schema })
+  
+  // Use contextual parameter naming: projectId, ticketId, chatId, etc.
+  const paramName = entityName ? `${entityName.toLowerCase()}Id` : 'id'
+  
+  // Create schema with proper OpenAPI parameter metadata
+  const parameterSchema = schema.openapi({ 
+    param: { 
+      name: paramName, 
+      in: 'path' as const 
+    } 
+  })
+  
+  return z.object({ [paramName]: parameterSchema })
 }
 
 /**
@@ -174,8 +186,9 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
   config: EntityConfig<TEntity, TCreate, TUpdate>
 ): RouteDefinitions {
   const { name, plural, schemas, options = {} } = config
-  const idParamsSchema = createIdParamsSchema(schemas.id)
+  const idParamsSchema = createIdParamsSchema(schemas.id, name)
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1)
+  const entityIdParam = `${name.toLowerCase()}Id`
 
   // Standard CRUD routes
   const routes: RouteDefinitions = {
@@ -228,7 +241,7 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
 
     get: createRoute({
       method: 'get',
-      path: `/api/${plural}/{id}`,
+      path: `/api/${plural}/{${entityIdParam}}`,
       tags: [capitalizedName],
       summary: `Get ${name} by ID`,
       description: `Retrieve a specific ${name} by its ID`,
@@ -243,7 +256,7 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
 
     update: createRoute({
       method: 'put',
-      path: `/api/${plural}/{id}`,
+      path: `/api/${plural}/{${entityIdParam}}`,
       tags: [capitalizedName],
       summary: `Update ${name}`,
       description: `Update an existing ${name}`,
@@ -269,7 +282,7 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
   if (config.service.delete || config.service.deleteCascade) {
     routes.delete = createRoute({
       method: 'delete',
-      path: `/api/${plural}/{id}`,
+      path: `/api/${plural}/{${entityIdParam}}`,
       tags: [capitalizedName],
       summary: `Delete ${name}`,
       description: `Delete a ${name} by ID`,
@@ -304,9 +317,12 @@ export function createEntityRoutes<TEntity, TCreate, TUpdate>(
         requestConfig.query = customRoute.request.query
       }
 
+      // Replace {id} with contextual parameter name in custom route paths
+      const customPath = customRoute.path.replace(/\{id\}/g, `{${entityIdParam}}`)
+      
       routes.custom[routeKey] = createRoute({
         method: customRoute.method,
-        path: `/api/${plural}${customRoute.path}`,
+        path: `/api/${plural}${customPath}`,
         tags: customRoute.tags || [capitalizedName],
         summary: customRoute.summary,
         description: customRoute.description,
@@ -338,6 +354,7 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   routes: RouteDefinitions
 ): OpenAPIHono {
   const { name, service, options = {} } = config
+  const entityIdParam = `${name.toLowerCase()}Id`
 
   // CREATE handler
   app.openapi(routes.create, async (c) => {
@@ -395,10 +412,11 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
 
   // GET by ID handler
   app.openapi(routes.get, async (c) => {
-    const { id } = c.req.valid('param' as never) as { id: number | string }
+    const params = c.req.valid('param' as never) as Record<string, number | string>
+    const entityId = params[entityIdParam]
 
     try {
-      const entity = await service.getById(id)
+      const entity = await service.getById(entityId)
       return c.json(successResponse(entity), 200)
     } catch (error) {
       // Error is handled by ErrorFactory in service layer
@@ -408,16 +426,17 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
 
   // UPDATE handler
   app.openapi(routes.update, async (c) => {
-    const { id } = c.req.valid('param' as never) as { id: number | string }
+    const params = c.req.valid('param' as never) as Record<string, number | string>
+    const entityId = params[entityIdParam]
     const body = c.req.valid('json' as never) as TUpdate
 
     // Custom validation if provided
     if (options.validation?.update) {
-      await options.validation.update(id, body)
+      await options.validation.update(entityId, body)
     }
 
     try {
-      const entity = await service.update(id, body)
+      const entity = await service.update(entityId, body)
       return c.json(successResponse(entity), 200)
     } catch (error) {
       // Error is handled by ErrorFactory in service layer
@@ -428,17 +447,18 @@ export function registerEntityRoutes<TEntity, TCreate, TUpdate>(
   // DELETE handler (if available)
   if (routes.delete && (service.delete || service.deleteCascade)) {
     app.openapi(routes.delete, async (c) => {
-      const { id } = c.req.valid('param' as never) as { id: number | string }
+      const params = c.req.valid('param' as never) as Record<string, number | string>
+      const entityId = params[entityIdParam]
 
       // Custom validation if provided
       if (options.validation?.delete) {
-        await options.validation.delete(id)
+        await options.validation.delete(entityId)
       }
 
       try {
         // Prefer cascade delete if available
         const deleteMethod = service.deleteCascade || service.delete!
-        const success = await deleteMethod(id)
+        const success = await deleteMethod(entityId)
 
         if (!success) {
           throw new Error(`${name} not found`)

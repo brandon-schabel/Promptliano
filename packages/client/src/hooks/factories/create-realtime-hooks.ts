@@ -245,8 +245,8 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
     const [error, setError] = useState<Error | null>(null)
     const wsRef = useRef<WebSocket | null>(null)
     const reconnectAttemptsRef = useRef(0)
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
-    const heartbeatIntervalRef = useRef<NodeJS.Timeout>()
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const messageQueueRef = useRef<any[]>([])
     const queryClient = useQueryClient()
 
@@ -311,7 +311,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
                 break
               
               case 'sync':
-                setData(message.data as TEntity[])
+                setData(message.data as unknown as TEntity[])
                 break
               
               case 'heartbeat':
@@ -435,11 +435,11 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
 
       const handleVisibilityChange = () => {
         if (document.hidden) {
-          setCurrentInterval(options.dynamicInterval.idle || 30000)
+          setCurrentInterval(options.dynamicInterval?.idle || 30000)
         } else if (document.hasFocus()) {
-          setCurrentInterval(options.dynamicInterval.focused || 5000)
+          setCurrentInterval(options.dynamicInterval?.focused || 5000)
         } else {
-          setCurrentInterval(options.dynamicInterval.active || 10000)
+          setCurrentInterval(options.dynamicInterval?.active || 10000)
         }
       }
 
@@ -608,6 +608,9 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
       data: mergedData,
       isLive: true,
       lastUpdate
+    } as UseQueryResult<TEntity[], Error> & {
+      isLive: boolean
+      lastUpdate: Date | null
     }
   }
 
@@ -620,12 +623,12 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
 
     const addOptimistic = useCallback((message: Partial<TEntity>) => {
       const tempId = `temp-${Date.now()}-${Math.random()}`
-      const optimisticMessage = {
+      const optimisticMessage = ({
         ...message,
         id: tempId,
         pending: true,
         createdAt: new Date().toISOString()
-      } as TEntity
+      } as unknown as TEntity)
 
       setMessages(prev => [...prev, optimisticMessage])
       tempIdMapRef.current.set(tempId, optimisticMessage)

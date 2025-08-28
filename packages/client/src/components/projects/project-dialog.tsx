@@ -74,8 +74,21 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
       syncWithProgress(
         newlyCreatedProjectId,
         (event) => {
+          // Parse the event data if it's a MessageEvent, otherwise use as-is
+          let progressData: SyncProgressEvent
+          if (event instanceof MessageEvent) {
+            try {
+              progressData = JSON.parse(event.data)
+            } catch (error) {
+              console.error('Failed to parse progress event:', error)
+              return
+            }
+          } else {
+            progressData = event as SyncProgressEvent
+          }
+          
           // Update progress in the dialog
-          syncProgressRef.current?.updateProgress(event)
+          syncProgressRef.current?.updateProgress(progressData)
         },
         abortController.signal
       )

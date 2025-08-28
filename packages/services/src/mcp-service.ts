@@ -10,7 +10,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory } from '@promptliano/shared'
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 import { mcpServerRepository } from '@promptliano/database'
 import {
   type McpServerConfig as DatabaseMcpServerConfig,

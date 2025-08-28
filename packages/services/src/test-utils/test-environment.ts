@@ -1,14 +1,22 @@
 /**
- * Test Environment Factory
+ * Test Environment Factory - Enhanced for Test Isolation
  * 
- * Provides reusable test setup and teardown utilities to eliminate
- * test boilerplate across the codebase.
+ * Provides reusable test setup and teardown utilities with proper database isolation
+ * to eliminate "Missing parameter '1'" errors and ensure test reliability.
+ * 
+ * Key improvements:
+ * - Uses serialized database client to prevent concurrent access issues
+ * - File-based databases for better isolation
+ * - Automatic cleanup with proper resource management
+ * - Enhanced error handling and logging
  * 
  * Benefits:
+ * - Eliminates parameter binding errors
+ * - True test isolation
  * - 40-60% test code reduction (2,000+ lines)
- * - Consistent test isolation
+ * - Consistent test patterns
  * - Automatic resource cleanup
- * - Faster test execution
+ * - Faster and more reliable test execution
  */
 
 import { randomBytes } from 'crypto'
@@ -48,6 +56,10 @@ interface TestEnvironmentConfig {
   isolateDatabase?: boolean
   seedData?: boolean
   verbose?: boolean
+  /** Use in-memory database for speed (less reliable) or file-based for isolation */
+  useMemory?: boolean
+  /** Timeout for database operations */
+  busyTimeout?: number
 }
 
 /**
@@ -58,7 +70,7 @@ export interface TestContext {
   suiteId: string
   testId: string
   
-  // Database instance for this test
+  // Enhanced database instance with serialization
   testDb: TestDatabase
   
   // Test resources
@@ -77,6 +89,10 @@ export interface TestContext {
   trackResource: (type: TestResource['type'], id: number) => void
   cleanupResources: () => Promise<void>
   
+  // Database operations
+  resetDatabase: () => Promise<void>
+  getDatabaseStats: () => ReturnType<TestDatabase['getStats']>
+  
   // Utilities
   generateTestName: (prefix: string) => string
   generateTestPath: (prefix: string) => string
@@ -86,7 +102,14 @@ export interface TestContext {
  * Create a test environment factory with automatic setup/teardown
  */
 export function createTestEnvironment(config: TestEnvironmentConfig) {
-  const { suiteName, isolateDatabase = true, seedData = false, verbose = false } = config
+  const { 
+    suiteName, 
+    isolateDatabase = true, 
+    seedData = false, 
+    verbose = false,
+    useMemory = false,
+    busyTimeout = 30000
+  } = config
   const suiteId = `${suiteName}_${randomBytes(4).toString('hex')}`
   
   let currentContext: TestContext | null = null
@@ -102,17 +125,23 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
       console.log(`[TEST SETUP] Suite: ${suiteName}, Test: ${testId}`)
     }
     
-    // Create isolated test database for this test
+    // Create isolated test database with enhanced configuration
     const testDb = createTestDatabase({
       testId: `${suiteId}_${testId}`,
       verbose,
-      seedData: false // We'll seed manually if needed
+      seedData: false, // We'll seed manually if needed
+      useMemory, // Use configuration setting
+      busyTimeout // Use configuration setting
     })
     
-    // Debug: Check if test database has tables
+    // Debug: Check if test database has tables and verify serialization
     if (verbose) {
-      const tables = (testDb as any).sqlite.query("SELECT name FROM sqlite_master WHERE type='table'").all()
-      console.log(`[TEST DEBUG] Test database has ${(tables as any[]).length} tables:`, tables)
+      const stats = testDb.getStats()
+      console.log(`[TEST DEBUG] Test database created:`, {
+        filePath: stats.filePath,
+        tables: stats.tables.length,
+        isActive: stats.isActive
+      })
     }
     
     // Create repositories for this test database
@@ -248,6 +277,19 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
         resources.length = 0
       },
       
+      resetDatabase: async () => {
+        if (verbose) {
+          console.log(`[TEST RESET] Resetting database for ${testId}`)
+        }
+        await testDb.reset()
+        // Clear resources since database was reset
+        resources.length = 0
+      },
+      
+      getDatabaseStats: () => {
+        return testDb.getStats()
+      },
+      
       generateTestName: (prefix: string) => {
         return `${prefix} ${suiteId}-${testId}`
       },
@@ -314,12 +356,15 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
 }
 
 /**
- * Shared test environment instances for common test suites
+ * DEPRECATED: Shared test environment instances 
+ * 
+ * These are deprecated and should not be used as they can cause test isolation issues.
+ * Instead, create test environments per test suite:
+ * 
+ * const testEnv = createTestEnvironment({ suiteName: 'your-test-name' })
+ * 
+ * @deprecated Use createTestEnvironment() directly in each test file
  */
-export const projectTestEnv = createTestEnvironment({ suiteName: 'project-service' })
-export const ticketTestEnv = createTestEnvironment({ suiteName: 'ticket-service' })
-export const queueTestEnv = createTestEnvironment({ suiteName: 'queue-service' })
-export const chatTestEnv = createTestEnvironment({ suiteName: 'chat-service' })
 
 /**
  * Test data generators for consistent test data
@@ -432,12 +477,16 @@ export const testRepositoryHelpers = {
    */
   createTicketRepository: (testDb: any) => {
     const baseRepository = createBaseRepository(tickets, testDb, undefined, 'Ticket')
-    return {
-      ...baseRepository,
+    
+    // Extend with ticket-specific methods
+    const extensions = {
       async getByProject(projectId: number) {
         return baseRepository.findWhere(eq(tickets.projectId, projectId))
       }
     }
+    
+    // Use the proper extendRepository function
+    return Object.assign(baseRepository, extensions)
   }
 }
 

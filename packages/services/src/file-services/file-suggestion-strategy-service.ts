@@ -1,5 +1,5 @@
 import type { Ticket, File, FileSuggestionStrategy, RelevanceConfig } from '@promptliano/database'
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createFileRelevanceService, type RelevanceScoreResult } from './file-relevance-service'
 import { CompactFileFormatter } from '../utils/compact-file-formatter'
 import { generateStructuredData } from '../gen-ai-services'
