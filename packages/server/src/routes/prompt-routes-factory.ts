@@ -181,9 +181,9 @@ promptCustomRoutes.openapi(patchPromptRoute, async (c) => {
       const body = c.req.valid('json')
       const updated = await promptService.update(id, body)
       if (!updated) {
-        throw ErrorFactory.notFound('Prompt', id.toString())
+        return c.json({ success: false, error: 'Prompt not found' }, 404)
       }
-      return c.json(successResponse(transformPromptFromDB(updated)))
+      return c.json(successResponse(transformPromptFromDB(updated)), 200)
     },
     { entity: 'Prompt', action: 'updatePatch' }
   )

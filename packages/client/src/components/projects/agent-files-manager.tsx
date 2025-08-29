@@ -38,7 +38,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
   } = useQuery({
     queryKey: ['agent-files', projectId],
     queryFn: async () => {
-      const response = await client?.typeSafeClient.listProjectsByProjectIdAgentFilesDetect(projectId)
+      const response = await client?.typeSafeClient.getProjectsByIdAgentFilesDetect(projectId)
       return response
     }
   })
@@ -46,7 +46,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
   const { data: statusData } = useQuery({
     queryKey: ['agent-files-status', projectId],
     queryFn: async () => {
-      const response = await client?.typeSafeClient.listProjectsByProjectIdAgentFilesStatus(projectId)
+      const response = await client?.typeSafeClient.getProjectsByIdAgentFilesStatus(projectId)
       return response
     }
   })
@@ -62,7 +62,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
         for (const file of allFiles) {
           if (file.exists && file.writable) {
             try {
-              const response = await client?.typeSafeClient.createProjectsByProjectIdAgentFilesUpdate(projectId, {
+              const response = await client?.typeSafeClient.createProjectsByIdAgentFilesUpdate(projectId, {
                 filePath: file.path
               })
               results.push(response)
@@ -80,7 +80,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
 
         for (const fileUpdate of files) {
           try {
-            const response = await client?.typeSafeClient.createProjectsByProjectIdAgentFilesUpdate(projectId, {
+            const response = await client?.typeSafeClient.createProjectsByIdAgentFilesUpdate(projectId, {
               filePath: fileUpdate.path
             })
             results.push(response)

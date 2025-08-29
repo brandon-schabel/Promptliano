@@ -179,7 +179,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     return c.json(successResponse(commits))
   })
   .openapi(getCommitLogEnhancedRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
 

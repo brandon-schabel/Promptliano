@@ -131,7 +131,22 @@ const postAiChatSdkRoute = createRoute({
       },
       description: 'Successfully initiated AI response stream.'
     },
-    ...createStandardResponses(z.object({ success: z.literal(true) }))
+    400: {
+      content: {
+        'application/json': {
+          schema: ApiErrorResponseSchema
+        }
+      },
+      description: 'Bad request - invalid chat request parameters.'
+    },
+    500: {
+      content: {
+        'application/json': {
+          schema: ApiErrorResponseSchema
+        }
+      },
+      description: 'Internal server error.'
+    }
   }
 })
 
@@ -280,8 +295,10 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage: systemMsg
     })
 
-    return stream(c, async (streamInstance) => {
-      await streamInstance.pipe(readableStream.toDataStream())
+    return c.body(readableStream.toDataStream(), 200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
     })
   })
   .openapi(getProvidersRoute, async (c) => {
@@ -329,8 +346,14 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage
     })
 
-    return stream(c, async (streamInstance) => {
-      await streamInstance.pipe(aiSDKStream.toDataStream())
+    c.header('Content-Type', 'text/event-stream; charset=utf-8')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    return c.body(aiSDKStream.toDataStream(), 200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
     })
   })
   .openapi(generateTextRoute, async (c) => {

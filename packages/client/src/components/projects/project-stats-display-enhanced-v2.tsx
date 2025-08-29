@@ -7,6 +7,7 @@ import { Badge } from '@promptliano/ui'
 import { FileText, CheckCircle2, Circle, Sparkles, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QueueOverviewSection } from '@/components/queues/queue-overview-section'
+import type { ProjectStatistics } from '@promptliano/schemas'
 
 interface ProjectStatsDisplayEnhancedProps {
   projectId: number
@@ -26,7 +27,10 @@ const formatNumber = (num: number) => {
 }
 
 export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEnhancedProps) {
-  const { data: statistics, isLoading, error } = useGetProjectStatistics(projectId)
+  const { data: statisticsData, isLoading, error } = useGetProjectStatistics(projectId)
+  
+  // Type-safe access to statistics data
+  const statistics = statisticsData as ProjectStatistics | undefined
 
   if (isLoading) {
     return (
@@ -48,17 +52,23 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
     return <p>No statistics data available.</p>
   }
 
+  // Type guards for safe property access
+  const hasFileStats = statistics.fileStats != null
+  const hasTicketStats = statistics.ticketStats != null
+  const hasTaskStats = statistics.taskStats != null
+  const hasPromptStats = statistics.promptStats != null
+
   return (
     <div className='space-y-6'>
       {/* Week-over-week comparison */}
       <ComparisonStats
         current={{
           label: 'This Week',
-          value: statistics.ticketStats?.totalTickets || 0
+          value: hasTicketStats ? statistics.ticketStats.totalTickets : 0
         }}
         previous={{
           label: 'Last Week',
-          value: Math.floor((statistics.ticketStats?.totalTickets || 0) * 0.85)
+          value: hasTicketStats ? Math.floor(statistics.ticketStats.totalTickets * 0.85) : 0
         }}
         title='Weekly Activity'
       />
@@ -67,26 +77,26 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
         <MetricCard
           label='Total Files'
-          value={formatNumber(statistics.fileStats?.totalFiles || 0)}
-          description={formatBytes(statistics.fileStats?.totalSize || 0)}
+          value={formatNumber(hasFileStats ? statistics.fileStats.totalFiles : 0)}
+          description={formatBytes(hasFileStats ? statistics.fileStats.totalSize : 0)}
           icon={FileText}
         />
         <MetricCard
           label='Active Tickets'
-          value={statistics.ticketStats?.totalTickets || 0}
-          description={`${statistics.ticketStats?.ticketsByStatus?.open || 0} open`}
+          value={hasTicketStats ? statistics.ticketStats.totalTickets : 0}
+          description={`${hasTicketStats ? statistics.ticketStats.ticketsByStatus.open : 0} open`}
           icon={Circle}
         />
         <MetricCard
           label='Task Completion'
-          value={`${Math.round(statistics.taskStats?.completionRate || 0)}%`}
-          description={`${statistics.taskStats?.completedTasks || 0} of ${statistics.taskStats?.totalTasks || 0}`}
+          value={`${Math.round(hasTaskStats ? statistics.taskStats.completionRate : 0)}%`}
+          description={`${hasTaskStats ? statistics.taskStats.completedTasks : 0} of ${hasTaskStats ? statistics.taskStats.totalTasks : 0}`}
           icon={CheckCircle2}
         />
         <MetricCard
           label='Total Prompts'
-          value={statistics.promptStats?.totalPrompts || 0}
-          description={`~${formatNumber(statistics.promptStats?.totalTokens || 0)} tokens`}
+          value={hasPromptStats ? statistics.promptStats.totalPrompts : 0}
+          description={`~${formatNumber(hasPromptStats ? statistics.promptStats.totalTokens : 0)} tokens`}
           icon={Sparkles}
         />
       </div>
@@ -98,12 +108,11 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           <CardDescription>Files grouped by purpose</CardDescription>
         </CardHeader>
         <CardContent>
-          {statistics.fileStats?.filesByCategory && (
+          {hasFileStats && statistics.fileStats.filesByCategory && (
             <div className='space-y-4'>
               {Object.entries(statistics.fileStats.filesByCategory).map(([category, count]) => {
-                const percentage = statistics.fileStats?.totalFiles
-                  ? ((count as number) / statistics.fileStats.totalFiles) * 100
-                  : 0
+                const totalFiles = statistics.fileStats.totalFiles
+                const percentage = totalFiles > 0 ? (count / totalFiles) * 100 : 0
 
                 return (
                   <div key={category} className='space-y-2'>
@@ -127,7 +136,7 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           <CardDescription>Current ticket distribution</CardDescription>
         </CardHeader>
         <CardContent>
-          {statistics.ticketStats?.ticketsByStatus && (
+          {hasTicketStats && statistics.ticketStats.ticketsByStatus && (
             <div className='space-y-4'>
               {Object.entries(statistics.ticketStats.ticketsByStatus).map(([status, count]) => (
                 <div key={status} className='flex items-center justify-between'>
@@ -155,17 +164,19 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           <div className='grid grid-cols-2 gap-4'>
             <div>
               <p className='text-sm text-muted-foreground'>Average Tasks per Ticket</p>
-              <p className='text-2xl font-bold'>{statistics.ticketStats?.averageTasksPerTicket?.toFixed(1) || '0'}</p>
+              <p className='text-2xl font-bold'>
+                {hasTicketStats ? statistics.ticketStats.averageTasksPerTicket.toFixed(1) : '0'}
+              </p>
             </div>
             <div>
               <p className='text-sm text-muted-foreground'>Files with Summaries</p>
               <p className='text-2xl font-bold'>
-                {statistics.fileStats?.filesWithSummaries || 0}
+                {hasFileStats ? statistics.fileStats.filesWithSummaries : 0}
                 <span className='text-sm font-normal text-muted-foreground ml-1'>
                   (
-                  {((statistics.fileStats?.filesWithSummaries / statistics.fileStats?.totalFiles) * 100 || 0).toFixed(
-                    0
-                  )}
+                  {hasFileStats && statistics.fileStats.totalFiles > 0
+                    ? ((statistics.fileStats.filesWithSummaries / statistics.fileStats.totalFiles) * 100).toFixed(0)
+                    : '0'}
                   %)
                 </span>
               </p>
@@ -173,7 +184,7 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           </div>
 
           <div className='flex flex-wrap gap-2 pt-2'>
-            {statistics.ticketStats?.ticketsByPriority &&
+            {hasTicketStats && statistics.ticketStats.ticketsByPriority &&
               Object.entries(statistics.ticketStats.ticketsByPriority).map(([priority, count]) => (
                 <Badge key={priority} variant={priority === 'high' ? 'destructive' : 'secondary'}>
                   {priority}: {count}

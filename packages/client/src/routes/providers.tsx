@@ -61,7 +61,6 @@ import {
   RefreshCw,
   Search,
   Settings,
-  Shield,
   Sparkles,
   TestTube,
   Trash2,
@@ -114,18 +113,13 @@ import { ProviderTestDialog } from '@/components/providers/provider-test-dialog'
 import { CustomProviderDialog } from '@/components/providers/custom-provider-dialog'
 import { useLocalModelStatus } from '@/hooks/use-local-model-status'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
-import {
-  useEncryptionKeyStatus,
-  useSetEncryptionKey,
-  useUseDefaultEncryptionKey,
-  useRotateEncryptionKey
-} from '@/hooks/security/use-encryption-key'
+// Encryption UI removed; provider keys use secretRef only
 
 // Form schema for adding/editing provider
 const providerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   provider: z.string().min(1, 'Provider is required'),
-  key: z.string().min(1, 'API key is required'),
+  secretRef: z.string().min(1, 'Secret reference is required'),
   isDefault: z.boolean().default(false)
 })
 
@@ -140,13 +134,7 @@ function ProvidersPage() {
   const [deletingProvider, setDeletingProvider] = useState<ProviderKey | null>(null)
   const [testingProvider, setTestingProvider] = useState<ProviderKey | null>(null)
   const [testingProviders, setTestingProviders] = useState<Set<number>>(new Set())
-  const [isEncDialogOpen, setIsEncDialogOpen] = useState(false)
-  const [customEncKey, setCustomEncKey] = useState('')
-  const [reencryptExisting, setReencryptExisting] = useState(true)
-  const { data: encStatus } = useEncryptionKeyStatus()
-  const setEncKeyMutation = useSetEncryptionKey()
-  const useDefaultKeyMutation = useUseDefaultEncryptionKey()
-  const rotateEncKeyMutation = useRotateEncryptionKey()
+  // Encryption key configuration removed
 
   // API Hooks
   const { data: providersData, isLoading: isLoadingProviders } = useGetProviderKeys()
@@ -297,7 +285,7 @@ function ProvidersPage() {
     defaultValues: {
       name: '',
       provider: '',
-      key: '',
+      secretRef: '',
       isDefault: false
     }
   })
@@ -331,7 +319,8 @@ function ProvidersPage() {
         await createMutation.mutateAsync({
           provider: values.provider,
           keyName: values.name,
-          encryptedValue: values.key,
+          secretRef: values.secretRef,
+          encryptedValue: values.secretRef, // Use secretRef as encrypted value for now
           isDefault: values.isDefault
         })
       }
@@ -360,7 +349,7 @@ function ProvidersPage() {
     form.reset({
       name: provider.name || '',
       provider: provider.provider,
-      key: provider.key || '',
+      secretRef: (provider as any).secretRef || '',
       isDefault: provider.isDefault
     })
     setIsAddDialogOpen(true)
@@ -440,41 +429,7 @@ function ProvidersPage() {
           <div className='flex-1 overflow-hidden'>
             <div className='h-full p-6'>
               <div className='flex flex-col gap-6 h-full'>
-                {/* Encryption Key Notice */}
-                {encStatus && (encStatus.isDefault || !encStatus.hasKey) && (
-                  <Alert variant='destructive' className='mb-2' data-testid='encryption-key-warning'>
-                    <Shield className='h-4 w-4' />
-                    <AlertTitle>Encryption key not securely configured</AlertTitle>
-                    <AlertDescription>
-                      {encStatus.isDefault
-                        ? 'You are using the default encryption key. This is insecure for storing provider API keys.'
-                        : 'No encryption key is configured. You can set a custom key or continue with the default (insecure) key.'}
-                      <div className='mt-3 flex gap-2'>
-                        <Button size='sm' onClick={() => setIsEncDialogOpen(true)}>
-                          Configure Encryption Key
-                        </Button>
-                        {!encStatus.isDefault && (
-                          <Button
-                            size='sm'
-                            variant='outline'
-                            onClick={async () => {
-                              try {
-                                await useDefaultKeyMutation.mutateAsync()
-                                toast.warning(
-                                  'Using default (insecure) key. Existing encrypted provider keys may not decrypt if they were created with a different key.'
-                                )
-                              } catch (e: any) {
-                                toast.error(e?.message || 'Failed to set default encryption key')
-                              }
-                            }}
-                          >
-                            Use Default (Insecure)
-                          </Button>
-                        )}
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {/* Encryption key notice removed */}
                 {/* Search and Tabs */}
                 <div className='flex items-center justify-between gap-4'>
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className='w-auto'>
@@ -504,10 +459,7 @@ function ProvidersPage() {
                         className='pl-9 w-[300px]'
                       />
                     </div>
-                    <Button variant='outline' onClick={() => setIsEncDialogOpen(true)} className='gap-2'>
-                      <Shield className='h-4 w-4' />
-                      Encryption
-                    </Button>
+                    {/* Encryption config button removed */}
                     {providers.length > 0 && (
                       <Button
                         variant='outline'
@@ -667,14 +619,16 @@ function ProvidersPage() {
 
                   <FormField
                     control={form.control}
-                    name='key'
+                    name='secretRef'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>API Key</FormLabel>
+                        <FormLabel>Secret Reference</FormLabel>
                         <FormControl>
-                          <Input type='password' placeholder='sk-...' {...field} />
+                          <Input placeholder='OPENAI_API_KEY' {...field} />
                         </FormControl>
-                        <FormDescription>Your API key for this provider</FormDescription>
+                        <FormDescription>
+                          Name of the environment secret that contains the API key
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -774,104 +728,7 @@ function ProvidersPage() {
             }}
           />
 
-          {/* Configure Encryption Key Dialog */}
-          <Dialog open={isEncDialogOpen} onOpenChange={setIsEncDialogOpen}>
-            <DialogContent className='sm:max-w-[520px]'>
-              <DialogHeader>
-                <DialogTitle>Configure Encryption Key</DialogTitle>
-                <DialogDescription>
-                  Set a custom encryption key to securely store provider API keys. You can also re-encrypt existing
-                  provider keys to preserve them during rotation.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className='space-y-3'>
-                <div>
-                  <Label>Custom Key (Base64 or passphrase)</Label>
-                  <Input
-                    placeholder='Paste a 32-byte base64 key or a strong passphrase'
-                    value={customEncKey}
-                    onChange={(e) => setCustomEncKey(e.target.value)}
-                  />
-                  <p className='text-[0.8rem] text-muted-foreground'>
-                    You can paste a base64-encoded 32-byte key or any strong passphrase. For best security, use a
-                    randomly generated 32-byte key.
-                  </p>
-                </div>
-
-                <div className='flex items-center gap-2'>
-                  <input
-                    id='reencrypt-existing'
-                    type='checkbox'
-                    className='h-4 w-4'
-                    checked={reencryptExisting}
-                    onChange={(e) => setReencryptExisting(e.target.checked)}
-                  />
-                  <Label htmlFor='reencrypt-existing'>Re-encrypt existing provider keys (preserve saved keys)</Label>
-                </div>
-
-                <div className='flex gap-2'>
-                  <Button
-                    variant='secondary'
-                    onClick={async () => {
-                      try {
-                        await rotateEncKeyMutation.mutateAsync({ generate: true, reencryptExisting })
-                        toast.success(
-                          reencryptExisting
-                            ? 'Generated key and re-encrypted existing provider keys'
-                            : 'Generated and saved a secure encryption key'
-                        )
-                        refetchHealth()
-                        setIsEncDialogOpen(false)
-                        setCustomEncKey('')
-                      } catch (e: any) {
-                        toast.error(e?.message || 'Failed to generate encryption key')
-                      }
-                    }}
-                  >
-                    Generate Secure Key
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        if (!customEncKey.trim()) {
-                          toast.error('Please paste a key or use Generate')
-                          return
-                        }
-                        await rotateEncKeyMutation.mutateAsync({ newKey: customEncKey.trim(), reencryptExisting })
-                        toast.success(
-                          reencryptExisting
-                            ? 'Encryption key rotated and provider keys re-encrypted'
-                            : 'Encryption key saved'
-                        )
-                        refetchHealth()
-                        setIsEncDialogOpen(false)
-                        setCustomEncKey('')
-                      } catch (e: any) {
-                        toast.error(e?.message || 'Failed to set encryption key')
-                      }
-                    }}
-                  >
-                    Save Custom Key
-                  </Button>
-                </div>
-
-                <Alert>
-                  <AlertCircle className='h-4 w-4' />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    If you do not re-encrypt during rotation, existing provider keys will be unreadable until re-entered.
-                  </AlertDescription>
-                </Alert>
-              </div>
-
-              <DialogFooter>
-                <Button variant='outline' onClick={() => setIsEncDialogOpen(false)}>
-                  Close
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* Encryption configuration dialog removed */}
         </div>
       </TooltipProvider>
     </ComponentErrorBoundary>

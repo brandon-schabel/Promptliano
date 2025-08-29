@@ -23,7 +23,7 @@ export function parseAIError(error: any, provider?: string): ParsedError {
   if (errorMessage.includes('API key') || errorMessage.includes('api key') || errorCode === 'MISSING_API_KEY') {
     return {
       type: 'MISSING_API_KEY',
-      message: 'Please configure your API key in settings',
+      message: 'Please configure your provider secret (secretRef) in Providers',
       provider,
       retryable: false
     }
@@ -108,7 +108,7 @@ function parseErrorMessage(message: string, provider?: string): ParsedError {
   if (lowerMessage.includes('api key')) {
     return {
       type: 'MISSING_API_KEY',
-      message: 'Please configure your API key in settings',
+      message: 'Please configure your provider secret (secretRef) in Providers',
       provider,
       retryable: false
     }

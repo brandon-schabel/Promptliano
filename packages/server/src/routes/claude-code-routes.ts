@@ -372,7 +372,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSessionMessagesRoute, async (c) => {
-    const { projectId, sessionId } = c.req.valid('param')
+    const { id: projectId, sessionId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -421,7 +421,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSessionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {

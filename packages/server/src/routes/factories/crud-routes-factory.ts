@@ -15,6 +15,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { ErrorFactory, ApiError, withErrorContext } from '@promptliano/shared'
 
+
 /**
  * Configuration for CRUD route generation
  */
@@ -255,55 +256,73 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
   }
   
   app.openapi(listRoute, async (c: any) => {
-    return await withErrorContext(
-      async () => {
-        // Use custom handler if provided
-        if (options?.customHandlers?.list) {
-          return await options.customHandlers.list(c)
+    try {
+      // Use custom handler if provided
+      if (options?.customHandlers?.list) {
+        return await options.customHandlers.list(c)
+      }
+      
+      // Use OpenAPI Hono's built-in validation
+      const query = c.req.valid('query') as Record<string, unknown>
+      
+      // Handle pagination if enabled
+      if (options?.pagination && service.count) {
+        const page = Number(query.page) || 1
+        const limit = Number(query.limit) || 10
+        const offset = (page - 1) * limit
+        
+        // Create service parameters
+        const serviceParams = { 
+          ...query, 
+          offset, 
+          limit 
         }
         
-        const query = c.req.valid('query')
+        // Fetch both data and total count
+        const [items, total] = await Promise.all([
+          service.list(serviceParams),
+          service.count(query)
+        ])
         
-        // Handle pagination if enabled
-        if (options?.pagination && service.count) {
-          const page = (query as any).page || 1
-          const limit = (query as any).limit || 10
-          const offset = (page - 1) * limit
-          
-          // Fetch both data and total count
-          const [items, total] = await Promise.all([
-            service.list({ ...query, offset, limit }),
-            service.count(query)
-          ])
-          
-          // Apply response transformation if provided
-          const data = options?.transformResponse?.list?.(items) || items
-          
-          return c.json({
-            success: true,
-            data,
-            pagination: {
-              page,
-              pageSize: limit,
-              totalPages: Math.ceil(total / limit),
-              totalItems: total,
-              hasMore: page * limit < total,
-              hasPrevious: page > 1
-            }
-          })
-        }
-        
-        // Simple list without pagination
-        const items = await service.list(query as any)
+        // Apply response transformation if provided
         const data = options?.transformResponse?.list?.(items) || items
         
         return c.json({
           success: true,
-          data
+          data,
+          pagination: {
+            page,
+            pageSize: limit,
+            totalPages: Math.ceil(total / limit),
+            totalItems: total,
+            hasMore: page * limit < total,
+            hasPrevious: page > 1
+          }
         })
-      },
-      { entity: entityName, action: 'list' }
-    )
+      }
+      
+      // Simple list without pagination
+      const items = await service.list(query)
+      const data = options?.transformResponse?.list?.(items) || items
+      
+      return c.json({
+        success: true,
+        data
+      })
+    } catch (error) {
+      console.error(`[${entityName} List Error]`, error)
+      const apiError = ErrorFactory.wrap(error, `${entityName} list operation`)
+      
+      return c.json(
+        {
+          success: false,
+          error: apiError.message,
+          code: apiError.code,
+          details: apiError.details
+        },
+        apiError.status as any
+      )
+    }
   })
   }
   
@@ -360,28 +379,47 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
   }
   
   app.openapi(getRoute, async (c: any) => {
-    return await withErrorContext(
-      async () => {
-        if (options?.customHandlers?.get) {
-          return await options.customHandlers.get(c)
-        }
-        
-        const { id } = c.req.valid('param')
-        const item = await service.get(id)
-        
-        if (!item) {
-          throw ErrorFactory.notFound(entityName, id.toString())
-        }
-        
-        const data = options?.transformResponse?.get?.(item) || item
-        
-        return c.json({
-          success: true,
-          data
-        })
-      },
-      { entity: entityName, action: 'get' }
-    )
+    try {
+      if (options?.customHandlers?.get) {
+        return await options.customHandlers.get(c)
+      }
+      
+      // Use OpenAPI Hono's built-in validation
+      const { id } = c.req.valid('param')
+      const item = await service.get(id)
+      
+      if (!item) {
+        const notFoundError = ErrorFactory.notFound(entityName, id.toString())
+        return c.json(
+          {
+            success: false,
+            error: notFoundError.message,
+            code: notFoundError.code
+          },
+          404
+        )
+      }
+      
+      const data = options?.transformResponse?.get?.(item) || item
+      
+      return c.json({
+        success: true,
+        data
+      })
+    } catch (error) {
+      console.error(`[${entityName} Get Error]`, error)
+      const apiError = ErrorFactory.wrap(error, `${entityName} get operation`)
+      
+      return c.json(
+        {
+          success: false,
+          error: apiError.message,
+          code: apiError.code,
+          details: apiError.details
+        },
+        apiError.status as any
+      )
+    }
   })
   }
   
@@ -451,32 +489,43 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
   }
   
   app.openapi(createRouteDefinition, async (c: any) => {
-    return await withErrorContext(
-      async () => {
-        if (options?.customHandlers?.create) {
-          return await options.customHandlers.create(c)
-        }
-        
-        const body = c.req.valid('json')
-        
-        // Run validation hook if provided
-        if (options?.validateBeforeCreate) {
-          await options.validateBeforeCreate(body)
-        }
-        
-        const created = await service.create(body)
-        const data = options?.transformResponse?.create?.(created) || created
-        
-        return c.json(
-          {
-            success: true,
-            data
-          },
-          201
-        )
-      },
-      { entity: entityName, action: 'create' }
-    )
+    try {
+      if (options?.customHandlers?.create) {
+        return await options.customHandlers.create(c)
+      }
+      
+      // Use OpenAPI Hono's built-in validation
+      const body = c.req.valid('json') as TCreate
+      
+      // Run validation hook if provided
+      if (options?.validateBeforeCreate) {
+        await options.validateBeforeCreate(body)
+      }
+      
+      const created = await service.create(body)
+      const data = options?.transformResponse?.create?.(created) || created
+      
+      return c.json(
+        {
+          success: true,
+          data
+        },
+        201
+      )
+    } catch (error) {
+      console.error(`[${entityName} Create Error]`, error)
+      const apiError = ErrorFactory.wrap(error, `${entityName} create operation`)
+      
+      return c.json(
+        {
+          success: false,
+          error: apiError.message,
+          code: apiError.code,
+          details: apiError.details
+        },
+        apiError.status as any
+      )
+    }
   })
   }
   
@@ -557,35 +606,54 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
   }
   
   app.openapi(updateRoute, async (c: any) => {
-    return await withErrorContext(
-      async () => {
-        if (options?.customHandlers?.update) {
-          return await options.customHandlers.update(c)
-        }
-        
-        const { id } = c.req.valid('param')
-        const body = c.req.valid('json')
-        
-        // Run validation hook if provided
-        if (options?.validateBeforeUpdate) {
-          await options.validateBeforeUpdate(id, body)
-        }
-        
-        const updated = await service.update(id, body)
-        
-        if (!updated) {
-          throw ErrorFactory.notFound(entityName, id.toString())
-        }
-        
-        const data = options?.transformResponse?.update?.(updated) || updated
-        
-        return c.json({
-          success: true,
-          data
-        })
-      },
-      { entity: entityName, action: 'update' }
-    )
+    try {
+      if (options?.customHandlers?.update) {
+        return await options.customHandlers.update(c)
+      }
+      
+      // Use OpenAPI Hono's built-in validation
+      const { id } = c.req.valid('param')
+      const body = c.req.valid('json') as TUpdate
+      
+      // Run validation hook if provided
+      if (options?.validateBeforeUpdate) {
+        await options.validateBeforeUpdate(id, body)
+      }
+      
+      const updated = await service.update(id, body)
+      
+      if (!updated) {
+        const notFoundError = ErrorFactory.notFound(entityName, id.toString())
+        return c.json(
+          {
+            success: false,
+            error: notFoundError.message,
+            code: notFoundError.code
+          },
+          404
+        )
+      }
+      
+      const data = options?.transformResponse?.update?.(updated) || updated
+      
+      return c.json({
+        success: true,
+        data
+      })
+    } catch (error) {
+      console.error(`[${entityName} Update Error]`, error)
+      const apiError = ErrorFactory.wrap(error, `${entityName} update operation`)
+      
+      return c.json(
+        {
+          success: false,
+          error: apiError.message,
+          code: apiError.code,
+          details: apiError.details
+        },
+        apiError.status as any
+      )
+    }
   })
   }
   
@@ -650,39 +718,58 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
   }
   
   app.openapi(deleteRoute, async (c: any) => {
-    return await withErrorContext(
-      async () => {
-        if (options?.customHandlers?.delete) {
-          return await options.customHandlers.delete(c)
-        }
-        
-        const { id } = c.req.valid('param')
-        
-        // Run validation hook if provided
-        if (options?.validateBeforeDelete) {
-          await options.validateBeforeDelete(id)
-        }
-        
-        let success: boolean
-        
-        // Use soft delete if enabled and available
-        if (options?.softDelete && service.softDelete) {
-          success = await service.softDelete(id)
-        } else {
-          success = await service.delete(id)
-        }
-        
-        if (!success) {
-          throw ErrorFactory.notFound(entityName, id.toString())
-        }
-        
-        return c.json({
-          success: true,
-          message: `${entityName} deleted successfully`
-        })
-      },
-      { entity: entityName, action: 'delete' }
-    )
+    try {
+      if (options?.customHandlers?.delete) {
+        return await options.customHandlers.delete(c)
+      }
+      
+      // Use OpenAPI Hono's built-in validation
+      const { id } = c.req.valid('param')
+      
+      // Run validation hook if provided
+      if (options?.validateBeforeDelete) {
+        await options.validateBeforeDelete(id)
+      }
+      
+      let success: boolean
+      
+      // Use soft delete if enabled and available
+      if (options?.softDelete && service.softDelete) {
+        success = await service.softDelete(id)
+      } else {
+        success = await service.delete(id)
+      }
+      
+      if (!success) {
+        const notFoundError = ErrorFactory.notFound(entityName, id.toString())
+        return c.json(
+          {
+            success: false,
+            error: notFoundError.message,
+            code: notFoundError.code
+          },
+          404
+        )
+      }
+      
+      return c.json({
+        success: true,
+        message: `${entityName} deleted successfully`
+      })
+    } catch (error) {
+      console.error(`[${entityName} Delete Error]`, error)
+      const apiError = ErrorFactory.wrap(error, `${entityName} delete operation`)
+      
+      return c.json(
+        {
+          success: false,
+          error: apiError.message,
+          code: apiError.code,
+          details: apiError.details
+        },
+        apiError.status as any
+      )
+    }
   })
   }
   
@@ -744,21 +831,31 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       })
       
       app.openapi(batchCreateRoute, async (c: any) => {
-        return await withErrorContext(
-          async () => {
-            const { items } = c.req.valid('json') as { items: TCreate[] }
-            
-            const created = service.createMany 
-              ? await service.createMany(items)
-              : await Promise.all(items.map(item => service.create(item)))
-            
-            return c.json({
-              success: true,
-              data: created
-            }, 201)
-          },
-          { entity: entityName, action: 'batchCreate' }
-        )
+        try {
+          const { items } = c.req.valid('json') as { items: TCreate[] }
+          
+          const created = service.createMany 
+            ? await service.createMany(items)
+            : await Promise.all(items.map(item => service.create(item)))
+          
+          return c.json({
+            success: true,
+            data: created
+          }, 201)
+        } catch (error) {
+          console.error(`[${entityName} Batch Create Error]`, error)
+          const apiError = ErrorFactory.wrap(error, `${entityName} batch create operation`)
+          
+          return c.json(
+            {
+              success: false,
+              error: apiError.message,
+              code: apiError.code,
+              details: apiError.details
+            },
+            apiError.status as any
+          )
+        }
       })
     }
     
@@ -821,23 +918,33 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       })
       
       app.openapi(batchUpdateRoute, async (c: any) => {
-        return await withErrorContext(
-          async () => {
-            const { updates } = c.req.valid('json') as { updates: { id: number; data: TUpdate }[] }
-            
-            const updated = service.updateMany
-              ? await service.updateMany(updates)
-              : await Promise.all(
-                  updates.map(({ id, data }) => service.update(id, data))
-                ).then(results => results.filter(Boolean) as TEntity[])
-            
-            return c.json({
-              success: true,
-              data: updated
-            })
-          },
-          { entity: entityName, action: 'batchUpdate' }
-        )
+        try {
+          const { updates } = c.req.valid('json') as { updates: { id: number; data: TUpdate }[] }
+          
+          const updated = service.updateMany
+            ? await service.updateMany(updates)
+            : await Promise.all(
+                updates.map(({ id, data }) => service.update(id, data))
+              ).then(results => results.filter(Boolean) as TEntity[])
+          
+          return c.json({
+            success: true,
+            data: updated
+          })
+        } catch (error) {
+          console.error(`[${entityName} Batch Update Error]`, error)
+          const apiError = ErrorFactory.wrap(error, `${entityName} batch update operation`)
+          
+          return c.json(
+            {
+              success: false,
+              error: apiError.message,
+              code: apiError.code,
+              details: apiError.details
+            },
+            apiError.status as any
+          )
+        }
       })
     }
     
@@ -889,23 +996,33 @@ export function createCrudRoutes<TEntity, TCreate, TUpdate>(
       })
       
       app.openapi(batchDeleteRoute, async (c: any) => {
-        return await withErrorContext(
-          async () => {
-            const { ids } = c.req.valid('json') as { ids: number[] }
-            
-            const deletedCount = service.deleteMany
-              ? await service.deleteMany(ids)
-              : await Promise.all(
-                  ids.map(id => service.delete(id))
-                ).then(results => results.filter(Boolean).length)
-            
-            return c.json({
-              success: true,
-              message: `${deletedCount} ${entityName}s deleted`
-            })
-          },
-          { entity: entityName, action: 'batchDelete' }
-        )
+        try {
+          const { ids } = c.req.valid('json') as { ids: number[] }
+          
+          const deletedCount = service.deleteMany
+            ? await service.deleteMany(ids)
+            : await Promise.all(
+                ids.map(id => service.delete(id))
+              ).then(results => results.filter(Boolean).length)
+          
+          return c.json({
+            success: true,
+            message: `${deletedCount} ${entityName}s deleted`
+          })
+        } catch (error) {
+          console.error(`[${entityName} Batch Delete Error]`, error)
+          const apiError = ErrorFactory.wrap(error, `${entityName} batch delete operation`)
+          
+          return c.json(
+            {
+              success: false,
+              error: apiError.message,
+              code: apiError.code,
+              details: apiError.details
+            },
+            apiError.status as any
+          )
+        }
       })
     }
   }

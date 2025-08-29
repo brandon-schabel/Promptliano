@@ -183,37 +183,7 @@ try {
     console.warn('⚠️ Could not inspect provider_keys schema for auto-migration:', e)
   }
 
-  // Ensure encryption_keys table exists (apply 0004 if missing)
-  try {
-    const hasEncryptionKeysTable = sqlite
-      .query("SELECT name FROM sqlite_master WHERE type='table' AND name='encryption_keys'")
-      .all().length > 0
-
-    if (!hasEncryptionKeysTable && process.env.NODE_ENV !== 'test') {
-      try {
-        console.log('🔐 Creating encryption_keys table (applying 0004_secure_cipher)...')
-        const migrationPath = join(drizzleDir, '0004_secure_cipher.sql')
-        const migrationSql = readFileSync(migrationPath, 'utf8')
-        const statements = migrationSql.split('--> statement-breakpoint')
-        for (const statement of statements) {
-          const cleanStatement = statement.trim()
-          if (cleanStatement && !cleanStatement.startsWith('--')) {
-            try {
-              sqlite.exec(cleanStatement)
-            } catch (e: any) {
-              const msg = String(e?.message || e)
-              if (!/already exists/i.test(msg)) throw e
-            }
-          }
-        }
-        console.log('✅ encryption_keys table ensured')
-      } catch (e) {
-        console.warn('⚠️ Failed to create encryption_keys table automatically. You may need to run drizzle migrations.', e)
-      }
-    }
-  } catch (e) {
-    console.warn('⚠️ Could not ensure encryption_keys table:', e)
-  }
+  // encryption_keys table no longer used; per-column encryption removed in favor of env secretRef
 } catch (error) {
   console.warn('⚠️ Database initialization warning:', error)
 }

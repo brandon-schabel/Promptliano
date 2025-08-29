@@ -54,7 +54,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
   const projectPath = project?.path || ''
 
   // Get hooks from API - only enable when we have a project path
-  const { data: hooksData, isLoading: isHooksLoading, error: hooksError } = useGetProjectHooks(projectPath)
+  const { data: hooksData, isLoading: isHooksLoading, error: hooksError } = useGetProjectHooks(projectId)
   const hooks = hooksData || []
 
   console.log({ hooksData })
@@ -65,7 +65,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
   const error = hooksError
 
   // Delete hook mutation
-  const deleteHookMutation = useDeleteHook(projectPath)
+  const deleteHookMutation = useDeleteHook(projectId)
 
   const filteredHooks = hooks.filter(
     (hook: any) =>
@@ -106,8 +106,7 @@ export function HooksView({ projectId, projectName }: HooksViewProps) {
       try {
         // For now, use index 0 as default since matcherIndex is not available
         await deleteHookMutation.mutateAsync({
-          eventName: deletingHook.event as HookEventType,
-          matcherIndex: 0
+          serverId: (deletingHook as any).id || 0
         })
       } catch (error) {
         console.error('Failed to delete hook:', error)

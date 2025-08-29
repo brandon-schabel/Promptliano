@@ -32,7 +32,8 @@ import type { CustomProviderFeatures, ProviderModel } from '@promptliano/schemas
 const customProviderFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   baseUrl: z.string().url('Must be a valid URL'),
-  apiKey: z.string().min(1, 'API key is required'),
+  secretRef: z.string().min(1, 'Secret reference is required'),
+  apiKey: z.string().optional(), // optional literal for validation only
   customHeaders: z.record(z.string()).optional()
 })
 
@@ -59,6 +60,7 @@ export function CustomProviderDialog({ open, onOpenChange, onSuccess }: CustomPr
     defaultValues: {
       name: '',
       baseUrl: '',
+      secretRef: '',
       apiKey: '',
       customHeaders: {}
     }
@@ -89,7 +91,7 @@ export function CustomProviderDialog({ open, onOpenChange, onSuccess }: CustomPr
     try {
       const response = await client.keys.validateCustomProvider({
         baseUrl: values.baseUrl,
-        apiKey: values.apiKey,
+        apiKey: values.apiKey || '',
         customHeaders: Object.keys(headersObject).length > 0 ? headersObject : undefined
       })
 
@@ -138,7 +140,7 @@ export function CustomProviderDialog({ open, onOpenChange, onSuccess }: CustomPr
       await client.keys.createKey({
         name: values.name,
         provider: 'custom',
-        key: values.apiKey,
+        secretRef: values.secretRef,
         baseUrl: values.baseUrl,
         customHeaders: Object.keys(headersObject).length > 0 ? headersObject : undefined,
         isDefault: false
@@ -219,14 +221,29 @@ export function CustomProviderDialog({ open, onOpenChange, onSuccess }: CustomPr
 
               <FormField
                 control={form.control}
+                name='secretRef'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Secret Reference</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder='CUSTOM_API_KEY' />
+                    </FormControl>
+                    <FormDescription>Name of the environment secret storing this provider's API key</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name='apiKey'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>API Key</FormLabel>
+                    <FormLabel>API Key for Validation (optional)</FormLabel>
                     <FormControl>
                       <Input {...field} type='password' placeholder='sk-...' />
                     </FormControl>
-                    <FormDescription>Your API key for authentication</FormDescription>
+                    <FormDescription>Used only to validate the provider connectivity now; not stored</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

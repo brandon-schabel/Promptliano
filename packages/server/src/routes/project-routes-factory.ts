@@ -823,7 +823,38 @@ customRoutes.openapi(suggestFilesRoute, async (c) => {
     await projectService.getById(id)
 
     const files = await projectService.suggestFiles(id, prompt, limit)
-    return c.json({ success: true as const, data: files }, 200)
+    
+    // Transform database File objects to ProjectFile API objects
+    const transformedFiles = files.map(file => {
+      // Create a numeric ID from the string path ID for API consistency
+      const numericId = Math.abs(file.id.split('').reduce((hash, char) => 
+        ((hash << 5) - hash) + char.charCodeAt(0), 0
+      ))
+      
+      return {
+        id: numericId,
+        projectId: file.projectId,
+        name: file.name,
+        path: file.path,
+        extension: file.extension,
+        size: file.size,
+        lastModified: file.lastModified,
+        contentType: file.contentType,
+        content: file.content,
+        summary: file.summary,
+        summaryLastUpdated: file.summaryLastUpdated,
+        meta: file.meta,
+        checksum: file.checksum,
+        imports: file.imports,
+        exports: file.exports,
+        isRelevant: file.isRelevant,
+        relevanceScore: file.relevanceScore,
+        created: file.createdAt,
+        updated: file.updatedAt
+      }
+    })
+    
+    return c.json({ success: true as const, data: transformedFiles }, 200)
   } catch (error) {
     console.error('Suggest files error:', error)
     if (error instanceof ApiError) {

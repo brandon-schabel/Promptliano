@@ -561,11 +561,11 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
           <TabsContent value='keys'>
             <ScrollArea className='h-[60vh] pr-4'>
               <div className='space-y-3 p-4 text-sm'>
-                <h3 className='font-semibold mb-2'>Managing API Keys</h3>
+                <h3 className='font-semibold mb-2'>Managing Provider Secrets (secretRef)</h3>
                 <p>
-                  The "Providers" page is where you configure and manage the API keys required to access various Large
-                  Language Models (LLMs). These keys enable Promptliano to utilize external AI services for features
-                  like chat, agent runs, and file summarization.
+                  The "Providers" page is where you configure and manage secret references (secretRef) to your provider
+                  API keys. Store the actual keys in your environment/Docker/K8s secrets, then reference their names in
+                  the app. This enables Promptliano to use external AI services without storing secrets in the database.
                 </p>
                 <h4 className='font-semibold mt-3 mb-1'>Providers and Models:</h4>
                 <p>
@@ -588,14 +588,12 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                   <li>OpenRouter (an aggregator for many models across different providers)</li>
                 </ul>
                 <p className='mt-3'>
-                  <strong>Why You Need API Keys:</strong>
-                  To use the AI features within Promptliano, you need to provide API keys obtained directly from the AI
-                  providers you wish to use (or from an aggregator like OpenRouter). These keys act as your credentials,
-                  allowing Promptliano to send requests to the provider's AI models on your behalf and enabling features
-                  like chat, code generation, and file analysis. Without a valid API key configured, Promptliano cannot
-                  access the external AI services.
+                  <strong>Why You Need Provider Secrets:</strong>
+                  To use Promptliano's AI features, obtain API keys from your providers (or an aggregator like
+                  OpenRouter), set them as environment secrets, and reference them by name in Providers. Without a valid
+                  secret configured, Promptliano cannot access external AI services.
                 </p>
-                <h4 className='font-semibold mt-3 mb-1'>Adding, Editing, and Deleting Keys:</h4>
+                <h4 className='font-semibold mt-3 mb-1'>Adding, Editing, and Deleting Secrets:</h4>
                 <ul className='list-disc list-inside space-y-1 pl-4'>
                   <li>
                     Navigate to the
@@ -609,19 +607,19 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                     page.
                   </li>
                   <li>
-                    To <strong>Add</strong> a key: Select the provider you want to configure from the dropdown and enter
-                    your API key in the input field. Click "Save".
+                    To <strong>Add</strong> a secret: Select the provider from the dropdown and enter the secret
+                    reference name (e.g., OPENAI_API_KEY). Click "Save".
                   </li>
                   <li>
-                    To <strong>Edit</strong> a key: Select the provider whose key you want to edit from the dropdown.
-                    The existing key (if any) will be displayed. Modify the key in the input field and click "Save".
+                    To <strong>Edit</strong>: Select the provider whose secret reference you want to edit, modify the
+                    reference name, and click "Save".
                   </li>
                   <li>
                     To <strong>Delete</strong> a key: Select the provider whose key you want to delete from the
                     dropdown. Click the "Delete" button next to the input field. Confirm the deletion if prompted.
                   </li>
                 </ul>
-                <h4 className='font-semibold mt-3 mb-1'>Obtaining API Keys:</h4>
+                <h4 className='font-semibold mt-3 mb-1'>Creating Provider Secrets:</h4>
                 <p>
                   You need to obtain API keys directly from the respective AI providers. Here are links to the
                   documentation or key management pages for some supported providers:
@@ -669,11 +667,11 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                   </li>
                 </ul>
                 <p className='mt-3'>
-                  Once you have your API key from the provider, return to the
+                  Once you have your API key, create an environment secret (e.g., OPENAI_API_KEY), then return to the
                   <Link to='/providers' className='text-blue-500 hover:underline' onClick={() => onOpenChange?.(false)}>
                     Providers
                   </Link>
-                  page in Promptliano to add it.
+                  page to add the secret reference.
                 </p>
               </div>
             </ScrollArea>

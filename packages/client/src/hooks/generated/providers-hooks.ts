@@ -212,9 +212,9 @@ export function useTestProvider() {
         ...response,
         data: {
           ...response.data,
-          latency: response.data.responseTime || 0,
+          latency: response.data.latency || 0,
           providerId: data.providerId,
-          models: response.data.models?.map((model) => ({
+          models: (response.data as any).models?.map((model: any) => ({
             ...model,
             provider: response.data.provider,
             contextLength: undefined,
@@ -268,7 +268,7 @@ export function useBatchTestProviders() {
         data: {
           results: response.data.results.map((result: any) => ({
             ...result,
-            latency: result.responseTime || 0,
+            latency: result.latency || 0,
             providerId: result.providerId || 0,
             models: result.models?.map((model: any) => ({
               ...model,
@@ -280,9 +280,9 @@ export function useBatchTestProviders() {
           })),
           summary: {
             total: response.data.results.length,
-            successful: response.data.summary.connected || 0,
-            failed: (response.data.summary.disconnected || 0) + (response.data.summary.error || 0),
-            averageLatency: response.data.totalTime / response.data.results.length
+            successful: response.data.summary.successful || 0,
+            failed: response.data.summary.failed || 0,
+            averageLatency: response.data.summary.averageLatency || 0
           }
         }
       }

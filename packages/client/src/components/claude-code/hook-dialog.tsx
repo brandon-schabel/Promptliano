@@ -58,9 +58,9 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
   // API hooks
   const { data: project } = useProject(projectId)
   const projectPath = project?.path || ''
-  const createHook = useCreateHook(projectPath)
-  const updateHook = useUpdateHook(projectPath)
-  const generateHook = useGenerateHook(projectPath)
+  const createHook = useCreateHook(projectId)
+  const updateHook = useUpdateHook(projectId)
+  const generateHook = useGenerateHook(projectId)
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -121,8 +121,7 @@ export function HookDialog({ open, onOpenChange, hookId, projectId, initialData 
       if (isEditing && initialData?.matcherIndex !== undefined) {
         // Update hook with legacy API
         await updateHook.mutateAsync({
-          eventName: eventName,
-          matcherIndex: initialData.matcherIndex,
+          serverId: (initialData as any).id || initialData.matcherIndex || 0,
           data: {
             command,
             timeout: timeout ? parseInt(timeout, 10) : undefined,

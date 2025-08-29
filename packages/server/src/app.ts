@@ -28,7 +28,6 @@ import { claudeCodeRoutes } from './routes/claude-code-routes'
 import { claudeHookRoutes } from './routes/claude-hook-routes-factory'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
 import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
-import { securityRoutes } from './routes/security-routes'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import packageJson from '../package.json'
@@ -254,7 +253,7 @@ app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', claudeCodeRoutes)
 app.route('/', mcpInstallationRoutes)
-app.route('/', securityRoutes)
+
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes

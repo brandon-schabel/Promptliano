@@ -323,7 +323,7 @@ export function useAutoGenerateTasks() {
   return useMutation({
     mutationFn: (ticketId: number) => {
       if (!client) throw new Error('API client not initialized')
-      return client.tickets.autoGenerateTasks(ticketId).then((r) => r)
+      return client.tickets.autoGenerateTasks(ticketId).then((r: any) => r)
     },
     onSuccess: (tasks, ticketId) => {
       queryClient.invalidateQueries({ queryKey: TICKET_ENHANCED_KEYS.tasks(ticketId) })
@@ -589,7 +589,12 @@ export function useCreateQueue(projectId: number) {
     mutationFn: (data: Omit<CreateQueueBody, 'projectId'>) => {
       if (!client) throw new Error('API client not initialized')
       // Use Flow endpoint for queue creation
-      return client.queues.createQueue({ ...(data as any), projectId } as CreateQueueBody).then((r) => r)
+      const cleanData = {
+        ...(data as any), 
+        projectId,
+        description: (data as any).description === null ? undefined : (data as any).description
+      }
+      return client.queues.createQueue(cleanData as CreateQueueBody).then((r: any) => r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })

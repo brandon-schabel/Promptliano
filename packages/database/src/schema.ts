@@ -441,6 +441,8 @@ export const providerKeys = sqliteTable(
     provider: text('provider').notNull(),
     keyName: text('key_name').notNull(), // Keep for backward compatibility
     name: text('name'), // New field for enhanced provider key schema
+    // New: reference to an environment/Docker/K8s secret name instead of storing the key
+    secretRef: text('secret_ref'),
     encryptedValue: text('encrypted_value').notNull(), // Keep for backward compatibility
     key: text('key'), // New field for enhanced provider key schema
     encrypted: integer('encrypted', { mode: 'boolean' }).notNull().default(true),

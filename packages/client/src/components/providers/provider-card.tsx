@@ -86,7 +86,7 @@ export function ProviderCard({
 
   const handleCopyKey = () => {
     if (provider.key) {
-      copyToClipboard(provider.key, 'API key copied to clipboard')
+      copyToClipboard(provider.key, 'Secret copied to clipboard')
     }
   }
 
@@ -286,15 +286,15 @@ export function ProviderCard({
             </div>
           )}
 
-          {/* API Key Display */}
+          {/* Secret Display (resolved from env) */}
           <div className='space-y-1'>
             <p className='text-xs text-muted-foreground flex items-center gap-1'>
               <Shield className='h-3 w-3' />
-              API Key
+              Secret
             </p>
             <div className='flex items-center gap-2'>
               <code className='text-xs bg-muted/50 px-2 py-1.5 rounded flex-1 truncate font-mono'>
-                {provider.key ? provider.key.substring(0, 12) : 'No key'}
+                {provider.key ? provider.key.substring(0, 12) : 'No secret'}
                 {'•'.repeat(8)}
               </code>
               <TooltipProvider>
@@ -304,7 +304,7 @@ export function ProviderCard({
                       <Copy className='h-3 w-3' />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Copy API Key</TooltipContent>
+                  <TooltipContent>Copy Secret</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>

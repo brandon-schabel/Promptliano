@@ -12,11 +12,11 @@ import { toast } from 'sonner'
 
 const CLAUDE_HOOKS_KEYS = {
   all: ['claude-hooks'] as const,
-  byProject: (projectPath: string) => [...CLAUDE_HOOKS_KEYS.all, 'project', projectPath] as const,
-  detail: (projectPath: string, eventName: HookEventType, matcherIndex: number) =>
-    [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'detail', eventName, matcherIndex] as const,
-  search: (projectPath: string, query: string) =>
-    [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'search', query] as const
+  byProject: (projectId: string) => [...CLAUDE_HOOKS_KEYS.all, 'project', projectId] as const,
+  detail: (projectId: string, serverId: string, matcherIndex: number) =>
+    [...CLAUDE_HOOKS_KEYS.byProject(projectId), 'detail', serverId, matcherIndex] as const,
+  search: (projectId: string, query: string) =>
+    [...CLAUDE_HOOKS_KEYS.byProject(projectId), 'search', query] as const
 }
 
 // Factory for Claude hooks CRUD operations
@@ -25,17 +25,17 @@ export function createClaudeHooksFactory() {
     /**
      * List all hooks for a project
      */
-    useGetProjectHooks: (projectPath: string) => {
+    useGetProjectHooks: (projectId: number) => {
       const client = useApiClient()
 
       return useQuery({
-        queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath),
+        queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)),
         queryFn: async () => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.list(projectPath)
+          const response = await client.claudeHooks.list(projectId)
           return response.data
         },
-        enabled: !!client && !!projectPath,
+        enabled: !!client && !!projectId && projectId > 0,
         staleTime: 2 * 60 * 1000, // 2 minutes - hook configs don't change frequently
         gcTime: 10 * 60 * 1000
       })
@@ -44,17 +44,17 @@ export function createClaudeHooksFactory() {
     /**
      * Get a specific hook
      */
-    useGetHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
+    useGetHook: (projectId: number, eventName: HookEventType, matcherIndex: number) => {
       const client = useApiClient()
 
       return useQuery({
-        queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex),
+        queryKey: CLAUDE_HOOKS_KEYS.detail(String(projectId), eventName, matcherIndex),
         queryFn: async () => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.getHook(projectPath, eventName, matcherIndex)
+          const response = await client.claudeHooks.getHook(projectId, eventName, matcherIndex)
           return response.data
         },
-        enabled: !!client && !!projectPath && !!eventName && matcherIndex >= 0,
+        enabled: !!client && !!projectId && projectId > 0 && !!eventName && matcherIndex >= 0,
         staleTime: 5 * 60 * 1000, // 5 minutes - individual hooks are relatively stable
         gcTime: 15 * 60 * 1000
       })
@@ -63,17 +63,17 @@ export function createClaudeHooksFactory() {
     /**
      * Search hooks
      */
-    useSearchHooks: (projectPath: string, query: string) => {
+    useSearchHooks: (projectId: number, query: string) => {
       const client = useApiClient()
 
       return useQuery({
-        queryKey: CLAUDE_HOOKS_KEYS.search(projectPath, query),
+        queryKey: CLAUDE_HOOKS_KEYS.search(String(projectId), query),
         queryFn: async () => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.search(projectPath, query)
+          const response = await client.claudeHooks.search(projectId, query)
           return response.data
         },
-        enabled: !!client && !!projectPath && !!query && query.length > 0,
+        enabled: !!client && !!projectId && projectId > 0 && !!query && query.length > 0,
         staleTime: 1 * 60 * 1000, // 1 minute - search results can be cached briefly
         gcTime: 5 * 60 * 1000
       })
@@ -87,25 +87,25 @@ export function createClaudeHooksMutationFactory() {
     /**
      * Create a new hook
      */
-    useCreateHook: (projectPath: string) => {
+    useCreateHook: (projectId: number) => {
       const client = useApiClient()
       const queryClient = useQueryClient()
 
       return useMutation({
         mutationFn: async (data: CreateHookConfigBody) => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.create(projectPath, data)
+          const response = await client.claudeHooks.create(projectId, data)
           return response.data
         },
         onMutate: async (data) => {
           // Cancel outgoing refetches
-          await queryClient.cancelQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
+          await queryClient.cancelQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)) })
 
           // Snapshot the previous value
-          const previousHooks = queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath))
+          const previousHooks = queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)))
 
           // Optimistic update - add the new hook to the list
-          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
+          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)), (old: any) => {
             if (!old || !Array.isArray(old)) return old
 
             const optimisticHook = {
@@ -122,12 +122,12 @@ export function createClaudeHooksMutationFactory() {
         },
         onError: (err, data, context) => {
           // Rollback optimistic update
-          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), context?.previousHooks)
+          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)), context?.previousHooks)
           toast.error('Failed to create hook')
         },
         onSuccess: (newHook, data) => {
           // Update the cache with the actual hook data
-          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
+          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)), (old: any) => {
             if (!old || !Array.isArray(old)) return [newHook]
 
             // Replace the optimistic entry with the real data
@@ -142,7 +142,7 @@ export function createClaudeHooksMutationFactory() {
             typeof (newHook as any).matcherIndex === 'number'
           ) {
             queryClient.setQueryData(
-              CLAUDE_HOOKS_KEYS.detail(projectPath, (newHook as any).eventName, (newHook as any).matcherIndex),
+              CLAUDE_HOOKS_KEYS.detail(String(projectId), (newHook as any).eventName, (newHook as any).matcherIndex),
               newHook
             )
           }
@@ -151,7 +151,7 @@ export function createClaudeHooksMutationFactory() {
         },
         onSettled: () => {
           // Always refetch to ensure we have the latest data
-          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
+          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)) })
         }
       })
     },
@@ -159,27 +159,25 @@ export function createClaudeHooksMutationFactory() {
     /**
      * Update an existing hook
      */
-    useUpdateHook: (projectPath: string) => {
+    useUpdateHook: (projectId: number) => {
       const client = useApiClient()
       const queryClient = useQueryClient()
 
       return useMutation({
         mutationFn: async ({
-          eventName,
-          matcherIndex,
+          serverId,
           data
         }: {
-          eventName: HookEventType
-          matcherIndex: number
+          serverId: string | number
           data: UpdateHookConfigBody
         }) => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.update(projectPath, eventName, matcherIndex, data)
+          const response = await client.claudeHooks.update(projectId, serverId, data)
           return response.data
         },
-        onMutate: async ({ eventName, matcherIndex, data }) => {
-          const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
-          const listKey = CLAUDE_HOOKS_KEYS.byProject(projectPath)
+        onMutate: async ({ serverId, data }) => {
+          const detailKey = CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
+          const listKey = CLAUDE_HOOKS_KEYS.byProject(String(projectId))
 
           // Cancel outgoing refetches
           await queryClient.cancelQueries({ queryKey: detailKey })
@@ -199,7 +197,7 @@ export function createClaudeHooksMutationFactory() {
           queryClient.setQueryData(listKey, (old: any) => {
             if (!old || !Array.isArray(old)) return old
             return old.map((hook) => {
-              if (hook.eventName === eventName && hook.matcherIndex === matcherIndex) {
+              if (hook.id === serverId) {
                 return { ...hook, ...data, updatedAt: new Date().toISOString() }
               }
               return hook
@@ -218,15 +216,15 @@ export function createClaudeHooksMutationFactory() {
           }
           toast.error('Failed to update hook')
         },
-        onSuccess: (updatedHook, { eventName, matcherIndex }) => {
+        onSuccess: (updatedHook, { serverId }) => {
           // Update caches with server response
-          const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
+          const detailKey = CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
           queryClient.setQueryData(detailKey, updatedHook)
 
-          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath), (old: any) => {
+          queryClient.setQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)), (old: any) => {
             if (!old || !Array.isArray(old)) return old
             return old.map((hook) => {
-              if (hook.eventName === eventName && hook.matcherIndex === matcherIndex) {
+              if (hook.id === serverId) {
                 return updatedHook
               }
               return hook
@@ -235,11 +233,11 @@ export function createClaudeHooksMutationFactory() {
 
           toast.success('Hook updated successfully')
         },
-        onSettled: (_, __, { eventName, matcherIndex }) => {
+        onSettled: (_, __, { serverId }) => {
           // Invalidate relevant queries
-          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
+          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)) })
           queryClient.invalidateQueries({
-            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
+            queryKey: CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
           })
         }
       })
@@ -248,18 +246,18 @@ export function createClaudeHooksMutationFactory() {
     /**
      * Delete a hook
      */
-    useDeleteHook: (projectPath: string) => {
+    useDeleteHook: (projectId: number) => {
       const client = useApiClient()
       const queryClient = useQueryClient()
 
       return useMutation({
-        mutationFn: async ({ eventName, matcherIndex }: { eventName: HookEventType; matcherIndex: number }) => {
+        mutationFn: async ({ serverId }: { serverId: string | number }) => {
           if (!client) throw new Error('API client not initialized')
-          return client.claudeHooks.deleteHook(projectPath, eventName, matcherIndex)
+          return client.claudeHooks.deleteHook(projectId, serverId)
         },
-        onMutate: async ({ eventName, matcherIndex }) => {
-          const detailKey = CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
-          const listKey = CLAUDE_HOOKS_KEYS.byProject(projectPath)
+        onMutate: async ({ serverId }) => {
+          const detailKey = CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
+          const listKey = CLAUDE_HOOKS_KEYS.byProject(String(projectId))
 
           // Cancel outgoing refetches
           await queryClient.cancelQueries({ queryKey: listKey })
@@ -270,7 +268,7 @@ export function createClaudeHooksMutationFactory() {
           // Optimistic removal from list
           queryClient.setQueryData(listKey, (old: any) => {
             if (!old || !Array.isArray(old)) return old
-            return old.filter((hook) => !(hook.eventName === eventName && hook.matcherIndex === matcherIndex))
+            return old.filter((hook) => hook.id !== serverId)
           })
 
           // Remove individual hook cache
@@ -288,11 +286,11 @@ export function createClaudeHooksMutationFactory() {
         onSuccess: () => {
           toast.success('Hook deleted successfully')
         },
-        onSettled: (_, __, { eventName, matcherIndex }) => {
+        onSettled: (_, __, { serverId }) => {
           // Clean up and invalidate
-          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
+          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)) })
           queryClient.removeQueries({
-            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
+            queryKey: CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
           })
         }
       })
@@ -306,13 +304,13 @@ export function createClaudeHooksUtilityFactory() {
     /**
      * Generate a hook from natural language
      */
-    useGenerateHook: (projectPath: string) => {
+    useGenerateHook: (projectId: number) => {
       const client = useApiClient()
 
       return useMutation({
         mutationFn: async (data: HookGeneration) => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.generate(projectPath, data)
+          const response = await client.claudeHooks.generate(projectId, data)
           return response.data
         },
         onError: (error: any) => {
@@ -324,13 +322,13 @@ export function createClaudeHooksUtilityFactory() {
     /**
      * Test a hook configuration
      */
-    useTestHook: (projectPath: string) => {
+    useTestHook: (projectId: number) => {
       const client = useApiClient()
 
       return useMutation({
         mutationFn: async (data: HookTest) => {
           if (!client) throw new Error('API client not initialized')
-          const response = await client.claudeHooks.test(projectPath, data)
+          const response = await client.claudeHooks.test(projectId, data)
           return response.data
         },
         onError: (error: any) => {
@@ -349,45 +347,45 @@ export function createClaudeHooksCacheFactory() {
 
       return {
         // Invalidate all hooks for a project
-        invalidateProjectHooks: (projectPath: string) => {
-          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath) })
+        invalidateProjectHooks: (projectId: number) => {
+          queryClient.invalidateQueries({ queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)) })
         },
 
         // Invalidate specific hook
-        invalidateHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
+        invalidateHook: (projectId: number, serverId: string | number) => {
           queryClient.invalidateQueries({
-            queryKey: CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex)
+            queryKey: CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0)
           })
         },
 
         // Clear search cache
-        clearSearchCache: (projectPath: string) => {
+        clearSearchCache: (projectId: number) => {
           queryClient.removeQueries({
-            queryKey: [...CLAUDE_HOOKS_KEYS.byProject(projectPath), 'search'],
+            queryKey: [...CLAUDE_HOOKS_KEYS.byProject(String(projectId)), 'search'],
             exact: false
           })
         },
 
         // Prefetch project hooks
-        prefetchProjectHooks: async (projectPath: string) => {
+        prefetchProjectHooks: async (projectId: number) => {
           const client = useApiClient()
-          if (!client || !projectPath) return
+          if (!client || !projectId || projectId <= 0) return
 
           return queryClient.prefetchQuery({
-            queryKey: CLAUDE_HOOKS_KEYS.byProject(projectPath),
-            queryFn: () => client.claudeHooks.list(projectPath).then((r) => r.data),
+            queryKey: CLAUDE_HOOKS_KEYS.byProject(String(projectId)),
+            queryFn: () => client.claudeHooks.list(projectId).then((r: any) => r.data),
             staleTime: 2 * 60 * 1000
           })
         },
 
         // Get cached hooks without triggering fetch
-        getCachedProjectHooks: (projectPath: string) => {
-          return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(projectPath))
+        getCachedProjectHooks: (projectId: number) => {
+          return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.byProject(String(projectId)))
         },
 
         // Get cached hook without triggering fetch
-        getCachedHook: (projectPath: string, eventName: HookEventType, matcherIndex: number) => {
-          return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.detail(projectPath, eventName, matcherIndex))
+        getCachedHook: (projectId: number, serverId: string | number) => {
+          return queryClient.getQueryData(CLAUDE_HOOKS_KEYS.detail(String(projectId), String(serverId), 0))
         }
       }
     }

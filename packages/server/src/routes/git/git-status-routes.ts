@@ -115,7 +115,7 @@ const unstageAllRoute = createRoute({
 
 // Export routes with simplified handlers using route-helpers
 export const gitStatusRoutes = new OpenAPIHono()
-  .openapi(getProjectGitStatusRoute, (async (c: any): Promise<any> => {
+  .openapi(getProjectGitStatusRoute, async (c): Promise<any> => {
     const { id: projectId } = c.req.valid('param')
     const { refresh = false } = c.req.valid('query') || {}
 
@@ -126,32 +126,32 @@ export const gitStatusRoutes = new OpenAPIHono()
 
     const status = await getProjectGitStatus(projectId)
     return c.json(successResponse(status))
-  }) as any)
-  .openapi(stageFilesRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(stageFilesRoute, async (c): Promise<any> => {
     const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await stageFiles(projectId, body.filePaths)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Files staged successfully'))
-  }) as any)
-  .openapi(unstageFilesRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(unstageFilesRoute, async (c): Promise<any> => {
     const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await unstageFiles(projectId, body.filePaths)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Files unstaged successfully'))
-  }) as any)
-  .openapi(stageAllRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(stageAllRoute, async (c): Promise<any> => {
     const { id: projectId } = c.req.valid('param')
     await stageAll(projectId)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('All changes staged successfully'))
-  }) as any)
-  .openapi(unstageAllRoute, (async (c: any): Promise<any> => {
+  })
+  .openapi(unstageAllRoute, async (c): Promise<any> => {
     const { id: projectId } = c.req.valid('param')
     await unstageAll(projectId)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('All changes unstaged successfully'))
-  }) as any)
+  })
 
 export type GitStatusRouteTypes = typeof gitStatusRoutes

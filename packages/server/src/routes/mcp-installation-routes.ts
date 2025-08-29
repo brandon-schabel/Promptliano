@@ -519,7 +519,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(updateProjectMCPConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const updates = c.req.valid('json')
 
     try {
@@ -547,7 +547,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(batchInstallMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tools, serverUrl, debug } = c.req.valid('json')
 
     try {
@@ -614,7 +614,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(installProjectConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { serverUrl } = c.req.valid('json')
 
     try {

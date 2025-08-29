@@ -584,7 +584,7 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(listTicketsByProjectRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
-    const tickets = await listTicketsByProject(parseNumericId(projectId), query?.status as TicketStatus | undefined)
+    const tickets = await listTicketsByProject(projectId, query?.status as TicketStatus | undefined)
     const formattedTickets = tickets.map(formatTicketData)
     const payload: z.infer<typeof TicketListResponseSchema> = {
       success: true,
@@ -597,7 +597,7 @@ export const ticketRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
-    const results = await listTicketsWithTaskCount(parseNumericId(projectId))
+    const results = await listTicketsWithTaskCount(projectId)
 
     const formatted: z.infer<typeof TicketWithTaskCountSchema>[] = results.map((item: any) => {
       const { taskCount, completedTaskCount, ...ticketData } = item
@@ -619,7 +619,7 @@ export const ticketRoutes = new OpenAPIHono()
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
-    const ticketsWithTasks = await listTicketsWithTasks(parseNumericId(projectId))
+    const ticketsWithTasks = await listTicketsWithTasks(projectId)
 
     const formatted: z.infer<typeof TicketWithTasksSchema>[] = ticketsWithTasks.map((item: any) => ({
       ticket: formatTicketData(item),

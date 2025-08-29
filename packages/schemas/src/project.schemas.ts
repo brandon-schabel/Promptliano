@@ -59,12 +59,14 @@ export const ExportInfoSchema = z
 // Database File schema only has basic file metadata, this adds import/export analysis, content, etc.
 export const ProjectFileSchema = z
   .object({
-    id: entityIdSchema,
+    id: entityIdSchema, // Numeric file ID for API consistency
     projectId: entityIdSchema,
     name: z.string(),
     path: z.string(),
-    extension: z.string(),
-    size: z.number(),
+    extension: z.string().nullable(), // Can be null in database
+    size: z.number().nullable(), // Can be null in database
+    lastModified: z.number().nullable(), // From database schema
+    contentType: z.string().nullable(), // From database schema
     content: z.string().nullable(),
     summary: z.string().nullable(),
     summaryLastUpdated: unixTSSchemaSpec.nullable(),
@@ -72,8 +74,10 @@ export const ProjectFileSchema = z
     checksum: z.string().nullable(),
     imports: z.array(ImportInfoSchema).nullable().default(null),
     exports: z.array(ExportInfoSchema).nullable().default(null),
-    created: unixTSSchemaSpec,
-    updated: unixTSSchemaSpec
+    isRelevant: z.boolean().nullable().default(null), // From database schema
+    relevanceScore: z.number().nullable().default(null), // From database schema
+    created: unixTSSchemaSpec, // API field names for consistency
+    updated: unixTSSchemaSpec  // API field names for consistency
   })
   .openapi('ProjectFile')
 

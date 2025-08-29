@@ -121,6 +121,13 @@ export class ErrorFactory {
     )
   }
 
+  /**
+   * Generic bad request error
+   */
+  static badRequest(message: string, details?: any): ApiError {
+    return new ApiError(400, message, 'BAD_REQUEST', details)
+  }
+
   // ============================================
   // Operation Errors (500)
   // ============================================

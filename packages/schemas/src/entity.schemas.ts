@@ -313,6 +313,7 @@ export const ProviderKeySchema = z.object({
   provider: z.string(),
   keyName: z.string().nullable(),
   name: z.string().nullable(),
+  secretRef: z.string().nullable().optional(),
   encryptedValue: z.string(),
   encrypted: z.boolean(),
   iv: z.string().nullable(),
@@ -334,6 +335,7 @@ export const CreateProviderKeySchema = z.object({
   provider: z.string().min(1),
   keyName: z.string().optional(),
   name: z.string().optional(),
+  secretRef: z.string().optional(),
   key: z.string().optional(),
   encryptedValue: z.string().optional(),
   encrypted: z.boolean().default(true),
@@ -353,6 +355,7 @@ export const CreateProviderKeySchema = z.object({
 export const UpdateProviderKeySchema = z.object({
   keyName: z.string().optional(),
   name: z.string().optional(),
+  secretRef: z.string().optional(),
   key: z.string().optional(),
   encryptedValue: z.string().optional(),
   encrypted: z.boolean().optional(),

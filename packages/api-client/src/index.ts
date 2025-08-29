@@ -279,58 +279,7 @@ export class PromptlianoClient {
     }
   }
 
-  // Security & Encryption key management
-  public readonly security = {
-    getEncryptionKeyStatus: async (): Promise<any> => {
-      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        }
-      })
-      if (!res.ok) throw new Error(`Failed to get encryption key status (${res.status})`)
-      return res.json()
-    },
-
-    rotateEncryptionKey: async (data: { newKey?: string; generate?: boolean; reencryptExisting?: boolean }): Promise<any> => {
-      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/rotate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        },
-        body: JSON.stringify(data)
-      })
-      if (!res.ok) throw new Error(`Failed to rotate encryption key (${res.status})`)
-      return res.json()
-    },
-
-    setEncryptionKey: async (data: { key?: string; generate?: boolean }): Promise<any> => {
-      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        },
-        body: JSON.stringify(data)
-      })
-      if (!res.ok) throw new Error(`Failed to set encryption key (${res.status})`)
-      return res.json()
-    },
-
-    useDefaultEncryptionKey: async (): Promise<any> => {
-      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/use-default`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        }
-      })
-      if (!res.ok) throw new Error(`Failed to set default encryption key (${res.status})`)
-      return res.json()
-    }
-  }
+  // Security & Encryption routes removed; secretRef approach is used instead
 
   public readonly keys = {
     getKeys: () => this.typeSafe.getKeys(),
