@@ -33,7 +33,6 @@ import {
   TICKET_CONFIG,
   CHAT_CONFIG,
   PROMPT_CONFIG,
-  AGENT_CONFIG,
   QUEUE_CONFIG,
   KEY_CONFIG,
   ENTITY_MESSAGES
@@ -42,35 +41,10 @@ import {
   PROJECT_ENHANCED_KEYS,
   TICKET_ENHANCED_KEYS,
   CHAT_ENHANCED_KEYS,
-  PROMPT_ENHANCED_KEYS,
-  AGENT_ENHANCED_KEYS,
   QUEUE_ENHANCED_KEYS,
-  PROVIDER_KEYS_KEYS,
   invalidateWithRelationships
 } from './query-keys'
 import {
-  ProjectSchema,
-  CreateProject,
-  UpdateProject,
-  TicketSchema,
-  CreateTicket,
-  UpdateTicket,
-  TaskSchema,
-  CreateTask,
-  UpdateTask,
-  ChatSchema,
-  CreateChat,
-  UpdateChat,
-  PromptSchema,
-  CreatePrompt,
-  UpdatePrompt,
-  ClaudeAgentSchema,
-  CreateClaudeAgent,
-  UpdateClaudeAgent,
-  QueueSchema,
-  CreateQueue,
-  UpdateQueue,
-  ProviderKeySchema,
   CreateProviderKey,
   UpdateProviderKey
 } from '@promptliano/database'
@@ -100,12 +74,6 @@ import type {
   TaskQueue
 } from './types'
 
-// Import ClaudeAgent from database since it's not in schemas
-import type { ClaudeAgent } from '@promptliano/database'
-import type { 
-  CreateClaudeAgentBody,
-  UpdateClaudeAgentBody
-} from '@promptliano/schemas'
 
 // Use schemas package types for better type constraints
 type TicketTask = Ticket // For now, use Ticket as TicketTask equivalent
@@ -161,14 +129,6 @@ const chatHooks = createCrudHooks<Chat, CreateChatBody, UpdateChatBody>({
 const promptHooks = createCrudHooks<Prompt, CreatePromptBody, UpdatePromptBody, { projectId?: number }>({
   ...PROMPT_CONFIG,
   messages: ENTITY_MESSAGES.prompt
-})
-
-/**
- * Agent Hooks - Complete CRUD + Project Association + Capabilities
- */
-const agentHooks = createCrudHooks<ClaudeAgent, CreateClaudeAgentBody, UpdateClaudeAgentBody, { projectId?: number }>({
-  ...AGENT_CONFIG,
-  messages: ENTITY_MESSAGES.agent
 })
 
 /**
@@ -547,17 +507,6 @@ export const {
   usePrefetch: usePrefetchPrompts,
   useInvalidate: useInvalidatePrompts
 } = promptHooks
-
-// Agent Hooks
-export const {
-  useList: useAgents,
-  useGetById: useAgent,
-  useCreate: useCreateAgent,
-  useUpdate: useUpdateAgent,
-  useDelete: useDeleteAgent,
-  usePrefetch: usePrefetchAgents,
-  useInvalidate: useInvalidateAgents
-} = agentHooks
 
 // Queue Hooks
 export const {
@@ -1104,78 +1053,6 @@ export {
   createBrowseDirectoryHooks
   // Types not exported from the module, defined inline where needed
 } from '../api/browse-directory-hooks'
-
-// Claude Code Hooks (Claude Code Session Management)
-export {
-  // Session Management Hooks
-  useClaudeSessions,
-  useClaudeSessionsMetadata,
-  useClaudeSessionsRecent,
-  useClaudeSessionsInfinite,
-  useClaudeSessionsTable,
-  useClaudeSessionsProgressive,
-
-  // Message Management Hooks
-  useClaudeMessages,
-  useClaudeFullSession,
-
-  // Project Data Hooks
-  useClaudeProjectData,
-
-  // Advanced Features
-  useWatchClaudeSessions,
-  useClaudeCodeBackgroundData,
-  useClaudeCodeInvalidation,
-
-  // Utility Hooks
-  useCopyToClipboard,
-  useFormatClaudeMessage,
-  useSessionDuration,
-
-  // Factory Exports
-  createClaudeCodeSessionHooks,
-  createClaudeCodeMessageHooks,
-  createClaudeCodeProjectHooks,
-  createClaudeCodeAdvancedHooks,
-  createClaudeCodeUtilityHooks,
-
-  // Query Keys & Types
-  CLAUDE_CODE_KEYS,
-  type ClaudeSession,
-  type ClaudeSessionMetadata,
-  type ClaudeMessage,
-  type ClaudeProjectData
-} from '../api/claude-code-hooks'
-
-// Claude Hooks (Hook Configuration & Management)
-export {
-  // Query Hooks
-  useGetProjectHooks,
-  useGetHook,
-  useSearchHooks,
-
-  // Mutation Hooks
-  useCreateHook,
-  useUpdateHook,
-  useDeleteHook,
-
-  // Utility Hooks
-  useGenerateHook,
-  useTestHook,
-
-  // Cache Management
-  useClaudeHooksInvalidation,
-
-  // Factory Exports
-  createClaudeHooksFactory,
-  createClaudeHooksMutationFactory,
-  createClaudeHooksUtilityFactory,
-  createClaudeHooksCacheFactory,
-
-  // Query Keys & Types
-  CLAUDE_HOOKS_KEYS
-  // Types not exported from the module, defined inline where needed
-} from '../api/claude-hooks'
 
 // ============================================================================
 // Core Query System Exports (Simplified)

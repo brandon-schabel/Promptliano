@@ -432,7 +432,7 @@ export class TestDataManager {
         timestamp: Date.now() - (messageCount - i) * 60000
       })),
       provider: 'anthropic',
-      model: 'claude-3-sonnet-20240229'
+      model: 'claude-4-sonnet'
     }
 
     await page.route('**/api/chats/large-history**', async (route) => {
@@ -479,7 +479,7 @@ export class TestDataManager {
           data: {
             message: mockResponse,
             provider: requestData.provider || 'anthropic',
-            model: requestData.model || 'claude-3-sonnet-20240229'
+            model: requestData.model || 'claude-4-sonnet'
           }
         })
       })

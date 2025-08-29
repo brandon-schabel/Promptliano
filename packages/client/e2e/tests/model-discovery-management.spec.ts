@@ -326,7 +326,7 @@ test.describe('Model Discovery and Management', () => {
         const models =
           requestCount === 1
             ? [{ id: 'claude-3-haiku-20240307' }]
-            : [{ id: 'claude-3-haiku-20240307' }, { id: 'claude-3-sonnet-20240229' }, { id: 'claude-3-opus-20240229' }]
+            : [{ id: 'claude-3-haiku-20240307' }, { id: 'claude-4-sonnet' }, { id: 'claude-3-opus-20240229' }]
 
         route.fulfill({
           status: 200,

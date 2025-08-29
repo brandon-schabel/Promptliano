@@ -14,7 +14,6 @@ packages/server/src/mcp/
 ├── consolidated-tools.ts        # Tool aggregation and exports
 ├── mcp-errors.ts               # Enhanced error handling system
 ├── mcp-transaction.ts          # Transaction wrapper for complex operations
-├── command-manager-tool.ts     # Command management tool
 ├── hook-manager-tool.ts        # Hook management tool
 └── tools/                      # Modular tool organization
     ├── index.ts                # Main tool aggregator

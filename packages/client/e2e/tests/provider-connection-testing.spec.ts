@@ -273,7 +273,7 @@ test.describe('Provider Connection Testing and Validation', () => {
         setTimeout(() => {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }, 1500) // 1.5 second delay
       })
@@ -298,7 +298,7 @@ test.describe('Provider Connection Testing and Validation', () => {
 
       // Each should have their own models loaded
       await expect(providersPage.getModelList('openai').getByText('gpt-4')).toBeVisible()
-      await expect(providersPage.getModelList('anthropic').getByText('claude-3-sonnet')).toBeVisible()
+      await expect(providersPage.getModelList('anthropic').getByText('claude-4-sonnet')).toBeVisible()
     })
 
     test('should handle mixed success/failure in simultaneous tests', async ({ page }) => {
@@ -363,7 +363,7 @@ test.describe('Provider Connection Testing and Validation', () => {
         setTimeout(() => {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }, 1000)
       })

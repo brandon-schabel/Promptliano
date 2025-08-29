@@ -299,31 +299,6 @@ export class PromptlianoClient {
     streamChat: (data: any) => this.typeSafe.createAiChat(data)
   }
 
-  // Claude Code methods
-  public readonly claudeCode = {
-    getMcpStatus: (projectId: number) => this.typeSafe.getClaudeCodeMcpStatusById(projectId),
-    getSessionsMetadata: (projectId: number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdMetadata(projectId, query),
-    getRecentSessions: (projectId: number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdRecent(projectId, query),
-    getPaginatedSessions: (projectId: number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdPaginated(projectId, query),
-    getSessionsPaginated: (projectId: number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdPaginated(projectId, query),
-    getSessionFull: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.getClaudeCodeSessionsByIdBySessionIdFull(projectId, sessionId),
-    getFullSession: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.getClaudeCodeSessionsByIdBySessionIdFull(projectId, sessionId),
-    getSession: (projectId: number, sessionId: string | number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdBySessionId(projectId, sessionId, query),
-    getSessions: (projectId: number, query?: any) => this.typeSafe.getClaudeCodeSessionsById(projectId, query),
-    getSessionMessages: (projectId: number, sessionId: string | number, query?: any) =>
-      this.typeSafe.getClaudeCodeSessionsByIdBySessionId(projectId, sessionId, query),
-    getProjectData: (projectId: number) => this.typeSafe.getClaudeCodeProjectDataById(projectId),
-    importSession: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.createClaudeCodeImportSessionByIdBySessionId(projectId, sessionId)
-  }
-
   // GenAI methods
   public readonly genAi = {
     stream: (data: any) => this.typeSafe.createGenAiStream(data),
@@ -587,61 +562,6 @@ export class PromptlianoClient {
     browseDirectory: (data: any) => this.typeSafe.createBrowseDirector(data)
   }
 
-  // Agents methods
-  public readonly agents = {
-    // Require a valid projectId for listing project agents
-    listAgents: (projectId?: number) => {
-      if (!projectId || projectId <= 0) {
-        throw new Error('listAgents requires a valid projectId')
-      }
-      return this.typeSafe.getProjectsByIdAgents(projectId)
-    },
-    // The following are placeholders pending full wiring with project context
-    // TODO: Update these to include projectId when hooks provide it
-    getAgent: (agentId: string | number) => this.typeSafe.getAgent(agentId),
-    createAgent: (data: any) => {
-      const projectId = data?.projectId
-      if (!projectId || projectId <= 0) {
-        throw new Error('createAgent requires a valid projectId in the request body')
-      }
-      // Pass through body (includes projectId for server context)
-      return this.typeSafe.createAgent(data)
-    },
-    updateAgent: (agentId: string | number, data: any) => this.typeSafe.updateAgent(agentId, data),
-    deleteAgent: (agentId: string | number) => this.typeSafe.deleteAgent(agentId)
-  }
-
-  // Commands methods (placeholder - not fully implemented)
-  public readonly commands = {
-    listCommands: (projectId: number, query?: any) => this.typeSafe.getProjectsByIdFlow(projectId),
-    getCommand: (projectId: number, commandName: string, namespace?: string) =>
-      this.typeSafe.getProjectsByIdFlow(projectId),
-    createCommand: (projectId: number, data: any) => this.typeSafe.createFlowMove(data),
-    updateCommand: (projectId: number, commandName: string, data: any, namespace?: string) =>
-      this.typeSafe.createFlowMove(data),
-    deleteCommand: (projectId: number, commandName: string, namespace?: string) =>
-      this.typeSafe.createFlowMove({ projectId, commandName }),
-    executeCommand: (projectId: number, commandName: string, args?: any, namespace?: string) =>
-      this.typeSafe.createFlowProcessStart({ projectId, commandName, args }),
-    suggestCommands: (projectId: number, context: any) =>
-      this.typeSafe.createProjectsByIdSuggestAgents(projectId, context),
-    generateCommand: (projectId: number, data: any) =>
-      this.typeSafe.createProjectsByIdSuggestAgents(projectId, data)
-  }
-
-  // Claude Hooks methods (mapped to MCP Servers for now)
-  public readonly claudeHooks = {
-    list: (projectId: number) => this.typeSafe.getProjectsByIdMcpServers(projectId),
-    getHook: (projectId: number, eventName: string, matcherIndex: number) => this.typeSafe.getProjectsByIdMcpServers(projectId),
-    search: (projectId: number, query: any) => this.typeSafe.getProjectsByIdMcpServers(projectId),
-    create: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data),
-    update: (projectId: number, serverId: string | number, data: any) =>
-      this.typeSafe.updateProjectsByIdMcpServersByServerId(projectId, serverId, data),
-    deleteHook: (projectId: number, serverId: string | number) =>
-      this.typeSafe.deleteProjectsByIdMcpServersByServerId(projectId, serverId),
-    generate: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data),
-    test: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data)
-  }
 
   // Add missing direct file access method
   listProjectsByProjectIdFiles = (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId)
@@ -649,10 +569,6 @@ export class PromptlianoClient {
   // Add missing flow reorder method
   createFlowReorder = (data: any) => this.typeSafe.createFlowReorder(data)
 
-  // Convenience method for claudeCode import session (matches the error pattern)
-  createClaudeCodeImportSessionByProjectIdBySessionId = (projectId: number, sessionId: string | number) => {
-    return this.typeSafe.createClaudeCodeImportSessionByIdBySessionId(projectId, sessionId)
-  }
 }
 
 /**

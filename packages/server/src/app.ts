@@ -10,8 +10,6 @@ import { ticketRoutes } from './routes/ticket-routes-factory'
 import { providerKeyRoutes } from './routes/provider-key-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
 import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
-import { claudeAgentRoutes } from './routes/claude-agent-routes-factory'
-import { claudeCommandRoutes } from './routes/claude-command-routes-factory'
 import { activeTabRoutes } from './routes/active-tab-routes-factory'
 
 // Manual routes (complex operations)
@@ -24,8 +22,6 @@ import { gitRoutes } from './routes/git'
 import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
-import { claudeCodeRoutes } from './routes/claude-code-routes'
-import { claudeHookRoutes } from './routes/claude-hook-routes-factory'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
 import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
@@ -235,11 +231,8 @@ app.route('/', providerKeyRoutes)  // Factory: CRUD + validation
 // Register legacy provider key routes for backward compatibility with clients
 // expecting /api/keys and /api/providers/health endpoints
 app.route('/', providerKeyLegacyRoutes)
-app.route('/', claudeAgentRoutes)  // Factory: CRUD + AI suggestions
-app.route('/', claudeCommandRoutes)// Factory: Project-scoped commands
 app.route('/', activeTabRoutes)           // Factory: Get/Set/Clear operations (/api/active-tab)
 app.route('/', projectRoutes)      // Factory: CRUD + sync, files, summary operations
-app.route('/', claudeHookRoutes)   // Factory: Hook management operations
 app.route('/', mcpConfigRoutes)    // Factory: Global + project MCP config
 
 // KEEP: Complex operations that don't conflict
@@ -251,7 +244,6 @@ app.route('/', gitRoutes)
 app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
-app.route('/', claudeCodeRoutes)
 app.route('/', mcpInstallationRoutes)
 
 

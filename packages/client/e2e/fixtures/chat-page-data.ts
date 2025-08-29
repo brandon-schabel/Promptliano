@@ -13,7 +13,7 @@ export const ChatPageTestData = {
         }
       ],
       provider: 'anthropic',
-      model: 'claude-3-sonnet-20240229'
+      model: 'claude-4-sonnet'
     },
     {
       id: 2,
@@ -34,7 +34,7 @@ export const ChatPageTestData = {
       name: 'Empty Chat',
       messages: [],
       provider: 'anthropic',
-      model: 'claude-3-sonnet-20240229'
+      model: 'claude-4-sonnet'
     }
   ],
 
@@ -43,7 +43,7 @@ export const ChatPageTestData = {
     {
       id: 'anthropic',
       name: 'Anthropic',
-      models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+      models: ['claude-3-opus-20240229', 'claude-4-sonnet', 'claude-3-haiku-20240307'],
       available: true
     },
     {

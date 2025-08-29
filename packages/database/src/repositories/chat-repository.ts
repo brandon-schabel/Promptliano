@@ -4,7 +4,7 @@
  * Enhanced with better performance and error handling
  */
 
-import { eq, and, desc, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
 import {
@@ -12,10 +12,8 @@ import {
   chatMessages,
   type Chat,
   type ChatMessage,
-  type InsertChat,
   type InsertChatMessage,
   type ChatWithMessages,
-  type MessageRole,
   selectChatSchema
 } from '../schema'
 

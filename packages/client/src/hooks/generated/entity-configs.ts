@@ -33,9 +33,6 @@ import {
   ChatSchema,
   CreateChat,
   UpdateChat,
-  ClaudeAgentSchema,
-  CreateClaudeAgent,
-  UpdateClaudeAgent,
   QueueSchema,
   CreateQueue,
   UpdateQueue,
@@ -45,7 +42,7 @@ import {
 } from '@promptliano/database'
 
 // Import API body types from schemas package (for proper API request types)
-import { 
+import {
   PromptSchema,
   CreatePromptBody as SchemasCreatePromptBody,
   UpdatePromptBody as SchemasUpdatePromptBody,
@@ -76,9 +73,6 @@ type UpdateChatBody = UpdateChat
 // type Prompt = typeof PromptSchema._type // This causes type inference issues - use import instead
 type CreatePromptBody = SchemasCreatePromptBody
 type UpdatePromptBody = SchemasUpdatePromptBody
-type ClaudeAgent = typeof ClaudeAgentSchema._type
-type CreateClaudeAgentBody = CreateClaudeAgent
-type UpdateClaudeAgentBody = UpdateClaudeAgent
 type TaskQueue = typeof QueueSchema._type
 type CreateQueueBody = CreateQueue
 type UpdateQueueBody = UpdateQueue
@@ -259,24 +253,6 @@ export const promptApiClient: CrudApiClient<Prompt, CreatePromptBody, UpdateProm
   create: (client: any, data: CreatePromptBody) => client.prompts.createPrompt(data).then((r: any) => r?.data || r),
   update: (client: any, id: number, data: UpdatePromptBody) => client.prompts.updatePrompt(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.prompts.deletePrompt(id).then(() => undefined)
-}
-
-/**
- * Agent API Client Configuration
- */
-export const agentApiClient: CrudApiClient<
-  ClaudeAgent,
-  CreateClaudeAgentBody,
-  UpdateClaudeAgentBody,
-  { projectId?: number }
-> = {
-  list: (client: any, params?: { projectId?: number }) => client.agents.listAgents(params?.projectId).then((r: any) => r?.data || r),
-  getById: (client: any, id: number) =>
-    client.agents.getAgent(typeof id === 'string' ? id : id.toString()).then((r: any) => r?.data || r),
-  create: (client: any, data: CreateClaudeAgentBody) => client.agents.createAgent(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdateClaudeAgentBody) =>
-    client.agents.updateAgent(typeof id === 'string' ? id : id.toString(), data).then((r: any) => r?.data || r),
-  delete: (client: any, id: number) => client.agents.deleteAgent(typeof id === 'string' ? id : id.toString()).then(() => undefined)
 }
 
 /**
@@ -484,22 +460,6 @@ export const PROMPT_CONFIG: CrudHookConfig<Prompt, CreatePromptBody, UpdatePromp
   }
 }
 
-export const AGENT_CONFIG: CrudHookConfig<
-  ClaudeAgent,
-  CreateClaudeAgentBody,
-  UpdateClaudeAgentBody,
-  { projectId?: number }
-> = {
-  entityName: 'agent',
-  queryKeys: AGENT_ENHANCED_KEYS,
-  apiClient: agentApiClient,
-  useApiClient,
-  staleTime: 5 * 60 * 1000,
-  optimistic: { enabled: false }, // Agents are more complex, disable optimistic updates initially
-  invalidation: { onCreate: 'lists', onUpdate: 'lists', onDelete: 'all' },
-  prefetch: { enabled: true }
-}
-
 export const QUEUE_CONFIG: CrudHookConfig<TaskQueue, CreateQueueBody, UpdateQueueBody, { projectId: number }> = {
   entityName: 'queue',
   queryKeys: QUEUE_ENHANCED_KEYS,
@@ -531,7 +491,6 @@ export const ENTITY_CONFIGS = {
   ticket: TICKET_CONFIG,
   chat: CHAT_CONFIG,
   prompt: PROMPT_CONFIG,
-  agent: AGENT_CONFIG,
   queue: QUEUE_CONFIG,
   key: KEY_CONFIG
 } as const
@@ -570,11 +529,6 @@ export const ENTITY_MESSAGES = {
     updateSuccess: (entity: Prompt) =>
       `Prompt "${(entity as any).name || (entity as any).title || 'Prompt'}" updated successfully`,
     deleteSuccess: 'Prompt deleted successfully'
-  },
-  agent: {
-    createSuccess: (entity: ClaudeAgent) => `Agent "${entity.name}" created successfully`,
-    updateSuccess: (entity: ClaudeAgent) => `Agent "${entity.name}" updated successfully`,
-    deleteSuccess: 'Agent deleted successfully'
   },
   queue: {
     createSuccess: (entity: TaskQueue) => `Queue "${entity.name}" created successfully`,

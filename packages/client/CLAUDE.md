@@ -107,7 +107,6 @@ components/
 ├── navigation/         # App navigation components
 ├── error-boundary/     # Error handling components
 ├── assets/            # Asset generation features
-├── claude-code/       # Claude Code integration
 └── shared/            # Truly shared/generic components
 ```
 

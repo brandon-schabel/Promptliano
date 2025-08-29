@@ -139,7 +139,7 @@ test.describe('Provider Error Handling and Recovery', () => {
         } else {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }
       })
@@ -207,7 +207,7 @@ test.describe('Provider Error Handling and Recovery', () => {
         } else {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }
       })
@@ -490,7 +490,7 @@ test.describe('Provider Error Handling and Recovery', () => {
         setTimeout(() => {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }, 2000)
       })
@@ -511,7 +511,7 @@ test.describe('Provider Error Handling and Recovery', () => {
 
       // Each should have their own models loaded
       await expect(providersPage.getModelList('openai').getByText('gpt-4')).toBeVisible()
-      await expect(providersPage.getModelList('anthropic').getByText('claude-3-sonnet')).toBeVisible()
+      await expect(providersPage.getModelList('anthropic').getByText('claude-4-sonnet')).toBeVisible()
     })
 
     test('should handle mixed success and failure in simultaneous tests', async ({ page }) => {
@@ -570,7 +570,7 @@ test.describe('Provider Error Handling and Recovery', () => {
         setTimeout(() => {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }, Math.random() * 2000) // Random delay 0-2 seconds
       })
@@ -644,7 +644,7 @@ test.describe('Provider Error Handling and Recovery', () => {
         } else {
           route.fulfill({
             status: 200,
-            body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+            body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
           })
         }
       })

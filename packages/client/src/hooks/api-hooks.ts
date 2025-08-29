@@ -21,38 +21,6 @@ export * from './generated'
 // Re-export specialized hooks from domain-specific modules
 export { useBrowseDirectory } from './api/browse-directory-hooks'
 
-export {
-  useClaudeSessions,
-  useClaudeSessionsMetadata,
-  useClaudeSessionsRecent,
-  useClaudeSessionsInfinite,
-  useClaudeSessionsTable,
-  useClaudeSessionsProgressive,
-  useClaudeMessages,
-  useClaudeFullSession,
-  useClaudeProjectData,
-  useWatchClaudeSessions,
-  useClaudeCodeBackgroundData,
-  useClaudeCodeInvalidation,
-  useCopyToClipboard,
-  useFormatClaudeMessage,
-  useSessionDuration,
-  CLAUDE_CODE_KEYS
-} from './api/claude-code-hooks'
-
-export {
-  useGetProjectHooks,
-  useGetHook,
-  useSearchHooks,
-  useCreateHook,
-  useUpdateHook,
-  useDeleteHook,
-  useGenerateHook,
-  useTestHook,
-  useClaudeHooksInvalidation,
-  CLAUDE_HOOKS_KEYS
-} from './api/claude-hooks'
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from './api/use-api-client'
 import { toast } from 'sonner'
@@ -706,8 +674,6 @@ import {
   useProject,
   usePrompts,
   usePrompt,
-  useAgents,
-  useAgent,
   useQueues,
   useQueue,
   useKeys,
@@ -728,8 +694,6 @@ export const useGetTasks = useTicketTasks
 export const useGetQueue = useQueue
 export const useGetAllPrompts = usePrompts
 export const useGetPrompt = usePrompt
-export const useGetAllAgents = useAgents
-export const useGetAgent = useAgent
 export const useGetQueues = useQueues
 export const useGetKeys = useKeys
 export const useGetKey = useKey

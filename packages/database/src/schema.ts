@@ -676,109 +676,6 @@ export const gitWorktrees = sqliteTable(
 )
 
 // =============================================================================
-// CLAUDE CODE INTEGRATION TABLES
-// =============================================================================
-
-export const claudeMessages = sqliteTable(
-  'claude_messages',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    type: text('type', { enum: ['user', 'assistant', 'result', 'system', 'summary'] }).notNull(),
-    message: text('message', { mode: 'json' }).$type<ClaudeMessageContent>(),
-    timestamp: text('timestamp').notNull(),
-    sessionId: text('session_id').notNull(),
-    uuid: text('uuid'),
-    parentUuid: text('parent_uuid'),
-    requestId: text('request_id'),
-    userType: text('user_type'),
-    isSidechain: integer('is_sidechain', { mode: 'boolean' }).default(false),
-    cwd: text('cwd'),
-    version: text('version'),
-    gitBranch: text('git_branch'),
-    toolUseResult: text('tool_use_result', { mode: 'json' }).$type<any>(),
-    content: text('content', { mode: 'json' }).$type<any>(),
-    isMeta: integer('is_meta', { mode: 'boolean' }).default(false),
-    toolUseID: text('tool_use_id'),
-    level: text('level'),
-    tokensUsed: integer('tokens_used'),
-    costUsd: real('cost_usd'),
-    durationMs: integer('duration_ms'),
-    model: text('model'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('claude_messages_project_idx').on(table.projectId),
-    sessionIdx: index('claude_messages_session_idx').on(table.sessionId),
-    typeIdx: index('claude_messages_type_idx').on(table.type),
-    timestampIdx: index('claude_messages_timestamp_idx').on(table.timestamp),
-    uuidIdx: index('claude_messages_uuid_idx').on(table.uuid),
-    parentUuidIdx: index('claude_messages_parent_uuid_idx').on(table.parentUuid)
-  })
-)
-
-export const claudeSessions = sqliteTable(
-  'claude_sessions',
-  {
-    id: text('id').primaryKey(), // sessionId as primary key
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    projectPath: text('project_path').notNull(),
-    startTime: text('start_time').notNull(),
-    lastUpdate: text('last_update').notNull(),
-    messageCount: integer('message_count').notNull().default(0),
-    gitBranch: text('git_branch'),
-    cwd: text('cwd'),
-    tokenUsage: text('token_usage', { mode: 'json' }).$type<TokenUsage>(),
-    serviceTiers: text('service_tiers', { mode: 'json' })
-      .$type<string[]>()
-      .default(sql`'[]'`),
-    totalTokensUsed: integer('total_tokens_used'),
-    totalCostUsd: real('total_cost_usd'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('claude_sessions_project_idx').on(table.projectId),
-    projectPathIdx: index('claude_sessions_project_path_idx').on(table.projectPath),
-    startTimeIdx: index('claude_sessions_start_time_idx').on(table.startTime),
-    lastUpdateIdx: index('claude_sessions_last_update_idx').on(table.lastUpdate),
-    branchIdx: index('claude_sessions_branch_idx').on(table.gitBranch)
-  })
-)
-
-export const claudeSessionMetadata = sqliteTable(
-  'claude_session_metadata',
-  {
-    id: integer('id').primaryKey(),
-    sessionId: text('session_id')
-      .notNull()
-      .references(() => claudeSessions.id, { onDelete: 'cascade' }),
-    projectPath: text('project_path').notNull(),
-    startTime: text('start_time').notNull(),
-    lastUpdate: text('last_update').notNull(),
-    messageCount: integer('message_count').notNull(),
-    fileSize: integer('file_size').notNull(),
-    hasGitBranch: integer('has_git_branch', { mode: 'boolean' }).notNull().default(false),
-    hasCwd: integer('has_cwd', { mode: 'boolean' }).notNull().default(false),
-    firstMessagePreview: text('first_message_preview'),
-    lastMessagePreview: text('last_message_preview'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    sessionIdx: index('claude_session_metadata_session_idx').on(table.sessionId),
-    projectPathIdx: index('claude_session_metadata_project_path_idx').on(table.projectPath),
-    lastUpdateIdx: index('claude_session_metadata_last_update_idx').on(table.lastUpdate),
-    fileSizeIdx: index('claude_session_metadata_file_size_idx').on(table.fileSize)
-  })
-)
-
-// =============================================================================
 // AI CONFIGURATION TABLES
 // =============================================================================
 
@@ -1105,8 +1002,6 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   gitTags: many(gitTags),
   gitStashes: many(gitStashes),
   gitWorktrees: many(gitWorktrees),
-  claudeMessages: many(claudeMessages),
-  claudeSessions: many(claudeSessions),
   aiSdkOptions: many(aiSdkOptions),
   mcpServerConfigs: many(mcpServerConfigs),
   fileGroups: many(fileGroups),
@@ -1260,32 +1155,7 @@ export const gitWorktreesRelations = relations(gitWorktrees, ({ one }) => ({
   })
 }))
 
-export const claudeMessagesRelations = relations(claudeMessages, ({ one }) => ({
-  project: one(projects, {
-    fields: [claudeMessages.projectId],
-    references: [projects.id]
-  }),
-  session: one(claudeSessions, {
-    fields: [claudeMessages.sessionId],
-    references: [claudeSessions.id]
-  })
-}))
 
-export const claudeSessionsRelations = relations(claudeSessions, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [claudeSessions.projectId],
-    references: [projects.id]
-  }),
-  messages: many(claudeMessages),
-  metadata: many(claudeSessionMetadata)
-}))
-
-export const claudeSessionMetadataRelations = relations(claudeSessionMetadata, ({ one }) => ({
-  session: one(claudeSessions, {
-    fields: [claudeSessionMetadata.sessionId],
-    references: [claudeSessions.id]
-  })
-}))
 
 export const aiSdkOptionsRelations = relations(aiSdkOptions, ({ one }) => ({
   project: one(projects, {
@@ -1398,9 +1268,6 @@ export const insertGitRemoteSchema = createInsertSchema(gitRemotes)
 export const insertGitTagSchema = createInsertSchema(gitTags)
 export const insertGitStashSchema = createInsertSchema(gitStashes)
 export const insertGitWorktreeSchema = createInsertSchema(gitWorktrees)
-export const insertClaudeMessageSchema = createInsertSchema(claudeMessages)
-export const insertClaudeSessionSchema = createInsertSchema(claudeSessions)
-export const insertClaudeSessionMetadataSchema = createInsertSchema(claudeSessionMetadata)
 export const insertAiSdkOptionsSchema = createInsertSchema(aiSdkOptions)
 export const insertMcpServerConfigSchema = createInsertSchema(mcpServerConfigs)
 export const insertFileImportInfoSchema = createInsertSchema(fileImportInfo)
@@ -1421,9 +1288,6 @@ export const selectChatMessageSchema = createSelectSchema(chatMessages)
 export const selectPromptSchema = createSelectSchema(prompts)
 export const selectQueueSchema = createSelectSchema(queues)
 export const selectQueueItemSchema = createSelectSchema(queueItems)
-export const selectClaudeAgentSchema = createSelectSchema(claudeAgents)
-export const selectClaudeCommandSchema = createSelectSchema(claudeCommands)
-export const selectClaudeHookSchema = createSelectSchema(claudeHooks)
 export const selectProviderKeySchema = createSelectSchema(providerKeys)
 export const selectFileSchema = createSelectSchema(files)
 export const selectSelectedFileSchema = createSelectSchema(selectedFiles)
@@ -1435,9 +1299,6 @@ export const selectGitRemoteSchema = createSelectSchema(gitRemotes)
 export const selectGitTagSchema = createSelectSchema(gitTags)
 export const selectGitStashSchema = createSelectSchema(gitStashes)
 export const selectGitWorktreeSchema = createSelectSchema(gitWorktrees)
-export const selectClaudeMessageSchema = createSelectSchema(claudeMessages)
-export const selectClaudeSessionSchema = createSelectSchema(claudeSessions)
-export const selectClaudeSessionMetadataSchema = createSelectSchema(claudeSessionMetadata)
 export const selectAiSdkOptionsSchema = createSelectSchema(aiSdkOptions)
 export const selectMcpServerConfigSchema = createSelectSchema(mcpServerConfigs)
 export const selectFileImportInfoSchema = createSelectSchema(fileImportInfo)
@@ -1477,9 +1338,6 @@ export type InsertGitRemote = typeof gitRemotes.$inferInsert
 export type InsertGitTag = typeof gitTags.$inferInsert
 export type InsertGitStash = typeof gitStashes.$inferInsert
 export type InsertGitWorktree = typeof gitWorktrees.$inferInsert
-export type InsertClaudeMessage = typeof claudeMessages.$inferInsert
-export type InsertClaudeSession = typeof claudeSessions.$inferInsert
-export type InsertClaudeSessionMetadata = typeof claudeSessionMetadata.$inferInsert
 export type InsertAiSdkOptions = typeof aiSdkOptions.$inferInsert
 export type InsertMcpServerConfig = typeof mcpServerConfigs.$inferInsert
 export type InsertFileImportInfo = typeof fileImportInfo.$inferInsert
@@ -1590,8 +1448,6 @@ export type GitTag = Omit<GitTagInferred, 'tagger'> & {
 export type GitStash = typeof gitStashes.$inferSelect
 export type GitWorktree = typeof gitWorktrees.$inferSelect
 
-// Override ClaudeMessage type to fix JSON field types
-type ClaudeMessageInferred = typeof claudeMessages.$inferSelect
 // Define proper types for Claude message content
 export interface ToolUseResult {
   content?: Array<{
@@ -1609,20 +1465,7 @@ export interface ClaudeContentBlock {
   id?: string
 }
 
-export type ClaudeMessage = Omit<ClaudeMessageInferred, 'message' | 'toolUseResult' | 'content'> & {
-  message: ClaudeMessageContent | null
-  toolUseResult: ToolUseResult | null
-  content: ClaudeContentBlock[] | null
-}
-
 // Override ClaudeSession type to fix JSON field types
-type ClaudeSessionInferred = typeof claudeSessions.$inferSelect
-export type ClaudeSession = Omit<ClaudeSessionInferred, 'tokenUsage' | 'serviceTiers'> & {
-  tokenUsage: TokenUsage | null
-  serviceTiers: string[]
-}
-
-export type ClaudeSessionMetadata = typeof claudeSessionMetadata.$inferSelect
 
 // Override AiSdkOptions type to fix JSON field types
 type AiSdkOptionsInferred = typeof aiSdkOptions.$inferSelect
@@ -1748,11 +1591,6 @@ export type ChatWithMessages = Chat & {
   messages: ChatMessage[]
 }
 
-export type ClaudeSessionWithMessages = ClaudeSession & {
-  messages: ClaudeMessage[]
-  metadata?: ClaudeSessionMetadata[]
-}
-
 export type FileWithAnalysis = File & {
   importInfo?: FileImportInfo[]
   exportInfo?: FileExportInfo[]
@@ -1770,7 +1608,6 @@ export type ProjectWithAll = Project & {
   files: FileWithAnalysis[]
   selectedFiles: SelectedFile[]
   gitStatus?: GitStatus[]
-  claudeSessions?: ClaudeSessionWithMessages[]
 }
 
 export type QueueWithItems = Queue & {

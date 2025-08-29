@@ -74,7 +74,7 @@ describe('Custom Provider Validator - Pure Functions', () => {
     test('should detect models with tool support', () => {
       expect(extractModelCapabilities('gpt-4-0613').likelySupportsTools).toBe(true)
       expect(extractModelCapabilities('gpt-3.5-turbo').likelySupportsTools).toBe(true)
-      expect(extractModelCapabilities('claude-3-sonnet').likelySupportsTools).toBe(true)
+      expect(extractModelCapabilities('claude-4-sonnet').likelySupportsTools).toBe(true)
       expect(extractModelCapabilities('gemini-pro').likelySupportsTools).toBe(true)
       expect(extractModelCapabilities('llama-2-7b').likelySupportsTools).toBe(false)
     })

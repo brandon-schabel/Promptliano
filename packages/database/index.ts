@@ -193,39 +193,6 @@ export const UpdateQueueItemSchema = CreateQueueItemSchema.partial()
 export type CreateQueueItem = typeof CreateQueueItemSchema._type
 export type UpdateQueueItem = typeof UpdateQueueItemSchema._type
 
-// ClaudeAgent schemas (backward compatibility)
-export const ClaudeAgentSchema = selectClaudeAgentSchema
-export const CreateClaudeAgentSchema = insertClaudeAgentSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-})
-export const UpdateClaudeAgentSchema = CreateClaudeAgentSchema.partial()
-export type CreateClaudeAgent = typeof CreateClaudeAgentSchema._type
-export type UpdateClaudeAgent = typeof UpdateClaudeAgentSchema._type
-
-// ClaudeCommand schemas (backward compatibility)
-export const ClaudeCommandSchema = selectClaudeCommandSchema
-export const CreateClaudeCommandSchema = insertClaudeCommandSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-})
-export const UpdateClaudeCommandSchema = CreateClaudeCommandSchema.partial()
-export type CreateClaudeCommand = typeof CreateClaudeCommandSchema._type
-export type UpdateClaudeCommand = typeof UpdateClaudeCommandSchema._type
-
-// ClaudeHook schemas (backward compatibility)
-export const ClaudeHookSchema = selectClaudeHookSchema
-export const CreateClaudeHookSchema = insertClaudeHookSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-})
-export const UpdateClaudeHookSchema = CreateClaudeHookSchema.partial()
-export type CreateClaudeHook = typeof CreateClaudeHookSchema._type
-export type UpdateClaudeHook = typeof UpdateClaudeHookSchema._type
-
 // ProviderKey schemas (with JSON field transformations)
 export const ProviderKeySchema = createTransformedSelectSchema(selectProviderKeySchema, {
   customHeaders: commonJsonTransforms.customHeaders

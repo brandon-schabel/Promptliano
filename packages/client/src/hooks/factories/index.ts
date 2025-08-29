@@ -109,9 +109,6 @@ export type { EntityHookConfig, EntityHooks } from './entity-hook-factory'
 export { createSearchHooks } from './search-hook-factory'
 export type { SearchHookConfig, SearchHooks } from './search-hook-factory'
 
-export { createProviderHooks } from './provider-hook-factory'
-export type { ProviderHookConfig, ProviderHooks } from './provider-hook-factory'
-
 // ============================================================================
 // Utility Factory Functions
 // ============================================================================

@@ -73,12 +73,6 @@ export {
 export * from './src/markdown-import-export.schemas'
 export * from './src/parser-config.schemas'
 
-// Claude Code Integration
-export * from './src/claude-code.schemas'
-
-// Command Management Schemas
-export * from './src/command.schemas'
-
 // Provider Testing Schemas
 export * from './src/provider-testing.schemas'
 
@@ -116,9 +110,6 @@ export {
   CreateQueueSchema,
   CreateSelectedFileSchema,
   CreateChatMessageSchema,
-  CreateClaudeAgentSchema, // was: CreateClaudeAgentBodySchema
-  CreateClaudeCommandSchema, // was: CreateClaudeCommandBodySchema  
-  CreateClaudeHookSchema,
   CreateProviderKeySchema, // was: CreateProviderKeyInputSchema
   CreateTicketSchema,
   CreateTicketTaskSchema,
@@ -132,9 +123,6 @@ export {
   UpdateQueueSchema,
   UpdateSelectedFileSchema,
   UpdateChatMessageSchema,
-  UpdateClaudeAgentSchema, // was: UpdateClaudeAgentBodySchema
-  UpdateClaudeCommandSchema, // was: UpdateClaudeCommandBodySchema
-  UpdateClaudeHookSchema,
   UpdateProviderKeySchema,
   UpdateTicketSchema,
   UpdateTicketTaskSchema,
@@ -160,9 +148,6 @@ export {
   type CreateQueue,
   type CreateSelectedFile,
   type CreateChatMessage,
-  type CreateClaudeAgent,
-  type CreateClaudeCommand,
-  type CreateClaudeHook,
   type CreateProviderKey,
   type CreateTicket,
   type CreateTicketTask,
@@ -175,9 +160,6 @@ export {
   type UpdateQueue,
   type UpdateSelectedFile,
   type UpdateChatMessage,
-  type UpdateClaudeAgent,
-  type UpdateClaudeCommand,
-  type UpdateClaudeHook,
   type UpdateProviderKey,
   type UpdateTicket,
   type UpdateTicketTask,
@@ -234,9 +216,6 @@ export {
 // - chat.schemas.ts -> ChatSchema, CreateChat, UpdateChat
 // - prompt.schemas.ts -> PromptSchema, CreatePrompt, UpdatePrompt
 // - queue.schemas.ts -> QueueSchema, CreateQueue, UpdateQueue
-// - claude-agent.schemas.ts -> ClaudeAgent, CreateClaudeAgent, UpdateClaudeAgent
-// - claude-command.schemas.ts -> ClaudeCommand, CreateClaudeCommand, UpdateClaudeCommand
-// - claude-hook.schemas.ts -> ClaudeHook, CreateClaudeHook, UpdateClaudeHook
 // - provider-key.schemas.ts -> ProviderKey, CreateProviderKey, UpdateProviderKey
 // - active-tab.schemas.ts -> ActiveTab, CreateActiveTab, UpdateActiveTab
 // - selected-files.schemas.ts -> REMOVED (unused schemas)

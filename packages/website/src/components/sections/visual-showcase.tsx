@@ -41,12 +41,7 @@ const showcaseCategories = {
         title: 'Context-Aware Prompts',
         description: 'Get prompt suggestions based on your project'
       },
-      {
-        src: '/assets/screenshots/claude-code-agents-overview.webp',
-        alt: 'Claude Code Agents',
-        title: 'Specialized AI Agents',
-        description: 'Use specialized agents for different tasks'
-      }
+
     ]
   },
   git: {

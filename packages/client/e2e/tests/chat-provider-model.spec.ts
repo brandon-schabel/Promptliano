@@ -48,7 +48,7 @@ test.describe('Provider and Model Management', () => {
 
       // Verify Anthropic models are now available
       await chatPage.modelSelector.click()
-      await expect(page.getByTestId('model-option-claude-3-sonnet-20240229')).toBeVisible()
+      await expect(page.getByTestId('model-option-claude-4-sonnet')).toBeVisible()
     })
 
     test('should handle provider switching during conversation', async ({ page }) => {

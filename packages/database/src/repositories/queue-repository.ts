@@ -12,11 +12,9 @@ import {
   queueItems,
   type Queue,
   type QueueItem,
-  type InsertQueue,
   type InsertQueueItem,
   type QueueWithItems,
   type QueueStatus,
-  type ItemType,
   selectQueueSchema
 } from '../schema'
 

@@ -29,7 +29,6 @@ import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
 import { useActiveTabSync } from '@/hooks/utility-hooks/use-active-tab-sync'
-import { ClaudeCodeTabWithSidebar } from '@/components/claude-code'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
 import { ProjectNavigationMenu } from '@/components/projects/project-navigation-menu'
@@ -485,39 +484,6 @@ export function ProjectsPage() {
               <div className='p-6 text-center text-muted-foreground'>
                 <p>Assets is not enabled for this project.</p>
                 <p className='mt-2'>Enable it in the Settings tab to access Assets.</p>
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value='claude-code' className='flex-1 overflow-y-auto mt-0 ring-0 focus-visible:ring-0'>
-            {activeProjectTabState?.claudeCodeEnabled ? (
-              selectedProjectId && projectData ? (
-                <ClaudeCodeTabWithSidebar
-                  projectId={selectedProjectId}
-                  projectName={projectData.name}
-                  claudeCodeView={search.claudeCodeView}
-                  sessionId={search.sessionId}
-                  onClaudeCodeViewChange={(view) => {
-                    navigate({
-                      to: '/projects',
-                      search: (prev) => ({ ...prev, claudeCodeView: view }),
-                      replace: true
-                    })
-                  }}
-                  onSessionIdChange={(sessionId) => {
-                    navigate({
-                      to: '/projects',
-                      search: (prev) => ({ ...prev, sessionId }),
-                      replace: true
-                    })
-                  }}
-                />
-              ) : (
-                <p className='p-4 md:p-6'>No project selected for Claude Code.</p>
-              )
-            ) : (
-              <div className='p-6 text-center text-muted-foreground'>
-                <p>Claude Code is not enabled for this project.</p>
-                <p className='mt-2'>Enable it in the Settings tab to access Claude Code features.</p>
               </div>
             )}
           </TabsContent>

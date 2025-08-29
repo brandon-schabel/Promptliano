@@ -11,7 +11,6 @@ import { chatRepository, messageRepository } from './chat-repository'
 import { promptRepository } from './prompt-repository'
 import { queueRepository, queueItemRepository } from './queue-repository'
 import { fileRepository } from './file-repository'
-import { claudeAgentRepository, claudeCommandRepository, claudeHookRepository } from './claude-repository'
 import { providerKeyRepository } from './provider-key-repository'
 import { activeTabRepository, selectedFileRepository } from './app-state-repository'
 import { mcpServerRepository } from './mcp-server-repository'
@@ -66,11 +65,6 @@ export class StorageService {
   public readonly queueItems = queueItemRepository
   public readonly files = fileRepository
   public readonly selectedFiles = selectedFileRepository
-
-  // Claude-specific repositories (fully typed)
-  public readonly claudeAgents = claudeAgentRepository
-  public readonly claudeCommands = claudeCommandRepository
-  public readonly claudeHooks = claudeHookRepository
 
   // Configuration repositories (fully typed)
   public readonly providerKeys = providerKeyRepository
@@ -233,9 +227,6 @@ export class StorageService {
       { name: 'prompts', repo: this.prompts },
       { name: 'queues', repo: this.queues },
       { name: 'files', repo: this.files },
-      { name: 'claudeAgents', repo: this.claudeAgents },
-      { name: 'claudeCommands', repo: this.claudeCommands },
-      { name: 'claudeHooks', repo: this.claudeHooks },
       { name: 'providerKeys', repo: this.providerKeys },
       { name: 'activeTabs', repo: this.activeTabs },
       { name: 'mcpServers', repo: this.mcpServers }
@@ -290,9 +281,6 @@ export class StorageService {
       queueItems: this.queueItems,
       files: this.files,
       selectedFiles: this.selectedFiles,
-      claudeAgents: this.claudeAgents,
-      claudeCommands: this.claudeCommands,
-      claudeHooks: this.claudeHooks,
       providerKeys: this.providerKeys,
       activeTabs: this.activeTabs,
       mcpServers: this.mcpServers

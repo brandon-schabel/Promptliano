@@ -481,14 +481,14 @@ Hono automatically chooses the optimal router:
 
 ```typescript
 // ✅ CORRECT ORDER - Specific routes first
-app.get('/api/claude-code/sessions/:projectId/metadata', getSessionMetadataHandler)
-app.get('/api/claude-code/sessions/:projectId/recent', getRecentSessionsHandler)
-app.get('/api/claude-code/sessions/:projectId', getSessionHandler) // Generic last
+app.get('/api/coder/sessions/:projectId/metadata', getSessionMetadataHandler)
+app.get('/api/coder/sessions/:projectId/recent', getRecentSessionsHandler)
+app.get('/api/coder/sessions/:projectId', getSessionHandler) // Generic last
 
 // ❌ WRONG ORDER - Generic route catches everything
-app.get('/api/claude-code/sessions/:projectId', getSessionHandler) // Too early!
-app.get('/api/claude-code/sessions/:projectId/metadata', getSessionMetadataHandler) // Never reached
-app.get('/api/claude-code/sessions/:projectId/recent', getRecentSessionsHandler) // Never reached
+app.get('/api/coder/sessions/:projectId', getSessionHandler) // Too early!
+app.get('/api/coder/sessions/:projectId/metadata', getSessionMetadataHandler) // Never reached
+app.get('/api/coder/sessions/:projectId/recent', getRecentSessionsHandler) // Never reached
 ```
 
 ### Common Route Ordering Patterns

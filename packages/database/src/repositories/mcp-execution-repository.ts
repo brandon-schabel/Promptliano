@@ -7,13 +7,9 @@ import {
   mcpErrorPatterns,
   type MCPToolExecution,
   type CreateMCPToolExecution,
-  type UpdateMCPToolExecution,
   type MCPToolStatistic,
-  type CreateMCPToolStatistic,
   type MCPExecutionChain,
-  type CreateMCPExecutionChain,
   type MCPErrorPattern,
-  type CreateMCPErrorPattern
 } from '../schema/mcp-executions'
 import type { MCPToolSummary } from '@promptliano/schemas'
 import { createBaseRepository } from './base-repository'

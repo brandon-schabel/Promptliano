@@ -9,7 +9,6 @@ The component architecture follows a **feature-based organization** with shared 
 ### Feature-Based Components
 
 - **`assets/`** - Asset generation and documentation management
-- **`claude-code/`** - Claude Code integration (agents, commands, sessions)
 - **`projects/`** - Core project management functionality
 - **`tickets/`** - Ticket and task management system
 - **`queues/`** - Queue management and kanban boards

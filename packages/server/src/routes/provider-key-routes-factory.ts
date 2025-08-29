@@ -222,7 +222,7 @@ providerKeyCustomRoutes.openapi(getProviderTypesRoute, async (c) => {
       displayName: 'Anthropic',
       supportsStreaming: true,
       supportsTools: true,
-      models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+      models: ['claude-3-opus', 'claude-4-sonnet', 'claude-3-haiku']
     },
     {
       name: 'lmstudio',

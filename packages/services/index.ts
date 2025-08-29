@@ -336,23 +336,7 @@ export * from './src/mcp-config-manager'
 export * from './src/mcp-project-config-service'
 export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
-export * from './src/claude-agent-service'
-export {
-  // Claude Agent Service individual exports
-  createAgent,
-  getAgentById,
-  listAgents,
-  updateAgent,
-  deleteAgent,
-  getAgentsByProject,
-  getAgentsByProjectId,
-  getAgentsByIds,
-  getAgentContent,
-  formatAgentContext,
-  suggestAgents,
-  suggestAgentForTask
-} from './src/claude-agent-service'
-export * from './src/claude-command-service'
+
 // Re-export types from schemas for backward compatibility
 export type {
   CreateClaudeCommandBody,
@@ -362,10 +346,7 @@ export type {
   CreateProjectBody,
   UpdateProjectBody
 } from '@promptliano/schemas'
-export * from './src/claude-code-mcp-service'
-export * from './src/claude-code-file-reader-service'
-export * from './src/claude-code-import-service'
-export * from './src/claude-hook-service'
+
 // Re-export hook-related types from schemas for backward compatibility
 // Note: API request/response types should be imported from response.schemas or database schemas
 export type {
@@ -402,9 +383,7 @@ export { fileService as fileServiceV2 } from './src/file-service'
 export { queueService as queueServiceV2 } from './src/queue-service'
 export { ticketService as ticketServiceV2 } from './src/ticket-service'
 export { promptService as promptServiceV2 } from './src/prompt-service'
-export { claudeAgentService as claudeagentServiceV2 } from './src/claude-agent-service'
-export { claudeCommandService as claudecommandServiceV2 } from './src/claude-command-service'
-export { claudeHookService as claudehookServiceV2 } from './src/claude-hook-service'
+
 export { providerKeyService as providerkeyServiceV2 } from './src/provider-key-service'
 // QueueItem operations are part of queue service
 export const queueitemServiceV2 = {

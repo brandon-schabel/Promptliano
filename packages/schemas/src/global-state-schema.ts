@@ -186,11 +186,6 @@ export const projectTabStateSchema = z
       .nullable()
       .optional()
       .openapi({ description: 'Timestamp when the tab name was generated' }),
-    claudeCodeEnabled: z
-      .boolean()
-      .optional()
-      .default(false)
-      .openapi({ description: 'Whether Claude Code integration features are enabled for this project.' }),
     assetsEnabled: z
       .boolean()
       .optional()

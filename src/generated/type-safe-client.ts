@@ -194,18 +194,6 @@ export type GetActiveTabResponse = paths['/api/active-tab']['get']['responses'][
 export type CreateActiveTaResponse = paths['/api/active-tab']['post']['responses']['200']['content']['application/json']
 export type CreateActiveTaRequest = paths['/api/active-tab']['post']['requestBody']['content']['application/json']
 export type DeleteActiveTaResponse = paths['/api/active-tab']['delete']['responses']['200']['content']['application/json']
-export type GetClaudeHookResponse = paths['/api/claude-hooks/{projectPath}']['get']['responses']['200']['content']['application/json']
-export type CreateClaudeHookResponse = paths['/api/claude-hooks/{projectPath}']['post']['responses']['201']['content']['application/json']
-export type CreateClaudeHookRequest = paths['/api/claude-hooks/{projectPath}']['post']['requestBody']['content']['application/json']
-export type ListClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['get']['responses']['200']['content']['application/json']
-export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']['responses']['200']['content']['application/json']
-export type UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexRequest = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['put']['requestBody']['content']['application/json']
-export type DeleteClaudeHooksByProjectPathByEventNameByMatcherIndexResponse = paths['/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}']['delete']['responses']['200']['content']['application/json']
-export type CreateClaudeHooksByProjectPathGenerateResponse = paths['/api/claude-hooks/{projectPath}/generate']['post']['responses']['200']['content']['application/json']
-export type CreateClaudeHooksByProjectPathGenerateRequest = paths['/api/claude-hooks/{projectPath}/generate']['post']['requestBody']['content']['application/json']
-export type CreateClaudeHooksByProjectPathTestResponse = paths['/api/claude-hooks/{projectPath}/test']['post']['responses']['200']['content']['application/json']
-export type CreateClaudeHooksByProjectPathTestRequest = paths['/api/claude-hooks/{projectPath}/test']['post']['requestBody']['content']['application/json']
-export type ListClaudeHooksByProjectPathSearchResponse = paths['/api/claude-hooks/{projectPath}/search']['get']['responses']['200']['content']['application/json']
 export type ListMcpGlobalConfigResponse = paths['/api/mcp/global/config']['get']['responses']['200']['content']['application/json']
 export type CreateMcpGlobalConfigResponse = paths['/api/mcp/global/config']['post']['responses']['200']['content']['application/json']
 export type CreateMcpGlobalConfigRequest = paths['/api/mcp/global/config']['post']['requestBody']['content']['application/json']
@@ -390,16 +378,6 @@ export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsRequest = paths
 export type ListProjectsByProjectIdAgentFilesStatusResponse = paths['/api/projects/{projectId}/agent-files/status']['get']['responses']['200']['content']['application/json']
 export type CreateProjectsByProjectIdAgentFilesCreateResponse = paths['/api/projects/{projectId}/agent-files/create']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByProjectIdAgentFilesCreateRequest = paths['/api/projects/{projectId}/agent-files/create']['post']['requestBody']['content']['application/json']
-export type ListClaudeCodeMcpStatusByProjectIdResponse = paths['/api/claude-code/mcp-status/{projectId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdMetadataResponse = paths['/api/claude-code/sessions/{projectId}/metadata']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdRecentResponse = paths['/api/claude-code/sessions/{projectId}/recent']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdPaginatedResponse = paths['/api/claude-code/sessions/{projectId}/paginated']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}/full']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdBySessionIdResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdResponse = paths['/api/claude-code/sessions/{projectId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeProjectDataByProjectIdResponse = paths['/api/claude-code/project-data/{projectId}']['get']['responses']['200']['content']['application/json']
-export type CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse = paths['/api/claude-code/import-session/{projectId}/{sessionId}']['post']['responses']['200']['content']['application/json']
-
 
 /**
  * Comprehensive type-safe API client with full coverage of all endpoints
@@ -1553,64 +1531,6 @@ export class TypeSafeApiClient {
   }
 
 
-  // Claude Hooks Operations
-  /**
-   * List all hooks for a project
-   */
-  async getClaudeHook(projectPath: string | number, options?: { timeout?: number }): Promise<GetClaudeHookResponse> {
-    return this.request<GetClaudeHookResponse>('GET', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Create new hook
-   */
-  async createClaudeHook(projectPath: string | number, data: CreateClaudeHookRequest, options?: { timeout?: number }): Promise<CreateClaudeHookResponse> {
-    return this.request<CreateClaudeHookResponse>('POST', this.buildPath(`/api/claude-hooks/{projectPath}`, { projectPath }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Get specific hook configuration
-   */
-  async listClaudeHooksByProjectPathByEventNameByMatcherIndex(projectPath: string | number, eventName: string | number, matcherIndex: string | number, options?: { timeout?: number }): Promise<ListClaudeHooksByProjectPathByEventNameByMatcherIndexResponse> {
-    return this.request<ListClaudeHooksByProjectPathByEventNameByMatcherIndexResponse>('GET', this.buildPath(`/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}`, { projectPath, eventName, matcherIndex }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Update hook configuration
-   */
-  async updateClaudeHooksByProjectPathByEventNameByMatcherIndex(projectPath: string | number, eventName: string | number, matcherIndex: string | number, data: UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexRequest, options?: { timeout?: number }): Promise<UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexResponse> {
-    return this.request<UpdateClaudeHooksByProjectPathByEventNameByMatcherIndexResponse>('PUT', this.buildPath(`/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}`, { projectPath, eventName, matcherIndex }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Delete hook configuration
-   */
-  async deleteClaudeHooksByProjectPathByEventNameByMatcherIndex(projectPath: string | number, eventName: string | number, matcherIndex: string | number, options?: { timeout?: number }): Promise<DeleteClaudeHooksByProjectPathByEventNameByMatcherIndexResponse> {
-    return this.request<DeleteClaudeHooksByProjectPathByEventNameByMatcherIndexResponse>('DELETE', this.buildPath(`/api/claude-hooks/{projectPath}/{eventName}/{matcherIndex}`, { projectPath, eventName, matcherIndex }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Generate hook from description
-   */
-  async createClaudeHooksByProjectPathGenerate(projectPath: string | number, data: CreateClaudeHooksByProjectPathGenerateRequest, options?: { timeout?: number }): Promise<CreateClaudeHooksByProjectPathGenerateResponse> {
-    return this.request<CreateClaudeHooksByProjectPathGenerateResponse>('POST', this.buildPath(`/api/claude-hooks/{projectPath}/generate`, { projectPath }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Test hook (placeholder)
-   */
-  async createClaudeHooksByProjectPathTest(projectPath: string | number, data: CreateClaudeHooksByProjectPathTestRequest, options?: { timeout?: number }): Promise<CreateClaudeHooksByProjectPathTestResponse> {
-    return this.request<CreateClaudeHooksByProjectPathTestResponse>('POST', this.buildPath(`/api/claude-hooks/{projectPath}/test`, { projectPath }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Search hooks
-   */
-  async listClaudeHooksByProjectPathSearch(projectPath: string | number, query?: { q?: any }, options?: { timeout?: number }): Promise<ListClaudeHooksByProjectPathSearchResponse> {
-    return this.request<ListClaudeHooksByProjectPathSearchResponse>('GET', this.buildPath(`/api/claude-hooks/{projectPath}/search`, { projectPath }), { params: query, timeout: options?.timeout })
-  }
-
-
   // MCP Global Operations
   /**
    * Get global MCP configuration
@@ -2492,73 +2412,6 @@ export class TypeSafeApiClient {
   async createProjectsByProjectIdAgentFilesCreate(projectId: string | number, data: CreateProjectsByProjectIdAgentFilesCreateRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdAgentFilesCreateResponse> {
     return this.request<CreateProjectsByProjectIdAgentFilesCreateResponse>('POST', this.buildPath(`/api/projects/{projectId}/agent-files/create`, { projectId }), { body: data, timeout: options?.timeout })
   }
-
-
-  // Claude Code Operations
-  /**
-   * Get MCP installation status for Claude Code and Claude Desktop
-   */
-  async listClaudeCodeMcpStatusByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeMcpStatusByProjectIdResponse> {
-    return this.request<ListClaudeCodeMcpStatusByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/mcp-status/{projectId}`, { projectId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Get lightweight session metadata for a project
-   */
-  async listClaudeCodeSessionsByProjectIdMetadata(projectId: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdMetadataResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdMetadataResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/metadata`, { projectId }), { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Get recent Claude Code sessions
-   */
-  async listClaudeCodeSessionsByProjectIdRecent(projectId: string | number, query?: { limit?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdRecentResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdRecentResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/recent`, { projectId }), { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Get sessions with cursor-based pagination
-   */
-  async listClaudeCodeSessionsByProjectIdPaginated(projectId: string | number, query?: { cursor?: any; limit?: any; sortBy?: any; sortOrder?: any; search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdPaginatedResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdPaginatedResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/paginated`, { projectId }), { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Get complete Claude Code session with full message data
-   */
-  async listClaudeCodeSessionsByProjectIdBySessionIdFull(projectId: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/{sessionId}/full`, { projectId, sessionId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Get messages for a specific Claude Code session
-   */
-  async listClaudeCodeSessionsByProjectIdBySessionId(projectId: string | number, sessionId: string | number, query?: { search?: any; role?: any; limit?: any; offset?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdBySessionIdResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdBySessionIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/{sessionId}`, { projectId, sessionId }), { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Get all Claude Code chat sessions for a project
-   */
-  async listClaudeCodeSessionsByProjectId(projectId: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any; limit?: any; offset?: any; useCursor?: any; cursor?: any; sortBy?: any; sortOrder?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}`, { projectId }), { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Get Claude Code project metadata
-   */
-  async listClaudeCodeProjectDataByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeProjectDataByProjectIdResponse> {
-    return this.request<ListClaudeCodeProjectDataByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/project-data/{projectId}`, { projectId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Import a Claude Code session into a Promptliano chat
-   */
-  async createClaudeCodeImportSessionByProjectIdBySessionId(projectId: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse> {
-    return this.request<CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse>('POST', this.buildPath(`/api/claude-code/import-session/{projectId}/{sessionId}`, { projectId, sessionId }), { timeout: options?.timeout })
-  }
-
-
 
 }
 

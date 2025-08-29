@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS = {
   chat: {
     autoNameChats: true,
     defaultProvider: 'anthropic',
-    defaultModel: 'claude-3-sonnet-20240229',
+    defaultModel: 'claude-4-sonnet',
     showTimestamps: false,
     compactMode: false
   },
@@ -136,7 +136,7 @@ export const TEST_SCENARIOS = [
         compactMode: false,
         showTimestamps: true,
         defaultProvider: 'anthropic',
-        defaultModel: 'claude-3-sonnet-20240229'
+        defaultModel: 'claude-4-sonnet'
       },
       editor: {
         theme: 'high-contrast',
@@ -164,7 +164,7 @@ export const TEST_SCENARIOS = [
         compactMode: true,
         showTimestamps: false,
         defaultProvider: 'anthropic',
-        defaultModel: 'claude-3-sonnet-20240229'
+        defaultModel: 'claude-4-sonnet'
       },
       editor: {
         theme: 'vscode-dark',
@@ -361,7 +361,7 @@ export const SETTINGS_CATEGORIES = {
  * Expected model options for each provider
  */
 export const PROVIDER_MODELS = {
-  anthropic: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+  anthropic: ['claude-3-opus-20240229', 'claude-4-sonnet', 'claude-3-haiku-20240307'],
   openai: ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-16k'],
   ollama: ['llama2', 'codellama', 'mistral'],
   lmstudio: ['local-model-1', 'local-model-2']

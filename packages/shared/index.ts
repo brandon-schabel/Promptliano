@@ -29,8 +29,5 @@ export * from './src/utils/file-tree-utils/import-resolver'
 // Constants
 export * from './src/constants/file-limits'
 
-// Templates
-export * from './src/claude-hook-templates'
-
 // Parsers
 export * from './src/parsers'

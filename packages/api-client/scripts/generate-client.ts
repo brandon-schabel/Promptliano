@@ -272,12 +272,43 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
   // Generate method implementations
   let clientMethods = '  // ===== GENERATED API METHODS =====\n\n'
+  const usedMethodNames = new Set<string>()
+
+  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, ' ').split(' ').filter(Boolean).map((w, i) => i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()).join('')
+
+  const ensureUniqueName = (base: string, op: OperationInfo): string => {
+    let name = base
+    if (!usedMethodNames.has(name)) {
+      usedMethodNames.add(name)
+      return name
+    }
+    const opId = op.operationId ? sanitize(op.operationId) : ''
+    const tag = op.tags?.[0] ? sanitize(op.tags[0]) : ''
+    const pathKey = sanitize(op.path)
+    const candidates = [
+      `${base}${opId ? opId[0].toUpperCase() + opId.slice(1) : ''}`,
+      `${base}${tag ? tag[0].toUpperCase() + tag.slice(1) : ''}`,
+      `${base}${pathKey ? pathKey[0].toUpperCase() + pathKey.slice(1) : ''}`
+    ].filter(Boolean)
+    for (const cand of candidates) {
+      if (cand && !usedMethodNames.has(cand)) {
+        usedMethodNames.add(cand)
+        return cand
+      }
+    }
+    // Fallback: append numeric suffix
+    let i = 2
+    while (usedMethodNames.has(`${base}${i}`)) i++
+    name = `${base}${i}`
+    usedMethodNames.add(name)
+    return name
+  }
 
   Object.entries(operationsByTag).forEach(([tag, tagOperations]) => {
     clientMethods += `  // ${tag} Operations\n`
 
     tagOperations.forEach((operation) => {
-      const methodName = pathToMethodName(operation.path, operation.method)
+      const methodName = ensureUniqueName(pathToMethodName(operation.path, operation.method), operation)
 
       // Generate unique type names for this operation
       const typePrefix = methodName.charAt(0).toUpperCase() + methodName.slice(1)
@@ -304,7 +335,7 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
       if (operation.hasRequestBody && !generatedTypes.has(requestType)) {
         const requestPath = normalizePathForTypeName(operation.path)
-        clientTypes += `export type ${requestType} = paths['${requestPath}']['${operation.method.toLowerCase()}']['requestBody']['content']['application/json']\n`
+        clientTypes += `export type ${requestType} = NonNullable<paths['${requestPath}']['${operation.method.toLowerCase()}']['requestBody']>['content']['application/json']\n`
         generatedTypes.add(requestType)
       }
 
@@ -573,7 +604,7 @@ export class TypeSafeApiClient {
       }
 
       const responseText = await response.text()
-      return responseText ? JSON.parse(responseText) : undefined
+      return responseText ? (JSON.parse(responseText) as T) : (undefined as unknown as T)
     } catch (e) {
       clearTimeout(timeoutId)
       if (e instanceof Error && e.name === 'AbortError') {

@@ -171,7 +171,7 @@ export const MODEL_CONFIGS = {
 
   high: ModelConfigSchema.parse({
     provider: 'anthropic',
-    model: 'claude-3-sonnet-20240229',
+    model: 'claude-4-sonnet',
     temperature: 0.7,
     maxTokens: 8192,
     topP: 1

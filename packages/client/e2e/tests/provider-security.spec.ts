@@ -38,7 +38,7 @@ test.describe('Provider Security and Data Protection', () => {
       if (authHeader?.includes('sk-ant-')) {
         route.fulfill({
           status: 200,
-          body: JSON.stringify({ data: [{ id: 'claude-3-sonnet' }] })
+          body: JSON.stringify({ data: [{ id: 'claude-4-sonnet' }] })
         })
       } else {
         route.fulfill({

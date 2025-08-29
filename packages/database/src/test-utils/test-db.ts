@@ -619,7 +619,7 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
       name: 'Test Agent',
       description: 'Seeded test agent',
       instructions: 'Test instructions',
-      model: 'claude-3-sonnet',
+      model: 'claude-4-sonnet',
       isActive: true,
       createdAt: now,
       updatedAt: now

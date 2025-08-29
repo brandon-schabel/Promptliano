@@ -431,25 +431,6 @@ export function ProjectSettingsTab() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Claude Code Integration (Beta)</CardTitle>
-            <CardDescription>Enable advanced Claude Code features for this project</CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-6'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-0.5'>
-                <label className='text-base font-medium'>Enable Claude Code</label>
-                <p className='text-sm text-muted-foreground'>
-                  Activate Claude Code tab with agent management, sessions, and chat features. This feature is currently
-                  in beta.
-                </p>
-              </div>
-              <Switch checked={!!claudeCodeEnabled} onCheckedChange={setClaudeCodeEnabled} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Assets (Beta)</CardTitle>
             <CardDescription>Enable the Assets tab for this project</CardDescription>
           </CardHeader>

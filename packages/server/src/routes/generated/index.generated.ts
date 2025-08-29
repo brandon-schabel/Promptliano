@@ -14,12 +14,6 @@ import { registerTicketTaskRoutes } from './tickettask-routes.generated'
 import { registerChatRoutes } from './chat-routes.generated'
 import { registerChatMessageRoutes } from './chatmessage-routes.generated'
 import { registerPromptRoutes } from './prompt-routes.generated'
-// Queue routes disabled in favor of Flow-only API
-// import { registerQueueRoutes } from './queue-routes.generated'
-// import { registerQueueItemRoutes } from './queueitem-routes.generated'
-import { registerClaudeAgentRoutes } from './claudeagent-routes.generated'
-import { registerClaudeCommandRoutes } from './claudecommand-routes.generated'
-import { registerClaudeHookRoutes } from './claudehook-routes.generated'
 import { registerProviderKeyRoutes } from './providerkey-routes.generated'
 import { registerFileRoutes } from './file-routes.generated'
 import { registerSelectedFileRoutes } from './selectedfile-routes.generated'
@@ -32,9 +26,6 @@ import type { ChatMessageRouteTypes } from './chatmessage-routes.generated'
 import type { PromptRouteTypes } from './prompt-routes.generated'
 import type { QueueRouteTypes } from './queue-routes.generated'
 import type { QueueItemRouteTypes } from './queueitem-routes.generated'
-import type { ClaudeAgentRouteTypes } from './claudeagent-routes.generated'
-import type { ClaudeCommandRouteTypes } from './claudecommand-routes.generated'
-import type { ClaudeHookRouteTypes } from './claudehook-routes.generated'
 import type { ProviderKeyRouteTypes } from './providerkey-routes.generated'
 import type { FileRouteTypes } from './file-routes.generated'
 import type { SelectedFileRouteTypes } from './selectedfile-routes.generated'
@@ -50,23 +41,18 @@ import type { ActiveTabRouteTypes } from './activetab-routes.generated'
  */
 export function registerAllGeneratedRoutes(app: OpenAPIHono): OpenAPIHono {
   console.log('🏭 Registering auto-generated routes...')
-  
+
   registerProjectRoutes(app)
   registerTicketRoutes(app)
   registerTicketTaskRoutes(app)
   registerChatRoutes(app)
   registerChatMessageRoutes(app)
   registerPromptRoutes(app)
-  // registerQueueRoutes(app) // disabled
-  // registerQueueItemRoutes(app) // disabled
-  registerClaudeAgentRoutes(app)
-  registerClaudeCommandRoutes(app)
-  registerClaudeHookRoutes(app)
   registerProviderKeyRoutes(app)
   registerFileRoutes(app)
   registerSelectedFileRoutes(app)
   registerActiveTabRoutes(app)
-  
+
   console.log('✅ All generated routes registered successfully')
   return app
 }

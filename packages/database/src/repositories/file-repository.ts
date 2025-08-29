@@ -13,20 +13,8 @@ import {
   type File,
   type SelectedFile,
   type InsertFile,
-  type InsertSelectedFile,
-  selectFileSchema
+
 } from '../schema'
-
-// Files have string IDs, so we'll use custom implementation
-// instead of BaseRepository which expects numeric IDs
-
-// Create base selected files repository
-const baseSelectedFileRepository = createBaseRepository(
-  selectedFiles,
-  undefined, // db instance
-  undefined, // Will use default validation
-  'SelectedFile'
-)
 
 // Create custom file repository for string IDs
 export const fileRepository = {
@@ -153,10 +141,6 @@ export const fileRepository = {
     const result = (await db.delete(files).where(eq(files.id, id)).run()) as unknown as { changes: number }
     return result.changes > 0
   },
-
-  // =============================================================================
-  // SELECTED FILES OPERATIONS (using BaseRepository)
-  // =============================================================================
 
   /**
    * Get selected files for project

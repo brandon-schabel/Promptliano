@@ -113,7 +113,7 @@ export const ProviderPageTestData = {
       keyFormat: 'sk-ant-[varies]',
       models: [
         'claude-3-opus-20240229',
-        'claude-3-sonnet-20240229',
+        'claude-4-sonnet',
         'claude-3-haiku-20240307',
         'claude-3-5-sonnet-20241022'
       ],
@@ -169,7 +169,7 @@ export const ProviderPageTestData = {
         body: {
           data: [
             { id: 'claude-3-opus-20240229', type: 'model', display_name: 'Claude 3 Opus' },
-            { id: 'claude-3-sonnet-20240229', type: 'model', display_name: 'Claude 3 Sonnet' },
+            { id: 'claude-4-sonnet', type: 'model', display_name: 'Claude 3 Sonnet' },
             { id: 'claude-3-haiku-20240307', type: 'model', display_name: 'Claude 3 Haiku' }
           ]
         }
@@ -354,7 +354,7 @@ export const ProviderPageTestData = {
           description: 'Most capable GPT-4 model'
         },
         {
-          id: 'claude-3-sonnet',
+          id: 'claude-4-sonnet',
           name: 'Claude 3 Sonnet',
           contextLength: 200000,
           capabilities: ['chat', 'vision'],

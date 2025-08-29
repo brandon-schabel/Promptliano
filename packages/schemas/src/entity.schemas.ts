@@ -255,58 +255,6 @@ export const UpdateChatMessageSchema = z.object({
   metadata: z.record(z.any()).optional()
 }).openapi('UpdateChatMessage')
 
-// Claude Agent Create/Update schemas
-export const CreateClaudeAgentSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
-  model: z.string().min(1),
-  isActive: z.boolean().default(true)
-}).openapi('CreateClaudeAgent')
-
-export const UpdateClaudeAgentSchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
-  model: z.string().min(1).optional(),
-  isActive: z.boolean().optional()
-}).openapi('UpdateClaudeAgent')
-
-// Claude Command Create/Update schemas  
-export const CreateClaudeCommandSchema = z.object({
-  name: z.string().min(1),
-  content: z.string().min(1),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  projectId: z.number().int().positive().optional(),
-  tags: z.string().optional()
-}).openapi('CreateClaudeCommand')
-
-export const UpdateClaudeCommandSchema = z.object({
-  name: z.string().min(1).optional(),
-  content: z.string().min(1).optional(),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  projectId: z.number().int().positive().optional(),
-  tags: z.string().optional()
-}).openapi('UpdateClaudeCommand')
-
-// Claude Hook Create/Update schemas
-export const CreateClaudeHookSchema = z.object({
-  projectId: z.number().int().positive().optional(),
-  name: z.string().min(1),
-  event: z.string().min(1),
-  command: z.string().min(1),
-  enabled: z.boolean().default(true)
-}).openapi('CreateClaudeHook')
-
-export const UpdateClaudeHookSchema = z.object({
-  name: z.string().min(1).optional(),
-  event: z.string().min(1).optional(),
-  command: z.string().min(1).optional(),
-  enabled: z.boolean().optional()
-}).openapi('UpdateClaudeHook')
-
 // Provider Key schemas (for entity routes) - compatibility with ProviderModelSchema
 export const ProviderKeySchema = z.object({
   id: z.number().int().positive(),
@@ -531,12 +479,6 @@ export type CreateQueue = z.infer<typeof CreateQueueSchema>
 export type CreateSelectedFile = z.infer<typeof CreateSelectedFileSchema>
 export type CreateChatMessage = z.infer<typeof CreateChatMessageSchema>
 export type UpdateChatMessage = z.infer<typeof UpdateChatMessageSchema>
-export type CreateClaudeAgent = z.infer<typeof CreateClaudeAgentSchema>
-export type UpdateClaudeAgent = z.infer<typeof UpdateClaudeAgentSchema>
-export type CreateClaudeCommand = z.infer<typeof CreateClaudeCommandSchema>
-export type UpdateClaudeCommand = z.infer<typeof UpdateClaudeCommandSchema>
-export type CreateClaudeHook = z.infer<typeof CreateClaudeHookSchema>
-export type UpdateClaudeHook = z.infer<typeof UpdateClaudeHookSchema>
 export type CreateProviderKey = z.infer<typeof CreateProviderKeySchema>
 export type UpdateProviderKey = z.infer<typeof UpdateProviderKeySchema>
 export type CreateTicket = z.infer<typeof CreateTicketSchema>

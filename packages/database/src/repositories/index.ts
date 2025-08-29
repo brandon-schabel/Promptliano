@@ -12,8 +12,6 @@ export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
 export * from './file-repository'
 
-// Claude-specific repositories
-export * from './claude-repository' // Exports claudeAgentRepository, claudeCommandRepository, claudeHookRepository
 
 // Configuration and state repositories
 export * from './provider-key-repository'
