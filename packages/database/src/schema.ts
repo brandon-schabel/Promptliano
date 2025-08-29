@@ -1014,6 +1014,21 @@ export const relevanceConfigs = sqliteTable(
 )
 
 // =============================================================================
+// ENCRYPTION TABLES
+// =============================================================================
+
+export const encryptionKeys = sqliteTable(
+  'encryption_keys',
+  {
+    id: integer('id').primaryKey(),
+    key: text('key').notNull(),
+    isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  }
+)
+
+// =============================================================================
 // UI STATE TABLES
 // =============================================================================
 
@@ -1452,6 +1467,7 @@ export type InsertProviderKey = typeof providerKeys.$inferInsert
 export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
 export type InsertActiveTab = typeof activeTabs.$inferInsert
+export type InsertEncryptionKey = typeof encryptionKeys.$inferInsert
 
 // New table insert types
 export type InsertGitStatus = typeof gitStatus.$inferInsert
@@ -1536,6 +1552,7 @@ export type File = Omit<FileInferred, 'imports' | 'exports'> & {
 }
 
 export type SelectedFile = typeof selectedFiles.$inferSelect
+export type EncryptionKey = typeof encryptionKeys.$inferSelect
 
 // Override ActiveTab type to fix JSON field types
 type ActiveTabInferred = typeof activeTabs.$inferSelect

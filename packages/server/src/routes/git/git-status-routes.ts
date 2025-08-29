@@ -33,22 +33,17 @@ const GitStatusResponseSchema = z
   })
   .openapi('GitStatusResponse')
 
-// Local params schema matching path placeholder {projectId}
-const ProjectIdParamsProjectIdSchema = z
-  .object({
-    projectId: z.coerce.number().int().positive().openapi({ param: { name: 'projectId', in: 'path' } })
-  })
-  .openapi('ProjectIdParamsProjectId')
+// Use canonical ProjectIdParamsSchema with {id}
 
 // Get project git status
 const getProjectGitStatusRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/status',
+  path: '/api/projects/{id}/git/status',
   tags: ['Git', 'Status'],
   summary: 'Get git status for a project',
   description: 'Retrieves the current git status including staged, unstaged, and untracked files',
   request: {
-    params: ProjectIdParamsProjectIdSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: z.object({
       refresh: z.coerce.boolean().optional().default(false).openapi({
         description: 'Force refresh the git status (bypass cache)'
@@ -61,12 +56,12 @@ const getProjectGitStatusRoute = createRoute({
 // Stage files
 const stageFilesRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stage',
+  path: '/api/projects/{id}/git/stage',
   tags: ['Git', 'Staging'],
   summary: 'Stage files for commit',
   description: 'Stages specified files or patterns for the next commit',
   request: {
-    params: ProjectIdParamsProjectIdSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: { 'application/json': { schema: StageFilesBodySchema } },
       required: true
@@ -78,12 +73,12 @@ const stageFilesRoute = createRoute({
 // Unstage files
 const unstageFilesRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/unstage',
+  path: '/api/projects/{id}/git/unstage',
   tags: ['Git', 'Staging'],
   summary: 'Unstage files from commit',
   description: 'Removes specified files from the staging area',
   request: {
-    params: ProjectIdParamsProjectIdSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: { 'application/json': { schema: UnstageFilesBodySchema } },
       required: true
@@ -95,12 +90,12 @@ const unstageFilesRoute = createRoute({
 // Stage all changes
 const stageAllRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stage-all',
+  path: '/api/projects/{id}/git/stage-all',
   tags: ['Git', 'Staging'],
   summary: 'Stage all changes',
   description: 'Stages all modified and untracked files for commit',
   request: {
-    params: ProjectIdParamsProjectIdSchema
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes staged successfully')
 })
@@ -108,12 +103,12 @@ const stageAllRoute = createRoute({
 // Unstage all changes
 const unstageAllRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/unstage-all',
+  path: '/api/projects/{id}/git/unstage-all',
   tags: ['Git', 'Staging'],
   summary: 'Unstage all changes',
   description: 'Removes all files from the staging area',
   request: {
-    params: ProjectIdParamsProjectIdSchema
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes unstaged successfully')
 })
@@ -121,7 +116,7 @@ const unstageAllRoute = createRoute({
 // Export routes with simplified handlers using route-helpers
 export const gitStatusRoutes = new OpenAPIHono()
   .openapi(getProjectGitStatusRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { refresh = false } = c.req.valid('query') || {}
 
     // Clear cache if refresh requested
@@ -133,27 +128,27 @@ export const gitStatusRoutes = new OpenAPIHono()
     return c.json(successResponse(status))
   }) as any)
   .openapi(stageFilesRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await stageFiles(projectId, body.filePaths)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Files staged successfully'))
   }) as any)
   .openapi(unstageFilesRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     await unstageFiles(projectId, body.filePaths)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Files unstaged successfully'))
   }) as any)
   .openapi(stageAllRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     await stageAll(projectId)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('All changes staged successfully'))
   }) as any)
   .openapi(unstageAllRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     await unstageAll(projectId)
     clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('All changes unstaged successfully'))

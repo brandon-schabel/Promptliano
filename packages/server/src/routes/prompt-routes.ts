@@ -47,6 +47,8 @@ const MARKDOWN_UPLOAD_CONFIG = {
   ALLOWED_MIME_TYPES: ['text/markdown', 'text/x-markdown', 'text/plain']
 } as const
 
+// All manual routes normalized to {id}; use ProjectIdParamsSchema
+
 const createPromptRoute = createRoute({
   method: 'post',
   path: '/api/prompts',
@@ -71,7 +73,7 @@ const listAllPromptsRoute = createRoute({
 
 const listProjectPromptsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/prompts',
+  path: '/api/projects/{id}/prompts',
   tags: ['Projects', 'Prompts'],
   summary: 'List prompts associated with a specific project',
   request: {
@@ -82,7 +84,7 @@ const listProjectPromptsRoute = createRoute({
 
 const suggestPromptsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/suggest-prompts',
+  path: '/api/projects/{id}/suggest-prompts',
   tags: ['Projects', 'Prompts', 'AI'],
   summary: 'Get AI-suggested prompts based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant prompts from the project',
@@ -98,22 +100,22 @@ const suggestPromptsRoute = createRoute({
 
 const addPromptToProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/prompts/{promptId}',
+  path: '/api/projects/{id}/prompts/{promptId}',
   tags: ['Projects', 'Prompts'],
   summary: 'Associate a prompt with a project',
   request: {
-    params: ProjectAndPromptIdParamsSchema
+    params: z.object({ id: ProjectIdParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
 const removePromptFromProjectRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/prompts/{promptId}',
+  path: '/api/projects/{id}/prompts/{promptId}',
   tags: ['Projects', 'Prompts'],
   summary: 'Disassociate a prompt from a project',
   request: {
-    params: ProjectAndPromptIdParamsSchema
+    params: z.object({ id: ProjectIdParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
@@ -250,7 +252,7 @@ const exportBatchPromptsRoute = createRoute({
 
 const importProjectPromptsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/prompts/import',
+  path: '/api/projects/{id}/prompts/import',
   tags: ['Projects', 'Prompts', 'Import/Export'],
   summary: 'Import prompts to a specific project',
   description: 'Upload and import markdown files with prompts directly to a project',
@@ -288,7 +290,7 @@ const importProjectPromptsRoute = createRoute({
 
 const exportAllProjectPromptsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/prompts/export',
+  path: '/api/projects/{id}/prompts/export',
   tags: ['Projects', 'Prompts', 'Import/Export'],
   summary: 'Export all prompts from a project',
   description: 'Download all prompts from a project as markdown file(s)',
@@ -354,24 +356,24 @@ export const promptRoutes = new OpenAPIHono()
     return c.json(successResponse(await listAllPrompts()))
   })
   .openapi(listProjectPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const projectPrompts = await listPromptsByProject(projectId)
     return c.json(successResponse(projectPrompts))
   })
   .openapi(suggestPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const { userInput, limit } = c.req.valid('json')
     const suggestedPrompts = await suggestPrompts(projectId, userInput)
     return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
   .openapi(addPromptToProjectRoute, async (c) => {
-    const { promptId, projectId } = c.req.valid('param')
+    const { promptId, id: projectId } = c.req.valid('param')
     await addPromptToProject(promptId, projectId)
     return c.json(operationSuccessResponse('Prompt linked to project.'))
   })
   .openapi(removePromptFromProjectRoute, async (c) => {
-    const { promptId, projectId } = c.req.valid('param')
+    const { promptId, id: projectId } = c.req.valid('param')
     await removePromptFromProject(promptId)
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
@@ -496,7 +498,7 @@ export const promptRoutes = new OpenAPIHono()
   })
 
   .openapi(importProjectPromptsRoute, (async (c: Context) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const body = await c.req.formData()
     const overwriteExisting = body.get('overwriteExisting') === 'true'
 
@@ -552,7 +554,7 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
 
   .openapi(exportAllProjectPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const { format, sortBy, sortOrder } = c.req.valid('query')
 
     const projectPrompts = await listPromptsByProject(projectId)

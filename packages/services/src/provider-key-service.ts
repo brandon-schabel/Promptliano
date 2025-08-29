@@ -82,6 +82,39 @@ export function createProviderKeyService() {
     return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
   }
 
+  /**
+   * Normalize provider identifiers to canonical slugs used by the system
+   */
+  function canonicalizeProviderId(provider: string): APIProviders | string {
+    const raw = (provider || '').trim().toLowerCase()
+    const normalized = raw.replace(/[^a-z]/g, '')
+    switch (normalized) {
+      case 'openrouter':
+        return 'openrouter'
+      case 'openai':
+        return 'openai'
+      case 'anthropic':
+        return 'anthropic'
+      case 'googlegemini':
+        return 'google_gemini'
+      case 'groq':
+        return 'groq'
+      case 'together':
+        return 'together'
+      case 'xai':
+        return 'xai'
+      case 'lmstudio':
+        return 'lmstudio'
+      case 'ollama':
+        return 'ollama'
+      case 'custom':
+        return 'custom'
+      default:
+        // Return lowercased original for unknowns
+        return raw
+    }
+  }
+
   async function createKey(data: CreateProviderKeyInput & { key?: string }): Promise<ProviderKey> {
     return withErrorContext(
       async () => {
@@ -105,7 +138,7 @@ export function createProviderKeyService() {
 
         const newKeyData = {
           name: data.name || null,
-          provider: data.provider,
+          provider: canonicalizeProviderId(data.provider),
           keyName: data.keyName || data.name || 'default', // Backward compatibility
           encryptedValue: encryptedData.encrypted, // Backward compatibility
           key: encryptedData.encrypted, // Store encrypted key
@@ -186,12 +219,13 @@ export function createProviderKeyService() {
                 })
                 return { ...key, key: decryptedKey }
               } catch (error) {
+                // Do not fail the entire operation; log and continue without a decrypted value
                 logger.error(`Failed to decrypt key ${key.id}`, {
                   error,
                   keyId: key.id,
                   provider: key.provider
                 })
-                throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${key.id}`)
+                return { ...key, key: null }
               }
             }
             return key
@@ -218,7 +252,8 @@ export function createProviderKeyService() {
    * Each custom provider will have a unique ID like "custom_<keyId>"
    */
   async function getCustomProviders(): Promise<Array<{ id: string; name: string; baseUrl?: string; keyId: number }>> {
-    const allKeys = await listKeysUncensored()
+    // We don't need decrypted keys for this list; use censored to avoid decryption issues
+    const allKeys = await listKeysCensoredKeys()
     const customKeys = allKeys.filter((key) => key.provider === 'custom' && key.baseUrl)
 
     return customKeys.map((key) => ({
@@ -252,8 +287,9 @@ export function createProviderKeyService() {
             })
             return { ...typedKey, key: decryptedKey }
           } catch (error) {
+            // Don't propagate decryption failures here; return without key so callers can handle gracefully
             logger.error(`Failed to decrypt key ${id}:`, error)
-            throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${id}`)
+            return { ...typedKey, key: null }
           }
         }
 
@@ -289,7 +325,7 @@ export function createProviderKeyService() {
         let updateData: Partial<UpdateProviderKeyInput> = {}
 
         if (data.name !== undefined) updateData.name = data.name
-        if (data.provider !== undefined) updateData.provider = data.provider
+        if (data.provider !== undefined) updateData.provider = canonicalizeProviderId(data.provider)
         if (data.baseUrl !== undefined) updateData.baseUrl = data.baseUrl
         if (data.customHeaders !== undefined) updateData.customHeaders = data.customHeaders
         if (data.isDefault !== undefined) updateData.isDefault = data.isDefault
@@ -331,8 +367,9 @@ export function createProviderKeyService() {
             })
             return { ...updatedKey, key: decryptedKey }
           } catch (error) {
+            // Avoid throwing on decrypt failure to prevent 500s in update flows
             logger.error(`Failed to decrypt key ${id}:`, error)
-            throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${id}`)
+            return { ...updatedKey, key: null }
           }
         }
 

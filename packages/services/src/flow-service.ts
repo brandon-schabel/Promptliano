@@ -571,6 +571,61 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
         { entity: 'Queue', action: 'getQueuesWithStats', id: projectId }
       )
     },
+
+    /** Update queue (Flow) */
+    async updateQueue(queueId: number, data: Partial<{ name: string; description?: string; maxParallelItems?: number; isActive?: boolean }>) {
+      return withErrorContext(
+        async () => {
+          const existing = await queueRepo.getById(queueId)
+          if (!existing) throw ErrorFactory.notFound('Queue', queueId)
+          const updated = await queueRepo.update(queueId, { ...data, updatedAt: Date.now() } as any)
+          return updated
+        },
+        { entity: 'Queue', action: 'update', id: queueId }
+      )
+    },
+
+    /** Delete queue (Flow) */
+    async deleteQueue(queueId: number) {
+      return withErrorContext(
+        async () => {
+          const existing = await queueRepo.getById(queueId)
+          if (!existing) throw ErrorFactory.notFound('Queue', queueId)
+          // Ensure tickets/tasks referencing this queue are cleaned up
+          const { tickets, tasks } = await (this as any).getQueueItems(queueId)
+          for (const t of tickets) {
+            await ticketRepo.removeFromQueue(t.id)
+          }
+          for (const task of tasks) {
+            await ticketRepo.updateTask(task.id, {
+              queueId: null,
+              queueStatus: null,
+              queuePosition: null,
+              queuePriority: null,
+              queuedAt: null,
+              queueStartedAt: null,
+              queueCompletedAt: null,
+              queueAgentId: null,
+              queueErrorMessage: null
+            })
+          }
+          return await queueRepo.delete(queueId)
+        },
+        { entity: 'Queue', action: 'delete', id: queueId }
+      )
+    },
+
+    /** Get queue by ID (Flow) */
+    async getQueueById(queueId: number) {
+      return withErrorContext(
+        async () => {
+          const q = await queueRepo.getById(queueId)
+          if (!q) throw ErrorFactory.notFound('Queue', queueId)
+          return q
+        },
+        { entity: 'Queue', action: 'getById', id: queueId }
+      )
+    },
     /**
      * Move item between queues with proper validation
      */

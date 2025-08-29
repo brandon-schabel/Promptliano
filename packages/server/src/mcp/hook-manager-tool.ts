@@ -81,7 +81,7 @@ export const hookManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for all actions). Example: 1754713756748'
+        description: 'The project ID (required for all actions). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -96,7 +96,7 @@ export const hookManagerTool: MCPToolDefinition = {
     async (args: z.infer<typeof HookManagerSchema>): Promise<MCPToolResponse> => {
       try {
         const { action, projectId, data } = args
-        const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+        const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
         // Get project to validate and get path
         const project = await getProjectById(validProjectId)

@@ -63,7 +63,7 @@ const navigation: NavItem[] = [
     items: [
       { title: 'What is MCP?', href: '/docs/guides#mcp-overview' },
       { title: 'Setup Guide', href: '/integrations' },
-      { title: 'MCP Tools Reference', href: '/docs/api#mcp-tools' },
+      { title: 'MCP Tools Overview', href: '/docs/mcp-tools', badge: 'Updated' },
       { title: 'Best Practices', href: '/docs/how-to/mcp-best-practices' }
     ]
   },
@@ -76,7 +76,7 @@ const navigation: NavItem[] = [
       { title: 'Ticket Manager', href: '/docs/api#ticket-manager' },
       { title: 'Task Manager', href: '/docs/api#task-manager' },
       { title: 'Git Manager', href: '/docs/api#git-manager' },
-      { title: 'All MCP Tools', href: '/docs/api#mcp-tools' }
+      { title: 'All MCP Tools', href: '/docs/mcp-tools', badge: 'Updated' }
     ]
   },
   {

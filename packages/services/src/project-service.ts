@@ -226,8 +226,8 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         async () => {
           const projects = await repository.getAll()
 
-          // Apply sorting
-          if (options.sortBy && options.sortBy !== 'updatedAt') {
+          // Apply sorting (supports 'updatedAt' explicitly as well)
+          if (options.sortBy) {
             projects.sort((a, b) => {
               // Use the correct database field names
               const sortField = options.sortBy!
@@ -359,18 +359,76 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Verify project exists
           await baseService.getById(projectId)
 
-          // TODO: Implement file summarization
-          // For now, return a placeholder result
-          return {
+          const result = {
             included: fileIds.length,
             skipped: 0,
-            updatedFiles: [],
+            updatedFiles: [] as ProjectFile[],
             skippedReasons: {
               empty: 0,
               tooLarge: 0,
               errors: 0
             }
           }
+
+          if (!fileIds || fileIds.length === 0) {
+            return result
+          }
+
+          for (const id of fileIds) {
+            try {
+              const file = await injectedFileService.getById(id)
+              if (!file) {
+                // File missing – count as error skip
+                result.skipped += 1
+                result.skippedReasons.errors += 1
+                continue
+              }
+
+              // Ensure file belongs to project
+              if (file.projectId !== projectId) {
+                result.skipped += 1
+                result.skippedReasons.errors += 1
+                continue
+              }
+
+              // Skip empty content
+              if (!file.content || file.content.trim().length === 0) {
+                result.skipped += 1
+                result.skippedReasons.empty += 1
+                continue
+              }
+
+              // Skip too large files
+              if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
+                result.skipped += 1
+                result.skippedReasons.tooLarge += 1
+                continue
+              }
+
+              // Respect cooldown unless forced
+              // If summary exists and not forced, skip
+              if (file.summary && !force) {
+                result.skipped += 1
+                continue
+              }
+
+              // Summarize
+              const updated = await standaloneExtensions.summarizeSingleFile(file, force)
+              if (updated) {
+                result.updatedFiles.push(updated)
+              } else {
+                // Treat as skipped if summarizer returned null (e.g., re-checks)
+                result.skipped += 1
+              }
+            } catch (error) {
+              // Robust per-file error handling – continue with others
+              logger.error(`Failed to summarize file ${id} in project ${projectId}`, error as any)
+              result.skipped += 1
+              result.skippedReasons.errors += 1
+            }
+          }
+
+          return result
         },
         { entity: 'Project', action: 'summarizeFiles', id: projectId }
       )
@@ -385,11 +443,33 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Verify project exists
           await baseService.getById(projectId)
 
-          // TODO: Implement summary removal
-          // For now, return a placeholder result
+          if (!fileIds || fileIds.length === 0) {
+            return { removedCount: 0, message: 'No files provided' }
+          }
+
+          let removedCount = 0
+          for (const id of fileIds) {
+            try {
+              const file = await injectedFileService.getById(id)
+              if (!file) continue
+              if (file.projectId !== projectId) continue
+
+              // Only update if there is a summary present
+              if (file.summary || file.summaryLastUpdated) {
+                await injectedFileService.update(id, {
+                  summary: null as any,
+                  summaryLastUpdated: null as any
+                })
+                removedCount += 1
+              }
+            } catch (error) {
+              logger.error(`Failed to remove summary for file ${id} in project ${projectId}`, error as any)
+            }
+          }
+
           return {
-            removedCount: fileIds.length,
-            message: `Removed summaries from ${fileIds.length} files`
+            removedCount,
+            message: `Removed summaries from ${removedCount} files`
           }
         },
         { entity: 'Project', action: 'removeSummariesFromFiles', id: projectId }
@@ -397,7 +477,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
     },
 
     /**
-     * Suggest relevant files based on a prompt
+     * Suggest relevant files based on a user prompt using indexed search + relevance scoring
      */
     async suggestFiles(projectId: number, prompt: string, limit: number = 10): Promise<ProjectFile[]> {
       return withErrorContext(
@@ -405,21 +485,25 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Verify project exists
           await baseService.getById(projectId)
 
-          // Simple file suggestion based on content search
-          // TODO: Integrate with proper AI-based file suggestion service
-          const allFiles = await injectedFileService.getByProject(projectId)
-          const searchTerm = prompt.toLowerCase()
+          // Normalize prompt (strip common wrappers)
+          const normalized = (prompt || '').replace(
+            /^\s*please\s+find\s+the\s+relevant\s+files\s+for\s+the\s+following\s+prompt:\s*/i,
+            ''
+          ).trim()
 
-          const relevantFiles = allFiles
-            .filter(
-              (file: ProjectFile) =>
-                file.name.toLowerCase().includes(searchTerm) ||
-                file.path.toLowerCase().includes(searchTerm) ||
-                (file.content && file.content.toLowerCase().includes(searchTerm))
-            )
-            .slice(0, limit)
+          // Use the file search service with semantic search and relevance scoring
+          const { createFileSearchService } = await import('./file-services/file-search-service')
+          const searchService = createFileSearchService()
+          const { results } = await searchService.search(projectId, {
+            query: normalized || prompt,
+            searchType: 'semantic',
+            scoringMethod: 'relevance',
+            limit: Math.max(limit * 3, limit) // get extra to improve quality before slicing
+          })
 
-          return relevantFiles
+          // Map to files and enforce limit
+          const files = results.map(r => r.file).slice(0, limit)
+          return files
         },
         { entity: 'Project', action: 'suggestFiles', id: projectId }
       )
@@ -618,18 +702,205 @@ export const bulkDeleteProjectFiles = async (
 }
 
 // Add missing function for file tree
-export const getProjectFileTree = async (projectId: number): Promise<any> => {
-  // TODO: Implement proper file tree structure
-  const files = await getProjectFiles(projectId)
-  return {
-    name: 'Project Root',
-    type: 'directory',
-    children: files.map((f: ProjectFile) => ({
-      name: f.path,
-      type: 'file',
-      content: f.content
-    }))
+export const getProjectFileTree = async (
+  projectId: number,
+  options?: {
+    maxDepth?: number
+    includeHidden?: boolean
+    fileTypes?: string[]
+    maxFilesPerDir?: number
+    limit?: number
+    offset?: number
+    excludePatterns?: string[]
+    includeContent?: boolean
   }
+): Promise<any> => {
+  const {
+    maxDepth = 10,
+    includeHidden = false,
+    fileTypes,
+    maxFilesPerDir = 500,
+    limit,
+    offset = 0,
+    excludePatterns,
+    includeContent = false
+  } = options || {}
+
+  // Helper: determine if any segment in path is hidden (starts with '.')
+  const isHiddenPath = (p: string) => p.split('/').some((seg) => seg.startsWith('.'))
+
+  // Helper: get extension without leading dot
+  const getExt = (p: string) => {
+    const idx = p.lastIndexOf('.')
+    return idx >= 0 ? p.slice(idx + 1) : ''
+  }
+
+  const allFiles = await getProjectFiles(projectId)
+
+  // Filter files based on options
+  const matchesExclude = (p: string) => {
+    if (!excludePatterns || excludePatterns.length === 0) return false
+    return excludePatterns.some((pat) => {
+      // Simple substring match; if pattern looks like a regex (/.../), try to use it
+      if (pat.startsWith('/') && pat.endsWith('/')) {
+        try {
+          const re = new RegExp(pat.slice(1, -1))
+          return re.test(p)
+        } catch {
+          return p.includes(pat)
+        }
+      }
+      return p.includes(pat)
+    })
+  }
+
+  const filteredFiles = allFiles
+    .filter((f: ProjectFile) => {
+      if (!includeHidden && isHiddenPath(f.path)) return false
+      if (fileTypes && fileTypes.length > 0) {
+        const ext = getExt(f.path)
+        if (!fileTypes.includes(ext)) return false
+      }
+      if (matchesExclude(f.path)) return false
+      return true
+    })
+    .sort((a: ProjectFile, b: ProjectFile) => a.path.localeCompare(b.path))
+
+  type DirNode = {
+    name: string
+    path: string
+    type: 'directory'
+    children: Array<DirNode | FileNode>
+    truncated?: boolean
+    depth: number
+    // Internal helpers (not returned)
+    __dirs?: Map<string, DirNode>
+    __fileCount?: number
+  }
+  type FileNode = {
+    name: string
+    path: string
+    id: string
+    type: 'file'
+  }
+
+  const root: DirNode = {
+    name: 'Project Root',
+    path: '',
+    type: 'directory',
+    children: [],
+    depth: 0,
+    __dirs: new Map(),
+    __fileCount: 0
+  }
+
+  // Ensure directory child exists and return it
+  const getOrCreateDir = (parent: DirNode, dirName: string, fullPath: string): DirNode => {
+    if (!parent.__dirs) parent.__dirs = new Map()
+    let node = parent.__dirs.get(dirName)
+    if (!node) {
+      node = {
+        name: dirName,
+        path: fullPath,
+        type: 'directory',
+        children: [],
+        depth: parent.depth + 1,
+        __dirs: new Map(),
+        __fileCount: 0
+      }
+      parent.__dirs.set(dirName, node)
+      parent.children.push(node)
+    }
+    return node
+  }
+
+  let returnedFiles = 0
+  const totalFiles = filteredFiles.length
+  const startIndex = Math.max(0, offset)
+  const endIndex = typeof limit === 'number' ? Math.min(totalFiles, startIndex + Math.max(0, limit)) : totalFiles
+
+  for (let idx = 0; idx < filteredFiles.length; idx++) {
+    if (idx < startIndex) continue
+    if (idx >= endIndex) break
+    const f = filteredFiles[idx]
+    if (!f) continue
+
+    const parts = f.path.split('/').filter(Boolean)
+    const fileName = parts.pop() || f.path
+    let current = root
+    let currentPath = ''
+
+    // Traverse/create directories up to maxDepth - 1 (so files appear at <= maxDepth)
+    for (let i = 0; i < parts.length; i++) {
+      if (current.depth >= maxDepth - 1) {
+        // We would exceed depth if we descend further; mark truncated and stop
+        current.truncated = true
+        current = null as any
+        break
+      }
+      const part = parts[i]
+      if (!part) continue // Skip empty parts
+
+      currentPath = currentPath ? `${currentPath}/${part}` : part
+      current = getOrCreateDir(current, part, currentPath)
+    }
+
+    if (!current) continue // truncated by depth
+
+    // Enforce max files per directory on the immediate directory
+    const fileCount = (current.__fileCount || 0)
+    if (fileCount >= maxFilesPerDir) {
+      current.truncated = true
+      continue
+    }
+
+    current.__fileCount = fileCount + 1
+    const fileNode: FileNode = {
+      name: fileName,
+      path: f.path,
+      id: String((f as any).id || `${projectId}_${f.path}`),
+      type: 'file'
+    }
+    if (includeContent) {
+      ;(fileNode as any).content = (f as any).content ?? null
+      ;(fileNode as any).size = (f as any).size ?? undefined
+    }
+    current.children.push(fileNode)
+    returnedFiles += 1
+  }
+
+  // Clean internal properties before returning
+  const prune = (node: DirNode | FileNode): any => {
+    if (node.type === 'file') return node
+    const dir = node as DirNode
+    const children = dir.children.map((c) => prune(c as any))
+    const cleaned: any = {
+      name: dir.name,
+      path: dir.path,
+      type: 'directory',
+      depth: dir.depth,
+      children
+    }
+    if (dir.truncated) cleaned.truncated = true
+    return cleaned
+  }
+
+  const tree = prune(root)
+  const meta = {
+    totalFiles,
+    returnedFiles,
+    offset: startIndex,
+    limit: typeof limit === 'number' ? limit : undefined,
+    filters: {
+      includeHidden,
+      fileTypes,
+      excludePatterns,
+      maxDepth,
+      maxFilesPerDir
+    }
+  }
+
+  return { tree, meta }
 }
 
 // Legacy function for backward compatibility

@@ -33,26 +33,26 @@ export default defineConfig({
     actionTimeout: 10 * 1000 // 10 seconds for actions
   },
 
-  // Start dev servers before running tests - disabled for now
-  // Use existing running servers instead
-  // webServer: [
-  //   {
-  //     command: process.env.CI ? 'bun run preview' : 'cd ../server && bun run dev',
-  //     url: 'http://localhost:3147',
-  //     reuseExistingServer: !process.env.CI,
-  //     timeout: 120 * 1000,
-  //     env: {
-  //       NODE_ENV: 'test',
-  //       DATABASE_PATH: ':memory:',
-  //     }
-  //   },
-  //   {
-  //     command: process.env.CI ? 'bun run preview' : 'bun run dev',
-  //     url: 'http://localhost:1420',
-  //     reuseExistingServer: !process.env.CI,
-  //     timeout: 120 * 1000,
-  //   },
-  // ],
+  // Start dev servers before running tests
+  // Local: run server + Vite dev. CI can reuse external orchestration.
+  webServer: [
+    {
+      // Start API server with a local DB path inside the repo to avoid sandbox issues
+      command: process.env.CI
+        ? 'cd ../server && PORT=3147 bun run start'
+        : 'cd ../server && PORT=3147 DATABASE_PATH=../database/data/playwright-test.db bun run start',
+      url: 'http://localhost:3147/api/health',
+      reuseExistingServer: true,
+      timeout: 120 * 1000
+    },
+    {
+      // Start client dev server on 1420 for tests
+      command: 'bun run dev -- --port 1420',
+      url: 'http://localhost:1420',
+      reuseExistingServer: true,
+      timeout: 120 * 1000
+    }
+  ],
 
   // Test projects for different browsers
   projects: [

@@ -83,7 +83,7 @@ export const queryKeys = {
  * 
  * Each API call is wrapped in an async adapter function that:
  * 1. Calls the API client method
- * 2. Extracts the .data property from the wrapped response
+     * 2. Returns the direct JSON response (no axios-style wrapper)
  * 3. Returns the unwrapped entity data to the hook factory
  * 
  * This maintains type safety while bridging the response format mismatch.
@@ -94,19 +94,19 @@ const projectHooks = createCrudHooks({
   apiClient: {
     list: async () => {
       const response = await getApiClient().getProjects()
-      return response.data
+      return (response as any).data ?? response
     },
     getById: async (_, id: number) => {
       const response = await getApiClient().getProject(id)
-      return response.data
+      return response
     },
     create: async (_, data: CreateProjectRequest) => {
       const response = await getApiClient().createProject(data)
-      return response.data
+      return response
     },
     update: async (_, id: number, data: UpdateProjectRequest) => {
       const response = await getApiClient().updateProject(id, data)
-      return response.data
+      return response
     },
     delete: async (_, id: number) => {
       await getApiClient().deleteProject(id)
@@ -165,18 +165,18 @@ const chatHooks = createCrudHooks({
   apiClient: {
     list: async () => {
       const response = await getApiClient().getChats()
-      return response.data
+      return (response as any).data ?? response
     },
     getById: async (_, id: number) => { 
       throw new Error('getChat not available - endpoint does not exist') 
     },
     create: async (_, data: CreateChatRequest) => {
       const response = await getApiClient().createChat(data)
-      return response.data
+      return (response as any).data ?? response
     },
     update: async (_, id: number, data: UpdateChatRequest) => {
       const response = await getApiClient().updateChat(id, data)
-      return response.data
+      return (response as any).data ?? response
     },
     delete: async (_, id: number) => {
       await getApiClient().deleteChat(id)

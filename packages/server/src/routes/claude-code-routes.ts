@@ -46,10 +46,12 @@ const MCPStatusResponseSchema = z
   })
   .openapi('MCPStatusResponse')
 
+// Use canonical ProjectIdParamsSchema with {id}
+
 // Get MCP status route
 const getMCPStatusRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/mcp-status/{projectId}',
+  path: '/api/claude-code/mcp-status/{id}',
   tags: ['Claude Code'],
   summary: 'Get MCP installation status for Claude Code and Claude Desktop',
   description: 'Checks MCP configuration status across Claude Desktop and Claude Code CLI',
@@ -62,7 +64,7 @@ const getMCPStatusRoute = createRoute({
 // Get sessions route (enhanced with cursor support)
 const getSessionsRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}',
+  path: '/api/claude-code/sessions/{id}',
   tags: ['Claude Code'],
   summary: 'Get all Claude Code chat sessions for a project',
   description: 'Retrieves all chat sessions from Claude Code local storage with optional cursor-based pagination',
@@ -91,13 +93,13 @@ const getSessionsRoute = createRoute({
 // Get session messages route
 const getSessionMessagesRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}/{sessionId}',
+  path: '/api/claude-code/sessions/{id}/{sessionId}',
   tags: ['Claude Code'],
   summary: 'Get messages for a specific Claude Code session',
   description: 'Retrieves all messages from a specific chat session',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive(),
+      id: ProjectIdParamsSchema.shape.id,
       sessionId: z.string()
     }),
     query: ClaudeMessageQuerySchema
@@ -108,7 +110,7 @@ const getSessionMessagesRoute = createRoute({
 // Get project data route
 const getProjectDataRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/project-data/{projectId}',
+  path: '/api/claude-code/project-data/{id}',
   tags: ['Claude Code'],
   summary: 'Get Claude Code project metadata',
   description: 'Retrieves project-level data including branches, working directories, and statistics',
@@ -121,13 +123,13 @@ const getProjectDataRoute = createRoute({
 // Import session to chat route
 const importSessionRoute = createRoute({
   method: 'post',
-  path: '/api/claude-code/import-session/{projectId}/{sessionId}',
+  path: '/api/claude-code/import-session/{id}/{sessionId}',
   tags: ['Claude Code'],
   summary: 'Import a Claude Code session into a Promptliano chat',
   description: 'Imports all messages from a Claude Code session into a new Promptliano chat',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive(),
+      id: ProjectIdParamsSchema.shape.id,
       sessionId: z.string()
     })
   },
@@ -137,7 +139,7 @@ const importSessionRoute = createRoute({
 // Get sessions metadata route (lightweight)
 const getSessionsMetadataRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}/metadata',
+  path: '/api/claude-code/sessions/{id}/metadata',
   tags: ['Claude Code'],
   summary: 'Get lightweight session metadata for a project',
   description: 'Retrieves session metadata without full message content for fast loading',
@@ -158,7 +160,7 @@ const getSessionsMetadataRoute = createRoute({
 // Get sessions with cursor-based pagination route
 const getSessionsPaginatedRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}/paginated',
+  path: '/api/claude-code/sessions/{id}/paginated',
   tags: ['Claude Code'],
   summary: 'Get sessions with cursor-based pagination',
   description: 'Retrieves sessions with efficient cursor-based pagination for large datasets',
@@ -172,7 +174,7 @@ const getSessionsPaginatedRoute = createRoute({
 // Get recent sessions route (fast access)
 const getRecentSessionsRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}/recent',
+  path: '/api/claude-code/sessions/{id}/recent',
   tags: ['Claude Code'],
   summary: 'Get recent Claude Code sessions',
   description: 'Retrieves the most recent sessions for fast access (default 10 sessions)',
@@ -190,14 +192,14 @@ const getRecentSessionsRoute = createRoute({
 // Get full session with complete message data
 const getFullSessionRoute = createRoute({
   method: 'get',
-  path: '/api/claude-code/sessions/{projectId}/{sessionId}/full',
+  path: '/api/claude-code/sessions/{id}/{sessionId}/full',
   tags: ['Claude Code'],
   summary: 'Get complete Claude Code session with full message data',
   description: 'Retrieves a complete session including all messages and token usage data',
   request: {
     params: z
       .object({
-        projectId: z.coerce.number().int().positive(),
+        id: ProjectIdParamsSchema.shape.id,
         sessionId: z.string()
       })
       .openapi('ClaudeFullSessionParams')
@@ -349,7 +351,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getFullSessionRoute, async (c) => {
-    const { projectId, sessionId } = c.req.valid('param')
+    const { id: projectId, sessionId } = c.req.valid('param')
 
     try {
       // Use optimized MCP service method for loading complete session data
@@ -419,7 +421,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(getSessionsRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
+    const { projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -545,7 +547,7 @@ export const claudeCodeRoutes = new OpenAPIHono()
     }
   })
   .openapi(importSessionRoute, async (c) => {
-    const { projectId, sessionId } = c.req.valid('param')
+    const { id: projectId, sessionId } = c.req.valid('param')
 
     try {
       const chat = await claudeCodeImportService.importSession(projectId, sessionId)

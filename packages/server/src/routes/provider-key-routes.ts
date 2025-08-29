@@ -9,12 +9,9 @@ import {
   createSuccessResponseSchema,
   createListResponseSchema
 } from '../utils/route-helpers'
-import {
-  type ProviderKey,
-  ProviderKeySchema,
-  CreateProviderKeySchema,
-  UpdateProviderKeySchema
-} from '@promptliano/database'
+import { type ProviderKey } from '@promptliano/database'
+// Use API-friendly schemas (allow plain `key`, `name`, optional fields)
+import { ProviderKeySchema, CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/schemas'
 import {
   ProviderKeyIdParamsSchema,
   TestProviderRequestSchema,

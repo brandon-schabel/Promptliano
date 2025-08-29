@@ -359,6 +359,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{projectId}/queues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Queue for Project
+         * @description Retrieve all Queue associated with this Project
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QueueListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tickets": {
         parameters: {
             query?: never;
@@ -2399,757 +2474,6 @@ export interface paths {
                 header?: never;
                 path: {
                     promptId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["OperationSuccessResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Queues */
-        get: {
-            parameters: {
-                query?: {
-                    page?: number;
-                    limit?: number;
-                    sort?: string;
-                    order?: "asc" | "desc";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description List of Queues */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                id: number;
-                                projectId: number;
-                                name: string;
-                                description: string | null;
-                                maxParallelItems: number;
-                                isActive: boolean;
-                                createdAt: number;
-                                updatedAt: number;
-                            }[];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Create Queue */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        projectId: number;
-                        name: string;
-                        description?: string | null;
-                        maxParallelItems?: number;
-                        isActive?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Queue created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                id: number;
-                                projectId: number;
-                                name: string;
-                                description: string | null;
-                                maxParallelItems: number;
-                                isActive: boolean;
-                                createdAt: number;
-                                updatedAt: number;
-                            };
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Validation error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues/{queueId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Queue by ID
-         * @description Retrieve a specific Queue by its ID
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["Queue"];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update Queue
-         * @description Update an existing Queue
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["UpdateQueue"];
-                };
-            };
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["Queue"];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Delete Queue
-         * @description Delete a Queue by ID
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["OperationSuccessResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queueitems": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List queueitems
-         * @description Get all queueitems with optional pagination
-         */
-        get: {
-            parameters: {
-                query?: {
-                    page?: number;
-                    limit?: number;
-                    sort?: string;
-                    order?: "asc" | "desc";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["QueueItem"][];
-                            pagination?: {
-                                page: number;
-                                limit: number;
-                                total: number;
-                                hasMore: boolean;
-                            };
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create QueueItem
-         * @description Create a new QueueItem instance
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CreateQueueItem"];
-                };
-            };
-            responses: {
-                /** @description QueueItem created successfully */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["QueueItem"];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queueitems/{queueitemId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get QueueItem by ID
-         * @description Retrieve a specific QueueItem by its ID
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueitemId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["QueueItem"];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update QueueItem
-         * @description Update an existing QueueItem
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueitemId: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["UpdateQueueItem"];
-                };
-            };
-            responses: {
-                /** @description Success */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: components["schemas"]["QueueItem"];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Resource Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Validation Error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiErrorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Delete QueueItem
-         * @description Delete a QueueItem by ID
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueitemId: number;
                 };
                 cookie?: never;
             };
@@ -6634,7 +5958,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/projects/{projectId}/prompts": {
+    "/api/projects/{id}/prompts": {
         parameters: {
             query?: never;
             header?: never;
@@ -6647,7 +5971,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -6685,7 +6009,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/suggest-prompts": {
+    "/api/projects/{id}/suggest-prompts": {
         parameters: {
             query?: never;
             header?: never;
@@ -6703,7 +6027,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -7249,7 +6573,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/tickets": {
+    "/api/projects/{id}/tickets": {
         parameters: {
             query?: never;
             header?: never;
@@ -7262,7 +6586,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -7395,12 +6719,24 @@ export interface paths {
                 content: {
                     "application/json": {
                         content: string;
-                        description?: string;
+                        description?: string | null;
                         /**
                          * @default pending
                          * @enum {string}
                          */
                         status?: "pending" | "in_progress" | "completed" | "cancelled";
+                        /** @default [] */
+                        suggestedFileIds?: string[];
+                        /** @default [] */
+                        suggestedPromptIds?: number[];
+                        /** @default [] */
+                        dependencies?: number[];
+                        /** @default [] */
+                        tags?: string[];
+                        estimatedHours?: number | null;
+                        agentId?: string | null;
+                        done?: boolean;
+                        orderIndex?: number;
                     };
                 };
             };
@@ -7474,14 +6810,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        overview?: string;
-                        context?: string;
-                    };
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description Suggested tasks */
                 200: {
@@ -7525,13 +6854,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        overview?: string;
-                    };
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description Generated tasks */
                 200: {
@@ -7695,445 +7018,6 @@ export interface paths {
                                 createdAt: number;
                                 updatedAt: number;
                             };
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Queue by ID */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Queue details */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                id: number;
-                                projectId: number;
-                                name: string;
-                                description: string | null;
-                                maxParallelItems: number;
-                                isActive: boolean;
-                                createdAt: number;
-                                updatedAt: number;
-                            };
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Queue not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        /** Update Queue */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        projectId?: number;
-                        name?: string;
-                        description?: string | null;
-                        maxParallelItems?: number;
-                        isActive?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Queue updated */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                id: number;
-                                projectId: number;
-                                name: string;
-                                description: string | null;
-                                maxParallelItems: number;
-                                isActive: boolean;
-                                createdAt: number;
-                                updatedAt: number;
-                            };
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Queue not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Validation error */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        post?: never;
-        /** Delete Queue */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Queue deleted */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Queue not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: false;
-                            error: string;
-                            code?: string;
-                            details?: unknown;
-                        };
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues/{queueId}/process": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Process items in a queue */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @default 10 */
-                        limit?: number;
-                        filter?: {
-                            /** @enum {string} */
-                            status?: "pending" | "failed";
-                            priority?: number;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description Processing result */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                processed: number;
-                                failed: number;
-                                remaining: number;
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues/{queueId}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get queue statistics */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Queue statistics */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                queueId: number;
-                                name: string;
-                                stats: {
-                                    totalItems: number;
-                                    pendingItems: number;
-                                    processingItems: number;
-                                    completedItems: number;
-                                    failedItems: number;
-                                    averageProcessingTime: number;
-                                    throughputPerHour: number;
-                                    errorRate: number;
-                                    oldestPendingItem: number | null;
-                                    lastProcessedItem: number | null;
-                                };
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/queues/{queueId}/clear": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Clear all items from a queue */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    queueId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /**
-                         * @default all
-                         * @enum {string}
-                         */
-                        status?: "all" | "pending" | "failed" | "completed";
-                    };
-                };
-            };
-            responses: {
-                /** @description Queue cleared */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            message: string;
                         };
                     };
                 };
@@ -10015,7 +8899,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agents": {
+    "/api/projects/{id}/agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -10102,7 +8986,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/suggest-agents": {
+    "/api/projects/{id}/suggest-agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -10187,7 +9071,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/commands": {
+    "/api/projects/{id}/commands": {
         parameters: {
             query?: never;
             header?: never;
@@ -10206,7 +9090,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -10266,7 +9150,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -10339,7 +9223,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/commands/{commandName}": {
+    "/api/projects/{id}/commands/{commandName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -10354,7 +9238,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                     commandName: string;
                 };
                 cookie?: never;
@@ -10416,7 +9300,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                     commandName: string;
                 };
                 cookie?: never;
@@ -10491,7 +9375,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                     commandName: string;
                 };
                 cookie?: never;
@@ -10550,7 +9434,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/commands/{commandName}/execute": {
+    "/api/projects/{id}/commands/{commandName}/execute": {
         parameters: {
             query?: never;
             header?: never;
@@ -10567,7 +9451,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                     commandName: string;
                 };
                 cookie?: never;
@@ -10636,7 +9520,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/commands/generate": {
+    "/api/projects/{id}/commands/generate": {
         parameters: {
             query?: never;
             header?: never;
@@ -10654,7 +9538,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -10748,7 +9632,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/commands/suggest": {
+    "/api/projects/{id}/commands/suggest": {
         parameters: {
             query?: never;
             header?: never;
@@ -10763,7 +9647,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -11765,6 +10649,75 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/suggest-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest relevant files based on user input and project context */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        prompt?: string;
+                        userInput?: string;
+                        /** @default 10 */
+                        limit?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Suggested files returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["ProjectFile"][];
+                        };
+                    };
+                };
+                /** @description Project not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -12887,7 +11840,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/config/locations": {
+    "/api/projects/{id}/mcp/config/locations": {
         parameters: {
             query?: never;
             header?: never;
@@ -12900,7 +11853,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -12971,7 +11924,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/config/merged": {
+    "/api/projects/{id}/mcp/config/merged": {
         parameters: {
             query?: never;
             header?: never;
@@ -12984,7 +11937,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -13076,7 +12029,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/config": {
+    "/api/projects/{id}/mcp/config/expanded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get expanded project MCP configuration (variables resolved) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                config: {
+                                    mcpServers?: {
+                                        [key: string]: {
+                                            /**
+                                             * @default stdio
+                                             * @enum {string}
+                                             */
+                                            type: "stdio" | "http";
+                                            command: string;
+                                            args?: string[];
+                                            env?: {
+                                                [key: string]: string;
+                                            };
+                                            timeout?: number;
+                                        };
+                                    };
+                                    inputs?: {
+                                        /** @enum {string} */
+                                        type: "promptString" | "promptNumber" | "promptBoolean";
+                                        id: string;
+                                        description: string;
+                                        default?: unknown;
+                                        password?: boolean;
+                                    }[];
+                                    extends?: string | string[];
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/mcp/config": {
         parameters: {
             query?: never;
             header?: never;
@@ -13089,7 +12147,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -13180,7 +12238,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -13300,7 +12358,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -13341,7 +12399,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -13403,7 +12461,224 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/flow": {
+    "/api/projects/{id}/mcp/config/save-to-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save project MCP configuration to a specific location */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        config: {
+                            mcpServers?: {
+                                [key: string]: {
+                                    /**
+                                     * @default stdio
+                                     * @enum {string}
+                                     */
+                                    type?: "stdio" | "http";
+                                    command: string;
+                                    args?: string[];
+                                    env?: {
+                                        [key: string]: string;
+                                    };
+                                    timeout?: number;
+                                };
+                            };
+                            inputs?: {
+                                /** @enum {string} */
+                                type: "promptString" | "promptNumber" | "promptBoolean";
+                                id: string;
+                                description: string;
+                                default?: unknown;
+                                password?: boolean;
+                            }[];
+                            extends?: string | string[];
+                        };
+                        location: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/mcp/config/default-for-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get default project MCP configuration for a given location */
+        get: {
+            parameters: {
+                query: {
+                    location: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                config: {
+                                    mcpServers?: {
+                                        [key: string]: {
+                                            /**
+                                             * @default stdio
+                                             * @enum {string}
+                                             */
+                                            type: "stdio" | "http";
+                                            command: string;
+                                            args?: string[];
+                                            env?: {
+                                                [key: string]: string;
+                                            };
+                                            timeout?: number;
+                                        };
+                                    };
+                                    inputs?: {
+                                        /** @enum {string} */
+                                        type: "promptString" | "promptNumber" | "promptBoolean";
+                                        id: string;
+                                        description: string;
+                                        default?: unknown;
+                                        password?: boolean;
+                                    }[];
+                                    extends?: string | string[];
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/flow": {
         parameters: {
             query?: never;
             header?: never;
@@ -13416,7 +12691,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -13489,7 +12764,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/flow/items": {
+    "/api/projects/{id}/flow/items": {
         parameters: {
             query?: never;
             header?: never;
@@ -13502,7 +12777,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -13577,7 +12852,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/flow/unqueued": {
+    "/api/projects/{id}/flow/unqueued": {
         parameters: {
             query?: never;
             header?: never;
@@ -13590,7 +12865,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number | null;
                 };
                 cookie?: never;
             };
@@ -13652,6 +12927,542 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/flow/queues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a queue (Flow) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        projectId: number | null;
+                        name: string;
+                        description?: string;
+                        maxParallelItems?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/flow/queues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List queues for a project (Flow) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown[];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/flow/queues-with-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get queues with stats (Flow) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown[];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flow/queues/{queueId}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get items in a queue (Flow) */
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                };
+                header?: never;
+                path: {
+                    queueId: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tickets: components["schemas"]["Ticket"][];
+                            tasks: components["schemas"]["TicketTask"][];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flow/queues/{queueId}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get queue statistics (Flow) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    queueId: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            totalItems: number;
+                            queuedItems: number;
+                            inProgressItems: number;
+                            completedItems: number;
+                            failedItems: number;
+                            currentAgents: string[];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flow/queues/{queueId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete queue (Flow) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    queueId: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            deleted: boolean;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update queue (Flow) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    queueId: number | null;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        description?: string;
+                        maxParallelItems?: number;
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/flow/tickets/{ticketId}/enqueue": {
@@ -14910,6 +14721,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/providers/_debug-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Debug provider key resolution (no secrets) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                providerKeysConfig: {
+                                    [key: string]: boolean;
+                                };
+                                envFallback: {
+                                    [key: string]: boolean;
+                                };
+                                keys: {
+                                    id: number;
+                                    provider: string;
+                                    normalized: string;
+                                    isDefault?: boolean;
+                                    decrypted: boolean;
+                                    createdAt: number;
+                                    updatedAt: number;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/generate/text": {
         parameters: {
             query?: never;
@@ -15151,7 +15054,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/servers": {
+    "/api/projects/{id}/mcp/servers": {
         parameters: {
             query?: never;
             header?: never;
@@ -15338,7 +15241,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/servers/{serverId}": {
+    "/api/projects/{id}/mcp/servers/{serverId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -16723,7 +16626,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/analytics/overview": {
+    "/api/projects/{id}/mcp/analytics/overview": {
         parameters: {
             query?: never;
             header?: never;
@@ -16739,7 +16642,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -16812,7 +16715,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/analytics/statistics": {
+    "/api/projects/{id}/mcp/analytics/statistics": {
         parameters: {
             query?: never;
             header?: never;
@@ -16828,7 +16731,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -16893,7 +16796,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/analytics/timeline": {
+    "/api/projects/{id}/mcp/analytics/timeline": {
         parameters: {
             query?: never;
             header?: never;
@@ -16909,7 +16812,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -16974,7 +16877,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/analytics/error-patterns": {
+    "/api/projects/{id}/mcp/analytics/error-patterns": {
         parameters: {
             query?: never;
             header?: never;
@@ -16990,7 +16893,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -17055,7 +16958,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/analytics/executions": {
+    "/api/projects/{id}/mcp/analytics/executions": {
         parameters: {
             query?: never;
             header?: never;
@@ -17077,7 +16980,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -18281,7 +18184,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/status": {
+    "/api/projects/{id}/git/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -18299,7 +18202,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -18360,7 +18263,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/stage": {
+    "/api/projects/{id}/git/stage": {
         parameters: {
             query?: never;
             header?: never;
@@ -18378,7 +18281,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -18444,7 +18347,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/unstage": {
+    "/api/projects/{id}/git/unstage": {
         parameters: {
             query?: never;
             header?: never;
@@ -18462,7 +18365,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -18528,7 +18431,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/stage-all": {
+    "/api/projects/{id}/git/stage-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -18546,7 +18449,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -18605,7 +18508,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/unstage-all": {
+    "/api/projects/{id}/git/unstage-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -18623,7 +18526,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -18682,7 +18585,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/commit": {
+    "/api/projects/{id}/git/commit": {
         parameters: {
             query?: never;
             header?: never;
@@ -18765,7 +18668,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/log": {
+    "/api/projects/{id}/git/log": {
         parameters: {
             query?: never;
             header?: never;
@@ -18850,7 +18753,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/log-enhanced": {
+    "/api/projects/{id}/git/log-enhanced": {
         parameters: {
             query?: never;
             header?: never;
@@ -18935,7 +18838,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/commits/{commitHash}": {
+    "/api/projects/{id}/git/commits/{commitHash}": {
         parameters: {
             query?: never;
             header?: never;
@@ -18951,7 +18854,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number;
                     commitHash: string;
                 };
                 cookie?: never;
@@ -19013,7 +18916,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/diff": {
+    "/api/projects/{id}/git/diff": {
         parameters: {
             query?: never;
             header?: never;
@@ -19093,7 +18996,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/branches": {
+    "/api/projects/{id}/git/branches": {
         parameters: {
             query?: never;
             header?: never;
@@ -19248,7 +19151,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/branches-enhanced": {
+    "/api/projects/{id}/git/branches-enhanced": {
         parameters: {
             query?: never;
             header?: never;
@@ -19325,7 +19228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/branches/switch": {
+    "/api/projects/{id}/git/branches/switch": {
         parameters: {
             query?: never;
             header?: never;
@@ -19409,7 +19312,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/branches/{branchName}": {
+    "/api/projects/{id}/git/branches/{branchName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -19430,7 +19333,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number | null;
+                    id: number;
                     branchName: string;
                 };
                 cookie?: never;
@@ -19489,7 +19392,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/stash": {
+    "/api/projects/{id}/git/stash": {
         parameters: {
             query?: never;
             header?: never;
@@ -19502,7 +19405,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -19562,7 +19465,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -19699,7 +19602,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/stash/apply": {
+    "/api/projects/{id}/git/stash/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -19714,7 +19617,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -19784,7 +19687,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/stash/pop": {
+    "/api/projects/{id}/git/stash/pop": {
         parameters: {
             query?: never;
             header?: never;
@@ -19868,7 +19771,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/worktrees": {
+    "/api/projects/{id}/git/worktrees": {
         parameters: {
             query?: never;
             header?: never;
@@ -20091,7 +19994,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/worktrees/lock": {
+    "/api/projects/{id}/git/worktrees/lock": {
         parameters: {
             query?: never;
             header?: never;
@@ -20177,7 +20080,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/worktrees/unlock": {
+    "/api/projects/{id}/git/worktrees/unlock": {
         parameters: {
             query?: never;
             header?: never;
@@ -20260,7 +20163,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/worktrees/prune": {
+    "/api/projects/{id}/git/worktrees/prune": {
         parameters: {
             query?: never;
             header?: never;
@@ -20339,7 +20242,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/remotes": {
+    "/api/projects/{id}/git/remotes": {
         parameters: {
             query?: never;
             header?: never;
@@ -20352,7 +20255,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20413,7 +20316,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/push": {
+    "/api/projects/{id}/git/push": {
         parameters: {
             query?: never;
             header?: never;
@@ -20428,7 +20331,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20502,7 +20405,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/fetch": {
+    "/api/projects/{id}/git/fetch": {
         parameters: {
             query?: never;
             header?: never;
@@ -20517,7 +20420,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20588,7 +20491,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/pull": {
+    "/api/projects/{id}/git/pull": {
         parameters: {
             query?: never;
             header?: never;
@@ -20603,7 +20506,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20675,7 +20578,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/tags": {
+    "/api/projects/{id}/git/tags": {
         parameters: {
             query?: never;
             header?: never;
@@ -20688,7 +20591,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20748,7 +20651,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20819,7 +20722,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/git/reset": {
+    "/api/projects/{id}/git/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -20834,7 +20737,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -20926,7 +20829,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agent-files/detect": {
+    "/api/projects/{id}/agent-files/detect": {
         parameters: {
             query?: never;
             header?: never;
@@ -20939,7 +20842,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -21038,7 +20941,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agent-files/update": {
+    "/api/projects/{id}/agent-files/update": {
         parameters: {
             query?: never;
             header?: never;
@@ -21053,7 +20956,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -21128,7 +21031,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agent-files/remove-instructions": {
+    "/api/projects/{id}/agent-files/remove-instructions": {
         parameters: {
             query?: never;
             header?: never;
@@ -21143,7 +21046,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -21214,7 +21117,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agent-files/status": {
+    "/api/projects/{id}/agent-files/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -21227,7 +21130,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -21301,7 +21204,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/agent-files/create": {
+    "/api/projects/{id}/agent-files/create": {
         parameters: {
             query?: never;
             header?: never;
@@ -21316,7 +21219,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -21390,7 +21293,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/mcp-status/{projectId}": {
+    "/api/claude-code/mcp-status/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -21467,7 +21370,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}/metadata": {
+    "/api/claude-code/sessions/{id}/metadata": {
         parameters: {
             query?: never;
             header?: never;
@@ -21549,7 +21452,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}/recent": {
+    "/api/claude-code/sessions/{id}/recent": {
         parameters: {
             query?: never;
             header?: never;
@@ -21628,7 +21531,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}/paginated": {
+    "/api/claude-code/sessions/{id}/paginated": {
         parameters: {
             query?: never;
             header?: never;
@@ -21714,7 +21617,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}/{sessionId}/full": {
+    "/api/claude-code/sessions/{id}/{sessionId}/full": {
         parameters: {
             query?: never;
             header?: never;
@@ -21730,7 +21633,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                     sessionId: string;
                 };
                 cookie?: never;
@@ -21792,7 +21695,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}/{sessionId}": {
+    "/api/claude-code/sessions/{id}/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -21813,7 +21716,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                     sessionId: string;
                 };
                 cookie?: never;
@@ -21875,7 +21778,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/sessions/{projectId}": {
+    "/api/claude-code/sessions/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -21963,7 +21866,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/project-data/{projectId}": {
+    "/api/claude-code/project-data/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -22040,7 +21943,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/claude-code/import-session/{projectId}/{sessionId}": {
+    "/api/claude-code/import-session/{id}/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -22058,7 +21961,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                     sessionId: string;
                 };
                 cookie?: never;
@@ -22190,7 +22093,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/installation/status": {
+    "/api/projects/{id}/mcp/installation/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -22203,7 +22106,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -22264,7 +22167,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/installation/install": {
+    "/api/projects/{id}/mcp/installation/install": {
         parameters: {
             query?: never;
             header?: never;
@@ -22279,7 +22182,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -22347,7 +22250,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/installation/uninstall": {
+    "/api/projects/{id}/mcp/installation/uninstall": {
         parameters: {
             query?: never;
             header?: never;
@@ -22362,7 +22265,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -22476,7 +22379,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/installation/batch-install": {
+    "/api/projects/{id}/mcp/installation/batch-install": {
         parameters: {
             query?: never;
             header?: never;
@@ -22491,7 +22394,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -22539,7 +22442,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{projectId}/mcp/install-project-config": {
+    "/api/projects/{id}/mcp/install-project-config": {
         parameters: {
             query?: never;
             header?: never;
@@ -22554,7 +22457,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    projectId: number;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -22581,6 +22484,243 @@ export interface paths {
                                 backupPath?: string;
                             };
                         };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/security/encryption-key/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get encryption key status (no secrets) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["EncryptionKeyStatus"];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/security/encryption-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set or generate a custom encryption key */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetEncryptionKeyBody"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                isDefault: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/security/encryption-key/use-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switch to default (insecure) encryption key */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /** @enum {boolean} */
+                                isDefault: true;
+                            };
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -22634,6 +22774,11 @@ export interface components {
             success: true;
             /** @example Operation completed successfully */
             message: string;
+        };
+        QueueListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: Record<string, never>[];
         };
         Ticket: {
             id: number;
@@ -22859,94 +23004,6 @@ export interface components {
             title?: string;
             /** @example Translate this text: {text} */
             content?: string;
-        };
-        Queue: {
-            id: number;
-            name: string;
-            description: string | null;
-            /** @default true */
-            isActive: boolean;
-            /** @default 1 */
-            maxConcurrency: number;
-            retryConfig: {
-                [key: string]: unknown;
-            } | null;
-            metadata: {
-                [key: string]: unknown;
-            } | null;
-            createdAt: number;
-            updatedAt: number;
-        };
-        CreateQueue: {
-            name: string;
-            description?: string;
-            /** @default true */
-            isActive: boolean;
-            /** @default 1 */
-            maxConcurrency: number;
-            retryConfig?: {
-                [key: string]: unknown;
-            };
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        UpdateQueue: {
-            name?: string;
-            description?: string;
-            isActive?: boolean;
-            maxConcurrency?: number;
-            retryConfig?: {
-                [key: string]: unknown;
-            };
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        QueueItem: {
-            id: number;
-            queueId: number;
-            /** @enum {string} */
-            itemType: "ticket" | "task" | "chat" | "prompt";
-            itemId: number;
-            /** @default 0 */
-            priority: number;
-            /** @enum {string} */
-            status: "queued" | "in_progress" | "completed" | "failed" | "cancelled";
-            agentId: string | null;
-            errorMessage: string | null;
-            estimatedProcessingTime: number | null;
-            actualProcessingTime: number | null;
-            startedAt: number | null;
-            completedAt: number | null;
-            createdAt: number;
-            updatedAt: number;
-        };
-        CreateQueueItem: {
-            queueId: number;
-            /** @enum {string} */
-            itemType: "ticket" | "task" | "chat" | "prompt";
-            itemId: number;
-            /** @default 0 */
-            priority: number;
-            /**
-             * @default queued
-             * @enum {string}
-             */
-            status: "queued" | "in_progress" | "completed" | "failed" | "cancelled";
-            agentId?: string;
-            estimatedProcessingTime?: number;
-        };
-        UpdateQueueItem: {
-            priority?: number;
-            /** @enum {string} */
-            status?: "queued" | "in_progress" | "completed" | "failed" | "cancelled";
-            agentId?: string;
-            errorMessage?: string;
-            estimatedProcessingTime?: number;
-            actualProcessingTime?: number;
-            startedAt?: number;
-            completedAt?: number;
         };
         ClaudeAgent: {
             id: string;
@@ -23728,6 +23785,65 @@ export interface components {
             success: true;
             summary: string;
         };
+        ImportInfo: {
+            source: string;
+            specifiers: {
+                /** @enum {string} */
+                type: "default" | "named" | "namespace";
+                imported?: string;
+                local: string;
+            }[];
+        };
+        ExportInfo: {
+            /** @enum {string} */
+            type: "default" | "named" | "all";
+            source?: string;
+            specifiers?: {
+                exported: string;
+                local?: string;
+            }[];
+        };
+        ProjectFile: {
+            /**
+             * Format: int64
+             * @description Entity ID - positive integer without timestamp conversion
+             * @example 1716537600000
+             */
+            id: number;
+            /**
+             * Format: int64
+             * @description Entity ID - positive integer without timestamp conversion
+             * @example 1716537600000
+             */
+            projectId: number;
+            name: string;
+            path: string;
+            extension: string;
+            size: number;
+            content: string | null;
+            summary: string | null;
+            /**
+             * @description ID or Timestamp in unix timestamp (milliseconds)
+             * @example 1716537600000
+             */
+            summaryLastUpdated: number | null;
+            meta: string | null;
+            checksum: string | null;
+            /** @default null */
+            imports: components["schemas"]["ImportInfo"][] | null;
+            /** @default null */
+            exports: components["schemas"]["ExportInfo"][] | null;
+            /**
+             * @description ID or Timestamp in unix timestamp (milliseconds)
+             * @example 1716537600000
+             */
+            created: number;
+            /**
+             * @description ID or Timestamp in unix timestamp (milliseconds)
+             * @example 1716537600000
+             */
+            updated: number;
+        };
         HookListResponse: {
             /** @enum {boolean} */
             success: true;
@@ -23804,6 +23920,23 @@ export interface components {
             testData?: {
                 [key: string]: unknown;
             };
+        };
+        Queue: {
+            id: number;
+            name: string;
+            description: string | null;
+            /** @default true */
+            isActive: boolean;
+            /** @default 1 */
+            maxConcurrency: number;
+            retryConfig: {
+                [key: string]: unknown;
+            } | null;
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: number;
+            updatedAt: number;
         };
         AiSdkChatRequest: {
             /** @description Chat/session identifier (maps to chatId) */
@@ -24045,13 +24178,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1756389073997
+             * @example 1756420545654
              */
             created: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1756389073997
+             * @example 1756420545654
              */
             updated: number;
         };
@@ -24132,13 +24265,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1756389073997
+             * @example 1756420545654
              */
             startedAt: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1756389073997
+             * @example 1756420545654
              */
             completedAt: number;
         };
@@ -24922,6 +25055,16 @@ export interface components {
             data: {
                 message: string;
             };
+        };
+        EncryptionKeyStatus: {
+            /** @description True if a custom key is configured */
+            hasKey: boolean;
+            /** @description True if using the default (insecure) key */
+            isDefault: boolean;
+        };
+        SetEncryptionKeyBody: {
+            key?: string;
+            generate?: boolean;
         };
     };
     responses: never;

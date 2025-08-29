@@ -72,7 +72,7 @@ export class PromptlianoClient {
     updateProject: (projectId: number, data: UpdateProjectRequest) => this.typeSafe.updateProject(projectId, data),
     deleteProject: (projectId: number) => this.typeSafe.deleteProject(projectId),
     getProjectFiles: (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId),
-    getProjectTickets: (projectId: number) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
+    getProjectTickets: (projectId: number) => this.typeSafe.getProjectsByIdTickets(projectId),
     syncProject: (projectId: number) => this.typeSafe.createProjectsByIdSync(projectId),
     refreshProject: (projectId: number, folder?: any) =>
       this.typeSafe.createProjectsByIdRefresh(projectId, folder ? { folder } : undefined),
@@ -91,10 +91,21 @@ export class PromptlianoClient {
       return res.json()
     },
     // File suggestions and summarization
-    suggestFiles: (projectId: number, data: { prompt: string; limit?: number }) =>
-      this.typeSafe.createProjectsByProjectIdSuggestFiles(projectId, data),
+    // Use manual fetch since the generated client currently lacks this route
+    suggestFiles: async (projectId: number, data: { prompt: string; limit?: number }) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/suggest-files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to suggest files (${res.status})`)
+      return res.json()
+    },
     summarizeFiles: (projectId: number, data: { fileIds: number[]; force?: boolean }) =>
-      this.typeSafe.createProjectsByIdFilesSummarize(projectId, data),
+      this.typeSafe.createProjectsByIdFilesSummarize(projectId, {
+        ...data,
+        fileIds: data.fileIds.map(String)
+      }),
     removeSummariesFromFiles: (projectId: number, data: { fileIds: number[] }) => {
       // Fallback to manual call since generated client may not include this route
       return fetch(`${this.config.baseUrl}/api/projects/${projectId}/files/remove-summaries`, {
@@ -103,7 +114,7 @@ export class PromptlianoClient {
         body: JSON.stringify(data)
       }).then((r) => r.json())
     },
-    getMCPInstallationStatus: (projectId: number) => this.typeSafe.listClaudeCodeMcpStatusByProjectId(projectId),
+    getMCPInstallationStatus: (projectId: number) => this.typeSafe.getClaudeCodeMcpStatusById(projectId),
     // ActiveTab methods (factory endpoints)
     getActiveTab: async (projectId: number, clientId?: string) => {
       const params: Record<string, any> = { projectId }
@@ -170,17 +181,21 @@ export class PromptlianoClient {
     updateTicket: (ticketId: number, data: any) => this.typeSafe.updateTicket(ticketId, data),
     deleteTicket: (ticketId: number) => this.typeSafe.deleteTicket(ticketId),
     // listTickets by project (router loader compatibility)
-    listTickets: (projectId: number, status?: string) => this.typeSafe.listProjectsByProjectIdTickets(projectId),
+    listTickets: (projectId: number, status?: string) => this.typeSafe.getProjectsByIdTickets(projectId),
     completeTicket: (ticketId: number) => this.typeSafe.createTicketsByTicketIdComplete(ticketId),
     // Task management
     getTasks: (ticketId: number) => this.typeSafe.listTicketsByTicketIdTasks(ticketId),
     createTask: (ticketId: number, data: any) => this.typeSafe.createTicketsByTicketIdTasks(ticketId, data),
     updateTask: (ticketId: number, taskId: number, data: any) =>
-      this.typeSafe.updateTicketsByTicketIdTasksByTaskId(ticketId, taskId, data),
+      this.typeSafe.updateTickettask(taskId, data),
     deleteTask: (ticketId: number, taskId: number) =>
-      this.typeSafe.deleteTicketsByTicketIdTasksByTaskId(ticketId, taskId),
-    reorderTasks: (ticketId: number, data: any) => this.typeSafe.updateTicketsByTicketIdTasksReorder(ticketId, data),
-    autoGenerateTasks: (ticketId: number) => this.typeSafe.createTicketsByTicketIdAutoGenerateTasks(ticketId)
+      this.typeSafe.deleteTickettask(taskId),
+    reorderTasks: (ticketId: number, data: any) => this.typeSafe.createFlowReorder(data),
+    // Pass empty body to avoid JSON parse errors when server expects optional JSON with Content-Type set
+    autoGenerateTasks: (ticketId: number) =>
+      (this.typeSafe as any).createTicketsByTicketIdAutoGenerateTasks?.(ticketId, {}) ??
+      // Fallback: if signature changed to no-body, call without data
+      (this.typeSafe as any).createTicketsByTicketIdAutoGenerateTasks?.(ticketId)
   }
 
   public readonly prompts = {
@@ -192,81 +207,128 @@ export class PromptlianoClient {
     updatePrompt: (promptId: number, data: any) => this.typeSafe.updatePrompt(promptId, data),
     deletePrompt: (promptId: number) => this.typeSafe.deletePrompt(promptId),
     // Project prompt management
-    getProjectPrompts: (projectId: number) => this.typeSafe.listProjectsByProjectIdPrompts(projectId),
-    addPromptToProject: (projectId: number, promptId: number) =>
-      this.typeSafe.createProjectsByProjectIdPromptsByPromptId(projectId, promptId),
-    removePromptFromProject: (projectId: number, promptId: number) =>
-      this.typeSafe.deleteProjectsByProjectIdPromptsByPromptId(projectId, promptId),
+    getProjectPrompts: (projectId: number) => this.typeSafe.getProjectsByIdPrompts(projectId),
     suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
-      this.typeSafe.createProjectsByProjectIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
-    optimizeUserInput: (projectId: number, data: { userContext: string }) =>
-      this.typeSafe.createPromptOptimize({ projectId, ...data }),
+      this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
     validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file)
   }
 
   public readonly git = {
-    getGitStatus: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitStatus(projectId),
-    getProjectGitStatus: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitStatus(projectId),
+    getGitStatus: (projectId: number) => this.typeSafe.getProjectsByIdGitStatus(projectId),
+    getProjectGitStatus: (projectId: number) => this.typeSafe.getProjectsByIdGitStatus(projectId),
     getFileDiff: (projectId: number, filePath: string, options?: { staged?: boolean; cached?: boolean }) =>
-      this.typeSafe.listProjectsByProjectIdGitDiff(projectId, { filePath, cached: options?.cached || options?.staged }),
-    getBranches: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitBranches(projectId),
-    getBranchesEnhanced: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitBranchesEnhanced(projectId),
-    createBranch: (projectId: number, data: any) => this.typeSafe.createProjectsByProjectIdGitBranches(projectId, data),
+      this.typeSafe.getProjectsByIdGitDiff(projectId, { filePath, cached: options?.cached || options?.staged }),
+    getBranches: (projectId: number) => this.typeSafe.getProjectsByIdGitBranches(projectId),
+    getBranchesEnhanced: (projectId: number) => this.typeSafe.getProjectsByIdGitBranchesEnhanced(projectId),
+    createBranch: (projectId: number, data: any) => this.typeSafe.createProjectsByIdGitBranches(projectId, data),
     switchBranch: (projectId: number, branchName: string) =>
-      this.typeSafe.createProjectsByProjectIdGitBranchesSwitch(projectId, { name: branchName }),
+      this.typeSafe.createProjectsByIdGitBranchesSwitch(projectId, { name: branchName }),
     deleteBranch: (projectId: number, branchName: string, force?: boolean) =>
-      this.typeSafe.deleteProjectsByProjectIdGitBranchesByBranchName(projectId, branchName),
-    getCommitLog: (projectId: number, options?: any) => this.typeSafe.listProjectsByProjectIdGitLog(projectId, options),
+      this.typeSafe.deleteProjectsByIdGitBranchesByBranchName(projectId, branchName),
+    getCommitLog: (projectId: number, options?: any) => this.typeSafe.getProjectsByIdGitLog(projectId, options),
     getCommitLogEnhanced: (projectId: number, params?: any) =>
-      this.typeSafe.listProjectsByProjectIdGitLogEnhanced(projectId, params),
+      this.typeSafe.getProjectsByIdGitLogEnhanced(projectId, params),
     getCommitDetail: (projectId: number, hash: string, includeFileContents?: boolean) =>
-      this.typeSafe.listProjectsByProjectIdGitCommitsByCommitHash(projectId, hash),
-    getRemotes: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitRemotes(projectId),
-    getTags: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitTags(projectId),
-    getStashList: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitStash(projectId),
+      this.typeSafe.getProjectsByIdGitCommitsByCommitHash(projectId, hash),
+    getRemotes: (projectId: number) => this.typeSafe.getProjectsByIdGitRemotes(projectId),
+    getTags: (projectId: number) => this.typeSafe.getProjectsByIdGitTags(projectId),
+    getStashList: (projectId: number) => this.typeSafe.getProjectsByIdGitStash(projectId),
     // Git operations
     stageFiles: (projectId: number, filePaths: string[]) =>
-      this.typeSafe.createProjectsByProjectIdGitStage(projectId, { filePaths }),
+      this.typeSafe.createProjectsByIdGitStage(projectId, { filePaths }),
     unstageFiles: (projectId: number, filePaths: string[]) =>
-      this.typeSafe.createProjectsByProjectIdGitUnstage(projectId, { filePaths }),
-    stageAll: (projectId: number) => this.typeSafe.createProjectsByProjectIdGitStageAll(projectId),
-    unstageAll: (projectId: number) => this.typeSafe.createProjectsByProjectIdGitUnstageAll(projectId),
+      this.typeSafe.createProjectsByIdGitUnstage(projectId, { filePaths }),
+    stageAll: (projectId: number) => this.typeSafe.createProjectsByIdGitStageAll(projectId),
+    unstageAll: (projectId: number) => this.typeSafe.createProjectsByIdGitUnstageAll(projectId),
     commitChanges: (projectId: number, message: string) =>
-      this.typeSafe.createProjectsByProjectIdGitCommit(projectId, { message }),
+      this.typeSafe.createProjectsByIdGitCommit(projectId, { message }),
     push: (projectId: number, remote?: string, branch?: string, options?: { force?: boolean; setUpstream?: boolean }) =>
-      this.typeSafe.createProjectsByProjectIdGitPush(projectId, { remote, branch, ...options }),
+      this.typeSafe.createProjectsByIdGitPush(projectId, { remote, branch, ...options }),
     pull: (projectId: number, remote?: string, branch?: string, rebase?: boolean) =>
-      this.typeSafe.createProjectsByProjectIdGitPull(projectId, { remote, branch, rebase }),
+      this.typeSafe.createProjectsByIdGitPull(projectId, { remote, branch, rebase }),
     fetch: (projectId: number, remote?: string, prune?: boolean) =>
-      this.typeSafe.createProjectsByProjectIdGitFetch(projectId, { remote, prune }),
+      this.typeSafe.createProjectsByIdGitFetch(projectId, { remote, prune }),
     createTag: (projectId: number, name: string, options?: { message?: string; ref?: string }) =>
-      this.typeSafe.createProjectsByProjectIdGitTags(projectId, { name, ...options }),
+      this.typeSafe.createProjectsByIdGitTags(projectId, { name, ...options }),
     stash: (projectId: number, message?: string) =>
-      this.typeSafe.createProjectsByProjectIdGitStash(projectId, { message }),
+      this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
     stashApply: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByProjectIdGitStashApply(projectId, { ref }),
+      this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
     stashPop: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByProjectIdGitStashPop(projectId, { ref }),
+      this.typeSafe.createProjectsByIdGitStashPop(projectId, { ref }),
     stashDrop: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByProjectIdGitStashPop(projectId, { ref, drop: true }),
+      this.typeSafe.createProjectsByIdGitStashPop(projectId, { ref, drop: true }),
     reset: (projectId: number, ref?: string, mode?: 'soft' | 'mixed' | 'hard') =>
-      this.typeSafe.createProjectsByProjectIdGitReset(projectId, { ref, mode }),
+      this.typeSafe.createProjectsByIdGitReset(projectId, { ref, mode }),
     // Worktree operations
     worktrees: {
-      list: (projectId: number) => this.typeSafe.listProjectsByProjectIdGitWorktrees(projectId),
-      add: (projectId: number, params: any) => this.typeSafe.createProjectsByProjectIdGitWorktrees(projectId, params),
+      list: (projectId: number) => this.typeSafe.getProjectsByIdGitWorktrees(projectId),
+      add: (projectId: number, params: any) => this.typeSafe.createProjectsByIdGitWorktrees(projectId, params),
       remove: (projectId: number, options: { path: string; force?: boolean }) =>
-        this.typeSafe.deleteProjectsByProjectIdGitWorktrees(projectId, { path: options.path, force: options.force }),
+        this.typeSafe.deleteProjectsByIdGitWorktrees(projectId, { path: options.path, force: options.force }),
       lock: (projectId: number, options: { path: string; reason?: string }) =>
-        this.typeSafe.createProjectsByProjectIdGitWorktreesLock(projectId, {
+        this.typeSafe.createProjectsByIdGitWorktreesLock(projectId, {
           path: options.path,
           reason: options.reason
         }),
       unlock: (projectId: number, options: { path: string }) =>
-        this.typeSafe.createProjectsByProjectIdGitWorktreesUnlock(projectId, { worktreePath: options.path }),
+        this.typeSafe.createProjectsByIdGitWorktreesUnlock(projectId, { worktreePath: options.path }),
       prune: (projectId: number, options: { dryRun?: boolean }) =>
-        this.typeSafe.createProjectsByProjectIdGitWorktreesPrune(projectId, options)
+        this.typeSafe.createProjectsByIdGitWorktreesPrune(projectId, options)
+    }
+  }
+
+  // Security & Encryption key management
+  public readonly security = {
+    getEncryptionKeyStatus: async (): Promise<any> => {
+      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to get encryption key status (${res.status})`)
+      return res.json()
+    },
+
+    rotateEncryptionKey: async (data: { newKey?: string; generate?: boolean; reencryptExisting?: boolean }): Promise<any> => {
+      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/rotate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to rotate encryption key (${res.status})`)
+      return res.json()
+    },
+
+    setEncryptionKey: async (data: { key?: string; generate?: boolean }): Promise<any> => {
+      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to set encryption key (${res.status})`)
+      return res.json()
+    },
+
+    useDefaultEncryptionKey: async (): Promise<any> => {
+      const res = await fetch(`${this.config.baseUrl}/api/security/encryption-key/use-default`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers
+        }
+      })
+      if (!res.ok) throw new Error(`Failed to set default encryption key (${res.status})`)
+      return res.json()
     }
   }
 
@@ -290,27 +352,27 @@ export class PromptlianoClient {
 
   // Claude Code methods
   public readonly claudeCode = {
-    getMcpStatus: (projectId: number) => this.typeSafe.listClaudeCodeMcpStatusByProjectId(projectId),
+    getMcpStatus: (projectId: number) => this.typeSafe.getClaudeCodeMcpStatusById(projectId),
     getSessionsMetadata: (projectId: number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdMetadata(projectId, query),
+      this.typeSafe.getClaudeCodeSessionsByIdMetadata(projectId, query),
     getRecentSessions: (projectId: number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdRecent(projectId, query),
+      this.typeSafe.getClaudeCodeSessionsByIdRecent(projectId, query),
     getPaginatedSessions: (projectId: number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdPaginated(projectId, query),
+      this.typeSafe.getClaudeCodeSessionsByIdPaginated(projectId, query),
     getSessionsPaginated: (projectId: number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdPaginated(projectId, query),
+      this.typeSafe.getClaudeCodeSessionsByIdPaginated(projectId, query),
     getSessionFull: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionIdFull(projectId, sessionId),
+      this.typeSafe.getClaudeCodeSessionsByIdBySessionIdFull(projectId, sessionId),
     getFullSession: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionIdFull(projectId, sessionId),
+      this.typeSafe.getClaudeCodeSessionsByIdBySessionIdFull(projectId, sessionId),
     getSession: (projectId: number, sessionId: string | number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionId(projectId, sessionId, query),
-    getSessions: (projectId: number, query?: any) => this.typeSafe.listClaudeCodeSessionsByProjectId(projectId, query),
+      this.typeSafe.getClaudeCodeSessionsByIdBySessionId(projectId, sessionId, query),
+    getSessions: (projectId: number, query?: any) => this.typeSafe.getClaudeCodeSessionsById(projectId, query),
     getSessionMessages: (projectId: number, sessionId: string | number, query?: any) =>
-      this.typeSafe.listClaudeCodeSessionsByProjectIdBySessionId(projectId, sessionId, query),
-    getProjectData: (projectId: number) => this.typeSafe.listClaudeCodeProjectDataByProjectId(projectId),
+      this.typeSafe.getClaudeCodeSessionsByIdBySessionId(projectId, sessionId, query),
+    getProjectData: (projectId: number) => this.typeSafe.getClaudeCodeProjectDataById(projectId),
     importSession: (projectId: number, sessionId: string | number) =>
-      this.typeSafe.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId)
+      this.typeSafe.createClaudeCodeImportSessionByIdBySessionId(projectId, sessionId)
   }
 
   // GenAI methods
@@ -385,38 +447,109 @@ export class PromptlianoClient {
 
   // MCP methods
   public readonly mcp = {
-    getGlobalConfig: () => this.typeSafe.listMcpServers(),
-    getGlobalInstallations: () => this.typeSafe.listMcpServers(),
-    getGlobalStatus: () => this.typeSafe.listMcpServers(),
-    updateGlobalConfig: (updates: any) => this.typeSafe.createMcpServers(updates),
-    installGlobalMCP: (data: any) => this.typeSafe.createMcpServers(data),
-    uninstallGlobalMCP: (data: any) => this.typeSafe.deleteMcpServersByServerId(data.serverId),
-    getDefaultConfigForLocation: (projectId: number, path: string) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsOverview(projectId),
-    saveProjectConfigToLocation: (projectId: number, path: string, config: any) =>
-      this.typeSafe.createMcpServers(config),
-    loadProjectConfig: (projectId: number) => this.typeSafe.listProjectsByProjectIdMcpAnalyticsOverview(projectId)
+    // ----- Global (placeholder – real global endpoints exist but not used here) -----
+    getGlobalConfig: () => this.typeSafe.listMcpGlobalConfig(),
+    getGlobalInstallations: () => this.typeSafe.listMcpGlobalInstallations(),
+    getGlobalStatus: () => this.typeSafe.listMcpGlobalStatus(),
+    updateGlobalConfig: (updates: any) => this.typeSafe.createMcpGlobalConfig(updates),
+    installGlobalMCP: (data: any) => this.typeSafe.createMcpGlobalInstall(data),
+    uninstallGlobalMCP: (data: any) => this.typeSafe.createMcpGlobalUninstall(data),
+
+    // ----- Project Config (use explicit fetch to match server routes) -----
+    // Locations where project config can live (e.g. .vscode/mcp.json, .cursor/mcp.json, etc.)
+    getConfigLocations: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config/locations`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get MCP config locations (${res.status})`)
+      return res.json()
+    },
+
+    // Load the raw project-level config (unmerged, may be null)
+    loadProjectConfig: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to load MCP project config (${res.status})`)
+      return res.json()
+    },
+
+    // Save the project-level config (server expects { config })
+    saveProjectConfig: async (projectId: number, config: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify({ config })
+      })
+      if (!res.ok) throw new Error(`Failed to save MCP project config (${res.status})`)
+      return res.json()
+    },
+
+    // Save project config to a specific location (e.g., .vscode/mcp.json)
+    saveProjectConfigToLocation: async (projectId: number, locationPath: string, config: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config/save-to-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify({ config, location: locationPath })
+      })
+      if (!res.ok) throw new Error(`Failed to save MCP config to location (${res.status})`)
+      return res.json()
+    },
+
+    // Get a default scaffolded config for a given location
+    getDefaultConfigForLocation: async (projectId: number, locationPath: string) => {
+      const url = new URL(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config/default-for-location`)
+      url.searchParams.set('location', locationPath)
+      const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get default MCP config for location (${res.status})`)
+      return res.json()
+    },
+
+    // Get merged config (Project > User > Global)
+    getMergedConfig: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config/merged`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get merged MCP config (${res.status})`)
+      return res.json()
+    },
+
+    // Get expanded config where variables are resolved
+    getExpandedConfig: async (projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/mcp/config/expanded`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get expanded MCP config (${res.status})`)
+      return res.json()
+    }
   }
 
   // MCP Analytics methods
   public readonly mcpAnalytics = {
     getExecutions: (projectId: number, query?: any) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsExecutions(projectId),
+      this.typeSafe.getProjectsByIdMcpAnalyticsExecutions(projectId),
     getOverview: (projectId: number, request?: any) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsOverview(projectId),
+      this.typeSafe.getProjectsByIdMcpAnalyticsOverview(projectId),
     getStatistics: (projectId: number, request?: any) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsStatistics(projectId),
+      this.typeSafe.getProjectsByIdMcpAnalyticsStatistics(projectId),
     getTimeline: (projectId: number, request?: any) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsTimeline(projectId),
+      this.typeSafe.getProjectsByIdMcpAnalyticsTimeline(projectId),
     getErrorPatterns: (projectId: number, request?: any) =>
-      this.typeSafe.listProjectsByProjectIdMcpAnalyticsErrorPatterns(projectId)
+      this.typeSafe.getProjectsByIdMcpAnalyticsErrorPatterns(projectId)
   }
 
   // Flow methods
   public readonly flow = {
-    getFlowData: (projectId: number) => this.typeSafe.listProjectsByProjectIdFlow(projectId),
-    getFlowItems: (projectId: number) => this.typeSafe.listProjectsByProjectIdFlowItems(projectId),
-    getUnqueuedItems: (projectId: number) => this.typeSafe.listProjectsByProjectIdFlowUnqueued(projectId),
+    getFlowData: (projectId: number) => this.typeSafe.getProjectsByIdFlow(projectId),
+    getFlowItems: (projectId: number) => this.typeSafe.getProjectsByIdFlowItems(projectId),
+    getUnqueuedItems: (projectId: number) => this.typeSafe.getProjectsByIdFlowUnqueued(projectId),
     enqueueTicket: (ticketId: number, data: any) => this.typeSafe.createFlowTicketsByTicketIdEnqueue(ticketId, data),
     enqueueTask: (taskId: number, data: any) => this.typeSafe.createFlowTasksByTaskIdEnqueue(taskId, data),
     dequeueTicket: (ticketId: number, data?: any) => this.typeSafe.createFlowTicketsByTicketIdDequeue(ticketId),
@@ -442,8 +575,8 @@ export class PromptlianoClient {
       if (!res.ok) throw new Error(`Failed to list queues (${res.status})`)
       return res.json()
     },
-    // Get a single queue by ID
-    getQueue: (queueId: number) => this.typeSafeClient.getQueue(queueId).then((r) => r),
+    // Get a single queue by ID (stats as proxy for details)
+    getQueue: (queueId: number) => this.typeSafeClient.listFlowQueuesByQueueIdStats(queueId),
     // Create queue via Flow endpoint
     createQueue: async (data: CreateQueueBody) => {
       const validatedData = CreateQueueBodySchema.parse(data)
@@ -455,15 +588,44 @@ export class PromptlianoClient {
       if (!res.ok) throw new Error(`Failed to create queue (${res.status})`)
       return res.json()
     },
-    // Update queue
-    updateQueue: (queueId: number, data: any) => this.typeSafeClient.updateQueue(queueId, data).then((r) => r),
-    // Delete queue
-    deleteQueue: (queueId: number) => this.typeSafeClient.deleteQueue(queueId).then((r) => r),
-    // Queue stats (GET /api/queues/{queueId}/stats)
-    getQueueStats: (queueId: number) => this.typeSafeClient.listQueuesByQueueIdStats(queueId).then((r) => r),
-    // Queue items endpoint is not part of generated CRUD; keep placeholder until implemented server-side
-    getQueueItems: async (_queueId: number, _status?: string) => {
-      throw new Error('getQueueItems endpoint not implemented')
+    // Update queue via Flow
+    updateQueue: async (queueId: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/flow/queues/${queueId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to update queue (${res.status})`)
+      return res.json()
+    },
+    // Delete queue via Flow
+    deleteQueue: async (queueId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/flow/queues/${queueId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to delete queue (${res.status})`)
+      return res.json()
+    },
+    // Queue stats via Flow
+    getQueueStats: async (queueId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/flow/queues/${queueId}/stats`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get queue stats (${res.status})`)
+      return res.json()
+    },
+    // Queue items via Flow endpoint
+    getQueueItems: async (queueId: number, status?: string) => {
+      const url = new URL(`${this.config.baseUrl}/api/flow/queues/${queueId}/items`)
+      if (status) url.searchParams.set('status', status)
+      const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get queue items (${res.status})`)
+      return res.json()
     },
     // Complete queue item via Flow operations
     completeQueueItem: (itemType: string, itemId: number, ticketId?: number) =>
@@ -478,17 +640,33 @@ export class PromptlianoClient {
 
   // Agents methods
   public readonly agents = {
-    listAgents: (projectId?: number) => this.typeSafe.listProjectsByProjectIdAgents(projectId || 0),
-    getAgent: (agentId: string) => this.typeSafe.listProjectsByProjectIdAgents(0), // Placeholder
-    createAgent: (data: any) => this.typeSafe.createProjectsByProjectIdSuggestAgents(0, data), // Placeholder
-    updateAgent: (agentId: string, data: any) => this.typeSafe.createProjectsByProjectIdSuggestAgents(0, data) // Placeholder
+    // Require a valid projectId for listing project agents
+    listAgents: (projectId?: number) => {
+      if (!projectId || projectId <= 0) {
+        throw new Error('listAgents requires a valid projectId')
+      }
+      return this.typeSafe.getProjectsByIdAgents(projectId)
+    },
+    // The following are placeholders pending full wiring with project context
+    // TODO: Update these to include projectId when hooks provide it
+    getAgent: (agentId: string | number) => this.typeSafe.getAgent(agentId),
+    createAgent: (data: any) => {
+      const projectId = data?.projectId
+      if (!projectId || projectId <= 0) {
+        throw new Error('createAgent requires a valid projectId in the request body')
+      }
+      // Pass through body (includes projectId for server context)
+      return this.typeSafe.createAgent(data)
+    },
+    updateAgent: (agentId: string | number, data: any) => this.typeSafe.updateAgent(agentId, data),
+    deleteAgent: (agentId: string | number) => this.typeSafe.deleteAgent(agentId)
   }
 
   // Commands methods (placeholder - not fully implemented)
   public readonly commands = {
-    listCommands: (projectId: number, query?: any) => this.typeSafe.listProjectsByProjectIdFlow(projectId),
+    listCommands: (projectId: number, query?: any) => this.typeSafe.getProjectsByIdFlow(projectId),
     getCommand: (projectId: number, commandName: string, namespace?: string) =>
-      this.typeSafe.listProjectsByProjectIdFlow(projectId),
+      this.typeSafe.getProjectsByIdFlow(projectId),
     createCommand: (projectId: number, data: any) => this.typeSafe.createFlowMove(data),
     updateCommand: (projectId: number, commandName: string, data: any, namespace?: string) =>
       this.typeSafe.createFlowMove(data),
@@ -497,23 +675,23 @@ export class PromptlianoClient {
     executeCommand: (projectId: number, commandName: string, args?: any, namespace?: string) =>
       this.typeSafe.createFlowProcessStart({ projectId, commandName, args }),
     suggestCommands: (projectId: number, context: any) =>
-      this.typeSafe.createProjectsByProjectIdSuggestAgents(projectId, context),
+      this.typeSafe.createProjectsByIdSuggestAgents(projectId, context),
     generateCommand: (projectId: number, data: any) =>
-      this.typeSafe.createProjectsByProjectIdSuggestAgents(projectId, data)
+      this.typeSafe.createProjectsByIdSuggestAgents(projectId, data)
   }
 
-  // Claude Hooks methods (placeholder - not fully implemented)
+  // Claude Hooks methods (mapped to MCP Servers for now)
   public readonly claudeHooks = {
-    list: (projectPath: string) => this.typeSafe.listMcpServers(),
-    getHook: (projectPath: string, eventName: string, matcherIndex: number) => this.typeSafe.listMcpServers(),
-    search: (projectPath: string, query: any) => this.typeSafe.listMcpServers(),
-    create: (projectPath: string, data: any) => this.typeSafe.createMcpServers(data),
-    update: (projectPath: string, eventName: string, matcherIndex: number, data: any) =>
-      this.typeSafe.createMcpServers(data),
-    deleteHook: (projectPath: string, eventName: string, matcherIndex: number) =>
-      this.typeSafe.deleteMcpServersByServerId('placeholder'),
-    generate: (projectPath: string, data: any) => this.typeSafe.createMcpServers(data),
-    test: (projectPath: string, data: any) => this.typeSafe.createMcpServers(data)
+    list: (projectId: number) => this.typeSafe.getProjectsByIdMcpServers(projectId),
+    getHook: (projectId: number, eventName: string, matcherIndex: number) => this.typeSafe.getProjectsByIdMcpServers(projectId),
+    search: (projectId: number, query: any) => this.typeSafe.getProjectsByIdMcpServers(projectId),
+    create: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data),
+    update: (projectId: number, serverId: string | number, data: any) =>
+      this.typeSafe.updateProjectsByIdMcpServersByServerId(projectId, serverId, data),
+    deleteHook: (projectId: number, serverId: string | number) =>
+      this.typeSafe.deleteProjectsByIdMcpServersByServerId(projectId, serverId),
+    generate: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data),
+    test: (projectId: number, data: any) => this.typeSafe.createProjectsByIdMcpServers(projectId, data)
   }
 
   // Add missing direct file access method
@@ -524,7 +702,7 @@ export class PromptlianoClient {
 
   // Convenience method for claudeCode import session (matches the error pattern)
   createClaudeCodeImportSessionByProjectIdBySessionId = (projectId: number, sessionId: string | number) => {
-    return this.typeSafe.createClaudeCodeImportSessionByProjectIdBySessionId(projectId, sessionId)
+    return this.typeSafe.createClaudeCodeImportSessionByIdBySessionId(projectId, sessionId)
   }
 }
 
@@ -571,8 +749,8 @@ export class GitClient {
     this.client = new TypeSafeApiClient({ baseUrl: config.baseUrl })
   }
 
-  getGitStatus = (projectId: number) => this.client.listProjectsByProjectIdGitStatus(projectId)
-  getBranches = (projectId: number) => this.client.listProjectsByProjectIdGitBranches(projectId)
+  getGitStatus = (projectId: number) => this.client.getProjectsByIdGitStatus(projectId)
+  getBranches = (projectId: number) => this.client.getProjectsByIdGitBranches(projectId)
 }
 
 // Legacy service aliases for maximum compatibility

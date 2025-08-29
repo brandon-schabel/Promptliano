@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+// @ts-nocheck
 
 // noinspection JSUnusedGlobalSymbols
 
@@ -28,6 +29,7 @@ import { Route as IntegrationsCompatibilityRouteImport } from './routes/integrat
 import { Route as IntegrationsClaudeDesktopRouteImport } from './routes/integrations.claude-desktop'
 import { Route as IntegrationsClaudeCodeRouteImport } from './routes/integrations.claude-code'
 import { Route as DocsUiOverviewRouteImport } from './routes/docs.ui-overview'
+import { Route as DocsMcpToolsRouteImport } from './routes/docs.mcp-tools'
 import { Route as DocsGuidesRouteImport } from './routes/docs.guides'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs.getting-started'
 import { Route as DocsDownloadInstallationRouteImport } from './routes/docs.download-installation'
@@ -40,143 +42,154 @@ import { Route as DocsHowToBuildingContextRouteImport } from './routes/docs.how-
 const LocalFirstRoute = LocalFirstRouteImport.update({
   id: '/local-first',
   path: '/local-first',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadsRoute = DownloadsRouteImport.update({
   id: '/downloads',
   path: '/downloads',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityRoute = CommunityRouteImport.update({
   id: '/community',
   path: '/community',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport
+  getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
 const IntegrationsVscodeRoute = IntegrationsVscodeRouteImport.update({
   id: '/vscode',
   path: '/vscode',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const IntegrationsVideosRoute = IntegrationsVideosRouteImport.update({
   id: '/videos',
   path: '/videos',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
-const IntegrationsTroubleshootingRoute = IntegrationsTroubleshootingRouteImport.update({
-  id: '/troubleshooting',
-  path: '/troubleshooting',
-  getParentRoute: () => IntegrationsRoute
-} as any)
+const IntegrationsTroubleshootingRoute =
+  IntegrationsTroubleshootingRouteImport.update({
+    id: '/troubleshooting',
+    path: '/troubleshooting',
+    getParentRoute: () => IntegrationsRoute,
+  } as any)
 const IntegrationsSetupRoute = IntegrationsSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const IntegrationsExamplesRoute = IntegrationsExamplesRouteImport.update({
   id: '/examples',
   path: '/examples',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const IntegrationsCursorRoute = IntegrationsCursorRouteImport.update({
   id: '/cursor',
   path: '/cursor',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const IntegrationsConfigRoute = IntegrationsConfigRouteImport.update({
   id: '/config',
   path: '/config',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
-const IntegrationsCompatibilityRoute = IntegrationsCompatibilityRouteImport.update({
-  id: '/compatibility',
-  path: '/compatibility',
-  getParentRoute: () => IntegrationsRoute
-} as any)
-const IntegrationsClaudeDesktopRoute = IntegrationsClaudeDesktopRouteImport.update({
-  id: '/claude-desktop',
-  path: '/claude-desktop',
-  getParentRoute: () => IntegrationsRoute
-} as any)
+const IntegrationsCompatibilityRoute =
+  IntegrationsCompatibilityRouteImport.update({
+    id: '/compatibility',
+    path: '/compatibility',
+    getParentRoute: () => IntegrationsRoute,
+  } as any)
+const IntegrationsClaudeDesktopRoute =
+  IntegrationsClaudeDesktopRouteImport.update({
+    id: '/claude-desktop',
+    path: '/claude-desktop',
+    getParentRoute: () => IntegrationsRoute,
+  } as any)
 const IntegrationsClaudeCodeRoute = IntegrationsClaudeCodeRouteImport.update({
   id: '/claude-code',
   path: '/claude-code',
-  getParentRoute: () => IntegrationsRoute
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const DocsUiOverviewRoute = DocsUiOverviewRouteImport.update({
   id: '/ui-overview',
   path: '/ui-overview',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsMcpToolsRoute = DocsMcpToolsRouteImport.update({
+  id: '/mcp-tools',
+  path: '/mcp-tools',
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsGuidesRoute = DocsGuidesRouteImport.update({
   id: '/guides',
   path: '/guides',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
   id: '/getting-started',
   path: '/getting-started',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
-const DocsDownloadInstallationRoute = DocsDownloadInstallationRouteImport.update({
-  id: '/download-installation',
-  path: '/download-installation',
-  getParentRoute: () => DocsRoute
-} as any)
+const DocsDownloadInstallationRoute =
+  DocsDownloadInstallationRouteImport.update({
+    id: '/download-installation',
+    path: '/download-installation',
+    getParentRoute: () => DocsRoute,
+  } as any)
 const DocsApiRoute = DocsApiRouteImport.update({
   id: '/api',
   path: '/api',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsHowToTicketsTasksRoute = DocsHowToTicketsTasksRouteImport.update({
   id: '/how-to/tickets-tasks',
   path: '/how-to/tickets-tasks',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
-const DocsHowToMcpBestPracticesRoute = DocsHowToMcpBestPracticesRouteImport.update({
-  id: '/how-to/mcp-best-practices',
-  path: '/how-to/mcp-best-practices',
-  getParentRoute: () => DocsRoute
-} as any)
+const DocsHowToMcpBestPracticesRoute =
+  DocsHowToMcpBestPracticesRouteImport.update({
+    id: '/how-to/mcp-best-practices',
+    path: '/how-to/mcp-best-practices',
+    getParentRoute: () => DocsRoute,
+  } as any)
 const DocsHowToFirstProjectRoute = DocsHowToFirstProjectRouteImport.update({
   id: '/how-to/first-project',
   path: '/how-to/first-project',
-  getParentRoute: () => DocsRoute
+  getParentRoute: () => DocsRoute,
 } as any)
-const DocsHowToBuildingContextRoute = DocsHowToBuildingContextRouteImport.update({
-  id: '/how-to/building-context',
-  path: '/how-to/building-context',
-  getParentRoute: () => DocsRoute
-} as any)
+const DocsHowToBuildingContextRoute =
+  DocsHowToBuildingContextRouteImport.update({
+    id: '/how-to/building-context',
+    path: '/how-to/building-context',
+    getParentRoute: () => DocsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -190,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -218,6 +232,7 @@ export interface FileRoutesByTo {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -249,6 +264,7 @@ export interface FileRoutesById {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -281,6 +297,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -309,6 +326,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -339,6 +357,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -510,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsUiOverviewRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/docs/mcp-tools': {
+      id: '/docs/mcp-tools'
+      path: '/mcp-tools'
+      fullPath: '/docs/mcp-tools'
+      preLoaderRoute: typeof DocsMcpToolsRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/docs/guides': {
       id: '/docs/guides'
       path: '/guides'
@@ -574,6 +600,7 @@ interface DocsRouteChildren {
   DocsDownloadInstallationRoute: typeof DocsDownloadInstallationRoute
   DocsGettingStartedRoute: typeof DocsGettingStartedRoute
   DocsGuidesRoute: typeof DocsGuidesRoute
+  DocsMcpToolsRoute: typeof DocsMcpToolsRoute
   DocsUiOverviewRoute: typeof DocsUiOverviewRoute
   DocsIndexRoute: typeof DocsIndexRoute
   DocsHowToBuildingContextRoute: typeof DocsHowToBuildingContextRoute
@@ -587,12 +614,13 @@ const DocsRouteChildren: DocsRouteChildren = {
   DocsDownloadInstallationRoute: DocsDownloadInstallationRoute,
   DocsGettingStartedRoute: DocsGettingStartedRoute,
   DocsGuidesRoute: DocsGuidesRoute,
+  DocsMcpToolsRoute: DocsMcpToolsRoute,
   DocsUiOverviewRoute: DocsUiOverviewRoute,
   DocsIndexRoute: DocsIndexRoute,
   DocsHowToBuildingContextRoute: DocsHowToBuildingContextRoute,
   DocsHowToFirstProjectRoute: DocsHowToFirstProjectRoute,
   DocsHowToMcpBestPracticesRoute: DocsHowToMcpBestPracticesRoute,
-  DocsHowToTicketsTasksRoute: DocsHowToTicketsTasksRoute
+  DocsHowToTicketsTasksRoute: DocsHowToTicketsTasksRoute,
 }
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
@@ -622,10 +650,12 @@ const IntegrationsRouteChildren: IntegrationsRouteChildren = {
   IntegrationsTroubleshootingRoute: IntegrationsTroubleshootingRoute,
   IntegrationsVideosRoute: IntegrationsVideosRoute,
   IntegrationsVscodeRoute: IntegrationsVscodeRoute,
-  IntegrationsIndexRoute: IntegrationsIndexRoute
+  IntegrationsIndexRoute: IntegrationsIndexRoute,
 }
 
-const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(IntegrationsRouteChildren)
+const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(
+  IntegrationsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -634,6 +664,8 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRouteWithChildren,
   DownloadsRoute: DownloadsRoute,
   IntegrationsRoute: IntegrationsRouteWithChildren,
-  LocalFirstRoute: LocalFirstRoute
+  LocalFirstRoute: LocalFirstRoute,
 }
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()

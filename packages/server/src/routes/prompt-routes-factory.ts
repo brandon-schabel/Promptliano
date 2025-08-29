@@ -113,13 +113,11 @@ const promptCustomRoutes = new OpenAPIHono()
 // List prompts by project
 const listProjectPromptsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/prompts',
+  path: '/api/projects/{id}/prompts',
   tags: ['Projects', 'Prompts'],
   summary: 'List prompts associated with a specific project',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: {
     200: {
@@ -137,7 +135,7 @@ const listProjectPromptsRoute = createRoute({
 })
 
 promptCustomRoutes.openapi(listProjectPromptsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const projectPrompts = await listPromptsByProject(projectId)
   const transformedPrompts = projectPrompts.map(transformPromptFromDB)
   return c.json(successResponse(transformedPrompts))
@@ -194,14 +192,12 @@ promptCustomRoutes.openapi(patchPromptRoute, async (c) => {
 // Suggest prompts using AI
 const suggestPromptsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/suggest-prompts',
+  path: '/api/projects/{id}/suggest-prompts',
   tags: ['Projects', 'Prompts', 'AI'],
   summary: 'Get AI-suggested prompts based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant prompts from the project',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: { 'application/json': { schema: SuggestPromptsRequestSchema } },
       required: true
@@ -218,7 +214,7 @@ const suggestPromptsRoute = createRoute({
 })
 
 promptCustomRoutes.openapi(suggestPromptsRoute, async (c): Promise<any> => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { userInput } = c.req.valid('json')
   const suggestedPrompts = await suggestPrompts(projectId, userInput)
   return c.json(successResponse({ prompts: suggestedPrompts }))

@@ -57,17 +57,15 @@ export const mcpProjectConfigApp = new OpenAPIHono()
 // Get project MCP configuration locations
 const getConfigLocationsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/locations',
+  path: '/api/projects/{id}/mcp/config/locations',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(ConfigLocationsResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const locations = await mcpProjectConfigService.getConfigLocations(projectId)
@@ -84,17 +82,15 @@ mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
 // Get merged project MCP configuration
 const getMergedConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/merged',
+  path: '/api/projects/{id}/mcp/config/merged',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
@@ -111,17 +107,15 @@ mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
 // Get expanded project MCP configuration
 const getExpandedConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/expanded',
+  path: '/api/projects/{id}/mcp/config/expanded',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
@@ -139,11 +133,9 @@ mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
 // Save project MCP configuration
 const saveProjectConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -158,7 +150,7 @@ const saveProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { config } = c.req.valid('json')
 
   try {
@@ -176,10 +168,10 @@ mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
 // Load project configuration (without merging)
 const loadProjectConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive()
+      id: z.coerce.number().int().positive()
     })
   },
   responses: createStandardResponses(ProjectConfigResponseSchema)
@@ -188,10 +180,10 @@ const loadProjectConfigRoute = createRoute({
 // Save project configuration to specific location
 const saveProjectConfigToLocationRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config/save-to-location',
+  path: '/api/projects/{id}/mcp/config/save-to-location',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive()
+      id: z.coerce.number().int().positive()
     }),
     body: {
       content: {
@@ -210,11 +202,9 @@ const saveProjectConfigToLocationRoute = createRoute({
 // Get default config for location
 const getDefaultConfigForLocationRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/default-for-location',
+  path: '/api/projects/{id}/mcp/config/default-for-location',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: z.object({
       location: z.string()
     })
@@ -224,7 +214,7 @@ const getDefaultConfigForLocationRoute = createRoute({
 
 mcpProjectConfigApp
   .openapi(loadProjectConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const result = await mcpProjectConfigService.loadProjectConfig(projectId)
@@ -257,7 +247,7 @@ mcpProjectConfigApp
     }
   })
   .openapi(saveProjectConfigToLocationRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { config, location } = c.req.valid('json')
 
     try {
@@ -272,7 +262,7 @@ mcpProjectConfigApp
     }
   })
   .openapi(getDefaultConfigForLocationRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { location } = c.req.valid('query')
 
     try {

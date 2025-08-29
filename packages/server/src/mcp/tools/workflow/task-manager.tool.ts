@@ -47,7 +47,7 @@ export const taskManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For create: { content: "Task description", description: "Detailed steps", suggestedFileIds: ["123"], estimatedHours: 4, tags: ["frontend"], agentId: "promptliano-ui-architect" }. For update: { taskId: 789, done: true, content: "Updated text", description: "New description", agentId: "staff-engineer-code-reviewer" }. For filter: { projectId: 1754713756748, status: "pending", tags: ["backend"], query: "auth" }. For batch_create: { tasks: [{content: "Task 1"}, {content: "Task 2"}] }. For batch_update: { updates: [{ticketId: 456, taskId: 789, data: {done: true}}] }. For batch_delete: { deletes: [{ticketId: 456, taskId: 789}] }. For batch_move: { moves: [{taskId: 789, fromTicketId: 456, toTicketId: 123}] }'
+          'Action-specific data. For create: { content: "Task description", description: "Detailed steps", suggestedFileIds: ["123"], estimatedHours: 4, tags: ["frontend"], agentId: "promptliano-ui-architect" }. For update: { taskId: 789, done: true, content: "Updated text", description: "New description", agentId: "staff-engineer-code-reviewer" }. For filter: { projectId: <PROJECT_ID>, status: "pending", tags: ["backend"], query: "auth" }. For batch_create: { tasks: [{content: "Task 1"}, {content: "Task 2"}] }. For batch_update: { updates: [{ticketId: 456, taskId: 789, data: {done: true}}] }. For batch_delete: { deletes: [{ticketId: 456, taskId: 789}] }. For batch_move: { moves: [{taskId: 789, fromTicketId: 456, toTicketId: 123}] }'
       }
     },
     required: ['action', 'ticketId']
@@ -215,7 +215,7 @@ export const taskManagerTool: MCPToolDefinition = {
           }
 
           case TaskManagerAction.FILTER: {
-            const projectId = validateRequiredParam(data?.projectId, 'projectId', 'number', '1754713756748')
+            const projectId = validateRequiredParam(data?.projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filterOptions = data || {}
 
             const result = await filterTasks(projectId, filterOptions)

@@ -319,11 +319,11 @@ const suggestFilesRoute = createRoute({
 
 const listTicketsByProjectRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/tickets',
+  path: '/api/projects/{id}/tickets',
   tags: ['Projects', 'Tickets'],
   summary: 'List all tickets for a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: StatusQuerySchema
   },
   responses: createStandardResponses(TicketListResponseSchema)
@@ -331,11 +331,11 @@ const listTicketsByProjectRoute = createRoute({
 
 const listTicketsWithCountRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/tickets-with-count',
+  path: '/api/projects/{id}/tickets-with-count',
   tags: ['Projects', 'Tickets'],
   summary: 'List tickets with task counts',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: StatusQuerySchema
   },
   responses: createStandardResponses(TicketWithTaskCountListResponseSchema)
@@ -343,11 +343,11 @@ const listTicketsWithCountRoute = createRoute({
 
 const listTicketsWithTasksRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/tickets-with-tasks',
+  path: '/api/projects/{id}/tickets-with-tasks',
   tags: ['Projects', 'Tickets', 'Tasks'],
   summary: 'List tickets with their tasks',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     query: StatusQuerySchema
   },
   responses: createStandardResponses(TicketWithTasksListResponseSchema)
@@ -582,7 +582,7 @@ export const ticketRoutes = new OpenAPIHono()
   })
 
   .openapi(listTicketsByProjectRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
     const tickets = await listTicketsByProject(parseNumericId(projectId), query?.status as TicketStatus | undefined)
     const formattedTickets = tickets.map(formatTicketData)
@@ -593,7 +593,7 @@ export const ticketRoutes = new OpenAPIHono()
     return c.json(payload, 200)
   })
   .openapi(listTicketsWithCountRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
@@ -615,7 +615,7 @@ export const ticketRoutes = new OpenAPIHono()
     return c.json(payload, 200)
   })
   .openapi(listTicketsWithTasksRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
     const statusFilter = query?.status === 'all' ? undefined : query?.status
 
@@ -732,3 +732,9 @@ export const ticketRoutes = new OpenAPIHono()
   })
 
 export type TicketRouteTypes = typeof ticketRoutes
+// Local params schema matching path placeholder {projectId}
+const ProjectIdParamsProjectIdSchema = z
+  .object({
+    projectId: z.coerce.number().int().positive().openapi({ param: { name: 'projectId', in: 'path' } })
+  })
+  .openapi('ProjectIdParamsProjectId')

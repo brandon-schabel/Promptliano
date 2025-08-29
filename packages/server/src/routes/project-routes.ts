@@ -53,9 +53,11 @@ import {
 
 // File operation schemas
 const FileIdParamsSchema = z.object({
-  projectId: z.coerce.number().int().positive(),
+  id: ProjectIdParamsSchema.shape.id,
   fileId: z.coerce.number().int().positive()
 })
+
+// All manual routes normalized to {id}; use ProjectIdParamsSchema from @promptliano/schemas
 
 const UpdateFileContentBodySchema = z.object({
   content: z.string()
@@ -193,7 +195,7 @@ const listProjectsRoute = createRoute({
 
 const getProjectByIdRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}',
+  path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: 'Get a specific project by ID',
   request: { params: ProjectIdParamsSchema },
@@ -202,7 +204,7 @@ const getProjectByIdRoute = createRoute({
 
 const updateProjectRoute = createRoute({
   method: 'patch',
-  path: '/api/projects/{projectId}',
+  path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: "Update a project's details",
   request: {
@@ -214,7 +216,7 @@ const updateProjectRoute = createRoute({
 
 const deleteProjectRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}',
+  path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: 'Delete a project and its associated data',
   request: { params: ProjectIdParamsSchema },
@@ -223,7 +225,7 @@ const deleteProjectRoute = createRoute({
 
 const syncProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/sync',
+  path: '/api/projects/{id}/sync',
   tags: ['Projects', 'Files'],
   summary: 'Manually trigger a full file sync for a project',
   request: { params: ProjectIdParamsSchema },
@@ -232,7 +234,7 @@ const syncProjectRoute = createRoute({
 
 const syncProjectStreamRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/sync-stream',
+  path: '/api/projects/{id}/sync-stream',
   tags: ['Projects', 'Files'],
   summary: 'Trigger a file sync with real-time progress updates via SSE',
   request: { params: ProjectIdParamsSchema },
@@ -254,7 +256,7 @@ const syncProjectStreamRoute = createRoute({
 
 const getProjectFilesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/files',
+  path: '/api/projects/{id}/files',
   tags: ['Projects', 'Files'],
   summary: 'Get the list of files associated with a project',
   request: {
@@ -270,7 +272,7 @@ const getProjectFilesRoute = createRoute({
 
 const getProjectFilesMetadataRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/files/metadata',
+  path: '/api/projects/{id}/files/metadata',
   tags: ['Projects', 'Files'],
   summary: 'Get project files metadata without content (for performance)',
   request: {
@@ -285,7 +287,7 @@ const getProjectFilesMetadataRoute = createRoute({
 
 const updateFileContentRoute = createRoute({
   method: 'put',
-  path: '/api/projects/{projectId}/files/{fileId}',
+  path: '/api/projects/{id}/files/{fileId}',
   tags: ['Projects', 'Files'],
   summary: 'Update the content of a specific file (creates new version)',
   request: {
@@ -297,7 +299,7 @@ const updateFileContentRoute = createRoute({
 
 const bulkUpdateFilesRoute = createRoute({
   method: 'put',
-  path: '/api/projects/{projectId}/files/bulk',
+  path: '/api/projects/{id}/files/bulk',
   tags: ['Projects', 'Files'],
   summary: 'Update content of multiple files in a project (creates new versions)',
   request: {
@@ -309,7 +311,7 @@ const bulkUpdateFilesRoute = createRoute({
 
 const refreshProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/refresh',
+  path: '/api/projects/{id}/refresh',
   tags: ['Projects', 'Files'],
   summary: 'Refresh project files (sync) optionally limited to a folder',
   request: {
@@ -321,7 +323,7 @@ const refreshProjectRoute = createRoute({
 
 const getProjectSummaryRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/summary',
+  path: '/api/projects/{id}/summary',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get a combined summary of all files in the project',
   request: { params: ProjectIdParamsSchema },
@@ -330,7 +332,7 @@ const getProjectSummaryRoute = createRoute({
 
 const getProjectSummaryAdvancedRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/summary/advanced',
+  path: '/api/projects/{id}/summary/advanced',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get an advanced project summary with customizable options',
   request: {
@@ -360,7 +362,7 @@ const getProjectSummaryAdvancedRoute = createRoute({
 
 const getProjectSummaryMetricsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/summary/metrics',
+  path: '/api/projects/{id}/summary/metrics',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get metrics about project summary generation',
   request: { params: ProjectIdParamsSchema },
@@ -369,7 +371,7 @@ const getProjectSummaryMetricsRoute = createRoute({
 
 const invalidateProjectSummaryCacheRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/summary/invalidate',
+  path: '/api/projects/{id}/summary/invalidate',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Invalidate the project summary cache',
   request: { params: ProjectIdParamsSchema },
@@ -378,7 +380,7 @@ const invalidateProjectSummaryCacheRoute = createRoute({
 
 const suggestFilesRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/suggest-files',
+  path: '/api/projects/{id}/suggest-files',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Suggest relevant files based on user input and project context',
   request: {
@@ -407,7 +409,7 @@ const suggestFilesRoute = createRoute({
 // Batch summarization routes
 const startBatchSummarizationRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/batch-summarize',
+  path: '/api/projects/{id}/batch-summarize',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Start batch summarization of unsummarized files',
   request: {
@@ -419,12 +421,12 @@ const startBatchSummarizationRoute = createRoute({
 
 const getBatchProgressRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/batch-summarize/{batchId}',
+  path: '/api/projects/{id}/batch-summarize/{batchId}',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get progress of a batch summarization operation',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive(),
+      id: ProjectIdParamsSchema.shape.id,
       batchId: z.string()
     })
   },
@@ -433,12 +435,12 @@ const getBatchProgressRoute = createRoute({
 
 const cancelBatchSummarizationRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/batch-summarize/{batchId}',
+  path: '/api/projects/{id}/batch-summarize/{batchId}',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Cancel a running batch summarization',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive(),
+      id: ProjectIdParamsSchema.shape.id,
       batchId: z.string()
     })
   },
@@ -447,7 +449,7 @@ const cancelBatchSummarizationRoute = createRoute({
 
 const getSummarizationStatsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/summarization-stats',
+  path: '/api/projects/{id}/summarization-stats',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get file summarization statistics for a project',
   request: {
@@ -458,7 +460,7 @@ const getSummarizationStatsRoute = createRoute({
 
 const previewFileGroupsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/preview-file-groups',
+  path: '/api/projects/{id}/preview-file-groups',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Preview how files would be grouped for summarization',
   request: {
@@ -480,7 +482,7 @@ const previewFileGroupsRoute = createRoute({
 
 const getProjectStatisticsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/statistics',
+  path: '/api/projects/{id}/statistics',
   tags: ['Projects', 'Statistics'],
   summary: 'Get comprehensive statistics for a project',
   request: {
@@ -797,7 +799,7 @@ export const projectRoutes = new OpenAPIHono()
   })
 
   .openapi(updateFileContentRoute, async (c) => {
-    const { projectId, fileId } = c.req.valid('param')
+    const { id: projectId, fileId } = c.req.valid('param')
     const { content } = c.req.valid('json')
 
     const updatedFile = await updateFileContent(projectId, fileId.toString(), content)
@@ -950,19 +952,14 @@ export const projectRoutes = new OpenAPIHono()
     const { id: projectId } = c.req.valid('param')
     const { prompt, limit = 10 } = c.req.valid('json')
 
-    try {
-      // Use file suggestion service - this needs to be implemented properly
-      throw new ApiError(501, 'File suggestion not implemented', 'NOT_IMPLEMENTED')
-    } catch (error: any) {
-      console.error('[SuggestFiles Project] Error:', error)
-      if (error instanceof ApiError) throw error
-      throw new ApiError(500, `Failed to suggest files: ${error.message}`, 'AI_SUGGESTION_ERROR')
-    }
+    await projectService.getById(projectId)
+    const files = await projectService.suggestFiles(projectId, prompt, limit)
+    return c.json({ success: true as const, data: files }, 200)
   })
   .openapi(
     createRoute({
       method: 'post',
-      path: '/api/projects/{projectId}/files/summarize',
+      path: '/api/projects/{id}/files/summarize',
       tags: ['Projects', 'Files', 'AI'],
       summary: 'Summarize specified files in a project',
       request: {
@@ -1024,7 +1021,7 @@ export const projectRoutes = new OpenAPIHono()
   .openapi(
     createRoute({
       method: 'post',
-      path: '/api/projects/{projectId}/files/remove-summaries',
+      path: '/api/projects/{id}/files/remove-summaries',
       tags: ['Projects', 'Files'],
       summary: 'Remove summaries from specified files',
       request: {
@@ -1127,7 +1124,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   })
   .openapi(getBatchProgressRoute, async (c) => {
-    const { projectId, batchId } = c.req.valid('param')
+    const { id: projectId, batchId } = c.req.valid('param')
 
     try {
       const progress = fileSummarizationTracker.getSummarizationProgress(projectId)
@@ -1163,7 +1160,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   })
   .openapi(cancelBatchSummarizationRoute, async (c) => {
-    const { projectId, batchId } = c.req.valid('param')
+    const { id: projectId, batchId } = c.req.valid('param')
 
     try {
       // Cancel in tracker

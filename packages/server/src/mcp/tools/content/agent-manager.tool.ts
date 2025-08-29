@@ -40,7 +40,7 @@ export const agentManagerTool: MCPToolDefinition = {
       projectId: {
         type: 'number',
         description:
-          'The project ID (required for: list_by_project, associate_with_project, suggest_agents). Example: 1754713756748'
+          'The project ID (required for: list_by_project, associate_with_project, suggest_agents). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -125,7 +125,7 @@ export const agentManagerTool: MCPToolDefinition = {
             }
           }
           case AgentManagerAction.LIST_BY_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const agents = await getAgentsByProject(validProjectId)
             const agentList = agents
               .map(
@@ -149,7 +149,7 @@ export const agentManagerTool: MCPToolDefinition = {
             }
           }
           case AgentManagerAction.SUGGEST_AGENTS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const context = data?.context || ''
             const limit = data?.limit || 5
             const suggestions = await suggestAgents(validProjectId, context, limit)

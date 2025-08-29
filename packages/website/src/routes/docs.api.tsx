@@ -63,6 +63,9 @@ function ApiReferencePage() {
                   <code>suggest_files</code> - Get intelligent file suggestions
                 </li>
                 <li>
+                  <code>get_file_tree</code> - Paginated file tree with filters
+                </li>
+                <li>
                   <code>search</code> - Search within project
                 </li>
                 <li>
@@ -78,15 +81,16 @@ function ApiReferencePage() {
                 <CodeTerminal
                   code={`mcp__promptliano__project_manager(
   action: "overview",
-  projectId: 1754713756748
+  projectId: <PROJECT_ID>
 )`}
                   language='typescript'
+                  animated={false}
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
                   code={`{
   "project": {
-    "id": 1754713756748,
+    "id": <PROJECT_ID>,
     "name": "E-Commerce Platform",
     "path": "/Users/dev/projects/ecommerce",
     "currentBranch": "feature/checkout"
@@ -117,18 +121,68 @@ function ApiReferencePage() {
               </div>
 
               <div>
+                <h4 className='font-medium mb-2'>Example: Get File Tree (Paginated)</h4>
+                <p className='text-sm text-muted-foreground mb-3'>AI Request:</p>
+                <CodeTerminal
+                  code={`mcp__promptliano__project_manager(
+  action: "get_file_tree",
+  projectId: <PROJECT_ID>,
+  data: {
+    limit: 25,
+    offset: 0,
+    maxDepth: 4,
+    includeHidden: false,
+    includeContent: false,
+    output: "json"
+  }
+)`}
+                  language='typescript'
+                />
+                <p className='text-sm text-muted-foreground mt-3 mb-3'>Notes:</p>
+                <ul className='list-disc list-inside text-sm text-muted-foreground mb-6'>
+                  <li>Supports filters: <code>fileTypes</code>, <code>excludePatterns</code>, <code>maxFilesPerDir</code></li>
+                  <li>Returns <code>{`{ tree, meta }`}</code> with <code>meta.totalFiles</code> and <code>meta.returnedFiles</code></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className='font-medium mb-2'>Example: Project Search</h4>
+                <p className='text-sm text-muted-foreground mb-3'>AI Request:</p>
+                <CodeTerminal
+                  code={`mcp__promptliano__project_manager(
+  action: "search",
+  projectId: <PROJECT_ID>,
+  data: {
+    query: "import",
+    limit: 10,
+    searchType: "semantic",
+    includeContext: false,
+    output: "text"
+  }
+)`}
+                  language='typescript'
+                />
+                <p className='text-sm text-muted-foreground mt-3 mb-3'>Tips:</p>
+                <ul className='list-disc list-inside text-sm text-muted-foreground'>
+                  <li>Available search types: <code>exact</code>, <code>fuzzy</code>, <code>regex</code>, <code>semantic</code></li>
+                  <li>Supports <code>caseSensitive</code>, <code>contextLines</code>, <code>scoringMethod</code></li>
+                </ul>
+              </div>
+
+              <div>
                 <h4 className='font-medium mb-2'>Example: Suggest Files</h4>
                 <p className='text-sm text-muted-foreground mb-3'>AI Request:</p>
                 <CodeTerminal
                   code={`mcp__promptliano__project_manager(
   action: "suggest_files",
-  projectId: 1754713756748,
+  projectId: <PROJECT_ID>,
   data: {
     prompt: "authentication components",
     limit: 10
   }
 )`}
                   language='typescript'
+                  animated={false}
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
@@ -220,7 +274,7 @@ function ApiReferencePage() {
                 <CodeTerminal
                   code={`mcp__promptliano__ticket_manager(
   action: "create",
-  projectId: 1754713756748,
+  projectId: <PROJECT_ID>,
   data: {
     title: "Implement user authentication",
     overview: "Add login/logout functionality with JWT tokens",
@@ -234,7 +288,7 @@ function ApiReferencePage() {
                 <CodeTerminal
                   code={`{
   "id": 456,
-  "projectId": 1754713756748,
+  "projectId": <PROJECT_ID>,
   "title": "Implement user authentication",
   "overview": "Add login/logout functionality with JWT tokens",
   "priority": "high",
@@ -443,13 +497,14 @@ function ApiReferencePage() {
                 <CodeTerminal
                   code={`mcp__promptliano__git_manager(
   action: "worktree_add",
-  projectId: 1754713756748,
+  projectId: <PROJECT_ID>,
   data: {
     path: "../feature-auth",
     newBranch: "feature/authentication"
   }
 )`}
                   language='typescript'
+                  animated={false}
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
@@ -472,9 +527,10 @@ function ApiReferencePage() {
                 <CodeTerminal
                   code={`mcp__promptliano__git_manager(
   action: "worktree_list",
-  projectId: 1754713756748
+  projectId: <PROJECT_ID>
 )`}
                   language='typescript'
+                  animated={false}
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
@@ -549,6 +605,39 @@ function ApiReferencePage() {
               />
             </div>
           </section>
+        </div>
+
+        {/* Additional MCP Tools */}
+        <div className='mt-16'>
+          <h2 className='text-3xl font-semibold mb-6'>Additional MCP Tools</h2>
+
+          <GlassCard className='p-6 mb-6'>
+            <h3 className='text-xl font-medium mb-3'>Available Tools</h3>
+            <ul className='list-disc list-inside space-y-1 text-muted-foreground'>
+              <li>
+                <code>markdown_prompt_manager</code> - Validate/import/export prompts in markdown with frontmatter
+              </li>
+              <li>
+                <code>mcp_setup_validator</code> - Diagnose common MCP setup issues (e.g., connection_failed)
+              </li>
+              <li>
+                <code>mcp_config_generator</code> - Generate configuration templates (Basic, Multi-Project, Dev, Prod)
+              </li>
+              <li>
+                <code>website_demo_runner</code> - Run interactive demo scenarios (getting-started, git-workflow)
+              </li>
+              <li>
+                <code>command_manager</code> - Discover and execute project commands with suggestions
+              </li>
+              <li>
+                <code>agent_manager</code> - Manage DB-backed agents (create/list/suggest)
+              </li>
+            </ul>
+
+            <div className='mt-4 text-sm text-muted-foreground'>
+              Tip: Always fetch a valid project ID first via <code>project_manager(list)</code> and reuse that <code>projectId</code>.
+            </div>
+          </GlassCard>
         </div>
 
         <div className='mt-16 p-8 bg-primary/5 border border-primary/20 rounded-lg'>

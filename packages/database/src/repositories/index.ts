@@ -18,6 +18,7 @@ export * from './claude-repository' // Exports claudeAgentRepository, claudeComm
 // Configuration and state repositories
 export * from './provider-key-repository'
 export * from './app-state-repository' // Exports selectedFileRepository, activeTabRepository
+export * from './encryption-key-repository'
 export * from './mcp-server-repository'
 export * from './mcp-execution-repository' // Exports MCP tracking repositories
 

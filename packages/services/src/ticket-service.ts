@@ -31,6 +31,10 @@ import {
   TaskSchema
 } from '@promptliano/database'
 import { z } from 'zod'
+import { generateStructuredData } from './gen-ai-services'
+import { suggestFiles as aiSuggestFiles } from './file-services/file-suggestion-strategy-service'
+import { getProjectSummaryWithOptions, getCompactProjectSummary } from './utils/project-summary-service'
+import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG, PLANNING_MODEL_CONFIG } from '@promptliano/config'
 
 // Use transformed types for service returns
 type Ticket = z.infer<typeof TicketSchema>
@@ -559,31 +563,183 @@ export const suggestTasksForTicket = async (ticketId: number) => {
 }
 
 export const autoGenerateTasksFromOverview = async (ticketId: number, overview: string): Promise<TicketTask[]> => {
-  // Placeholder implementation - should generate tasks from overview
-  // For now, create a single default task based on the overview
-  if (!overview || overview.trim() === '') {
-    return []
-  }
-  
+  // Use AI + project context to generate concrete, ordered tasks.
+  // Falls back to simple heuristics if AI/config is unavailable.
   try {
-    const defaultTask = await taskService.create({
-      ticketId,
-      content: `Implement: ${overview.substring(0, 100)}${overview.length > 100 ? '...' : ''}`,
-      description: overview,
-      done: false,
-      status: 'pending',
-      orderIndex: 0,
-      estimatedHours: null,
-      dependencies: [],
-      tags: [],
-      agentId: null,
-      suggestedFileIds: [],
-      suggestedPromptIds: []
-    })
-    
-    return [defaultTask]
+    // Load ticket and existing tasks for context/deduplication
+    const ticket = await getTicketById(ticketId)
+    const existingTasks = await getTasksByTicket(ticketId)
+    const existingTitles = new Set(existingTasks.map((t) => t.content.toLowerCase()))
+
+    // Resolve an overview (prefer provided, then ticket.overview, then title)
+    const ticketOverview = (overview && overview.trim()) || ticket.overview || ticket.title
+    if (!ticketOverview || ticketOverview.trim() === '') return []
+
+    // Build project context summary: try compact AI summary, fall back to fast summary
+    let projectSummary = ''
+    try {
+      projectSummary = await getCompactProjectSummary(ticket.projectId)
+    } catch {
+      try {
+        const fast = await getProjectSummaryWithOptions(ticket.projectId, {
+          depth: 'standard',
+          format: 'xml',
+          strategy: 'fast',
+          includeImports: true,
+          includeExports: true,
+          progressive: false,
+          includeMetrics: false,
+          groupAware: true,
+          includeRelationships: true,
+          contextWindow: 3000
+        })
+        projectSummary = fast.summary
+      } catch {
+        projectSummary = ''
+      }
+    }
+
+    // Define structured output schema for tasks
+    const TaskSuggestionSchema = z
+      .object({
+        title: z.string().min(3).max(160),
+        description: z.string().min(5).max(1200),
+        estimatedHours: z.number().min(0.25).max(40).nullable().optional(),
+        tags: z.array(z.string().min(1).max(32)).max(8).optional().default([])
+      })
+      .strict()
+    const TaskSuggestionListSchema = z
+      .object({
+        tasks: z.array(TaskSuggestionSchema).min(1).max(15)
+      })
+      .strict()
+
+    // Compose prompt with clear instruction + context
+    const systemPrompt = [
+      'You are a senior software project planner.',
+      'Break down the ticket into small, code-focused tasks (1–3h each).',
+      'Write specific titles and actionable descriptions referencing code areas when possible.',
+      'Avoid duplicates and generic tasks. Focus on implementation steps.',
+      'Return only structured results that match the JSON schema.'
+    ].join(' ')
+
+    const promptParts: string[] = []
+    promptParts.push(`Ticket #${ticket.id}: ${ticket.title}`)
+    promptParts.push('Overview:')
+    promptParts.push(ticketOverview)
+    if (projectSummary) {
+      promptParts.push('\n--- Project Summary (truncated) ---')
+      // Keep the prompt size reasonable
+      const trimmed = projectSummary.length > 6000 ? projectSummary.slice(0, 6000) + '…' : projectSummary
+      promptParts.push(trimmed)
+    }
+    if (existingTasks.length > 0) {
+      const listed = existingTasks
+        .slice(0, 20)
+        .map((t, i) => `${i + 1}. ${t.content}`)
+        .join('\n')
+      promptParts.push('\nExisting tasks (avoid duplicates):')
+      promptParts.push(listed)
+    }
+    promptParts.push('\nGenerate 5–10 concrete implementation tasks with clear deliverables.')
+
+    // Ask the model for structured task suggestions with provider/model fallbacks
+    let suggestions: z.infer<typeof TaskSuggestionListSchema>['tasks'] = []
+    const promptCombined = promptParts.join('\n')
+    const modelFallbacks = [PLANNING_MODEL_CONFIG, HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG]
+    let lastError: any = null
+    for (const modelOptions of modelFallbacks) {
+      try {
+        const { object } = await generateStructuredData({
+          prompt: promptCombined,
+          schema: TaskSuggestionListSchema,
+          systemMessage: systemPrompt,
+          options: modelOptions
+        })
+        suggestions = object.tasks || []
+        break
+      } catch (err) {
+        lastError = err
+        // try next model
+      }
+    }
+    if (!suggestions || suggestions.length === 0) {
+      // Fallback: derive 1–3 tasks from overview text chunks
+      const chunks = ticketOverview
+        .split(/[\.\n\-•\*]+/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 6)
+        .slice(0, 3)
+      suggestions = chunks.map((c: string) => ({
+        title: c.length > 80 ? `${c.slice(0, 77)}…` : c,
+        description: c,
+        estimatedHours: null,
+        tags: []
+      }))
+    }
+
+    // Filter duplicates against existing tasks and normalize
+    const filtered = suggestions
+      .filter((s) => s && s.title && !existingTitles.has(s.title.toLowerCase()))
+      .slice(0, 10)
+
+    if (filtered.length === 0) return []
+
+    // Optionally get suggested files for the ticket using HIGH model (thorough strategy)
+    let ticketSuggestedFiles: string[] = []
+    try {
+      const contextForFiles = filtered
+        .map((t, idx) => `${idx + 1}. ${t.title} — ${t.description?.slice(0, 120) || ''}`)
+        .join('\n')
+      // Try thorough (HIGH), then balanced (MEDIUM), then fast (no AI)
+      const tryOrders: Array<'thorough' | 'balanced' | 'fast'> = ['thorough', 'balanced', 'fast']
+      for (const strategy of tryOrders) {
+        try {
+          const max = strategy === 'thorough' ? Math.max(10, filtered.length * 2) : 10
+          const fileResp = await aiSuggestFiles(ticket as any, strategy, max, contextForFiles)
+          const list = Array.isArray(fileResp?.suggestions) ? fileResp.suggestions : []
+          if (list.length > 0) {
+            ticketSuggestedFiles = list.slice(0, 15)
+            break
+          }
+        } catch {
+          // try next strategy
+        }
+      }
+    } catch {
+      ticketSuggestedFiles = []
+    }
+
+    // Create tasks in DB in order
+    const created: TicketTask[] = []
+    for (let i = 0; i < filtered.length; i++) {
+      const s = filtered[i]
+      if (!s) continue
+      try {
+        const task = await taskService.create({
+          ticketId,
+          content: s.title,
+          description: s.description || null,
+          done: false,
+          status: 'pending',
+          orderIndex: existingTasks.length + i, // append after existing
+          estimatedHours: s.estimatedHours ?? null,
+          dependencies: [],
+          tags: Array.isArray(s.tags) ? s.tags : [],
+          agentId: null,
+          // Attach top-N ticket-level suggestions to each task (high-model refined)
+          suggestedFileIds: ticketSuggestedFiles.slice(0, 5),
+          suggestedPromptIds: []
+        })
+        created.push(task)
+      } catch (createErr) {
+        // Continue creating remaining tasks if one fails
+      }
+    }
+
+    return created
   } catch (error) {
-    // If task creation fails, return empty array
+    // If anything unexpected fails, don’t block the UI – return empty
     return []
   }
 }

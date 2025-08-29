@@ -75,9 +75,12 @@ Task(
 ### 1. Start Every Session
 
 ```
+# First, list projects to get a valid ID
+mcp__promptliano__project_manager(action: "list")
+# Then use a real projectId from the list
 mcp__promptliano__project_manager(
   action: "overview",
-  projectId: 1754713756748
+  projectId: <PROJECT_ID>
 )
 ```
 
@@ -316,10 +319,10 @@ bun run test:client
 
 ```
 # Project overview
-mcp__promptliano__project_manager(action: "overview", projectId: 1754713756748)
+mcp__promptliano__project_manager(action: "overview", projectId: <PROJECT_ID>)
 
 # File suggestions
-mcp__promptliano__project_manager(action: "suggest_files", projectId: 1754713756748, data: { prompt: "auth" })
+mcp__promptliano__project_manager(action: "suggest_files", projectId: <PROJECT_ID>, data: { prompt: "auth" })
 
 # Queue management
 mcp__promptliano__queue_manager(action: "create_queue", ...)

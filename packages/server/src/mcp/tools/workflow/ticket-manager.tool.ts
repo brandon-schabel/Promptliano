@@ -45,7 +45,7 @@ export const ticketManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for: list, create, list_with_task_count). Example: 1754713756748'
+        description: 'The project ID (required for: list, create, list_with_task_count). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -63,7 +63,7 @@ export const ticketManagerTool: MCPToolDefinition = {
 
         switch (action) {
           case TicketManagerAction.LIST: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const status = data?.status as 'open' | 'in_progress' | 'closed' | undefined
             const tickets = await listTicketsByProject(validProjectId, status)
             const ticketList = tickets
@@ -96,7 +96,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
           }
 
           case TicketManagerAction.CREATE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
             // Validate required fields FIRST
             const title = validateDataField<string>(data, 'title', 'string', '"Fix login bug"')
@@ -145,7 +145,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
           }
 
           case TicketManagerAction.LIST_WITH_TASK_COUNT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const status = data?.status as string | undefined
             const tickets = await listTicketsWithTaskCount(validProjectId)
             // Apply status filter if provided
@@ -249,7 +249,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
           }
 
           case TicketManagerAction.SEARCH: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const query = (data?.query as string) || ''
             const status = data?.status as 'open' | 'in_progress' | 'closed' | undefined
 
@@ -277,7 +277,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
           }
 
           case TicketManagerAction.BATCH_CREATE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const tickets = validateDataField<any[]>(data, 'tickets', 'array', '[{title: "Task 1"}, {title: "Task 2"}]')
 
             if (tickets.length > 100) {

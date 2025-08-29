@@ -408,11 +408,67 @@ export const genAiRoutes = new OpenAPIHono()
     }
 
     // Handle standard providers
-    const keys: ProviderKey[] = await providerKeyService.listKeysUncensored()
-    const providerKeysConfig: ProviderKeysConfig = keys.reduce((acc, key) => {
-      acc[`${key.provider}Key`] = key.key
-      return acc
-    }, {} as any)
+    let keys: ProviderKey[] = []
+    try {
+      keys = await providerKeyService.listKeysUncensored()
+    } catch (err) {
+      console.warn('Failed to load provider keys; continuing with empty set', err)
+      keys = []
+    }
+    // Normalize provider names to config keys to avoid casing/alias issues
+    // Use a normalized provider id (letters only, lowercase) so "OpenRouter", "open_router", etc. all match
+    const PROVIDER_TO_CONFIG_KEY_NORMALIZED: Record<string, keyof ProviderKeysConfig> = {
+      openai: 'openaiKey',
+      anthropic: 'anthropicKey',
+      googlegemini: 'googleGeminiKey',
+      groq: 'groqKey',
+      together: 'togetherKey',
+      xai: 'xaiKey',
+      openrouter: 'openrouterKey'
+      // Local providers (ollama, lmstudio) and custom don't need API keys here
+    }
+
+    const providerKeysConfig: ProviderKeysConfig = {}
+
+    for (const key of keys) {
+      const rawProviderId = String(key.provider || '')
+      const normalized = rawProviderId.toLowerCase().replace(/[^a-z]/g, '')
+      const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
+      // Only set known providers and only if we have a decrypted key string
+      if (configProp && typeof key.key === 'string' && key.key.length > 0) {
+        // Prefer the first (most recent due to sorting) or an explicit default
+        if (!providerKeysConfig[configProp] || key.isDefault) {
+          providerKeysConfig[configProp] = key.key as any
+        }
+      }
+    }
+
+    // Environment fallbacks for providers if DB key is not present
+    providerKeysConfig.openrouterKey = providerKeysConfig.openrouterKey || (process.env.OPENROUTER_API_KEY as any)
+    providerKeysConfig.openaiKey = providerKeysConfig.openaiKey || (process.env.OPENAI_API_KEY as any)
+    providerKeysConfig.anthropicKey = providerKeysConfig.anthropicKey || (process.env.ANTHROPIC_API_KEY as any)
+    providerKeysConfig.googleGeminiKey =
+      providerKeysConfig.googleGeminiKey || (process.env.GOOGLE_GENERATIVE_AI_API_KEY as any)
+    providerKeysConfig.groqKey = providerKeysConfig.groqKey || (process.env.GROQ_API_KEY as any)
+    providerKeysConfig.togetherKey = providerKeysConfig.togetherKey || (process.env.TOGETHER_API_KEY as any)
+    providerKeysConfig.xaiKey = providerKeysConfig.xaiKey || (process.env.XAI_API_KEY as any)
+
+    // If a required API key is missing for the selected provider, return an empty list gracefully
+    const REQUIRED_KEY_BY_PROVIDER: Record<string, keyof ProviderKeysConfig> = {
+      openai: 'openaiKey',
+      anthropic: 'anthropicKey',
+      google_gemini: 'googleGeminiKey',
+      groq: 'groqKey',
+      together: 'togetherKey',
+      xai: 'xaiKey',
+      openrouter: 'openrouterKey'
+    }
+
+    const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
+    if (requiredKeyProp && !providerKeysConfig[requiredKeyProp]) {
+      // No configured key for this provider; return empty list so UI can handle without error
+      return c.json(successResponse([]))
+    }
 
     const modelFetcherService = new ModelFetcherService(providerKeysConfig)
 
@@ -440,6 +496,92 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.json(successResponse(modelData))
   })
+  // Debug route to inspect provider key resolution without exposing secrets
+  .openapi(
+    createRoute({
+      method: 'get',
+      path: '/api/providers/_debug-config',
+      tags: ['AI'],
+      summary: 'Debug provider key resolution (no secrets)',
+      responses: createStandardResponses(
+        z.object({
+          success: z.literal(true),
+          data: z.object({
+            providerKeysConfig: z.record(z.string(), z.boolean()),
+            envFallback: z.record(z.string(), z.boolean()),
+            keys: z.array(
+              z.object({
+                id: z.number(),
+                provider: z.string(),
+                normalized: z.string(),
+                isDefault: z.boolean().optional(),
+                decrypted: z.boolean(),
+                createdAt: z.number(),
+                updatedAt: z.number()
+              })
+            )
+          })
+        })
+      )
+    }),
+    async (c) => {
+      const keys: ProviderKey[] = await providerKeyService.listKeysUncensored()
+
+      const PROVIDER_TO_CONFIG_KEY_NORMALIZED: Record<string, keyof ProviderKeysConfig> = {
+        openai: 'openaiKey',
+        anthropic: 'anthropicKey',
+        googlegemini: 'googleGeminiKey',
+        groq: 'groqKey',
+        together: 'togetherKey',
+        xai: 'xaiKey',
+        openrouter: 'openrouterKey'
+      }
+
+      const providerKeysConfig: ProviderKeysConfig = {}
+      for (const key of keys) {
+        const normalized = String(key.provider || '').toLowerCase().replace(/[^a-z]/g, '')
+        const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
+        if (configProp && typeof key.key === 'string' && key.key.length > 0) {
+          if (!providerKeysConfig[configProp] || key.isDefault) {
+            providerKeysConfig[configProp] = key.key as any
+          }
+        }
+      }
+
+      const redactedConfig: Record<string, boolean> = {}
+      Object.entries(providerKeysConfig).forEach(([k, v]) => {
+        redactedConfig[k] = typeof v === 'string' && v.length > 0
+      })
+
+      const envFallback = {
+        OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
+        OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+        ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+        GOOGLE_GENERATIVE_AI_API_KEY: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        GROQ_API_KEY: !!process.env.GROQ_API_KEY,
+        TOGETHER_API_KEY: !!process.env.TOGETHER_API_KEY,
+        XAI_API_KEY: !!process.env.XAI_API_KEY
+      }
+
+      const keysMeta = keys.map((k) => ({
+        id: k.id,
+        provider: k.provider,
+        normalized: String(k.provider || '').toLowerCase().replace(/[^a-z]/g, ''),
+        isDefault: k.isDefault,
+        decrypted: typeof k.key === 'string' && k.key.length > 0,
+        createdAt: k.createdAt,
+        updatedAt: k.updatedAt
+      }))
+
+      return c.json(
+        successResponse({
+          providerKeysConfig: redactedConfig,
+          envFallback,
+          keys: keysMeta
+        })
+      )
+    }
+  )
   .openapi(postAiGenerateTextRoute, async (c) => {
     const { prompt, options, systemMessage } = c.req.valid('json')
 

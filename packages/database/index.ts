@@ -261,12 +261,4 @@ export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
 export type CreateSelectedFile = typeof CreateSelectedFileSchema._type
 export type UpdateSelectedFile = typeof UpdateSelectedFileSchema._type
 
-// Export test utilities
-export { createTestDatabase, testFactories } from './src/test-utils'
-export { 
-  createTestDatabase as createTestDb,
-  getGlobalTestDb,
-  resetGlobalTestDb,
-  testDbUtils,
-  type TestDatabase
-} from './src/test-utils/test-db'
+// Test utilities are excluded from TypeScript compilation

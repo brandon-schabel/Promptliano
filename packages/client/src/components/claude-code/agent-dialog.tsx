@@ -78,9 +78,11 @@ export function AgentDialog({ open, onOpenChange, agentId, projectId }: AgentDia
       if (isEditing && agentId) {
         updateMutation.mutate({ id: parseInt(agentId), data })
       } else {
+        // Include projectId so server can create the agent in the correct context
         createAgentMutation.mutate({
-          ...data
-        })
+          ...(data as any),
+          projectId
+        } as any)
       }
 
       // Close dialog after mutation is submitted (not necessarily completed)

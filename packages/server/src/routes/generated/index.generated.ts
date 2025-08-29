@@ -14,8 +14,9 @@ import { registerTicketTaskRoutes } from './tickettask-routes.generated'
 import { registerChatRoutes } from './chat-routes.generated'
 import { registerChatMessageRoutes } from './chatmessage-routes.generated'
 import { registerPromptRoutes } from './prompt-routes.generated'
-import { registerQueueRoutes } from './queue-routes.generated'
-import { registerQueueItemRoutes } from './queueitem-routes.generated'
+// Queue routes disabled in favor of Flow-only API
+// import { registerQueueRoutes } from './queue-routes.generated'
+// import { registerQueueItemRoutes } from './queueitem-routes.generated'
 import { registerClaudeAgentRoutes } from './claudeagent-routes.generated'
 import { registerClaudeCommandRoutes } from './claudecommand-routes.generated'
 import { registerClaudeHookRoutes } from './claudehook-routes.generated'
@@ -56,8 +57,8 @@ export function registerAllGeneratedRoutes(app: OpenAPIHono): OpenAPIHono {
   registerChatRoutes(app)
   registerChatMessageRoutes(app)
   registerPromptRoutes(app)
-  registerQueueRoutes(app)
-  registerQueueItemRoutes(app)
+  // registerQueueRoutes(app) // disabled
+  // registerQueueItemRoutes(app) // disabled
   registerClaudeAgentRoutes(app)
   registerClaudeCommandRoutes(app)
   registerClaudeHookRoutes(app)

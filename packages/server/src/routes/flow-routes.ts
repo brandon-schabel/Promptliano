@@ -59,10 +59,10 @@ const FlowDataSchema = z.object({
 // Get complete flow data for a project
 const getFlowDataRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/flow',
+  path: '/api/projects/{id}/flow',
   request: {
     params: z.object({
-      projectId: z.coerce.number()
+      id: z.coerce.number()
     })
   },
   responses: createStandardResponses(FlowDataSchema),
@@ -71,7 +71,7 @@ const getFlowDataRoute = createRoute({
 })
 
 app.openapi(getFlowDataRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const flowData = await flowService.getFlowData(projectId)
   return c.json(flowData)
 })
@@ -79,10 +79,10 @@ app.openapi(getFlowDataRoute, async (c) => {
 // Get flow items as a flat list
 const getFlowItemsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/flow/items',
+  path: '/api/projects/{id}/flow/items',
   request: {
     params: z.object({
-      projectId: z.coerce.number()
+      id: z.coerce.number()
     })
   },
   responses: createStandardResponses(z.array(FlowItemSchema)),
@@ -91,7 +91,7 @@ const getFlowItemsRoute = createRoute({
 })
 
 app.openapi(getFlowItemsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const items = await flowService.getFlowItems(projectId)
   return c.json(items)
 })
@@ -99,10 +99,10 @@ app.openapi(getFlowItemsRoute, async (c) => {
 // Get unqueued items
 const getUnqueuedItemsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/flow/unqueued',
+  path: '/api/projects/{id}/flow/unqueued',
   request: {
     params: z.object({
-      projectId: z.coerce.number()
+      id: z.coerce.number()
     })
   },
   responses: createStandardResponses(
@@ -116,7 +116,7 @@ const getUnqueuedItemsRoute = createRoute({
 })
 
 app.openapi(getUnqueuedItemsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const items = await flowService.getUnqueuedItems(projectId)
   return c.json(items)
 })
@@ -160,15 +160,15 @@ app.openapi(createQueueRoute, async (c) => {
 // List queues for project via Flow
 const listQueuesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/flow/queues',
-  request: { params: z.object({ projectId: z.coerce.number() }) },
+  path: '/api/projects/{id}/flow/queues',
+  request: { params: z.object({ id: z.coerce.number() }) },
   responses: createStandardResponses(z.array(z.any())),
   tags: ['Flow'],
   summary: 'List queues for a project (Flow)'
 })
 
 app.openapi(listQueuesRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const queues = await flowService.listQueues(projectId)
   return c.json(successResponse(queues))
 })
@@ -176,17 +176,131 @@ app.openapi(listQueuesRoute, async (c) => {
 // Queues with stats via Flow
 const queuesWithStatsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/flow/queues-with-stats',
-  request: { params: z.object({ projectId: z.coerce.number() }) },
+  path: '/api/projects/{id}/flow/queues-with-stats',
+  request: { params: z.object({ id: z.coerce.number() }) },
   responses: createStandardResponses(z.array(z.any())),
   tags: ['Flow'],
   summary: 'Get queues with stats (Flow)'
 })
 
 app.openapi(queuesWithStatsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const data = await flowService.getQueuesWithStats(projectId)
   return c.json(successResponse(data))
+})
+
+// Queue items for a specific queue (Flow)
+const getQueueItemsRoute = createRoute({
+  method: 'get',
+  path: '/api/flow/queues/{queueId}/items',
+  request: {
+    params: z.object({ queueId: z.coerce.number() }),
+    query: z.object({ status: z.string().optional() })
+  },
+  responses: createStandardResponses(
+    z.object({
+      tickets: z.array(TicketSchema),
+      tasks: z.array(TicketTaskSchema)
+    })
+  ),
+  tags: ['Flow'],
+  summary: 'Get items in a queue (Flow)'
+})
+
+app.openapi(getQueueItemsRoute, async (c) => {
+  const { queueId } = c.req.valid('param')
+  const { status } = c.req.valid('query')
+  const items = await flowService.getQueueItems(queueId)
+  if (!status) return c.json(items)
+  const normalize = (s: any) => (s ? String(s).toLowerCase() : s)
+  return c.json({
+    tickets: items.tickets.filter((t: any) => normalize(t.queueStatus) === normalize(status)),
+    tasks: items.tasks.filter((t: any) => normalize(t.queueStatus) === normalize(status))
+  })
+})
+
+// Queue stats for a specific queue (Flow)
+const getQueueStatsRoute = createRoute({
+  method: 'get',
+  path: '/api/flow/queues/{queueId}/stats',
+  request: { params: z.object({ queueId: z.coerce.number() }) },
+  responses: createStandardResponses(
+    z.object({
+      totalItems: z.number(),
+      queuedItems: z.number(),
+      inProgressItems: z.number(),
+      completedItems: z.number(),
+      failedItems: z.number(),
+      currentAgents: z.array(z.string())
+    })
+  ),
+  tags: ['Flow'],
+  summary: 'Get queue statistics (Flow)'
+})
+
+app.openapi(getQueueStatsRoute, async (c) => {
+  const { queueId } = c.req.valid('param')
+  const items = await flowService.getQueueItems(queueId)
+  const toPairs = [
+    ...items.tickets.map((t: any) => ({ status: t.queueStatus, agentId: t.queueAgentId })),
+    ...items.tasks.map((t: any) => ({ status: t.queueStatus, agentId: t.queueAgentId }))
+  ]
+  const stats = {
+    totalItems: toPairs.length,
+    queuedItems: toPairs.filter((i) => i.status === 'queued').length,
+    inProgressItems: toPairs.filter((i) => i.status === 'in_progress').length,
+    completedItems: toPairs.filter((i) => i.status === 'completed').length,
+    failedItems: toPairs.filter((i) => i.status === 'failed').length,
+    currentAgents: Array.from(new Set(toPairs.filter(i => i.status === 'in_progress' && i.agentId).map(i => i.agentId)))
+  }
+  return c.json(successResponse(stats))
+})
+
+// Update queue (Flow)
+const updateQueueRoute = createRoute({
+  method: 'patch',
+  path: '/api/flow/queues/{queueId}',
+  request: {
+    params: z.object({ queueId: z.coerce.number() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            name: z.string().optional(),
+            description: z.string().optional(),
+            maxParallelItems: z.number().min(1).max(10).optional(),
+            isActive: z.boolean().optional()
+          })
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(z.any()),
+  tags: ['Flow'],
+  summary: 'Update queue (Flow)'
+})
+
+app.openapi(updateQueueRoute, async (c) => {
+  const { queueId } = c.req.valid('param')
+  const body = c.req.valid('json')
+  const updated = await flowService.updateQueue(queueId, body)
+  return c.json(successResponse(updated))
+})
+
+// Delete queue (Flow)
+const deleteQueueRoute = createRoute({
+  method: 'delete',
+  path: '/api/flow/queues/{queueId}',
+  request: { params: z.object({ queueId: z.coerce.number() }) },
+  responses: createStandardResponses(z.object({ deleted: z.boolean() })),
+  tags: ['Flow'],
+  summary: 'Delete queue (Flow)'
+})
+
+app.openapi(deleteQueueRoute, async (c) => {
+  const { queueId } = c.req.valid('param')
+  const success = await flowService.deleteQueue(queueId)
+  return c.json(successResponse({ deleted: !!success }))
 })
 
 // === Queue Operations ===

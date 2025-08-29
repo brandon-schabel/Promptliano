@@ -282,7 +282,7 @@ const projectStats = await queueService.getProjectQueueStats(projectId)
 ```typescript
 mcp__promptliano__queue_manager(
   action: "enqueue_ticket",
-  projectId: 1754713756748,
+  projectId: <PROJECT_ID>,
   data: {
     queueId: 123,
     ticketId: 456,

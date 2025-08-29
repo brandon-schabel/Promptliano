@@ -42,7 +42,7 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
       projectId: {
         type: 'number',
         description:
-          'The project ID (optional for most actions, used to associate imported prompts with project). Example: 1754713756748'
+          'The project ID (optional for most actions, used to associate imported prompts with project). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -78,7 +78,7 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
                 throw createMCPError(
                   MCPErrorCode.MISSING_REQUIRED_PARAM,
                   'projectId is required for creating prompts. Prompts must be associated with a project.',
-                  { action, parameter: 'projectId', example: '1754713756748' }
+                  { action, parameter: 'projectId', example: '<PROJECT_ID>' }
                 )
               }
 

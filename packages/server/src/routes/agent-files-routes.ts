@@ -99,11 +99,9 @@ const CreateAgentFileBodySchema = z.object({
 // Routes
 const detectAgentFilesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/agent-files/detect',
+  path: '/api/projects/{id}/agent-files/detect',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(AgentFilesDetectionResponseSchema),
   tags: ['Agent Files'],
@@ -112,11 +110,9 @@ const detectAgentFilesRoute = createRoute({
 
 const updateAgentFileRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/update',
+  path: '/api/projects/{id}/agent-files/update',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -132,11 +128,9 @@ const updateAgentFileRoute = createRoute({
 
 const removeInstructionsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/remove-instructions',
+  path: '/api/projects/{id}/agent-files/remove-instructions',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -154,11 +148,9 @@ const removeInstructionsRoute = createRoute({
 
 const getAgentFileStatusRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/agent-files/status',
+  path: '/api/projects/{id}/agent-files/status',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(AgentFileStatusResponseSchema),
   tags: ['Agent Files'],
@@ -167,11 +159,9 @@ const getAgentFileStatusRoute = createRoute({
 
 const createAgentFileRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/create',
+  path: '/api/projects/{id}/agent-files/create',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -188,7 +178,7 @@ const createAgentFileRoute = createRoute({
 // Handlers
 export const agentFilesRoutes = new OpenAPIHono()
   .openapi(detectAgentFilesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -257,7 +247,7 @@ export const agentFilesRoutes = new OpenAPIHono()
     }
   })
   .openapi(updateAgentFileRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { filePath, includeExamples, customInstructions } = c.req.valid('json')
 
     try {
@@ -291,7 +281,7 @@ export const agentFilesRoutes = new OpenAPIHono()
     }
   })
   .openapi(removeInstructionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { filePath } = c.req.valid('json')
 
     try {
@@ -317,7 +307,7 @@ export const agentFilesRoutes = new OpenAPIHono()
     }
   })
   .openapi(getAgentFileStatusRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -348,7 +338,7 @@ export const agentFilesRoutes = new OpenAPIHono()
     }
   })
   .openapi(createAgentFileRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { type, includeExamples, customInstructions } = c.req.valid('json')
 
     try {

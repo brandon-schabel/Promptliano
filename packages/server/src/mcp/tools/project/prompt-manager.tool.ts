@@ -41,7 +41,7 @@ export const promptManagerTool: MCPToolDefinition = {
       projectId: {
         type: 'number',
         description:
-          'The project ID (required for: list_by_project, add_to_project, remove_from_project, suggest_prompts). Example: 1754713756748'
+          'The project ID (required for: list_by_project, add_to_project, remove_from_project, suggest_prompts). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -90,7 +90,7 @@ export const promptManagerTool: MCPToolDefinition = {
             )
             // Ensure projectId is provided (required by database schema)
             const validProjectId =
-              projectId || validateDataField<number>(createData, 'projectId', 'number', '1754713756748')
+              projectId || validateDataField<number>(createData, 'projectId', 'number', '<PROJECT_ID>')
             const prompt = await createPrompt(addTimestamps({ ...createData, projectId: validProjectId }))
 
             // Auto-associate with project if projectId is provided
@@ -150,7 +150,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.LIST_BY_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const prompts = await listPromptsByProject(validProjectId)
             const promptList = prompts
               .map(
@@ -164,7 +164,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.ADD_TO_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
             await addPromptToProject(promptId, validProjectId)
             return {
@@ -175,7 +175,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.REMOVE_FROM_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
             await removePromptFromProject(promptId)
             return {
@@ -186,7 +186,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.SUGGEST_PROMPTS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
             // Enhanced validation for userInput
             if (!data || !data.userInput) {

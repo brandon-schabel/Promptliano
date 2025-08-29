@@ -109,12 +109,12 @@ const ticketCustomRoutes = new OpenAPIHono()
 // List tickets by project
 const listProjectTicketsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/tickets',
+  path: '/api/projects/{id}/tickets',
   tags: ['Projects', 'Tickets'],
   summary: 'List tickets for a specific project',
   request: {
     params: z.object({
-      projectId: z.coerce.number().int().positive()
+      id: z.coerce.number().int().positive()
     })
   },
   responses: {
@@ -135,7 +135,7 @@ const listProjectTicketsRoute = createRoute({
 ticketCustomRoutes.openapi(listProjectTicketsRoute, async (c) => {
   return withErrorContext(
     async () => {
-      const { projectId } = c.req.valid('param')
+      const { id: projectId } = c.req.valid('param')
       const tickets = await ticketService.getByProject(projectId)
       return c.json(successResponse(tickets))
     },
@@ -194,9 +194,20 @@ const createTicketTaskRoute = createRoute({
       content: {
         'application/json': {
           schema: z.object({
+            // Required
             content: z.string().min(1),
-            description: z.string().optional(),
-            status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional().default('pending')
+
+            // Optional (align with DB schema types)
+            description: z.string().nullable().optional(),
+            status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional().default('pending'),
+            suggestedFileIds: z.array(z.string()).optional().default([]),
+            suggestedPromptIds: z.array(z.number()).optional().default([]),
+            dependencies: z.array(z.number()).optional().default([]),
+            tags: z.array(z.string()).optional().default([]),
+            estimatedHours: z.number().nullable().optional(),
+            agentId: z.string().nullable().optional(),
+            done: z.boolean().optional(),
+            orderIndex: z.number().optional()
           })
         }
       },
@@ -244,18 +255,7 @@ const suggestTasksRoute = createRoute({
   request: {
     params: z.object({
       ticketId: z.coerce.number().int().positive()
-    }),
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            overview: z.string().optional(),
-            context: z.string().optional()
-          })
-        }
-      },
-      required: false
-    }
+    })
   },
   responses: {
     200: {
@@ -297,17 +297,7 @@ const autoGenerateTasksRoute = createRoute({
   request: {
     params: z.object({
       ticketId: z.coerce.number().int().positive()
-    }),
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            overview: z.string().optional()
-          })
-        }
-      },
-      required: false
-    }
+    })
   },
   responses: {
     200: {
@@ -330,14 +320,14 @@ ticketCustomRoutes.openapi(autoGenerateTasksRoute, async (c) => {
       const { ticketId } = c.req.valid('param')
       const body = await c.req.json().catch(() => ({ overview: '' }))
       
-      // Get ticket to use its description as overview if not provided
+      // Get ticket to use its overview (or title) if not provided
       let overview = body.overview
       if (!overview) {
         const ticket = await ticketService.get(ticketId)
         if (!ticket) {
           throw new Error('Ticket not found')
         }
-        overview = ticket.description || ticket.title
+        overview = (ticket as any).overview || ticket.title
       }
       
       const tasks = await autoGenerateTasksFromOverview(ticketId, overview)

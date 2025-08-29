@@ -65,7 +65,7 @@ export const queueManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for: create_queue, list_queues, get_all_stats). Example: 1754713756748'
+        description: 'The project ID (required for: create_queue, list_queues, get_all_stats). Tip: use project_manager(list) to fetch a valid ID.'
       },
       queueId: {
         type: 'number',
@@ -87,7 +87,7 @@ export const queueManagerTool: MCPToolDefinition = {
 
         switch (action) {
           case QueueManagerAction.CREATE_QUEUE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const name = validateDataField<string>(data, 'name', 'string', 'Main Queue')
 
             const createData: CreateQueueBody = {
@@ -114,7 +114,7 @@ Max Parallel Items: ${queue.maxParallelItems}`
           }
 
           case QueueManagerAction.LIST_QUEUES: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const queues = await listQueuesByProject(validProjectId)
 
             if (queues.length === 0) {
@@ -305,7 +305,7 @@ Current Agents: ${
           }
 
           case QueueManagerAction.GET_ALL_STATS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const allStats = await getQueuesWithStats(validProjectId)
 
             if (allStats.length === 0) {

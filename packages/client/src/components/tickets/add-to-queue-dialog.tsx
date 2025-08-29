@@ -96,23 +96,29 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues.map((queueData: any) => {
-                      const isSelected = selectedQueueId === queueData.id
-                      const itemCount = getQueueItemCount(queueData.stats)
+                    {queues.map((raw: any, index: number) => {
+                      // Support both shapes: { queue, stats } and flattened queue object
+                      const q = raw?.queue ?? raw
+                      const stats = raw?.stats ?? raw?.stats ?? {}
+                      if (!q?.id) return null
+
+                      const isSelected = selectedQueueId === q.id
+                      const status = (q.status as string) ?? (q.isActive ? 'active' : 'paused')
+                      const itemCount = getQueueItemCount(stats)
 
                       return (
-                        <div key={queueData.id} className='relative'>
+                        <div key={q.id ?? index} className='relative'>
                           <RadioGroupItem
-                            value={queueData.id.toString()}
-                            id={`queue-${queueData.id}`}
+                            value={q.id?.toString?.()}
+                            id={`queue-${q.id}`}
                             className='peer sr-only'
                           />
-                          <Label htmlFor={`queue-${queueData.id}`} className='cursor-pointer'>
+                          <Label htmlFor={`queue-${q.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
                                 'transition-all hover:shadow-md',
                                 isSelected && 'ring-2 ring-primary shadow-md',
-                                (queueData.status ?? 'active') === 'paused' && 'opacity-60'
+                                (status ?? 'active') === 'paused' && 'opacity-60'
                               )}
                             >
                               <CardContent className='p-3'>
@@ -120,31 +126,31 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
                                   <div className='flex-1'>
                                     <div className='flex items-center gap-2 mb-1'>
                                       <Inbox className='h-4 w-4 text-muted-foreground' />
-                                      <span className='font-medium'>{queueData.name}</span>
+                                      <span className='font-medium'>{q.name}</span>
                                     </div>
-                                    {queueData.description && (
+                                    {q.description && (
                                       <p className='text-xs text-muted-foreground mb-2 line-clamp-1'>
-                                        {queueData.description}
+                                        {q.description}
                                       </p>
                                     )}
                                     <div className='flex items-center gap-3 text-xs'>
                                       <Badge variant='secondary' className='text-xs'>
-                                        {getQueueStatusIcon(queueData.status ?? 'inactive')}
-                                        <span className='ml-1'>{queueData.status ?? 'inactive'}</span>
+                                        {getQueueStatusIcon(status ?? 'inactive')}
+                                        <span className='ml-1'>{status ?? 'inactive'}</span>
                                       </Badge>
                                       <span className='text-muted-foreground'>
                                         {itemCount === 0 ? 'Empty' : itemCount === 1 ? '1 item' : `${itemCount} items`}
                                       </span>
-                                      {(queueData.stats?.failed || 0) > 0 && (
+                                      {(stats?.failed || 0) > 0 && (
                                         <span className='flex items-center gap-1 text-red-600'>
                                           <AlertCircle className='h-3 w-3' />
-                                          {queueData.stats.failed} failed
+                                          {stats.failed} failed
                                         </span>
                                       )}
-                                      {(queueData.stats?.completed || 0) > 0 && (
+                                      {(stats?.completed || 0) > 0 && (
                                         <span className='flex items-center gap-1 text-green-600'>
                                           <CheckCircle2 className='h-3 w-3' />
-                                          {queueData.stats.completed}
+                                          {stats.completed}
                                         </span>
                                       )}
                                     </div>

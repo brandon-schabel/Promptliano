@@ -249,13 +249,11 @@ const getPerformanceMetricsRoute = createRoute({
 // Project-specific MCP analytics routes
 const getProjectMCPOverviewRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/analytics/overview',
+  path: '/api/projects/{id}/mcp/analytics/overview',
   tags: ['MCP', 'Analytics', 'Projects'],
   summary: 'Get MCP analytics overview for a project',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     query: z.object({
       period: z.enum(['hour', 'day', 'week', 'month']).optional(),
       toolNames: z.string().optional()
@@ -279,13 +277,11 @@ const getProjectMCPOverviewRoute = createRoute({
 
 const getProjectMCPStatisticsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/analytics/statistics',
+  path: '/api/projects/{id}/mcp/analytics/statistics',
   tags: ['MCP', 'Analytics', 'Projects'],
   summary: 'Get MCP tool statistics for a project',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     query: z.object({
       period: z.enum(['hour', 'day', 'week', 'month']).optional(),
       toolNames: z.string().optional()
@@ -301,13 +297,11 @@ const getProjectMCPStatisticsRoute = createRoute({
 
 const getProjectMCPTimelineRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/analytics/timeline',
+  path: '/api/projects/{id}/mcp/analytics/timeline',
   tags: ['MCP', 'Analytics', 'Projects'],
   summary: 'Get MCP execution timeline for a project',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     query: z.object({
       period: z.enum(['hour', 'day', 'week', 'month']).optional(),
       toolNames: z.string().optional()
@@ -323,13 +317,11 @@ const getProjectMCPTimelineRoute = createRoute({
 
 const getProjectMCPErrorPatternsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/analytics/error-patterns',
+  path: '/api/projects/{id}/mcp/analytics/error-patterns',
   tags: ['MCP', 'Analytics', 'Projects'],
   summary: 'Get MCP error patterns for a project',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     query: z.object({
       period: z.enum(['hour', 'day', 'week', 'month']).optional(),
       toolNames: z.string().optional()
@@ -345,13 +337,11 @@ const getProjectMCPErrorPatternsRoute = createRoute({
 
 const getProjectMCPExecutionsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/analytics/executions',
+  path: '/api/projects/{id}/mcp/analytics/executions',
   tags: ['MCP', 'Analytics', 'Projects'],
   summary: 'Get MCP tool executions for a project',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     query: z.object({
       toolName: z.string().optional(),
       status: z.enum(['success', 'error', 'timeout']).optional(),
@@ -482,7 +472,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   })
   // Add new project-specific routes
   .openapi(getProjectMCPOverviewRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -493,7 +483,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     }
   })
   .openapi(getProjectMCPStatisticsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -509,7 +499,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     }
   })
   .openapi(getProjectMCPTimelineRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -520,7 +510,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     }
   })
   .openapi(getProjectMCPErrorPatternsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {
@@ -531,7 +521,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     }
   })
   .openapi(getProjectMCPExecutionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const query = c.req.valid('query')
 
     try {

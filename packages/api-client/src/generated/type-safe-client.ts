@@ -1,7 +1,8 @@
+// @ts-nocheck
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
- * Generated at: 2025-08-28T13:55:47.936Z
- * Generated from: 199 API endpoints
+ * Generated at: 2025-08-28T22:38:27.608Z
+ * Generated from: 206 API endpoints
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
@@ -16,13 +17,13 @@ export type ApiPaths = paths
 export type GetProjectsResponse = paths['/api/projects']['get']['responses']['200']['content']['application/json']
 export type CreateProjectResponse = paths['/api/projects']['post']['responses']['201']['content']['application/json']
 export type CreateProjectRequest = paths['/api/projects']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdPromptsResponse = paths['/api/projects/{projectId}/prompts']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdSuggestPromptsResponse = paths['/api/projects/{projectId}/suggest-prompts']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdSuggestPromptsRequest = paths['/api/projects/{projectId}/suggest-prompts']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdTicketsResponse = paths['/api/projects/{projectId}/tickets']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdAgentsResponse = paths['/api/projects/{projectId}/agents']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdSuggestAgentsResponse = paths['/api/projects/{projectId}/suggest-agents']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdSuggestAgentsRequest = paths['/api/projects/{projectId}/suggest-agents']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdPromptsResponse = paths['/api/projects/{id}/prompts']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdSuggestPromptsResponse = paths['/api/projects/{id}/suggest-prompts']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdSuggestPromptsRequest = paths['/api/projects/{id}/suggest-prompts']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdTicketsResponse = paths['/api/projects/{id}/tickets']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdAgentsResponse = paths['/api/projects/{id}/agents']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdSuggestAgentsResponse = paths['/api/projects/{id}/suggest-agents']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdSuggestAgentsRequest = paths['/api/projects/{id}/suggest-agents']['post']['requestBody']['content']['application/json']
 export type GetProjectResponse = paths['/api/projects/{id}']['get']['responses']['200']['content']['application/json']
 export type UpdateProjectResponse = paths['/api/projects/{id}']['put']['responses']['200']['content']['application/json']
 export type UpdateProjectRequest = paths['/api/projects/{id}']['put']['requestBody']['content']['application/json']
@@ -37,6 +38,9 @@ export type GetProjectsByIdStatisticsResponse = paths['/api/projects/{id}/statis
 export type CreateProjectsByIdRefreshResponse = paths['/api/projects/{id}/refresh']['post']['responses']['200']['content']['application/json']
 export type UpdateProjectsByIdFilesByFileIdResponse = paths['/api/projects/{id}/files/{fileId}']['put']['responses']['200']['content']['application/json']
 export type UpdateProjectsByIdFilesByFileIdRequest = paths['/api/projects/{id}/files/{fileId}']['put']['requestBody']['content']['application/json']
+export type CreateProjectsByIdSuggestFilesResponse = paths['/api/projects/{id}/suggest-files']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdSuggestFilesRequest = paths['/api/projects/{id}/suggest-files']['post']['requestBody']['content']['application/json']
+export type ListProjectsByProjectIdQueuesResponse = paths['/api/projects/{projectId}/queues']['get']['responses']['200']['content']['application/json']
 export type GetTicketsResponse = paths['/api/tickets']['get']['responses']['200']['content']['application/json']
 export type CreateTicketResponse = paths['/api/tickets']['post']['responses']['201']['content']['application/json']
 export type CreateTicketRequest = paths['/api/tickets']['post']['requestBody']['content']['application/json']
@@ -48,9 +52,7 @@ export type ListTicketsByTicketIdTasksResponse = paths['/api/tickets/{ticketId}/
 export type CreateTicketsByTicketIdTasksResponse = paths['/api/tickets/{ticketId}/tasks']['post']['responses']['201']['content']['application/json']
 export type CreateTicketsByTicketIdTasksRequest = paths['/api/tickets/{ticketId}/tasks']['post']['requestBody']['content']['application/json']
 export type CreateTicketsByTicketIdSuggestTasksResponse = paths['/api/tickets/{ticketId}/suggest-tasks']['post']['responses']['200']['content']['application/json']
-export type CreateTicketsByTicketIdSuggestTasksRequest = paths['/api/tickets/{ticketId}/suggest-tasks']['post']['requestBody']['content']['application/json']
 export type CreateTicketsByTicketIdAutoGenerateTasksResponse = paths['/api/tickets/{ticketId}/auto-generate-tasks']['post']['responses']['200']['content']['application/json']
-export type CreateTicketsByTicketIdAutoGenerateTasksRequest = paths['/api/tickets/{ticketId}/auto-generate-tasks']['post']['requestBody']['content']['application/json']
 export type CreateTicketsByTicketIdSuggestFilesResponse = paths['/api/tickets/{ticketId}/suggest-files']['post']['responses']['200']['content']['application/json']
 export type CreateTicketsByTicketIdSuggestFilesRequest = paths['/api/tickets/{ticketId}/suggest-files']['post']['requestBody']['content']['application/json']
 export type CreateTicketsByTicketIdCompleteResponse = paths['/api/tickets/{ticketId}/complete']['post']['responses']['200']['content']['application/json']
@@ -94,25 +96,6 @@ export type CreatePromptsExportBatchResponse = paths['/api/prompts/export-batch'
 export type CreatePromptsExportBatchRequest = paths['/api/prompts/export-batch']['post']['requestBody']['content']['application/json']
 export type CreatePromptsValidateMarkdownResponse = paths['/api/prompts/validate-markdown']['post']['responses']['200']['content']['application/json']
 export type CreatePromptsValidateMarkdownRequest = paths['/api/prompts/validate-markdown']['post']['requestBody']['content']['application/json']
-export type GetQueuesResponse = paths['/api/queues']['get']['responses']['200']['content']['application/json']
-export type CreateQueueResponse = paths['/api/queues']['post']['responses']['201']['content']['application/json']
-export type CreateQueueRequest = paths['/api/queues']['post']['requestBody']['content']['application/json']
-export type GetQueueResponse = paths['/api/queues/{id}']['get']['responses']['200']['content']['application/json']
-export type UpdateQueueResponse = paths['/api/queues/{id}']['put']['responses']['200']['content']['application/json']
-export type UpdateQueueRequest = paths['/api/queues/{id}']['put']['requestBody']['content']['application/json']
-export type DeleteQueueResponse = paths['/api/queues/{id}']['delete']['responses']['200']['content']['application/json']
-export type CreateQueuesByQueueIdProcessResponse = paths['/api/queues/{queueId}/process']['post']['responses']['200']['content']['application/json']
-export type CreateQueuesByQueueIdProcessRequest = paths['/api/queues/{queueId}/process']['post']['requestBody']['content']['application/json']
-export type ListQueuesByQueueIdStatsResponse = paths['/api/queues/{queueId}/stats']['get']['responses']['200']['content']['application/json']
-export type CreateQueuesByQueueIdClearResponse = paths['/api/queues/{queueId}/clear']['post']['responses']['200']['content']['application/json']
-export type CreateQueuesByQueueIdClearRequest = paths['/api/queues/{queueId}/clear']['post']['requestBody']['content']['application/json']
-export type GetQueueitemsResponse = paths['/api/queueitems']['get']['responses']['200']['content']['application/json']
-export type CreateQueueitemResponse = paths['/api/queueitems']['post']['responses']['201']['content']['application/json']
-export type CreateQueueitemRequest = paths['/api/queueitems']['post']['requestBody']['content']['application/json']
-export type GetQueueitemResponse = paths['/api/queueitems/{queueitemId}']['get']['responses']['200']['content']['application/json']
-export type UpdateQueueitemResponse = paths['/api/queueitems/{queueitemId}']['put']['responses']['200']['content']['application/json']
-export type UpdateQueueitemRequest = paths['/api/queueitems/{queueitemId}']['put']['requestBody']['content']['application/json']
-export type DeleteQueueitemResponse = paths['/api/queueitems/{queueitemId}']['delete']['responses']['200']['content']['application/json']
 export type GetClaudeagentsResponse = paths['/api/claudeagents']['get']['responses']['200']['content']['application/json']
 export type CreateClaudeagentResponse = paths['/api/claudeagents']['post']['responses']['201']['content']['application/json']
 export type CreateClaudeagentRequest = paths['/api/claudeagents']['post']['requestBody']['content']['application/json']
@@ -195,19 +178,19 @@ export type GetAgentResponse = paths['/api/agents/{id}']['get']['responses']['20
 export type UpdateAgentResponse = paths['/api/agents/{id}']['put']['responses']['200']['content']['application/json']
 export type UpdateAgentRequest = paths['/api/agents/{id}']['put']['requestBody']['content']['application/json']
 export type DeleteAgentResponse = paths['/api/agents/{id}']['delete']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdCommandsResponse = paths['/api/projects/{projectId}/commands']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsResponse = paths['/api/projects/{projectId}/commands']['post']['responses']['201']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsRequest = paths['/api/projects/{projectId}/commands']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['get']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['put']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdCommandsByCommandNameRequest = paths['/api/projects/{projectId}/commands/{commandName}']['put']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdCommandsByCommandNameResponse = paths['/api/projects/{projectId}/commands/{commandName}']['delete']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsByCommandNameExecuteResponse = paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsByCommandNameExecuteRequest = paths['/api/projects/{projectId}/commands/{commandName}/execute']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsGenerateResponse = paths['/api/projects/{projectId}/commands/generate']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsGenerateRequest = paths['/api/projects/{projectId}/commands/generate']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsSuggestResponse = paths['/api/projects/{projectId}/commands/suggest']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdCommandsSuggestRequest = paths['/api/projects/{projectId}/commands/suggest']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdCommandsResponse = paths['/api/projects/{id}/commands']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdCommandsResponse = paths['/api/projects/{id}/commands']['post']['responses']['201']['content']['application/json']
+export type CreateProjectsByIdCommandsRequest = paths['/api/projects/{id}/commands']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdCommandsByCommandNameResponse = paths['/api/projects/{id}/commands/{commandName}']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdCommandsByCommandNameResponse = paths['/api/projects/{id}/commands/{commandName}']['put']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdCommandsByCommandNameRequest = paths['/api/projects/{id}/commands/{commandName}']['put']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdCommandsByCommandNameResponse = paths['/api/projects/{id}/commands/{commandName}']['delete']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdCommandsByCommandNameExecuteResponse = paths['/api/projects/{id}/commands/{commandName}/execute']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdCommandsByCommandNameExecuteRequest = paths['/api/projects/{id}/commands/{commandName}/execute']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdCommandsGenerateResponse = paths['/api/projects/{id}/commands/generate']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdCommandsGenerateRequest = paths['/api/projects/{id}/commands/generate']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdCommandsSuggestResponse = paths['/api/projects/{id}/commands/suggest']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdCommandsSuggestRequest = paths['/api/projects/{id}/commands/suggest']['post']['requestBody']['content']['application/json']
 export type GetActiveTabResponse = paths['/api/active-tab']['get']['responses']['200']['content']['application/json']
 export type CreateActiveTaResponse = paths['/api/active-tab']['post']['responses']['200']['content']['application/json']
 export type CreateActiveTaRequest = paths['/api/active-tab']['post']['requestBody']['content']['application/json']
@@ -233,28 +216,41 @@ export type CreateMcpGlobalInstallRequest = paths['/api/mcp/global/install']['po
 export type CreateMcpGlobalUninstallResponse = paths['/api/mcp/global/uninstall']['post']['responses']['200']['content']['application/json']
 export type CreateMcpGlobalUninstallRequest = paths['/api/mcp/global/uninstall']['post']['requestBody']['content']['application/json']
 export type ListMcpGlobalStatusResponse = paths['/api/mcp/global/status']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpConfigLocationsResponse = paths['/api/projects/{projectId}/mcp/config/locations']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpConfigMergedResponse = paths['/api/projects/{projectId}/mcp/config/merged']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['get']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['put']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdMcpConfigRequest = paths['/api/projects/{projectId}/mcp/config']['put']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['delete']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpConfigResponse = paths['/api/projects/{projectId}/mcp/config']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpConfigRequest = paths['/api/projects/{projectId}/mcp/config']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdMcpConfigLocationsResponse = paths['/api/projects/{id}/mcp/config/locations']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigMergedResponse = paths['/api/projects/{id}/mcp/config/merged']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigExpandedResponse = paths['/api/projects/{id}/mcp/config/expanded']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigResponse = paths['/api/projects/{id}/mcp/config']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdMcpConfigResponse = paths['/api/projects/{id}/mcp/config']['put']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdMcpConfigRequest = paths['/api/projects/{id}/mcp/config']['put']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdMcpConfigResponse = paths['/api/projects/{id}/mcp/config']['delete']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigSaveToLocationResponse = paths['/api/projects/{id}/mcp/config/save-to-location']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigSaveToLocationRequest = paths['/api/projects/{id}/mcp/config/save-to-location']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdMcpConfigDefaultForLocationResponse = paths['/api/projects/{id}/mcp/config/default-for-location']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigResponse = paths['/api/projects/{id}/mcp/config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigRequest = paths['/api/projects/{id}/mcp/config']['post']['requestBody']['content']['application/json']
 export type ListMcpInstallationDetectResponse = paths['/api/mcp/installation/detect']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpInstallationStatusResponse = paths['/api/projects/{projectId}/mcp/installation/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationInstallResponse = paths['/api/projects/{projectId}/mcp/installation/install']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationInstallRequest = paths['/api/projects/{projectId}/mcp/installation/install']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationUninstallResponse = paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationUninstallRequest = paths['/api/projects/{projectId}/mcp/installation/uninstall']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdMcpInstallationStatusResponse = paths['/api/projects/{id}/mcp/installation/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationInstallResponse = paths['/api/projects/{id}/mcp/installation/install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationInstallRequest = paths['/api/projects/{id}/mcp/installation/install']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationUninstallResponse = paths['/api/projects/{id}/mcp/installation/uninstall']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationUninstallRequest = paths['/api/projects/{id}/mcp/installation/uninstall']['post']['requestBody']['content']['application/json']
 export type ListMcpStatusResponse = paths['/api/mcp/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationBatchInstallResponse = paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallationBatchInstallRequest = paths['/api/projects/{projectId}/mcp/installation/batch-install']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallProjectConfigResponse = paths['/api/projects/{projectId}/mcp/install-project-config']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpInstallProjectConfigRequest = paths['/api/projects/{projectId}/mcp/install-project-config']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdFlowResponse = paths['/api/projects/{projectId}/flow']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdFlowItemsResponse = paths['/api/projects/{projectId}/flow/items']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdFlowUnqueuedResponse = paths['/api/projects/{projectId}/flow/unqueued']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationBatchInstallResponse = paths['/api/projects/{id}/mcp/installation/batch-install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationBatchInstallRequest = paths['/api/projects/{id}/mcp/installation/batch-install']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdMcpInstallProjectConfigResponse = paths['/api/projects/{id}/mcp/install-project-config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallProjectConfigRequest = paths['/api/projects/{id}/mcp/install-project-config']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdFlowResponse = paths['/api/projects/{id}/flow']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdFlowItemsResponse = paths['/api/projects/{id}/flow/items']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdFlowUnqueuedResponse = paths['/api/projects/{id}/flow/unqueued']['get']['responses']['200']['content']['application/json']
+export type CreateFlowQueuesResponse = paths['/api/flow/queues']['post']['responses']['200']['content']['application/json']
+export type CreateFlowQueuesRequest = paths['/api/flow/queues']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdFlowQueuesResponse = paths['/api/projects/{id}/flow/queues']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdFlowQueuesWithStatsResponse = paths['/api/projects/{id}/flow/queues-with-stats']['get']['responses']['200']['content']['application/json']
+export type ListFlowQueuesByQueueIdItemsResponse = paths['/api/flow/queues/{queueId}/items']['get']['responses']['200']['content']['application/json']
+export type ListFlowQueuesByQueueIdStatsResponse = paths['/api/flow/queues/{queueId}/stats']['get']['responses']['200']['content']['application/json']
+export type UpdateFlowQueuesByQueueIdResponse = paths['/api/flow/queues/{queueId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateFlowQueuesByQueueIdRequest = paths['/api/flow/queues/{queueId}']['patch']['requestBody']['content']['application/json']
+export type DeleteFlowQueuesByQueueIdResponse = paths['/api/flow/queues/{queueId}']['delete']['responses']['200']['content']['application/json']
 export type CreateFlowTicketsByTicketIdEnqueueResponse = paths['/api/flow/tickets/{ticketId}/enqueue']['post']['responses']['200']['content']['application/json']
 export type CreateFlowTicketsByTicketIdEnqueueRequest = paths['/api/flow/tickets/{ticketId}/enqueue']['post']['requestBody']['content']['application/json']
 export type CreateFlowTasksByTaskIdEnqueueResponse = paths['/api/flow/tasks/{taskId}/enqueue']['post']['responses']['200']['content']['application/json']
@@ -277,6 +273,7 @@ export type CreateAiChatResponse = paths['/api/ai/chat']['post']['responses']['2
 export type CreateAiChatRequest = paths['/api/ai/chat']['post']['requestBody']['content']['application/json']
 export type GetProvidersResponse = paths['/api/providers']['get']['responses']['200']['content']['application/json']
 export type GetModelsResponse = paths['/api/models']['get']['responses']['200']['content']['application/json']
+export type ListProviders_debugConfigResponse = paths['/api/providers/_debug-config']['get']['responses']['200']['content']['application/json']
 export type CreateAiGenerateTextResponse = paths['/api/ai/generate/text']['post']['responses']['200']['content']['application/json']
 export type CreateAiGenerateTextRequest = paths['/api/ai/generate/text']['post']['requestBody']['content']['application/json']
 export type CreateProviderSettingResponse = paths['/api/provider-settings']['post']['responses']['200']['content']['application/json']
@@ -289,13 +286,13 @@ export type CreateGenAiStructuredResponse = paths['/api/gen-ai/structured']['pos
 export type CreateGenAiStructuredRequest = paths['/api/gen-ai/structured']['post']['requestBody']['content']['application/json']
 export type CreateBrowseDirectorResponse = paths['/api/browse-directory']['post']['responses']['200']['content']['application/json']
 export type CreateBrowseDirectorRequest = paths['/api/browse-directory']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdMcpServersResponse = paths['/api/projects/{projectId}/mcp/servers']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpServersResponse = paths['/api/projects/{projectId}/mcp/servers']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdMcpServersRequest = paths['/api/projects/{projectId}/mcp/servers']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdMcpServersByServerIdResponse = paths['/api/projects/{projectId}/mcp/servers/{serverId}']['get']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdMcpServersByServerIdResponse = paths['/api/projects/{projectId}/mcp/servers/{serverId}']['patch']['responses']['200']['content']['application/json']
-export type UpdateProjectsByProjectIdMcpServersByServerIdRequest = paths['/api/projects/{projectId}/mcp/servers/{serverId}']['patch']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdMcpServersByServerIdResponse = paths['/api/projects/{projectId}/mcp/servers/{serverId}']['delete']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpServersResponse = paths['/api/projects/{id}/mcp/servers']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpServersResponse = paths['/api/projects/{id}/mcp/servers']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpServersRequest = paths['/api/projects/{id}/mcp/servers']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdMcpServersByServerIdResponse = paths['/api/projects/{id}/mcp/servers/{serverId}']['get']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdMcpServersByServerIdResponse = paths['/api/projects/{id}/mcp/servers/{serverId}']['patch']['responses']['200']['content']['application/json']
+export type UpdateProjectsByIdMcpServersByServerIdRequest = paths['/api/projects/{id}/mcp/servers/{serverId}']['patch']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdMcpServersByServerIdResponse = paths['/api/projects/{id}/mcp/servers/{serverId}']['delete']['responses']['200']['content']['application/json']
 export type ListMcpToolsResponse = paths['/api/mcp/tools']['get']['responses']['200']['content']['application/json']
 export type CreateMcpToolsExecuteResponse = paths['/api/mcp/tools/execute']['post']['responses']['200']['content']['application/json']
 export type CreateMcpToolsExecuteRequest = paths['/api/mcp/tools/execute']['post']['requestBody']['content']['application/json']
@@ -313,11 +310,11 @@ export type CreateMcpAnalyticsReportResponse = paths['/api/mcp/analytics/report'
 export type CreateMcpAnalyticsReportRequest = paths['/api/mcp/analytics/report']['post']['requestBody']['content']['application/json']
 export type ListMcpSessionsStatsResponse = paths['/api/mcp/sessions/stats']['get']['responses']['200']['content']['application/json']
 export type ListMcpAnalyticsPerformanceResponse = paths['/api/mcp/analytics/performance']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpAnalyticsOverviewResponse = paths['/api/projects/{projectId}/mcp/analytics/overview']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpAnalyticsStatisticsResponse = paths['/api/projects/{projectId}/mcp/analytics/statistics']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpAnalyticsTimelineResponse = paths['/api/projects/{projectId}/mcp/analytics/timeline']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpAnalyticsErrorPatternsResponse = paths['/api/projects/{projectId}/mcp/analytics/error-patterns']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdMcpAnalyticsExecutionsResponse = paths['/api/projects/{projectId}/mcp/analytics/executions']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpAnalyticsOverviewResponse = paths['/api/projects/{id}/mcp/analytics/overview']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpAnalyticsStatisticsResponse = paths['/api/projects/{id}/mcp/analytics/statistics']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpAnalyticsTimelineResponse = paths['/api/projects/{id}/mcp/analytics/timeline']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpAnalyticsErrorPatternsResponse = paths['/api/projects/{id}/mcp/analytics/error-patterns']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpAnalyticsExecutionsResponse = paths['/api/projects/{id}/mcp/analytics/executions']['get']['responses']['200']['content']['application/json']
 export type CreateMcpTestConnectionResponse = paths['/api/mcp/test/connection']['post']['responses']['200']['content']['application/json']
 export type CreateMcpTestConnectionRequest = paths['/api/mcp/test/connection']['post']['requestBody']['content']['application/json']
 export type CreateMcpTestInitializeResponse = paths['/api/mcp/test/initialize']['post']['responses']['200']['content']['application/json']
@@ -338,76 +335,80 @@ export type CreateMcpSessionsBySessionIdRefreshResponse = paths['/api/mcp/sessio
 export type ListMcpSessionsBySessionIdHistoryResponse = paths['/api/mcp/sessions/{sessionId}/history']['get']['responses']['200']['content']['application/json']
 export type CreateMcpSessionsCleanupResponse = paths['/api/mcp/sessions/cleanup']['post']['responses']['200']['content']['application/json']
 export type CreateMcpSessionsCleanupRequest = paths['/api/mcp/sessions/cleanup']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdGitStatusResponse = paths['/api/projects/{projectId}/git/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStageResponse = paths['/api/projects/{projectId}/git/stage']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStageRequest = paths['/api/projects/{projectId}/git/stage']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitUnstageResponse = paths['/api/projects/{projectId}/git/unstage']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitUnstageRequest = paths['/api/projects/{projectId}/git/unstage']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitStageAllResponse = paths['/api/projects/{projectId}/git/stage-all']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitUnstageAllResponse = paths['/api/projects/{projectId}/git/unstage-all']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitCommitResponse = paths['/api/projects/{projectId}/git/commit']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitCommitRequest = paths['/api/projects/{projectId}/git/commit']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdGitLogResponse = paths['/api/projects/{projectId}/git/log']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitLogEnhancedResponse = paths['/api/projects/{projectId}/git/log-enhanced']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitCommitsByCommitHashResponse = paths['/api/projects/{projectId}/git/commits/{commitHash}']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitDiffResponse = paths['/api/projects/{projectId}/git/diff']['get']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitBranchesResponse = paths['/api/projects/{projectId}/git/branches']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitBranchesResponse = paths['/api/projects/{projectId}/git/branches']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitBranchesRequest = paths['/api/projects/{projectId}/git/branches']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdGitBranchesEnhancedResponse = paths['/api/projects/{projectId}/git/branches-enhanced']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitBranchesSwitchResponse = paths['/api/projects/{projectId}/git/branches/switch']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitBranchesSwitchRequest = paths['/api/projects/{projectId}/git/branches/switch']['post']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdGitBranchesByBranchNameResponse = paths['/api/projects/{projectId}/git/branches/{branchName}']['delete']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashRequest = paths['/api/projects/{projectId}/git/stash']['post']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdGitStashResponse = paths['/api/projects/{projectId}/git/stash']['delete']['responses']['200']['content']['application/json']
-export type DeleteProjectsByProjectIdGitStashRequest = paths['/api/projects/{projectId}/git/stash']['delete']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashApplyResponse = paths['/api/projects/{projectId}/git/stash/apply']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashApplyRequest = paths['/api/projects/{projectId}/git/stash/apply']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashPopResponse = paths['/api/projects/{projectId}/git/stash/pop']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitStashPopRequest = paths['/api/projects/{projectId}/git/stash/pop']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['post']['responses']['201']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesRequest = paths['/api/projects/{projectId}/git/worktrees']['post']['requestBody']['content']['application/json']
-export type DeleteProjectsByProjectIdGitWorktreesResponse = paths['/api/projects/{projectId}/git/worktrees']['delete']['responses']['200']['content']['application/json']
-export type DeleteProjectsByProjectIdGitWorktreesRequest = paths['/api/projects/{projectId}/git/worktrees']['delete']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesLockResponse = paths['/api/projects/{projectId}/git/worktrees/lock']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesLockRequest = paths['/api/projects/{projectId}/git/worktrees/lock']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesUnlockResponse = paths['/api/projects/{projectId}/git/worktrees/unlock']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesUnlockRequest = paths['/api/projects/{projectId}/git/worktrees/unlock']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitWorktreesPruneResponse = paths['/api/projects/{projectId}/git/worktrees/prune']['post']['responses']['200']['content']['application/json']
-export type ListProjectsByProjectIdGitRemotesResponse = paths['/api/projects/{projectId}/git/remotes']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitPushResponse = paths['/api/projects/{projectId}/git/push']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitPushRequest = paths['/api/projects/{projectId}/git/push']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitFetchResponse = paths['/api/projects/{projectId}/git/fetch']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitFetchRequest = paths['/api/projects/{projectId}/git/fetch']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitPullResponse = paths['/api/projects/{projectId}/git/pull']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitPullRequest = paths['/api/projects/{projectId}/git/pull']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdGitTagsResponse = paths['/api/projects/{projectId}/git/tags']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitTagsResponse = paths['/api/projects/{projectId}/git/tags']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitTagsRequest = paths['/api/projects/{projectId}/git/tags']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdGitResetResponse = paths['/api/projects/{projectId}/git/reset']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdGitResetRequest = paths['/api/projects/{projectId}/git/reset']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdGitStatusResponse = paths['/api/projects/{id}/git/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStageResponse = paths['/api/projects/{id}/git/stage']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStageRequest = paths['/api/projects/{id}/git/stage']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitUnstageResponse = paths['/api/projects/{id}/git/unstage']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitUnstageRequest = paths['/api/projects/{id}/git/unstage']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitStageAllResponse = paths['/api/projects/{id}/git/stage-all']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitUnstageAllResponse = paths['/api/projects/{id}/git/unstage-all']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitCommitResponse = paths['/api/projects/{id}/git/commit']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitCommitRequest = paths['/api/projects/{id}/git/commit']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdGitLogResponse = paths['/api/projects/{id}/git/log']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitLogEnhancedResponse = paths['/api/projects/{id}/git/log-enhanced']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitCommitsByCommitHashResponse = paths['/api/projects/{id}/git/commits/{commitHash}']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitDiffResponse = paths['/api/projects/{id}/git/diff']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitBranchesResponse = paths['/api/projects/{id}/git/branches']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitBranchesResponse = paths['/api/projects/{id}/git/branches']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitBranchesRequest = paths['/api/projects/{id}/git/branches']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdGitBranchesEnhancedResponse = paths['/api/projects/{id}/git/branches-enhanced']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitBranchesSwitchResponse = paths['/api/projects/{id}/git/branches/switch']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitBranchesSwitchRequest = paths['/api/projects/{id}/git/branches/switch']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdGitBranchesByBranchNameResponse = paths['/api/projects/{id}/git/branches/{branchName}']['delete']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitStashResponse = paths['/api/projects/{id}/git/stash']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStashResponse = paths['/api/projects/{id}/git/stash']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStashRequest = paths['/api/projects/{id}/git/stash']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdGitStashResponse = paths['/api/projects/{id}/git/stash']['delete']['responses']['200']['content']['application/json']
+export type DeleteProjectsByIdGitStashRequest = paths['/api/projects/{id}/git/stash']['delete']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitStashApplyResponse = paths['/api/projects/{id}/git/stash/apply']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStashApplyRequest = paths['/api/projects/{id}/git/stash/apply']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitStashPopResponse = paths['/api/projects/{id}/git/stash/pop']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitStashPopRequest = paths['/api/projects/{id}/git/stash/pop']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdGitWorktreesResponse = paths['/api/projects/{id}/git/worktrees']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesResponse = paths['/api/projects/{id}/git/worktrees']['post']['responses']['201']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesRequest = paths['/api/projects/{id}/git/worktrees']['post']['requestBody']['content']['application/json']
+export type DeleteProjectsByIdGitWorktreesResponse = paths['/api/projects/{id}/git/worktrees']['delete']['responses']['200']['content']['application/json']
+export type DeleteProjectsByIdGitWorktreesRequest = paths['/api/projects/{id}/git/worktrees']['delete']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesLockResponse = paths['/api/projects/{id}/git/worktrees/lock']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesLockRequest = paths['/api/projects/{id}/git/worktrees/lock']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesUnlockResponse = paths['/api/projects/{id}/git/worktrees/unlock']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesUnlockRequest = paths['/api/projects/{id}/git/worktrees/unlock']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitWorktreesPruneResponse = paths['/api/projects/{id}/git/worktrees/prune']['post']['responses']['200']['content']['application/json']
+export type GetProjectsByIdGitRemotesResponse = paths['/api/projects/{id}/git/remotes']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitPushResponse = paths['/api/projects/{id}/git/push']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitPushRequest = paths['/api/projects/{id}/git/push']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitFetchResponse = paths['/api/projects/{id}/git/fetch']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitFetchRequest = paths['/api/projects/{id}/git/fetch']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitPullResponse = paths['/api/projects/{id}/git/pull']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitPullRequest = paths['/api/projects/{id}/git/pull']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdGitTagsResponse = paths['/api/projects/{id}/git/tags']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitTagsResponse = paths['/api/projects/{id}/git/tags']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitTagsRequest = paths['/api/projects/{id}/git/tags']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdGitResetResponse = paths['/api/projects/{id}/git/reset']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdGitResetRequest = paths['/api/projects/{id}/git/reset']['post']['requestBody']['content']['application/json']
 export type CreateProjectTabsByTabIdGenerateNameResponse = paths['/api/project-tabs/{tabId}/generate-name']['post']['responses']['200']['content']['application/json']
 export type CreateProjectTabsByTabIdGenerateNameRequest = paths['/api/project-tabs/{tabId}/generate-name']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdAgentFilesDetectResponse = paths['/api/projects/{projectId}/agent-files/detect']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesUpdateResponse = paths['/api/projects/{projectId}/agent-files/update']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesUpdateRequest = paths['/api/projects/{projectId}/agent-files/update']['post']['requestBody']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsResponse = paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesRemoveInstructionsRequest = paths['/api/projects/{projectId}/agent-files/remove-instructions']['post']['requestBody']['content']['application/json']
-export type ListProjectsByProjectIdAgentFilesStatusResponse = paths['/api/projects/{projectId}/agent-files/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesCreateResponse = paths['/api/projects/{projectId}/agent-files/create']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByProjectIdAgentFilesCreateRequest = paths['/api/projects/{projectId}/agent-files/create']['post']['requestBody']['content']['application/json']
-export type ListClaudeCodeMcpStatusByProjectIdResponse = paths['/api/claude-code/mcp-status/{projectId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdMetadataResponse = paths['/api/claude-code/sessions/{projectId}/metadata']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdRecentResponse = paths['/api/claude-code/sessions/{projectId}/recent']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdPaginatedResponse = paths['/api/claude-code/sessions/{projectId}/paginated']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}/full']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdBySessionIdResponse = paths['/api/claude-code/sessions/{projectId}/{sessionId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeSessionsByProjectIdResponse = paths['/api/claude-code/sessions/{projectId}']['get']['responses']['200']['content']['application/json']
-export type ListClaudeCodeProjectDataByProjectIdResponse = paths['/api/claude-code/project-data/{projectId}']['get']['responses']['200']['content']['application/json']
-export type CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse = paths['/api/claude-code/import-session/{projectId}/{sessionId}']['post']['responses']['200']['content']['application/json']
+export type GetProjectsByIdAgentFilesDetectResponse = paths['/api/projects/{id}/agent-files/detect']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdAgentFilesUpdateResponse = paths['/api/projects/{id}/agent-files/update']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdAgentFilesUpdateRequest = paths['/api/projects/{id}/agent-files/update']['post']['requestBody']['content']['application/json']
+export type CreateProjectsByIdAgentFilesRemoveInstructionsResponse = paths['/api/projects/{id}/agent-files/remove-instructions']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdAgentFilesRemoveInstructionsRequest = paths['/api/projects/{id}/agent-files/remove-instructions']['post']['requestBody']['content']['application/json']
+export type GetProjectsByIdAgentFilesStatusResponse = paths['/api/projects/{id}/agent-files/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdAgentFilesCreateResponse = paths['/api/projects/{id}/agent-files/create']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdAgentFilesCreateRequest = paths['/api/projects/{id}/agent-files/create']['post']['requestBody']['content']['application/json']
+export type GetClaudeCodeMcpStatusByIdResponse = paths['/api/claude-code/mcp-status/{id}']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdMetadataResponse = paths['/api/claude-code/sessions/{id}/metadata']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdRecentResponse = paths['/api/claude-code/sessions/{id}/recent']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdPaginatedResponse = paths['/api/claude-code/sessions/{id}/paginated']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdBySessionIdFullResponse = paths['/api/claude-code/sessions/{id}/{sessionId}/full']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdBySessionIdResponse = paths['/api/claude-code/sessions/{id}/{sessionId}']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeSessionsByIdResponse = paths['/api/claude-code/sessions/{id}']['get']['responses']['200']['content']['application/json']
+export type GetClaudeCodeProjectDataByIdResponse = paths['/api/claude-code/project-data/{id}']['get']['responses']['200']['content']['application/json']
+export type CreateClaudeCodeImportSessionByIdBySessionIdResponse = paths['/api/claude-code/import-session/{id}/{sessionId}']['post']['responses']['200']['content']['application/json']
+export type ListSecurityEncryptionKeyStatusResponse = paths['/api/security/encryption-key/status']['get']['responses']['200']['content']['application/json']
+export type CreateSecurityEncryptionKeyResponse = paths['/api/security/encryption-key']['post']['responses']['200']['content']['application/json']
+export type CreateSecurityEncryptionKeyRequest = paths['/api/security/encryption-key']['post']['requestBody']['content']['application/json']
+export type CreateSecurityEncryptionKeyUseDefaultResponse = paths['/api/security/encryption-key/use-default']['post']['responses']['200']['content']['application/json']
 
 
 /**
@@ -420,7 +421,7 @@ export type CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse = paths[
  * - Request body validation
  * - Proper HTTP method handling
  * - Error handling with context
- * - Support for all 199 API endpoints
+ * - Support for all 206 API endpoints
  */
 export class TypeSafeApiClient {
   private baseUrl: string
@@ -552,36 +553,36 @@ export class TypeSafeApiClient {
   /**
    * List prompts associated with a specific project
    */
-  async listProjectsByProjectIdPrompts(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdPromptsResponse> {
-    return this.request<ListProjectsByProjectIdPromptsResponse>('GET', this.buildPath(`/api/projects/{projectId}/prompts`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdPrompts(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdPromptsResponse> {
+    return this.request<GetProjectsByIdPromptsResponse>('GET', this.buildPath(`/api/projects/{id}/prompts`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get AI-suggested prompts based on user input
    */
-  async createProjectsByProjectIdSuggestPrompts(projectId: string | number, data: CreateProjectsByProjectIdSuggestPromptsRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdSuggestPromptsResponse> {
-    return this.request<CreateProjectsByProjectIdSuggestPromptsResponse>('POST', this.buildPath(`/api/projects/{projectId}/suggest-prompts`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdSuggestPrompts(id: string | number, data: CreateProjectsByIdSuggestPromptsRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdSuggestPromptsResponse> {
+    return this.request<CreateProjectsByIdSuggestPromptsResponse>('POST', this.buildPath(`/api/projects/{id}/suggest-prompts`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * List tickets for a specific project
    */
-  async listProjectsByProjectIdTickets(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdTicketsResponse> {
-    return this.request<ListProjectsByProjectIdTicketsResponse>('GET', this.buildPath(`/api/projects/{projectId}/tickets`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdTickets(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdTicketsResponse> {
+    return this.request<GetProjectsByIdTicketsResponse>('GET', this.buildPath(`/api/projects/{id}/tickets`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * List Claude agents associated with a specific project
    */
-  async listProjectsByProjectIdAgents(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdAgentsResponse> {
-    return this.request<ListProjectsByProjectIdAgentsResponse>('GET', this.buildPath(`/api/projects/{projectId}/agents`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdAgents(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdAgentsResponse> {
+    return this.request<GetProjectsByIdAgentsResponse>('GET', this.buildPath(`/api/projects/{id}/agents`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get AI-suggested Claude agents based on user input
    */
-  async createProjectsByProjectIdSuggestAgents(projectId: string | number, data: CreateProjectsByProjectIdSuggestAgentsRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdSuggestAgentsResponse> {
-    return this.request<CreateProjectsByProjectIdSuggestAgentsResponse>('POST', this.buildPath(`/api/projects/{projectId}/suggest-agents`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdSuggestAgents(id: string | number, data: CreateProjectsByIdSuggestAgentsRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdSuggestAgentsResponse> {
+    return this.request<CreateProjectsByIdSuggestAgentsResponse>('POST', this.buildPath(`/api/projects/{id}/suggest-agents`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
@@ -661,6 +662,13 @@ export class TypeSafeApiClient {
     return this.request<UpdateProjectsByIdFilesByFileIdResponse>('PUT', this.buildPath(`/api/projects/{id}/files/{fileId}`, { id, fileId }), { body: data, timeout: options?.timeout })
   }
 
+  /**
+   * Suggest relevant files based on user input and project context
+   */
+  async createProjectsByIdSuggestFiles(id: string | number, data: CreateProjectsByIdSuggestFilesRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdSuggestFilesResponse> {
+    return this.request<CreateProjectsByIdSuggestFilesResponse>('POST', this.buildPath(`/api/projects/{id}/suggest-files`, { id }), { body: data, timeout: options?.timeout })
+  }
+
 
   // Project Operations
   /**
@@ -682,6 +690,13 @@ export class TypeSafeApiClient {
    */
   async deleteProject(projectId: string | number, options?: { timeout?: number }): Promise<DeleteProjectResponse> {
     return this.request<DeleteProjectResponse>('DELETE', this.buildPath(`/api/projects/{projectId}`, { projectId }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get Queue for Project
+   */
+  async listProjectsByProjectIdQueues(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdQueuesResponse> {
+    return this.request<ListProjectsByProjectIdQueuesResponse>('GET', this.buildPath(`/api/projects/{projectId}/queues`, { projectId }), { timeout: options?.timeout })
   }
 
 
@@ -738,15 +753,15 @@ export class TypeSafeApiClient {
   /**
    * Get AI-suggested tasks for a ticket
    */
-  async createTicketsByTicketIdSuggestTasks(ticketId: string | number, data: CreateTicketsByTicketIdSuggestTasksRequest, options?: { timeout?: number }): Promise<CreateTicketsByTicketIdSuggestTasksResponse> {
-    return this.request<CreateTicketsByTicketIdSuggestTasksResponse>('POST', this.buildPath(`/api/tickets/{ticketId}/suggest-tasks`, { ticketId }), { body: data, timeout: options?.timeout })
+  async createTicketsByTicketIdSuggestTasks(ticketId: string | number, options?: { timeout?: number }): Promise<CreateTicketsByTicketIdSuggestTasksResponse> {
+    return this.request<CreateTicketsByTicketIdSuggestTasksResponse>('POST', this.buildPath(`/api/tickets/{ticketId}/suggest-tasks`, { ticketId }), { timeout: options?.timeout })
   }
 
   /**
    * Auto-generate tasks from overview
    */
-  async createTicketsByTicketIdAutoGenerateTasks(ticketId: string | number, data: CreateTicketsByTicketIdAutoGenerateTasksRequest, options?: { timeout?: number }): Promise<CreateTicketsByTicketIdAutoGenerateTasksResponse> {
-    return this.request<CreateTicketsByTicketIdAutoGenerateTasksResponse>('POST', this.buildPath(`/api/tickets/{ticketId}/auto-generate-tasks`, { ticketId }), { body: data, timeout: options?.timeout })
+  async createTicketsByTicketIdAutoGenerateTasks(ticketId: string | number, options?: { timeout?: number }): Promise<CreateTicketsByTicketIdAutoGenerateTasksResponse> {
+    return this.request<CreateTicketsByTicketIdAutoGenerateTasksResponse>('POST', this.buildPath(`/api/tickets/{ticketId}/auto-generate-tasks`, { ticketId }), { timeout: options?.timeout })
   }
 
   /**
@@ -1041,124 +1056,6 @@ export class TypeSafeApiClient {
    */
   async deletePrompt(promptId: string | number, options?: { timeout?: number }): Promise<DeletePromptResponse> {
     return this.request<DeletePromptResponse>('DELETE', this.buildPath(`/api/prompts/{promptId}`, { promptId }), { timeout: options?.timeout })
-  }
-
-
-  // Queues Operations
-  /**
-   * List Queues
-   */
-  async getQueues(query?: { page?: any; limit?: any; sort?: any; order?: any }, options?: { timeout?: number }): Promise<GetQueuesResponse> {
-    return this.request<GetQueuesResponse>('GET', `/api/queues`, { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Create Queue
-   */
-  async createQueue(data: CreateQueueRequest, options?: { timeout?: number }): Promise<CreateQueueResponse> {
-    return this.request<CreateQueueResponse>('POST', `/api/queues`, { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Get Queue by ID
-   */
-  async getQueue(id: string | number, options?: { timeout?: number }): Promise<GetQueueResponse> {
-    return this.request<GetQueueResponse>('GET', this.buildPath(`/api/queues/{id}`, { id }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Update Queue
-   */
-  async updateQueue(id: string | number, data: UpdateQueueRequest, options?: { timeout?: number }): Promise<UpdateQueueResponse> {
-    return this.request<UpdateQueueResponse>('PUT', this.buildPath(`/api/queues/{id}`, { id }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Delete Queue
-   */
-  async deleteQueue(id: string | number, options?: { timeout?: number }): Promise<DeleteQueueResponse> {
-    return this.request<DeleteQueueResponse>('DELETE', this.buildPath(`/api/queues/{id}`, { id }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Process items in a queue
-   */
-  async createQueuesByQueueIdProcess(queueId: string | number, data: CreateQueuesByQueueIdProcessRequest, options?: { timeout?: number }): Promise<CreateQueuesByQueueIdProcessResponse> {
-    return this.request<CreateQueuesByQueueIdProcessResponse>('POST', this.buildPath(`/api/queues/{queueId}/process`, { queueId }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Get queue statistics
-   */
-  async listQueuesByQueueIdStats(queueId: string | number, options?: { timeout?: number }): Promise<ListQueuesByQueueIdStatsResponse> {
-    return this.request<ListQueuesByQueueIdStatsResponse>('GET', this.buildPath(`/api/queues/{queueId}/stats`, { queueId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Clear all items from a queue
-   */
-  async createQueuesByQueueIdClear(queueId: string | number, data: CreateQueuesByQueueIdClearRequest, options?: { timeout?: number }): Promise<CreateQueuesByQueueIdClearResponse> {
-    return this.request<CreateQueuesByQueueIdClearResponse>('POST', this.buildPath(`/api/queues/{queueId}/clear`, { queueId }), { body: data, timeout: options?.timeout })
-  }
-
-
-  // Queue Operations
-  /**
-   * Get Queue by ID
-   */
-  async getQueue(queueId: string | number, options?: { timeout?: number }): Promise<GetQueueResponse> {
-    return this.request<GetQueueResponse>('GET', this.buildPath(`/api/queues/{queueId}`, { queueId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Update Queue
-   */
-  async updateQueue(queueId: string | number, data: UpdateQueueRequest, options?: { timeout?: number }): Promise<UpdateQueueResponse> {
-    return this.request<UpdateQueueResponse>('PUT', this.buildPath(`/api/queues/{queueId}`, { queueId }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Delete Queue
-   */
-  async deleteQueue(queueId: string | number, options?: { timeout?: number }): Promise<DeleteQueueResponse> {
-    return this.request<DeleteQueueResponse>('DELETE', this.buildPath(`/api/queues/{queueId}`, { queueId }), { timeout: options?.timeout })
-  }
-
-
-  // QueueItem Operations
-  /**
-   * List queueitems
-   */
-  async getQueueitems(query?: { page?: any; limit?: any; sort?: any; order?: any }, options?: { timeout?: number }): Promise<GetQueueitemsResponse> {
-    return this.request<GetQueueitemsResponse>('GET', `/api/queueitems`, { params: query, timeout: options?.timeout })
-  }
-
-  /**
-   * Create QueueItem
-   */
-  async createQueueitem(data: CreateQueueitemRequest, options?: { timeout?: number }): Promise<CreateQueueitemResponse> {
-    return this.request<CreateQueueitemResponse>('POST', `/api/queueitems`, { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Get QueueItem by ID
-   */
-  async getQueueitem(queueitemId: string | number, options?: { timeout?: number }): Promise<GetQueueitemResponse> {
-    return this.request<GetQueueitemResponse>('GET', this.buildPath(`/api/queueitems/{queueitemId}`, { queueitemId }), { timeout: options?.timeout })
-  }
-
-  /**
-   * Update QueueItem
-   */
-  async updateQueueitem(queueitemId: string | number, data: UpdateQueueitemRequest, options?: { timeout?: number }): Promise<UpdateQueueitemResponse> {
-    return this.request<UpdateQueueitemResponse>('PUT', this.buildPath(`/api/queueitems/{queueitemId}`, { queueitemId }), { body: data, timeout: options?.timeout })
-  }
-
-  /**
-   * Delete QueueItem
-   */
-  async deleteQueueitem(queueitemId: string | number, options?: { timeout?: number }): Promise<DeleteQueueitemResponse> {
-    return this.request<DeleteQueueitemResponse>('DELETE', this.buildPath(`/api/queueitems/{queueitemId}`, { queueitemId }), { timeout: options?.timeout })
   }
 
 
@@ -1589,57 +1486,57 @@ export class TypeSafeApiClient {
   /**
    * List Claude commands for a project
    */
-  async listProjectsByProjectIdCommands(projectId: string | number, query?: { query?: any; scope?: any; includeGlobal?: any; limit?: any; offset?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdCommandsResponse> {
-    return this.request<ListProjectsByProjectIdCommandsResponse>('GET', this.buildPath(`/api/projects/{projectId}/commands`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdCommands(id: string | number, query?: { query?: any; scope?: any; includeGlobal?: any; limit?: any; offset?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdCommandsResponse> {
+    return this.request<GetProjectsByIdCommandsResponse>('GET', this.buildPath(`/api/projects/{id}/commands`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Create a new Claude command
    */
-  async createProjectsByProjectIdCommands(projectId: string | number, data: CreateProjectsByProjectIdCommandsRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdCommandsResponse> {
-    return this.request<CreateProjectsByProjectIdCommandsResponse>('POST', this.buildPath(`/api/projects/{projectId}/commands`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdCommands(id: string | number, data: CreateProjectsByIdCommandsRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdCommandsResponse> {
+    return this.request<CreateProjectsByIdCommandsResponse>('POST', this.buildPath(`/api/projects/{id}/commands`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get a specific Claude command
    */
-  async listProjectsByProjectIdCommandsByCommandName(projectId: string | number, commandName: string | number, query?: { namespace?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdCommandsByCommandNameResponse> {
-    return this.request<ListProjectsByProjectIdCommandsByCommandNameResponse>('GET', this.buildPath(`/api/projects/{projectId}/commands/{commandName}`, { projectId, commandName }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdCommandsByCommandName(id: string | number, commandName: string | number, query?: { namespace?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdCommandsByCommandNameResponse> {
+    return this.request<GetProjectsByIdCommandsByCommandNameResponse>('GET', this.buildPath(`/api/projects/{id}/commands/{commandName}`, { id, commandName }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Update a Claude command
    */
-  async updateProjectsByProjectIdCommandsByCommandName(projectId: string | number, commandName: string | number, data: UpdateProjectsByProjectIdCommandsByCommandNameRequest, query?: { namespace?: any }, options?: { timeout?: number }): Promise<UpdateProjectsByProjectIdCommandsByCommandNameResponse> {
-    return this.request<UpdateProjectsByProjectIdCommandsByCommandNameResponse>('PUT', this.buildPath(`/api/projects/{projectId}/commands/{commandName}`, { projectId, commandName }), { params: query, body: data, timeout: options?.timeout })
+  async updateProjectsByIdCommandsByCommandName(id: string | number, commandName: string | number, data: UpdateProjectsByIdCommandsByCommandNameRequest, query?: { namespace?: any }, options?: { timeout?: number }): Promise<UpdateProjectsByIdCommandsByCommandNameResponse> {
+    return this.request<UpdateProjectsByIdCommandsByCommandNameResponse>('PUT', this.buildPath(`/api/projects/{id}/commands/{commandName}`, { id, commandName }), { params: query, body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a Claude command
    */
-  async deleteProjectsByProjectIdCommandsByCommandName(projectId: string | number, commandName: string | number, query?: { namespace?: any }, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdCommandsByCommandNameResponse> {
-    return this.request<DeleteProjectsByProjectIdCommandsByCommandNameResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/commands/{commandName}`, { projectId, commandName }), { params: query, timeout: options?.timeout })
+  async deleteProjectsByIdCommandsByCommandName(id: string | number, commandName: string | number, query?: { namespace?: any }, options?: { timeout?: number }): Promise<DeleteProjectsByIdCommandsByCommandNameResponse> {
+    return this.request<DeleteProjectsByIdCommandsByCommandNameResponse>('DELETE', this.buildPath(`/api/projects/{id}/commands/{commandName}`, { id, commandName }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Execute a Claude command
    */
-  async createProjectsByProjectIdCommandsByCommandNameExecute(projectId: string | number, commandName: string | number, data: CreateProjectsByProjectIdCommandsByCommandNameExecuteRequest, query?: { namespace?: any }, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdCommandsByCommandNameExecuteResponse> {
-    return this.request<CreateProjectsByProjectIdCommandsByCommandNameExecuteResponse>('POST', this.buildPath(`/api/projects/{projectId}/commands/{commandName}/execute`, { projectId, commandName }), { params: query, body: data, timeout: options?.timeout })
+  async createProjectsByIdCommandsByCommandNameExecute(id: string | number, commandName: string | number, data: CreateProjectsByIdCommandsByCommandNameExecuteRequest, query?: { namespace?: any }, options?: { timeout?: number }): Promise<CreateProjectsByIdCommandsByCommandNameExecuteResponse> {
+    return this.request<CreateProjectsByIdCommandsByCommandNameExecuteResponse>('POST', this.buildPath(`/api/projects/{id}/commands/{commandName}/execute`, { id, commandName }), { params: query, body: data, timeout: options?.timeout })
   }
 
   /**
    * Generate a new Claude command using AI
    */
-  async createProjectsByProjectIdCommandsGenerate(projectId: string | number, data: CreateProjectsByProjectIdCommandsGenerateRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdCommandsGenerateResponse> {
-    return this.request<CreateProjectsByProjectIdCommandsGenerateResponse>('POST', this.buildPath(`/api/projects/{projectId}/commands/generate`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdCommandsGenerate(id: string | number, data: CreateProjectsByIdCommandsGenerateRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdCommandsGenerateResponse> {
+    return this.request<CreateProjectsByIdCommandsGenerateResponse>('POST', this.buildPath(`/api/projects/{id}/commands/generate`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get AI-powered command suggestions
    */
-  async createProjectsByProjectIdCommandsSuggest(projectId: string | number, data: CreateProjectsByProjectIdCommandsSuggestRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdCommandsSuggestResponse> {
-    return this.request<CreateProjectsByProjectIdCommandsSuggestResponse>('POST', this.buildPath(`/api/projects/{projectId}/commands/suggest`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdCommandsSuggest(id: string | number, data: CreateProjectsByIdCommandsSuggestRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdCommandsSuggestResponse> {
+    return this.request<CreateProjectsByIdCommandsSuggestResponse>('POST', this.buildPath(`/api/projects/{id}/commands/suggest`, { id }), { body: data, timeout: options?.timeout })
   }
 
 
@@ -1772,45 +1669,66 @@ export class TypeSafeApiClient {
   /**
    * Get project MCP configuration locations
    */
-  async listProjectsByProjectIdMcpConfigLocations(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpConfigLocationsResponse> {
-    return this.request<ListProjectsByProjectIdMcpConfigLocationsResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/config/locations`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpConfigLocations(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpConfigLocationsResponse> {
+    return this.request<GetProjectsByIdMcpConfigLocationsResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/config/locations`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get merged project MCP configuration
    */
-  async listProjectsByProjectIdMcpConfigMerged(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpConfigMergedResponse> {
-    return this.request<ListProjectsByProjectIdMcpConfigMergedResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/config/merged`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpConfigMerged(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpConfigMergedResponse> {
+    return this.request<GetProjectsByIdMcpConfigMergedResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/config/merged`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get expanded project MCP configuration (variables resolved)
+   */
+  async getProjectsByIdMcpConfigExpanded(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpConfigExpandedResponse> {
+    return this.request<GetProjectsByIdMcpConfigExpandedResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/config/expanded`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get project-specific MCP configuration
    */
-  async listProjectsByProjectIdMcpConfig(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpConfigResponse> {
-    return this.request<ListProjectsByProjectIdMcpConfigResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/config`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpConfig(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpConfigResponse> {
+    return this.request<GetProjectsByIdMcpConfigResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/config`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Update project-specific MCP configuration
    */
-  async updateProjectsByProjectIdMcpConfig(projectId: string | number, data: UpdateProjectsByProjectIdMcpConfigRequest, options?: { timeout?: number }): Promise<UpdateProjectsByProjectIdMcpConfigResponse> {
-    return this.request<UpdateProjectsByProjectIdMcpConfigResponse>('PUT', this.buildPath(`/api/projects/{projectId}/mcp/config`, { projectId }), { body: data, timeout: options?.timeout })
+  async updateProjectsByIdMcpConfig(id: string | number, data: UpdateProjectsByIdMcpConfigRequest, options?: { timeout?: number }): Promise<UpdateProjectsByIdMcpConfigResponse> {
+    return this.request<UpdateProjectsByIdMcpConfigResponse>('PUT', this.buildPath(`/api/projects/{id}/mcp/config`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete project-specific MCP configuration
    */
-  async deleteProjectsByProjectIdMcpConfig(projectId: string | number, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdMcpConfigResponse> {
-    return this.request<DeleteProjectsByProjectIdMcpConfigResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/mcp/config`, { projectId }), { timeout: options?.timeout })
+  async deleteProjectsByIdMcpConfig(id: string | number, options?: { timeout?: number }): Promise<DeleteProjectsByIdMcpConfigResponse> {
+    return this.request<DeleteProjectsByIdMcpConfigResponse>('DELETE', this.buildPath(`/api/projects/{id}/mcp/config`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Save project MCP configuration to a specific location
+   */
+  async createProjectsByIdMcpConfigSaveToLocation(id: string | number, data: CreateProjectsByIdMcpConfigSaveToLocationRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpConfigSaveToLocationResponse> {
+    return this.request<CreateProjectsByIdMcpConfigSaveToLocationResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/config/save-to-location`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Get default project MCP configuration for a given location
+   */
+  async getProjectsByIdMcpConfigDefaultForLocation(id: string | number, query?: { location?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpConfigDefaultForLocationResponse> {
+    return this.request<GetProjectsByIdMcpConfigDefaultForLocationResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/config/default-for-location`, { id }), { params: query, timeout: options?.timeout })
   }
 
 
   // MCP Installation Operations
   /**
-   * POST /api/projects/{projectId}/mcp/config
+   * POST /api/projects/{id}/mcp/config
    */
-  async createProjectsByProjectIdMcpConfig(projectId: string | number, data: CreateProjectsByProjectIdMcpConfigRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpConfigResponse> {
-    return this.request<CreateProjectsByProjectIdMcpConfigResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/config`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpConfig(id: string | number, data: CreateProjectsByIdMcpConfigRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpConfigResponse> {
+    return this.request<CreateProjectsByIdMcpConfigResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/config`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
@@ -1821,24 +1739,24 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * GET /api/projects/{projectId}/mcp/installation/status
+   * GET /api/projects/{id}/mcp/installation/status
    */
-  async listProjectsByProjectIdMcpInstallationStatus(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpInstallationStatusResponse> {
-    return this.request<ListProjectsByProjectIdMcpInstallationStatusResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/installation/status`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpInstallationStatus(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpInstallationStatusResponse> {
+    return this.request<GetProjectsByIdMcpInstallationStatusResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/installation/status`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/mcp/installation/install
+   * POST /api/projects/{id}/mcp/installation/install
    */
-  async createProjectsByProjectIdMcpInstallationInstall(projectId: string | number, data: CreateProjectsByProjectIdMcpInstallationInstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpInstallationInstallResponse> {
-    return this.request<CreateProjectsByProjectIdMcpInstallationInstallResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/installation/install`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpInstallationInstall(id: string | number, data: CreateProjectsByIdMcpInstallationInstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpInstallationInstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationInstallResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/installation/install`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/mcp/installation/uninstall
+   * POST /api/projects/{id}/mcp/installation/uninstall
    */
-  async createProjectsByProjectIdMcpInstallationUninstall(projectId: string | number, data: CreateProjectsByProjectIdMcpInstallationUninstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpInstallationUninstallResponse> {
-    return this.request<CreateProjectsByProjectIdMcpInstallationUninstallResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/installation/uninstall`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpInstallationUninstall(id: string | number, data: CreateProjectsByIdMcpInstallationUninstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpInstallationUninstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationUninstallResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/installation/uninstall`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
@@ -1849,17 +1767,17 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * POST /api/projects/{projectId}/mcp/installation/batch-install
+   * POST /api/projects/{id}/mcp/installation/batch-install
    */
-  async createProjectsByProjectIdMcpInstallationBatchInstall(projectId: string | number, data: CreateProjectsByProjectIdMcpInstallationBatchInstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpInstallationBatchInstallResponse> {
-    return this.request<CreateProjectsByProjectIdMcpInstallationBatchInstallResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/installation/batch-install`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpInstallationBatchInstall(id: string | number, data: CreateProjectsByIdMcpInstallationBatchInstallRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpInstallationBatchInstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationBatchInstallResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/installation/batch-install`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/mcp/install-project-config
+   * POST /api/projects/{id}/mcp/install-project-config
    */
-  async createProjectsByProjectIdMcpInstallProjectConfig(projectId: string | number, data: CreateProjectsByProjectIdMcpInstallProjectConfigRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpInstallProjectConfigResponse> {
-    return this.request<CreateProjectsByProjectIdMcpInstallProjectConfigResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/install-project-config`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpInstallProjectConfig(id: string | number, data: CreateProjectsByIdMcpInstallProjectConfigRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpInstallProjectConfigResponse> {
+    return this.request<CreateProjectsByIdMcpInstallProjectConfigResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/install-project-config`, { id }), { body: data, timeout: options?.timeout })
   }
 
 
@@ -1867,22 +1785,71 @@ export class TypeSafeApiClient {
   /**
    * Get complete flow data for a project
    */
-  async listProjectsByProjectIdFlow(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdFlowResponse> {
-    return this.request<ListProjectsByProjectIdFlowResponse>('GET', this.buildPath(`/api/projects/{projectId}/flow`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdFlow(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdFlowResponse> {
+    return this.request<GetProjectsByIdFlowResponse>('GET', this.buildPath(`/api/projects/{id}/flow`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get all flow items as a flat list
    */
-  async listProjectsByProjectIdFlowItems(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdFlowItemsResponse> {
-    return this.request<ListProjectsByProjectIdFlowItemsResponse>('GET', this.buildPath(`/api/projects/{projectId}/flow/items`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdFlowItems(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdFlowItemsResponse> {
+    return this.request<GetProjectsByIdFlowItemsResponse>('GET', this.buildPath(`/api/projects/{id}/flow/items`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get all unqueued tickets and tasks
    */
-  async listProjectsByProjectIdFlowUnqueued(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdFlowUnqueuedResponse> {
-    return this.request<ListProjectsByProjectIdFlowUnqueuedResponse>('GET', this.buildPath(`/api/projects/{projectId}/flow/unqueued`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdFlowUnqueued(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdFlowUnqueuedResponse> {
+    return this.request<GetProjectsByIdFlowUnqueuedResponse>('GET', this.buildPath(`/api/projects/{id}/flow/unqueued`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Create a queue (Flow)
+   */
+  async createFlowQueues(data: CreateFlowQueuesRequest, options?: { timeout?: number }): Promise<CreateFlowQueuesResponse> {
+    return this.request<CreateFlowQueuesResponse>('POST', `/api/flow/queues`, { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * List queues for a project (Flow)
+   */
+  async getProjectsByIdFlowQueues(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdFlowQueuesResponse> {
+    return this.request<GetProjectsByIdFlowQueuesResponse>('GET', this.buildPath(`/api/projects/{id}/flow/queues`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get queues with stats (Flow)
+   */
+  async getProjectsByIdFlowQueuesWithStats(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdFlowQueuesWithStatsResponse> {
+    return this.request<GetProjectsByIdFlowQueuesWithStatsResponse>('GET', this.buildPath(`/api/projects/{id}/flow/queues-with-stats`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get items in a queue (Flow)
+   */
+  async listFlowQueuesByQueueIdItems(queueId: string | number, query?: { status?: any }, options?: { timeout?: number }): Promise<ListFlowQueuesByQueueIdItemsResponse> {
+    return this.request<ListFlowQueuesByQueueIdItemsResponse>('GET', this.buildPath(`/api/flow/queues/{queueId}/items`, { queueId }), { params: query, timeout: options?.timeout })
+  }
+
+  /**
+   * Get queue statistics (Flow)
+   */
+  async listFlowQueuesByQueueIdStats(queueId: string | number, options?: { timeout?: number }): Promise<ListFlowQueuesByQueueIdStatsResponse> {
+    return this.request<ListFlowQueuesByQueueIdStatsResponse>('GET', this.buildPath(`/api/flow/queues/{queueId}/stats`, { queueId }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Update queue (Flow)
+   */
+  async updateFlowQueuesByQueueId(queueId: string | number, data: UpdateFlowQueuesByQueueIdRequest, options?: { timeout?: number }): Promise<UpdateFlowQueuesByQueueIdResponse> {
+    return this.request<UpdateFlowQueuesByQueueIdResponse>('PATCH', this.buildPath(`/api/flow/queues/{queueId}`, { queueId }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Delete queue (Flow)
+   */
+  async deleteFlowQueuesByQueueId(queueId: string | number, options?: { timeout?: number }): Promise<DeleteFlowQueuesByQueueIdResponse> {
+    return this.request<DeleteFlowQueuesByQueueIdResponse>('DELETE', this.buildPath(`/api/flow/queues/{queueId}`, { queueId }), { timeout: options?.timeout })
   }
 
   /**
@@ -1979,6 +1946,13 @@ export class TypeSafeApiClient {
   }
 
   /**
+   * Debug provider key resolution (no secrets)
+   */
+  async listProviders_debugConfig(options?: { timeout?: number }): Promise<ListProviders_debugConfigResponse> {
+    return this.request<ListProviders_debugConfigResponse>('GET', `/api/providers/_debug-config`, { timeout: options?.timeout })
+  }
+
+  /**
    * Generate text (one-off, non-streaming)
    */
   async createAiGenerateText(data: CreateAiGenerateTextRequest, options?: { timeout?: number }): Promise<CreateAiGenerateTextResponse> {
@@ -2029,36 +2003,36 @@ export class TypeSafeApiClient {
   /**
    * List all MCP server configurations for a project
    */
-  async listProjectsByProjectIdMcpServers(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpServersResponse> {
-    return this.request<ListProjectsByProjectIdMcpServersResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/servers`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpServers(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpServersResponse> {
+    return this.request<GetProjectsByIdMcpServersResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/servers`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Create MCP server configuration
    */
-  async createProjectsByProjectIdMcpServers(projectId: string | number, data: CreateProjectsByProjectIdMcpServersRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdMcpServersResponse> {
-    return this.request<CreateProjectsByProjectIdMcpServersResponse>('POST', this.buildPath(`/api/projects/{projectId}/mcp/servers`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdMcpServers(id: string | number, data: CreateProjectsByIdMcpServersRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdMcpServersResponse> {
+    return this.request<CreateProjectsByIdMcpServersResponse>('POST', this.buildPath(`/api/projects/{id}/mcp/servers`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get MCP server configuration by ID
    */
-  async listProjectsByProjectIdMcpServersByServerId(projectId: string | number, serverId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpServersByServerIdResponse> {
-    return this.request<ListProjectsByProjectIdMcpServersByServerIdResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/servers/{serverId}`, { projectId, serverId }), { timeout: options?.timeout })
+  async getProjectsByIdMcpServersByServerId(id: string | number, serverId: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdMcpServersByServerIdResponse> {
+    return this.request<GetProjectsByIdMcpServersByServerIdResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/servers/{serverId}`, { id, serverId }), { timeout: options?.timeout })
   }
 
   /**
    * Update MCP server configuration
    */
-  async updateProjectsByProjectIdMcpServersByServerId(projectId: string | number, serverId: string | number, data: UpdateProjectsByProjectIdMcpServersByServerIdRequest, options?: { timeout?: number }): Promise<UpdateProjectsByProjectIdMcpServersByServerIdResponse> {
-    return this.request<UpdateProjectsByProjectIdMcpServersByServerIdResponse>('PATCH', this.buildPath(`/api/projects/{projectId}/mcp/servers/{serverId}`, { projectId, serverId }), { body: data, timeout: options?.timeout })
+  async updateProjectsByIdMcpServersByServerId(id: string | number, serverId: string | number, data: UpdateProjectsByIdMcpServersByServerIdRequest, options?: { timeout?: number }): Promise<UpdateProjectsByIdMcpServersByServerIdResponse> {
+    return this.request<UpdateProjectsByIdMcpServersByServerIdResponse>('PATCH', this.buildPath(`/api/projects/{id}/mcp/servers/{serverId}`, { id, serverId }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete MCP server configuration
    */
-  async deleteProjectsByProjectIdMcpServersByServerId(projectId: string | number, serverId: string | number, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdMcpServersByServerIdResponse> {
-    return this.request<DeleteProjectsByProjectIdMcpServersByServerIdResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/mcp/servers/{serverId}`, { projectId, serverId }), { timeout: options?.timeout })
+  async deleteProjectsByIdMcpServersByServerId(id: string | number, serverId: string | number, options?: { timeout?: number }): Promise<DeleteProjectsByIdMcpServersByServerIdResponse> {
+    return this.request<DeleteProjectsByIdMcpServersByServerIdResponse>('DELETE', this.buildPath(`/api/projects/{id}/mcp/servers/{serverId}`, { id, serverId }), { timeout: options?.timeout })
   }
 
   /**
@@ -2162,36 +2136,36 @@ export class TypeSafeApiClient {
   /**
    * Get MCP analytics overview for a project
    */
-  async listProjectsByProjectIdMcpAnalyticsOverview(projectId: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpAnalyticsOverviewResponse> {
-    return this.request<ListProjectsByProjectIdMcpAnalyticsOverviewResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/analytics/overview`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdMcpAnalyticsOverview(id: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpAnalyticsOverviewResponse> {
+    return this.request<GetProjectsByIdMcpAnalyticsOverviewResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/analytics/overview`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get MCP tool statistics for a project
    */
-  async listProjectsByProjectIdMcpAnalyticsStatistics(projectId: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpAnalyticsStatisticsResponse> {
-    return this.request<ListProjectsByProjectIdMcpAnalyticsStatisticsResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/analytics/statistics`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdMcpAnalyticsStatistics(id: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpAnalyticsStatisticsResponse> {
+    return this.request<GetProjectsByIdMcpAnalyticsStatisticsResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/analytics/statistics`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get MCP execution timeline for a project
    */
-  async listProjectsByProjectIdMcpAnalyticsTimeline(projectId: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpAnalyticsTimelineResponse> {
-    return this.request<ListProjectsByProjectIdMcpAnalyticsTimelineResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/analytics/timeline`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdMcpAnalyticsTimeline(id: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpAnalyticsTimelineResponse> {
+    return this.request<GetProjectsByIdMcpAnalyticsTimelineResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/analytics/timeline`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get MCP error patterns for a project
    */
-  async listProjectsByProjectIdMcpAnalyticsErrorPatterns(projectId: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpAnalyticsErrorPatternsResponse> {
-    return this.request<ListProjectsByProjectIdMcpAnalyticsErrorPatternsResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/analytics/error-patterns`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdMcpAnalyticsErrorPatterns(id: string | number, query?: { period?: any; toolNames?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpAnalyticsErrorPatternsResponse> {
+    return this.request<GetProjectsByIdMcpAnalyticsErrorPatternsResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/analytics/error-patterns`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get MCP tool executions for a project
    */
-  async listProjectsByProjectIdMcpAnalyticsExecutions(projectId: string | number, query?: { toolName?: any; status?: any; startDate?: any; endDate?: any; limit?: any; offset?: any; sortBy?: any; sortOrder?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdMcpAnalyticsExecutionsResponse> {
-    return this.request<ListProjectsByProjectIdMcpAnalyticsExecutionsResponse>('GET', this.buildPath(`/api/projects/{projectId}/mcp/analytics/executions`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdMcpAnalyticsExecutions(id: string | number, query?: { toolName?: any; status?: any; startDate?: any; endDate?: any; limit?: any; offset?: any; sortBy?: any; sortOrder?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdMcpAnalyticsExecutionsResponse> {
+    return this.request<GetProjectsByIdMcpAnalyticsExecutionsResponse>('GET', this.buildPath(`/api/projects/{id}/mcp/analytics/executions`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
@@ -2283,232 +2257,232 @@ export class TypeSafeApiClient {
   /**
    * Get git status for a project
    */
-  async listProjectsByProjectIdGitStatus(projectId: string | number, query?: { refresh?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitStatusResponse> {
-    return this.request<ListProjectsByProjectIdGitStatusResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/status`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdGitStatus(id: string | number, query?: { refresh?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdGitStatusResponse> {
+    return this.request<GetProjectsByIdGitStatusResponse>('GET', this.buildPath(`/api/projects/{id}/git/status`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Stage files for commit
    */
-  async createProjectsByProjectIdGitStage(projectId: string | number, data: CreateProjectsByProjectIdGitStageRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitStageResponse> {
-    return this.request<CreateProjectsByProjectIdGitStageResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/stage`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitStage(id: string | number, data: CreateProjectsByIdGitStageRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitStageResponse> {
+    return this.request<CreateProjectsByIdGitStageResponse>('POST', this.buildPath(`/api/projects/{id}/git/stage`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Unstage files from commit
    */
-  async createProjectsByProjectIdGitUnstage(projectId: string | number, data: CreateProjectsByProjectIdGitUnstageRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitUnstageResponse> {
-    return this.request<CreateProjectsByProjectIdGitUnstageResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/unstage`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitUnstage(id: string | number, data: CreateProjectsByIdGitUnstageRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitUnstageResponse> {
+    return this.request<CreateProjectsByIdGitUnstageResponse>('POST', this.buildPath(`/api/projects/{id}/git/unstage`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Stage all changes
    */
-  async createProjectsByProjectIdGitStageAll(projectId: string | number, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitStageAllResponse> {
-    return this.request<CreateProjectsByProjectIdGitStageAllResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/stage-all`, { projectId }), { timeout: options?.timeout })
+  async createProjectsByIdGitStageAll(id: string | number, options?: { timeout?: number }): Promise<CreateProjectsByIdGitStageAllResponse> {
+    return this.request<CreateProjectsByIdGitStageAllResponse>('POST', this.buildPath(`/api/projects/{id}/git/stage-all`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Unstage all changes
    */
-  async createProjectsByProjectIdGitUnstageAll(projectId: string | number, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitUnstageAllResponse> {
-    return this.request<CreateProjectsByProjectIdGitUnstageAllResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/unstage-all`, { projectId }), { timeout: options?.timeout })
+  async createProjectsByIdGitUnstageAll(id: string | number, options?: { timeout?: number }): Promise<CreateProjectsByIdGitUnstageAllResponse> {
+    return this.request<CreateProjectsByIdGitUnstageAllResponse>('POST', this.buildPath(`/api/projects/{id}/git/unstage-all`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Create a new commit
    */
-  async createProjectsByProjectIdGitCommit(projectId: string | number, data: CreateProjectsByProjectIdGitCommitRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitCommitResponse> {
-    return this.request<CreateProjectsByProjectIdGitCommitResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/commit`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitCommit(id: string | number, data: CreateProjectsByIdGitCommitRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitCommitResponse> {
+    return this.request<CreateProjectsByIdGitCommitResponse>('POST', this.buildPath(`/api/projects/{id}/git/commit`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Get commit history
    */
-  async listProjectsByProjectIdGitLog(projectId: string | number, query?: { maxCount?: any; skip?: any; author?: any; since?: any; until?: any; grep?: any; branch?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitLogResponse> {
-    return this.request<ListProjectsByProjectIdGitLogResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/log`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdGitLog(id: string | number, query?: { maxCount?: any; skip?: any; author?: any; since?: any; until?: any; grep?: any; branch?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdGitLogResponse> {
+    return this.request<GetProjectsByIdGitLogResponse>('GET', this.buildPath(`/api/projects/{id}/git/log`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get enhanced commit history
    */
-  async listProjectsByProjectIdGitLogEnhanced(projectId: string | number, query?: { maxCount?: any; skip?: any; author?: any; since?: any; until?: any; grep?: any; branch?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitLogEnhancedResponse> {
-    return this.request<ListProjectsByProjectIdGitLogEnhancedResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/log-enhanced`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdGitLogEnhanced(id: string | number, query?: { maxCount?: any; skip?: any; author?: any; since?: any; until?: any; grep?: any; branch?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdGitLogEnhancedResponse> {
+    return this.request<GetProjectsByIdGitLogEnhancedResponse>('GET', this.buildPath(`/api/projects/{id}/git/log-enhanced`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get commit details
    */
-  async listProjectsByProjectIdGitCommitsByCommitHash(projectId: string | number, commitHash: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitCommitsByCommitHashResponse> {
-    return this.request<ListProjectsByProjectIdGitCommitsByCommitHashResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/commits/{commitHash}`, { projectId, commitHash }), { timeout: options?.timeout })
+  async getProjectsByIdGitCommitsByCommitHash(id: string | number, commitHash: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitCommitsByCommitHashResponse> {
+    return this.request<GetProjectsByIdGitCommitsByCommitHashResponse>('GET', this.buildPath(`/api/projects/{id}/git/commits/{commitHash}`, { id, commitHash }), { timeout: options?.timeout })
   }
 
   /**
    * Get file diff
    */
-  async listProjectsByProjectIdGitDiff(projectId: string | number, query?: { filePath?: any; cached?: any }, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitDiffResponse> {
-    return this.request<ListProjectsByProjectIdGitDiffResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/diff`, { projectId }), { params: query, timeout: options?.timeout })
+  async getProjectsByIdGitDiff(id: string | number, query?: { filePath?: any; cached?: any }, options?: { timeout?: number }): Promise<GetProjectsByIdGitDiffResponse> {
+    return this.request<GetProjectsByIdGitDiffResponse>('GET', this.buildPath(`/api/projects/{id}/git/diff`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * List all branches
    */
-  async listProjectsByProjectIdGitBranches(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitBranchesResponse> {
-    return this.request<ListProjectsByProjectIdGitBranchesResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/branches`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitBranches(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitBranchesResponse> {
+    return this.request<GetProjectsByIdGitBranchesResponse>('GET', this.buildPath(`/api/projects/{id}/git/branches`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Create a new branch
    */
-  async createProjectsByProjectIdGitBranches(projectId: string | number, data: CreateProjectsByProjectIdGitBranchesRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitBranchesResponse> {
-    return this.request<CreateProjectsByProjectIdGitBranchesResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/branches`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitBranches(id: string | number, data: CreateProjectsByIdGitBranchesRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitBranchesResponse> {
+    return this.request<CreateProjectsByIdGitBranchesResponse>('POST', this.buildPath(`/api/projects/{id}/git/branches`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * List branches with enhanced information
    */
-  async listProjectsByProjectIdGitBranchesEnhanced(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitBranchesEnhancedResponse> {
-    return this.request<ListProjectsByProjectIdGitBranchesEnhancedResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/branches-enhanced`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitBranchesEnhanced(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitBranchesEnhancedResponse> {
+    return this.request<GetProjectsByIdGitBranchesEnhancedResponse>('GET', this.buildPath(`/api/projects/{id}/git/branches-enhanced`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Switch to a different branch
    */
-  async createProjectsByProjectIdGitBranchesSwitch(projectId: string | number, data: CreateProjectsByProjectIdGitBranchesSwitchRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitBranchesSwitchResponse> {
-    return this.request<CreateProjectsByProjectIdGitBranchesSwitchResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/branches/switch`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitBranchesSwitch(id: string | number, data: CreateProjectsByIdGitBranchesSwitchRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitBranchesSwitchResponse> {
+    return this.request<CreateProjectsByIdGitBranchesSwitchResponse>('POST', this.buildPath(`/api/projects/{id}/git/branches/switch`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Delete a branch
    */
-  async deleteProjectsByProjectIdGitBranchesByBranchName(projectId: string | number, branchName: string | number, query?: { force?: any }, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdGitBranchesByBranchNameResponse> {
-    return this.request<DeleteProjectsByProjectIdGitBranchesByBranchNameResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/git/branches/{branchName}`, { projectId, branchName }), { params: query, timeout: options?.timeout })
+  async deleteProjectsByIdGitBranchesByBranchName(id: string | number, branchName: string | number, query?: { force?: any }, options?: { timeout?: number }): Promise<DeleteProjectsByIdGitBranchesByBranchNameResponse> {
+    return this.request<DeleteProjectsByIdGitBranchesByBranchNameResponse>('DELETE', this.buildPath(`/api/projects/{id}/git/branches/{branchName}`, { id, branchName }), { params: query, timeout: options?.timeout })
   }
 
   /**
-   * GET /api/projects/{projectId}/git/stash
+   * GET /api/projects/{id}/git/stash
    */
-  async listProjectsByProjectIdGitStash(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitStashResponse> {
-    return this.request<ListProjectsByProjectIdGitStashResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/stash`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitStash(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitStashResponse> {
+    return this.request<GetProjectsByIdGitStashResponse>('GET', this.buildPath(`/api/projects/{id}/git/stash`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/stash
+   * POST /api/projects/{id}/git/stash
    */
-  async createProjectsByProjectIdGitStash(projectId: string | number, data: CreateProjectsByProjectIdGitStashRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitStashResponse> {
-    return this.request<CreateProjectsByProjectIdGitStashResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/stash`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitStash(id: string | number, data: CreateProjectsByIdGitStashRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitStashResponse> {
+    return this.request<CreateProjectsByIdGitStashResponse>('POST', this.buildPath(`/api/projects/{id}/git/stash`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Drop a stash
    */
-  async deleteProjectsByProjectIdGitStash(projectId: string | number, data: DeleteProjectsByProjectIdGitStashRequest, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdGitStashResponse> {
-    return this.request<DeleteProjectsByProjectIdGitStashResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/git/stash`, { projectId }), { body: data, timeout: options?.timeout })
+  async deleteProjectsByIdGitStash(id: string | number, data: DeleteProjectsByIdGitStashRequest, options?: { timeout?: number }): Promise<DeleteProjectsByIdGitStashResponse> {
+    return this.request<DeleteProjectsByIdGitStashResponse>('DELETE', this.buildPath(`/api/projects/{id}/git/stash`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/stash/apply
+   * POST /api/projects/{id}/git/stash/apply
    */
-  async createProjectsByProjectIdGitStashApply(projectId: string | number, data: CreateProjectsByProjectIdGitStashApplyRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitStashApplyResponse> {
-    return this.request<CreateProjectsByProjectIdGitStashApplyResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/stash/apply`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitStashApply(id: string | number, data: CreateProjectsByIdGitStashApplyRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitStashApplyResponse> {
+    return this.request<CreateProjectsByIdGitStashApplyResponse>('POST', this.buildPath(`/api/projects/{id}/git/stash/apply`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Pop a stash
    */
-  async createProjectsByProjectIdGitStashPop(projectId: string | number, data: CreateProjectsByProjectIdGitStashPopRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitStashPopResponse> {
-    return this.request<CreateProjectsByProjectIdGitStashPopResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/stash/pop`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitStashPop(id: string | number, data: CreateProjectsByIdGitStashPopRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitStashPopResponse> {
+    return this.request<CreateProjectsByIdGitStashPopResponse>('POST', this.buildPath(`/api/projects/{id}/git/stash/pop`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * List all worktrees
    */
-  async listProjectsByProjectIdGitWorktrees(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitWorktreesResponse> {
-    return this.request<ListProjectsByProjectIdGitWorktreesResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/worktrees`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitWorktrees(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitWorktreesResponse> {
+    return this.request<GetProjectsByIdGitWorktreesResponse>('GET', this.buildPath(`/api/projects/{id}/git/worktrees`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Add a new worktree
    */
-  async createProjectsByProjectIdGitWorktrees(projectId: string | number, data: CreateProjectsByProjectIdGitWorktreesRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitWorktreesResponse> {
-    return this.request<CreateProjectsByProjectIdGitWorktreesResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/worktrees`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitWorktrees(id: string | number, data: CreateProjectsByIdGitWorktreesRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitWorktreesResponse> {
+    return this.request<CreateProjectsByIdGitWorktreesResponse>('POST', this.buildPath(`/api/projects/{id}/git/worktrees`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Remove a worktree
    */
-  async deleteProjectsByProjectIdGitWorktrees(projectId: string | number, data: DeleteProjectsByProjectIdGitWorktreesRequest, options?: { timeout?: number }): Promise<DeleteProjectsByProjectIdGitWorktreesResponse> {
-    return this.request<DeleteProjectsByProjectIdGitWorktreesResponse>('DELETE', this.buildPath(`/api/projects/{projectId}/git/worktrees`, { projectId }), { body: data, timeout: options?.timeout })
+  async deleteProjectsByIdGitWorktrees(id: string | number, data: DeleteProjectsByIdGitWorktreesRequest, options?: { timeout?: number }): Promise<DeleteProjectsByIdGitWorktreesResponse> {
+    return this.request<DeleteProjectsByIdGitWorktreesResponse>('DELETE', this.buildPath(`/api/projects/{id}/git/worktrees`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Lock a worktree
    */
-  async createProjectsByProjectIdGitWorktreesLock(projectId: string | number, data: CreateProjectsByProjectIdGitWorktreesLockRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitWorktreesLockResponse> {
-    return this.request<CreateProjectsByProjectIdGitWorktreesLockResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/worktrees/lock`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitWorktreesLock(id: string | number, data: CreateProjectsByIdGitWorktreesLockRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitWorktreesLockResponse> {
+    return this.request<CreateProjectsByIdGitWorktreesLockResponse>('POST', this.buildPath(`/api/projects/{id}/git/worktrees/lock`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Unlock a worktree
    */
-  async createProjectsByProjectIdGitWorktreesUnlock(projectId: string | number, data: CreateProjectsByProjectIdGitWorktreesUnlockRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitWorktreesUnlockResponse> {
-    return this.request<CreateProjectsByProjectIdGitWorktreesUnlockResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/worktrees/unlock`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitWorktreesUnlock(id: string | number, data: CreateProjectsByIdGitWorktreesUnlockRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitWorktreesUnlockResponse> {
+    return this.request<CreateProjectsByIdGitWorktreesUnlockResponse>('POST', this.buildPath(`/api/projects/{id}/git/worktrees/unlock`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
    * Prune worktrees
    */
-  async createProjectsByProjectIdGitWorktreesPrune(projectId: string | number, query?: { dryRun?: any }, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitWorktreesPruneResponse> {
-    return this.request<CreateProjectsByProjectIdGitWorktreesPruneResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/worktrees/prune`, { projectId }), { params: query, timeout: options?.timeout })
+  async createProjectsByIdGitWorktreesPrune(id: string | number, query?: { dryRun?: any }, options?: { timeout?: number }): Promise<CreateProjectsByIdGitWorktreesPruneResponse> {
+    return this.request<CreateProjectsByIdGitWorktreesPruneResponse>('POST', this.buildPath(`/api/projects/{id}/git/worktrees/prune`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
-   * GET /api/projects/{projectId}/git/remotes
+   * GET /api/projects/{id}/git/remotes
    */
-  async listProjectsByProjectIdGitRemotes(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitRemotesResponse> {
-    return this.request<ListProjectsByProjectIdGitRemotesResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/remotes`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitRemotes(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitRemotesResponse> {
+    return this.request<GetProjectsByIdGitRemotesResponse>('GET', this.buildPath(`/api/projects/{id}/git/remotes`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/push
+   * POST /api/projects/{id}/git/push
    */
-  async createProjectsByProjectIdGitPush(projectId: string | number, data: CreateProjectsByProjectIdGitPushRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitPushResponse> {
-    return this.request<CreateProjectsByProjectIdGitPushResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/push`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitPush(id: string | number, data: CreateProjectsByIdGitPushRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitPushResponse> {
+    return this.request<CreateProjectsByIdGitPushResponse>('POST', this.buildPath(`/api/projects/{id}/git/push`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/fetch
+   * POST /api/projects/{id}/git/fetch
    */
-  async createProjectsByProjectIdGitFetch(projectId: string | number, data: CreateProjectsByProjectIdGitFetchRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitFetchResponse> {
-    return this.request<CreateProjectsByProjectIdGitFetchResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/fetch`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitFetch(id: string | number, data: CreateProjectsByIdGitFetchRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitFetchResponse> {
+    return this.request<CreateProjectsByIdGitFetchResponse>('POST', this.buildPath(`/api/projects/{id}/git/fetch`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/pull
+   * POST /api/projects/{id}/git/pull
    */
-  async createProjectsByProjectIdGitPull(projectId: string | number, data: CreateProjectsByProjectIdGitPullRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitPullResponse> {
-    return this.request<CreateProjectsByProjectIdGitPullResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/pull`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitPull(id: string | number, data: CreateProjectsByIdGitPullRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitPullResponse> {
+    return this.request<CreateProjectsByIdGitPullResponse>('POST', this.buildPath(`/api/projects/{id}/git/pull`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * GET /api/projects/{projectId}/git/tags
+   * GET /api/projects/{id}/git/tags
    */
-  async listProjectsByProjectIdGitTags(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdGitTagsResponse> {
-    return this.request<ListProjectsByProjectIdGitTagsResponse>('GET', this.buildPath(`/api/projects/{projectId}/git/tags`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdGitTags(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdGitTagsResponse> {
+    return this.request<GetProjectsByIdGitTagsResponse>('GET', this.buildPath(`/api/projects/{id}/git/tags`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/tags
+   * POST /api/projects/{id}/git/tags
    */
-  async createProjectsByProjectIdGitTags(projectId: string | number, data: CreateProjectsByProjectIdGitTagsRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitTagsResponse> {
-    return this.request<CreateProjectsByProjectIdGitTagsResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/tags`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitTags(id: string | number, data: CreateProjectsByIdGitTagsRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitTagsResponse> {
+    return this.request<CreateProjectsByIdGitTagsResponse>('POST', this.buildPath(`/api/projects/{id}/git/tags`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/git/reset
+   * POST /api/projects/{id}/git/reset
    */
-  async createProjectsByProjectIdGitReset(projectId: string | number, data: CreateProjectsByProjectIdGitResetRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdGitResetResponse> {
-    return this.request<CreateProjectsByProjectIdGitResetResponse>('POST', this.buildPath(`/api/projects/{projectId}/git/reset`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdGitReset(id: string | number, data: CreateProjectsByIdGitResetRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdGitResetResponse> {
+    return this.request<CreateProjectsByIdGitResetResponse>('POST', this.buildPath(`/api/projects/{id}/git/reset`, { id }), { body: data, timeout: options?.timeout })
   }
 
 
@@ -2523,38 +2497,38 @@ export class TypeSafeApiClient {
 
   // Agent Files Operations
   /**
-   * GET /api/projects/{projectId}/agent-files/detect
+   * GET /api/projects/{id}/agent-files/detect
    */
-  async listProjectsByProjectIdAgentFilesDetect(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdAgentFilesDetectResponse> {
-    return this.request<ListProjectsByProjectIdAgentFilesDetectResponse>('GET', this.buildPath(`/api/projects/{projectId}/agent-files/detect`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdAgentFilesDetect(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdAgentFilesDetectResponse> {
+    return this.request<GetProjectsByIdAgentFilesDetectResponse>('GET', this.buildPath(`/api/projects/{id}/agent-files/detect`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/agent-files/update
+   * POST /api/projects/{id}/agent-files/update
    */
-  async createProjectsByProjectIdAgentFilesUpdate(projectId: string | number, data: CreateProjectsByProjectIdAgentFilesUpdateRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdAgentFilesUpdateResponse> {
-    return this.request<CreateProjectsByProjectIdAgentFilesUpdateResponse>('POST', this.buildPath(`/api/projects/{projectId}/agent-files/update`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdAgentFilesUpdate(id: string | number, data: CreateProjectsByIdAgentFilesUpdateRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdAgentFilesUpdateResponse> {
+    return this.request<CreateProjectsByIdAgentFilesUpdateResponse>('POST', this.buildPath(`/api/projects/{id}/agent-files/update`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/agent-files/remove-instructions
+   * POST /api/projects/{id}/agent-files/remove-instructions
    */
-  async createProjectsByProjectIdAgentFilesRemoveInstructions(projectId: string | number, data: CreateProjectsByProjectIdAgentFilesRemoveInstructionsRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdAgentFilesRemoveInstructionsResponse> {
-    return this.request<CreateProjectsByProjectIdAgentFilesRemoveInstructionsResponse>('POST', this.buildPath(`/api/projects/{projectId}/agent-files/remove-instructions`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdAgentFilesRemoveInstructions(id: string | number, data: CreateProjectsByIdAgentFilesRemoveInstructionsRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdAgentFilesRemoveInstructionsResponse> {
+    return this.request<CreateProjectsByIdAgentFilesRemoveInstructionsResponse>('POST', this.buildPath(`/api/projects/{id}/agent-files/remove-instructions`, { id }), { body: data, timeout: options?.timeout })
   }
 
   /**
-   * GET /api/projects/{projectId}/agent-files/status
+   * GET /api/projects/{id}/agent-files/status
    */
-  async listProjectsByProjectIdAgentFilesStatus(projectId: string | number, options?: { timeout?: number }): Promise<ListProjectsByProjectIdAgentFilesStatusResponse> {
-    return this.request<ListProjectsByProjectIdAgentFilesStatusResponse>('GET', this.buildPath(`/api/projects/{projectId}/agent-files/status`, { projectId }), { timeout: options?.timeout })
+  async getProjectsByIdAgentFilesStatus(id: string | number, options?: { timeout?: number }): Promise<GetProjectsByIdAgentFilesStatusResponse> {
+    return this.request<GetProjectsByIdAgentFilesStatusResponse>('GET', this.buildPath(`/api/projects/{id}/agent-files/status`, { id }), { timeout: options?.timeout })
   }
 
   /**
-   * POST /api/projects/{projectId}/agent-files/create
+   * POST /api/projects/{id}/agent-files/create
    */
-  async createProjectsByProjectIdAgentFilesCreate(projectId: string | number, data: CreateProjectsByProjectIdAgentFilesCreateRequest, options?: { timeout?: number }): Promise<CreateProjectsByProjectIdAgentFilesCreateResponse> {
-    return this.request<CreateProjectsByProjectIdAgentFilesCreateResponse>('POST', this.buildPath(`/api/projects/{projectId}/agent-files/create`, { projectId }), { body: data, timeout: options?.timeout })
+  async createProjectsByIdAgentFilesCreate(id: string | number, data: CreateProjectsByIdAgentFilesCreateRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdAgentFilesCreateResponse> {
+    return this.request<CreateProjectsByIdAgentFilesCreateResponse>('POST', this.buildPath(`/api/projects/{id}/agent-files/create`, { id }), { body: data, timeout: options?.timeout })
   }
 
 
@@ -2562,64 +2536,87 @@ export class TypeSafeApiClient {
   /**
    * Get MCP installation status for Claude Code and Claude Desktop
    */
-  async listClaudeCodeMcpStatusByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeMcpStatusByProjectIdResponse> {
-    return this.request<ListClaudeCodeMcpStatusByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/mcp-status/{projectId}`, { projectId }), { timeout: options?.timeout })
+  async getClaudeCodeMcpStatusById(id: string | number, options?: { timeout?: number }): Promise<GetClaudeCodeMcpStatusByIdResponse> {
+    return this.request<GetClaudeCodeMcpStatusByIdResponse>('GET', this.buildPath(`/api/claude-code/mcp-status/{id}`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Get lightweight session metadata for a project
    */
-  async listClaudeCodeSessionsByProjectIdMetadata(projectId: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdMetadataResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdMetadataResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/metadata`, { projectId }), { params: query, timeout: options?.timeout })
+  async getClaudeCodeSessionsByIdMetadata(id: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdMetadataResponse> {
+    return this.request<GetClaudeCodeSessionsByIdMetadataResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}/metadata`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get recent Claude Code sessions
    */
-  async listClaudeCodeSessionsByProjectIdRecent(projectId: string | number, query?: { limit?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdRecentResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdRecentResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/recent`, { projectId }), { params: query, timeout: options?.timeout })
+  async getClaudeCodeSessionsByIdRecent(id: string | number, query?: { limit?: any }, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdRecentResponse> {
+    return this.request<GetClaudeCodeSessionsByIdRecentResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}/recent`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get sessions with cursor-based pagination
    */
-  async listClaudeCodeSessionsByProjectIdPaginated(projectId: string | number, query?: { cursor?: any; limit?: any; sortBy?: any; sortOrder?: any; search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdPaginatedResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdPaginatedResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/paginated`, { projectId }), { params: query, timeout: options?.timeout })
+  async getClaudeCodeSessionsByIdPaginated(id: string | number, query?: { cursor?: any; limit?: any; sortBy?: any; sortOrder?: any; search?: any; branch?: any; startDate?: any; endDate?: any }, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdPaginatedResponse> {
+    return this.request<GetClaudeCodeSessionsByIdPaginatedResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}/paginated`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get complete Claude Code session with full message data
    */
-  async listClaudeCodeSessionsByProjectIdBySessionIdFull(projectId: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdBySessionIdFullResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/{sessionId}/full`, { projectId, sessionId }), { timeout: options?.timeout })
+  async getClaudeCodeSessionsByIdBySessionIdFull(id: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdBySessionIdFullResponse> {
+    return this.request<GetClaudeCodeSessionsByIdBySessionIdFullResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}/{sessionId}/full`, { id, sessionId }), { timeout: options?.timeout })
   }
 
   /**
    * Get messages for a specific Claude Code session
    */
-  async listClaudeCodeSessionsByProjectIdBySessionId(projectId: string | number, sessionId: string | number, query?: { search?: any; role?: any; limit?: any; offset?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdBySessionIdResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdBySessionIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}/{sessionId}`, { projectId, sessionId }), { params: query, timeout: options?.timeout })
+  async getClaudeCodeSessionsByIdBySessionId(id: string | number, sessionId: string | number, query?: { search?: any; role?: any; limit?: any; offset?: any }, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdBySessionIdResponse> {
+    return this.request<GetClaudeCodeSessionsByIdBySessionIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}/{sessionId}`, { id, sessionId }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get all Claude Code chat sessions for a project
    */
-  async listClaudeCodeSessionsByProjectId(projectId: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any; limit?: any; offset?: any; useCursor?: any; cursor?: any; sortBy?: any; sortOrder?: any }, options?: { timeout?: number }): Promise<ListClaudeCodeSessionsByProjectIdResponse> {
-    return this.request<ListClaudeCodeSessionsByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{projectId}`, { projectId }), { params: query, timeout: options?.timeout })
+  async getClaudeCodeSessionsById(id: string | number, query?: { search?: any; branch?: any; startDate?: any; endDate?: any; limit?: any; offset?: any; useCursor?: any; cursor?: any; sortBy?: any; sortOrder?: any }, options?: { timeout?: number }): Promise<GetClaudeCodeSessionsByIdResponse> {
+    return this.request<GetClaudeCodeSessionsByIdResponse>('GET', this.buildPath(`/api/claude-code/sessions/{id}`, { id }), { params: query, timeout: options?.timeout })
   }
 
   /**
    * Get Claude Code project metadata
    */
-  async listClaudeCodeProjectDataByProjectId(projectId: string | number, options?: { timeout?: number }): Promise<ListClaudeCodeProjectDataByProjectIdResponse> {
-    return this.request<ListClaudeCodeProjectDataByProjectIdResponse>('GET', this.buildPath(`/api/claude-code/project-data/{projectId}`, { projectId }), { timeout: options?.timeout })
+  async getClaudeCodeProjectDataById(id: string | number, options?: { timeout?: number }): Promise<GetClaudeCodeProjectDataByIdResponse> {
+    return this.request<GetClaudeCodeProjectDataByIdResponse>('GET', this.buildPath(`/api/claude-code/project-data/{id}`, { id }), { timeout: options?.timeout })
   }
 
   /**
    * Import a Claude Code session into a Promptliano chat
    */
-  async createClaudeCodeImportSessionByProjectIdBySessionId(projectId: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse> {
-    return this.request<CreateClaudeCodeImportSessionByProjectIdBySessionIdResponse>('POST', this.buildPath(`/api/claude-code/import-session/{projectId}/{sessionId}`, { projectId, sessionId }), { timeout: options?.timeout })
+  async createClaudeCodeImportSessionByIdBySessionId(id: string | number, sessionId: string | number, options?: { timeout?: number }): Promise<CreateClaudeCodeImportSessionByIdBySessionIdResponse> {
+    return this.request<CreateClaudeCodeImportSessionByIdBySessionIdResponse>('POST', this.buildPath(`/api/claude-code/import-session/{id}/{sessionId}`, { id, sessionId }), { timeout: options?.timeout })
+  }
+
+
+  // Security Operations
+  /**
+   * Get encryption key status (no secrets)
+   */
+  async listSecurityEncryptionKeyStatus(options?: { timeout?: number }): Promise<ListSecurityEncryptionKeyStatusResponse> {
+    return this.request<ListSecurityEncryptionKeyStatusResponse>('GET', `/api/security/encryption-key/status`, { timeout: options?.timeout })
+  }
+
+  /**
+   * Set or generate a custom encryption key
+   */
+  async createSecurityEncryptionKey(data: CreateSecurityEncryptionKeyRequest, options?: { timeout?: number }): Promise<CreateSecurityEncryptionKeyResponse> {
+    return this.request<CreateSecurityEncryptionKeyResponse>('POST', `/api/security/encryption-key`, { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Switch to default (insecure) encryption key
+   */
+  async createSecurityEncryptionKeyUseDefault(options?: { timeout?: number }): Promise<CreateSecurityEncryptionKeyUseDefaultResponse> {
+    return this.request<CreateSecurityEncryptionKeyUseDefaultResponse>('POST', `/api/security/encryption-key/use-default`, { timeout: options?.timeout })
   }
 
 

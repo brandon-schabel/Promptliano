@@ -135,6 +135,28 @@
           "message"
         ]
       },
+      "QueueListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
       "Ticket": {
         "type": "object",
         "properties": {
@@ -1005,305 +1027,6 @@
             "type": "string",
             "minLength": 1,
             "example": "Translate this text: {text}"
-          }
-        }
-      },
-      "Queue": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "default": true
-          },
-          "maxConcurrency": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "default": 1
-          },
-          "retryConfig": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": {
-              "nullable": true
-            }
-          },
-          "metadata": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": {
-              "nullable": true
-            }
-          },
-          "createdAt": {
-            "type": "number"
-          },
-          "updatedAt": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "description",
-          "retryConfig",
-          "metadata",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateQueue": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean",
-            "default": true
-          },
-          "maxConcurrency": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "default": 1
-          },
-          "retryConfig": {
-            "type": "object",
-            "additionalProperties": {
-              "nullable": true
-            }
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "nullable": true
-            }
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateQueue": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "maxConcurrency": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "retryConfig": {
-            "type": "object",
-            "additionalProperties": {
-              "nullable": true
-            }
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "nullable": true
-            }
-          }
-        }
-      },
-      "QueueItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "queueId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "itemType": {
-            "type": "string",
-            "enum": [
-              "ticket",
-              "task",
-              "chat",
-              "prompt"
-            ]
-          },
-          "itemId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "priority": {
-            "type": "number",
-            "default": 0
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "in_progress",
-              "completed",
-              "failed",
-              "cancelled"
-            ]
-          },
-          "agentId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "estimatedProcessingTime": {
-            "type": "number",
-            "nullable": true
-          },
-          "actualProcessingTime": {
-            "type": "number",
-            "nullable": true
-          },
-          "startedAt": {
-            "type": "number",
-            "nullable": true
-          },
-          "completedAt": {
-            "type": "number",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "number"
-          },
-          "updatedAt": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "queueId",
-          "itemType",
-          "itemId",
-          "status",
-          "agentId",
-          "errorMessage",
-          "estimatedProcessingTime",
-          "actualProcessingTime",
-          "startedAt",
-          "completedAt",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateQueueItem": {
-        "type": "object",
-        "properties": {
-          "queueId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "itemType": {
-            "type": "string",
-            "enum": [
-              "ticket",
-              "task",
-              "chat",
-              "prompt"
-            ]
-          },
-          "itemId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "priority": {
-            "type": "number",
-            "default": 0
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "in_progress",
-              "completed",
-              "failed",
-              "cancelled"
-            ],
-            "default": "queued"
-          },
-          "agentId": {
-            "type": "string"
-          },
-          "estimatedProcessingTime": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "queueId",
-          "itemType",
-          "itemId"
-        ]
-      },
-      "UpdateQueueItem": {
-        "type": "object",
-        "properties": {
-          "priority": {
-            "type": "number"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "in_progress",
-              "completed",
-              "failed",
-              "cancelled"
-            ]
-          },
-          "agentId": {
-            "type": "string"
-          },
-          "errorMessage": {
-            "type": "string"
-          },
-          "estimatedProcessingTime": {
-            "type": "number"
-          },
-          "actualProcessingTime": {
-            "type": "number"
-          },
-          "startedAt": {
-            "type": "number"
-          },
-          "completedAt": {
-            "type": "number"
           }
         }
       },
@@ -3564,6 +3287,178 @@
           "summary"
         ]
       },
+      "ImportInfo": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "specifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "default",
+                    "named",
+                    "namespace"
+                  ]
+                },
+                "imported": {
+                  "type": "string"
+                },
+                "local": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "local"
+              ]
+            }
+          }
+        },
+        "required": [
+          "source",
+          "specifiers"
+        ]
+      },
+      "ExportInfo": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "default",
+              "named",
+              "all"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "specifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "exported": {
+                  "type": "string"
+                },
+                "local": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "exported"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "ProjectFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Entity ID - positive integer without timestamp conversion",
+            "format": "int64",
+            "example": 1716537600000
+          },
+          "projectId": {
+            "type": "integer",
+            "description": "Entity ID - positive integer without timestamp conversion",
+            "format": "int64",
+            "example": 1716537600000
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "extension": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "summaryLastUpdated": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2524608000000,
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          },
+          "meta": {
+            "type": "string",
+            "nullable": true
+          },
+          "checksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "imports": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ImportInfo"
+            },
+            "default": null
+          },
+          "exports": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ExportInfo"
+            },
+            "default": null
+          },
+          "created": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2524608000000,
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          },
+          "updated": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2524608000000,
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "path",
+          "extension",
+          "size",
+          "content",
+          "summary",
+          "summaryLastUpdated",
+          "meta",
+          "checksum",
+          "created",
+          "updated"
+        ]
+      },
       "HookListResponse": {
         "type": "object",
         "properties": {
@@ -3841,6 +3736,62 @@
         },
         "required": [
           "command"
+        ]
+      },
+      "Queue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": true
+          },
+          "maxConcurrency": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "default": 1
+          },
+          "retryConfig": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "retryConfig",
+          "metadata",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "AiSdkChatRequest": {
@@ -4325,13 +4276,13 @@
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756389073997
+            "example": 1756420545654
           },
           "updated": {
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756389073997
+            "example": 1756420545654
           }
         },
         "required": [
@@ -4475,13 +4426,13 @@
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756389073997
+            "example": 1756420545654
           },
           "completedAt": {
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756389073997
+            "example": 1756420545654
           }
         },
         "required": [
@@ -7237,6 +7188,35 @@
           "success",
           "data"
         ]
+      },
+      "EncryptionKeyStatus": {
+        "type": "object",
+        "properties": {
+          "hasKey": {
+            "type": "boolean",
+            "description": "True if a custom key is configured"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "True if using the default (insecure) key"
+          }
+        },
+        "required": [
+          "hasKey",
+          "isDefault"
+        ]
+      },
+      "SetEncryptionKeyBody": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "generate": {
+            "type": "boolean"
+          }
+        }
       }
     },
     "parameters": {}
@@ -7726,6 +7706,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/queues": {
+      "get": {
+        "tags": [
+          "Project"
+        ],
+        "summary": "Get Queue for Project",
+        "description": "Retrieve all Queue associated with this Project",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueListResponse"
                 }
               }
             }
@@ -11277,1127 +11318,6 @@
             },
             "required": true,
             "name": "promptId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues": {
-      "post": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Create Queue",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "projectId": {
-                    "type": "number"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "maxParallelItems": {
-                    "type": "number"
-                  },
-                  "isActive": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "projectId",
-                  "name"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Queue created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "projectId": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "maxParallelItems": {
-                          "type": "number"
-                        },
-                        "isActive": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "number"
-                        },
-                        "updatedAt": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "projectId",
-                        "name",
-                        "description",
-                        "maxParallelItems",
-                        "isActive",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "List Queues",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "required": false,
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "required": false,
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "sort",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            },
-            "required": false,
-            "name": "order",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of Queues",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "projectId": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "maxParallelItems": {
-                            "type": "number"
-                          },
-                          "isActive": {
-                            "type": "boolean"
-                          },
-                          "createdAt": {
-                            "type": "number"
-                          },
-                          "updatedAt": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "projectId",
-                          "name",
-                          "description",
-                          "maxParallelItems",
-                          "isActive",
-                          "createdAt",
-                          "updatedAt"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues/{queueId}": {
-      "get": {
-        "tags": [
-          "Queue"
-        ],
-        "summary": "Get Queue by ID",
-        "description": "Retrieve a specific Queue by its ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/Queue"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Queue"
-        ],
-        "summary": "Update Queue",
-        "description": "Update an existing Queue",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateQueue"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/Queue"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Queue"
-        ],
-        "summary": "Delete Queue",
-        "description": "Delete a Queue by ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queueitems": {
-      "post": {
-        "tags": [
-          "QueueItem"
-        ],
-        "summary": "Create QueueItem",
-        "description": "Create a new QueueItem instance",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateQueueItem"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "QueueItem created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/QueueItem"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "QueueItem"
-        ],
-        "summary": "List queueitems",
-        "description": "Get all queueitems with optional pagination",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true,
-              "default": 1
-            },
-            "required": false,
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true,
-              "maximum": 100,
-              "default": 20
-            },
-            "required": false,
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "sort",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "default": "desc"
-            },
-            "required": false,
-            "name": "order",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/QueueItem"
-                      }
-                    },
-                    "pagination": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "limit": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        },
-                        "hasMore": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "page",
-                        "limit",
-                        "total",
-                        "hasMore"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queueitems/{queueitemId}": {
-      "get": {
-        "tags": [
-          "QueueItem"
-        ],
-        "summary": "Get QueueItem by ID",
-        "description": "Retrieve a specific QueueItem by its ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueitemId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/QueueItem"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "QueueItem"
-        ],
-        "summary": "Update QueueItem",
-        "description": "Update an existing QueueItem",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueitemId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateQueueItem"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/QueueItem"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "QueueItem"
-        ],
-        "summary": "Delete QueueItem",
-        "description": "Delete a QueueItem by ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
-            },
-            "required": true,
-            "name": "queueitemId",
             "in": "path"
           }
         ],
@@ -17516,7 +16436,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/prompts": {
+    "/api/projects/{id}/prompts": {
       "get": {
         "tags": [
           "Projects",
@@ -17531,7 +16451,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -17620,7 +16540,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/suggest-prompts": {
+    "/api/projects/{id}/suggest-prompts": {
       "post": {
         "tags": [
           "Projects",
@@ -17637,7 +16557,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -18803,7 +17723,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/tickets": {
+    "/api/projects/{id}/tickets": {
       "get": {
         "tags": [
           "Projects",
@@ -18818,7 +17738,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -19302,7 +18222,8 @@
                     "minLength": 1
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "status": {
                     "type": "string",
@@ -19313,6 +18234,48 @@
                       "cancelled"
                     ],
                     "default": "pending"
+                  },
+                  "suggestedFileIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "suggestedPromptIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "default": []
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "default": []
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "estimatedHours": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "agentId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "done": {
+                    "type": "boolean"
+                  },
+                  "orderIndex": {
+                    "type": "number"
                   }
                 },
                 "required": [
@@ -19570,24 +18533,6 @@
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "overview": {
-                    "type": "string"
-                  },
-                  "context": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Suggested tasks",
@@ -19648,21 +18593,6 @@
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "overview": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Generated tasks",
@@ -20196,831 +19126,6 @@
                   "required": [
                     "success",
                     "data"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues/{id}": {
-      "get": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Get Queue by ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Queue details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "projectId": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "maxParallelItems": {
-                          "type": "number"
-                        },
-                        "isActive": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "number"
-                        },
-                        "updatedAt": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "projectId",
-                        "name",
-                        "description",
-                        "maxParallelItems",
-                        "isActive",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Queue not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Update Queue",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "projectId": {
-                    "type": "number"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "maxParallelItems": {
-                    "type": "number"
-                  },
-                  "isActive": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Queue updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "projectId": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "maxParallelItems": {
-                          "type": "number"
-                        },
-                        "isActive": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "number"
-                        },
-                        "updatedAt": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "projectId",
-                        "name",
-                        "description",
-                        "maxParallelItems",
-                        "isActive",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Queue not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Delete Queue",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Queue deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Queue not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues/{queueId}/process": {
-      "post": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Process items in a queue",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 10
-                  },
-                  "filter": {
-                    "type": "object",
-                    "properties": {
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "failed"
-                        ]
-                      },
-                      "priority": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 10
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Processing result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "processed": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "remaining": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "processed",
-                        "failed",
-                        "remaining"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues/{queueId}/stats": {
-      "get": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Get queue statistics",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Queue statistics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "queueId": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "stats": {
-                          "type": "object",
-                          "properties": {
-                            "totalItems": {
-                              "type": "number"
-                            },
-                            "pendingItems": {
-                              "type": "number"
-                            },
-                            "processingItems": {
-                              "type": "number"
-                            },
-                            "completedItems": {
-                              "type": "number"
-                            },
-                            "failedItems": {
-                              "type": "number"
-                            },
-                            "averageProcessingTime": {
-                              "type": "number"
-                            },
-                            "throughputPerHour": {
-                              "type": "number"
-                            },
-                            "errorRate": {
-                              "type": "number"
-                            },
-                            "oldestPendingItem": {
-                              "type": "number",
-                              "nullable": true
-                            },
-                            "lastProcessedItem": {
-                              "type": "number",
-                              "nullable": true
-                            }
-                          },
-                          "required": [
-                            "totalItems",
-                            "pendingItems",
-                            "processingItems",
-                            "completedItems",
-                            "failedItems",
-                            "averageProcessingTime",
-                            "throughputPerHour",
-                            "errorRate",
-                            "oldestPendingItem",
-                            "lastProcessedItem"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "queueId",
-                        "name",
-                        "stats"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/queues/{queueId}/clear": {
-      "post": {
-        "tags": [
-          "Queues"
-        ],
-        "summary": "Clear all items from a queue",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "required": true,
-            "name": "queueId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "all",
-                      "pending",
-                      "failed",
-                      "completed"
-                    ],
-                    "default": "all"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Queue cleared",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
                   ]
                 }
               }
@@ -24425,7 +22530,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agents": {
+    "/api/projects/{id}/agents": {
       "get": {
         "tags": [
           "Projects",
@@ -24436,9 +22541,8 @@
           {
             "schema": {
               "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
+              "minimum": 0,
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -24555,7 +22659,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/suggest-agents": {
+    "/api/projects/{id}/suggest-agents": {
       "post": {
         "tags": [
           "Projects",
@@ -24568,9 +22672,8 @@
           {
             "schema": {
               "type": "integer",
-              "description": "Entity ID - coerces strings to positive integers for URL parameters",
-              "format": "int64",
-              "example": 1716537600000
+              "minimum": 0,
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -24657,7 +22760,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/commands": {
+    "/api/projects/{id}/commands": {
       "post": {
         "tags": [
           "Claude Commands"
@@ -24670,7 +22773,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -24777,7 +22880,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -24886,7 +22989,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/commands/{commandName}": {
+    "/api/projects/{id}/commands/{commandName}": {
       "get": {
         "tags": [
           "Claude Commands"
@@ -24899,7 +23002,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -24984,7 +23087,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -25101,7 +23204,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -25175,7 +23278,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/commands/{commandName}/execute": {
+    "/api/projects/{id}/commands/{commandName}/execute": {
       "post": {
         "tags": [
           "Claude Commands"
@@ -25188,7 +23291,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -25281,7 +23384,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/commands/generate": {
+    "/api/projects/{id}/commands/generate": {
       "post": {
         "tags": [
           "Claude Commands",
@@ -25296,7 +23399,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -25462,7 +23565,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/commands/suggest": {
+    "/api/projects/{id}/commands/suggest": {
       "post": {
         "tags": [
           "Claude Commands",
@@ -25476,7 +23579,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -26864,6 +24967,104 @@
           },
           "404": {
             "description": "Project or file not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/suggest-files": {
+      "post": {
+        "tags": [
+          "Projects",
+          "Files",
+          "AI"
+        ],
+        "summary": "Suggest relevant files based on user input and project context",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "userInput": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suggested files returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectFile"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -28333,7 +26534,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/config/locations": {
+    "/api/projects/{id}/mcp/config/locations": {
       "get": {
         "tags": [
           "MCP Project"
@@ -28347,7 +26548,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -28447,7 +26648,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/config/merged": {
+    "/api/projects/{id}/mcp/config/merged": {
       "get": {
         "tags": [
           "MCP Project"
@@ -28461,7 +26662,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -28627,7 +26828,187 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/config": {
+    "/api/projects/{id}/mcp/config/expanded": {
+      "get": {
+        "tags": [
+          "MCP Project"
+        ],
+        "summary": "Get expanded project MCP configuration (variables resolved)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "mcpServers": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "stdio",
+                                      "http"
+                                    ],
+                                    "default": "stdio"
+                                  },
+                                  "command": {
+                                    "type": "string"
+                                  },
+                                  "args": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "env": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "timeout": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "command"
+                                ]
+                              }
+                            },
+                            "inputs": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "promptString",
+                                      "promptNumber",
+                                      "promptBoolean"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "default": {
+                                    "nullable": true
+                                  },
+                                  "password": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "description"
+                                ]
+                              }
+                            },
+                            "extends": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "config"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config": {
       "get": {
         "tags": [
           "MCP Project"
@@ -28641,7 +27022,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -28823,7 +27204,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29100,7 +27481,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29185,7 +27566,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29266,7 +27647,389 @@
         }
       }
     },
-    "/api/projects/{projectId}/flow": {
+    "/api/projects/{id}/mcp/config/save-to-location": {
+      "post": {
+        "tags": [
+          "MCP Project"
+        ],
+        "summary": "Save project MCP configuration to a specific location",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "mcpServers": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "stdio",
+                                "http"
+                              ],
+                              "default": "stdio"
+                            },
+                            "command": {
+                              "type": "string"
+                            },
+                            "args": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "env": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "timeout": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "command"
+                          ]
+                        }
+                      },
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "promptString",
+                                "promptNumber",
+                                "promptBoolean"
+                              ]
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "default": {
+                              "nullable": true
+                            },
+                            "password": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "id",
+                            "description"
+                          ]
+                        }
+                      },
+                      "extends": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "location": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "config",
+                  "location"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config/default-for-location": {
+      "get": {
+        "tags": [
+          "MCP Project"
+        ],
+        "summary": "Get default project MCP configuration for a given location",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "location",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "mcpServers": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "stdio",
+                                      "http"
+                                    ],
+                                    "default": "stdio"
+                                  },
+                                  "command": {
+                                    "type": "string"
+                                  },
+                                  "args": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "env": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "timeout": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "command"
+                                ]
+                              }
+                            },
+                            "inputs": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "promptString",
+                                      "promptNumber",
+                                      "promptBoolean"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "default": {
+                                    "nullable": true
+                                  },
+                                  "password": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "description"
+                                ]
+                              }
+                            },
+                            "extends": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "config"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/flow": {
       "get": {
         "tags": [
           "Flow"
@@ -29279,7 +28042,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29392,7 +28155,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/flow/items": {
+    "/api/projects/{id}/flow/items": {
       "get": {
         "tags": [
           "Flow"
@@ -29405,7 +28168,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29518,7 +28281,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/flow/unqueued": {
+    "/api/projects/{id}/flow/unqueued": {
       "get": {
         "tags": [
           "Flow"
@@ -29531,7 +28294,7 @@
               "nullable": true
             },
             "required": false,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -29559,6 +28322,631 @@
                   "required": [
                     "tickets",
                     "tasks"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow/queues": {
+      "post": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Create a queue (Flow)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "maxParallelItems": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/flow/queues": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "List queues for a project (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/flow/queues-with-stats": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Get queues with stats (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow/queues/{queueId}/items": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Get items in a queue (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "queueId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tickets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Ticket"
+                      }
+                    },
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TicketTask"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tickets",
+                    "tasks"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow/queues/{queueId}/stats": {
+      "get": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Get queue statistics (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "queueId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "queuedItems": {
+                      "type": "number"
+                    },
+                    "inProgressItems": {
+                      "type": "number"
+                    },
+                    "completedItems": {
+                      "type": "number"
+                    },
+                    "failedItems": {
+                      "type": "number"
+                    },
+                    "currentAgents": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "totalItems",
+                    "queuedItems",
+                    "inProgressItems",
+                    "completedItems",
+                    "failedItems",
+                    "currentAgents"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow/queues/{queueId}": {
+      "patch": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Update queue (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "queueId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "maxParallelItems": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Flow"
+        ],
+        "summary": "Delete queue (Flow)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "nullable": true
+            },
+            "required": false,
+            "name": "queueId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
                   ]
                 }
               }
@@ -31017,6 +30405,137 @@
         }
       }
     },
+    "/api/providers/_debug-config": {
+      "get": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Debug provider key resolution (no secrets)",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "providerKeysConfig": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        },
+                        "envFallback": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        },
+                        "keys": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "provider": {
+                                "type": "string"
+                              },
+                              "normalized": {
+                                "type": "string"
+                              },
+                              "isDefault": {
+                                "type": "boolean"
+                              },
+                              "decrypted": {
+                                "type": "boolean"
+                              },
+                              "createdAt": {
+                                "type": "number"
+                              },
+                              "updatedAt": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "provider",
+                              "normalized",
+                              "decrypted",
+                              "createdAt",
+                              "updatedAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "providerKeysConfig",
+                        "envFallback",
+                        "keys"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai/generate/text": {
       "post": {
         "tags": [
@@ -31251,7 +30770,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/servers": {
+    "/api/projects/{id}/mcp/servers": {
       "post": {
         "tags": [
           "MCP",
@@ -31470,7 +30989,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/servers/{serverId}": {
+    "/api/projects/{id}/mcp/servers/{serverId}": {
       "get": {
         "tags": [
           "MCP",
@@ -33332,7 +32851,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/analytics/overview": {
+    "/api/projects/{id}/mcp/analytics/overview": {
       "get": {
         "tags": [
           "MCP",
@@ -33346,7 +32865,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -33482,7 +33001,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/analytics/statistics": {
+    "/api/projects/{id}/mcp/analytics/statistics": {
       "get": {
         "tags": [
           "MCP",
@@ -33496,7 +33015,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -33594,7 +33113,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/analytics/timeline": {
+    "/api/projects/{id}/mcp/analytics/timeline": {
       "get": {
         "tags": [
           "MCP",
@@ -33608,7 +33127,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -33706,7 +33225,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/analytics/error-patterns": {
+    "/api/projects/{id}/mcp/analytics/error-patterns": {
       "get": {
         "tags": [
           "MCP",
@@ -33720,7 +33239,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -33818,7 +33337,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/analytics/executions": {
+    "/api/projects/{id}/mcp/analytics/executions": {
       "get": {
         "tags": [
           "MCP",
@@ -33832,7 +33351,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -35701,7 +35220,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/status": {
+    "/api/projects/{id}/git/status": {
       "get": {
         "tags": [
           "Git",
@@ -35717,7 +35236,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -35786,7 +35305,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/stage": {
+    "/api/projects/{id}/git/stage": {
       "post": {
         "tags": [
           "Git",
@@ -35802,7 +35321,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -35882,7 +35401,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/unstage": {
+    "/api/projects/{id}/git/unstage": {
       "post": {
         "tags": [
           "Git",
@@ -35898,7 +35417,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -35978,7 +35497,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/stage-all": {
+    "/api/projects/{id}/git/stage-all": {
       "post": {
         "tags": [
           "Git",
@@ -35994,7 +35513,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -36052,7 +35571,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/unstage-all": {
+    "/api/projects/{id}/git/unstage-all": {
       "post": {
         "tags": [
           "Git",
@@ -36068,7 +35587,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -36126,7 +35645,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/commit": {
+    "/api/projects/{id}/git/commit": {
       "post": {
         "tags": [
           "Git",
@@ -36220,7 +35739,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/log": {
+    "/api/projects/{id}/git/log": {
       "get": {
         "tags": [
           "Git",
@@ -36355,7 +35874,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/log-enhanced": {
+    "/api/projects/{id}/git/log-enhanced": {
       "get": {
         "tags": [
           "Git",
@@ -36490,7 +36009,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/commits/{commitHash}": {
+    "/api/projects/{id}/git/commits/{commitHash}": {
       "get": {
         "tags": [
           "Git",
@@ -36501,11 +36020,13 @@
         "parameters": [
           {
             "schema": {
-              "type": "number",
-              "nullable": true
+              "type": "integer",
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
-            "required": false,
-            "name": "projectId",
+            "required": true,
+            "name": "id",
             "in": "path"
           },
           {
@@ -36571,7 +36092,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/diff": {
+    "/api/projects/{id}/git/diff": {
       "get": {
         "tags": [
           "Git",
@@ -36666,7 +36187,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/branches": {
+    "/api/projects/{id}/git/branches": {
       "get": {
         "tags": [
           "Git",
@@ -36846,7 +36367,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/branches-enhanced": {
+    "/api/projects/{id}/git/branches-enhanced": {
       "get": {
         "tags": [
           "Git",
@@ -36921,7 +36442,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/branches/switch": {
+    "/api/projects/{id}/git/branches/switch": {
       "post": {
         "tags": [
           "Git",
@@ -37017,7 +36538,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/branches/{branchName}": {
+    "/api/projects/{id}/git/branches/{branchName}": {
       "delete": {
         "tags": [
           "Git",
@@ -37028,11 +36549,13 @@
         "parameters": [
           {
             "schema": {
-              "type": "number",
-              "nullable": true
+              "type": "integer",
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
-            "required": false,
-            "name": "projectId",
+            "required": true,
+            "name": "id",
             "in": "path"
           },
           {
@@ -37109,7 +36632,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/stash": {
+    "/api/projects/{id}/git/stash": {
       "get": {
         "tags": [
           "Git"
@@ -37121,7 +36644,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -37189,7 +36712,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -37365,7 +36888,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/stash/apply": {
+    "/api/projects/{id}/git/stash/apply": {
       "post": {
         "tags": [
           "Git"
@@ -37377,7 +36900,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -37465,7 +36988,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/stash/pop": {
+    "/api/projects/{id}/git/stash/pop": {
       "post": {
         "tags": [
           "Git",
@@ -37556,7 +37079,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/worktrees": {
+    "/api/projects/{id}/git/worktrees": {
       "get": {
         "tags": [
           "Git",
@@ -37835,7 +37358,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/worktrees/lock": {
+    "/api/projects/{id}/git/worktrees/lock": {
       "post": {
         "tags": [
           "Git",
@@ -37933,7 +37456,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/worktrees/unlock": {
+    "/api/projects/{id}/git/worktrees/unlock": {
       "post": {
         "tags": [
           "Git",
@@ -38026,7 +37549,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/worktrees/prune": {
+    "/api/projects/{id}/git/worktrees/prune": {
       "post": {
         "tags": [
           "Git",
@@ -38112,7 +37635,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/remotes": {
+    "/api/projects/{id}/git/remotes": {
       "get": {
         "tags": [
           "Git"
@@ -38124,7 +37647,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38182,7 +37705,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/push": {
+    "/api/projects/{id}/git/push": {
       "post": {
         "tags": [
           "Git"
@@ -38194,7 +37717,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38292,7 +37815,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/fetch": {
+    "/api/projects/{id}/git/fetch": {
       "post": {
         "tags": [
           "Git"
@@ -38304,7 +37827,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38395,7 +37918,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/pull": {
+    "/api/projects/{id}/git/pull": {
       "post": {
         "tags": [
           "Git"
@@ -38407,7 +37930,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38501,7 +38024,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/tags": {
+    "/api/projects/{id}/git/tags": {
       "get": {
         "tags": [
           "Git"
@@ -38513,7 +38036,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38581,7 +38104,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38677,7 +38200,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/git/reset": {
+    "/api/projects/{id}/git/reset": {
       "post": {
         "tags": [
           "Git"
@@ -38689,7 +38212,7 @@
               "type": "string"
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -38931,7 +38454,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agent-files/detect": {
+    "/api/projects/{id}/agent-files/detect": {
       "get": {
         "tags": [
           "Agent Files"
@@ -38945,7 +38468,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -39147,7 +38670,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agent-files/update": {
+    "/api/projects/{id}/agent-files/update": {
       "post": {
         "tags": [
           "Agent Files"
@@ -39161,7 +38684,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -39272,7 +38795,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agent-files/remove-instructions": {
+    "/api/projects/{id}/agent-files/remove-instructions": {
       "post": {
         "tags": [
           "Agent Files"
@@ -39286,7 +38809,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -39384,7 +38907,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agent-files/status": {
+    "/api/projects/{id}/agent-files/status": {
       "get": {
         "tags": [
           "Agent Files"
@@ -39398,7 +38921,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -39509,7 +39032,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/agent-files/create": {
+    "/api/projects/{id}/agent-files/create": {
       "post": {
         "tags": [
           "Agent Files"
@@ -39523,7 +39046,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -39631,7 +39154,7 @@
         }
       }
     },
-    "/api/claude-code/mcp-status/{projectId}": {
+    "/api/claude-code/mcp-status/{id}": {
       "get": {
         "tags": [
           "Claude Code"
@@ -39705,7 +39228,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}/metadata": {
+    "/api/claude-code/sessions/{id}/metadata": {
       "get": {
         "tags": [
           "Claude Code"
@@ -39811,7 +39334,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}/recent": {
+    "/api/claude-code/sessions/{id}/recent": {
       "get": {
         "tags": [
           "Claude Code"
@@ -39897,7 +39420,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}/paginated": {
+    "/api/claude-code/sessions/{id}/paginated": {
       "get": {
         "tags": [
           "Claude Code"
@@ -40051,7 +39574,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}/{sessionId}/full": {
+    "/api/claude-code/sessions/{id}/{sessionId}/full": {
       "get": {
         "tags": [
           "Claude Code"
@@ -40062,11 +39585,12 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -40132,7 +39656,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}/{sessionId}": {
+    "/api/claude-code/sessions/{id}/{sessionId}": {
       "get": {
         "tags": [
           "Claude Code"
@@ -40143,11 +39667,12 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -40257,7 +39782,7 @@
         }
       }
     },
-    "/api/claude-code/sessions/{projectId}": {
+    "/api/claude-code/sessions/{id}": {
       "get": {
         "tags": [
           "Claude Code"
@@ -40430,7 +39955,7 @@
         }
       }
     },
-    "/api/claude-code/project-data/{projectId}": {
+    "/api/claude-code/project-data/{id}": {
       "get": {
         "tags": [
           "Claude Code"
@@ -40504,7 +40029,7 @@
         }
       }
     },
-    "/api/claude-code/import-session/{projectId}/{sessionId}": {
+    "/api/claude-code/import-session/{id}/{sessionId}": {
       "post": {
         "tags": [
           "Claude Code"
@@ -40515,11 +40040,12 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           },
           {
@@ -40645,7 +40171,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/installation/status": {
+    "/api/projects/{id}/mcp/installation/status": {
       "get": {
         "tags": [
           "MCP Installation"
@@ -40659,7 +40185,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -40717,7 +40243,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/installation/install": {
+    "/api/projects/{id}/mcp/installation/install": {
       "post": {
         "tags": [
           "MCP Installation"
@@ -40731,7 +40257,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -40820,7 +40346,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/installation/uninstall": {
+    "/api/projects/{id}/mcp/installation/uninstall": {
       "post": {
         "tags": [
           "MCP Installation"
@@ -40834,7 +40360,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -40986,7 +40512,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/installation/batch-install": {
+    "/api/projects/{id}/mcp/installation/batch-install": {
       "post": {
         "tags": [
           "MCP Installation"
@@ -41000,7 +40526,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -41120,7 +40646,7 @@
         }
       }
     },
-    "/api/projects/{projectId}/mcp/install-project-config": {
+    "/api/projects/{id}/mcp/install-project-config": {
       "post": {
         "tags": [
           "MCP Installation"
@@ -41134,7 +40660,7 @@
               "exclusiveMinimum": true
             },
             "required": true,
-            "name": "projectId",
+            "name": "id",
             "in": "path"
           }
         ],
@@ -41190,6 +40716,260 @@
                     "success",
                     "data"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/security/encryption-key/status": {
+      "get": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Get encryption key status (no secrets)",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EncryptionKeyStatus"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/security/encryption-key": {
+      "post": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Set or generate a custom encryption key",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEncryptionKeyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "isDefault": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "isDefault"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/security/encryption-key/use-default": {
+      "post": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Switch to default (insecure) encryption key",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "isDefault": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "isDefault"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }

@@ -19,22 +19,22 @@ const isServerEnvironment =
   process.env &&
   (process.env.NODE_ENV === 'test' || typeof (globalThis as any).window === 'undefined')
 
-// Conditional storage import for server/test environments
-let encryptionKeyStorage: { getKey: () => string; clearCache?: () => void; hasKey?: () => boolean }
+// Conditional repository import for server/test environments
+let encryptionKeyRepository: { getKey: () => Promise<string>; clearCache: () => void; hasKey: () => Promise<boolean>; setKey: (key: string) => Promise<void>; useDefault: () => Promise<void>; isDefault: () => Promise<boolean> }
 
 if (isServerEnvironment) {
   try {
     // Dynamic import to avoid bundling issues in client
-    const storageModule = require('@promptliano/storage')
-    encryptionKeyStorage = storageModule.encryptionKeyStorage || storageModule.default?.encryptionKeyStorage
+    const databaseModule = require('@promptliano/database')
+    encryptionKeyRepository = databaseModule.encryptionKeyRepository || databaseModule.default?.encryptionKeyRepository
 
-    if (!encryptionKeyStorage) {
-      throw new Error('encryptionKeyStorage not found in storage module')
+    if (!encryptionKeyRepository) {
+      throw new Error('encryptionKeyRepository not found in database module')
     }
   } catch (error) {
-    // Fallback for test environment when storage isn't available
-    encryptionKeyStorage = {
-      getKey: () => {
+    // Fallback for test environment when database isn't available
+    encryptionKeyRepository = {
+      getKey: async () => {
         const testKey = process.env.PROMPTLIANO_ENCRYPTION_KEY
         if (!testKey) {
           // Generate a test key if none exists
@@ -48,14 +48,23 @@ if (isServerEnvironment) {
       clearCache: () => {
         // No-op for fallback
       },
-      hasKey: () => {
+      hasKey: async () => {
         return !!process.env.PROMPTLIANO_ENCRYPTION_KEY
+      },
+      setKey: async (key: string) => {
+        process.env.PROMPTLIANO_ENCRYPTION_KEY = key
+      },
+      useDefault: async () => {
+        // No-op for fallback
+      },
+      isDefault: async () => {
+        return !process.env.PROMPTLIANO_ENCRYPTION_KEY
       }
     }
   }
 } else {
   // Client environment - throw clear error
-  encryptionKeyStorage = {
+  encryptionKeyRepository = {
     getKey: () => {
       throw new Error('Encryption operations not available in client environment')
     },
@@ -63,6 +72,15 @@ if (isServerEnvironment) {
       throw new Error('Encryption operations not available in client environment')
     },
     hasKey: () => {
+      throw new Error('Encryption operations not available in client environment')
+    },
+    setKey: () => {
+      throw new Error('Encryption operations not available in client environment')
+    },
+    useDefault: () => {
+      throw new Error('Encryption operations not available in client environment')
+    },
+    isDefault: () => {
       throw new Error('Encryption operations not available in client environment')
     }
   }
@@ -113,7 +131,7 @@ async function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
  * Encrypts a string value
  */
 export async function encryptKey(plaintext: string): Promise<EncryptedData> {
-  const envKey = encryptionKeyStorage.getKey()
+  const envKey = await encryptionKeyRepository.getKey()
 
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
@@ -154,7 +172,7 @@ export async function encryptKey(plaintext: string): Promise<EncryptedData> {
  * Decrypts an encrypted string value
  */
 export async function decryptKey(encryptedData: EncryptedData): Promise<string> {
-  const envKey = encryptionKeyStorage.getKey()
+  const envKey = await encryptionKeyRepository.getKey()
 
   const iv = Buffer.from(encryptedData.iv, 'base64')
   const tag = Buffer.from(encryptedData.tag, 'base64')

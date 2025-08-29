@@ -40,10 +40,10 @@ export const gitAdvancedRoutes = new OpenAPIHono()
 // Get remotes route
 const getRemotesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/remotes',
+  path: '/api/projects/{id}/git/remotes',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     })
   },
   responses: createStandardResponses(RemotesResponseSchema),
@@ -52,7 +52,7 @@ const getRemotesRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getRemotesRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const remotes = await getRemotes(projectId)
   return c.json(successResponse(remotes))
 })
@@ -60,10 +60,10 @@ gitAdvancedRoutes.openapi(getRemotesRoute, async (c) => {
 // Push route
 const pushRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/push',
+  path: '/api/projects/{id}/git/push',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -79,7 +79,7 @@ const pushRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(pushRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { remote, branch, force, setUpstream } = c.req.valid('json')
 
   await push(projectId, remote || 'origin', branch, { force, setUpstream })
@@ -90,10 +90,10 @@ gitAdvancedRoutes.openapi(pushRoute, async (c) => {
 // Fetch route
 const fetchRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/fetch',
+  path: '/api/projects/{id}/git/fetch',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -112,7 +112,7 @@ const fetchRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { remote, prune } = c.req.valid('json')
 
   await fetch(projectId, remote || 'origin', { prune })
@@ -123,11 +123,9 @@ gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
 // Pull route
 const pullRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/pull',
+  path: '/api/projects/{id}/git/pull',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -146,7 +144,7 @@ const pullRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(pullRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { remote, branch, rebase } = c.req.valid('json')
 
   await pull(projectId, remote || 'origin', branch, { rebase })
@@ -161,11 +159,9 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
 // Get tags route
 const getTagsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/tags',
+  path: '/api/projects/{id}/git/tags',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    })
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) })
   },
   responses: createStandardResponses(TagsResponseSchema),
   tags: ['Git'],
@@ -173,7 +169,7 @@ const getTagsRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getTagsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const tags = await getTags(projectId)
   return c.json(successResponse(tags))
 })
@@ -181,11 +177,9 @@ gitAdvancedRoutes.openapi(getTagsRoute, async (c) => {
 // Create tag route
 const createTagRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/tags',
+  path: '/api/projects/{id}/git/tags',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -204,7 +198,7 @@ const createTagRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { name, message, ref } = c.req.valid('json')
 
   await createTag(projectId, name, { message, ref })
@@ -219,11 +213,9 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
 // Stash changes route
 const stashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -240,7 +232,7 @@ const stashRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(stashRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { message } = c.req.valid('json')
 
   await stash(projectId, message)
@@ -251,11 +243,9 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
 // Get stash list route
 const getStashListRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    })
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) })
   },
   responses: createStandardResponses(StashListResponseSchema),
   tags: ['Git'],
@@ -263,7 +253,7 @@ const getStashListRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getStashListRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const stashes = await stashList(projectId)
   return c.json(successResponse(stashes))
 })
@@ -271,11 +261,9 @@ gitAdvancedRoutes.openapi(getStashListRoute, async (c) => {
 // Apply stash route
 const applyStashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash/apply',
+  path: '/api/projects/{id}/git/stash/apply',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -292,7 +280,7 @@ const applyStashRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { ref } = c.req.valid('json')
 
   await stashApply(projectId, ref || 'stash@{0}')
@@ -307,10 +295,10 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
 // Reset route
 const resetRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/reset',
+  path: '/api/projects/{id}/git/reset',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -326,7 +314,7 @@ const resetRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(resetRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { ref, mode } = c.req.valid('json')
 
   await reset(projectId, ref, mode || 'mixed')

@@ -72,10 +72,12 @@ const DiffResponseSchema = z
   })
   .openapi('DiffResponse')
 
+// Use canonical ProjectIdParamsSchema with {id}
+
 // Create commit
 const commitRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/commit',
+  path: '/api/projects/{id}/git/commit',
   tags: ['Git', 'Commits'],
   summary: 'Create a new commit',
   description: 'Creates a new commit with staged changes',
@@ -92,7 +94,7 @@ const commitRoute = createRoute({
 // Get commit log
 const getCommitLogRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/log',
+  path: '/api/projects/{id}/git/log',
   tags: ['Git', 'Commits'],
   summary: 'Get commit history',
   description: 'Retrieves the commit history for the project',
@@ -106,7 +108,7 @@ const getCommitLogRoute = createRoute({
 // Get enhanced commit log
 const getCommitLogEnhancedRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/log-enhanced',
+  path: '/api/projects/{id}/git/log-enhanced',
   tags: ['Git', 'Commits'],
   summary: 'Get enhanced commit history',
   description: 'Retrieves detailed commit history with additional metadata',
@@ -120,13 +122,13 @@ const getCommitLogEnhancedRoute = createRoute({
 // Get commit details
 const getCommitDetailRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/commits/{commitHash}',
+  path: '/api/projects/{id}/git/commits/{commitHash}',
   tags: ['Git', 'Commits'],
   summary: 'Get commit details',
   description: 'Retrieves detailed information about a specific commit',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: ProjectIdParamsSchema.shape.id,
       commitHash: z.string()
     })
   },
@@ -136,7 +138,7 @@ const getCommitDetailRoute = createRoute({
 // Get file diff
 const getFileDiffRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/diff',
+  path: '/api/projects/{id}/git/diff',
   tags: ['Git', 'Diff'],
   summary: 'Get file diff',
   description: 'Retrieves the diff for a specific file',
@@ -177,7 +179,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     return c.json(successResponse(commits))
   })
   .openapi(getCommitLogEnhancedRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
+    const { projectId } = c.req.valid('param')
     const query = c.req.valid('query') || {}
     const { maxCount = 50, skip = 0, author, since, until, grep, branch } = query
 
@@ -196,7 +198,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     return c.json(successResponse(result))
   })
   .openapi(getCommitDetailRoute, async (c) => {
-    const { projectId, commitHash } = c.req.valid('param')
+    const { id: projectId, commitHash } = c.req.valid('param')
     const detail = await getCommitDetail(projectId, commitHash)
     return c.json(successResponse(detail))
   })

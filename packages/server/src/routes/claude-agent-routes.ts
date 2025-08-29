@@ -109,23 +109,23 @@ const deleteClaudeAgentRoute = createRoute({
 
 const listProjectClaudeAgentsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/agents',
+  path: '/api/projects/{id}/agents',
   tags: ['Projects', 'Claude Agents'],
   summary: 'List Claude agents associated with a specific project',
   request: {
-    params: ProjectIdParamsSchema
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(ClaudeAgentListResponseSchema)
 })
 
 const suggestClaudeAgentsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/suggest-agents',
+  path: '/api/projects/{id}/suggest-agents',
   tags: ['Projects', 'Claude Agents', 'AI'],
   summary: 'Get AI-suggested Claude agents based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant agents for the task',
   request: {
-    params: ProjectIdParamsSchema,
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: { 'application/json': { schema: SuggestAgentsRequestSchema } },
       required: true

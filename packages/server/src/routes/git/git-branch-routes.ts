@@ -43,10 +43,12 @@ const BranchListEnhancedResponseSchema = z
   })
   .openapi('BranchListEnhancedResponse')
 
+// Use canonical ProjectIdParamsSchema with {id}
+
 // Get branches
 const getBranchesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/branches',
+  path: '/api/projects/{id}/git/branches',
   tags: ['Git', 'Branches'],
   summary: 'List all branches',
   description: 'Retrieves all local and remote branches for the project',
@@ -59,7 +61,7 @@ const getBranchesRoute = createRoute({
 // Get enhanced branches
 const getBranchesEnhancedRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/branches-enhanced',
+  path: '/api/projects/{id}/git/branches-enhanced',
   tags: ['Git', 'Branches'],
   summary: 'List branches with enhanced information',
   description: 'Retrieves branches with additional metadata like ahead/behind counts',
@@ -72,7 +74,7 @@ const getBranchesEnhancedRoute = createRoute({
 // Create branch
 const createBranchRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/branches',
+  path: '/api/projects/{id}/git/branches',
   tags: ['Git', 'Branches'],
   summary: 'Create a new branch',
   description: 'Creates a new branch from the specified starting point',
@@ -95,7 +97,7 @@ const createBranchRoute = createRoute({
 // Switch branch
 const switchBranchRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/branches/switch',
+  path: '/api/projects/{id}/git/branches/switch',
   tags: ['Git', 'Branches'],
   summary: 'Switch to a different branch',
   description: 'Switches the working directory to the specified branch',
@@ -112,13 +114,13 @@ const switchBranchRoute = createRoute({
 // Delete branch
 const deleteBranchRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/git/branches/{branchName}',
+  path: '/api/projects/{id}/git/branches/{branchName}',
   tags: ['Git', 'Branches'],
   summary: 'Delete a branch',
   description: 'Deletes the specified branch',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: ProjectIdParamsSchema.shape.id,
       branchName: z.string()
     }),
     query: z.object({
@@ -156,7 +158,7 @@ export const gitBranchRoutes = new OpenAPIHono()
     return c.json(operationSuccessResponse('Branch switched successfully'))
   })
   .openapi(deleteBranchRoute, async (c) => {
-    const { projectId, branchName } = c.req.valid('param')
+    const { id: projectId, branchName } = c.req.valid('param')
     const { force = false } = c.req.valid('query') || {}
     await deleteBranch(projectId, branchName, force)
     return c.json(operationSuccessResponse('Branch deleted successfully'))

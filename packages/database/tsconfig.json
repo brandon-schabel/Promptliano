@@ -14,6 +14,6 @@
     "esModuleInterop": true
   },
   "include": ["src/**/*", "index.ts", "drizzle.config.ts"],
-  "exclude": ["dist", "node_modules", "**/*.test.ts"],
+  "exclude": ["dist", "node_modules", "**/*.test.ts", "src/test-utils/**/*"],
   "references": [{ "path": "../schemas" }, { "path": "../shared" }]
 }

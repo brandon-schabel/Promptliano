@@ -32,7 +32,7 @@ export function AgentsView({ projectId, projectName }: AgentsViewProps) {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
 
   // Fetch agents for this specific project
-  const { data: agentsResponse, isLoading, error } = useAgents()
+  const { data: agentsResponse, isLoading, error } = useAgents({ projectId })
   const deleteAgentMutation = useDeleteAgent()
 
   console.log({ agentsResponse })

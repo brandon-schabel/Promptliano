@@ -39,9 +39,9 @@ import {
 } from '../utils/route-helpers'
 import type { Context } from 'hono'
 
-// Parameter schema for project ID in path
+// Parameter schema for project ID in path (normalized to {id})
 const ProjectIdParamsSchema = z.object({
-  projectId: z.coerce.number().openapi({ param: { name: 'projectId', in: 'path' } })
+  id: z.coerce.number().openapi({ param: { name: 'id', in: 'path' } })
 })
 
 // Helper to validate project exists
@@ -59,7 +59,7 @@ export const claudeCommandRoutes = new OpenAPIHono()
 // ============= CREATE COMMAND =============
 const createRoute_ = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/commands',
+  path: '/api/projects/{id}/commands',
   tags: ['Claude Commands'],
   summary: 'Create a new Claude command',
   request: {
@@ -73,7 +73,7 @@ const createRoute_ = createRoute({
 })
 
 claudeCommandRoutes.openapi(createRoute_, async (c): Promise<any> => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const body = c.req.valid('json')
   
   await validateProject(projectId)
@@ -91,7 +91,7 @@ claudeCommandRoutes.openapi(createRoute_, async (c): Promise<any> => {
 // ============= LIST COMMANDS =============
 const listRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/commands',
+  path: '/api/projects/{id}/commands',
   tags: ['Claude Commands'],
   summary: 'List Claude commands for a project',
   request: {
@@ -102,7 +102,7 @@ const listRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(listRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const query = c.req.valid('query')
   
   await validateProject(projectId)
@@ -113,12 +113,12 @@ claudeCommandRoutes.openapi(listRoute, async (c) => {
 // ============= GET COMMAND =============
 const getRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/commands/{commandName}',
+  path: '/api/projects/{id}/commands/{commandName}',
   tags: ['Claude Commands'],
   summary: 'Get a specific Claude command',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: z.coerce.number(),
       commandName: z.string()
     }),
     query: z.object({
@@ -129,7 +129,7 @@ const getRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(getRoute, async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
+  const { id: projectId, commandName } = c.req.valid('param')
     
     await validateProject(projectId)
     const command = await getCommandByName(projectId, commandName)
@@ -139,12 +139,12 @@ claudeCommandRoutes.openapi(getRoute, async (c) => {
 // ============= UPDATE COMMAND =============
 const updateRoute = createRoute({
   method: 'put',
-  path: '/api/projects/{projectId}/commands/{commandName}',
+  path: '/api/projects/{id}/commands/{commandName}',
   tags: ['Claude Commands'],
   summary: 'Update a Claude command',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: z.coerce.number(),
       commandName: z.string()
     }),
     query: z.object({
@@ -159,7 +159,7 @@ const updateRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(updateRoute, async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
+  const { id: projectId, commandName } = c.req.valid('param')
     const body = c.req.valid('json')
     
     await validateProject(projectId)
@@ -170,12 +170,12 @@ claudeCommandRoutes.openapi(updateRoute, async (c) => {
 // ============= DELETE COMMAND =============
 const deleteRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/commands/{commandName}',
+  path: '/api/projects/{id}/commands/{commandName}',
   tags: ['Claude Commands'],
   summary: 'Delete a Claude command',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: z.coerce.number(),
       commandName: z.string()
     }),
     query: z.object({
@@ -186,7 +186,7 @@ const deleteRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(deleteRoute, async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
+    const { id: projectId, commandName } = c.req.valid('param')
     
     await validateProject(projectId)
     await deleteCommand(projectId, commandName)
@@ -196,12 +196,12 @@ claudeCommandRoutes.openapi(deleteRoute, async (c) => {
 // ============= EXECUTE COMMAND (Custom) =============
 const executeRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/commands/{commandName}/execute',
+  path: '/api/projects/{id}/commands/{commandName}/execute',
   tags: ['Claude Commands'],
   summary: 'Execute a Claude command',
   request: {
     params: z.object({
-      projectId: z.coerce.number(),
+      id: z.coerce.number(),
       commandName: z.string()
     }),
     query: z.object({
@@ -216,7 +216,7 @@ const executeRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(executeRoute, async (c) => {
-    const { projectId, commandName } = c.req.valid('param')
+    const { id: projectId, commandName } = c.req.valid('param')
     const body = c.req.valid('json')
     
     await validateProject(projectId)
@@ -241,7 +241,7 @@ claudeCommandRoutes.openapi(executeRoute, async (c) => {
 // ============= GENERATE COMMAND (AI) =============
 const generateRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/commands/generate',
+  path: '/api/projects/{id}/commands/generate',
   tags: ['Claude Commands', 'AI'],
   summary: 'Generate a new Claude command using AI',
   description: 'Uses AI to generate a complete slash command based on user requirements and project context',
@@ -256,7 +256,7 @@ const generateRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(generateRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     
     await validateProject(projectId)
@@ -267,7 +267,7 @@ claudeCommandRoutes.openapi(generateRoute, async (c) => {
 // ============= SUGGEST COMMANDS (AI) =============
 const suggestRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/commands/suggest',
+  path: '/api/projects/{id}/commands/suggest',
   tags: ['Claude Commands', 'AI'],
   summary: 'Get AI-powered command suggestions',
   request: {
@@ -288,7 +288,7 @@ const suggestRoute = createRoute({
 })
 
 claudeCommandRoutes.openapi(suggestRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     
     await validateProject(projectId)

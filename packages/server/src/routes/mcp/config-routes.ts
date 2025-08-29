@@ -74,14 +74,16 @@ const MCPServerIdParamsSchema = z.object({
   serverId: z.coerce.number().int().positive()
 })
 
-const ProjectMCPServerParamsSchema = ProjectIdParamsSchema.extend({
+// Use canonical ProjectIdParamsSchema with {id}
+const ProjectMCPServerParamsSchema = z.object({
+  id: ProjectIdParamsSchema.shape.id,
   serverId: z.coerce.number().int().positive()
 })
 
 // Create MCP server config
 const createMCPServerConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/servers',
+  path: '/api/projects/{id}/mcp/servers',
   tags: ['MCP', 'Configuration'],
   summary: 'Create MCP server configuration',
   request: {
@@ -103,7 +105,7 @@ const createMCPServerConfigRoute = createRoute({
 // List MCP server configs
 const listMCPServerConfigsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/servers',
+  path: '/api/projects/{id}/mcp/servers',
   tags: ['MCP', 'Configuration'],
   summary: 'List all MCP server configurations for a project',
   request: {
@@ -115,7 +117,7 @@ const listMCPServerConfigsRoute = createRoute({
 // Get MCP server config by ID
 const getMCPServerConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/servers/{serverId}',
+  path: '/api/projects/{id}/mcp/servers/{serverId}',
   tags: ['MCP', 'Configuration'],
   summary: 'Get MCP server configuration by ID',
   request: {
@@ -127,7 +129,7 @@ const getMCPServerConfigRoute = createRoute({
 // Update MCP server config
 const updateMCPServerConfigRoute = createRoute({
   method: 'patch',
-  path: '/api/projects/{projectId}/mcp/servers/{serverId}',
+  path: '/api/projects/{id}/mcp/servers/{serverId}',
   tags: ['MCP', 'Configuration'],
   summary: 'Update MCP server configuration',
   request: {
@@ -143,7 +145,7 @@ const updateMCPServerConfigRoute = createRoute({
 // Delete MCP server config
 const deleteMCPServerConfigRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/mcp/servers/{serverId}',
+  path: '/api/projects/{id}/mcp/servers/{serverId}',
   tags: ['MCP', 'Configuration'],
   summary: 'Delete MCP server configuration',
   request: {

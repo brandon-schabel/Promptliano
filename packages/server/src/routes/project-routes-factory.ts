@@ -46,6 +46,7 @@ import {
   updateFileContent,
   summarizeFiles
 } from '@promptliano/services'
+import { ProjectFileSchema } from '@promptliano/schemas'
 
 // ============= CRUD ROUTES WITH FACTORY (PARTIAL) =============
 // We create separate CRUD routes for list, get, and update
@@ -773,6 +774,62 @@ customRoutes.openapi(updateFileContentRoute, async (c) => {
         message: 'Failed to update file content' 
       } 
     }, 500)
+  }
+})
+
+// ============= SUGGEST FILES (PROJECT-SCOPED) =============
+const suggestFilesRoute = createRoute({
+  method: 'post',
+  path: '/api/projects/{id}/suggest-files',
+  tags: ['Projects', 'Files', 'AI'],
+  summary: 'Suggest relevant files based on user input and project context',
+  request: {
+    params: z.object({ id: z.coerce.number().int().positive() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              prompt: z.string().min(1).optional(),
+              userInput: z.string().min(1).optional(),
+              limit: z.number().int().positive().optional().default(10)
+            })
+            .refine((v) => !!(v.prompt || v.userInput), {
+              message: 'Either prompt or userInput is required'
+            })
+        }
+      },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.object({ success: z.literal(true), data: z.array(ProjectFileSchema) }) } },
+      description: 'Suggested files returned successfully'
+    },
+    404: { content: { 'application/json': { schema: ApiErrorResponseSchema } }, description: 'Project not found' },
+    500: { content: { 'application/json': { schema: ApiErrorResponseSchema } }, description: 'Internal Server Error' }
+  }
+})
+
+customRoutes.openapi(suggestFilesRoute, async (c) => {
+  try {
+    const { id } = c.req.valid('param')
+    const body = c.req.valid('json')
+    const prompt = (body as any).prompt || (body as any).userInput
+    const limit = (body as any).limit ?? 10
+
+    // Verify project exists via service call (throws if not found)
+    await projectService.getById(id)
+
+    const files = await projectService.suggestFiles(id, prompt, limit)
+    return c.json({ success: true as const, data: files }, 200)
+  } catch (error) {
+    console.error('Suggest files error:', error)
+    if (error instanceof ApiError) {
+      return c.json({ success: false as const, error: { message: error.message, code: error.code } }, error.status as any)
+    }
+    return c.json({ success: false as const, error: { message: 'Failed to suggest files' } }, 500)
   }
 })
 

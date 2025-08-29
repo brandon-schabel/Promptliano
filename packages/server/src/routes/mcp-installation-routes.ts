@@ -171,11 +171,9 @@ const detectInstalledToolsRoute = createRoute({
 
 const getInstallationStatusRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/installation/status',
+  path: '/api/projects/{id}/mcp/installation/status',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(InstallationStatusResponseSchema),
   tags: ['MCP Installation'],
@@ -184,11 +182,9 @@ const getInstallationStatusRoute = createRoute({
 
 const installMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/install',
+  path: '/api/projects/{id}/mcp/installation/install',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -204,11 +200,9 @@ const installMCPRoute = createRoute({
 
 const uninstallMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/uninstall',
+  path: '/api/projects/{id}/mcp/installation/uninstall',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -255,11 +249,9 @@ const getGlobalMCPStatusRoute = createRoute({
 
 const updateProjectMCPConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -298,11 +290,9 @@ const updateProjectMCPConfigRoute = createRoute({
 
 const batchInstallMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/batch-install',
+  path: '/api/projects/{id}/mcp/installation/batch-install',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -347,11 +337,9 @@ const batchInstallMCPRoute = createRoute({
 // Create route for project-level MCP installation
 const installProjectConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/install-project-config',
+  path: '/api/projects/{id}/mcp/install-project-config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -403,7 +391,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(getInstallationStatusRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -431,7 +419,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(installMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tool, serverUrl, debug } = c.req.valid('json')
 
     try {
@@ -474,7 +462,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(uninstallMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tool } = c.req.valid('json')
 
     try {

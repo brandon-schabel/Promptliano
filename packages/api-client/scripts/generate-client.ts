@@ -386,12 +386,30 @@ const config: GenerationConfig = {
 }
 
 /**
- * Fetch OpenAPI specification from server
+ * Fetch OpenAPI specification from server (prefers server unless disabled)
  */
 async function fetchOpenApiSpec(): Promise<object> {
   console.log('🔍 Fetching OpenAPI specification...')
-  // Prefer existing local spec if available (avoids server dependency)
+  const preferServerSpec = process.env.PREFER_SERVER_SPEC !== 'false'
+
   const localSpecPath = join(config.outputDir, 'openapi-spec.json')
+
+  // Try server first (default), then fallback to local
+  if (preferServerSpec) {
+    try {
+      const response = await fetch(`${config.serverUrl}${config.openApiPath}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch OpenAPI spec: ${response.status} ${response.statusText}`)
+      }
+      const spec = await response.json()
+      console.log('✅ OpenAPI specification fetched successfully from server')
+      return spec
+    } catch (error) {
+      console.warn('⚠️  Failed to fetch from server, attempting to use local spec:', error)
+    }
+  }
+
+  // Fallback to local spec if available
   try {
     if (existsSync(localSpecPath)) {
       const raw = readFileSync(localSpecPath, 'utf8')
@@ -400,20 +418,20 @@ async function fetchOpenApiSpec(): Promise<object> {
       return spec
     }
   } catch (e) {
-    console.warn('⚠️  Failed reading local OpenAPI spec, falling back to server fetch')
+    console.warn('⚠️  Failed reading local OpenAPI spec')
   }
 
+  // Last resort: try server again (even if preferServerSpec was false)
   try {
     const response = await fetch(`${config.serverUrl}${config.openApiPath}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch OpenAPI spec: ${response.status} ${response.statusText}`)
     }
-
     const spec = await response.json()
-    console.log('✅ OpenAPI specification fetched successfully')
+    console.log('✅ OpenAPI specification fetched from server')
     return spec
   } catch (error) {
-    console.error('❌ Failed to fetch OpenAPI spec:', error)
+    console.error('❌ Failed to obtain OpenAPI spec from both server and local file:', error)
     throw error
   }
 }
@@ -654,6 +672,18 @@ async function generateApiClient(): Promise<void> {
   try {
     // Step 1: Fetch OpenAPI spec (prefer local file)
     const spec = await fetchOpenApiSpec()
+
+    // Always write the latest spec to disk so subsequent runs, tooling and diffing use current schema
+    try {
+      if (!existsSync(config.outputDir)) {
+        mkdirSync(config.outputDir, { recursive: true })
+      }
+      const specPath = join(config.outputDir, 'openapi-spec.json')
+      writeFileSync(specPath, JSON.stringify(spec, null, 2))
+      console.log('📝 Wrote updated OpenAPI spec to', specPath)
+    } catch (e) {
+      console.warn('⚠️  Could not write updated OpenAPI spec file:', e)
+    }
 
     // Step 2: Generate TypeScript types (skip if already present)
     const typesPath = join(config.outputDir, 'api-types.ts')
