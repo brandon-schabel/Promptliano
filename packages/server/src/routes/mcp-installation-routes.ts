@@ -15,6 +15,7 @@ import {
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
 import { createStandardResponses, successResponse } from '../utils/route-helpers'
+import { IDParamsSchema } from '@promptliano/schemas'
 
 // Schemas
 const MCPToolInfoSchema = z.object({
@@ -173,7 +174,7 @@ const getInstallationStatusRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/installation/status',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(InstallationStatusResponseSchema),
   tags: ['MCP Installation'],
@@ -184,7 +185,7 @@ const installMCPRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/installation/install',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -202,7 +203,7 @@ const uninstallMCPRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/installation/uninstall',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -251,7 +252,7 @@ const updateProjectMCPConfigRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -292,7 +293,7 @@ const batchInstallMCPRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/installation/batch-install',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -339,7 +340,7 @@ const installProjectConfigRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/install-project-config',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {

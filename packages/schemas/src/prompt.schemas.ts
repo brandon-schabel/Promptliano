@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi'
-import { ProjectIdParamsSchema } from './project.schemas'
+import { IDParamsSchema } from './project.schemas'
 import {
   unixTSOptionalSchemaSpec,
   unixTSSchemaSpec,

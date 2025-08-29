@@ -53,7 +53,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
   // Get file details from IDs
   const getFileDetails = (fileIds: string[]) => {
     return fileIds.map((id) => {
-      const file = files?.find((f) => f.id.toString() === id)
+      const file = files?.find((f: any) => f.id.toString() === id)
       return file || { id, path: `Unknown file (ID: ${id})` }
     })
   }
@@ -196,14 +196,14 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                   </h3>
                   {suggestedFiles.length > 0 ? (
                     <div className='space-y-2'>
-                      {suggestedFiles.map((file) => (
+                      {suggestedFiles.map((file: any) => (
                         <div
                           key={file.id}
                           className='flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors'
                         >
                           <FileIcon className='h-4 w-4 text-blue-600 flex-shrink-0' />
                           <div className='flex-1 min-w-0'>
-                            <p className='text-sm font-medium truncate'>{file.path || `File #${file.id}`}</p>
+                            <p className='text-sm font-medium truncate'>{file?.path || `File #${file?.id}`}</p>
                           </div>
                           <Button size='sm' variant='ghost'>
                             <Code className='h-4 w-4' />

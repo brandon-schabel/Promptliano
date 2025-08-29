@@ -8,16 +8,17 @@
 import { createCrudRoutes, extendCrudRoutes } from './factories/crud-routes-factory'
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { promptService } from '@promptliano/services'
-import { 
+import {
   PromptSchema,
   CreatePromptSchema,
   UpdatePromptSchema,
-  type Prompt 
+  type Prompt
 } from '@promptliano/database'
 import {
   SuggestPromptsRequestSchema,
   SuggestPromptsResponseSchema,
   MarkdownImportResponseSchema,
+  IDParamsSchema,
   MarkdownExportResponseSchema,
   BatchExportRequestSchema,
   BulkImportResponseSchema
@@ -45,7 +46,7 @@ const MARKDOWN_UPLOAD_CONFIG = {
 function transformPromptFromDB(dbPrompt: any): Prompt {
   return {
     ...dbPrompt,
-    tags: Array.isArray(dbPrompt.tags) 
+    tags: Array.isArray(dbPrompt.tags)
       ? dbPrompt.tags.filter((tag: any): tag is string => typeof tag === 'string')
       : []
   }
@@ -58,7 +59,7 @@ const promptCrudRoutes = createCrudRoutes<Prompt, any, any>({
   entityName: 'Prompt',
   path: 'api/prompts',
   tags: ['Prompts'],
-  
+
   service: {
     list: async () => {
       const prompts = await promptService.getAll()
@@ -82,22 +83,22 @@ const promptCrudRoutes = createCrudRoutes<Prompt, any, any>({
       return all.length
     }
   },
-  
+
   schemas: {
     entity: PromptSchema as unknown as z.ZodType<Prompt>,
     create: CreatePromptSchema,
     update: UpdatePromptSchema
   },
-  
+
   options: {
     pagination: true,
     search: false, // Prompts don't have built-in search yet
     batch: false,  // Not needed for prompts
-    
+
     middleware: {
       all: [authMiddleware({ required: false })]
     },
-    
+
     transformResponse: {
       // Sort prompts by updated date
       list: (prompts) => prompts.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -117,7 +118,7 @@ const listProjectPromptsRoute = createRoute({
   tags: ['Projects', 'Prompts'],
   summary: 'List prompts associated with a specific project',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: {
     200: {
@@ -148,7 +149,7 @@ const patchPromptRoute = createRoute({
   tags: ['Prompts'],
   summary: 'Update Prompt (PATCH alias)',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: UpdatePromptSchema } },
       required: true
@@ -197,7 +198,7 @@ const suggestPromptsRoute = createRoute({
   summary: 'Get AI-suggested prompts based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant prompts from the project',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SuggestPromptsRequestSchema } },
       required: true
@@ -253,23 +254,23 @@ promptCustomRoutes.openapi(exportPromptRoute, async (c) => {
     async () => {
       const { promptId } = c.req.valid('param')
       const prompt = await promptService.get(promptId)
-      
+
       if (!prompt) {
         throw new Error('Prompt not found')
       }
-      
+
       const promptForMarkdown = transformPromptFromDB(prompt)
-      
+
       const markdownContent = await promptToMarkdown(promptForMarkdown)
-      
+
       const filename = `${prompt.title
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')}.md`
-      
+
       c.header('Content-Type', 'text/plain')
       c.header('Content-Disposition', `attachment; filename="${filename}"`)
-      
+
       return c.body(markdownContent)
     },
     { entity: 'Prompt', action: 'export' }
@@ -304,7 +305,7 @@ promptCustomRoutes.openapi(exportBatchPromptsRoute, async (c) => {
     async () => {
       const body = c.req.valid('json')
       const { promptIds, ...options } = body
-      
+
       // Get all requested prompts
       const prompts = await Promise.all(
         promptIds.map(async (id: number) => {
@@ -315,7 +316,7 @@ promptCustomRoutes.openapi(exportBatchPromptsRoute, async (c) => {
           return transformPromptFromDB(prompt)
         })
       )
-      
+
       const result = await exportPromptsToMarkdown(prompts, options)
       return c.json(successResponse(result))
     },
@@ -369,42 +370,42 @@ promptCustomRoutes.openapi(importPromptsRoute, async (c): Promise<any> => {
   return withErrorContext(
     async () => {
       const body = await c.req.formData()
-      const projectId = body.get('projectId') 
-        ? parseInt(body.get('projectId') as string) 
+      const projectId = body.get('projectId')
+        ? parseInt(body.get('projectId') as string)
         : undefined
       const overwriteExisting = body.get('overwriteExisting') === 'true'
-      
+
       const files: Array<{ name: string; content: string; size: number }> = []
       const fileEntries = body.getAll('files')
-      
+
       if (!fileEntries || fileEntries.length === 0) {
         throw new Error('No files provided')
       }
-      
+
       // Validate and process files
       const { MAX_FILE_SIZE, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } = MARKDOWN_UPLOAD_CONFIG
-      
+
       for (const entry of fileEntries) {
         if (entry instanceof File) {
           // Validate file
           const fileName = entry.name.toLowerCase()
           const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext))
-          
+
           if (!hasValidExtension) {
             throw new Error(`Invalid file type: ${entry.name}. Only .md and .markdown files are allowed`)
           }
-          
+
           if (entry.type && entry.type !== '' && !ALLOWED_MIME_TYPES.includes(entry.type as any)) {
             throw new Error(`Invalid MIME type for ${entry.name}: ${entry.type}`)
           }
-          
+
           if (entry.size > MAX_FILE_SIZE) {
             const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-            ;(error as any).statusCode = 413
-            ;(error as any).code = 'FILE_TOO_LARGE'
+              ; (error as any).statusCode = 413
+              ; (error as any).code = 'FILE_TOO_LARGE'
             throw error
           }
-          
+
           const content = await entry.text()
           files.push({
             name: entry.name,
@@ -413,11 +414,11 @@ promptCustomRoutes.openapi(importPromptsRoute, async (c): Promise<any> => {
           })
         }
       }
-      
+
       if (files.length === 0) {
         throw new Error('No valid markdown files found')
       }
-      
+
       const result = await bulkImportMarkdownPrompts(files, projectId)
       return c.json(successResponse(result))
     },
@@ -464,7 +465,7 @@ promptCustomRoutes.openapi(validateMarkdownRoute, async (c) => {
     async () => {
       const { content } = c.req.valid('json')
       const validationResult = await validateMarkdownContent(content)
-      
+
       return c.json({
         success: true,
         data: validationResult.validation

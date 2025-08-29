@@ -4,7 +4,7 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema, IDParamsSchema } from '@promptliano/schemas'
 import {
   gitStatusResultSchema as GitStatusResultSchema,
   stageFilesRequestSchema as StageFilesBodySchema,
@@ -43,7 +43,7 @@ const getProjectGitStatusRoute = createRoute({
   summary: 'Get git status for a project',
   description: 'Retrieves the current git status including staged, unstaged, and untracked files',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     query: z.object({
       refresh: z.coerce.boolean().optional().default(false).openapi({
         description: 'Force refresh the git status (bypass cache)'
@@ -61,7 +61,7 @@ const stageFilesRoute = createRoute({
   summary: 'Stage files for commit',
   description: 'Stages specified files or patterns for the next commit',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: StageFilesBodySchema } },
       required: true
@@ -78,7 +78,7 @@ const unstageFilesRoute = createRoute({
   summary: 'Unstage files from commit',
   description: 'Removes specified files from the staging area',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: UnstageFilesBodySchema } },
       required: true
@@ -95,7 +95,7 @@ const stageAllRoute = createRoute({
   summary: 'Stage all changes',
   description: 'Stages all modified and untracked files for commit',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes staged successfully')
 })
@@ -108,7 +108,7 @@ const unstageAllRoute = createRoute({
   summary: 'Unstage all changes',
   description: 'Removes all files from the staging area',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 200, 'All changes unstaged successfully')
 })

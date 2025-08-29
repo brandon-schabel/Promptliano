@@ -14,9 +14,9 @@ import { toast } from 'sonner'
 
 import {
   useGetAllPrompts,
-  useGetProjectPrompts,
-  useAddPromptToProject,
-  useRemovePromptFromProject
+  useGetProjectPrompts
+  // useAddPromptToProject, // TODO: API method doesn't exist
+  // useRemovePromptFromProject // TODO: API method doesn't exist
 } from '@/hooks/api-hooks'
 
 interface PromptsDialogAllProps {
@@ -28,8 +28,8 @@ interface PromptsDialogAllProps {
 export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDialogAllProps) {
   const { data: allPromptsResponse, isLoading, error } = useGetAllPrompts()
   const { data: projectPromptData } = useGetProjectPrompts(selectedProjectId ?? -1)
-  const addPromptToProject = useAddPromptToProject()
-  const removePromptFromProject = useRemovePromptFromProject()
+  // const addPromptToProject = useAddPromptToProject() // TODO: API method doesn't exist
+  // const removePromptFromProject = useRemovePromptFromProject() // TODO: API method doesn't exist
 
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -55,7 +55,9 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
       return
     }
     try {
-      await addPromptToProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      // TODO: addPromptToProject hook doesn't exist
+      // await addPromptToProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      toast.error('Add prompt feature is temporarily disabled')
     } catch (err: any) {
       // Errors are already surfaced by the hook; keep console for debugging
       console.error(err)
@@ -68,7 +70,9 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
       return
     }
     try {
-      await removePromptFromProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      // TODO: removePromptFromProject hook doesn't exist
+      // await removePromptFromProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      toast.error('Remove prompt feature is temporarily disabled')
     } catch (err: any) {
       // Errors are already surfaced by the hook; keep console for debugging
       console.error(err)
@@ -111,7 +115,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
                       size='sm'
                       variant='destructive'
                       onClick={() => void handleRemovePromptFromProject(prompt.id)}
-                      disabled={removePromptFromProject.isPending}
+                      disabled={true}
                     >
                       Remove
                     </Button>
@@ -119,7 +123,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
                     <Button
                       size='sm'
                       onClick={() => void handleAddPromptToProject(prompt.id)}
-                      disabled={addPromptToProject.isPending}
+                      disabled={true}
                     >
                       Add
                     </Button>

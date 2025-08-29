@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { createStandardResponses, createStandardResponsesWithStatus, standardResponses } from '../utils/route-helpers'
 import { type File as ProjectFile } from '@promptliano/database'
 import {
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   CreateProjectBodySchema,
   UpdateProjectBodySchema,
   RefreshQuerySchema,
@@ -53,7 +53,7 @@ import {
 
 // File operation schemas
 const FileIdParamsSchema = z.object({
-  id: ProjectIdParamsSchema.shape.id,
+  id: IDParamsSchema.shape.id,
   fileId: z.coerce.number().int().positive()
 })
 
@@ -198,7 +198,7 @@ const getProjectByIdRoute = createRoute({
   path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: 'Get a specific project by ID',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(ProjectResponseSchema)
 })
 
@@ -208,7 +208,7 @@ const updateProjectRoute = createRoute({
   tags: ['Projects'],
   summary: "Update a project's details",
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: { content: { 'application/json': { schema: UpdateProjectBodySchema } } }
   },
   responses: createStandardResponses(ProjectResponseSchema)
@@ -219,7 +219,7 @@ const deleteProjectRoute = createRoute({
   path: '/api/projects/{id}',
   tags: ['Projects'],
   summary: 'Delete a project and its associated data',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
@@ -228,7 +228,7 @@ const syncProjectRoute = createRoute({
   path: '/api/projects/{id}/sync',
   tags: ['Projects', 'Files'],
   summary: 'Manually trigger a full file sync for a project',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
@@ -237,7 +237,7 @@ const syncProjectStreamRoute = createRoute({
   path: '/api/projects/{id}/sync-stream',
   tags: ['Projects', 'Files'],
   summary: 'Trigger a file sync with real-time progress updates via SSE',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: {
     200: {
       content: {
@@ -260,7 +260,7 @@ const getProjectFilesRoute = createRoute({
   tags: ['Projects', 'Files'],
   summary: 'Get the list of files associated with a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       includeAllVersions: z.coerce.boolean().optional().default(false),
       limit: z.coerce.number().int().positive().optional().describe('Maximum number of files to return'),
@@ -276,7 +276,7 @@ const getProjectFilesMetadataRoute = createRoute({
   tags: ['Projects', 'Files'],
   summary: 'Get project files metadata without content (for performance)',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       limit: z.coerce.number().int().positive().optional().describe('Maximum number of files to return'),
       offset: z.coerce.number().int().nonnegative().optional().default(0).describe('Number of files to skip')
@@ -303,7 +303,7 @@ const bulkUpdateFilesRoute = createRoute({
   tags: ['Projects', 'Files'],
   summary: 'Update content of multiple files in a project (creates new versions)',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: { content: { 'application/json': { schema: BulkUpdateFilesBodySchema } } }
   },
   responses: createStandardResponses(BulkFilesResponseSchema)
@@ -315,7 +315,7 @@ const refreshProjectRoute = createRoute({
   tags: ['Projects', 'Files'],
   summary: 'Refresh project files (sync) optionally limited to a folder',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: RefreshQuerySchema
   },
   responses: createStandardResponses(FileListResponseSchema)
@@ -326,7 +326,7 @@ const getProjectSummaryRoute = createRoute({
   path: '/api/projects/{id}/summary',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get a combined summary of all files in the project',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(ProjectSummaryResponseSchema)
 })
 
@@ -336,7 +336,7 @@ const getProjectSummaryAdvancedRoute = createRoute({
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get an advanced project summary with customizable options',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -365,7 +365,7 @@ const getProjectSummaryMetricsRoute = createRoute({
   path: '/api/projects/{id}/summary/metrics',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get metrics about project summary generation',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(z.any())
 })
 
@@ -374,7 +374,7 @@ const invalidateProjectSummaryCacheRoute = createRoute({
   path: '/api/projects/{id}/summary/invalidate',
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Invalidate the project summary cache',
-  request: { params: ProjectIdParamsSchema },
+  request: { params: IDParamsSchema },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
@@ -384,7 +384,7 @@ const suggestFilesRoute = createRoute({
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Suggest relevant files based on user input and project context',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: { content: { 'application/json': { schema: SuggestFilesBodySchema } } }
   },
   responses: createStandardResponses(SuggestFilesResponseSchema)
@@ -413,7 +413,7 @@ const startBatchSummarizationRoute = createRoute({
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Start batch summarization of unsummarized files',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: { content: { 'application/json': { schema: StartBatchSummarizationBodySchema } } }
   },
   responses: createStandardResponses(BatchProgressResponseSchema)
@@ -426,7 +426,7 @@ const getBatchProgressRoute = createRoute({
   summary: 'Get progress of a batch summarization operation',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       batchId: z.string()
     })
   },
@@ -440,7 +440,7 @@ const cancelBatchSummarizationRoute = createRoute({
   summary: 'Cancel a running batch summarization',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       batchId: z.string()
     })
   },
@@ -453,7 +453,7 @@ const getSummarizationStatsRoute = createRoute({
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Get file summarization statistics for a project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(FileSummarizationStatsResponseSchema)
 })
@@ -464,7 +464,7 @@ const previewFileGroupsRoute = createRoute({
   tags: ['Projects', 'Files', 'AI'],
   summary: 'Preview how files would be grouped for summarization',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -486,7 +486,7 @@ const getProjectStatisticsRoute = createRoute({
   tags: ['Projects', 'Statistics'],
   summary: 'Get comprehensive statistics for a project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(
     z.object({
@@ -963,7 +963,7 @@ export const projectRoutes = new OpenAPIHono()
       tags: ['Projects', 'Files', 'AI'],
       summary: 'Summarize specified files in a project',
       request: {
-        params: ProjectIdParamsSchema,
+        params: IDParamsSchema,
         body: {
           content: {
             'application/json': {
@@ -1025,7 +1025,7 @@ export const projectRoutes = new OpenAPIHono()
       tags: ['Projects', 'Files'],
       summary: 'Remove summaries from specified files',
       request: {
-        params: ProjectIdParamsSchema,
+        params: IDParamsSchema,
         body: {
           content: {
             'application/json': {

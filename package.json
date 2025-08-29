@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "update-version": "bun run scripts/update-version.ts",
     "db:migrate": "cd packages/database && bun run migrate",
-    "db:studio": "cd packages/database && bun run studio"
+    "db:studio": "cd packages/database && bun run studio",
+    "drizzle:studio": "bunx drizzle-kit studio"
   },
   "workspaces": [
     "packages/*"
@@ -31,6 +32,7 @@
     "@types/picomatch": "^3.0.2",
     "archiver": "^7.0.1",
     "bun-types": "latest",
+    "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.8",
     "eslint-plugin-unused-imports": "^4.1.4",
     "prettier": "^3.5.3",

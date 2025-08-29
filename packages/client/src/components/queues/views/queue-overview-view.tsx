@@ -114,8 +114,8 @@ export function QueueOverviewView({
         ) : queuesWithStats && queuesWithStats.length > 0 ? (
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
             {queuesWithStats
-              .filter((queueWithStats) => queueWithStats && queueWithStats.queue?.id)
-              .map((queueWithStats) => (
+              .filter((queueWithStats: QueueWithStats) => queueWithStats && queueWithStats.queue?.id)
+              .map((queueWithStats: QueueWithStats) => (
                 <QueueStatsCard
                   key={queueWithStats.queue.id}
                   queueWithStats={queueWithStats}

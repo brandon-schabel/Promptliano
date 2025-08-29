@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import {
   ApiErrorResponseSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   ClaudeSessionsResponseSchema,
   ClaudeMessagesResponseSchema,
   ClaudeProjectDataResponseSchema,
@@ -56,7 +56,7 @@ const getMCPStatusRoute = createRoute({
   summary: 'Get MCP installation status for Claude Code and Claude Desktop',
   description: 'Checks MCP configuration status across Claude Desktop and Claude Code CLI',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MCPStatusResponseSchema)
 })
@@ -69,7 +69,7 @@ const getSessionsRoute = createRoute({
   summary: 'Get all Claude Code chat sessions for a project',
   description: 'Retrieves all chat sessions from Claude Code local storage with optional cursor-based pagination',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: ClaudeSessionQuerySchema.extend({
       useCursor: z.coerce.boolean().optional().default(false),
       cursor: z.string().optional(),
@@ -99,7 +99,7 @@ const getSessionMessagesRoute = createRoute({
   description: 'Retrieves all messages from a specific chat session',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       sessionId: z.string()
     }),
     query: ClaudeMessageQuerySchema
@@ -115,7 +115,7 @@ const getProjectDataRoute = createRoute({
   summary: 'Get Claude Code project metadata',
   description: 'Retrieves project-level data including branches, working directories, and statistics',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ClaudeProjectDataResponseSchema)
 })
@@ -129,7 +129,7 @@ const importSessionRoute = createRoute({
   description: 'Imports all messages from a Claude Code session into a new Promptliano chat',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       sessionId: z.string()
     })
   },
@@ -144,7 +144,7 @@ const getSessionsMetadataRoute = createRoute({
   summary: 'Get lightweight session metadata for a project',
   description: 'Retrieves session metadata without full message content for fast loading',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z
       .object({
         search: z.string().optional(),
@@ -165,7 +165,7 @@ const getSessionsPaginatedRoute = createRoute({
   summary: 'Get sessions with cursor-based pagination',
   description: 'Retrieves sessions with efficient cursor-based pagination for large datasets',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: ClaudeSessionCursorSchema
   },
   responses: createStandardResponses(ClaudeSessionsPaginatedResponseSchema)
@@ -179,7 +179,7 @@ const getRecentSessionsRoute = createRoute({
   summary: 'Get recent Claude Code sessions',
   description: 'Retrieves the most recent sessions for fast access (default 10 sessions)',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z
       .object({
         limit: z.coerce.number().int().positive().max(50).optional().default(10)
@@ -199,7 +199,7 @@ const getFullSessionRoute = createRoute({
   request: {
     params: z
       .object({
-        id: ProjectIdParamsSchema.shape.id,
+        id: IDParamsSchema.shape.id,
         sessionId: z.string()
       })
       .openapi('ClaudeFullSessionParams')
@@ -388,14 +388,14 @@ export const claudeCodeRoutes = new OpenAPIHono()
               ? m.message.content
               : m.message.content && Array.isArray(m.message.content)
                 ? m.message.content
-                    .map((c) =>
-                      typeof c === 'string'
-                        ? c
-                        : c && typeof c === 'object' && 'type' in c && c.type === 'text' && 'text' in c
-                          ? c.text
-                          : ''
-                    )
-                    .join(' ')
+                  .map((c) =>
+                    typeof c === 'string'
+                      ? c
+                      : c && typeof c === 'object' && 'type' in c && c.type === 'text' && 'text' in c
+                        ? c.text
+                        : ''
+                  )
+                  .join(' ')
                 : ''
           return content.toLowerCase().includes(searchLower)
         })

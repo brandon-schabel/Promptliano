@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import {
   ApiErrorResponseSchema,
   OperationSuccessResponseSchema,
+  IDParamsSchema,
   ProjectIdParamsSchema,
   CommandNameParamsSchema,
   CreateClaudeCommandBodySchema,
@@ -41,7 +42,7 @@ const createClaudeCommandRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'Create a new Claude command',
   request: {
-    params: z.object({ id: z.coerce.number().openapi({ param: { name: 'id', in: 'path' } }) }),
+    params: ProjectIdParamsSchema,
     body: {
       content: { 'application/json': { schema: CreateClaudeCommandBodySchema } },
       required: true
@@ -56,7 +57,7 @@ const listClaudeCommandsRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'List Claude commands for a project',
   request: {
-    params: z.object({ id: z.coerce.number().openapi({ param: { name: 'id', in: 'path' } }) }),
+    params: ProjectIdParamsSchema,
     query: SearchCommandsQuerySchema
   },
   responses: createStandardResponses(ClaudeCommandListResponseSchema)
@@ -145,7 +146,7 @@ const generateClaudeCommandRoute = createRoute({
   summary: 'Generate a new Claude command using AI',
   description: 'Uses AI to generate a complete slash command based on user requirements and project context',
   request: {
-    params: z.object({ id: z.coerce.number().openapi({ param: { name: 'id', in: 'path' } }) }),
+    params: ProjectIdParamsSchema,
     body: {
       content: { 'application/json': { schema: CommandGenerationRequestSchema } },
       required: true
@@ -160,7 +161,7 @@ const suggestClaudeCommandsRoute = createRoute({
   tags: ['Claude Commands'],
   summary: 'Get AI-powered command suggestions',
   request: {
-    params: z.object({ id: z.coerce.number().openapi({ param: { name: 'id', in: 'path' } }) }),
+    params: ProjectIdParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -297,10 +298,10 @@ export const claudeCommandRoutes = new OpenAPIHono()
         result: result.result,
         usage: result.metadata?.usage
           ? {
-              inputTokens: result.metadata.usage.inputTokens || 0,
-              outputTokens: result.metadata.usage.outputTokens || 0,
-              totalTokens: result.metadata.usage.totalTokens || 0
-            }
+            inputTokens: result.metadata.usage.inputTokens || 0,
+            outputTokens: result.metadata.usage.outputTokens || 0,
+            totalTokens: result.metadata.usage.totalTokens || 0
+          }
           : undefined,
         model: result.metadata?.model,
         sessionId: result.metadata?.sessionId

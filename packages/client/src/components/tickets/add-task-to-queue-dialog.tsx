@@ -104,24 +104,24 @@ export function AddTaskToQueueDialog({
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues.map((queueData) => {
-                      const isSelected = selectedQueueId === queueData.id
+                    {queues.map((queueData: QueueWithStats) => {
+                      const isSelected = selectedQueueId === queueData.queue.id
                       const itemCount = getQueueItemCount(queueData.stats)
-                      const isTicketQueue = ticketQueueId === queueData.id
+                      const isTicketQueue = ticketQueueId === queueData.queue.id
 
                       return (
-                        <div key={queueData.id} className='relative'>
+                        <div key={queueData.queue.id} className='relative'>
                           <RadioGroupItem
-                            value={queueData.id.toString()}
-                            id={`queue-${queueData.id}`}
+                            value={queueData.queue.id.toString()}
+                            id={`queue-${queueData.queue.id}`}
                             className='peer sr-only'
                           />
-                          <Label htmlFor={`queue-${queueData.id}`} className='cursor-pointer'>
+                          <Label htmlFor={`queue-${queueData.queue.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
                                 'transition-all hover:shadow-md',
                                 isSelected && 'ring-2 ring-primary shadow-md',
-                                (queueData.status ?? 'active') === 'paused' && 'opacity-60'
+                                (queueData.queue.status ?? 'active') === 'paused' && 'opacity-60'
                               )}
                             >
                               <CardContent className='p-3'>
@@ -129,22 +129,22 @@ export function AddTaskToQueueDialog({
                                   <div className='flex-1'>
                                     <div className='flex items-center gap-2 mb-1'>
                                       <Inbox className='h-4 w-4 text-muted-foreground' />
-                                      <span className='font-medium'>{queueData.name}</span>
+                                      <span className='font-medium'>{queueData.queue.name}</span>
                                       {isTicketQueue && (
                                         <Badge variant='outline' className='text-xs'>
                                           Ticket's Queue
                                         </Badge>
                                       )}
                                     </div>
-                                    {queueData.description && (
+                                    {queueData.queue.description && (
                                       <p className='text-xs text-muted-foreground mb-2 line-clamp-1'>
-                                        {queueData.description}
+                                        {queueData.queue.description}
                                       </p>
                                     )}
                                     <div className='flex items-center gap-3 text-xs'>
                                       <Badge variant='secondary' className='text-xs'>
-                                        {getQueueStatusIcon(queueData.status ?? 'inactive')}
-                                        <span className='ml-1'>{queueData.status ?? 'inactive'}</span>
+                                        {getQueueStatusIcon(queueData.queue.status ?? 'inactive')}
+                                        <span className='ml-1'>{queueData.queue.status ?? 'inactive'}</span>
                                       </Badge>
                                       <span className='text-muted-foreground'>
                                         {itemCount === 0 ? 'Empty' : itemCount === 1 ? '1 item' : `${itemCount} items`}

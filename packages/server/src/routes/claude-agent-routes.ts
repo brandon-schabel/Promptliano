@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import {
   ApiErrorResponseSchema,
   OperationSuccessResponseSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   AgentIdParamsSchema,
   CreateClaudeAgentBodySchema,
   UpdateClaudeAgentBodySchema,
@@ -113,7 +113,7 @@ const listProjectClaudeAgentsRoute = createRoute({
   tags: ['Projects', 'Claude Agents'],
   summary: 'List Claude agents associated with a specific project',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ClaudeAgentListResponseSchema)
 })
@@ -125,7 +125,7 @@ const suggestClaudeAgentsRoute = createRoute({
   summary: 'Get AI-suggested Claude agents based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant agents for the task',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SuggestAgentsRequestSchema } },
       required: true

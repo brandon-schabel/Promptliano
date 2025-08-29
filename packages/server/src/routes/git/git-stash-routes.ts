@@ -5,7 +5,7 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { gitStashSchema as GitStashSchema, ProjectIdParamsSchema } from '@promptliano/schemas'
+import { gitStashSchema as GitStashSchema, IDParamsSchema } from '@promptliano/schemas'
 
 // Define missing schemas locally
 const CreateStashBodySchema = z.object({
@@ -50,7 +50,7 @@ const getStashListRoute = createRoute({
   summary: 'List all stashes',
   description: 'Retrieves the list of all stashed changes',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(StashListResponseSchema)
 })
@@ -63,7 +63,7 @@ const createStashRoute = createRoute({
   summary: 'Create a new stash',
   description: 'Stashes the current working directory changes',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: CreateStashBodySchema } },
       required: false
@@ -80,7 +80,7 @@ const applyStashRoute = createRoute({
   summary: 'Apply a stash',
   description: 'Applies the specified stash without removing it from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: ApplyStashBodySchema } },
       required: false
@@ -99,7 +99,7 @@ const popStashRoute = createRoute({
   summary: 'Pop a stash',
   description: 'Applies the specified stash and removes it from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: PopStashBodySchema } },
       required: false
@@ -118,7 +118,7 @@ const dropStashRoute = createRoute({
   summary: 'Drop a stash',
   description: 'Removes the specified stash from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: DropStashBodySchema } },
       required: false

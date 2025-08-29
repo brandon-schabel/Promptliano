@@ -131,7 +131,7 @@ export function categorizeFile(file: ProjectFile): FileCategory {
   }
 
   // Check if too large
-  if (file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
+  if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
     return {
       category: 'too-large',
       reason: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 1MB limit`

@@ -7,17 +7,15 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { createCrudRoutes } from './factories/crud-routes-factory'
-import { 
+import {
   ClaudeAgentSchema,
   CreateClaudeAgentSchema,
   UpdateClaudeAgentSchema
 } from '@promptliano/database'
-import { 
-  CreateClaudeAgentBodySchema,
-  UpdateClaudeAgentBodySchema,
+import {
   AgentSuggestionsResponseSchema,
   SuggestAgentsRequestSchema,
-  ProjectIdParamsSchema
+  IDParamsSchema,
 } from '@promptliano/schemas'
 import { claudeAgentService, projectService } from '@promptliano/services'
 import { ErrorFactory } from '@promptliano/shared'
@@ -40,11 +38,11 @@ const crudRoutes = createCrudRoutes({
       }
       return claudeAgentService.list()
     },
-    
+
     get: async (id: number | string) => {
       return claudeAgentService.getById(String(id))
     },
-    
+
     create: async (data: any) => {
       // Extract projectId from data or use default
       const projectId = data.projectId || 1 // Default project ID or get from context
@@ -52,18 +50,18 @@ const crudRoutes = createCrudRoutes({
       if (!project) {
         throw ErrorFactory.notFound('Project', projectId)
       }
-      
+
       // Create agent with project path context
-      const service = await import('@promptliano/services').then(m => 
+      const service = await import('@promptliano/services').then(m =>
         m.createClaudeAgentService({ projectPath: project.path })
       )
       return service.create(data)
     },
-    
+
     update: async (id: number | string, data: any) => {
       return claudeAgentService.update(String(id), data)
     },
-    
+
     delete: async (id: number | string) => {
       await claudeAgentService.delete(String(id))
       return true
@@ -89,7 +87,7 @@ const listProjectAgentsRoute = createRoute({
   tags: ['Projects', 'Claude Agents'],
   summary: 'List Claude agents associated with a specific project',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
@@ -105,7 +103,7 @@ const suggestAgentsRoute = createRoute({
   summary: 'Get AI-suggested Claude agents based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant agents for the task',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SuggestAgentsRequestSchema } },
       required: true
@@ -117,12 +115,12 @@ const suggestAgentsRoute = createRoute({
 customRoutes
   .openapi(listProjectAgentsRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
-    
+
     const project = await projectService.getById(projectId)
     if (!project) {
       throw ErrorFactory.notFound('Project', projectId)
     }
-    
+
     // Get agents for this project
     const agents = await claudeAgentService.getByProject(projectId)
     return c.json(successResponse(agents))
@@ -130,12 +128,12 @@ customRoutes
   .openapi(suggestAgentsRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const { userContext, limit } = c.req.valid('json')
-    
+
     const project = await projectService.getById(projectId)
     if (!project) {
       throw ErrorFactory.notFound('Project', projectId)
     }
-    
+
     const suggestions = await claudeAgentService.suggest(projectId, userContext, limit)
     return c.json(successResponse(suggestions))
   })

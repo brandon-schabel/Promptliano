@@ -44,7 +44,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
   const { data: projectFilesData, isLoading, error } = useGetProjectFilesWithoutContent(projectId)
-  const files = projectFilesData || []
+  const files: ProjectFileWithoutContent[] = Array.isArray(projectFilesData) ? projectFilesData as ProjectFileWithoutContent[] : []
 
   const stats = React.useMemo(() => {
     if (!files || files.length === 0) return null
@@ -55,7 +55,7 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
     let filesWithSummaries = 0
     const summaryLengths: number[] = []
 
-    files.forEach((file: ProjectFileWithoutContent) => {
+    files.forEach((file) => {
       const ext = file.extension || 'unknown'
       fileTypeCounts[ext] = (fileTypeCounts[ext] || 0) + 1
       fileSizeByType[ext] = (fileSizeByType[ext] || 0) + (file.size || 0)
