@@ -18,13 +18,11 @@ import {
   ProviderStatusEnum,
   ProviderHealthStatusEnum
 } from '@promptliano/schemas'
-// Note: These types should be migrated to @promptliano/database in next phase
 import { ApiError } from '@promptliano/shared'
 import { ErrorFactory, assertExists, handleZodError, withErrorContext } from '@promptliano/shared'
 import { logger } from './utils/logger'
 import { z } from '@hono/zod-openapi'
 import { normalizeToUnixMs } from '@promptliano/shared'
-// Encryption removed: keys are referenced via secretRef and resolved from env
 import { getProviderTimeout, createProviderTimeout } from './utils/provider-timeouts'
 
 // Type aliases for clarity
@@ -48,8 +46,7 @@ function transformProviderKey(rawKey: any): ProviderKey {
     ...rawKey,
     customHeaders: validateJsonField.record(rawKey.customHeaders) || {},
     isDefault: Boolean(rawKey.isDefault),
-    isActive: Boolean(rawKey.isActive),
-    encrypted: Boolean(rawKey.encrypted)
+    isActive: Boolean(rawKey.isActive)
   } as ProviderKey
 }
 
@@ -82,7 +79,7 @@ export function createProviderKeyService() {
     return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
   }
 
-  // Resolve actual key value from a secret reference (env/Docker/K8s secret name)
+  // Resolve actual key value from a secret reference (environment variable name)
   function resolveSecretRef(secretRef?: string | null): string | null {
     if (!secretRef) return null
     try {
@@ -91,6 +88,16 @@ export function createProviderKeyService() {
     } catch {
       return null
     }
+  }
+
+  // Get the actual key value (from plain text or environment variable)
+  function getKeyValue(keyData: any): string | null {
+    // First try to resolve from environment variable if secretRef is provided
+    const envValue = resolveSecretRef(keyData.secretRef)
+    if (envValue) return envValue
+    
+    // Otherwise return the plain text key
+    return keyData.key || null
   }
 
   /**
@@ -144,26 +151,13 @@ export function createProviderKeyService() {
           }
         }
 
-        // Determine the secret reference (prefer explicit secretRef; fallback to provided key string)
-        // Handle null by converting to undefined for consistency
-        const dataSecretRef = (data as any).secretRef
-        const dataKey = (data as any).key
-        const dataEncryptedValue = (data as any).encryptedValue
-        const secretRef = (dataSecretRef === null ? undefined : dataSecretRef) || 
-                         (dataKey === null ? undefined : dataKey) || 
-                         (dataEncryptedValue === null ? undefined : dataEncryptedValue) || null
-
+        // Simplified: Store either plain text key or environment variable reference
         const newKeyData = {
           name: data.name || null,
           provider: canonicalizeProviderId(data.provider),
           keyName: data.keyName || data.name || 'default', // Backward compatibility
-          secretRef: secretRef,
-          encryptedValue: '',
-          key: null,
-          encrypted: false,
-          iv: null,
-          tag: null,
-          salt: null,
+          secretRef: (data as any).secretRef || null, // Environment variable name if provided
+          key: (data as any).key || null, // Plain text key if provided
           baseUrl: data.baseUrl || null,
           customHeaders: data.customHeaders || {},
           isDefault: data.isDefault ?? false,
@@ -179,9 +173,9 @@ export function createProviderKeyService() {
         const createdKey = await repository.create(newKeyData as any)
         const transformedKey = transformProviderKey(createdKey)
 
-        // SECURITY: Return masked resolved key (if present)
-        const resolved = resolveSecretRef(secretRef)
-        return { ...transformedKey, key: resolved ? maskApiKey(resolved) : null }
+        // Return with masked key for security
+        const actualKey = getKeyValue(transformedKey)
+        return { ...transformedKey, key: actualKey ? maskApiKey(actualKey) : null }
       },
       { entity: 'ProviderKey', action: 'create' }
     )
@@ -196,8 +190,8 @@ export function createProviderKeyService() {
         const transformedKeys = transformProviderKeys(allKeys)
 
         const keyList = transformedKeys.map((key) => {
-          const resolved = resolveSecretRef((key as any).secretRef)
-          return { ...key, key: resolved ? maskApiKey(resolved) : null }
+          const actualKey = getKeyValue(key)
+          return { ...key, key: actualKey ? maskApiKey(actualKey) : null }
         })
 
         // Sort by provider, then by createdAt descending
@@ -224,12 +218,10 @@ export function createProviderKeyService() {
         const allKeys = await repository.getAll('desc')
         const transformedKeys = transformProviderKeys(allKeys)
 
-        const keyList = await Promise.all(
-          transformedKeys.map(async (key) => {
-            const resolved = resolveSecretRef((key as any).secretRef)
-            return { ...key, key: resolved || null }
-          })
-        )
+        const keyList = transformedKeys.map((key) => {
+          const actualKey = getKeyValue(key)
+          return { ...key, key: actualKey }
+        })
 
         // Sort by provider, then by createdAt descending
         keyList.sort((a, b) => {
@@ -274,9 +266,8 @@ export function createProviderKeyService() {
         }
 
         const typedKey = transformProviderKey(foundKeyData)
-
-        const resolved = resolveSecretRef((typedKey as any).secretRef)
-        return { ...typedKey, key: resolved || null }
+        const actualKey = getKeyValue(typedKey)
+        return { ...typedKey, key: actualKey }
       },
       { entity: 'ProviderKey', action: 'getById', id }
     )
@@ -318,27 +309,21 @@ export function createProviderKeyService() {
         if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt
         if (data.lastUsed !== undefined) updateData.lastUsed = data.lastUsed
 
-        // If secretRef (or legacy key field) is provided, persist it and clear stored ciphertext fields
-        // Handle null by converting to undefined for consistency
-        const rawSecretRef = (data as any).secretRef ?? (data as any).key
-        const nextSecretRef = rawSecretRef === null ? undefined : rawSecretRef
-        if (typeof nextSecretRef === 'string') {
-          ;(updateData as any).secretRef = nextSecretRef
-          ;(updateData as any).key = null
-          ;(updateData as any).encryptedValue = ''
-          ;(updateData as any).encrypted = false
-          ;(updateData as any).iv = null
-          ;(updateData as any).tag = null
-          ;(updateData as any).salt = null
+        // Simplified: Update plain text key or environment variable reference
+        if ((data as any).secretRef !== undefined) {
+          (updateData as any).secretRef = (data as any).secretRef
+        }
+        if ((data as any).key !== undefined) {
+          (updateData as any).key = (data as any).key
         }
 
         // Update the key using repository
         const rawUpdatedKey = await repository.update(id, updateData)
         const updatedKey = transformProviderKey(rawUpdatedKey)
 
-        // Return resolved key value (if available)
-        const resolved = resolveSecretRef((updatedKey as any).secretRef)
-        return { ...updatedKey, key: resolved || null }
+        // Return with actual key value
+        const actualKey = getKeyValue(updatedKey)
+        return { ...updatedKey, key: actualKey }
       },
       { entity: 'ProviderKey', action: 'update', id }
     )
@@ -372,7 +357,7 @@ export function createProviderKeyService() {
         throw ErrorFactory.notFound('Provider', request.providerId)
       }
 
-      // The key is already decrypted by getKeyById
+      // The key is already resolved (from plain text or env var) by getKeyById
       const apiKey = providerKey.key || ''
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'provider')
@@ -726,8 +711,8 @@ function createRouteCompatibleProviderKeyService() {
       return key
     },
 
-    async create(data: CreateProviderKeyInput & { key?: string | null }): Promise<ProviderKey> {
-      // SECURITY: createKey now returns masked key by default
+    async create(data: CreateProviderKeyInput & { key?: string | null; secretRef?: string | null }): Promise<ProviderKey> {
+      // Returns masked key by default for security
       return await mainService.createKey(data)
     },
 

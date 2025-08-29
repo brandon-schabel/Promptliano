@@ -440,15 +440,11 @@ export const providerKeys = sqliteTable(
     id: integer('id').primaryKey(),
     provider: text('provider').notNull(),
     keyName: text('key_name').notNull(), // Keep for backward compatibility
-    name: text('name'), // New field for enhanced provider key schema
-    // New: reference to an environment/Docker/K8s secret name instead of storing the key
+    name: text('name'), // Display name for the key
+    // Reference to an environment variable name (optional - for production use)
     secretRef: text('secret_ref'),
-    encryptedValue: text('encrypted_value').notNull(), // Keep for backward compatibility
-    key: text('key'), // New field for enhanced provider key schema
-    encrypted: integer('encrypted', { mode: 'boolean' }).notNull().default(true),
-    iv: text('iv'),
-    tag: text('tag'),
-    salt: text('salt'),
+    // Plain text key storage (simplified - no encryption)
+    key: text('key'),
     baseUrl: text('base_url'),
     customHeaders: text('custom_headers', { mode: 'json' })
       .$type<Record<string, string>>()
@@ -913,21 +909,6 @@ export const relevanceConfigs = sqliteTable(
 )
 
 // =============================================================================
-// ENCRYPTION TABLES
-// =============================================================================
-
-export const encryptionKeys = sqliteTable(
-  'encryption_keys',
-  {
-    id: integer('id').primaryKey(),
-    key: text('key').notNull(),
-    isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  }
-)
-
-// =============================================================================
 // UI STATE TABLES
 // =============================================================================
 
@@ -1330,7 +1311,6 @@ export type InsertProviderKey = typeof providerKeys.$inferInsert
 export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
 export type InsertActiveTab = typeof activeTabs.$inferInsert
-export type InsertEncryptionKey = typeof encryptionKeys.$inferInsert
 
 // New table insert types
 export type InsertGitStatus = typeof gitStatus.$inferInsert
@@ -1412,7 +1392,6 @@ export type File = Omit<FileInferred, 'imports' | 'exports'> & {
 }
 
 export type SelectedFile = typeof selectedFiles.$inferSelect
-export type EncryptionKey = typeof encryptionKeys.$inferSelect
 
 // Override ActiveTab type to fix JSON field types
 type ActiveTabInferred = typeof activeTabs.$inferSelect
