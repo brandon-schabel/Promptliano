@@ -53,7 +53,7 @@ const schema: Record<string, any> = {
   mcpExecutionChainsRelations,
   mcpErrorPatternsRelations
 }
-import { readFileSync } from 'fs'
+import { readFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -73,6 +73,17 @@ const createDatabase = () => {
         process.env.DATABASE_PATH
           || (process.env.PROMPTLIANO_DATA_DIR ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db') : join(repoRoot, 'data', 'promptliano.db'))
       )
+  // Ensure the directory for the DB file exists when not using in-memory
+  if (dbPath !== ':memory:') {
+    try {
+      const dir = dirname(dbPath)
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not ensure database directory exists:', e)
+    }
+  }
   const sqlite = new Database(dbPath, {
     create: true,
     // Performance optimizations

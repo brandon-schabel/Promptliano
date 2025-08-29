@@ -12,7 +12,7 @@ import {
   UpdateMCPServerConfigBodySchema,
   MCPServerConfigListResponseSchema,
   MCPServerConfigResponseSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   type MCPServerConfig
 } from '@promptliano/schemas'
 import {
@@ -76,7 +76,7 @@ const MCPServerIdParamsSchema = z.object({
 
 // Use canonical ProjectIdParamsSchema with {id}
 const ProjectMCPServerParamsSchema = z.object({
-  id: ProjectIdParamsSchema.shape.id,
+  id: IDParamsSchema.shape.id,
   serverId: z.coerce.number().int().positive()
 })
 
@@ -87,7 +87,7 @@ const createMCPServerConfigRoute = createRoute({
   tags: ['MCP', 'Configuration'],
   summary: 'Create MCP server configuration',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: CreateMCPServerConfigBodySchema.omit({ projectId: true }) } },
       required: true
@@ -109,7 +109,7 @@ const listMCPServerConfigsRoute = createRoute({
   tags: ['MCP', 'Configuration'],
   summary: 'List all MCP server configurations for a project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MCPServerConfigListResponseSchema)
 })

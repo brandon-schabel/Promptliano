@@ -10,7 +10,7 @@ import {
   gitLogResponseSchema as GitCommitLogSchema,
   gitLogEnhancedResponseSchema as GitCommitLogEnhancedSchema,
   gitDiffSchema as GitDiffSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   gitCommitDetailResponseSchema as GitCommitDetailSchema
 } from '@promptliano/schemas'
 
@@ -82,7 +82,7 @@ const commitRoute = createRoute({
   summary: 'Create a new commit',
   description: 'Creates a new commit with staged changes',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: CommitBodySchema } },
       required: true
@@ -99,7 +99,7 @@ const getCommitLogRoute = createRoute({
   summary: 'Get commit history',
   description: 'Retrieves the commit history for the project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: CommitLogQuerySchema
   },
   responses: createStandardResponses(CommitLogResponseSchema)
@@ -113,7 +113,7 @@ const getCommitLogEnhancedRoute = createRoute({
   summary: 'Get enhanced commit history',
   description: 'Retrieves detailed commit history with additional metadata',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: CommitLogQuerySchema
   },
   responses: createStandardResponses(CommitLogEnhancedResponseSchema)
@@ -128,7 +128,7 @@ const getCommitDetailRoute = createRoute({
   description: 'Retrieves detailed information about a specific commit',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       commitHash: z.string()
     })
   },
@@ -143,7 +143,7 @@ const getFileDiffRoute = createRoute({
   summary: 'Get file diff',
   description: 'Retrieves the diff for a specific file',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       filePath: z.string().openapi({
         description: 'Path to the file to diff'

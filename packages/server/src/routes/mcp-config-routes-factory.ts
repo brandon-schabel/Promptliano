@@ -21,6 +21,7 @@ import {
   operationSuccessResponse,
   withErrorHandling
 } from '../utils/route-helpers'
+import { ProjectIdParamsSchema } from '@promptliano/schemas'
 
 // ============= SHARED SCHEMAS =============
 const GlobalMCPConfigSchema = z.object({
@@ -274,7 +275,7 @@ const getConfigLocationsRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Get project MCP configuration locations',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: ProjectIdParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
@@ -301,7 +302,7 @@ const getMergedConfigRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Get merged project MCP configuration',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: ProjectIdParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
@@ -324,7 +325,7 @@ const getExpandedConfigRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Get expanded project MCP configuration (variables resolved)',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: ProjectIdParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
@@ -348,7 +349,7 @@ const getProjectConfigRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Get project-specific MCP configuration',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: ProjectIdParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
@@ -372,7 +373,7 @@ const saveProjectConfigToLocationRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Save project MCP configuration to a specific location',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: ProjectIdParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -405,7 +406,7 @@ const getDefaultConfigForLocationRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Get default project MCP configuration for a given location',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: ProjectIdParamsSchema,
     query: z.object({
       location: z.string()
     })
@@ -432,7 +433,7 @@ const updateProjectConfigRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Update project-specific MCP configuration',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: ProjectIdParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -465,7 +466,7 @@ const deleteProjectConfigRoute = createRoute({
   tags: ['MCP Project'],
   summary: 'Delete project-specific MCP configuration',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: ProjectIdParamsSchema
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),

@@ -12,6 +12,7 @@ import {
   UpdatePromptBodySchema,
   PromptIdParamsSchema,
   ProjectAndPromptIdParamsSchema,
+  IDParamsSchema,
   PromptResponseSchema,
   PromptListResponseSchema,
   SuggestPromptsRequestSchema,
@@ -38,7 +39,6 @@ import {
   promptToMarkdown,
   validateMarkdownContent
 } from '@promptliano/services'
-import { ProjectIdParamsSchema } from '@promptliano/schemas'
 
 // File upload constants for markdown imports
 const MARKDOWN_UPLOAD_CONFIG = {
@@ -77,7 +77,7 @@ const listProjectPromptsRoute = createRoute({
   tags: ['Projects', 'Prompts'],
   summary: 'List prompts associated with a specific project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(PromptListResponseSchema)
 })
@@ -89,7 +89,7 @@ const suggestPromptsRoute = createRoute({
   summary: 'Get AI-suggested prompts based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant prompts from the project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SuggestPromptsRequestSchema } },
       required: true
@@ -104,7 +104,7 @@ const addPromptToProjectRoute = createRoute({
   tags: ['Projects', 'Prompts'],
   summary: 'Associate a prompt with a project',
   request: {
-    params: z.object({ id: ProjectIdParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
+    params: z.object({ id: IDParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
@@ -115,7 +115,7 @@ const removePromptFromProjectRoute = createRoute({
   tags: ['Projects', 'Prompts'],
   summary: 'Disassociate a prompt from a project',
   request: {
-    params: z.object({ id: ProjectIdParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
+    params: z.object({ id: IDParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
@@ -257,7 +257,7 @@ const importProjectPromptsRoute = createRoute({
   summary: 'Import prompts to a specific project',
   description: 'Upload and import markdown files with prompts directly to a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: {
         'multipart/form-data': {
@@ -295,7 +295,7 @@ const exportAllProjectPromptsRoute = createRoute({
   summary: 'Export all prompts from a project',
   description: 'Download all prompts from a project as markdown file(s)',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       format: z.enum(['single-file', 'multi-file']).optional().default('single-file').openapi({
         description: 'Export format'
@@ -435,8 +435,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-          ;(error as any).statusCode = 413
-          ;(error as any).code = 'FILE_TOO_LARGE'
+            ; (error as any).statusCode = 413
+            ; (error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
@@ -531,8 +531,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-          ;(error as any).statusCode = 413
-          ;(error as any).code = 'FILE_TOO_LARGE'
+            ; (error as any).statusCode = 413
+            ; (error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 

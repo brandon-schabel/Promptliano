@@ -7,6 +7,7 @@ import { Skeleton } from '@promptliano/ui'
 import { Plus, ListOrdered, TrendingUp, Clock, LayoutGrid, Pause, Play, AlertCircle } from 'lucide-react'
 import { useGetQueuesWithStats } from '@/hooks/generated'
 import { type QueueView } from '@/lib/search-schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 
 interface QueueSidebarNavProps {
   projectId: number
@@ -132,7 +133,7 @@ export function QueueSidebarNav({
             </div>
           ) : queuesWithStats && queuesWithStats.length > 0 ? (
             <div className='space-y-1'>
-              {queuesWithStats.map((queueWithStats) => {
+              {queuesWithStats.map((queueWithStats: QueueWithStats) => {
                 const { queue, stats } = queueWithStats
                 const isSelected = selectedQueueId === queue.id
                 const isPaused = queue.status === 'paused'

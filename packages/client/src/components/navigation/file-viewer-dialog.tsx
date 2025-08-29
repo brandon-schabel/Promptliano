@@ -31,7 +31,7 @@ type FileViewerDialogProps = {
 
 import { getFileLanguage } from '@/lib/file-utils'
 
-function getLanguageByExtension(extension?: string): string {
+function getLanguageByExtension(extension?: string | null): string {
   if (!extension) return 'plaintext'
   const ext = extension.toLowerCase()
   const languageMap: Record<string, string> = {

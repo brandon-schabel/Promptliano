@@ -2,7 +2,7 @@ import { z } from '@hono/zod-openapi'
 import { entityIdCoercibleSchema } from './schema-utils'
 
 // Re-export existing schemas to avoid conflicts
-export { ProjectIdParamsSchema } from './project.schemas'
+export { IDParamsSchema as ProjectIdParamsSchema } from './project.schemas'
 export { PromptIdParamsSchema } from './prompt.schemas'
 
 // =============================================================================

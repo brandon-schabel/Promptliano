@@ -7,7 +7,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import {
   gitWorktreeSchema as GitWorktreeSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   gitWorktreeAddRequestSchema as AddWorktreeBodySchema,
   gitWorktreeRemoveRequestSchema as RemoveWorktreeBodySchema,
   gitWorktreeLockRequestSchema as LockWorktreeBodySchema
@@ -54,7 +54,7 @@ const listWorktreesRoute = createRoute({
   summary: 'List all worktrees',
   description: 'Retrieves the list of all worktrees for the project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(WorktreeListResponseSchema)
 })
@@ -67,7 +67,7 @@ const addWorktreeRoute = createRoute({
   summary: 'Add a new worktree',
   description: 'Creates a new worktree for the specified branch',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: AddWorktreeBodySchema } },
       required: true
@@ -84,7 +84,7 @@ const removeWorktreeRoute = createRoute({
   summary: 'Remove a worktree',
   description: 'Removes the specified worktree',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: RemoveWorktreeBodySchema } },
       required: true
@@ -101,7 +101,7 @@ const lockWorktreeRoute = createRoute({
   summary: 'Lock a worktree',
   description: 'Locks the specified worktree to prevent deletion',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: LockWorktreeBodySchema } },
       required: true
@@ -118,7 +118,7 @@ const unlockWorktreeRoute = createRoute({
   summary: 'Unlock a worktree',
   description: 'Unlocks the specified worktree',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -141,7 +141,7 @@ const pruneWorktreesRoute = createRoute({
   summary: 'Prune worktrees',
   description: 'Removes worktree entries that no longer exist',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       dryRun: z.coerce.boolean().optional().default(false).openapi({
         description: 'Perform a dry run without actually pruning'

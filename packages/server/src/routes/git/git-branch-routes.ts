@@ -8,7 +8,7 @@ import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptl
 import {
   gitBranchSchema as GitBranchSchema,
   gitBranchListEnhancedResponseSchema as GitBranchListEnhancedResponseSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   gitCreateBranchRequestSchema as CreateBranchBodySchema,
   gitSwitchBranchRequestSchema as SwitchBranchBodySchema
 } from '@promptliano/schemas'
@@ -53,7 +53,7 @@ const getBranchesRoute = createRoute({
   summary: 'List all branches',
   description: 'Retrieves all local and remote branches for the project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(BranchListResponseSchema)
 })
@@ -66,7 +66,7 @@ const getBranchesEnhancedRoute = createRoute({
   summary: 'List branches with enhanced information',
   description: 'Retrieves branches with additional metadata like ahead/behind counts',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(BranchListEnhancedResponseSchema)
 })
@@ -79,7 +79,7 @@ const createBranchRoute = createRoute({
   summary: 'Create a new branch',
   description: 'Creates a new branch from the specified starting point',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: CreateBranchBodySchema } },
       required: true
@@ -102,7 +102,7 @@ const switchBranchRoute = createRoute({
   summary: 'Switch to a different branch',
   description: 'Switches the working directory to the specified branch',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SwitchBranchBodySchema } },
       required: true
@@ -120,7 +120,7 @@ const deleteBranchRoute = createRoute({
   description: 'Deletes the specified branch',
   request: {
     params: z.object({
-      id: ProjectIdParamsSchema.shape.id,
+      id: IDParamsSchema.shape.id,
       branchName: z.string()
     }),
     query: z.object({

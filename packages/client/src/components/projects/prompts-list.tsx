@@ -196,7 +196,11 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
       summaryLastUpdated: null,
       checksum: null,
       imports: null,
-      exports: null
+      exports: null,
+      lastModified: null,
+      relevanceScore: null,
+      contentType: null,
+      isRelevant: null
     })
   }
 

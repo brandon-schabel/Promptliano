@@ -328,6 +328,9 @@ export function useGetProjectPrompts(projectId: number) {
   })
 }
 
+// TODO: These methods don't exist in the current API client
+// Need to either add them to the server API or remove these hooks
+/*
 export function useAddPromptToProject() {
   const client = useApiClient()
   const queryClient = useQueryClient()
@@ -348,7 +351,9 @@ export function useAddPromptToProject() {
     }
   })
 }
+*/
 
+/*
 export function useRemovePromptFromProject() {
   const client = useApiClient()
   const queryClient = useQueryClient()
@@ -369,7 +374,9 @@ export function useRemovePromptFromProject() {
     }
   })
 }
+*/
 
+/*
 export function useOptimizeUserInput() {
   const client = useApiClient()
 
@@ -383,6 +390,7 @@ export function useOptimizeUserInput() {
     }
   })
 }
+*/
 
 export function useSuggestPrompts() {
   const client = useApiClient()

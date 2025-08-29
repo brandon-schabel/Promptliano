@@ -543,7 +543,7 @@ export function useCreateQueue(projectId: number) {
         projectId,
         description: (data as any).description === null ? undefined : (data as any).description
       }
-      return client.queues.createQueue(cleanData as CreateQueueBody).then((r: any) => r)
+      return client.queues.createQueue(cleanData as any).then((r: any) => r)
     },
     onSuccess: (queue) => {
       queryClient.invalidateQueries({ queryKey: QUEUE_ENHANCED_KEYS.list({ projectId }) })

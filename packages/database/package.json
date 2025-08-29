@@ -9,8 +9,8 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "migrate": "bun run src/migrations/migrate.ts",
-    "generate": "drizzle-kit generate",
-    "studio": "drizzle-kit studio"
+    "generate": "drizzle-kit generate --config=drizzle.config.cjs",
+    "studio": "drizzle-kit studio --config=drizzle.config.cjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.36.4",
@@ -20,8 +20,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.28.1",
     "@types/bun": "latest",
+    "better-sqlite3": "^11.6.0",
+    "drizzle-kit": "^0.28.1",
     "typescript": "^5.6.3"
   },
   "keywords": [

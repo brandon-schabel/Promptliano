@@ -24,7 +24,6 @@ export function QueueCreateDialog({ projectId, open, onOpenChange }: QueueCreate
     if (!name.trim()) return
 
     await createQueueMutation.mutateAsync({
-      projectId: projectId,
       name: name.trim(),
       description: description.trim(),
       maxParallelItems: parseInt(maxParallelItems) || 1

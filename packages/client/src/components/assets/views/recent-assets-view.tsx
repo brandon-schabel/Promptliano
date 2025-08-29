@@ -7,7 +7,7 @@ import { ScrollArea } from '@promptliano/ui'
 import { useRecentGenerations } from '@/hooks/use-recent-generations'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { useCreatePrompt } from '@/hooks/generated'
-import { useAddPromptToProject } from '@/hooks/api-hooks'
+// import { useAddPromptToProject } from '@/hooks/api-hooks' // TODO: API method doesn't exist
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -50,7 +50,7 @@ export function RecentAssetsView({ projectId, projectName = 'Project' }: RecentA
   const { recentGenerations, removeGeneration } = useRecentGenerations()
   const { copyToClipboard } = useCopyClipboard()
   const { mutate: createPrompt } = useCreatePrompt()
-  const { mutate: addPromptToProject } = useAddPromptToProject()
+  // const { mutate: addPromptToProject } = useAddPromptToProject() // TODO: API method doesn't exist
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -95,20 +95,25 @@ export function RecentAssetsView({ projectId, projectName = 'Project' }: RecentA
           const typedResponse = response as any
           if (typedResponse.data?.id) {
             // Then add it to the project
-            addPromptToProject(
-              { projectId, promptId: typedResponse.data.id },
-              {
-                onSuccess: () => {
-                  toast.success('Documentation saved to prompts!')
-                  setSavePromptDialog({ open: false, content: '', originalName: '' })
-                  setPromptName('')
-                  setPromptDescription('')
-                },
-                onError: () => {
-                  toast.error('Failed to add prompt to project')
-                }
-              }
-            )
+            // TODO: addPromptToProject hook doesn't exist
+            // addPromptToProject(
+            //   { projectId, promptId: typedResponse.data.id },
+            //   {
+            //     onSuccess: () => {
+            //       toast.success('Documentation saved to prompts!')
+            //       setSavePromptDialog({ open: false, content: '', originalName: '' })
+            //       setPromptName('')
+            //       setPromptDescription('')
+            //     },
+            //     onError: () => {
+            //       toast.error('Failed to add prompt to project')
+            //     }
+            //   }
+            // )
+            toast.success('Prompt created! (Adding to project disabled temporarily)')
+            setSavePromptDialog({ open: false, content: '', originalName: '' })
+            setPromptName('')
+            setPromptDescription('')
           }
         },
         onError: () => {

@@ -15,7 +15,7 @@ import {
   ProjectSchema,
   CreateProjectSchema,
   UpdateProjectSchema,
-  ProjectIdParamsSchema,
+  IDParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
   ProjectSummaryResponseSchema,
@@ -53,7 +53,7 @@ const projectConfig: EntityConfig = {
     entity: ProjectSchema,
     create: CreateProjectSchema,
     update: UpdateProjectSchema,
-    id: ProjectIdParamsSchema.shape.id
+    id: IDParamsSchema.shape.id
   },
   service: projectServiceV2,
   options: {
@@ -171,9 +171,9 @@ const projectConfig: EntityConfig = {
  */
 export function registerProjectRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, projectConfig)
-  
+
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Project`)
-  
+
   return updatedApp
 }
 

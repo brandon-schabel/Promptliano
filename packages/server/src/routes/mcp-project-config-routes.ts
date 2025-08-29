@@ -1,7 +1,7 @@
 import { createRoute, z, OpenAPIHono } from '@hono/zod-openapi'
 import { mcpProjectConfigService, ProjectMCPConfigSchema } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
-import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema, IDParamsSchema } from '@promptliano/schemas'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Response schemas - properly structured for route helpers
@@ -59,7 +59,7 @@ const getConfigLocationsRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/config/locations',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ConfigLocationsResponseSchema)
 })
@@ -84,7 +84,7 @@ const getMergedConfigRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/config/merged',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
@@ -109,7 +109,7 @@ const getExpandedConfigRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/config/expanded',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
@@ -135,7 +135,7 @@ const saveProjectConfigRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -170,9 +170,7 @@ const loadProjectConfigRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      id: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ProjectConfigResponseSchema)
 })
@@ -182,9 +180,7 @@ const saveProjectConfigToLocationRoute = createRoute({
   method: 'post',
   path: '/api/projects/{id}/mcp/config/save-to-location',
   request: {
-    params: z.object({
-      id: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -204,7 +200,7 @@ const getDefaultConfigForLocationRoute = createRoute({
   method: 'get',
   path: '/api/projects/{id}/mcp/config/default-for-location',
   request: {
-    params: z.object({ id: z.coerce.number().int().positive() }),
+    params: IDParamsSchema,
     query: z.object({
       location: z.string()
     })
