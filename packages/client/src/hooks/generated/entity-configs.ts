@@ -467,7 +467,8 @@ export const QUEUE_CONFIG: CrudHookConfig<TaskQueue, CreateQueueBody, UpdateQueu
   useApiClient,
   staleTime: 30 * 1000, // 30 seconds - queues are dynamic
   optimistic: { enabled: false }, // Queues are complex, use server state
-  invalidation: { onCreate: 'lists', onUpdate: 'lists', onDelete: 'all' },
+  // Invalidate all queue-related keys so views like list-with-stats update immediately
+  invalidation: { onCreate: 'all', onUpdate: 'all', onDelete: 'all' },
   prefetch: { enabled: false }
 }
 

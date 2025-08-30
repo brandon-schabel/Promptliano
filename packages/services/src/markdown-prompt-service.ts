@@ -12,7 +12,7 @@
 
 import { withErrorContext, createServiceLogger, type ServiceLogger } from './core/base-service'
 import { addTimestamps, convertNullsToUndefined, jsonToStringArray, nullToUndefined } from './utils/file-utils'
-import ErrorFactory from '@promptliano/shared/src/error/error-factory'
+import { ErrorFactory } from '@promptliano/shared'
 import {
   type ParsedMarkdownPrompt,
   type MarkdownFrontmatter,
@@ -660,8 +660,8 @@ async function performExportToMarkdown(prompts: Prompt[], options: ExportOptions
     for (const prompt of sortedPrompts) {
       const frontmatter: Record<string, any> = includeFrontmatter
         ? {
-            name: prompt.title || `prompt-${prompt.id}`
-          }
+          name: prompt.title || `prompt-${prompt.id}`
+        }
         : {}
 
       if (includeFrontmatter) {
@@ -736,8 +736,8 @@ async function performExportToMarkdown(prompts: Prompt[], options: ExportOptions
     for (const prompt of sortedPrompts) {
       const frontmatter: Record<string, any> = includeFrontmatter
         ? {
-            name: prompt.title || `prompt-${prompt.id}`
-          }
+          name: prompt.title || `prompt-${prompt.id}`
+        }
         : {}
 
       if (includeFrontmatter) {

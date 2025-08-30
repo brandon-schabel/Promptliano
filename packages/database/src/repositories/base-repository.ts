@@ -36,6 +36,7 @@ import { SQLiteTable, SQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { db, type DrizzleDb, type DrizzleTransaction } from '../db'
 import { z } from 'zod'
 import { ErrorFactory, assertExists, assertDatabaseOperation, createErrorHandler } from '@promptliano/shared'
+import { ApiError } from '@promptliano/shared/src/error/api-error'
 
 export type BaseEntity<TId = number> = {
   id: TId
@@ -126,7 +127,14 @@ export class BaseRepository<
         .returning()
 
       if (!updated) {
-        throw ErrorFactory.updateFailed(this.entityName || 'Entity', id, 'No rows affected')
+        if (ErrorFactory.updateFailed) {
+          throw ErrorFactory.updateFailed(this.entityName || 'Entity', id, 'No rows affected')
+        }
+        throw new ApiError(500, `Failed to update ${this.entityName || 'Entity'} with ID ${id}: No rows affected`, 'UPDATE_FAILED', {
+          entity: this.entityName || 'Entity',
+          id,
+          reason: 'No rows affected'
+        })
       }
 
       return this.validateEntity(updated)
@@ -340,7 +348,14 @@ export class BaseRepository<
       const result = this.schema.safeParse(entity)
       if (!result.success) {
         console.warn('Entity validation failed:', result.error.errors)
-        throw ErrorFactory.validationFailed(result.error, {
+        if (ErrorFactory.validationFailed) {
+          throw ErrorFactory.validationFailed(result.error, {
+            entity: this.entityName,
+            context: 'repository validation'
+          })
+        }
+        throw new ApiError(400, 'Validation failed', 'VALIDATION_ERROR', {
+          errors: result.error.format(),
           entity: this.entityName,
           context: 'repository validation'
         })
@@ -478,7 +493,7 @@ export function createBaseRepository<
 >(table: TTable, dbInstance?: DrizzleDb, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
   // Ensure we have a valid database instance
   const validDbInstance = dbInstance || db
-  
+
   // Validate that the database instance has the required methods for Drizzle operations
   if (!validDbInstance || typeof validDbInstance.select !== 'function') {
     const instanceType = validDbInstance ? typeof validDbInstance : 'null/undefined'
@@ -488,7 +503,7 @@ export function createBaseRepository<
       `This often happens when tests don't use createTestDatabase() properly.`
     )
   }
-  
+
   return new BaseRepository<TEntity, TInsert, TTable>(table, validDbInstance, schema, entityName)
 }
 
@@ -499,10 +514,10 @@ export function extendRepository<TBase extends BaseRepository<any, any, any>, TE
 ): TBase & TExtensions {
   // Create a new object that properly preserves the base repository instance
   const extended = Object.create(Object.getPrototypeOf(baseRepository))
-  
+
   // Copy all properties from the base repository instance
   Object.assign(extended, baseRepository)
-  
+
   // Bind extension methods to the extended object to ensure proper context
   const boundExtensions: Record<string, any> = {}
   for (const [key, value] of Object.entries(extensions)) {
@@ -513,10 +528,10 @@ export function extendRepository<TBase extends BaseRepository<any, any, any>, TE
       boundExtensions[key] = value
     }
   }
-  
+
   // Add the bound extensions to the extended object
   Object.assign(extended, boundExtensions)
-  
+
   return extended as TBase & TExtensions
 }
 

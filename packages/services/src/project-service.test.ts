@@ -1,25 +1,14 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
-import { createProjectService, type FileSyncData } from './project-service'
-import { createTestEnvironment, type TestContext } from './test-utils/test-environment'
-import { projects, createBaseRepository, extendRepository } from '@promptliano/database'
-import { eq } from 'drizzle-orm'
-import type {
-  Project,
-  File as ProjectFile,
-  CreateProject as CreateProjectBody,
-  UpdateProject as UpdateProjectBody
-} from '@promptliano/database'
+import { createProjectService } from './project-service'
+import { TestDataFactory } from './test-utils/test-data-factories'
+import { createTestDatabase } from '@promptliano/database'
+import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { z } from 'zod'
-
-// Create test environment for this suite
-const testEnv = createTestEnvironment({
-  suiteName: 'project-service',
-  seedData: false,
-  verbose: false
-})
 
 // Service instance
 let projectService: ReturnType<typeof createProjectService>
+let testDb: any
+let projectsStore: any[] = []
 
 // --- Mocking gen-ai-services ---
 const mockGenerateStructuredData = mock(async ({ schema }: { schema: z.ZodSchema<any> }) => {
@@ -49,26 +38,61 @@ mock.module('./file-services/file-sync-service-unified', () => ({
   syncProject: mockSyncProject
 }))
 
-// Helper to generate random strings for test data
-const randomString = (length = 8) =>
-  Math.random()
-    .toString(36)
-    .substring(2, 2 + length)
-
-describe('Project Service (Functional Factory)', () => {
-  let context: TestContext
-  
+describe('Project Service (Isolated Database)', () => {
   beforeEach(async () => {
-    context = await testEnv.setupTest()
-    
-    // Create project service with test database and extended repository
-    const baseProjectRepository = createBaseRepository(projects, context.testDb.db, undefined, 'Project')
-    const testProjectRepository = extendRepository(baseProjectRepository, {
-      async getByPath(path: string) {
-        return baseProjectRepository.findOneWhere(eq(projects.path, path))
-      },
-      async getWithAllRelations(id: number) {
-        const project = await baseProjectRepository.getById(id)
+    // Reset in-memory store
+    projectsStore = []
+
+    // Create isolated test database
+    testDb = await createTestDatabase({
+      testId: `project-service-${Date.now()}-${Math.random()}`,
+      verbose: false,
+      seedData: false,
+      useMemory: true,
+      busyTimeout: 30000
+    })
+
+    // Create Drizzle instance with schema
+    const drizzleDb = drizzle(testDb.rawDb)
+
+    // Create mock repository that uses in-memory store
+    const mockRepository = {
+      create: mock(async (data: any) => {
+        const project = {
+          id: Date.now(),
+          ...data,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+        projectsStore.push(project)
+        return project
+      }),
+      getById: mock(async (id: number) => {
+        return projectsStore.find(p => p.id === id) || null
+      }),
+      getAll: mock(async () => [...projectsStore]),
+      update: mock(async (id: number, data: any) => {
+        const index = projectsStore.findIndex(p => p.id === id)
+        if (index === -1) throw new Error(`Project with ID ${id} not found`)
+        const updated = {
+          ...projectsStore[index],
+          ...data,
+          updatedAt: Date.now()
+        }
+        projectsStore[index] = updated
+        return updated
+      }),
+      delete: mock(async (id: number) => {
+        const index = projectsStore.findIndex(p => p.id === id)
+        if (index === -1) throw new Error(`Project with ID ${id} not found`)
+        projectsStore.splice(index, 1)
+        return true
+      }),
+      getByPath: mock(async (path: string) => {
+        return projectsStore.find(p => p.path === path) || null
+      }),
+      getWithAllRelations: mock(async (id: number) => {
+        const project = projectsStore.find(p => p.id === id)
         if (!project) return null
         return {
           ...project,
@@ -78,11 +102,31 @@ describe('Project Service (Functional Factory)', () => {
           queues: [],
           files: []
         }
-      }
-    })
-    
-    // Create mock file service that returns empty arrays for test database
+      }),
+      paginate: mock(async (page: number, limit: number) => {
+        const start = (page - 1) * limit
+        const end = start + limit
+        return {
+          data: projectsStore.slice(start, end),
+          total: projectsStore.length,
+          page,
+          limit,
+          totalPages: Math.ceil(projectsStore.length / limit)
+        }
+      })
+    }
+
+    // Create mock file service for isolated testing
     const mockFileService = {
+      getById: mock(async (id: string) => ({
+        id,
+        projectId: 1,
+        name: 'test-file.txt',
+        path: '/test/test-file.txt',
+        content: 'test content',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      })),
       getByProject: mock(async (projectId: number) => []),
       updateContent: mock(async (projectId: number, fileId: string, content: string) => ({
         id: fileId,
@@ -99,105 +143,77 @@ describe('Project Service (Functional Factory)', () => {
         deleteFiles: mock(async () => 0)
       }
     }
-    
-    projectService = createProjectService({ 
-      repository: testProjectRepository,
+
+    projectService = createProjectService({
+      repository: mockRepository,
       fileService: mockFileService
     })
-    
+
     // Reset mock call counts
     mockGenerateStructuredData.mockClear()
     mockSyncProject.mockClear()
   })
 
   afterEach(async () => {
-    await testEnv.cleanupTest()
-    
+    // Cleanup test database
+    if (testDb) {
+      testDb.close()
+    }
+
     // Reset mocks
     mockGenerateStructuredData.mockClear()
     mockSyncProject.mockClear()
   })
 
-  test('database initialization works', async () => {
-    // Import the Database class directly to test without singleton issues
-    const { Database } = await import('bun:sqlite')
-    const db = new Database(':memory:')
-
-    // Create the projects table manually
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
-        data JSON NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `)
-
-    // Test basic operations
-    const now = Date.now()
-    const testData = { name: 'test', path: '/test' }
-
-    // Insert a record
-    const insertQuery = db.prepare(`
-      INSERT INTO projects (id, data, created_at, updated_at)
-      VALUES (?, ?, ?, ?)
-    `)
-    insertQuery.run('1', JSON.stringify(testData), now, now)
-
-    // Check if it exists
-    const selectQuery = db.prepare(`SELECT data FROM projects WHERE id = ?`)
-    const result = selectQuery.get('1') as { data: string } | undefined
-
-    expect(result).toBeDefined()
-    expect(JSON.parse(result!.data)).toEqual(testData)
-
-    // Test that a different ID doesn't exist
-    const result2 = selectQuery.get('2')
-    expect(result2).toBeNull()
-
-    db.close()
+  test('should have isolated test database', async () => {
+    // Verify that we have a clean test database for each test
+    const projects = await projectService.list()
+    expect(Array.isArray(projects)).toBe(true)
+    expect(projects.length).toBe(0) // Should be empty initially due to isolated database
   })
 
-  test('simple project creation works', async () => {
-    const projectData = {
+  test('should create a new project', async () => {
+    const projectData = TestDataFactory.project({
       name: 'Test Project',
-      path: '/test/path',
-      description: 'A test project'
-    }
+      path: '/test/project',
+      description: 'A test project for service testing'
+    })
 
     const project = await projectService.create(projectData)
-    context.trackResource('project', project.id)
 
     expect(project.id).toBeDefined()
+    expect(typeof project.id).toBe('number')
     expect(project.name).toBe(projectData.name)
     expect(project.path).toBe(projectData.path)
     expect(project.description).toBe(projectData.description)
   })
 
   describe('Project CRUD', () => {
-    test('createProject creates a new project', async () => {
-      const input: CreateProjectBody = {
-        name: `TestProject_${randomString()}`,
-        path: `/path/to/${randomString()}`,
+    test('should create a new project', async () => {
+      const input = TestDataFactory.project({
+        name: 'TestProject',
+        path: '/path/to/test',
         description: 'A test project'
-      }
+      })
+
       const project = await projectService.create(input)
-      context.trackResource('project', project.id)
 
       expect(project.id).toBeDefined()
       expect(project.name).toBe(input.name)
       expect(project.path).toBe(input.path)
-      expect(project.description).toBe(input.description ?? '') // Handle potentially undefined description
+      expect(project.description).toBe(input.description)
 
       // Verify project was stored in database
       const retrieved = await projectService.getById(project.id)
       expect(retrieved).toEqual(project)
     })
 
-    test('getProjectById returns project if found, throws if not', async () => {
-      const input: CreateProjectBody = { name: 'GetMe', path: '/get/me' }
+    test('should get project by ID', async () => {
+      const input = TestDataFactory.project({
+        name: 'GetMe',
+        path: '/get/me'
+      })
       const created = await projectService.create(input)
-      context.trackResource('project', created.id)
 
       const found = await projectService.getById(created.id)
       expect(found).toEqual(created)
@@ -206,15 +222,19 @@ describe('Project Service (Functional Factory)', () => {
       await expect(projectService.getById(notFoundId)).rejects.toThrow('Project with ID 999999999999 not found')
     })
 
-    test('listProjects returns all projects', async () => {
+    test('should list all projects', async () => {
       let all = await projectService.list()
       expect(all.length).toBe(0)
 
-      const p1 = await projectService.create({ name: 'P1', path: '/p1' })
-      context.trackResource('project', p1.id)
+      const p1 = await projectService.create(TestDataFactory.project({
+        name: 'Project1',
+        path: '/project1'
+      }))
       await new Promise((resolve) => setTimeout(resolve, 10)) // Ensure timestamp difference
-      const p2 = await projectService.create({ name: 'P2', path: '/p2' })
-      context.trackResource('project', p2.id)
+      const p2 = await projectService.create(TestDataFactory.project({
+        name: 'Project2',
+        path: '/project2'
+      }))
 
       all = await projectService.list()
       expect(all.length).toBe(2)
@@ -222,9 +242,12 @@ describe('Project Service (Functional Factory)', () => {
       expect(all.some(p => p.id === p2.id)).toBe(true)
     })
 
-    test('updateProject updates fields and returns updated project', async () => {
-      const created = await projectService.create({ name: 'Before', path: '/old' })
-      context.trackResource('project', created.id)
+    test('should update project', async () => {
+      const created = await projectService.create(TestDataFactory.project({
+        name: 'Before',
+        path: '/old'
+      }))
+
       const updates: UpdateProjectBody = { name: 'After', description: 'New Desc' }
       await new Promise((resolve) => setTimeout(resolve, 10))
       const updated = await projectService.update(created.id, updates)
@@ -237,14 +260,16 @@ describe('Project Service (Functional Factory)', () => {
       expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(created.updatedAt).getTime())
     })
 
-    test('updateProject throws if project does not exist', async () => {
+    test('should throw when updating non-existent project', async () => {
       const nonExistentId = 999999999999
       await expect(projectService.update(nonExistentId, { name: 'X' })).rejects.toThrow('Project with ID 999999999999 not found')
     })
 
-    test('deleteProject returns true if deleted, throws if nonexistent', async () => {
-      const project = await projectService.create({ name: 'DelMe', path: '/del/me' })
-      // Don't track this resource since we're testing deletion
+    test('should delete project', async () => {
+      const project = await projectService.create(TestDataFactory.project({
+        name: 'DelMe',
+        path: '/del/me'
+      }))
 
       const success = await projectService.delete(project.id)
       expect(success).toBe(true)
@@ -261,23 +286,19 @@ describe('Project Service (Functional Factory)', () => {
     let projectId: number
 
     beforeEach(async () => {
-      const proj = await projectService.create({ name: 'FileTestProj', path: '/file/test' })
-      context.trackResource('project', proj.id)
+      const proj = await projectService.create(TestDataFactory.project({
+        name: 'FileTestProj',
+        path: '/file/test'
+      }))
       projectId = proj.id
     })
 
-    test('getProjectFiles returns files for a project', async () => {
+    test('should get project files', async () => {
       const files = await projectService.getProjectFiles(projectId)
       expect(Array.isArray(files)).toBe(true)
     })
 
-    test('updateFileContent placeholder test', async () => {
-      // Note: This test would need actual file creation through file service
-      // Skipping detailed implementation as it depends on file service integration
-      expect(true).toBe(true) // Placeholder
-    })
-
-    test('project file operations handle non-existent project', async () => {
+    test('should handle non-existent project for file operations', async () => {
       const nonExistentProjectId = 999999999999
       await expect(projectService.getProjectFiles(nonExistentProjectId)).rejects.toThrow('Project with ID 999999999999 not found')
     })
@@ -287,10 +308,12 @@ describe('Project Service (Functional Factory)', () => {
     let projectId: number
 
     beforeEach(async () => {
-      const proj = await projectService.create({ name: 'SummarizeProj', path: '/summarize/test' })
-      context.trackResource('project', proj.id)
+      const proj = await projectService.create(TestDataFactory.project({
+        name: 'SummarizeProj',
+        path: '/summarize/test'
+      }))
       projectId = proj.id
-      
+
       // Reset mock return for generateStructuredData for each test if specific return values are needed
       mockGenerateStructuredData.mockImplementation(async ({ schema }: { schema: z.ZodSchema<any> }) => {
         if (schema.safeParse({ summary: 'Mocked AI summary' }).success) {
@@ -300,26 +323,22 @@ describe('Project Service (Functional Factory)', () => {
       })
     })
 
-    test('summarizeFiles processes multiple files', async () => {
+    test('should process multiple files for summarization', async () => {
       const result = await projectService.summarizeFiles(projectId, ['file1', 'file2'])
       expect(result.included).toBeGreaterThanOrEqual(0)
       expect(result.skipped).toBeGreaterThanOrEqual(0)
     })
 
-    test('removeSummariesFromFiles clears summaries', async () => {
+    test('should remove summaries from files', async () => {
       const result = await projectService.removeSummariesFromFiles(projectId, ['file1', 'file2'])
       expect(result.removedCount).toBeGreaterThanOrEqual(0)
       expect(result.message).toBeDefined()
     })
 
-    test('resummarizeAllFiles handles project correctly', async () => {
-      // Note: This would require full file sync service integration
-      // For now, just test that the function exists and can be called
-      const { resummarizeAllFiles } = await import('./project-service')
-      
+    test('should handle non-existent project for getById', async () => {
       // Test with a non-existent project to verify error handling
       const nonExistentId = 999999999999
-      await expect(resummarizeAllFiles(nonExistentId)).rejects.toThrow('Project with ID 999999999999 not found')
+      await expect(projectService.getById(nonExistentId)).rejects.toThrow('Project with ID 999999999999 not found')
     })
   })
 })

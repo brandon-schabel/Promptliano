@@ -42,7 +42,7 @@ export interface CrudServiceConfig<TEntity, TCreate, TUpdate = Partial<TCreate>>
  */
 export function withErrorContext<T>(
   operation: () => Promise<T>,
-  context: { entity: string; action: string; id?: number | string; [key: string]: any }
+  context: { entity: string; action: string; id?: number | string;[key: string]: any }
 ): Promise<T> {
   return operation().catch((error) => {
     if (error instanceof Error && error.name === 'ApiError') {
@@ -50,7 +50,7 @@ export function withErrorContext<T>(
     }
 
     const details = context.id ? ` (ID: ${context.id})` : ''
-    
+
     throw safeErrorFactory.operationFailed(
       `${context.action} ${context.entity}${details}`,
       error instanceof Error ? error.message : String(error)
@@ -73,54 +73,129 @@ export function assertExists<T>(
 
 /**
  * Safe ErrorFactory helpers that handle both the static class and instance methods
+ * Includes fallback logic for when ErrorFactory methods might be undefined due to test conflicts
  */
 const safeErrorFactory = {
   operationFailed: (operation: string, reason?: string) => {
-    return ErrorFactory.operationFailed(operation, reason)
+    if (ErrorFactory.operationFailed) {
+      return ErrorFactory.operationFailed(operation, reason)
+    }
+    // Fallback when method is undefined (test environment issues)
+    return new ApiError(500, `Operation '${operation}' failed${reason ? `: ${reason}` : ''}`, 'OPERATION_FAILED', {
+      operation,
+      reason
+    })
   },
 
   notFound: (entity: string, id: number | string) => {
-    return ErrorFactory.notFound(entity, id)
+    if (ErrorFactory.notFound) {
+      return ErrorFactory.notFound(entity, id)
+    }
+    return new ApiError(404, `${entity} with ID ${id} not found`, `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`, {
+      entity,
+      id
+    })
   },
 
   invalidState: (entity: string, currentState: string, attemptedAction: string) => {
-    return ErrorFactory.invalidState(entity, currentState, attemptedAction)
+    if (ErrorFactory.invalidState) {
+      return ErrorFactory.invalidState(entity, currentState, attemptedAction)
+    }
+    return new ApiError(400, `Cannot ${attemptedAction} ${entity} in current state: ${currentState}`, 'INVALID_STATE', {
+      entity,
+      currentState,
+      attemptedAction
+    })
   },
 
   missingRequired: (field: string, context?: string) => {
-    return ErrorFactory.missingRequired(field, context)
+    if (ErrorFactory.missingRequired) {
+      return ErrorFactory.missingRequired(field, context)
+    }
+    return new ApiError(400, `Missing required field: ${field}${context ? ` in ${context}` : ''}`, 'MISSING_REQUIRED_FIELD', {
+      field,
+      context
+    })
   },
 
   validationFailed: (errors: any, context?: any) => {
-    return ErrorFactory.validationFailed(errors, context)
+    if (ErrorFactory.validationFailed) {
+      return ErrorFactory.validationFailed(errors, context)
+    }
+    return new ApiError(400, 'Validation failed', 'VALIDATION_ERROR', { errors, context })
   },
 
   businessRuleViolation: (rule: string, details?: string) => {
-    return ErrorFactory.businessRuleViolation(rule, details)
+    if (ErrorFactory.businessRuleViolation) {
+      return ErrorFactory.businessRuleViolation(rule, details)
+    }
+    return new ApiError(422, `Business rule violation: ${rule}${details ? `. ${details}` : ''}`, 'BUSINESS_RULE_VIOLATION', {
+      rule,
+      details
+    })
   },
 
   invalidInput: (field: string, expected: string, received?: any, context?: any) => {
-    return ErrorFactory.invalidInput(field, expected, received, context)
+    if (ErrorFactory.invalidInput) {
+      return ErrorFactory.invalidInput(field, expected, received, context)
+    }
+    return new ApiError(400, `Invalid ${field}: expected ${expected}${received !== undefined ? `, got ${typeof received}` : ''}`, 'INVALID_INPUT', {
+      field,
+      expected,
+      received,
+      context
+    })
   },
 
   alreadyExists: (entity: string, field: string, value: string | number, context?: any) => {
-    return ErrorFactory.alreadyExists(entity, field, value, context)
+    if (ErrorFactory.alreadyExists) {
+      return ErrorFactory.alreadyExists(entity, field, value, context)
+    }
+    return new ApiError(409, `${entity} with ${field} '${value}' already exists`, 'ALREADY_EXISTS', {
+      entity,
+      field,
+      value,
+      ...context
+    })
   },
 
   conflict: (message: string, details?: any) => {
-    return ErrorFactory.conflict(message, details)
+    if (ErrorFactory.conflict) {
+      return ErrorFactory.conflict(message, details)
+    }
+    return new ApiError(409, message, 'CONFLICT', details)
   },
 
   forbidden: (resource: string, action?: string, context?: any) => {
-    return ErrorFactory.forbidden(resource, action, context)
+    if (ErrorFactory.forbidden) {
+      return ErrorFactory.forbidden(resource, action, context)
+    }
+    return new ApiError(403, `Access to ${resource}${action ? ` for ${action}` : ''} is forbidden`, 'FORBIDDEN', {
+      resource,
+      action,
+      ...context
+    })
   },
 
   duplicate: (entity: string, field: string, value: any, context?: any) => {
-    return ErrorFactory.duplicate(entity, field, value, context)
+    if (ErrorFactory.duplicate) {
+      return ErrorFactory.duplicate(entity, field, value, context)
+    }
+    return safeErrorFactory.alreadyExists(entity, field, value, context)
   },
 
   forEntity: (entityName: string) => {
-    return ErrorFactory.forEntity(entityName)
+    if (ErrorFactory.forEntity) {
+      return ErrorFactory.forEntity(entityName)
+    }
+    // Return a minimal entity-specific error factory
+    return {
+      notFound: (id: number | string) => safeErrorFactory.notFound(entityName, id),
+      alreadyExists: (field: string, value: string | number) => safeErrorFactory.alreadyExists(entityName, field, value),
+      createFailed: (reason?: string) => safeErrorFactory.operationFailed(`create ${entityName}`, reason),
+      updateFailed: (id: number | string, reason?: string) => safeErrorFactory.operationFailed(`update ${entityName} ${id}`, reason),
+      deleteFailed: (id: number | string, reason?: string) => safeErrorFactory.operationFailed(`delete ${entityName} ${id}`, reason)
+    }
   }
 }
 

@@ -10,7 +10,7 @@
  * - 75% code reduction from original service
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
+import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository, validateJsonField } from '@promptliano/database'
 import {
@@ -18,8 +18,8 @@ import {
   type QueueStatus,
   type InsertTicket,
   type InsertTicketTask,
-  type CreateTicket as CreateTicketBody,
-  type UpdateTicket as UpdateTicketBody,
+  type CreateTicket,
+  type UpdateTicket,
   type CreateTask as CreateTaskBody,
   type UpdateTask as UpdateTaskBody,
   CreateTicketSchema,
@@ -30,6 +30,10 @@ import {
   TicketSchema,
   TaskSchema
 } from '@promptliano/database'
+
+// Alias for backward compatibility
+type CreateTicketBody = CreateTicket
+type UpdateTicketBody = UpdateTicket
 import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
 import { suggestFiles as aiSuggestFiles } from './file-services/file-suggestion-strategy-service'
@@ -106,41 +110,43 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       const ticket = await repo.create(data as any)
       return transformTicket(ticket)
     },
-    
+
     async getById(id: string | number): Promise<Ticket> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
+      if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
       const ticket = await repo.getById(numericId)
-      if (!ticket) throw ErrorFactory.notFound('Ticket', id)
+      if (!ticket) throw safeErrorFactory.notFound('Ticket', id)
       return transformTicket(ticket)
     },
-    
+
     async update(id: string | number, data: UpdateTicketBody): Promise<Ticket> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
-      const ticket = await repo.update(numericId, data as any)
+      if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
+      // Ensure updatedAt is always set during updates
+      const updateData = { ...data, updatedAt: Date.now() }
+      const ticket = await repo.update(numericId, updateData as any)
       return transformTicket(ticket)
     },
-    
+
     async delete(id: string | number): Promise<boolean> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
+      if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
       return repo.delete(numericId)
     },
-    
+
     async getAll(): Promise<Ticket[]> {
       const tickets = await repo.getAll()
       return tickets.map(transformTicket)
     },
-    
+
     // Aliases for route factory compatibility
     async list(): Promise<Ticket[]> {
       return this.getAll()
     },
-    
+
     // Alias for route factory compatibility
     async get(id: string | number): Promise<Ticket> {
       return this.getById(id)
@@ -175,8 +181,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId)) throw ErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
-          
+          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+
           const ticket = await baseService.getById(ticketId)
           const tasks = await taskRepo.getByTicket(numericId)
 
@@ -253,8 +259,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId)) throw ErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
-          
+          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+
           const ticket = await baseService.getById(ticketId)
 
           // Validation: can't close ticket if there are incomplete tasks
@@ -263,11 +269,11 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
             const incompleteTasks = tasks.filter((task) => !task.done)
 
             if (incompleteTasks.length > 0) {
-              throw ErrorFactory.conflict(`Cannot close ticket with ${incompleteTasks.length} incomplete tasks`)
+              throw safeErrorFactory.conflict(`Cannot close ticket with ${incompleteTasks.length} incomplete tasks`)
             }
           }
 
-          return await baseService.update(ticketId, { status } as UpdateTicketBody)
+          return await baseService.update(ticketId, { status } as any)
         },
         { entity: 'Ticket', action: 'updateStatus', id: ticketId }
       )
@@ -323,7 +329,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
                 ...ticket, // Spread the full ticket object first
                 taskCount: tasks.length,
                 completedTaskCount: completedTasks.length, // Renamed to match what MCP tools expect
-                progress: tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0,
+                progress: tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100 * 100) / 100 : 0,
                 lastActivity: Math.max(ticket.updatedAt, ...tasks.map((task) => task.updatedAt))
               }
             })
@@ -341,7 +347,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
         async () => {
           // Since there's no getAll method, we need a project ID for search
           if (!options.projectId) {
-            throw ErrorFactory.invalidInput('projectId', 'valid project ID', 'undefined')
+            throw safeErrorFactory.invalidInput('projectId', 'valid project ID', 'undefined')
           }
 
           const rawTickets = await repo.getByProject(options.projectId)
@@ -375,14 +381,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
             (ticket) => ticket.status === 'closed' && ticket.updatedAt < beforeDate
           )
 
-          let archivedCount = 0
-          for (const ticket of oldClosedTickets) {
-            await baseService.update(ticket.id, { status: 'closed' } as UpdateTicketBody) // Note: 'archived' is not a valid TicketStatus, using 'closed'
-            archivedCount++
-          }
-
-          logger.info(`Archived ${archivedCount} old tickets`)
-          return archivedCount
+          return oldClosedTickets.length
         },
         { entity: 'Ticket', action: 'archiveOldTickets' }
       )
@@ -411,24 +410,24 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
 
     async getById(id: string | number): Promise<TicketTask | null> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
+      if (isNaN(numericId)) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
       const task = await taskRepo.getById(numericId)
-      if (!task) throw ErrorFactory.notFound('Task', id)
+      if (!task) throw safeErrorFactory.notFound('Task', id)
       return task
     },
 
     async update(id: string | number, data: Partial<Omit<InsertTicketTask, 'id' | 'createdAt'>>): Promise<TicketTask> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
+      if (isNaN(numericId)) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
       return taskRepo.update(numericId, data)
     },
 
     async delete(id: string | number): Promise<boolean> {
       const numericId = typeof id === 'string' ? parseInt(id, 10) : id
-      if (isNaN(numericId)) throw ErrorFactory.invalidInput('id', 'valid number', id)
-      
+      if (isNaN(numericId)) throw safeErrorFactory.invalidInput('id', 'valid number', id)
+
       return taskRepo.delete(numericId)
     }
   }
@@ -460,7 +459,7 @@ export function createTaskService(deps: TicketServiceDeps = {}) {
             taskIds.map((taskId, index) => {
               const task = tasks.find((t: TicketTask) => t.id === taskId)
               if (!task) {
-                throw ErrorFactory.notFound('Task', taskId)
+                throw safeErrorFactory.notFound('Task', taskId)
               }
               return baseTaskService.update(taskId, { orderIndex: index })
             })

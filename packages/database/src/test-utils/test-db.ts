@@ -81,10 +81,10 @@ export interface TestDatabase {
 /**
  * Create a test database instance with enhanced isolation and query serialization
  */
-export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
-  const { 
-    testId = `test-${randomBytes(8).toString('hex')}`, 
-    verbose = false, 
+export async function createTestDatabase(config: TestDbConfig = {}): Promise<TestDatabase> {
+  const {
+    testId = `test-${randomBytes(8).toString('hex')}`,
+    verbose = false,
     seedData = false,
     useMemory = false,
     busyTimeout = 30000
@@ -108,7 +108,7 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
     filePath = join(tmpdir(), `promptliano-test-${testId}.db`)
     rawDb = new Database(filePath, { create: true, strict: true })
     activeTestDatabases.add(filePath)
-    
+
     if (verbose) {
       console.log(`[TEST DB] Created file database: ${filePath}`)
     }
@@ -126,14 +126,14 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
       rawDb.exec('PRAGMA journal_mode = MEMORY')
       rawDb.exec('PRAGMA synchronous = OFF') // Maximum speed for memory
     }
-    
+
     // Common optimizations
     rawDb.exec(`PRAGMA busy_timeout = ${busyTimeout}`) // Wait for locks
     rawDb.exec('PRAGMA cache_size = -64000') // 64MB cache
     rawDb.exec('PRAGMA foreign_keys = ON') // Enable foreign key constraints
     rawDb.exec('PRAGMA temp_store = MEMORY') // Use memory for temp data
     rawDb.exec('PRAGMA mmap_size = 268435456') // 256MB memory map (file-based only)
-    
+
     if (verbose) {
       console.log(`[TEST DB] SQLite configuration applied for ${testId}`)
     }
@@ -141,14 +141,14 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
     console.warn(`[TEST DB] Some PRAGMA statements failed for ${testId}:`, error)
   }
 
-  // Create serialized Drizzle instance to prevent parameter binding issues
-  const db = createSerializedDrizzleClient(rawDb, { 
-    verbose, 
-    schema 
-  })
-
   // Create all schema tables manually (bypassing migration files)
   createSchemaTable(rawDb, verbose)
+
+  // Create serialized Drizzle instance AFTER tables exist to prevent proxy issues
+  const db = createSerializedDrizzleClient(rawDb, {
+    verbose,
+    schema
+  })
 
   // Seed with basic test data if requested
   if (seedData) {
@@ -159,7 +159,7 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
     if (verbose) {
       console.log(`[TEST DB] Cleaning up test database: ${testId}`)
     }
-    
+
     try {
       // Force checkpoint and close
       if (!useMemory && filePath) {
@@ -173,12 +173,12 @@ export function createTestDatabase(config: TestDbConfig = {}): TestDatabase {
     // Clean up database files
     if (filePath) {
       activeTestDatabases.delete(filePath)
-      
+
       try {
         if (existsSync(filePath)) unlinkSync(filePath)
         if (existsSync(`${filePath}-wal`)) unlinkSync(`${filePath}-wal`)
         if (existsSync(`${filePath}-shm`)) unlinkSync(`${filePath}-shm`)
-        
+
         if (verbose) {
           console.log(`[TEST DB] Deleted database files for ${testId}`)
         }
@@ -248,14 +248,14 @@ async function runMigrations(db: ReturnType<typeof drizzle>, rawDb: Database, ve
   try {
     // Find the migrations directory
     const migrationsPath = path.resolve(__dirname, '../../drizzle')
-    
+
     if (verbose) {
       console.log('[TEST DB] Migrations path:', migrationsPath)
     }
-    
+
     // Run all migrations
     await migrate(db, { migrationsFolder: migrationsPath })
-    
+
     if (verbose) {
       // Check what tables were created
       const tables = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]
@@ -281,7 +281,7 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )`,
-    
+
     // Tickets table  
     `CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY,
@@ -552,6 +552,16 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
     console.log('[TEST DB] Creating schema tables with verbose logging...')
   }
 
+  // Debug: Check if tables exist before creation
+  if (verbose) {
+    try {
+      const existingTables = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]
+      console.log(`[TEST DB] Tables before creation: ${existingTables.map(t => t.name).join(', ')}`)
+    } catch (error) {
+      console.warn('[TEST DB] Failed to check existing tables:', error)
+    }
+  }
+
   // Execute all create table statements
   for (const statement of statements) {
     try {
@@ -577,6 +587,10 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
       .all() as { name: string }[]
     console.log(`[TEST DB] Created ${tables.length} tables: ${tables.map(t => t.name).join(', ')}`)
+
+    // Check if projects table specifically exists
+    const projectsExists = tables.some(t => t.name === 'projects')
+    console.log(`[TEST DB] Projects table exists: ${projectsExists}`)
   }
 }
 
@@ -702,7 +716,7 @@ export function resetGlobalTestDb() {
  */
 export function cleanupAllTestDatabases(): void {
   console.log(`[TEST DB] Cleaning up ${activeTestDatabases.size} active test databases`)
-  
+
   for (const filePath of activeTestDatabases) {
     try {
       if (existsSync(filePath)) unlinkSync(filePath)
@@ -712,9 +726,9 @@ export function cleanupAllTestDatabases(): void {
       console.warn(`[TEST DB] Failed to cleanup database file ${filePath}:`, error)
     }
   }
-  
+
   activeTestDatabases.clear()
-  
+
   // Also cleanup global test db if it exists
   if (globalTestDb) {
     globalTestDb.close()
@@ -729,7 +743,7 @@ if (typeof process !== 'undefined') {
   const exitHandler = () => {
     cleanupAllTestDatabases()
   }
-  
+
   process.on('exit', exitHandler)
   process.on('SIGINT', exitHandler)
   process.on('SIGTERM', exitHandler)

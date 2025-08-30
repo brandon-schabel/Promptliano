@@ -4,7 +4,6 @@
  */
 
 import { drizzle } from 'drizzle-orm/bun-sqlite'
-import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { Database } from 'bun:sqlite'
 import * as mainSchema from './schema'
 import * as mcpSchema from './schema/mcp-executions'
@@ -119,7 +118,7 @@ try {
       console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
     } else {
       console.log('📋 Creating database tables (initial bootstrap)...')
-      const migrationPath = join(drizzleDir, '0000_loose_bug.sql')
+      const migrationPath = join(drizzleDir, '0000_base.sql')
       const migrationSql = readFileSync(migrationPath, 'utf8')
       const statements = migrationSql.split('--> statement-breakpoint')
       for (const statement of statements) {
@@ -137,62 +136,7 @@ try {
     }
   }
 
-// Ensure MCP analytics tables exist (idempotent): apply 0003 if missing
-  const hasMcpStatsTable = sqlite
-    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_tool_statistics'")
-    .all().length > 0
-
-  if (!hasMcpStatsTable && process.env.NODE_ENV !== 'test') {
-    try {
-      console.log('📊 Creating MCP analytics tables (applying 0003_glorious_justice)...')
-      const migrationPath = join(drizzleDir, '0003_glorious_justice.sql')
-      const migrationSql = readFileSync(migrationPath, 'utf8')
-      const statements = migrationSql.split('--> statement-breakpoint')
-      for (const statement of statements) {
-        const cleanStatement = statement.trim()
-        if (cleanStatement && !cleanStatement.startsWith('--')) {
-          try {
-            sqlite.exec(cleanStatement)
-          } catch (e: any) {
-            const msg = String(e?.message || e)
-            if (!/already exists/i.test(msg)) throw e
-          }
-        }
-      }
-      console.log('✅ MCP analytics tables created successfully')
-    } catch (e) {
-      console.warn('⚠️ Failed to apply MCP migration automatically. You may need to run drizzle migrations.', e)
-    }
-  }
-  // Ensure provider_keys has latest columns (apply 0001 alterations) if needed
-  try {
-    const providerKeysInfo = sqlite.query("PRAGMA table_info('provider_keys')").all() as any[]
-    const hasEncryptedCol = providerKeysInfo.some((c) => String(c?.name) === 'encrypted')
-    if (!hasEncryptedCol && process.env.NODE_ENV !== 'test') {
-      try {
-        console.log('🛠 Applying migration 0001_orange_tarantula (ensuring provider_keys columns)...')
-        const migrationPath = join(drizzleDir, '0001_orange_tarantula.sql')
-        const migrationSql = readFileSync(migrationPath, 'utf8')
-        const statements = migrationSql.split('--> statement-breakpoint')
-        for (const statement of statements) {
-          const cleanStatement = statement.trim()
-          if (cleanStatement && !cleanStatement.startsWith('--')) {
-            try {
-              sqlite.exec(cleanStatement)
-            } catch (e: any) {
-              const msg = String(e?.message || e)
-              if (!/already exists/i.test(msg)) throw e
-            }
-          }
-        }
-        console.log('✅ Migration 0001 applied or already up-to-date')
-      } catch (e) {
-        console.warn('⚠️ Failed to apply 0001_orange_tarantula automatically. You may need to run drizzle migrations.', e)
-      }
-    }
-  } catch (e) {
-    console.warn('⚠️ Could not inspect provider_keys schema for auto-migration:', e)
-  }
+  // With a consolidated base migration, no conditional per-file bootstraps needed
 
   // encryption_keys table no longer used; per-column encryption removed in favor of env secretRef
 } catch (error) {

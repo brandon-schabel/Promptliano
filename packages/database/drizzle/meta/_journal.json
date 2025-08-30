@@ -4,30 +4,9 @@
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1755880861440,
-      "tag": "0000_loose_bug",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1755966433598,
-      "tag": "0001_orange_tarantula",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1756000305345,
-      "tag": "0002_deep_husk",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1756232493955,
-      "tag": "0003_glorious_justice",
+      "version": "7",
+      "when": 1756425600000,
+      "tag": "0000_base",
       "breakpoints": true
     }
   ]

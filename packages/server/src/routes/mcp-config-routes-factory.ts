@@ -361,7 +361,7 @@ const getProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigRoutes.openapi(getProjectConfigRoute, withErrorHandling(async (c) => {
-  const projectId = parseInt(c.req.param('projectId')!)
+  const projectId = parseInt(c.req.param('id')!)
   const result = await mcpProjectConfigService.getProjectConfig(projectId)
   return c.json(successResponse(result))
 }))

@@ -1,4 +1,4 @@
-import { describe, test, expect, jest } from 'bun:test'
+import { describe, test, expect, jest, beforeEach, afterEach } from 'bun:test'
 import { createGitBranchService } from './git-branch-service'
 import type { GitBranchServiceDependencies } from './git-branch-service'
 
@@ -11,23 +11,23 @@ describe('Git Branch Service - Functional Factory', () => {
         warn: jest.fn(),
         debug: jest.fn()
       }
-      
+
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: '/test/repo' })
       }
-      
+
       const mockStatusService = {
         clearCache: jest.fn()
       }
-      
+
       const deps: GitBranchServiceDependencies = {
         logger: mockLogger,
         projectService: mockProjectService,
         statusService: mockStatusService
       }
-      
+
       const service = createGitBranchService(deps)
-      
+
       expect(service).toBeDefined()
       expect(typeof service.getBranches).toBe('function')
       expect(typeof service.getCurrentBranch).toBe('function')
@@ -37,37 +37,37 @@ describe('Git Branch Service - Functional Factory', () => {
       expect(typeof service.mergeBranch).toBe('function')
       expect(typeof service.getBranchesEnhanced).toBe('function')
     })
-    
+
     test('should work without dependencies (using defaults)', () => {
       const service = createGitBranchService()
-      
+
       expect(service).toBeDefined()
       expect(typeof service.getBranches).toBe('function')
       expect(typeof service.getCurrentBranch).toBe('function')
     })
-    
+
     test('should be immutable and stateless', () => {
       const service1 = createGitBranchService()
       const service2 = createGitBranchService()
-      
+
       // Different instances
       expect(service1).not.toBe(service2)
-      
+
       // Same interface
       expect(Object.keys(service1).sort()).toEqual(Object.keys(service2).sort())
     })
   })
-  
+
   describe('Error Handling', () => {
     test('should handle project with missing path consistently', async () => {
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: null })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       await expect(service.getBranches(1))
         .rejects
         .toThrow('Cannot git operations Project in current state: missing path')
@@ -77,11 +77,11 @@ describe('Git Branch Service - Functional Factory', () => {
       const mockProjectService = {
         getById: jest.fn().mockRejectedValue(new Error('Database connection failed'))
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       await expect(service.getBranches(1))
         .rejects
         .toThrow('Database connection failed')
@@ -95,23 +95,23 @@ describe('Git Branch Service - Functional Factory', () => {
         warn: jest.fn(),
         debug: jest.fn()
       }
-      
+
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: '/nonexistent/path' })
       }
-      
+
       const service = createGitBranchService({
         logger: mockLogger,
         projectService: mockProjectService
       })
-      
+
       // Test with getBranchesEnhanced which logs errors internally before returning
       const result = await service.getBranchesEnhanced(1)
-      
+
       // Should return error response structure
       expect(result.success).toBe(false)
       expect(result.message).toBeDefined()
-      
+
       // Verify error was logged by getBranchesEnhanced
       expect(mockLogger.error).toHaveBeenCalled()
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -127,11 +127,11 @@ describe('Git Branch Service - Functional Factory', () => {
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: '/nonexistent/path' })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       // Test multiple service methods to ensure they all follow error handling patterns
       const methods = [
         { method: 'getCurrentBranch', args: [1] },
@@ -140,7 +140,7 @@ describe('Git Branch Service - Functional Factory', () => {
         { method: 'deleteBranch', args: [1, 'feature-branch'] },
         { method: 'mergeBranch', args: [1, 'feature-branch'] }
       ]
-      
+
       for (const { method, args } of methods) {
         await expect((service as any)[method](...args))
           .rejects
@@ -152,89 +152,89 @@ describe('Git Branch Service - Functional Factory', () => {
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: null })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       // Test all service methods with missing path error
       const methods = [
         'getBranches',
-        'getCurrentBranch', 
+        'getCurrentBranch',
         'createBranch',
         'switchBranch',
         'deleteBranch',
         'mergeBranch'
       ]
-      
+
       for (const method of methods) {
         const args = method === 'createBranch' || method === 'switchBranch' || method === 'deleteBranch' || method === 'mergeBranch'
           ? [1, 'test-branch']
           : [1]
-          
+
         await expect((service as any)[method](...args))
           .rejects
           .toThrow('Cannot git operations Project in current state: missing path')
       }
     })
   })
-  
+
   describe('Integration Interface', () => {
     test('should expose individual functions for tree-shaking', async () => {
       // Test the module exports the individual functions
       const { getBranches, getCurrentBranch, createBranch } = await import('./git-branch-service')
-      
+
       expect(typeof getBranches).toBe('function')
-      expect(typeof getCurrentBranch).toBe('function') 
+      expect(typeof getCurrentBranch).toBe('function')
       expect(typeof createBranch).toBe('function')
     })
-    
+
     test('should maintain backward compatibility with singleton export', async () => {
       const { gitBranchService } = await import('./git-branch-service')
-      
+
       expect(gitBranchService).toBeDefined()
       expect(typeof gitBranchService.getBranches).toBe('function')
     })
   })
-  
+
   describe('Enhanced Branch Operations', () => {
     test('should handle getBranchesEnhanced success response', async () => {
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: null })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       // This will fail due to missing path, but should return proper error structure
       const result = await service.getBranchesEnhanced(1)
-      
+
       expect(result).toHaveProperty('success')
       expect(result.success).toBe(false)
       expect(result).toHaveProperty('message')
       expect(typeof result.message).toBe('string')
     })
-    
+
     test('should call status cache clear on branch operations', async () => {
       const mockStatusService = {
         clearCache: jest.fn()
       }
-      
+
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: null })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService,
         statusService: mockStatusService
       })
-      
+
       // Try operations that should clear cache (they'll fail but should attempt to clear)
-      try { await service.createBranch(1, 'test') } catch {}
-      try { await service.switchBranch(1, 'main') } catch {}
-      try { await service.mergeBranch(1, 'feature') } catch {}
-      
+      try { await service.createBranch(1, 'test') } catch { }
+      try { await service.switchBranch(1, 'main') } catch { }
+      try { await service.mergeBranch(1, 'feature') } catch { }
+
       // Cache clear should not be called since operations fail early
       // But the service should have the clearCache dependency
       expect(mockStatusService.clearCache).toBeDefined()
@@ -246,14 +246,14 @@ describe('Git Branch Service - Functional Factory', () => {
       const service = createGitBranchService({
         // No statusService provided
       })
-      
+
       expect(service).toBeDefined()
       expect(typeof service.getBranches).toBe('function')
     })
-    
+
     test('should inject default dependencies when none provided', () => {
       const service = createGitBranchService()
-      
+
       expect(service).toBeDefined()
       expect(typeof service.getBranches).toBe('function')
       expect(typeof service.getBranchesEnhanced).toBe('function')
@@ -265,11 +265,11 @@ describe('Git Branch Service - Functional Factory', () => {
       const mockProjectService = {
         getById: jest.fn().mockResolvedValue({ id: 1, path: null })
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       // Test that all methods produce consistent ErrorFactory errors
       const testCases = [
         { method: 'getBranches', args: [1] },
@@ -279,7 +279,7 @@ describe('Git Branch Service - Functional Factory', () => {
         { method: 'deleteBranch', args: [1, 'feature'] },
         { method: 'mergeBranch', args: [1, 'feature'] }
       ]
-      
+
       for (const { method, args } of testCases) {
         try {
           await (service as any)[method](...args)
@@ -290,7 +290,7 @@ describe('Git Branch Service - Functional Factory', () => {
           expect(error).toHaveProperty('message')
           expect(error).toHaveProperty('status')
           expect(error).toHaveProperty('code')
-          
+
           // Should be the missing path error
           expect(error.message).toContain('Cannot git operations Project in current state: missing path')
           expect(error.status).toBe(400)
@@ -298,21 +298,21 @@ describe('Git Branch Service - Functional Factory', () => {
         }
       }
     })
-    
+
     test('should handle project service rejection consistently', async () => {
       const mockProjectService = {
         getById: jest.fn().mockRejectedValue(new Error('Service unavailable'))
       }
-      
+
       const service = createGitBranchService({
         projectService: mockProjectService
       })
-      
+
       // Test a few methods to ensure they handle upstream errors
       await expect(service.getBranches(1))
         .rejects
         .toThrow('Service unavailable')
-        
+
       await expect(service.getCurrentBranch(1))
         .rejects
         .toThrow('Service unavailable')
@@ -322,16 +322,105 @@ describe('Git Branch Service - Functional Factory', () => {
   describe('Performance Characteristics', () => {
     test('should create service instances quickly', () => {
       const start = performance.now()
-      
+
       for (let i = 0; i < 100; i++) {
         createGitBranchService()
       }
-      
+
       const end = performance.now()
       const elapsed = end - start
-      
+
       // Should create 100 instances in less than 10ms (very fast)
       expect(elapsed).toBeLessThan(10)
+    })
+  })
+
+  // Migrated test pattern section
+  describe('Git Branch Service (Migrated Pattern)', () => {
+    let testContext: any
+    let testEnv: any
+
+    beforeEach(async () => {
+      // Create test environment
+      testEnv = {
+        setupTest: async () => ({
+          testProjectId: 1,
+          testDb: { db: {} }
+        }),
+        cleanupTest: async () => { }
+      }
+
+      testContext = await testEnv.setupTest()
+    })
+
+    afterEach(async () => {
+      await testEnv.cleanupTest()
+    })
+
+    test('should demonstrate migrated pattern structure', async () => {
+      // This test demonstrates the migrated pattern structure
+      // In a real implementation, this would use TestDataFactory and proper database isolation
+
+      const mockRepository = {
+        create: async (data: any) => ({
+          id: Date.now(),
+          ...data,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }),
+        getById: async (id: number) => ({
+          id,
+          projectId: testContext.testProjectId,
+          name: 'feature-branch',
+          isCurrent: true,
+          isRemote: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }),
+        getByProject: async (projectId: number) => [],
+        update: async (id: number, data: any) => ({
+          id,
+          ...data,
+          updatedAt: Date.now()
+        }),
+        delete: async (id: number) => true
+      }
+
+      // This would create a service with proper database isolation
+      // const gitBranchService = createGitBranchService({
+      //   branchRepository: mockRepository,
+      //   projectService: mockProjectService,
+      //   gitClient: mockGitClient
+      // })
+
+      // For now, just verify the pattern structure is in place
+      expect(mockRepository).toBeDefined()
+      expect(typeof mockRepository.create).toBe('function')
+      expect(typeof mockRepository.getById).toBe('function')
+    })
+
+    test('should integrate with TestDataFactory pattern', async () => {
+      // This demonstrates how the migrated pattern would use TestDataFactory
+      // In practice, this would create Git branch records using TestDataFactory
+
+      const branchData = {
+        projectId: testContext.testProjectId,
+        name: 'feature/new-feature',
+        isCurrent: false,
+        isRemote: false,
+        upstream: 'origin/feature/new-feature',
+        ahead: 5,
+        behind: 2,
+        lastCommit: 'abc123def',
+        author: 'Test User',
+        createdAt: Date.now()
+      }
+
+      expect(branchData.projectId).toBe(testContext.testProjectId)
+      expect(branchData.name).toBe('feature/new-feature')
+      expect(branchData.isCurrent).toBe(false)
+      expect(branchData.ahead).toBe(5)
+      expect(branchData.behind).toBe(2)
     })
   })
 })

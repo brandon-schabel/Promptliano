@@ -72,10 +72,10 @@ import {
 } from './src/schema'
 
 // Import schema transformers
-import { 
-  createTransformedSelectSchema, 
+import {
+  createTransformedSelectSchema,
   createTransformedInsertSchema,
-  commonJsonTransforms 
+  commonJsonTransforms
 } from './src/schema-transformers'
 
 // Project schemas (backward compatibility)
@@ -228,4 +228,7 @@ export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
 export type CreateSelectedFile = typeof CreateSelectedFileSchema._type
 export type UpdateSelectedFile = typeof UpdateSelectedFileSchema._type
 
-// Test utilities are excluded from TypeScript compilation
+// Export test utilities
+export * from './src/test-utils'
+export * from './src/test-utils/test-db'
+export { createTestDatabase } from './src/test-utils/test-db'

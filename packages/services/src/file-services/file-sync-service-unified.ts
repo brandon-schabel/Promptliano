@@ -26,9 +26,9 @@ import { analyzeCodeImportsExports } from '../utils/code-analysis'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('FileSync')
-const watcherLogger = logger.child('Watcher')
-const pluginLogger = logger.child('Plugin')
-const cleanupLogger = logger.child('Cleanup')
+const watcherLogger = createLogger('FileSync:Watcher')
+const pluginLogger = createLogger('FileSync:Plugin')
+const cleanupLogger = createLogger('FileSync:Cleanup')
 
 // -------------------------------------------------------------------------------- //
 // -------------------------------- SYNC OPTIMIZATION UTILITIES -------------------- //
@@ -731,77 +731,77 @@ export async function syncProject(
     // Wrap the sync operation in retry logic for resilience
     return await retryOperation(
       async () => {
-      const absoluteProjectPath = resolvePath(project.path)
-      if (!nodeFsExistsSync(absoluteProjectPath) || !statSync(absoluteProjectPath).isDirectory()) {
-        const error = new Error(`Project path is not a valid directory: ${project.path}`)
-        logger.error(`Project path is not a valid directory: ${absoluteProjectPath}`)
-        progressTracker?.error(error)
-        throw error
-      }
-
-      const ignoreFilter = await loadIgnoreRules(absoluteProjectPath)
-      logger.debug(`Starting full sync for project ${project.name} (${project.id}) at path: ${absoluteProjectPath}`)
-
-      // Scanning phase
-      progressTracker?.setPhase('scanning', 'Scanning project directory for files...')
-      logger.info(`[SYNC] Scanning files in ${absoluteProjectPath}...`)
-      const scanStartTime = Date.now()
-
-      const projectFilesOnDisk = getTextFiles(
-        absoluteProjectPath,
-        absoluteProjectPath,
-        ignoreFilter,
-        ALLOWED_FILE_CONFIGS
-      )
-
-      const scanDuration = Date.now() - scanStartTime
-      logger.info(
-        `[SYNC] File scan completed in ${scanDuration}ms. Found ${projectFilesOnDisk.length} files to process`
-      )
-
-      // Set total files for progress tracking
-      progressTracker?.setTotalFiles(projectFilesOnDisk.length)
-      progressTracker?.setPhase('processing', `Processing ${projectFilesOnDisk.length} files...`)
-
-      // Process files with progress tracking
-      logger.info(`[SYNC] Processing ${projectFilesOnDisk.length} files...`)
-      const results = await syncFileSet(project, absoluteProjectPath, projectFilesOnDisk, ignoreFilter, progressTracker)
-
-      // Finalize
-      progressTracker?.setPhase('finalizing', 'Finalizing sync...')
-
-      const totalDuration = Date.now() - startTime
-      logger.info(
-        `[SYNC COMPLETE] Project ${project.id} synced in ${totalDuration}ms - Created: ${results.created}, Updated: ${results.updated}, Deleted: ${results.deleted}, Skipped: ${results.skipped}`
-      )
-
-      // Complete progress tracking
-      progressTracker?.complete(
-        `Sync completed! Processed ${projectFilesOnDisk.length} files in ${(totalDuration / 1000).toFixed(1)} seconds`
-      )
-
-      return results
-    },
-    {
-      maxAttempts: 3,
-      initialDelay: 2000,
-      maxDelay: 10000,
-      shouldRetry: (error: any, attempt: number) => {
-        // Don't retry on invalid project path errors
-        if (error.message?.includes('not a valid directory')) {
-          return false
-        }
-        // Retry on file system errors, database errors, and network errors
-        const retryableErrors = ['EBUSY', 'ENOENT', 'EACCES', 'SQLITE_BUSY', 'SQLITE_LOCKED', 'ETIMEDOUT', 'ECONNRESET']
-        const shouldRetry = retryableErrors.some((code) => error.code === code || error.message?.includes(code))
-
-        if (shouldRetry) {
-          logger.warn(`[SYNC RETRY] Project ${project.id} sync failed on attempt ${attempt}, will retry...`)
+        const absoluteProjectPath = resolvePath(project.path)
+        if (!nodeFsExistsSync(absoluteProjectPath) || !statSync(absoluteProjectPath).isDirectory()) {
+          const error = new Error(`Project path is not a valid directory: ${project.path}`)
+          logger.error(`Project path is not a valid directory: ${absoluteProjectPath}`)
+          progressTracker?.error(error)
+          throw error
         }
 
-        return shouldRetry
+        const ignoreFilter = await loadIgnoreRules(absoluteProjectPath)
+        logger.debug(`Starting full sync for project ${project.name} (${project.id}) at path: ${absoluteProjectPath}`)
+
+        // Scanning phase
+        progressTracker?.setPhase('scanning', 'Scanning project directory for files...')
+        logger.info(`[SYNC] Scanning files in ${absoluteProjectPath}...`)
+        const scanStartTime = Date.now()
+
+        const projectFilesOnDisk = getTextFiles(
+          absoluteProjectPath,
+          absoluteProjectPath,
+          ignoreFilter,
+          ALLOWED_FILE_CONFIGS
+        )
+
+        const scanDuration = Date.now() - scanStartTime
+        logger.info(
+          `[SYNC] File scan completed in ${scanDuration}ms. Found ${projectFilesOnDisk.length} files to process`
+        )
+
+        // Set total files for progress tracking
+        progressTracker?.setTotalFiles(projectFilesOnDisk.length)
+        progressTracker?.setPhase('processing', `Processing ${projectFilesOnDisk.length} files...`)
+
+        // Process files with progress tracking
+        logger.info(`[SYNC] Processing ${projectFilesOnDisk.length} files...`)
+        const results = await syncFileSet(project, absoluteProjectPath, projectFilesOnDisk, ignoreFilter, progressTracker)
+
+        // Finalize
+        progressTracker?.setPhase('finalizing', 'Finalizing sync...')
+
+        const totalDuration = Date.now() - startTime
+        logger.info(
+          `[SYNC COMPLETE] Project ${project.id} synced in ${totalDuration}ms - Created: ${results.created}, Updated: ${results.updated}, Deleted: ${results.deleted}, Skipped: ${results.skipped}`
+        )
+
+        // Complete progress tracking
+        progressTracker?.complete(
+          `Sync completed! Processed ${projectFilesOnDisk.length} files in ${(totalDuration / 1000).toFixed(1)} seconds`
+        )
+
+        return results
+      },
+      {
+        maxAttempts: 3,
+        initialDelay: 2000,
+        maxDelay: 10000,
+        shouldRetry: (error: any, attempt: number) => {
+          // Don't retry on invalid project path errors
+          if (error.message?.includes('not a valid directory')) {
+            return false
+          }
+          // Retry on file system errors, database errors, and network errors
+          const retryableErrors = ['EBUSY', 'ENOENT', 'EACCES', 'SQLITE_BUSY', 'SQLITE_LOCKED', 'ETIMEDOUT', 'ECONNRESET']
+          const shouldRetry = retryableErrors.some((code) => error.code === code || error.message?.includes(code))
+
+          if (shouldRetry) {
+            logger.warn(`[SYNC RETRY] Project ${project.id} sync failed on attempt ${attempt}, will retry...`)
+          }
+
+          return shouldRetry
+        }
       }
-    }
     ).catch((error: any) => {
       const duration = Date.now() - startTime
       logger.error(
@@ -892,7 +892,7 @@ export function createFileChangePlugin() {
     // Use debounced sync to prevent multiple rapid sync operations
     const projectId = currentProject.id
     const project = currentProject // Capture for closure
-    
+
     debouncedSync.scheduleSync(projectId, async () => {
       try {
         pluginLogger.debug(`Executing debounced sync for file change: ${changedFilePath}`)

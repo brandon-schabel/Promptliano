@@ -42,9 +42,9 @@ let sharedTestContext: {
  * Initialize a shared test context for a test suite
  * Call this in beforeEach or beforeAll to ensure isolation
  */
-export function initializeTestContext(suiteId?: string): TestDatabase {
+export async function initializeTestContext(suiteId?: string): Promise<TestDatabase> {
   const contextId = suiteId || `suite-${randomBytes(6).toString('hex')}`
-  
+
   // Close previous context if it exists
   if (sharedTestContext) {
     try {
@@ -53,15 +53,15 @@ export function initializeTestContext(suiteId?: string): TestDatabase {
       console.warn('Failed to close previous test context:', error)
     }
   }
-  
+
   // Create new isolated context
-  const db = createTestDatabase({
+  const db = await createTestDatabase({
     testId: `helpers-${contextId}`,
     verbose: false,
     seedData: false,
     useMemory: false // Use file-based for better isolation
   })
-  
+
   sharedTestContext = { db, contextId }
   return db
 }
@@ -70,9 +70,9 @@ export function initializeTestContext(suiteId?: string): TestDatabase {
  * Get the current shared test database
  * Creates a new context if none exists (for backward compatibility)
  */
-function getSharedTestDb(): TestDatabase {
+async function getSharedTestDb(): Promise<TestDatabase> {
   if (!sharedTestContext) {
-    return initializeTestContext()
+    return await initializeTestContext()
   }
   return sharedTestContext.db
 }
@@ -112,12 +112,12 @@ export { createTestDatabase }
  * Uses shared test database context for relationship consistency
  */
 export async function createProject(data?: Partial<CreateProject>): Promise<Project> {
-  const db = getSharedTestDb()
+  const db = await getSharedTestDb()
   const testId = randomBytes(4).toString('hex')
-  
+
   // Create project repository with shared test database
   const projectRepo = createBaseRepository(projects, db.db)
-  
+
   const projectData: CreateProject = {
     name: data?.name || `Test Project ${testId}`,
     path: data?.path || `/test/projects/${testId}`,
@@ -126,7 +126,7 @@ export async function createProject(data?: Partial<CreateProject>): Promise<Proj
     createdAt: Date.now(),
     updatedAt: Date.now()
   }
-  
+
   return await projectRepo.create(projectData)
 }
 
@@ -136,10 +136,10 @@ export async function createProject(data?: Partial<CreateProject>): Promise<Proj
 export async function createTicket(data: Partial<CreateTicket> & { projectId: number }): Promise<Ticket> {
   const db = getSharedTestDb()
   const testId = randomBytes(4).toString('hex')
-  
+
   // Create ticket repository with shared test database
   const ticketRepo = createBaseRepository(tickets, db.db)
-  
+
   const ticketData: CreateTicket = {
     title: data.title || `Test Ticket ${testId}`,
     overview: data.overview || 'Test ticket created by test helpers',
@@ -153,7 +153,7 @@ export async function createTicket(data: Partial<CreateTicket> & { projectId: nu
     createdAt: Date.now(),
     updatedAt: Date.now()
   }
-  
+
   return await ticketRepo.create(ticketData)
 }
 
@@ -163,10 +163,10 @@ export async function createTicket(data: Partial<CreateTicket> & { projectId: nu
 export async function createQueue(data: Partial<CreateQueue> & { projectId: number }): Promise<Queue> {
   const db = getSharedTestDb()
   const testId = randomBytes(4).toString('hex')
-  
+
   // Create queue repository with shared test database
   const queueRepo = createBaseRepository(queues, db.db)
-  
+
   const queueData: CreateQueue = {
     name: data.name || `Test Queue ${testId}`,
     description: data.description || 'Test queue created by test helpers',
@@ -177,7 +177,7 @@ export async function createQueue(data: Partial<CreateQueue> & { projectId: numb
     createdAt: Date.now(),
     updatedAt: Date.now()
   }
-  
+
   return await queueRepo.create(queueData)
 }
 
@@ -187,10 +187,10 @@ export async function createQueue(data: Partial<CreateQueue> & { projectId: numb
 export async function createTask(ticketId: number, data: Partial<CreateTask>): Promise<TicketTask> {
   const db = getSharedTestDb()
   const testId = randomBytes(4).toString('hex')
-  
+
   // Create task repository with shared test database
   const taskRepo = createBaseRepository(ticketTasks, db.db)
-  
+
   const taskData: CreateTask = {
     ticketId,
     content: data.content || `Test Task ${testId}`,
@@ -208,7 +208,7 @@ export async function createTask(ticketId: number, data: Partial<CreateTask>): P
     createdAt: Date.now(),
     updatedAt: Date.now()
   }
-  
+
   return await taskRepo.create(taskData)
 }
 
@@ -218,7 +218,7 @@ export async function createTask(ticketId: number, data: Partial<CreateTask>): P
 export async function getTicketById(id: number): Promise<Ticket> {
   const db = getSharedTestDb()
   const ticketRepo = createBaseRepository(tickets, db.db)
-  
+
   const ticket = await ticketRepo.getById(id)
   if (!ticket) {
     throw new Error(`Ticket with ID ${id} not found`)
@@ -232,7 +232,7 @@ export async function getTicketById(id: number): Promise<Ticket> {
 export async function updateTicket(id: number, data: Partial<Ticket>): Promise<Ticket> {
   const db = getSharedTestDb()
   const ticketRepo = createBaseRepository(tickets, db.db)
-  
+
   return await ticketRepo.update(id, data)
 }
 
@@ -242,7 +242,7 @@ export async function updateTicket(id: number, data: Partial<Ticket>): Promise<T
 export async function deleteTicket(id: number): Promise<void> {
   const db = getSharedTestDb()
   const ticketRepo = createBaseRepository(tickets, db.db)
-  
+
   await ticketRepo.delete(id)
 }
 
@@ -252,7 +252,7 @@ export async function deleteTicket(id: number): Promise<void> {
 export async function getTasks(ticketId: number): Promise<TicketTask[]> {
   const db = getSharedTestDb()
   const taskRepo = createBaseRepository(ticketTasks, db.db)
-  
+
   // Use findWhere with proper Drizzle condition
   const { eq } = await import('drizzle-orm')
   return await (taskRepo as any).findWhere(eq(ticketTasks.ticketId, ticketId))
@@ -264,7 +264,7 @@ export async function getTasks(ticketId: number): Promise<TicketTask[]> {
 export async function updateTask(ticketId: number, taskId: number, data: Partial<TicketTask>): Promise<TicketTask> {
   const db = getSharedTestDb()
   const taskRepo = createBaseRepository(ticketTasks, db.db)
-  
+
   return await taskRepo.update(taskId, data)
 }
 
@@ -274,7 +274,7 @@ export async function updateTask(ticketId: number, taskId: number, data: Partial
 export async function getQueueById(id: number): Promise<Queue> {
   const db = getSharedTestDb()
   const queueRepo = createBaseRepository(queues, db.db)
-  
+
   const queue = await queueRepo.getById(id)
   if (!queue) {
     throw new Error(`Queue with ID ${id} not found`)
@@ -288,7 +288,7 @@ export async function getQueueById(id: number): Promise<Queue> {
 export async function deleteQueue(id: number): Promise<void> {
   const db = getSharedTestDb()
   const queueRepo = createBaseRepository(queues, db.db)
-  
+
   await queueRepo.delete(id)
 }
 
@@ -353,7 +353,7 @@ export async function getNextTaskFromQueue(queueId: number, agentId: string): Pr
   try {
     const db = getSharedTestDb()
     const queueRepo = createBaseRepository(queues, db.db)
-    
+
     // First check if queue is active
     const queue = await queueRepo.getById(queueId)
     if (!queue) {
@@ -362,30 +362,30 @@ export async function getNextTaskFromQueue(queueId: number, agentId: string): Pr
     if (!queue.isActive) {
       return { type: 'none', message: 'Queue is paused' }
     }
-    
+
     // Get items in the queue
     const { tickets, tasks } = await flowService.getQueueItems(queueId)
-    
+
     // Find the highest priority item that's not already in progress
     const allItems = [
-      ...tickets.filter(t => t.queueStatus === 'queued').map(t => ({ 
-        type: 'ticket' as const, 
-        item: t, 
+      ...tickets.filter(t => t.queueStatus === 'queued').map(t => ({
+        type: 'ticket' as const,
+        item: t,
         priority: t.queuePriority || 5,
-        queuedAt: t.queuedAt || 0 
+        queuedAt: t.queuedAt || 0
       })),
-      ...tasks.filter(t => t.queueStatus === 'queued').map(t => ({ 
-        type: 'task' as const, 
-        item: t, 
+      ...tasks.filter(t => t.queueStatus === 'queued').map(t => ({
+        type: 'task' as const,
+        item: t,
         priority: t.queuePriority || 5,
-        queuedAt: t.queuedAt || 0 
+        queuedAt: t.queuedAt || 0
       }))
     ]
-    
+
     if (allItems.length === 0) {
       return { type: 'none', message: 'No items available in queue' }
     }
-    
+
     // Sort by priority (lower number = higher priority), then by queued time (FIFO for same priority)
     allItems.sort((a, b) => {
       if (a.priority !== b.priority) {
@@ -393,12 +393,12 @@ export async function getNextTaskFromQueue(queueId: number, agentId: string): Pr
       }
       return a.queuedAt - b.queuedAt
     })
-    
+
     const nextItem = allItems[0]
-    
+
     // Start processing the item
     await flowService.startProcessingItem(nextItem.type, nextItem.item.id, agentId)
-    
+
     // Return the updated item
     if (nextItem.type === 'ticket') {
       const ticket = await flowService.getTicketById(nextItem.item.id)
@@ -423,7 +423,7 @@ export async function completeQueueItem(itemId: number, result: { success: boole
   const db = getSharedTestDb()
   const ticketRepo = createBaseRepository(tickets, db.db)
   const taskRepo = createBaseRepository(ticketTasks, db.db)
-  
+
   try {
     // Check if it's a ticket
     const ticket = await ticketRepo.getById(itemId)
@@ -434,7 +434,7 @@ export async function completeQueueItem(itemId: number, result: { success: boole
   } catch (error) {
     // Ignore, try task next
   }
-  
+
   try {
     // Check if it's a task
     const task = await taskRepo.getById(itemId)
@@ -445,7 +445,7 @@ export async function completeQueueItem(itemId: number, result: { success: boole
   } catch (error) {
     // Neither found
   }
-  
+
   // Fallback: assume it's a ticket (backward compatibility)
   await flowService.completeProcessingItem('ticket', itemId)
 }
@@ -491,7 +491,7 @@ export async function getQueueStats(queueId: number): Promise<{
 }> {
   // Use flow service to get queue items and calculate stats
   const { tickets, tasks } = await flowService.getQueueItems(queueId)
-  
+
   const ticketStats = {
     queued: tickets.filter(t => t.queueStatus === 'queued').length,
     inProgress: tickets.filter(t => t.queueStatus === 'in_progress').length,
@@ -499,7 +499,7 @@ export async function getQueueStats(queueId: number): Promise<{
     failed: tickets.filter(t => t.queueStatus === 'failed').length,
     total: tickets.length
   }
-  
+
   const taskStats = {
     queued: tasks.filter(t => t.queueStatus === 'queued').length,
     inProgress: tasks.filter(t => t.queueStatus === 'in_progress').length,
@@ -507,7 +507,7 @@ export async function getQueueStats(queueId: number): Promise<{
     failed: tasks.filter(t => t.queueStatus === 'failed').length,
     total: tasks.length
   }
-  
+
   return {
     totalItems: ticketStats.total + taskStats.total,
     queuedItems: ticketStats.queued + taskStats.queued,
@@ -534,7 +534,7 @@ export async function batchEnqueueItems(queueId: number, items: Array<{ ticketId
   tasks: TicketTask[]
 }> {
   const results: { ticket?: Ticket, tasks: TicketTask[] } = { tasks: [] }
-  
+
   for (const item of items) {
     if (item.ticketId) {
       const ticket = await enqueueTicket(item.ticketId, queueId, item.priority)
@@ -552,7 +552,7 @@ export async function batchEnqueueItems(queueId: number, items: Array<{ ticketId
       }
     }
   }
-  
+
   return results
 }
 
@@ -565,11 +565,11 @@ export async function enqueueTicketWithAllTasks(queueId: number, ticketId: numbe
 }> {
   // First enqueue the ticket
   const ticket = await enqueueTicket(ticketId, queueId, basePriority)
-  
+
   // Get all tasks for this ticket
   const tasks = await getTasks(ticketId)
   const enqueuedTasks: TicketTask[] = []
-  
+
   // Enqueue each task that's not already done
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i]
@@ -580,7 +580,7 @@ export async function enqueueTicketWithAllTasks(queueId: number, ticketId: numbe
       enqueuedTasks.push(enqueuedTask)
     }
   }
-  
+
   return {
     ticket,
     tasks: enqueuedTasks
@@ -592,7 +592,7 @@ export async function enqueueTicketWithAllTasks(queueId: number, ticketId: numbe
  */
 export async function moveItemToQueue(type: 'ticket' | 'task', itemId: number, targetQueueId: number | null): Promise<void> {
   const db = getSharedTestDb()
-  
+
   if (type === 'ticket') {
     const ticketRepo = createBaseRepository(tickets, db.db)
     await ticketRepo.update(itemId, {
@@ -624,7 +624,7 @@ export const testFactories = {
     updatedAt: Date.now(),
     ...overrides
   }),
-  
+
   ticket: (overrides?: Partial<CreateTicket>): CreateTicket => ({
     title: `Test Ticket ${randomBytes(4).toString('hex')}`,
     overview: 'Test ticket from factory',
@@ -638,7 +638,7 @@ export const testFactories = {
     updatedAt: Date.now(),
     ...overrides
   }),
-  
+
   queue: (overrides?: Partial<CreateQueue>): CreateQueue => ({
     name: `Test Queue ${randomBytes(4).toString('hex')}`,
     description: 'Test queue from factory',
@@ -649,7 +649,7 @@ export const testFactories = {
     updatedAt: Date.now(),
     ...overrides
   }),
-  
+
   task: (overrides?: Partial<CreateTask>): CreateTask => ({
     ticketId: 1, // Will need to be overridden
     content: `Test Task ${randomBytes(4).toString('hex')}`,
