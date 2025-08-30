@@ -11,19 +11,12 @@ import type {
   Ticket as DatabaseTicket,
   Chat as DatabaseChat,
   Queue as DatabaseQueue,
-  ClaudeCommand as DatabaseClaudeCommand,
-  ClaudeHook as DatabaseClaudeHook,
-  ClaudeAgent as DatabaseClaudeAgent,
+
   SelectedFile as DatabaseSelectedFile,
   ActiveTab as DatabaseActiveTab
 } from '@promptliano/database'
 
 // Import the actual schemas for proper type validation (type-only to avoid bundling issues)
-import type {
-  ClaudeAgentSchema as DatabaseClaudeAgentSchema,
-  ClaudeCommandSchema as DatabaseClaudeCommandSchema,
-  ClaudeHookSchema as DatabaseClaudeHookSchema
-} from '@promptliano/database'
 import { SelectedFileSchema } from './entity.schemas'
 
 // Recreate basic schemas locally to avoid runtime imports
@@ -34,39 +27,6 @@ const QueueSchema = z.object({}).passthrough()
 const ActiveTabSchema = z.object({}).passthrough()
 
 // Recreate schema definitions locally based on database schema
-const ClaudeCommandSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  content: z.string(),
-  description: z.string().nullable(),
-  category: z.string().nullable(),
-  projectId: z.number().nullable(),
-  tags: z.string().nullable(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-})
-
-const ClaudeHookSchema = z.object({
-  id: z.number(),
-  projectId: z.number().nullable(),
-  name: z.string(),
-  event: z.string(),
-  command: z.string(),
-  enabled: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-})
-
-const ClaudeAgentSchema = z.object({
-  id: z.string(), // String ID from claude system
-  name: z.string(),
-  description: z.string().nullable(),
-  instructions: z.string().nullable(),
-  model: z.string(),
-  isActive: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-})
 
 // =============================================================================
 // MISSING RESPONSE SCHEMAS FOR AUTO-GENERATED ROUTES
@@ -273,20 +233,7 @@ export const ChatListResponseSchema = createListResponseSchema(ChatSchema, { nam
 // Queue List Response Schema
 export const QueueListResponseSchema = createListResponseSchema(QueueSchema, { name: 'Queue' })
 
-// Claude Command List Response Schema
-export const ClaudeCommandListResponseSchema = createListResponseSchema(ClaudeCommandSchema, { name: 'ClaudeCommand' })
 
-// Claude Hook List Response Schema
-export const ClaudeHookListResponseSchema = createListResponseSchema(ClaudeHookSchema, { name: 'ClaudeHook' })
-
-// Claude Agent Response Schema
-export const ClaudeAgentResponseSchema = createSuccessResponseSchema(ClaudeAgentSchema, { name: 'ClaudeAgent' })
-
-// Claude Agent List Response Schema
-export const ClaudeAgentListResponseSchema = createListResponseSchema(ClaudeAgentSchema, { name: 'ClaudeAgent' })
-
-// Claude Command Response Schema
-export const ClaudeCommandResponseSchema = createSuccessResponseSchema(ClaudeCommandSchema, { name: 'ClaudeCommand' })
 
 // Command Execution Response Schema
 const CommandExecutionDataSchema = z.object({
@@ -366,11 +313,7 @@ export type QueueStatsResponse = z.infer<typeof QueueStatsResponseSchema>
 export type TicketListResponse = z.infer<typeof TicketListResponseSchema>
 export type ChatListResponse = z.infer<typeof ChatListResponseSchema>
 export type QueueListResponse = z.infer<typeof QueueListResponseSchema>
-export type ClaudeCommandListResponse = z.infer<typeof ClaudeCommandListResponseSchema>
-export type ClaudeHookListResponse = z.infer<typeof ClaudeHookListResponseSchema>
-export type ClaudeAgentResponse = z.infer<typeof ClaudeAgentResponseSchema>
-export type ClaudeAgentListResponse = z.infer<typeof ClaudeAgentListResponseSchema>
-export type ClaudeCommandResponse = z.infer<typeof ClaudeCommandResponseSchema>
+
 export type CommandExecutionResponse = z.infer<typeof CommandExecutionResponseSchema>
 export type AgentSuggestionsResponse = z.infer<typeof AgentSuggestionsResponseSchema>
 export type CommandSuggestionsResponse = z.infer<typeof CommandSuggestionsResponseSchema>

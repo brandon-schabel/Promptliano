@@ -98,10 +98,7 @@ export {
   TicketSchema,
   TicketTaskSchema,
   PromptSchema,
-  // Claude schemas - fix naming mismatches
-  ClaudeAgentSchema, // was: ClaudeContentSchema
-  ClaudeCommandSchema,
-  ClaudeHookSchema,
+
   ProviderKeySchema, // was: ProviderModelSchema
   // Create schemas for missing entities
   CreateActiveTabSchema,
@@ -138,9 +135,7 @@ export {
   type Ticket,
   type TicketTask,
   type Prompt,
-  type ClaudeAgent,
-  type ClaudeCommand,
-  type ClaudeHook,
+
   type ProviderKey,
   type CreateActiveTab,
   type CreateChat,

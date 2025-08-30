@@ -33,8 +33,7 @@ import {
   TicketListResponseSchema,
   ChatListResponseSchema,
   QueueListResponseSchema,
-  ClaudeCommandListResponseSchema,
-  ClaudeHookListResponseSchema,
+
   SelectedFileListResponseSchema,
   ActiveTabListResponseSchema,
   PromptListResponseSchema
@@ -94,22 +93,7 @@ const projectConfig: EntityConfig = {
       handlerName: 'getQueues',
       response: QueueListResponseSchema,
     },
-    {
-      method: 'get',
-      path: '/{id}/claudecommands',
-      summary: 'Get ClaudeCommand for Project',
-      description: 'Retrieve all ClaudeCommand associated with this Project',
-      handlerName: 'getClaudeCommands',
-      response: ClaudeCommandListResponseSchema,
-    },
-    {
-      method: 'get',
-      path: '/{id}/claudehooks',
-      summary: 'Get ClaudeHook for Project',
-      description: 'Retrieve all ClaudeHook associated with this Project',
-      handlerName: 'getClaudeHooks',
-      response: ClaudeHookListResponseSchema,
-    },
+
     {
       method: 'get',
       path: '/{id}/files',
@@ -191,8 +175,7 @@ export const projectRoutes = {
   getChats: `GET /api/projects/{id}/chats`,
   getPrompts: `GET /api/projects/{id}/prompts`,
   getQueues: `GET /api/projects/{id}/queues`,
-  getClaudeCommands: `GET /api/projects/{id}/claudecommands`,
-  getClaudeHooks: `GET /api/projects/{id}/claudehooks`,
+
   getFiles: `GET /api/projects/{id}/files`,
   getSelectedFiles: `GET /api/projects/{id}/selectedfiles`,
   getActiveTabs: `GET /api/projects/{id}/activetabs`,

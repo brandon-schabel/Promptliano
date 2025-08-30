@@ -19,8 +19,7 @@ export interface ProjectRoutes {
   getChats: string
   getPrompts: string
   getQueues: string
-  getClaudeCommands: string
-  getClaudeHooks: string
+
   getFiles: string
   getSelectedFiles: string
   getActiveTabs: string
@@ -88,29 +87,7 @@ export interface QueueItemRoutes {
   delete: string
 }
 
-export interface ClaudeAgentRoutes {
-  create: string
-  list: string
-  get: string
-  update: string
-  delete: string
-}
 
-export interface ClaudeCommandRoutes {
-  create: string
-  list: string
-  get: string
-  update: string
-  delete: string
-}
-
-export interface ClaudeHookRoutes {
-  create: string
-  list: string
-  get: string
-  update: string
-  delete: string
-}
 
 export interface ProviderKeyRoutes {
   create: string

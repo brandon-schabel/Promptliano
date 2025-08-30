@@ -312,9 +312,9 @@ export {
 export * from './src/agent-instruction-service'
 export * from './src/agent-file-detection-service'
 // Explicit re-export to avoid VSCodeSettings ambiguity with parsers
-export { 
+export {
   createMCPInstallationService,
-  mcpInstallationService 
+  mcpInstallationService
 } from './src/mcp-installation-service'
 export type {
   MCPConfig,
@@ -326,7 +326,7 @@ export type {
   MCPInstallationService,
   VSCodeSettings as MCPVSCodeSettings
 } from './src/mcp-installation-service'
-export { 
+export {
   VSCodeSettingsSchema as MCPVSCodeSettingsSchema,
   MCPConfigSchema,
   MCPToolSchema,
@@ -339,10 +339,6 @@ export * from './src/mcp-global-config-service'
 
 // Re-export types from schemas for backward compatibility
 export type {
-  CreateClaudeCommandBody,
-  UpdateClaudeCommandBody,
-  SearchCommandsQuery,
-  CommandGenerationRequest,
   CreateProjectBody,
   UpdateProjectBody
 } from '@promptliano/schemas'

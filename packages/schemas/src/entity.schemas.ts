@@ -162,42 +162,7 @@ export const PromptSchema = z.object({
   updatedAt: z.number()
 }).openapi('Prompt')
 
-// Claude Agent Schema (for entity routes) - replaces ClaudeContentSchema
-export const ClaudeAgentSchema = z.object({
-  id: z.string(), // String ID from claude system
-  name: z.string(),
-  description: z.string().nullable(),
-  instructions: z.string().nullable(),
-  model: z.string(),
-  isActive: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('ClaudeAgent')
 
-// Claude Command Schema (for entity routes)
-export const ClaudeCommandSchema = z.object({
-  id: z.number().int().positive(),
-  name: z.string(),
-  content: z.string(),
-  description: z.string().nullable(),
-  category: z.string().nullable(),
-  projectId: z.number().int().positive().nullable(),
-  tags: z.string().nullable(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('ClaudeCommand')
-
-// Claude Hook Schema (for entity routes)
-export const ClaudeHookSchema = z.object({
-  id: z.number().int().positive(),
-  projectId: z.number().int().positive().nullable(),
-  name: z.string(),
-  event: z.string(),
-  command: z.string(),
-  enabled: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number()
-}).openapi('ClaudeHook')
 
 // =============================================================================
 // CREATE SCHEMAS - Only for missing entities
@@ -467,9 +432,7 @@ export type QueueItem = z.infer<typeof QueueItemSchema>
 export type Ticket = z.infer<typeof TicketSchema>
 export type TicketTask = z.infer<typeof TicketTaskSchema>
 export type Prompt = z.infer<typeof PromptSchema>
-export type ClaudeAgent = z.infer<typeof ClaudeAgentSchema>
-export type ClaudeCommand = z.infer<typeof ClaudeCommandSchema>
-export type ClaudeHook = z.infer<typeof ClaudeHookSchema>
+
 export type ProviderKey = z.infer<typeof ProviderKeySchema>
 
 export type CreateActiveTab = z.infer<typeof CreateActiveTabSchema>

@@ -1235,9 +1235,7 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages)
 export const insertPromptSchema = createInsertSchema(prompts)
 export const insertQueueSchema = createInsertSchema(queues)
 export const insertQueueItemSchema = createInsertSchema(queueItems)
-export const insertClaudeAgentSchema = createInsertSchema(claudeAgents)
-export const insertClaudeCommandSchema = createInsertSchema(claudeCommands)
-export const insertClaudeHookSchema = createInsertSchema(claudeHooks)
+
 export const insertProviderKeySchema = createInsertSchema(providerKeys)
 export const insertFileSchema = createInsertSchema(files)
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles)
@@ -1640,8 +1638,7 @@ export type LegacyTicketTask = {
 // BACKWARD COMPATIBILITY ALIASES
 // =============================================================================
 
-// Alias for ClaudeMessage type for backward compatibility with existing imports
-export type ClaudeCodeMessage = ClaudeMessage
+// Claude-related types have been removed
 
 // Alias for ProjectTabMetadata for existing imports
 export type ActiveTabMetadata = ProjectTabMetadata

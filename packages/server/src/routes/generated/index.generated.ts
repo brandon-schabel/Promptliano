@@ -70,9 +70,7 @@ export type AllRouteTypes = {
   Prompt: PromptRouteTypes
   Queue: QueueRouteTypes
   QueueItem: QueueItemRouteTypes
-  ClaudeAgent: ClaudeAgentRouteTypes
-  ClaudeCommand: ClaudeCommandRouteTypes
-  ClaudeHook: ClaudeHookRouteTypes
+
   ProviderKey: ProviderKeyRouteTypes
   File: FileRouteTypes
   SelectedFile: SelectedFileRouteTypes

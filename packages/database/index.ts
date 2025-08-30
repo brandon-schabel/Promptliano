@@ -23,9 +23,7 @@ export {
   files,
   selectedFiles,
   activeTabs,
-  claudeAgents,
-  claudeCommands,
-  claudeHooks,
+
   providerKeys
 } from './src/schema'
 
@@ -48,9 +46,7 @@ import {
   selectQueueSchema,
   selectQueueItemSchema,
   selectFileSchema,
-  selectClaudeAgentSchema,
-  selectClaudeCommandSchema,
-  selectClaudeHookSchema,
+
   selectProviderKeySchema,
   selectActiveTabSchema,
   selectSelectedFileSchema,
@@ -63,9 +59,7 @@ import {
   insertQueueSchema,
   insertQueueItemSchema,
   insertFileSchema,
-  insertClaudeAgentSchema,
-  insertClaudeCommandSchema,
-  insertClaudeHookSchema,
+
   insertProviderKeySchema,
   insertActiveTabSchema,
   insertSelectedFileSchema
