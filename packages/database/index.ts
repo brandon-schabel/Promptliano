@@ -62,8 +62,10 @@ import {
 
   insertProviderKeySchema,
   insertActiveTabSchema,
-  insertSelectedFileSchema
+  insertSelectedFileSchema,
+
 } from './src/schema'
+
 
 // Import schema transformers
 import {

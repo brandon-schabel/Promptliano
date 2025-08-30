@@ -241,11 +241,5 @@ export type GitDiffRequest = {
   staged?: boolean
 }
 
-// Claude Hooks types available via database schemas
-export type { CreateClaudeHook, UpdateClaudeHook } from '@promptliano/database'
-
-// Use schema type for entity
-import type { ClaudeHookSchema } from '@promptliano/database'
-export type ClaudeHook = typeof ClaudeHookSchema._type
 
 // Other hook types available via API types

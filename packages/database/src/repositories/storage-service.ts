@@ -23,9 +23,7 @@ import {
   prompts,
   queues,
   queueItems,
-  claudeAgents,
-  claudeCommands,
-  claudeHooks,
+
   providerKeys,
   files,
   selectedFiles,
@@ -39,9 +37,6 @@ import {
   type Prompt,
   type Queue,
   type QueueItem,
-  type ClaudeAgent,
-  type ClaudeCommand,
-  type ClaudeHook,
   type ProviderKey,
   type File,
   type SelectedFile,
@@ -88,9 +83,7 @@ export class StorageService {
       queueCount,
       queueItemCount,
       fileCount,
-      agentCount,
-      commandCount,
-      hookCount,
+
       providerKeyCount,
       activeTabCount,
       mcpServerCount
@@ -131,18 +124,7 @@ export class StorageService {
         .select({ count: count() })
         .from(files)
         .then((result) => result[0]?.count ?? 0),
-      db
-        .select({ count: count() })
-        .from(claudeAgents)
-        .then((result) => result[0]?.count ?? 0),
-      db
-        .select({ count: count() })
-        .from(claudeCommands)
-        .then((result) => result[0]?.count ?? 0),
-      db
-        .select({ count: count() })
-        .from(claudeHooks)
-        .then((result) => result[0]?.count ?? 0),
+
       db
         .select({ count: count() })
         .from(providerKeys)
@@ -167,9 +149,6 @@ export class StorageService {
       queueCount +
       queueItemCount +
       fileCount +
-      agentCount +
-      commandCount +
-      hookCount +
       providerKeyCount +
       activeTabCount +
       mcpServerCount
@@ -186,11 +165,6 @@ export class StorageService {
       queueItems: queueItemCount,
       files: fileCount,
 
-      // Claude entities
-      claudeAgents: agentCount,
-      claudeCommands: commandCount,
-      claudeHooks: hookCount,
-
       // Configuration
       providerKeys: providerKeyCount,
       activeTabs: activeTabCount,
@@ -201,7 +175,6 @@ export class StorageService {
 
       // Categories
       coreEntities: projectCount + ticketCount + taskCount + chatCount + messageCount,
-      claudeEntities: agentCount + commandCount + hookCount,
       configEntities: providerKeyCount + activeTabCount + mcpServerCount,
       workflowEntities: queueCount + queueItemCount + promptCount + fileCount
     }
@@ -214,6 +187,7 @@ export class StorageService {
     status: 'healthy' | 'degraded' | 'unhealthy'
     repositories: Record<string, boolean>
     errors: string[]
+    timestamp: number
   }> {
     const repositoryChecks: Record<string, boolean> = {}
     const errors: string[] = []
@@ -263,7 +237,7 @@ export class StorageService {
       status = 'unhealthy'
     }
 
-    return { status, repositories: repositoryChecks, errors }
+    return { status, repositories: repositoryChecks, errors, timestamp: Date.now() }
   }
 
   /**

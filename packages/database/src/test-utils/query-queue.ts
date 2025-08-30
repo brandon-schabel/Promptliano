@@ -149,8 +149,8 @@ export function createSerializedDrizzleClient(
           }
 
           // For other methods, execute through queue
-          return queue.execute(() => {
-            return value.apply(target, args)
+          return queue.execute(async () => {
+            return value.apply(target, args) as Promise<any>
           }, operation)
         }
       }
@@ -172,8 +172,11 @@ export const queryUtils = {
     const results: T[] = []
 
     for (let i = 0; i < queries.length; i++) {
-      const result = await queue.execute(queries[i], `sequence-${i}`)
-      results.push(result)
+      const query = queries[i]
+      if (query) {
+        const result = await queue.execute(query, `sequence-${i}`)
+        results.push(result)
+      }
     }
 
     return results

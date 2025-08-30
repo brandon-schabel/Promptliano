@@ -3,20 +3,22 @@
  * Tests replacement of legacy storage classes with repositories
  */
 
-import { describe, test, expect, beforeEach } from 'bun:test'
-import { storageService, TypedStorageService } from '../repositories/storage-service'
-import { db, rawDb } from '../db'
+import { describe, test, expect, beforeEach, afterAll } from 'bun:test'
+import { storageService } from '../repositories/storage-service'
+import { createTestDatabase, type TestDatabase } from '../test-utils/test-db'
 
 describe('Drizzle Repository Migration Tests', () => {
+  let testDb: TestDatabase
+  
   beforeEach(async () => {
-    // Clean up test data
-    await rawDb.exec('DELETE FROM ticket_tasks')
-    await rawDb.exec('DELETE FROM tickets')
-    await rawDb.exec('DELETE FROM chat_messages')
-    await rawDb.exec('DELETE FROM chats')
-    await rawDb.exec('DELETE FROM prompts')
-    await rawDb.exec('DELETE FROM queues')
-    await rawDb.exec('DELETE FROM projects')
+    // Create a fresh test database for each test
+    testDb = await createTestDatabase()
+  })
+  
+  afterAll(async () => {
+    if (testDb) {
+      testDb.close()
+    }
   })
 
   describe('Project Repository', () => {
@@ -243,7 +245,7 @@ describe('Drizzle Repository Migration Tests', () => {
       expect(stats.totalTasks).toBe(3)
       expect(stats.completedTasks).toBe(2)
       expect(stats.pendingTasks).toBe(1)
-      expect(stats.totalHours).toBe(6)
+      expect(stats.totalEstimatedHours).toBe(6)
       expect(stats.completionPercentage).toBe(67) // 2/3 * 100 rounded
     })
   })
@@ -285,29 +287,27 @@ describe('Drizzle Repository Migration Tests', () => {
     })
   })
 
-  describe('TypedStorageService Integration', () => {
-    test('should create ticket with tasks in transaction', async () => {
+  describe('StorageService Integration', () => {
+    test('should create ticket with tasks using repositories', async () => {
       const project = await storageService.projects.create({
         name: 'Integration Test',
         path: '/integration'
       })
 
-      const typedStorage = new TypedStorageService()
-      const result = await typedStorage.createTicketWithTasks(
-        {
-          projectId: project.id,
-          title: 'Ticket with Tasks'
-        },
-        [
-          { content: 'Task 1', done: false },
-          { content: 'Task 2', done: false },
-          { content: 'Task 3', done: true }
-        ]
-      )
+      const ticket = await storageService.tickets.create({
+        projectId: project.id,
+        title: 'Ticket with Tasks'
+      })
 
-      expect(result.ticket.title).toBe('Ticket with Tasks')
-      expect(result.tasks).toHaveLength(3)
-      expect(result.tasks.every((task) => task.ticketId === result.ticket.id)).toBe(true)
+      const tasks = await Promise.all([
+        storageService.tasks.create({ ticketId: ticket.id, content: 'Task 1', done: false }),
+        storageService.tasks.create({ ticketId: ticket.id, content: 'Task 2', done: false }),
+        storageService.tasks.create({ ticketId: ticket.id, content: 'Task 3', done: true })
+      ])
+
+      expect(ticket.title).toBe('Ticket with Tasks')
+      expect(tasks).toHaveLength(3)
+      expect(tasks.every((task: any) => task.ticketId === ticket.id)).toBe(true)
     })
   })
 

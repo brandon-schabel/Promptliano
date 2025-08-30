@@ -274,7 +274,7 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
   let clientMethods = '  // ===== GENERATED API METHODS =====\n\n'
   const usedMethodNames = new Set<string>()
 
-  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, ' ').split(' ').filter(Boolean).map((w, i) => i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()).join('')
+  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, ' ').split(' ').filter(Boolean).map((w, i) => i === 0 ? w.toLowerCase() : (w[0]?.toUpperCase() ?? '') + w.slice(1).toLowerCase()).join('')
 
   const ensureUniqueName = (base: string, op: OperationInfo): string => {
     let name = base
@@ -286,9 +286,9 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
     const tag = op.tags?.[0] ? sanitize(op.tags[0]) : ''
     const pathKey = sanitize(op.path)
     const candidates = [
-      `${base}${opId ? opId[0].toUpperCase() + opId.slice(1) : ''}`,
-      `${base}${tag ? tag[0].toUpperCase() + tag.slice(1) : ''}`,
-      `${base}${pathKey ? pathKey[0].toUpperCase() + pathKey.slice(1) : ''}`
+      `${base}${opId ? (opId[0]?.toUpperCase() ?? '') + opId.slice(1) : ''}`,
+      `${base}${tag ? (tag[0]?.toUpperCase() ?? '') + tag.slice(1) : ''}`,
+      `${base}${pathKey ? (pathKey[0]?.toUpperCase() ?? '') + pathKey.slice(1) : ''}`
     ].filter(Boolean)
     for (const cand of candidates) {
       if (cand && !usedMethodNames.has(cand)) {

@@ -48,11 +48,6 @@ import type {
   UpdateChat,
   ChatMessageSchema,
 
-  // Agents
-  ClaudeAgentSchema,
-  CreateClaudeAgent,
-  UpdateClaudeAgent,
-
   // Queues
   QueueSchema,
   CreateQueue,
@@ -83,10 +78,6 @@ export type CreateChatBody = CreateChat
 export type UpdateChatBody = UpdateChat
 
 export type ChatMessage = typeof ChatMessageSchema._type
-
-export type ClaudeAgent = typeof ClaudeAgentSchema._type
-export type CreateClaudeAgentBody = CreateClaudeAgent
-export type UpdateClaudeAgentBody = UpdateClaudeAgent
 
 // Prompt types already exported above from schemas package
 export { CreatePromptBody, UpdatePromptBody }
@@ -342,11 +333,11 @@ export interface MutationHookReturn<TData, TError = ApiError, TVariables = void>
  */
 export interface InfiniteQueryHookReturn<TData, TError = ApiError> {
   data:
-    | {
-        pages: TData[]
-        pageParams: unknown[]
-      }
-    | undefined
+  | {
+    pages: TData[]
+    pageParams: unknown[]
+  }
+  | undefined
   error: TError | null
   isLoading: boolean
   isError: boolean

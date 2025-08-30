@@ -43,7 +43,6 @@ export function ProjectSettingsTab() {
   const { data: resolveImports } = useProjectTabField('resolveImports')
   const { data: preferredEditor } = useProjectTabField('preferredEditor')
   const { data: projectId } = useProjectTabField('selectedProjectId')
-  const { data: claudeCodeEnabled } = useProjectTabField('claudeCodeEnabled')
   const { data: assetsEnabled } = useProjectTabField('assetsEnabled')
   const { data: autoIncludeClaudeMd } = useProjectTabField('autoIncludeClaudeMd')
   const { data: instructionFileSettings } = useProjectTabField('instructionFileSettings')
@@ -102,13 +101,6 @@ export function ProjectSettingsTab() {
     updateActiveProjectTab((prev) => ({
       ...prev,
       resolveImports: value
-    }))
-  }
-
-  const setClaudeCodeEnabled = (value: boolean) => {
-    updateActiveProjectTab((prev) => ({
-      ...prev,
-      claudeCodeEnabled: value
     }))
   }
 

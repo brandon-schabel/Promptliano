@@ -219,7 +219,7 @@ export async function createTestDatabase(config: TestDbConfig = {}): Promise<Tes
         tables: tables.map(t => t.name),
         totalRecords,
         filePath,
-        isActive: !rawDb.closed
+        isActive: true
       }
     },
     checkpoint: () => {
@@ -627,17 +627,7 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
       updatedAt: now
     })
 
-    // Seed test agent
-    await db.insert(mainSchema.claudeAgents).values({
-      id: 'test-agent',
-      name: 'Test Agent',
-      description: 'Seeded test agent',
-      instructions: 'Test instructions',
-      model: 'claude-4-sonnet',
-      isActive: true,
-      createdAt: now,
-      updatedAt: now
-    })
+
 
     if (verbose) {
       console.log('[TEST DB] Test data seeded successfully')
@@ -690,9 +680,9 @@ let globalTestDb: TestDatabase | null = null
 /**
  * Get or create a global test database instance
  */
-export function getGlobalTestDb(): TestDatabase {
+export async function getGlobalTestDb(): Promise<TestDatabase> {
   if (!globalTestDb) {
-    globalTestDb = createTestDatabase({
+    globalTestDb = await createTestDatabase({
       testId: 'global',
       verbose: false,
       seedData: true

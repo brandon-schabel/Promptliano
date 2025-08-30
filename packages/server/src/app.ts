@@ -254,8 +254,6 @@ app.route('/', mcpInstallationRoutes)
 // - promptRoutes -> /api/prompts CRUD via generated routes
 // - ticketRoutes -> /api/tickets CRUD via generated routes
 // - queueRoutes -> /api/queues CRUD via generated routes
-// - claudeAgentRoutes -> /api/claudeagents CRUD via generated routes
-// - claudeCommandRoutes -> /api/claudecommands CRUD via generated routes
 // - activeTabRoutes -> /api/activetabs CRUD via generated routes
 
 // Global error handler with ErrorFactory integration

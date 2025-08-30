@@ -7,7 +7,6 @@
  */
 
 import { useApiClient } from '../api/use-api-client'
-import { createCrudHooks } from '@promptliano/hook-factory'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 // Define Git types locally to avoid import issues
@@ -190,7 +189,7 @@ export function useFileDiff(
       const diffData = response?.data || response
       // Ensure diff property is available for backward compatibility
       if (diffData && typeof diffData === 'object' && 'content' in diffData && !('diff' in diffData)) {
-        ;(diffData as any).diff = diffData.content
+        ; (diffData as any).diff = diffData.content
       }
       return diffData
     },
@@ -818,7 +817,7 @@ export function useGitStashPop(projectId: number | undefined) {
     mutationFn: async (ref?: string) => {
       if (!projectId) throw new Error('Project ID is required')
       if (!client) throw new Error('API client not initialized')
-      return client.git.stashPop(projectId, ref)
+      return client.git.stashPop(projectId, ref || '')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GIT_ENHANCED_KEYS.status(projectId!) })
@@ -842,7 +841,7 @@ export function useGitStashDrop(projectId: number | undefined) {
     mutationFn: async (ref?: string) => {
       if (!projectId) throw new Error('Project ID is required')
       if (!client) throw new Error('API client not initialized')
-      return client.git.stashDrop(projectId, ref)
+      return client.git.stashDrop(projectId, ref || '')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GIT_ENHANCED_KEYS.stash(projectId!) })

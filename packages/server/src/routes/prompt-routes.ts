@@ -342,14 +342,12 @@ const validateMarkdownRoute = createRoute({
 export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
-    const now = Date.now()
-    const createdPrompt = await createPrompt({
+    const promptData = {
       title: body.title,
       content: body.content,
-      projectId: body.projectId,
-      createdAt: now,
-      updatedAt: now
-    })
+      projectId: body.projectId
+    }
+    const createdPrompt = await createPrompt(promptData)
     return c.json(successResponse(createdPrompt), 201)
   }) as any)
   .openapi(listAllPromptsRoute, async (c) => {

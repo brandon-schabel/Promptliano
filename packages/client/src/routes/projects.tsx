@@ -352,7 +352,6 @@ export function ProjectsPage() {
                   replace: true
                 })
               }}
-              claudeCodeEnabled={(activeProjectTabState as any)?.claudeCodeEnabled}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
               showTabs={false}
               showMenus={true}
@@ -378,7 +377,6 @@ export function ProjectsPage() {
                   replace: true
                 })
               }}
-              claudeCodeEnabled={(activeProjectTabState as any)?.claudeCodeEnabled}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
               showTabs={true}
               showMenus={false}

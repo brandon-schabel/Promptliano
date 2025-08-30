@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ADVANCED REACT QUERY HOOKS
- * Generated at: 2025-08-26T05:01:30.406Z
+ * Generated at: 2025-08-30T02:20:17.556Z
  * 
  * Uses the CRUD Hook Factory for advanced features:
  * ✅ Optimistic updates
@@ -16,13 +16,17 @@ import { createCrudHooks } from '@promptliano/hook-factory'
 import { createTypeSafeClient } from './type-safe-client'
 import type {
   GetProjectsResponse,
+  GetProjectResponse,
   CreateProjectRequest,
   CreateProjectResponse,
   UpdateProjectRequest,
+  UpdateProjectResponse,
   GetChatsResponse,
+  GetChatResponse,
   CreateChatRequest,
   CreateChatResponse,
-  UpdateChatRequest
+  UpdateChatRequest,
+  UpdateChatResponse
 } from './type-safe-client'
 
 // Global client instance
@@ -33,6 +37,21 @@ function getApiClient() {
     globalClient = createTypeSafeClient({ baseUrl: '/api' })
   }
   return globalClient
+}
+
+/**
+ * Type-safe response unwrapper
+ * Handles the API's wrapped response format { success: true, data: T }
+ * and extracts the actual data payload for the hook factory
+ */
+function unwrapResponse<T>(response: any): T {
+  // The API always returns { success: true, data: T } for successful responses
+  // We check for the success property to handle wrapped responses
+  if (response && typeof response === 'object' && 'success' in response && response.success === true) {
+    return response.data as T
+  }
+  // Fallback for unwrapped responses (shouldn't happen with current API)
+  return response as T
 }
 
 /**
@@ -83,7 +102,7 @@ export const queryKeys = {
  * 
  * Each API call is wrapped in an async adapter function that:
  * 1. Calls the API client method
-     * 2. Returns the direct JSON response (no axios-style wrapper)
+ * 2. Extracts the .data property from the wrapped response
  * 3. Returns the unwrapped entity data to the hook factory
  * 
  * This maintains type safety while bridging the response format mismatch.
@@ -92,23 +111,23 @@ const projectHooks = createCrudHooks({
   entityName: 'Project',
   queryKeys: queryKeys.projects,
   apiClient: {
-    list: async () => {
+    list: async (): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }[]> => {
       const response = await getApiClient().getProjects()
-      return (response as any).data ?? response
+      return unwrapResponse(response)
     },
-    getById: async (_, id: number) => {
+    getById: async (_, id: number): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
       const response = await getApiClient().getProject(id)
-      return response
+      return unwrapResponse(response)
     },
-    create: async (_, data: CreateProjectRequest) => {
+    create: async (_, data: CreateProjectRequest): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
       const response = await getApiClient().createProject(data)
-      return response
+      return unwrapResponse(response)
     },
-    update: async (_, id: number, data: UpdateProjectRequest) => {
+    update: async (_, id: number, data: UpdateProjectRequest): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
       const response = await getApiClient().updateProject(id, data)
-      return response
+      return unwrapResponse(response)
     },
-    delete: async (_, id: number) => {
+    delete: async (_, id: number): Promise<boolean> => {
       await getApiClient().deleteProject(id)
       return true
     },
@@ -163,22 +182,22 @@ const chatHooks = createCrudHooks({
   entityName: 'Chat',
   queryKeys: queryKeys.chats,
   apiClient: {
-    list: async () => {
+    list: async (): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }[]> => {
       const response = await getApiClient().getChats()
-      return (response as any).data ?? response
+      return unwrapResponse(response)
     },
-    getById: async (_, id: number) => { 
-      throw new Error('getChat not available - endpoint does not exist') 
+    getById: async (_, id: number): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
+      throw new Error('getChat not available - endpoint does not exist')
     },
-    create: async (_, data: CreateChatRequest) => {
+    create: async (_, data: CreateChatRequest): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
       const response = await getApiClient().createChat(data)
-      return (response as any).data ?? response
+      return unwrapResponse(response)
     },
-    update: async (_, id: number, data: UpdateChatRequest) => {
+    update: async (_, id: number, data: UpdateChatRequest): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
       const response = await getApiClient().updateChat(id, data)
-      return (response as any).data ?? response
+      return unwrapResponse(response)
     },
-    delete: async (_, id: number) => {
+    delete: async (_, id: number): Promise<boolean> => {
       await getApiClient().deleteChat(id)
       return true
     },
@@ -220,7 +239,7 @@ export const useChatInvalidate = chatHooks.useInvalidate
 export function useInvalidateAll() {
   const projectInvalidate = useProjectInvalidate()
   const chatInvalidate = useChatInvalidate()
-  
+
   return () => {
     projectInvalidate.invalidateAll()
     chatInvalidate.invalidateAll()

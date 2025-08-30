@@ -68,7 +68,7 @@ export class BaseRepository<
   /**
    * Create a new entity
    */
-  async create(data: TInsert): Promise<TEntity> {
+  async create(data: Omit<TInsert, 'id' | 'createdAt' | 'updatedAt'>): Promise<TEntity> {
     return this.errorHandler.withContext(async () => {
       const now = Date.now()
       const [entity] = await this.dbInstance
@@ -185,7 +185,7 @@ export class BaseRepository<
   /**
    * Create many entities in a single transaction
    */
-  async createMany(items: TInsert[]): Promise<TEntity[]> {
+  async createMany(items: Omit<TInsert, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<TEntity[]> {
     return this.errorHandler.withContext(async () => {
       if (items.length === 0) return []
 
@@ -311,7 +311,7 @@ export class BaseRepository<
   /**
    * Batch upsert (insert or update)
    */
-  async upsert(data: TInsert, conflictColumns: string[] = ['id']): Promise<TEntity> {
+  async upsert(data: Omit<TInsert, 'createdAt' | 'updatedAt'>, conflictColumns: string[] = ['id']): Promise<TEntity> {
     // SQLite doesn't have native UPSERT, so we use INSERT OR REPLACE
     const now = Date.now()
     const [entity] = await this.dbInstance

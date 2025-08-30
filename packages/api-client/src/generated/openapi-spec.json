@@ -3228,13 +3228,13 @@
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756480313207
+            "example": 1756520285718
           },
           "updated": {
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756480313207
+            "example": 1756520285718
           }
         },
         "required": [
@@ -3378,13 +3378,13 @@
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756480313207
+            "example": 1756520285718
           },
           "completedAt": {
             "type": "integer",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
             "format": "int64",
-            "example": 1756480313207
+            "example": 1756520285718
           }
         },
         "required": [
@@ -12592,8 +12592,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -12761,8 +12762,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -12867,8 +12869,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -15531,25 +15534,7 @@
                             "type": "string",
                             "nullable": true
                           },
-                          "encryptedValue": {
-                            "type": "string"
-                          },
                           "key": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "encrypted": {
-                            "type": "boolean"
-                          },
-                          "iv": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "tag": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "salt": {
                             "type": "string",
                             "nullable": true
                           },
@@ -15610,12 +15595,7 @@
                           "keyName",
                           "name",
                           "secretRef",
-                          "encryptedValue",
                           "key",
-                          "encrypted",
-                          "iv",
-                          "tag",
-                          "salt",
                           "baseUrl",
                           "customHeaders",
                           "isDefault",
@@ -15728,25 +15708,7 @@
                     "type": "string",
                     "nullable": true
                   },
-                  "encryptedValue": {
-                    "type": "string"
-                  },
                   "key": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "encrypted": {
-                    "type": "boolean"
-                  },
-                  "iv": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "tag": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "salt": {
                     "type": "string",
                     "nullable": true
                   },
@@ -15797,8 +15759,7 @@
                 },
                 "required": [
                   "provider",
-                  "keyName",
-                  "encryptedValue"
+                  "keyName"
                 ]
               }
             }
@@ -15838,25 +15799,7 @@
                           "type": "string",
                           "nullable": true
                         },
-                        "encryptedValue": {
-                          "type": "string"
-                        },
                         "key": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "encrypted": {
-                          "type": "boolean"
-                        },
-                        "iv": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "tag": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "salt": {
                           "type": "string",
                           "nullable": true
                         },
@@ -15917,12 +15860,7 @@
                         "keyName",
                         "name",
                         "secretRef",
-                        "encryptedValue",
                         "key",
-                        "encrypted",
-                        "iv",
-                        "tag",
-                        "salt",
                         "baseUrl",
                         "customHeaders",
                         "isDefault",
@@ -16092,25 +16030,7 @@
                           "type": "string",
                           "nullable": true
                         },
-                        "encryptedValue": {
-                          "type": "string"
-                        },
                         "key": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "encrypted": {
-                          "type": "boolean"
-                        },
-                        "iv": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "tag": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "salt": {
                           "type": "string",
                           "nullable": true
                         },
@@ -16171,12 +16091,7 @@
                         "keyName",
                         "name",
                         "secretRef",
-                        "encryptedValue",
                         "key",
-                        "encrypted",
-                        "iv",
-                        "tag",
-                        "salt",
                         "baseUrl",
                         "customHeaders",
                         "isDefault",
@@ -16331,25 +16246,7 @@
                     "type": "string",
                     "nullable": true
                   },
-                  "encryptedValue": {
-                    "type": "string"
-                  },
                   "key": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "encrypted": {
-                    "type": "boolean"
-                  },
-                  "iv": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "tag": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "salt": {
                     "type": "string",
                     "nullable": true
                   },
@@ -16436,25 +16333,7 @@
                           "type": "string",
                           "nullable": true
                         },
-                        "encryptedValue": {
-                          "type": "string"
-                        },
                         "key": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "encrypted": {
-                          "type": "boolean"
-                        },
-                        "iv": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "tag": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "salt": {
                           "type": "string",
                           "nullable": true
                         },
@@ -16515,12 +16394,7 @@
                         "keyName",
                         "name",
                         "secretRef",
-                        "encryptedValue",
                         "key",
-                        "encrypted",
-                        "iv",
-                        "tag",
-                        "salt",
                         "baseUrl",
                         "customHeaders",
                         "isDefault",
@@ -18467,8 +18341,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18530,8 +18405,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18583,8 +18459,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18637,8 +18514,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18740,8 +18618,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18794,8 +18673,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18926,8 +18806,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -18993,8 +18874,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -19072,8 +18954,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -19154,8 +19037,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20036,8 +19920,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20150,8 +20035,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20330,8 +20216,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20510,8 +20397,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20692,8 +20580,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -20969,8 +20858,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -21054,8 +20944,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -21149,8 +21040,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -21343,8 +21235,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -28694,8 +28587,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -28779,8 +28673,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -28875,8 +28770,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -28971,8 +28867,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -29045,8 +28942,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -32686,8 +32584,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -32758,8 +32657,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -32861,8 +32761,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -33027,8 +32928,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",
@@ -33161,8 +33063,9 @@
           {
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
+              "description": "Entity ID - coerces strings to positive integers for URL parameters",
+              "format": "int64",
+              "example": 1716537600000
             },
             "required": true,
             "name": "id",

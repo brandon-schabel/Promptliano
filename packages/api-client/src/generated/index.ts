@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED API CLIENT
- * Generated at: 2025-08-29T15:20:54.378Z
+ * Generated at: 2025-08-30T02:20:17.556Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
@@ -11,7 +11,11 @@ export * from './api-types'
 // Type-safe API client
 export * from './type-safe-client'
 
+// Advanced React Query hooks (replaces simple hooks)
+export * from './advanced-hooks'
+
+// React Query provider
+export * from './react-query-provider'
+
 // OpenAPI specification  
 export { default as openApiSpec } from './openapi-spec.json'
-
-// Note: Advanced React Query hooks and provider are added by generate-advanced-hooks.ts

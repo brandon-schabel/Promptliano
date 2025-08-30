@@ -20,10 +20,11 @@ interface MCPStatusIndicatorProps {
 export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
   const client = useApiClient()
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['mcp-status', projectId],
+    queryKey: ['mcp-installation-detect'],
     queryFn: async () => {
       if (!client) return
-      const response = await client.projects.getMCPInstallationStatus(projectId)
+      // Use the MCP installation detection endpoint which returns tools array
+      const response = await client.typeSafeClient.listMcpInstallationDetect()
       return response
     },
     enabled: !!client,
@@ -45,17 +46,13 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
     )
   }
 
-  // MCP status doesn't have connection status - it shows installation status
-  // This component should show MCP installation status instead
-  const mcpStatus = data?.data || data
-  const isInstalled =
-    (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.installed : false) ||
-    (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) ||
-    false
-  const hasConfig =
-    (mcpStatus && 'claudeDesktop' in mcpStatus ? mcpStatus.claudeDesktop?.configExists : false) ||
-    (mcpStatus && 'claudeCode' in mcpStatus ? mcpStatus.claudeCode?.globalConfigExists : false) ||
-    false
+  // MCP installation detection returns tools array with installation status
+  const tools = data?.data?.tools || []
+  const claudeDesktop = tools.find(t => t.tool === 'claude-desktop')
+  const claudeCode = tools.find(t => t.tool === 'claude-code')
+  
+  const isInstalled = claudeDesktop?.installed || claudeCode?.installed || false
+  const hasConfig = claudeDesktop?.configExists || claudeCode?.configExists || false
 
   return (
     <TooltipProvider>
@@ -72,20 +69,20 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
         <TooltipContent>
           <div className='space-y-1'>
             <p className='font-semibold'>MCP Status: {isInstalled && hasConfig ? 'Configured' : 'Not Configured'}</p>
-            {mcpStatus && 'claudeDesktop' in mcpStatus && mcpStatus.claudeDesktop?.installed && (
+            {claudeDesktop?.installed && (
               <p className='text-xs text-muted-foreground'>Claude Desktop: Installed</p>
             )}
-            {mcpStatus && 'claudeCode' in mcpStatus && mcpStatus.claudeCode?.globalConfigExists && (
-              <p className='text-xs text-muted-foreground'>Claude Code: Global config exists</p>
+            {claudeCode?.installed && (
+              <p className='text-xs text-muted-foreground'>Claude Code: Installed</p>
             )}
             {(!isInstalled || !hasConfig) && (
               <p className='text-xs text-muted-foreground'>Install MCP tools to enable integration</p>
             )}
-            {mcpStatus && 'claudeDesktop' in mcpStatus && mcpStatus.claudeDesktop?.error && (
-              <p className='text-xs text-red-400'>Desktop Error: {mcpStatus.claudeDesktop.error}</p>
+            {claudeDesktop?.hasPromptliano && (
+              <p className='text-xs text-green-400'>Claude Desktop has Promptliano configured</p>
             )}
-            {mcpStatus && 'claudeCode' in mcpStatus && mcpStatus.claudeCode?.error && (
-              <p className='text-xs text-red-400'>Code Error: {mcpStatus.claudeCode.error}</p>
+            {claudeCode?.hasPromptliano && (
+              <p className='text-xs text-green-400'>Claude Code has Promptliano configured</p>
             )}
           </div>
         </TooltipContent>

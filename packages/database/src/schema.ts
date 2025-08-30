@@ -28,17 +28,6 @@ export interface GitCommitAuthor {
   date?: string
 }
 
-// Claude Code Types
-export interface ClaudeMessageContent {
-  role: 'user' | 'assistant' | 'system'
-  content: string | any[] | null
-  id?: string | null
-  model?: string | null
-  stop_reason?: string | null
-  stop_sequence?: string | null
-  usage?: TokenUsage
-}
-
 export interface TokenUsage {
   input_tokens?: number
   cache_creation_input_tokens?: number
@@ -358,77 +347,6 @@ export const queueItems = sqliteTable(
   })
 )
 
-// =============================================================================
-// CLAUDE AI INTEGRATION TABLES
-// =============================================================================
-
-export const claudeAgents = sqliteTable(
-  'claude_agents',
-  {
-    id: text('id').primaryKey(), // String ID from claude system
-    name: text('name').notNull(),
-    description: text('description'),
-    instructions: text('instructions'),
-    model: text('model').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    nameIdx: index('claude_agents_name_idx').on(table.name),
-    modelIdx: index('claude_agents_model_idx').on(table.model),
-    activeIdx: index('claude_agents_active_idx').on(table.isActive)
-  })
-)
-
-export const claudeCommands = sqliteTable(
-  'claude_commands',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    description: text('description'),
-    command: text('command').notNull(),
-    args: text('args', { mode: 'json' })
-      .$type<Record<string, any>>()
-      .notNull()
-      .default(sql`'{}'`),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('claude_commands_project_idx').on(table.projectId),
-    nameIdx: index('claude_commands_name_idx').on(table.name),
-    activeIdx: index('claude_commands_active_idx').on(table.isActive)
-  })
-)
-
-export const claudeHooks = sqliteTable(
-  'claude_hooks',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    description: text('description'),
-    hookType: text('hook_type', { enum: ['pre', 'post', 'error'] }).notNull(),
-    triggerEvent: text('trigger_event').notNull(),
-    script: text('script').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('claude_hooks_project_idx').on(table.projectId),
-    typeIdx: index('claude_hooks_type_idx').on(table.hookType),
-    eventIdx: index('claude_hooks_event_idx').on(table.triggerEvent),
-    activeIdx: index('claude_hooks_active_idx').on(table.isActive)
-  })
-)
 
 // =============================================================================
 // CONFIGURATION & SECURITY TABLES
@@ -972,8 +890,6 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   chats: many(chats),
   prompts: many(prompts),
   queues: many(queues),
-  claudeCommands: many(claudeCommands),
-  claudeHooks: many(claudeHooks),
   files: many(files),
   selectedFiles: many(selectedFiles),
   activeTabs: many(activeTabs),
@@ -1051,20 +967,6 @@ export const queueItemsRelations = relations(queueItems, ({ one }) => ({
   queue: one(queues, {
     fields: [queueItems.queueId],
     references: [queues.id]
-  })
-}))
-
-export const claudeCommandsRelations = relations(claudeCommands, ({ one }) => ({
-  project: one(projects, {
-    fields: [claudeCommands.projectId],
-    references: [projects.id]
-  })
-}))
-
-export const claudeHooksRelations = relations(claudeHooks, ({ one }) => ({
-  project: one(projects, {
-    fields: [claudeHooks.projectId],
-    references: [projects.id]
   })
 }))
 
@@ -1302,9 +1204,6 @@ export type InsertChatMessage = typeof chatMessages.$inferInsert
 export type InsertPrompt = typeof prompts.$inferInsert
 export type InsertQueue = typeof queues.$inferInsert
 export type InsertQueueItem = typeof queueItems.$inferInsert
-export type InsertClaudeAgent = typeof claudeAgents.$inferInsert
-export type InsertClaudeCommand = typeof claudeCommands.$inferInsert
-export type InsertClaudeHook = typeof claudeHooks.$inferInsert
 export type InsertProviderKey = typeof providerKeys.$inferInsert
 export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
@@ -1366,15 +1265,7 @@ export type Prompt = Omit<PromptInferred, 'tags'> & {
 
 export type Queue = typeof queues.$inferSelect
 export type QueueItem = typeof queueItems.$inferSelect
-export type ClaudeAgent = typeof claudeAgents.$inferSelect
 
-// Override ClaudeCommand type to fix JSON field types
-type ClaudeCommandInferred = typeof claudeCommands.$inferSelect
-export type ClaudeCommand = Omit<ClaudeCommandInferred, 'args'> & {
-  args: Record<string, any>
-}
-
-export type ClaudeHook = typeof claudeHooks.$inferSelect
 
 // Override ProviderKey type to fix JSON field types
 type ProviderKeyInferred = typeof providerKeys.$inferSelect
@@ -1433,16 +1324,6 @@ export interface ToolUseResult {
     content: string | Record<string, unknown>
   }>
 }
-
-export interface ClaudeContentBlock {
-  type: 'text' | 'tool_use'
-  text?: string
-  name?: string
-  input?: Record<string, unknown>
-  id?: string
-}
-
-// Override ClaudeSession type to fix JSON field types
 
 // Override AiSdkOptions type to fix JSON field types
 type AiSdkOptionsInferred = typeof aiSdkOptions.$inferSelect

@@ -499,6 +499,49 @@ export const taskRepository = extendRepository(baseTaskRepository, {
   },
 
   /**
+   * Toggle task completion status
+   */
+  async toggleCompletion(taskId: number): Promise<TicketTask> {
+    const task = await baseTaskRepository.getById(taskId)
+    if (!task) {
+      throw new Error(`Task ${taskId} not found`)
+    }
+
+    const updatedTask = await baseTaskRepository.update(taskId, { 
+      done: !task.done,
+      status: !task.done ? 'completed' : 'pending'
+    } as any)
+    return convertTaskFromDb(updatedTask)
+  },
+
+  /**
+   * Get ticket statistics for a specific ticket
+   */
+  async getTicketStats(ticketId: number) {
+    const [stats] = await db
+      .select({
+        totalTasks: count(),
+        completedTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 1 THEN 1 ELSE 0 END`),
+        pendingTasks: sum(sql`CASE WHEN ${ticketTasks.done} = 0 THEN 1 ELSE 0 END`),
+        totalEstimatedHours: sum(ticketTasks.estimatedHours),
+        totalActualHours: sum(ticketTasks.actualProcessingTime)
+      })
+      .from(ticketTasks)
+      .where(eq(ticketTasks.ticketId, ticketId))
+
+    return {
+      totalTasks: Number(stats?.totalTasks || 0),
+      completedTasks: Number(stats?.completedTasks || 0),
+      pendingTasks: Number(stats?.pendingTasks || 0),
+      totalEstimatedHours: Number(stats?.totalEstimatedHours || 0),
+      totalActualHours: Number(stats?.totalActualHours || 0),
+      completionPercentage: stats?.totalTasks 
+        ? Math.round((Number(stats.completedTasks || 0) / Number(stats.totalTasks)) * 100)
+        : 0
+    }
+  },
+
+  /**
    * Get available tasks (no incomplete dependencies)
    */
   async getAvailableTasks(ticketId: number): Promise<TicketTask[]> {

@@ -369,7 +369,7 @@ export class TestDataManager {
     deleteFunction: () => Promise<void>
   }> = []
 
-  constructor(private client: PromptlianoClient) {}
+  constructor(private client: PromptlianoClient) { }
 
   /**
    * Tracks an entity for cleanup
@@ -402,25 +402,6 @@ export class TestDataManager {
     })
   }
 
-  /**
-   * Tracks an agent for cleanup (Claude agents use string IDs)
-   */
-  trackAgent(agentId: string): void {
-    this.createdEntities.push({
-      type: 'agent',
-      id: parseInt(agentId, 10) || 0, // Convert string ID to number for tracking
-      deleteFunction: async () => {
-        try {
-          await this.client.agents.deleteAgent(agentId)
-        } catch (error) {
-          // Ignore 404 errors (already deleted)
-          if (!(error instanceof Error && error.message.includes('404'))) {
-            console.warn(`Failed to cleanup agent ${agentId}:`, error)
-          }
-        }
-      }
-    })
-  }
 
   /**
    * Creates and tracks a chat

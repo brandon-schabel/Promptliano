@@ -78,6 +78,7 @@ export class PromptlianoClient {
       this.typeSafe.createProjectsByIdRefresh(projectId, folder ? { folder } : undefined),
     getProjectSummary: (projectId: number) => this.typeSafe.getProjectsByIdSummary(projectId),
     getProjectStatistics: (projectId: number) => this.typeSafe.getProjectsByIdStatistics(projectId),
+    getMCPInstallationStatus: (projectId: number) => this.typeSafe.getProjectsByIdMcpInstallationStatus(projectId),
     // Queues with stats via Flow
     getQueuesWithStats: async (projectId: number) => {
       const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/flow/queues-with-stats`, {
@@ -114,7 +115,7 @@ export class PromptlianoClient {
         body: JSON.stringify(data)
       }).then((r) => r.json())
     },
-    getMCPInstallationStatus: (projectId: number) => this.typeSafe.getClaudeCodeMcpStatusById(projectId),
+
     // ActiveTab methods (factory endpoints)
     getActiveTab: async (projectId: number, clientId?: string) => {
       const params: Record<string, any> = { projectId }
@@ -256,10 +257,10 @@ export class PromptlianoClient {
     stashApply: (projectId: number, ref?: string) =>
       this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
     stashPop: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByIdGitStashPop(projectId, { ref }),
+      this.typeSafe.createProjectsByIdGitStashPop(projectId, ref ? { stashRef: ref } : {}),
     stashDrop: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByIdGitStashPop(projectId, { ref, drop: true }),
-    reset: (projectId: number, ref?: string, mode?: 'soft' | 'mixed' | 'hard') =>
+      this.typeSafe.deleteProjectsByIdGitStash(projectId, ref ? { stashRef: ref } : {}),
+    reset: (projectId: number, ref: string, mode?: 'soft' | 'mixed' | 'hard') =>
       this.typeSafe.createProjectsByIdGitReset(projectId, { ref, mode }),
     // Worktree operations
     worktrees: {
@@ -552,8 +553,8 @@ export class PromptlianoClient {
       return res.json()
     },
     // Complete queue item via Flow operations
-    completeQueueItem: (itemType: string, itemId: number, ticketId?: number) =>
-      this.typeSafeClient.createFlowProcessComplete({ itemType, itemId, ticketId })
+    completeQueueItem: (itemType: 'ticket' | 'task', itemId: number, ticketId?: number) =>
+      this.typeSafeClient.createFlowProcessComplete({ itemType, itemId })
   }
 
   // System methods

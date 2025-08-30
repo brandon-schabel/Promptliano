@@ -19,11 +19,8 @@ export default defineConfig({
   schema: ['./src/schema.ts', './src/schema/mcp-executions.ts'],
   out: './drizzle',
   dialect: 'sqlite',
-  // Use Node driver only for Drizzle Kit (Studio/Generate). Runtime uses bun:sqlite.
-  driver: 'better-sqlite3',
   dbCredentials: {
-    // Drizzle Kit expects a filesystem path for better-sqlite3
-    url: dbFile
+    url: dbUrl
   },
   verbose: true,
   strict: true

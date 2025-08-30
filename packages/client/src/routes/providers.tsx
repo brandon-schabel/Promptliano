@@ -320,7 +320,6 @@ function ProvidersPage() {
           provider: values.provider,
           keyName: values.name,
           secretRef: values.secretRef,
-          encryptedValue: values.secretRef, // Use secretRef as encrypted value for now
           isDefault: values.isDefault
         })
       }
@@ -626,9 +625,7 @@ function ProvidersPage() {
                         <FormControl>
                           <Input placeholder='OPENAI_API_KEY' {...field} />
                         </FormControl>
-                        <FormDescription>
-                          Name of the environment secret that contains the API key
-                        </FormDescription>
+                        <FormDescription>Name of the environment secret that contains the API key</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
