@@ -5,6 +5,7 @@ This document defines optimized patterns for artifact uploads across all workflo
 ## 🎯 Optimization Principles
 
 ### 1. **Conditional Upload Logic**
+
 Only upload artifacts when they're actually needed:
 
 ```yaml
@@ -19,11 +20,12 @@ Only upload artifacts when they're actually needed:
   with:
     artifact-name: test-logs
     artifact-path: logs/
-    upload-condition: on-failure  # Only upload when tests fail
+    upload-condition: on-failure # Only upload when tests fail
     retention-days: 3
 ```
 
 ### 2. **Size-Based Compression**
+
 Automatically compress large artifacts:
 
 ```yaml
@@ -32,22 +34,24 @@ Automatically compress large artifacts:
   with:
     artifact-name: build-output
     artifact-path: dist/
-    max-size-mb: 50  # Auto-compress if > 50MB
+    max-size-mb: 50 # Auto-compress if > 50MB
     compress: auto
 ```
 
 ### 3. **Context-Aware Retention**
+
 Different retention periods based on context:
 
 ```yaml
 # Long retention for main branch builds
 retention-days: ${{ github.ref == 'refs/heads/main' && '30' || '7' }}
 
-# Short retention for PR builds  
+# Short retention for PR builds
 retention-days: ${{ github.event_name == 'pull_request' && '3' || '14' }}
 ```
 
 ### 4. **Intelligent Naming**
+
 Include context in artifact names for better organization:
 
 ```yaml
@@ -56,12 +60,12 @@ artifact-name: ${{ matrix.package }}-${{ github.event_name }}-${{ github.run_num
 
 ## 📊 Current Optimization Results
 
-| Workflow | Before | After | Savings |
-|----------|--------|-------|---------|
-| API Integration Tests | 3 uploads, 21 days avg | 2 conditional uploads, 7 days avg | ~60% storage |
-| Monorepo CI | Always upload logs | Failure-only logs | ~80% storage |
-| Docker CI | 1-day binary retention | Conditional upload | ~50% storage |
-| Performance Benchmarks | 30-day retention | 14-day retention | ~53% storage |
+| Workflow               | Before                 | After                             | Savings      |
+| ---------------------- | ---------------------- | --------------------------------- | ------------ |
+| API Integration Tests  | 3 uploads, 21 days avg | 2 conditional uploads, 7 days avg | ~60% storage |
+| Monorepo CI            | Always upload logs     | Failure-only logs                 | ~80% storage |
+| Docker CI              | 1-day binary retention | Conditional upload                | ~50% storage |
+| Performance Benchmarks | 30-day retention       | 14-day retention                  | ~53% storage |
 
 ## 🔧 Standard Patterns
 
@@ -137,7 +141,7 @@ artifact-name: ${{ matrix.package }}-${{ github.event_name }}-${{ github.run_num
     artifact-name: docker-binaries-${{ github.run_id }}
     artifact-path: dist/
     upload-condition: ${{ needs.docker-build.result == 'success' }}
-    retention-days: 1  # Very short for intermediate artifacts
+    retention-days: 1 # Very short for intermediate artifacts
     max-size-mb: 200
     compress: true
 ```
@@ -153,8 +157,8 @@ artifact-name: ${{ matrix.package }}-${{ github.event_name }}-${{ github.run_num
     artifact-name: release-binaries-${{ github.sha }}
     artifact-path: dist/*.zip
     upload-condition: always
-    retention-days: 90  # Long retention for releases
-    compress: false  # Already compressed
+    retention-days: 90 # Long retention for releases
+    compress: false # Already compressed
     include-git-info: true
 ```
 
@@ -183,14 +187,14 @@ Before uploading artifacts, verify:
     path: results/
     retention-days: 30
 
-# ✅ New optimized pattern  
+# ✅ New optimized pattern
 - name: Upload artifacts
   uses: ./.github/actions/optimized-artifact-upload
   with:
     artifact-name: test-results-${{ github.run_number }}
     artifact-path: results/
-    upload-condition: on-failure  # Only when needed
-    retention-days: 7  # Shorter retention
+    upload-condition: on-failure # Only when needed
+    retention-days: 7 # Shorter retention
     max-size-mb: 50
     compress: auto
 ```
@@ -204,27 +208,30 @@ Before uploading artifacts, verify:
   uses: actions/upload-artifact@v4
 
 # ✅ New: Built-in condition handling
-- name: Upload logs  
+- name: Upload logs
   uses: ./.github/actions/optimized-artifact-upload
   with:
-    upload-condition: on-failure  # Handles the logic internally
+    upload-condition: on-failure # Handles the logic internally
 ```
 
 ## 📊 Storage Impact Analysis
 
 ### Before Optimization:
+
 - **Average artifacts per run**: 8-12
-- **Average retention**: 14-30 days  
+- **Average retention**: 14-30 days
 - **Compression ratio**: 0% (no compression)
 - **Conditional uploads**: 20% (mostly always upload)
 
 ### After Optimization:
+
 - **Average artifacts per run**: 4-6 (50% reduction)
 - **Average retention**: 7-14 days (50% reduction)
 - **Compression ratio**: 40-60% for applicable artifacts
 - **Conditional uploads**: 80% (upload only when needed)
 
 ### Estimated Storage Savings:
+
 - **Immediate**: ~60% reduction in storage usage
 - **Long-term**: ~70% reduction with smart retention
 - **Network**: ~40% reduction in upload time
@@ -233,6 +240,7 @@ Before uploading artifacts, verify:
 ## 🔄 Workflow-Specific Optimizations
 
 ### API Integration Tests
+
 ```yaml
 # Before: 3 artifacts, always uploaded, 21-day average retention
 # After: 2 conditional artifacts, 7-day retention
@@ -240,6 +248,7 @@ Before uploading artifacts, verify:
 ```
 
 ### Monorepo CI
+
 ```yaml
 # Before: Test logs always uploaded for all packages
 # After: Only upload logs on test failures
@@ -247,6 +256,7 @@ Before uploading artifacts, verify:
 ```
 
 ### Docker CI
+
 ```yaml
 # Before: Binaries uploaded for 1 day always
 # After: Binaries only uploaded when Docker builds succeed
@@ -254,6 +264,7 @@ Before uploading artifacts, verify:
 ```
 
 ### Performance Benchmarks
+
 ```yaml
 # Before: 30-day retention for all benchmark data
 # After: 14-day retention for PRs, 30-day for main branch
@@ -263,29 +274,33 @@ Before uploading artifacts, verify:
 ## 🚀 Advanced Optimizations
 
 ### 1. **Artifact Deduplication**
+
 ```yaml
 # Use content-based naming to avoid duplicate uploads
 artifact-name: build-${{ hashFiles('src/**/*') }}
 ```
 
 ### 2. **Progressive Retention**
+
 ```yaml
 # Shorter retention for frequent builds, longer for releases
-retention-days: ${{ 
+retention-days: ${{
   github.event_name == 'release' && '90' ||
   github.ref == 'refs/heads/main' && '30' ||
   github.event_name == 'pull_request' && '7' ||
-  '14' 
+  '14'
 }}
 ```
 
 ### 3. **Size-Based Decisions**
+
 ```yaml
 # Skip upload if artifact is too small (likely empty/error)
 upload-condition: ${{ hashFiles('dist/**/*') != '' }}
 ```
 
 ### 4. **Parallel Upload Optimization**
+
 ```yaml
 # Group related artifacts to reduce API calls
 artifact-path: |
@@ -299,7 +314,7 @@ artifact-path: |
 Track optimization effectiveness:
 
 1. **Storage Usage**: Monitor artifact storage in repository insights
-2. **Upload Success Rate**: Track failed uploads due to size/conditions  
+2. **Upload Success Rate**: Track failed uploads due to size/conditions
 3. **Download Frequency**: Identify which artifacts are actually used
 4. **Retention Effectiveness**: Monitor if shorter retention causes issues
 

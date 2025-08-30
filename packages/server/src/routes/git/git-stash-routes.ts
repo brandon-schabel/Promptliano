@@ -5,10 +5,7 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import {
-  gitStashSchema as GitStashSchema,
-  ProjectIdParamsSchema
-} from '@promptliano/schemas'
+import { gitStashSchema as GitStashSchema, IDParamsSchema } from '@promptliano/schemas'
 
 // Define missing schemas locally
 const CreateStashBodySchema = z.object({
@@ -26,25 +23,34 @@ const PopStashBodySchema = z.object({
 const DropStashBodySchema = z.object({
   stashRef: z.string().optional().default('stash@{0}')
 })
-import * as gitService from '@promptliano/services'
-import { createStandardResponses, createStandardResponsesWithStatus, createRouteHandler, successResponse, operationSuccessResponse } from '../../utils/route-helpers'
-import type { Context } from 'hono'
+import { stashList, stash, clearGitStatusCache, stashApply, stashPop, stashDrop } from '@promptliano/services'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  createRouteHandler,
+  successResponse,
+  operationSuccessResponse
+} from '../../utils/route-helpers'
 
 // Response schemas
-const StashListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(GitStashSchema)
-}).openapi('StashListResponse')
+const StashListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(GitStashSchema)
+  })
+  .openapi('StashListResponse')
+
+// Use canonical ProjectIdParamsSchema with {id}
 
 // Get stash list
 const getStashListRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   tags: ['Git', 'Stash'],
   summary: 'List all stashes',
   description: 'Retrieves the list of all stashed changes',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(StashListResponseSchema)
 })
@@ -52,33 +58,29 @@ const getStashListRoute = createRoute({
 // Create stash
 const createStashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   tags: ['Git', 'Stash'],
   summary: 'Create a new stash',
   description: 'Stashes the current working directory changes',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: CreateStashBodySchema } },
       required: false
     }
   },
-  responses: createStandardResponsesWithStatus(
-    OperationSuccessResponseSchema,
-    201,
-    'Stash created successfully'
-  )
+  responses: createStandardResponsesWithStatus(OperationSuccessResponseSchema, 201, 'Stash created successfully')
 })
 
 // Apply stash
 const applyStashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash/apply',
+  path: '/api/projects/{id}/git/stash/apply',
   tags: ['Git', 'Stash'],
   summary: 'Apply a stash',
   description: 'Applies the specified stash without removing it from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: ApplyStashBodySchema } },
       required: false
@@ -92,12 +94,12 @@ const applyStashRoute = createRoute({
 // Pop stash
 const popStashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash/pop',
+  path: '/api/projects/{id}/git/stash/pop',
   tags: ['Git', 'Stash'],
   summary: 'Pop a stash',
   description: 'Applies the specified stash and removes it from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: PopStashBodySchema } },
       required: false
@@ -111,12 +113,12 @@ const popStashRoute = createRoute({
 // Drop stash
 const dropStashRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   tags: ['Git', 'Stash'],
   summary: 'Drop a stash',
   description: 'Removes the specified stash from the stash list',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: DropStashBodySchema } },
       required: false
@@ -129,40 +131,40 @@ const dropStashRoute = createRoute({
 
 // Export routes with simplified handlers
 export const gitStashRoutes = new OpenAPIHono()
-  .openapi(getStashListRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
-    const stashes = await gitService.stashList(projectId)
+  .openapi(getStashListRoute, async (c): Promise<any> => {
+    const { id: projectId } = c.req.valid('param')
+    const stashes = await stashList(projectId)
     return c.json(successResponse(stashes))
-  }) as any)
-  .openapi(createStashRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+  })
+  .openapi(createStashRoute, async (c): Promise<any> => {
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
-    await gitService.stash(projectId, body?.message)
-    gitService.clearGitStatusCache(projectId)
-    return c.json(operationSuccessResponse('Stash created successfully'), 201)
-  }) as any)
-  .openapi(applyStashRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+    await stash(projectId, body?.message)
+    clearGitStatusCache(projectId)
+    return c.json(operationSuccessResponse('Stash created successfully'))
+  })
+  .openapi(applyStashRoute, async (c): Promise<any> => {
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     const stashRef = body?.stashRef || 'stash@{0}'
-    await gitService.stashApply(projectId, stashRef)
-    gitService.clearGitStatusCache(projectId)
+    await stashApply(projectId, stashRef)
+    clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Stash applied successfully'))
-  }) as any)
-  .openapi(popStashRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+  })
+  .openapi(popStashRoute, async (c): Promise<any> => {
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     const stashRef = body?.stashRef || 'stash@{0}'
-    await gitService.stashPop(projectId, stashRef)
-    gitService.clearGitStatusCache(projectId)
+    await stashPop(projectId, stashRef)
+    clearGitStatusCache(projectId)
     return c.json(operationSuccessResponse('Stash popped successfully'))
-  }) as any)
-  .openapi(dropStashRoute, (async (c: any): Promise<any> => {
-    const { projectId } = c.req.valid('param')
+  })
+  .openapi(dropStashRoute, async (c): Promise<any> => {
+    const { id: projectId } = c.req.valid('param')
     const body = c.req.valid('json')
     const stashRef = body?.stashRef || 'stash@{0}'
-    await gitService.stashDrop(projectId, stashRef)
+    await stashDrop(projectId, stashRef)
     return c.json(operationSuccessResponse('Stash dropped successfully'))
-  }) as any)
+  })
 
 export type GitStashRouteTypes = typeof gitStashRoutes

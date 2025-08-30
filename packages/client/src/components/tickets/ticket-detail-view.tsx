@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TicketWithTasks, TicketTask } from '@promptliano/schemas'
+import type { TicketWithTasksNested, TicketTask } from '@/hooks/generated/types'
 import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@promptliano/ui'
@@ -43,35 +43,40 @@ import {
   MessageSquare
 } from 'lucide-react'
 import {
-  useUpdateTask,
-  useCompleteTicket,
-  useGetTicket,
   useUpdateTicket,
-  useGetTasks,
   useDeleteTicket,
+  useCompleteTicket,
+  useTicketTasks,
+  useCreateTask,
+  useUpdateTask,
   useDeleteTask,
-  useAutoGenerateTasks
-} from '@/hooks/api/use-tickets-api'
-import { useDequeueTicket, useDequeueTask, useMoveItem, useGetFlowData } from '@/hooks/api/use-flow-api'
-import { useInvalidateTickets } from '@/hooks/api/use-tickets-api'
+  useAutoGenerateTasks,
+  useDequeueTicket,
+  useDequeueTask,
+  useMoveItem,
+  useGetFlowData,
+  useInvalidateTicketsEnhanced,
+  useGetTicket,
+  useGetTasks,
+  useGetQueue,
+  useGetProject
+} from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
-import { useGetQueue } from '@/hooks/api/use-queue-api'
-import { useGetProject } from '@/hooks/api/use-projects-api'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { toast } from 'sonner'
 import { TicketDialog } from './ticket-dialog'
 import { AddToQueueDialog } from './add-to-queue-dialog'
 import { AddTaskToQueueDialog } from './add-task-to-queue-dialog'
-import { TaskEditDialog } from './task-edit-dialog'
-import { AgentSelectorPopover } from './agent-selector-popover'
-import { PromptSelectorPopover } from './prompt-selector-popover'
-import { AgentDisplay } from './agent-display'
-import { FileDisplayItem } from './file-display-item'
+// import { TaskEditDialog } from './task-edit-dialog'
+// import { AgentSelectorPopover } from './agent-selector-popover'
+// import { PromptSelectorPopover } from './prompt-selector-popover'
+// import { AgentDisplay } from './agent-display'
+// import { FileDisplayItem } from './file-display-item'
 import { formatDistanceToNow } from 'date-fns'
 import { useNavigate } from '@tanstack/react-router'
 
 interface TicketDetailViewProps {
-  ticket: TicketWithTasks | null
+  ticket: TicketWithTasksNested | null
   projectId: number
   onTicketUpdate?: () => void
 }
@@ -113,7 +118,8 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   const { data: liveTicket, refetch: refetchTicket } = useGetTicket(ticket ? ticket.ticket.id : 0)
   const { data: liveTasks, refetch: refetchTasks } = useGetTasks(ticket ? ticket.ticket.id : 0)
   const t = (liveTicket || ticket?.ticket) as NonNullable<typeof ticket>['ticket']
-  const { invalidateTicketData, invalidateProjectTickets, invalidateTicketTasks } = useInvalidateTickets()
+  const invalidation = useInvalidateTicketsEnhanced()
+  const { invalidateTicketData, invalidateProjectTickets, invalidateTicketTasks } = invalidation
 
   const bumpTicketPosition = async (delta: -1 | 1) => {
     if (!client || !ticket?.ticket.queueId || !flowData) return
@@ -135,7 +141,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
     const temp = merged[index]
     merged[index] = merged[target]
     merged[target] = temp
-    const res = await client.flow.reorderQueueItems({
+    const res = await client.createFlowReorder({
       queueId: ticket.ticket.queueId,
       items: merged.map((it) => ({ itemType: it.itemType, itemId: it.itemId, ticketId: (it as any).ticketId }))
     })
@@ -165,7 +171,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const tasks = liveTasks || ticket.tasks
-  const completedTasks = tasks.filter((task) => task.done).length
+  const completedTasks = tasks.filter((task: any) => task.done).length
   const totalTasks = tasks.length
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
@@ -182,7 +188,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleDeleteTask = async (taskId: number) => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
       await deleteTask.mutateAsync({ ticketId: ticket.ticket.id, taskId })
@@ -209,7 +215,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const generateMarkdown = () => {
-    if (!ticket) return ''
+    if (!ticket?.ticket?.id) return ''
 
     let markdown = `# ${ticket.ticket.title}\n\n`
 
@@ -243,10 +249,12 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleCompleteTicket = async () => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
+      if (ticket?.ticket?.id) {
       await completeTicket.mutateAsync(ticket.ticket.id)
+    }
       toast.success('Ticket completed successfully')
       setIsCompleteDialogOpen(false)
       onTicketUpdate?.()
@@ -257,7 +265,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
   const handleReopenTicket = async () => {
     try {
-      await updateTicket.mutateAsync({ ticketId: ticket!.ticket.id, data: { status: 'open' } })
+      await updateTicket.mutateAsync({ id: ticket?.ticket?.id, data: { status: 'open' } })
       toast.success('Ticket reopened')
       onTicketUpdate?.()
     } catch (error) {
@@ -266,13 +274,12 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   }
 
   const handleDeleteTicket = async () => {
-    if (!ticket) return
+    if (!ticket?.ticket?.id) return
 
     try {
-      await deleteTicket.mutateAsync({
-        ticketId: ticket.ticket.id,
-        projectId: ticket.ticket.projectId
-      })
+      if (ticket?.ticket?.id) {
+      await deleteTicket.mutateAsync(ticket.ticket.id)
+    }
       toast.success('Ticket deleted successfully')
       setIsDeleteDialogOpen(false)
       onTicketUpdate?.()
@@ -298,7 +305,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         <div className='flex items-start justify-between'>
           <div className='space-y-1'>
             <h1 className='text-2xl font-bold'>{ticket.ticket.title}</h1>
-            <p className='text-muted-foreground'>Created {formatDistanceToNow(new Date(ticket.ticket.created))} ago</p>
+            <p className='text-muted-foreground'>
+              Created {formatDistanceToNow(new Date(ticket.ticket.createdAt))} ago
+            </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -586,7 +595,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
               </div>
             ) : (
               <div className='space-y-3'>
-                {tasks.map((task) => (
+                {tasks.map((task: any) => (
                   <div
                     key={task.id}
                     className={cn('group flex items-start gap-3 p-3 rounded-lg border', task.done && 'bg-muted/50')}
@@ -660,7 +669,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                               <div className='space-y-2'>
                                 <div className='font-medium text-sm'>Tags</div>
                                 <div className='flex flex-wrap gap-1'>
-                                  {task.tags?.map((tag, index) => (
+                                  {task.tags?.map((tag: string, index: number) => (
                                     <Badge key={index} variant='secondary' className='text-xs'>
                                       {tag}
                                     </Badge>
@@ -683,13 +692,10 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                                 <div className='font-medium text-sm'>Associated Files</div>
                                 <ScrollArea className='h-[200px]'>
                                   <div className='space-y-1'>
-                                    {task.suggestedFileIds?.map((fileId, index) => (
-                                      <FileDisplayItem
-                                        key={index}
-                                        fileId={fileId}
-                                        projectId={projectId}
-                                        projectRoot={projectData?.path}
-                                      />
+                                    {task.suggestedFileIds?.map((fileId: string, index: number) => (
+                                      <div key={index} className='text-sm'>
+                                        File ID: {fileId}
+                                      </div>
                                     ))}
                                   </div>
                                 </ScrollArea>
@@ -697,7 +703,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                             </PopoverContent>
                           </Popover>
                         )}
-                        <AgentSelectorPopover
+                        {/* <AgentSelectorPopover
                           currentAgentId={task.agentId}
                           onAgentSelect={async (agentId) => {
                             try {
@@ -718,8 +724,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                           projectId={projectId}
                           triggerClassName='text-xs'
                           placeholder='Select agent'
-                        />
-                        <PromptSelectorPopover
+                        /> */}
+                        <span className='text-xs text-muted-foreground'>Agent: {task.agentId || 'None'}</span>
+                        {/* <PromptSelectorPopover
                           currentPromptIds={task.suggestedPromptIds || []}
                           onPromptsSelect={async (promptIds) => {
                             try {
@@ -744,7 +751,10 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                           projectId={projectId}
                           triggerClassName='text-xs'
                           placeholder='Select prompts'
-                        />
+                        /> */}
+                        <span className='text-xs text-muted-foreground'>
+                          Prompts: {task.suggestedPromptIds?.length || 0}
+                        </span>
                         {task.dependencies && task.dependencies.length > 0 && (
                           <span className='flex items-center gap-1'>
                             <Link2 className='h-3 w-3' />
@@ -794,21 +804,21 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                 <dt className='font-medium text-muted-foreground'>Created</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <CalendarDays className='h-3 w-3' />
-                  {new Date(ticket.ticket.created).toLocaleString()}
+                  {new Date(ticket.ticket.createdAt).toLocaleString()}
                 </dd>
               </div>
               <div>
                 <dt className='font-medium text-muted-foreground'>Last Updated</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <CalendarDays className='h-3 w-3' />
-                  {new Date(ticket.ticket.updated).toLocaleString()}
+                  {new Date(ticket.ticket.updatedAt).toLocaleString()}
                 </dd>
               </div>
               <div>
                 <dt className='font-medium text-muted-foreground'>Associated Files</dt>
                 <dd className='flex items-center gap-1 mt-1'>
                   <FileText className='h-3 w-3' />
-                  {ticket.ticket.suggestedFileIds?.length || 0} files
+                  {Array.isArray(ticket.ticket.suggestedFileIds) ? ticket.ticket.suggestedFileIds.length : 0} files
                 </dd>
               </div>
               <div>
@@ -905,66 +915,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className='py-4'>
-            <AgentSelectorPopover
-              currentAgentId={ticket?.ticket.suggestedAgentIds?.[0]}
-              onAgentSelect={async (agentId) => {
-                try {
-                  // Update ticket with selected agent
-                  await updateTicket.mutateAsync({
-                    ticketId: ticket!.ticket.id,
-                    data: {
-                      suggestedAgentIds: agentId ? [agentId] : []
-                    }
-                  })
-
-                  // Optionally update all tasks
-                  const shouldUpdateTasks = await new Promise<boolean>((resolve) => {
-                    if (tasks.length === 0 || !agentId) {
-                      resolve(false)
-                      return
-                    }
-
-                    // Simple confirmation - in production you might want a proper dialog
-                    const confirmed = window.confirm(`Apply this agent to all ${tasks.length} existing tasks?`)
-                    resolve(confirmed)
-                  })
-
-                  if (shouldUpdateTasks && agentId) {
-                    // Update all tasks with the selected agent
-                    await Promise.all(
-                      tasks.map((task) =>
-                        updateTask.mutateAsync({
-                          ticketId: ticket!.ticket.id,
-                          taskId: task.id,
-                          data: { agentId }
-                        })
-                      )
-                    )
-                    toast.success(`Agent applied to ticket and all ${tasks.length} tasks`)
-                  } else {
-                    toast.success(agentId ? 'Default agent set for ticket' : 'Default agent removed')
-                  }
-
-                  setIsAgentDialogOpen(false)
-                  onTicketUpdate?.()
-                } catch (error) {
-                  toast.error('Failed to update ticket agent')
-                }
-              }}
-              projectId={projectId}
-              triggerClassName='w-full justify-between'
-              placeholder='Select default agent...'
-            />
-            {ticket?.ticket.suggestedAgentIds?.[0] && (
-              <div className='mt-3 text-sm text-muted-foreground'>
-                Current default:{' '}
-                <AgentDisplay
-                  agentId={ticket.ticket.suggestedAgentIds[0]}
-                  projectId={projectId}
-                  className='inline-flex ml-1'
-                />
-              </div>
-            )}
+            <div className='p-4 border rounded text-sm text-muted-foreground'>
+              Agent selection component temporarily disabled
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
@@ -984,7 +937,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         ticketQueueName={queueData?.name}
       />
 
-      <TaskEditDialog
+      {/* <TaskEditDialog
         isOpen={isTaskEditDialogOpen}
         onClose={() => {
           setIsTaskEditDialogOpen(false)
@@ -994,7 +947,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
         task={editingTask}
         ticketId={ticket?.ticket.id || 0}
         projectId={projectId}
-      />
+      /> */}
 
       <AlertDialog open={!!deletingTaskId} onOpenChange={(open) => !open && setDeletingTaskId(null)}>
         <AlertDialogContent>
@@ -1002,9 +955,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this task?
-              {deletingTaskId && tasks.find((t) => t.id === deletingTaskId) && (
+              {deletingTaskId && tasks.find((t: any) => t.id === deletingTaskId) && (
                 <div className='mt-3 p-3 rounded-md bg-muted'>
-                  <p className='font-medium text-sm'>{tasks.find((t) => t.id === deletingTaskId)?.content}</p>
+                  <p className='font-medium text-sm'>{tasks.find((t: any) => t.id === deletingTaskId)?.content}</p>
                 </div>
               )}
               <div className='mt-3 font-semibold'>This action cannot be undone.</div>

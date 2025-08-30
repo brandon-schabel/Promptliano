@@ -1,11 +1,19 @@
+import type { File } from '@promptliano/database'
 import {
-  type ProjectFile,
-  type FileSummaryStatus,
   type SummaryStatus,
   type SummaryProgress,
   type FileSummarizationStats,
   SummaryStatusEnum
 } from '@promptliano/schemas'
+
+// Local interface that matches the File type from database (uses string IDs)
+interface FileSummaryStatus {
+  fileId: string
+  status: SummaryStatus
+  lastAttempt?: number
+  errorMessage?: string
+  retryCount: number
+}
 import { ApiError } from '@promptliano/shared'
 import { getProjectFiles } from './project-service'
 import { logger } from './utils/logger'
@@ -20,12 +28,12 @@ export interface TrackerOptions {
 export class FileSummarizationTracker {
   private readonly DEFAULT_STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
   private progressMap = new Map<string, SummaryProgress>()
-  private fileStatusMap = new Map<string, Map<number, FileSummaryStatus>>()
+  private fileStatusMap = new Map<string, Map<string, FileSummaryStatus>>()
 
   /**
    * Get all files that haven't been summarized yet
    */
-  async getUnsummarizedFiles(projectId: number, options: TrackerOptions = {}): Promise<ProjectFile[]> {
+  async getUnsummarizedFiles(projectId: number, options: TrackerOptions = {}): Promise<File[]> {
     const { includeSkipped = false, includeEmpty = false } = options
 
     try {
@@ -36,7 +44,7 @@ export class FileSummarizationTracker {
 
       return allFiles.filter((file) => {
         // Check temporary status
-        const status = statusMap.get(file.id)
+        const status = statusMap.get(String(file.id))
         if (status) {
           if (status.status === 'completed') return false
           if (status.status === 'skipped' && !includeSkipped) return false
@@ -65,7 +73,7 @@ export class FileSummarizationTracker {
   /**
    * Get files with stale summaries that need updating
    */
-  async getStaleFiles(projectId: number, maxAgeMs?: number): Promise<ProjectFile[]> {
+  async getStaleFiles(projectId: number, maxAgeMs?: number): Promise<File[]> {
     const threshold = maxAgeMs || this.DEFAULT_STALE_THRESHOLD_MS
     const cutoffTime = Date.now() - threshold
 
@@ -81,7 +89,7 @@ export class FileSummarizationTracker {
         if (file.summaryLastUpdated < cutoffTime) return true
 
         // Check if file was modified after summary
-        if (file.updated && file.updated > file.summaryLastUpdated) return true
+        if (file.updatedAt && file.updatedAt > file.summaryLastUpdated) return true
 
         return false
       })
@@ -100,7 +108,7 @@ export class FileSummarizationTracker {
    */
   updateSummarizationStatus(
     projectId: number,
-    fileStatuses: Array<{ fileId: number; status: SummaryStatus; error?: string }>
+    fileStatuses: Array<{ fileId: string; status: SummaryStatus; error?: string }>
   ): void {
     const key = `project-${projectId}`
     let statusMap = this.fileStatusMap.get(key)
@@ -265,7 +273,7 @@ export class FileSummarizationTracker {
       }
 
       for (const file of allFiles) {
-        const status = statusMap.get(file.id)
+        const status = statusMap.get(String(file.id))
 
         if (file.summary && file.summaryLastUpdated) {
           summarizedCount++
@@ -274,7 +282,10 @@ export class FileSummarizationTracker {
           totalTokens += Math.ceil(file.summary.length / 4)
 
           // Check if stale
-          if (file.summaryLastUpdated < staleThreshold || (file.updated && file.updated > file.summaryLastUpdated)) {
+          if (
+            file.summaryLastUpdated < staleThreshold ||
+            (file.updatedAt && file.updatedAt > file.summaryLastUpdated)
+          ) {
             staleCount++
           }
 
@@ -365,7 +376,7 @@ export class FileSummarizationTracker {
     projectId: number,
     topN: number = 20,
     options: TrackerOptions = {}
-  ): Promise<Array<{ file: ProjectFile; score: number }>> {
+  ): Promise<Array<{ file: File; score: number }>> {
     try {
       // Get all unsummarized files
       const unsummarizedFiles = await this.getUnsummarizedFiles(projectId, options)

@@ -15,7 +15,7 @@ export abstract class DomainError extends Error {
     this.code = code
     this.statusCode = statusCode
     this.details = details
-    
+
     // Capture stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor)
@@ -55,9 +55,7 @@ export class ValidationError extends DomainError {
  */
 export class NotFoundError extends DomainError {
   constructor(resource: string, identifier?: string | number) {
-    const message = identifier 
-      ? `${resource} with ID '${identifier}' not found`
-      : `${resource} not found`
+    const message = identifier ? `${resource} with ID '${identifier}' not found` : `${resource} not found`
     super(message, 'NOT_FOUND', 404, { resource, identifier })
   }
 }
@@ -133,7 +131,7 @@ export class ErrorHandler {
       if (error.message.includes('not found')) {
         return new NotFoundError('Resource', undefined)
       }
-      
+
       if (error.message.includes('already exists')) {
         return new ConflictError(error.message)
       }

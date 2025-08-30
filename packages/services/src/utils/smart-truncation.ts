@@ -229,7 +229,7 @@ export class SmartTruncation {
         if (sections.length > 0) break
       }
     }
-    
+
     // Handle case where imports go to the end of the file
     if (inImportBlock && blockLines.length > 0) {
       sections.push({
@@ -285,9 +285,9 @@ export class SmartTruncation {
         const isClass = line.includes('class')
         const isInterface = line.includes('interface')
         const isType = line.includes('type')
-        
+
         let endLine = i
-        
+
         if (isFunction || isClass) {
           // For functions and classes, find the closing brace
           endLine = this.findBlockEnd(lines, i)

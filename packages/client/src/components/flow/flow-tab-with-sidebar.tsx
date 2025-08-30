@@ -10,9 +10,8 @@ import { SimpleTicketList } from './simple-ticket-list'
 import { TicketDetailView } from '@/components/tickets/ticket-detail-view'
 import { KanbanBoard } from '@/components/queues/kanban-board'
 import { TicketDialog } from '@/components/tickets/ticket-dialog'
-import { useGetTicketsWithTasks } from '@/hooks/api/use-tickets-api'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
-import { TicketWithTasks } from '@promptliano/schemas'
+import { useTickets, useQueues, useTicketTasks } from '@/hooks/generated'
+import type { TicketWithTasks, TicketTask } from '@promptliano/database'
 import { Button } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@promptliano/ui'
 import { Plus, Filter } from 'lucide-react'
@@ -54,15 +53,36 @@ export function FlowTabWithSidebar({
   const isCompact = useMediaQuery('(max-width: 768px)')
 
   // Fetch tickets for the tickets view
-  const { data: tickets, isLoading, refetch, error } = useGetTicketsWithTasks(projectId)
+  const { data: rawTickets, isLoading, refetch, error } = (useTickets as any)({ projectId })
 
   // Fetch available queues
-  const { data: queuesData } = useGetQueuesWithStats(projectId)
+  const { data: queuesData } = (useQueues as any)({ projectId })
+
+  // Transform tickets to include empty tasks array for now
+  // TODO: Use proper ticket with tasks hook when available
+  const tickets: TicketWithTasks[] = React.useMemo(() => {
+    if (!rawTickets) return []
+    return rawTickets.map(
+      (ticket: any) =>
+        ({
+          ...ticket,
+          tasks: [] // For now, we'll use empty tasks array
+        }) as TicketWithTasks
+    )
+  }, [rawTickets])
 
   // Derive selected ticket from selectedTicketId and tickets data
-  const selectedTicket = React.useMemo(() => {
+  const selectedTicket: import('@/hooks/generated/types').TicketWithTasksNested | null = React.useMemo(() => {
     if (!selectedTicketId || !tickets) return null
-    return tickets.find((t) => t.ticket.id === selectedTicketId) || null
+    const ticket = tickets.find((t) => t.id === selectedTicketId)
+    if (!ticket) return null
+
+    // Convert the flat TicketWithTasks to the nested structure expected by TicketDetailView
+    const { tasks, ...ticketData } = ticket
+    return {
+      ticket: ticketData as any, // Cast to the base Ticket type
+      tasks: tasks || []
+    }
   }, [selectedTicketId, tickets])
 
   // Filter tickets based on status and queue
@@ -74,16 +94,16 @@ export function FlowTabWithSidebar({
     // Apply status filter
     switch (ticketStatusFilter) {
       case 'non_closed':
-        filtered = filtered.filter((t) => t.ticket.status !== 'closed')
+        filtered = filtered.filter((t) => t.status !== 'closed')
         break
       case 'open':
-        filtered = filtered.filter((t) => t.ticket.status === 'open')
+        filtered = filtered.filter((t) => t.status === 'open')
         break
       case 'in_progress':
-        filtered = filtered.filter((t) => t.ticket.status === 'in_progress')
+        filtered = filtered.filter((t) => t.status === 'in_progress')
         break
       case 'closed':
-        filtered = filtered.filter((t) => t.ticket.status === 'closed')
+        filtered = filtered.filter((t) => t.status === 'closed')
         break
       case 'all':
       default:
@@ -95,10 +115,10 @@ export function FlowTabWithSidebar({
     if (ticketQueueFilter === 'all') {
       // No queue filtering
     } else if (ticketQueueFilter === 'unqueued') {
-      filtered = filtered.filter((t) => t.ticket.queueId == null)
+      filtered = filtered.filter((t) => t.queueId == null)
     } else {
       // It's a specific queue ID
-      filtered = filtered.filter((t) => t.ticket.queueId?.toString() === ticketQueueFilter)
+      filtered = filtered.filter((t) => t.queueId?.toString() === ticketQueueFilter)
     }
 
     return filtered
@@ -106,7 +126,9 @@ export function FlowTabWithSidebar({
 
   // Handle ticket selection
   const handleSelectTicket = (ticket: TicketWithTasks) => {
-    onTicketSelect(ticket.ticket.id)
+    // Handle both flat and nested ticket structures
+    const ticketId = (ticket as any)?.ticket?.id || (ticket as any)?.id
+    onTicketSelect(ticketId)
   }
 
   const renderContent = () => {
@@ -135,7 +157,12 @@ export function FlowTabWithSidebar({
                     </Button>
                   </div>
                   <div className='flex items-center gap-2'>
-                    <Select value={ticketStatusFilter} onValueChange={(value) => setTicketStatusFilter(value as any)}>
+                    <Select
+                      value={ticketStatusFilter}
+                      onValueChange={(value: 'all' | 'open' | 'in_progress' | 'closed' | 'non_closed') =>
+                        setTicketStatusFilter(value)
+                      }
+                    >
                       <SelectTrigger className='flex-1 h-8'>
                         <Filter className='h-3 w-3 mr-1' />
                         <SelectValue placeholder='Status' />
@@ -159,11 +186,13 @@ export function FlowTabWithSidebar({
                         {queuesData && queuesData.length > 0 && (
                           <>
                             <SelectSeparator />
-                            {queuesData.map((queueWithStats) => (
-                              <SelectItem key={queueWithStats.queue.id} value={queueWithStats.queue.id.toString()}>
-                                {queueWithStats.queue.name}
-                              </SelectItem>
-                            ))}
+                            {queuesData
+                              .filter((queue: any) => queue && queue.id)
+                              .map((queue: any) => (
+                                <SelectItem key={queue.id} value={queue.id.toString()}>
+                                  {queue.name || 'Unnamed Queue'}
+                                </SelectItem>
+                              ))}
                           </>
                         )}
                       </SelectContent>
@@ -182,7 +211,7 @@ export function FlowTabWithSidebar({
                   ) : (
                     <SimpleTicketList
                       tickets={filteredTickets}
-                      selectedTicket={selectedTicket}
+                      selectedTicket={selectedTicket as any}
                       onSelectTicket={handleSelectTicket}
                       loading={isLoading}
                       projectId={projectId}

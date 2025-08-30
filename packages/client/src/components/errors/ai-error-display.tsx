@@ -28,9 +28,9 @@ export interface AIErrorDisplayProps {
 const errorConfig = {
   MISSING_API_KEY: {
     icon: Key,
-    title: 'API Key Missing',
+    title: 'Secret Missing',
     variant: 'warning' as const,
-    actionText: 'Add API Key'
+    actionText: 'Add Secret Reference'
   },
   RATE_LIMIT: {
     icon: Clock,
@@ -72,7 +72,7 @@ const errorConfig = {
 
 export function AIErrorDisplay({ error, onRetry, onDismiss, className }: AIErrorDisplayProps) {
   const [showDetails, setShowDetails] = useState(false)
-  const config = errorConfig[error.type]
+  const config = errorConfig[(error?.type as keyof typeof errorConfig) || 'UNKNOWN'] || errorConfig.UNKNOWN
   const Icon = config.icon
 
   const bgColor = {

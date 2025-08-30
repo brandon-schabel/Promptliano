@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { formatShortcut } from '@/lib/shortcuts'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useOptimizeUserInput } from '@/hooks/api/use-projects-api'
+// import { useOptimizeUserInput } from '@/hooks/api-hooks' // TODO: API method doesn't exist
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 
 type ExpandableTextareaProps = {
@@ -34,26 +34,28 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
 
     const [promptimizeDialogOpen, setPromptimizeDialogOpen] = useState(false)
     const [optimizedPrompt, setOptimizedPrompt] = useState('')
-    const optimizeUserInput = useOptimizeUserInput()
+    // const optimizeUserInput = useOptimizeUserInput() // TODO: API method doesn't exist
 
     const handleOptimizeUserInput = () => {
       if (!expandedValue.trim()) {
         toast.error('Please enter some text to optimize')
         return
       }
-      optimizeUserInput.mutate(
-        { projectId: projectId ?? -1, data: { userContext: expandedValue } },
-        {
-          onSuccess: (resp) => {
-            if (resp.optimizedPrompt) {
-              setOptimizedPrompt(resp.optimizedPrompt)
-              setPromptimizeDialogOpen(true)
-            } else {
-              toast.error('Optimization failed or no prompt returned')
-            }
-          }
-        }
-      )
+      // TODO: optimizeUserInput hook doesn't exist
+      // optimizeUserInput.mutate(
+      //   { projectId: projectId ?? -1, userContext: expandedValue },
+      //   {
+      //     onSuccess: (resp: any) => {
+      //       if (resp?.optimizedPrompt) {
+      //         setOptimizedPrompt(resp.optimizedPrompt)
+      //         setPromptimizeDialogOpen(true)
+      //       } else {
+      //         toast.error('Optimization failed or no prompt returned')
+      //       }
+      //     }
+      //   }
+      // )
+      toast.error('Optimization feature is temporarily disabled')
     }
 
     const handleCopyContent = async () => {
@@ -120,9 +122,9 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
                 <Copy className='mr-2 h-4 w-4' />
                 <span>Copy Content</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleOptimizeUserInput} disabled={optimizeUserInput.isPending}>
+              <DropdownMenuItem onClick={handleOptimizeUserInput} disabled={true}>
                 <Wand2 className='mr-2 h-4 w-4' />
-                <span>{optimizeUserInput.isPending ? 'Optimizing...' : 'Promptimize'}</span>
+                <span>{'Promptimize (Disabled)'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -174,9 +176,9 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
                       <Copy className='mr-2 h-4 w-4' />
                       <span>Copy Content</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleOptimizeUserInput} disabled={optimizeUserInput.isPending}>
+                    <DropdownMenuItem onClick={handleOptimizeUserInput} disabled={true}>
                       <Wand2 className='mr-2 h-4 w-4' />
-                      <span>{optimizeUserInput.isPending ? 'Optimizing...' : 'Promptimize'}</span>
+                      <span>{'Promptimize (Disabled)'}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

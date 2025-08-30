@@ -146,14 +146,14 @@ export const MODEL_PRESETS = {
   },
   [ConfigLevels.HIGH]: {
     provider: 'anthropic' as const,
-    model: 'claude-3-sonnet-20240229',
+    ',
     temperature: 0.7,
     maxTokens: 8192,
     topP: 1
   },
   [ConfigLevels.ULTRA]: {
     provider: 'anthropic' as const,
-    model: 'claude-3-opus-20240229',
+    model: 'claude-4.1-opus',
     temperature: 0.7,
     maxTokens: 16384,
     topP: 1

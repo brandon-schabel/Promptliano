@@ -7,7 +7,7 @@ export { TanStackForm, useTanStackFormContext, useTanStackFormState } from './ta
 export type { TanStackFormProps, FormState } from './tanstack-form'
 
 export { TanStackField } from './tanstack-field'
-export type { 
+export type {
   FieldProps,
   FieldType,
   BaseFieldProps,
@@ -24,7 +24,7 @@ export type {
 } from './tanstack-field'
 
 // Factory Components
-export { 
+export {
   TanStackFormFactory,
   TanStackDynamicArrayField,
   TanStackMultiStepForm,

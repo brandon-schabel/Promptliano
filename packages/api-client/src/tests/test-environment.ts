@@ -80,7 +80,7 @@ export function detectEnvironment(): { isCI: boolean; isLocal: boolean } {
 export function getDefaultTestConfig(): TestEnvironmentConfig {
   const enhancedConfig = getEnhancedTestConfig()
   const { isCI, isLocal } = detectEnvironment()
-  
+
   // Convert enhanced config to test environment config
   const config: TestEnvironmentConfig = {
     useIsolatedServer: enhancedConfig.server.useIsolated,
@@ -112,7 +112,7 @@ export function getDefaultTestConfig(): TestEnvironmentConfig {
       maxSamples: isCI ? 100 : 1000 // Reduced samples in CI
     }
   }
-  
+
   return config
 }
 
@@ -123,7 +123,7 @@ export async function createTestEnvironment(userConfig?: TestEnvironmentConfig):
   const { isCI, isLocal, ciProvider } = detectCIEnvironment()
   const enhancedConfig = getEnhancedTestConfig()
   const defaultConfig = getDefaultTestConfig()
-  
+
   // Merge configurations with proper defaults
   const config: Required<TestEnvironmentConfig> = {
     useIsolatedServer: userConfig?.useIsolatedServer ?? defaultConfig.useIsolatedServer!,
@@ -147,19 +147,21 @@ export async function createTestEnvironment(userConfig?: TestEnvironmentConfig):
       logLevel: userConfig?.execution?.logLevel ?? defaultConfig.execution!.logLevel!
     },
     monitoring: {
-      enableMemoryTracking: userConfig?.monitoring?.enableMemoryTracking ?? defaultConfig.monitoring!.enableMemoryTracking!,
+      enableMemoryTracking:
+        userConfig?.monitoring?.enableMemoryTracking ?? defaultConfig.monitoring!.enableMemoryTracking!,
       enableCpuTracking: userConfig?.monitoring?.enableCpuTracking ?? defaultConfig.monitoring!.enableCpuTracking!,
       enableGcTracking: userConfig?.monitoring?.enableGcTracking ?? defaultConfig.monitoring!.enableGcTracking!,
       sampleIntervalMs: userConfig?.monitoring?.sampleIntervalMs ?? defaultConfig.monitoring!.sampleIntervalMs!,
-      enableTimelineRecording: userConfig?.monitoring?.enableTimelineRecording ?? defaultConfig.monitoring!.enableTimelineRecording!,
+      enableTimelineRecording:
+        userConfig?.monitoring?.enableTimelineRecording ?? defaultConfig.monitoring!.enableTimelineRecording!,
       maxSamples: userConfig?.monitoring?.maxSamples ?? defaultConfig.monitoring!.maxSamples!
     }
   }
-  
+
   let server: TestServerInstance | undefined
   let baseUrl: string
   let cleanup: () => Promise<void>
-  
+
   if (config.useIsolatedServer) {
     // Create isolated test server with CI-optimized configuration
     const serverConfig: TestServerConfig = {
@@ -173,11 +175,11 @@ export async function createTestEnvironment(userConfig?: TestEnvironmentConfig):
       enableGracefulShutdown: true,
       startupTimeout: isCI ? 8000 : 10000 // Shorter timeout in CI
     }
-    
+
     server = await createTestServer(serverConfig)
     baseUrl = server.baseUrl
     cleanup = server.cleanup
-    
+
     // Log CI provider if in CI environment
     if (isCI && config.execution.logLevel !== 'silent') {
       console.log(`🔧 Test server started for ${ciProvider} CI environment`)
@@ -189,7 +191,7 @@ export async function createTestEnvironment(userConfig?: TestEnvironmentConfig):
       // No cleanup needed for external server
     }
   }
-  
+
   return {
     server,
     baseUrl,
@@ -215,13 +217,13 @@ export async function checkLMStudioAvailability(config: TestEnvironmentConfig['a
       message: 'LMStudio testing is disabled'
     }
   }
-  
+
   try {
     const baseUrl = config.baseUrl.replace(/\/v1$/, '')
     const response = await fetch(`${baseUrl}/v1/models`, {
       signal: AbortSignal.timeout(config.timeout || 10000)
     })
-    
+
     if (!response.ok) {
       return {
         available: false,
@@ -229,10 +231,10 @@ export async function checkLMStudioAvailability(config: TestEnvironmentConfig['a
         message: `LMStudio server returned ${response.status}: ${response.statusText}`
       }
     }
-    
+
     const data = await response.json()
     const models = (data.data || []).map((m: any) => m.id)
-    
+
     if (models.length === 0) {
       return {
         available: false,
@@ -240,12 +242,10 @@ export async function checkLMStudioAvailability(config: TestEnvironmentConfig['a
         message: 'No models loaded in LMStudio'
       }
     }
-    
+
     // Check if target model is available
-    const hasTargetModel = models.some((m: string) => 
-      m === config.model || m.includes('gpt-oss')
-    )
-    
+    const hasTargetModel = models.some((m: string) => m === config.model || m.includes('gpt-oss'))
+
     if (!hasTargetModel) {
       return {
         available: false,
@@ -253,7 +253,7 @@ export async function checkLMStudioAvailability(config: TestEnvironmentConfig['a
         message: `Target model "${config.model}" not found. Available models: ${models.join(', ')}`
       }
     }
-    
+
     return {
       available: true,
       models,
@@ -278,7 +278,7 @@ export function setupAITestEnvironment(config: TestEnvironmentConfig['ai']): voi
     process.env.PROMPTLIANO_LMSTUDIO_URL = config.lmstudio.baseUrl
     process.env.LMSTUDIO_MODEL = config.lmstudio.model
   }
-  
+
   // Set test-specific AI configuration
   process.env.AI_TEST_MODE = 'true'
   process.env.AI_MOCK_WHEN_UNAVAILABLE = config?.useMockWhenUnavailable ? 'true' : 'false'
@@ -292,11 +292,11 @@ export async function withTestEnvironment<T>(
   config?: TestEnvironmentConfig
 ): Promise<T> {
   const env = await createTestEnvironment(config)
-  
+
   try {
     // Setup AI environment
     setupAITestEnvironment(env.config.ai)
-    
+
     return await testFn(env)
   } finally {
     await env.cleanup()
@@ -309,7 +309,7 @@ export async function withTestEnvironment<T>(
 export function printTestEnvironmentInfo(env: TestEnvironment): void {
   const { config, isCI, isLocal, baseUrl, server } = env
   const { ciProvider } = detectCIEnvironment()
-  
+
   console.log('\n🧪 Test Environment Configuration:')
   console.log(`  Environment: ${isCI ? `CI (${ciProvider})` : 'Local Development'}`)
   console.log(`  Base URL: ${baseUrl}`)

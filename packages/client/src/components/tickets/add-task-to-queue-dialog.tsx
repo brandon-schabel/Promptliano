@@ -9,11 +9,11 @@ import { Slider } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
-import { useEnqueueTask } from '@/hooks/api/use-flow-api'
+import { useGetQueuesWithStats } from '@/hooks/generated'
+import { useEnqueueTask } from '@/hooks/generated'
 import { toast } from 'sonner'
 import { Inbox, Clock, CheckCircle2, AlertCircle, Pause, Play, Loader2, ListPlus } from 'lucide-react'
-import type { QueueWithStats, TicketTask } from '@promptliano/schemas'
+import type { QueueWithStats, TicketTask } from '@/hooks/generated/types'
 
 interface AddTaskToQueueDialogProps {
   isOpen: boolean
@@ -104,7 +104,7 @@ export function AddTaskToQueueDialog({
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues.map((queueData) => {
+                    {queues.map((queueData: QueueWithStats) => {
                       const isSelected = selectedQueueId === queueData.queue.id
                       const itemCount = getQueueItemCount(queueData.stats)
                       const isTicketQueue = ticketQueueId === queueData.queue.id
@@ -121,7 +121,7 @@ export function AddTaskToQueueDialog({
                               className={cn(
                                 'transition-all hover:shadow-md',
                                 isSelected && 'ring-2 ring-primary shadow-md',
-                                queueData.queue.status === 'paused' && 'opacity-60'
+                                (queueData.queue.status ?? 'active') === 'paused' && 'opacity-60'
                               )}
                             >
                               <CardContent className='p-3'>
@@ -144,7 +144,7 @@ export function AddTaskToQueueDialog({
                                     <div className='flex items-center gap-3 text-xs'>
                                       <Badge variant='secondary' className='text-xs'>
                                         {getQueueStatusIcon(queueData.queue.status ?? 'inactive')}
-                                        <span className='ml-1'>{queueData.queue.status}</span>
+                                        <span className='ml-1'>{queueData.queue.status ?? 'inactive'}</span>
                                       </Badge>
                                       <span className='text-muted-foreground'>
                                         {itemCount === 0 ? 'Empty' : itemCount === 1 ? '1 item' : `${itemCount} items`}

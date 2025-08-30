@@ -1,0 +1,20 @@
+{
+  "name": "@promptliano/hook-factory",
+  "version": "0.10.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "@tanstack/react-query": "^5.0.0",
+    "sonner": "^1.0.0"
+  },
+  "dependencies": {
+    "@promptliano/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

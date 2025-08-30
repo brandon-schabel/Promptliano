@@ -91,7 +91,7 @@ jobs:
       test-success: ${{ steps.test-run.outputs.success }}
       typecheck-success: ${{ steps.typecheck-run.outputs.success }}
       build-success: ${{ steps.build-run.outputs.success }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -107,12 +107,12 @@ jobs:
         working-directory: ${{ inputs.package-path }}
         run: |
           echo "📋 Verifying package structure for ${{ inputs.package-name }}..."
-          
+
           if [ ! -f "package.json" ]; then
             echo "❌ package.json not found in ${{ inputs.package-path }}"
             exit 1
           fi
-          
+
           echo "✅ Package structure verified"
           echo "📦 Package info:"
           node -p "JSON.stringify({
@@ -153,7 +153,7 @@ jobs:
         working-directory: ${{ inputs.package-path }}
         run: |
           echo "🧪 Running tests for ${{ inputs.package-name }}..."
-          
+
           # Construct test command with coverage if requested
           TEST_CMD="${{ inputs.test-command }}"
           if [ "${{ inputs.generate-coverage }}" = "true" ]; then
@@ -162,7 +162,7 @@ jobs:
               TEST_CMD="$TEST_CMD --coverage"
             fi
           fi
-          
+
           echo "Running: $TEST_CMD"
           if eval "$TEST_CMD"; then
             echo "✅ Tests passed"
@@ -242,7 +242,7 @@ jobs:
         run: |
           echo "## 🧪 ${{ inputs.package-name }} Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Type checking results
           if [ "${{ inputs.run-typecheck }}" = "true" ]; then
             if [ "${{ steps.typecheck-run.outputs.success }}" = "true" ]; then
@@ -253,7 +253,7 @@ jobs:
           else
             echo "- ⏭️ **Type checking**: Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Test results
           if [ "${{ inputs.run-tests }}" = "true" ]; then
             if [ "${{ steps.test-run.outputs.success }}" = "true" ]; then
@@ -268,7 +268,7 @@ jobs:
           else
             echo "- ⏭️ **Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Build results
           if [ "${{ inputs.run-build }}" = "true" ]; then
             if [ "${{ steps.build-run.outputs.success }}" = "true" ]; then
@@ -279,12 +279,12 @@ jobs:
           else
             echo "- ⏭️ **Build**: Skipped" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Lint results
           if [ "${{ inputs.run-lint }}" = "true" ] && [ "${{ inputs.lint-command }}" != "" ]; then
             echo "- 🔍 **Linting**: Completed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Package Path**: \`${{ inputs.package-path }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Test Status**: ${{ job.status == 'success' && '✅ Completed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY

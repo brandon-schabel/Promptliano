@@ -18,13 +18,14 @@ import {
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
   getPromptById,
-  listPromptsByProject,
+  getPromptsByProject as listPromptsByProject,
   listAllPrompts,
   createPrompt,
   type File,
   type ExportOptions
 } from '@promptliano/services'
 import { addPromptToProject } from '@promptliano/services'
+import { addTimestamps } from '@promptliano/services/src/utils/file-utils'
 
 export const markdownPromptManagerTool: MCPToolDefinition = {
   name: 'markdown_prompt_manager',
@@ -41,7 +42,7 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
       projectId: {
         type: 'number',
         description:
-          'The project ID (optional for most actions, used to associate imported prompts with project). Example: 1754713756748'
+          'The project ID (optional for most actions, used to associate imported prompts with project). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -71,11 +72,23 @@ export const markdownPromptManagerTool: MCPToolDefinition = {
               const parsedPrompt = await parseMarkdownToPrompt(content)
 
               // Create the prompt
-              const newPrompt = await createPrompt({
-                name: parsedPrompt.frontmatter.name,
-                content: parsedPrompt.content,
-                projectId
-              })
+              // Note: projectId is required by the database schema, but optional in MCP tool parameters
+              // If not provided, we'll throw a helpful error
+              if (!projectId) {
+                throw createMCPError(
+                  MCPErrorCode.MISSING_REQUIRED_PARAM,
+                  'projectId is required for creating prompts. Prompts must be associated with a project.',
+                  { action, parameter: 'projectId', example: '<PROJECT_ID>' }
+                )
+              }
+
+              const newPrompt = await createPrompt(
+                addTimestamps({
+                  title: parsedPrompt.frontmatter.name,
+                  content: parsedPrompt.content,
+                  projectId
+                })
+              )
 
               // Auto-associate with project if projectId is provided and not already set
               if (projectId && !newPrompt.projectId) {

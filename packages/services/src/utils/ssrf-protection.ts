@@ -64,16 +64,13 @@ export interface URLValidationResult {
  * @param allowLocalhost - Whether to allow localhost for development (default: false)
  * @returns Validation result with any errors or warnings
  */
-export async function validateProviderURL(
-  urlString: string,
-  allowLocalhost = false
-): Promise<URLValidationResult> {
+export async function validateProviderURL(urlString: string, allowLocalhost = false): Promise<URLValidationResult> {
   const warnings: string[] = []
-  
+
   try {
     // Parse URL
     const url = new URL(urlString)
-    
+
     // Check scheme
     if (!ALLOWED_SCHEMES.has(url.protocol)) {
       return {
@@ -82,10 +79,10 @@ export async function validateProviderURL(
         warnings
       }
     }
-    
+
     // Extract hostname
     const hostname = url.hostname.toLowerCase()
-    
+
     // Check blocked hostnames
     if (!allowLocalhost && BLOCKED_HOSTNAMES.has(hostname)) {
       return {
@@ -94,7 +91,7 @@ export async function validateProviderURL(
         warnings
       }
     }
-    
+
     // Check for metadata endpoints
     if (METADATA_ENDPOINTS.includes(hostname)) {
       return {
@@ -103,7 +100,7 @@ export async function validateProviderURL(
         warnings
       }
     }
-    
+
     // Check if hostname is an IP address
     if (net.isIP(hostname)) {
       const ipValidation = validateIPAddress(hostname, allowLocalhost)
@@ -114,7 +111,7 @@ export async function validateProviderURL(
       // Resolve DNS to check final IPs
       try {
         const ips = await resolveDns(hostname)
-        
+
         for (const ip of ips) {
           const ipValidation = validateIPAddress(ip, allowLocalhost)
           if (!ipValidation.valid) {
@@ -125,7 +122,7 @@ export async function validateProviderURL(
             }
           }
         }
-        
+
         return {
           valid: true,
           warnings,
@@ -135,7 +132,7 @@ export async function validateProviderURL(
         // DNS resolution failed
         logger.warn('DNS resolution failed', { hostname, error: dnsError })
         warnings.push(`Could not resolve DNS for ${hostname}`)
-        
+
         // Allow the URL but with a warning
         // Some providers might use custom DNS or be temporarily unreachable
         return {
@@ -144,12 +141,11 @@ export async function validateProviderURL(
         }
       }
     }
-    
+
     return {
       valid: true,
       warnings
     }
-    
   } catch (error) {
     return {
       valid: false,
@@ -162,12 +158,9 @@ export async function validateProviderURL(
 /**
  * Validates an IP address for SSRF vulnerabilities
  */
-function validateIPAddress(
-  ip: string,
-  allowLocalhost = false
-): URLValidationResult {
+function validateIPAddress(ip: string, allowLocalhost = false): URLValidationResult {
   const warnings: string[] = []
-  
+
   // Check if it's IPv6
   if (net.isIPv6(ip)) {
     // Block IPv6 loopback
@@ -178,11 +171,11 @@ function validateIPAddress(
         warnings
       }
     }
-    
+
     // Allow other IPv6 for now (could add more checks)
     return { valid: true, warnings }
   }
-  
+
   // Check IPv4
   if (!net.isIPv4(ip)) {
     return {
@@ -191,7 +184,7 @@ function validateIPAddress(
       warnings
     }
   }
-  
+
   // Check against private ranges
   for (const range of PRIVATE_IP_RANGES) {
     if (isIPInRange(ip, range.start, range.end)) {
@@ -199,7 +192,7 @@ function validateIPAddress(
         warnings.push('Using loopback address (development mode)')
         return { valid: true, warnings }
       }
-      
+
       return {
         valid: false,
         error: `IP address is in private range: ${range.name}`,
@@ -207,7 +200,7 @@ function validateIPAddress(
       }
     }
   }
-  
+
   return { valid: true, warnings }
 }
 
@@ -218,7 +211,7 @@ function isIPInRange(ip: string, start: string, end: string): boolean {
   const ipNum = ipToNumber(ip)
   const startNum = ipToNumber(start)
   const endNum = ipToNumber(end)
-  
+
   return ipNum >= startNum && ipNum <= endNum
 }
 
@@ -227,7 +220,7 @@ function isIPInRange(ip: string, start: string, end: string): boolean {
  */
 function ipToNumber(ip: string): number {
   const parts = ip.split('.').map(Number)
-  if (parts.length !== 4 || parts.some(part => part == null || isNaN(part))) {
+  if (parts.length !== 4 || parts.some((part) => part == null || isNaN(part))) {
     throw new Error(`Invalid IP address format: ${ip}`)
   }
   return (parts[0]! << 24) | (parts[1]! << 16) | (parts[2]! << 8) | parts[3]!
@@ -239,22 +232,22 @@ function ipToNumber(ip: string): number {
 export function sanitizeProviderURL(urlString: string): string {
   try {
     const url = new URL(urlString)
-    
+
     // Remove credentials if present
     url.username = ''
     url.password = ''
-    
+
     // Remove fragment
     url.hash = ''
-    
+
     // Normalize path (remove double slashes, etc.)
     url.pathname = url.pathname.replace(/\/+/g, '/')
-    
+
     // Remove trailing slash unless it's the root path
     if (url.pathname !== '/' && url.pathname.endsWith('/')) {
       url.pathname = url.pathname.slice(0, -1)
     }
-    
+
     return url.toString()
   } catch {
     // If URL parsing fails, return original
@@ -265,22 +258,14 @@ export function sanitizeProviderURL(urlString: string): string {
 /**
  * Creates a safe fetch function with SSRF protection
  */
-export async function safeFetch(
-  url: string,
-  options?: RequestInit,
-  allowLocalhost = false
-): Promise<Response> {
+export async function safeFetch(url: string, options?: RequestInit, allowLocalhost = false): Promise<Response> {
   // Validate URL first
   const validation = await validateProviderURL(url, allowLocalhost)
-  
+
   if (!validation.valid) {
-    throw new ApiError(
-      400,
-      validation.error || 'Invalid URL',
-      'SSRF_PROTECTION_BLOCKED'
-    )
+    throw new ApiError(400, validation.error || 'Invalid URL', 'SSRF_PROTECTION_BLOCKED')
   }
-  
+
   // Log warnings if any
   if (validation.warnings.length > 0) {
     logger.warn('URL validation warnings', {
@@ -288,7 +273,7 @@ export async function safeFetch(
       warnings: validation.warnings
     })
   }
-  
+
   // Perform the fetch
   return fetch(url, {
     ...options,
@@ -304,13 +289,13 @@ export async function validateURLBatch(
   allowLocalhost = false
 ): Promise<Map<string, URLValidationResult>> {
   const results = new Map<string, URLValidationResult>()
-  
+
   await Promise.all(
     urls.map(async (url) => {
       const result = await validateProviderURL(url, allowLocalhost)
       results.set(url, result)
     })
   )
-  
+
   return results
 }

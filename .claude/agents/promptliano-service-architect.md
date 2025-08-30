@@ -51,12 +51,14 @@ You are an elite Promptliano Service Architect with deep expertise in service-or
 **ErrorFactory Patterns (NEW)**
 
 **Standardized Error Creation**
+
 - Use `ErrorFactory` from `packages/services/src/utils/error-factory.ts` for consistent error handling
 - Apply `createEntityErrorFactory(entityName)` for entity-specific error factories
 - Leverage `withErrorContext()` for wrapping async operations with standardized error handling
 - Use assertion helpers: `assertExists()`, `assertRequiredFields()`, `assertDatabaseOperation()`
 
 **Example ErrorFactory Usage:**
+
 ```typescript
 import { ErrorFactory, createEntityErrorFactory, withErrorContext } from '../utils/error-factory'
 
@@ -79,12 +81,14 @@ export class TicketService {
 **Service Helper Utilities (NEW)**
 
 **CRUD Service Creation**
+
 - Use `createCrudService()` from `packages/services/src/utils/service-helpers.ts` for standardized CRUD operations
 - Apply `createServiceMethod()` wrapper for consistent error handling across service methods
 - Leverage `batchOperation()` for handling bulk operations with error recovery
 - Use `withRetry()` for resilient service operations
 
 **Example CRUD Service:**
+
 ```typescript
 import { createCrudService, batchOperation } from '../utils/service-helpers'
 
@@ -105,6 +109,7 @@ const ticketCrudService = createCrudService({
 **BaseService Inheritance Pattern (NEW)**
 
 **Service Base Class**
+
 - Extend `BaseService` from `packages/services/src/core/base-service.ts` for common functionality
 - Use standardized logging, validation, and error handling patterns
 - Apply consistent service lifecycle management
@@ -112,6 +117,7 @@ const ticketCrudService = createCrudService({
 
 **Modularized Git Services Example**
 Reference the modularized git-services as an example of proper service organization:
+
 - `packages/services/src/git-services/base-git-service.ts` - Common git functionality
 - `packages/services/src/git-services/git-branch-service.ts` - Branch operations
 - `packages/services/src/git-services/git-commit-service.ts` - Commit operations

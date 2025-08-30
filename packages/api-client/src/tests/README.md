@@ -72,15 +72,18 @@ import { createTestServer, withTestServer } from './test-server'
 // Create isolated test server
 const testServer = await createTestServer({
   databasePath: ':memory:', // In-memory for speed
-  enableRateLimit: false,   // Disable for testing
-  logLevel: 'silent'        // Quiet during tests
+  enableRateLimit: false, // Disable for testing
+  logLevel: 'silent' // Quiet during tests
 })
 
 // Use with automatic cleanup
-await withTestServer(async (server) => {
-  const client = createPromptlianoClient({ baseUrl: server.baseUrl })
-  // Run tests...
-}, { port: 0 }) // Dynamic port assignment
+await withTestServer(
+  async (server) => {
+    const client = createPromptlianoClient({ baseUrl: server.baseUrl })
+    // Run tests...
+  },
+  { port: 0 }
+) // Dynamic port assignment
 ```
 
 ### Test Environment Configuration
@@ -131,16 +134,20 @@ const project = await dataManager.createProject() // Auto-tracked for cleanup
 await dataManager.cleanup() // Cleanup all tracked entities
 
 // Test common patterns
-await patterns.testCrudOperations('Project', {
-  create: client.projects.createProject,
-  read: client.projects.getProject,
-  update: client.projects.updateProject,
-  delete: client.projects.deleteProject,
-  list: client.projects.listProjects
-}, {
-  create: factories.createProjectData(),
-  update: { name: 'Updated Name' }
-})
+await patterns.testCrudOperations(
+  'Project',
+  {
+    create: client.projects.createProject,
+    read: client.projects.getProject,
+    update: client.projects.updateProject,
+    delete: client.projects.deleteProject,
+    list: client.projects.listProjects
+  },
+  {
+    create: factories.createProjectData(),
+    update: { name: 'Updated Name' }
+  }
+)
 ```
 
 ## LMStudio Integration
@@ -228,34 +235,34 @@ const response = await fetch(`${baseUrl}/api/gen-ai/summarize-file`, {
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| **Server Configuration** |
-| `TEST_USE_EXTERNAL_SERVER` | Use external server instead of isolated | `false` |
-| `TEST_API_URL` | External server URL | `http://localhost:3147` |
-| `TEST_FIXED_PORT` | Use fixed port instead of dynamic | `false` |
-| `TEST_PORT` | Fixed port number | `3147` |
-| **Database Configuration** |
-| `TEST_USE_MEMORY_DB` | Force in-memory database | `false` (true in CI) |
-| `TEST_DB_PATH` | Database file path | `/tmp/promptliano-test.db` |
-| `TEST_KEEP_DB` | Preserve database between suites | `false` |
-| **AI Configuration** |
-| `SKIP_AI_TESTS` | Skip all AI endpoint tests | `false` (true in CI) |
-| `LMSTUDIO_BASE_URL` | LMStudio server URL | `http://192.168.1.38:1234` |
-| `LMSTUDIO_MODEL` | Target model name | `openai/gpt-oss-20b` |
-| `AI_TEST_TIMEOUT` | AI operation timeout (ms) | `30000` |
-| `AI_FAIL_WHEN_UNAVAILABLE` | Fail when AI unavailable | `false` |
-| `AI_USE_MOCKS` | Use mocks when AI unavailable | `true` |
+| Variable                    | Description                             | Default                       |
+| --------------------------- | --------------------------------------- | ----------------------------- |
+| **Server Configuration**    |
+| `TEST_USE_EXTERNAL_SERVER`  | Use external server instead of isolated | `false`                       |
+| `TEST_API_URL`              | External server URL                     | `http://localhost:3147`       |
+| `TEST_FIXED_PORT`           | Use fixed port instead of dynamic       | `false`                       |
+| `TEST_PORT`                 | Fixed port number                       | `3147`                        |
+| **Database Configuration**  |
+| `TEST_USE_MEMORY_DB`        | Force in-memory database                | `false` (true in CI)          |
+| `TEST_DB_PATH`              | Database file path                      | `/tmp/promptliano-test.db`    |
+| `TEST_KEEP_DB`              | Preserve database between suites        | `false`                       |
+| **AI Configuration**        |
+| `SKIP_AI_TESTS`             | Skip all AI endpoint tests              | `false` (true in CI)          |
+| `LMSTUDIO_BASE_URL`         | LMStudio server URL                     | `http://192.168.1.38:1234`    |
+| `LMSTUDIO_MODEL`            | Target model name                       | `openai/gpt-oss-20b`          |
+| `AI_TEST_TIMEOUT`           | AI operation timeout (ms)               | `30000`                       |
+| `AI_FAIL_WHEN_UNAVAILABLE`  | Fail when AI unavailable                | `false`                       |
+| `AI_USE_MOCKS`              | Use mocks when AI unavailable           | `true`                        |
 | **Execution Configuration** |
-| `TEST_API_TIMEOUT` | API request timeout (ms) | `30000` (local), `15000` (CI) |
-| `TEST_ENABLE_RATE_LIMIT` | Enable rate limiting | `false` |
-| `TEST_PARALLEL` | Enable parallel execution | `true` (local), `false` (CI) |
-| `TEST_LOG_LEVEL` | Log level | `warn` (local), `error` (CI) |
-| `TEST_RETRIES` | Max retry attempts | `3` |
-| **Environment Control** |
-| `FORCE_CI_MODE` | Force CI configuration | `false` |
-| `FORCE_LOCAL_MODE` | Force local configuration | `false` |
-| `TEST_DEBUG` | Enable debug output | `false` |
+| `TEST_API_TIMEOUT`          | API request timeout (ms)                | `30000` (local), `15000` (CI) |
+| `TEST_ENABLE_RATE_LIMIT`    | Enable rate limiting                    | `false`                       |
+| `TEST_PARALLEL`             | Enable parallel execution               | `true` (local), `false` (CI)  |
+| `TEST_LOG_LEVEL`            | Log level                               | `warn` (local), `error` (CI)  |
+| `TEST_RETRIES`              | Max retry attempts                      | `3`                           |
+| **Environment Control**     |
+| `FORCE_CI_MODE`             | Force CI configuration                  | `false`                       |
+| `FORCE_LOCAL_MODE`          | Force local configuration               | `false`                       |
+| `TEST_DEBUG`                | Enable debug output                     | `false`                       |
 
 ### Configuration Examples
 
@@ -284,38 +291,38 @@ npm run test:external
 
 ### Core Test Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run test` | Legacy functional tests (external server) |
-| `npm run test:isolated` | Modern isolated tests (recommended) |
-| `npm run test:isolated:parallel` | All tests in parallel |
+| Command                          | Description                               |
+| -------------------------------- | ----------------------------------------- |
+| `npm run test`                   | Legacy functional tests (external server) |
+| `npm run test:isolated`          | Modern isolated tests (recommended)       |
+| `npm run test:isolated:parallel` | All tests in parallel                     |
 
 ### Individual Test Suites
 
-| Command | Description |
-|---------|-------------|
-| `npm run test:projects` | Project management API tests |
-| `npm run test:chat` | Chat API tests |
-| `npm run test:prompt` | Prompt management API tests |
-| `npm run test:provider-key` | Provider key API tests |
+| Command                     | Description                  |
+| --------------------------- | ---------------------------- |
+| `npm run test:projects`     | Project management API tests |
+| `npm run test:chat`         | Chat API tests               |
+| `npm run test:prompt`       | Prompt management API tests  |
+| `npm run test:provider-key` | Provider key API tests       |
 
 ### AI Endpoint Tests
 
-| Command | Description |
-|---------|-------------|
-| `npm run test:ai` | AI endpoints with auto-detection |
+| Command                 | Description                      |
+| ----------------------- | -------------------------------- |
+| `npm run test:ai`       | AI endpoints with auto-detection |
 | `npm run test:ai:local` | AI tests with local LMStudio URL |
-| `npm run test:ai:skip` | Skip AI tests entirely |
+| `npm run test:ai:skip`  | Skip AI tests entirely           |
 
 ### Configuration and Debugging
 
-| Command | Description |
-|---------|-------------|
-| `npm run test:config:print` | Print current configuration |
-| `npm run test:env:check` | Check LMStudio availability |
-| `npm run test:memory` | Use in-memory database |
-| `npm run test:external` | Use external server |
-| `npm run test:debug` | Debug mode with verbose logging |
+| Command                     | Description                     |
+| --------------------------- | ------------------------------- |
+| `npm run test:config:print` | Print current configuration     |
+| `npm run test:env:check`    | Check LMStudio availability     |
+| `npm run test:memory`       | Use in-memory database          |
+| `npm run test:external`     | Use external server             |
+| `npm run test:debug`        | Debug mode with verbose logging |
 
 ## Writing Tests
 
@@ -334,9 +341,7 @@ describe('My API Tests', () => {
       const dataManager = new TestDataManager(client)
 
       // Create test data
-      const project = await dataManager.createProject(
-        factories.createProjectData({ name: 'Test Project' })
-      )
+      const project = await dataManager.createProject(factories.createProjectData({ name: 'Test Project' }))
 
       // Test retrieval
       const result = await client.projects.getProject(project.id)
@@ -392,10 +397,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-        
+
       - name: Run API tests
         run: |
           # CI environment auto-detected
@@ -404,12 +409,12 @@ jobs:
         env:
           CI: true
           # AI tests automatically skipped in CI
-          
+
       - name: Run AI tests (if LMStudio available)
         run: |
           cd packages/api-client
           bun run test:ai:skip  # Explicitly skip in CI
-        continue-on-error: true  # Don't fail build if AI unavailable
+        continue-on-error: true # Don't fail build if AI unavailable
 ```
 
 ### Local Development Workflow
@@ -437,6 +442,7 @@ npm run test:config:print   # Check configuration
 ### Common Issues
 
 **1. "Test server failed to start"**
+
 ```bash
 # Check for port conflicts
 lsof -i :3147
@@ -447,6 +453,7 @@ npm run test:isolated
 ```
 
 **2. "LMStudio not available"**
+
 ```bash
 # Check LMStudio status
 npm run test:env:check
@@ -460,6 +467,7 @@ npm run test:ai:skip
 ```
 
 **3. "Database locked" errors**
+
 ```bash
 # Use memory database
 npm run test:memory
@@ -469,6 +477,7 @@ rm -f /tmp/promptliano-test*
 ```
 
 **4. Tests hanging or timing out**
+
 ```bash
 # Increase timeouts
 export TEST_API_TIMEOUT=\"60000\"
@@ -479,6 +488,7 @@ export TEST_PARALLEL=\"false\"
 ```
 
 **5. "Permission denied" errors**
+
 ```bash
 # Check file permissions
 ls -la /tmp/promptliano-test*
@@ -498,6 +508,7 @@ npm run test:debug
 ```
 
 This will show:
+
 - Test environment configuration
 - Server startup details
 - Database initialization
@@ -522,6 +533,7 @@ tracker.printSummary()
 ```
 
 Optimize test execution:
+
 - Use memory database: `npm run test:memory`
 - Enable parallel execution: `export TEST_PARALLEL=\"true\"`
 - Reduce timeouts: `export TEST_API_TIMEOUT=\"10000\"`

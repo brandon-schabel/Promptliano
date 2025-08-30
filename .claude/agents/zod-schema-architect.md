@@ -37,24 +37,30 @@ You understand that in this project:
 **Schema Factory Patterns (NEW)**
 
 **Standardized Schema Creation**
+
 - Use `createCrudSchemas()` from `packages/schemas/src/schema-factories.ts` for complete CRUD schema sets
 - Apply `createEntitySchemas()` for base entity schemas with create/update variants
 - Leverage `createResponseSchemas()` for consistent API response wrappers
 - Use `createPaginatedResponseSchema()` for paginated data endpoints
 
 **Example Schema Factory Usage:**
+
 ```typescript
 import { createCrudSchemas, commonFields, createEnumField } from '@promptliano/schemas/src/schema-factories'
 
-const UserProfileSchemas = createCrudSchemas('UserProfile', {
-  ...commonFields,
-  email: z.string().email(),
-  role: createEnumField(['admin', 'user', 'guest'], 'user', 'User role'),
-  preferences: z.record(z.any()).default({})
-}, {
-  createExcludes: ['role'], // Role assigned by system
-  updateExcludes: ['email'] // Email cannot be updated
-})
+const UserProfileSchemas = createCrudSchemas(
+  'UserProfile',
+  {
+    ...commonFields,
+    email: z.string().email(),
+    role: createEnumField(['admin', 'user', 'guest'], 'user', 'User role'),
+    preferences: z.record(z.any()).default({})
+  },
+  {
+    createExcludes: ['role'], // Role assigned by system
+    updateExcludes: ['email'] // Email cannot be updated
+  }
+)
 
 // Generates: base, create, update, responses.single, responses.list, responses.paginated
 ```
@@ -62,11 +68,13 @@ const UserProfileSchemas = createCrudSchemas('UserProfile', {
 **Model Defaults Integration (NEW)**
 
 **Default Values and Examples**
+
 - Import `DEFAULT_MODEL_EXAMPLES` from `packages/schemas/src/model-defaults.ts`
 - Use for AI model configuration schemas and example generation
 - Apply consistent default values across provider configurations
 
 **Example Model Defaults Usage:**
+
 ```typescript
 import { DEFAULT_MODEL_EXAMPLES } from './model-defaults'
 
@@ -81,6 +89,7 @@ const ModelConfigSchema = z.object({
 **HybridFormFactory Integration (NEW)**
 
 **Form Schema Patterns**
+
 - Design schemas that work seamlessly with `HybridFormFactory` from `packages/ui/src/components/forms/hybrid-form-factory.tsx`
 - Use proper field types for automatic form field generation
 - Apply validation rules that translate to user-friendly form validation
@@ -89,6 +98,7 @@ const ModelConfigSchema = z.object({
 **Storage Helpers Integration (NEW)**
 
 **Database Schema Alignment**
+
 - Design schemas that work with `createEntityConverter()` from storage-helpers
 - Use field mappings that align with database column patterns
 - Apply proper type conversions for SQLite compatibility
@@ -121,12 +131,14 @@ const ModelConfigSchema = z.object({
 **Validation Helper Integration (NEW)**
 
 **Enhanced Validation Patterns**
+
 - Use validation helpers from storage-helpers for comprehensive data validation
 - Apply batch validation patterns for array operations
 - Leverage schema composition for complex validation scenarios
 - Design schemas that provide clear error messaging for debugging
 
 **Example Enhanced Validation:**
+
 ```typescript
 import { validateData, batchValidate } from '@promptliano/storage/src/utils/storage-helpers'
 

@@ -22,14 +22,7 @@ const FORBIDDEN_HEADERS = new Set([
 ])
 
 // Headers that are explicitly allowed for custom providers
-const ALLOWED_CUSTOM_HEADER_PREFIXES = [
-  'x-api-',
-  'x-custom-',
-  'x-request-',
-  'x-client-',
-  'x-tenant-',
-  'x-workspace-'
-]
+const ALLOWED_CUSTOM_HEADER_PREFIXES = ['x-api-', 'x-custom-', 'x-request-', 'x-client-', 'x-tenant-', 'x-workspace-']
 
 // Maximum header value length to prevent overflow attacks
 const MAX_HEADER_VALUE_LENGTH = 1000
@@ -48,9 +41,7 @@ export interface SanitizationResult {
  * @param headers - Raw headers from user input
  * @returns Sanitized headers safe for use in HTTP requests
  */
-export function sanitizeCustomHeaders(
-  headers: Record<string, string> | undefined
-): SanitizationResult {
+export function sanitizeCustomHeaders(headers: Record<string, string> | undefined): SanitizationResult {
   const result: SanitizationResult = {
     sanitized: {},
     blocked: [],
@@ -62,7 +53,7 @@ export function sanitizeCustomHeaders(
   }
 
   const entries = Object.entries(headers)
-  
+
   // Check maximum number of headers
   if (entries.length > MAX_CUSTOM_HEADERS) {
     result.warnings.push(
@@ -80,7 +71,7 @@ export function sanitizeCustomHeaders(
 
     // Normalize header key for checking
     const normalizedKey = key.toLowerCase().trim()
-    
+
     // Check if header is forbidden
     if (isForbiddenHeader(normalizedKey)) {
       result.blocked.push(key)
@@ -104,12 +95,10 @@ export function sanitizeCustomHeaders(
 
     // Sanitize header value
     const sanitizedValue = sanitizeHeaderValue(value)
-    
+
     if (sanitizedValue.length > MAX_HEADER_VALUE_LENGTH) {
       result.blocked.push(key)
-      result.warnings.push(
-        `Header value too long for ${key} (${sanitizedValue.length} > ${MAX_HEADER_VALUE_LENGTH})`
-      )
+      result.warnings.push(`Header value too long for ${key} (${sanitizedValue.length} > ${MAX_HEADER_VALUE_LENGTH})`)
       continue
     }
 
@@ -143,9 +132,7 @@ function isForbiddenHeader(headerName: string): boolean {
  * Checks if a header name is allowed
  */
 function isAllowedHeader(headerName: string): boolean {
-  return ALLOWED_CUSTOM_HEADER_PREFIXES.some(prefix => 
-    headerName.startsWith(prefix)
-  )
+  return ALLOWED_CUSTOM_HEADER_PREFIXES.some((prefix) => headerName.startsWith(prefix))
 }
 
 /**
@@ -164,13 +151,13 @@ function isValidHeaderName(name: string): boolean {
 function sanitizeHeaderValue(value: string): string {
   // Remove control characters and newlines
   let sanitized = value.replace(/[\r\n\0\t]/g, '')
-  
+
   // Trim whitespace
   sanitized = sanitized.trim()
-  
+
   // Remove non-printable characters
   sanitized = sanitized.replace(/[^\x20-\x7E]/g, '')
-  
+
   return sanitized
 }
 
@@ -183,7 +170,7 @@ export function mergeHeaders(
   customHeaders: Record<string, string> | undefined
 ): Record<string, string> {
   const { sanitized } = sanitizeCustomHeaders(customHeaders)
-  
+
   // Base headers always take precedence
   return {
     ...sanitized,

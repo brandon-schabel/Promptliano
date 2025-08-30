@@ -1,5 +1,13 @@
-import type { ProjectFile, FileGroup, FileRelationship } from '@promptliano/schemas'
-import { FileRelationshipTypeEnum } from '@promptliano/schemas'
+import type { File as ProjectFile, FileGroup, FileRelationship } from '@promptliano/database'
+// FileRelationshipTypeEnum is defined inline in database schema
+const FileRelationshipTypeEnum = {
+  imports: 'imports',
+  exports: 'exports',
+  sibling: 'sibling',
+  parent: 'parent',
+  child: 'child',
+  semantic: 'semantic'
+} as const
 import {
   OPTIMAL_TOKENS_FOR_BATCH,
   MAX_FILES_PER_BATCH,
@@ -9,7 +17,6 @@ import {
 import { SmartTruncation } from '../utils/smart-truncation'
 import { createLogger } from '../utils/logger'
 import { fileGroupingService } from '../file-grouping-service'
-import { fileSummarizationTracker } from '../file-summarization-tracker'
 
 const logger = createLogger('BatchSummarizationOptimizer')
 
@@ -80,7 +87,7 @@ export class BatchSummarizationOptimizer {
     }
 
     // Group related files
-    const fileGroups = this.groupRelatedFiles(filesToProcess, groupingStrategy, {
+    const fileGroups = await this.groupRelatedFiles(filesToProcess, groupingStrategy, projectId, {
       maxGroupSize: maxFilesPerBatch,
       priorityThreshold
     })
@@ -125,7 +132,7 @@ export class BatchSummarizationOptimizer {
       }
 
       // Check if file was modified after last summarization
-      if (file.updated > (file.summaryLastUpdated || 0)) {
+      if (file.updatedAt > (file.summaryLastUpdated || 0)) {
         needsSummarization.push(file)
       }
     }
@@ -136,13 +143,14 @@ export class BatchSummarizationOptimizer {
   /**
    * Group related files based on strategy
    */
-  private groupRelatedFiles(
+  private async groupRelatedFiles(
     files: ProjectFile[],
     strategy: string,
+    projectId: number,
     options: { maxGroupSize: number; priorityThreshold: number }
-  ): FileGroup[] {
+  ): Promise<FileGroup[]> {
     // Use the existing file grouping service
-    const groups = fileGroupingService.groupFilesByStrategy(files, strategy as any, options)
+    const groups = await fileGroupingService.groupFilesByStrategy(files, strategy as any, projectId, options)
 
     // Enhance groups with relationship detection
     return groups.map((group) => this.enhanceGroupWithRelationships(group, files))
@@ -171,7 +179,7 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: fileId,
             targetFileId: importedFile.id,
-            type: FileRelationshipTypeEnum.enum.imports,
+            type: FileRelationshipTypeEnum.imports,
             strength: 1.0
           })
         }
@@ -198,7 +206,7 @@ export class BatchSummarizationOptimizer {
           relationships.push({
             sourceFileId: otherId,
             targetFileId: fileId,
-            type: FileRelationshipTypeEnum.enum.imports,
+            type: FileRelationshipTypeEnum.imports,
             strength: 1.0 // Default strength for import relationships
           })
         }

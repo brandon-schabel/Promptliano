@@ -14,7 +14,7 @@ import {
 import { Input } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
 import { Project } from '@promptliano/schemas'
-import { useGetProjects } from '@/hooks/api/use-projects-api'
+import { useGetProjects } from '@/hooks/api-hooks'
 import { useUpdateActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import { useRecentProjects } from '@/hooks/use-recent-projects'
 import { useGitCurrentBranch } from '@/hooks/api/use-git-branch'
@@ -52,13 +52,13 @@ export function ProjectSwitcher({ currentProject, className, onManageProjects }:
   }
 
   const filteredProjects = projects.filter(
-    (project) =>
+    (project: any) =>
       project.name.toLowerCase().includes(search.toLowerCase()) ||
       project.path.toLowerCase().includes(search.toLowerCase())
   )
 
   const recentProjectsList = recentProjects
-    .map((id) => projects.find((p) => p.id === id))
+    .map((id) => projects.find((p: any) => p.id === id))
     .filter((p): p is Project => p !== undefined)
     .slice(0, 3)
 
@@ -168,7 +168,7 @@ export function ProjectSwitcher({ currentProject, className, onManageProjects }:
               <span className='text-muted-foreground'>{search ? 'No projects found' : 'No projects yet'}</span>
             </DropdownMenuItem>
           ) : (
-            filteredProjects.map((project) => (
+            filteredProjects.map((project: any) => (
               <DropdownMenuItem
                 key={project.id}
                 onClick={() => handleSelectProject(project.id)}

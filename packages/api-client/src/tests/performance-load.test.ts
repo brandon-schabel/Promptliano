@@ -16,11 +16,11 @@ import * as path from 'path'
 
 /**
  * Comprehensive Performance and Load Testing Suite
- * 
+ *
  * Tests API performance under various load conditions:
  * - Baseline performance (single user)
  * - Light load (10 concurrent users)
- * - Medium load (50 concurrent users) 
+ * - Medium load (50 concurrent users)
  * - Heavy load (100 concurrent users)
  * - Stress testing (breaking point identification)
  * - Endurance testing (sustained load)
@@ -32,7 +32,7 @@ describe('Performance and Load Testing', () => {
   let client: PromptlianoClient
   let dataManager: TestDataManager
   let baselineResults: Record<string, LoadTestResult> = {}
-  
+
   // Test data setup
   let testProject: any
   let testQueue: any
@@ -40,7 +40,7 @@ describe('Performance and Load Testing', () => {
 
   beforeAll(async () => {
     console.log('🚀 Setting up performance test environment...')
-    
+
     // Create test environment optimized for performance testing
     testEnv = await createTestEnvironment({
       useIsolatedServer: true,
@@ -56,27 +56,27 @@ describe('Performance and Load Testing', () => {
         sampleIntervalMs: 1000
       }
     })
-    
-    client = createPromptlianoClient({ 
+
+    client = createPromptlianoClient({
       baseUrl: testEnv.baseUrl,
       timeout: 30000
     })
-    
+
     dataManager = new TestDataManager(client)
-    
+
     // Create test data for performance testing
     await setupPerformanceTestData()
-    
+
     console.log('✅ Performance test environment ready')
   }, 60000) // 60 second timeout for setup
 
   afterAll(async () => {
     console.log('🧹 Cleaning up performance test environment...')
-    
+
     try {
       await dataManager.cleanup()
       await testEnv.cleanup()
-      
+
       // Print performance summary
       if (Object.keys(baselineResults).length > 0) {
         console.log('\n📊 Performance Test Summary:')
@@ -213,7 +213,7 @@ describe('Performance and Load Testing', () => {
           priority: 'normal'
         })
         assertions.assertSuccessResponse(result)
-        
+
         // Store for cleanup
         context.testData.createdTickets = context.testData.createdTickets || []
         context.testData.createdTickets.push(result.data.id)
@@ -254,7 +254,7 @@ describe('Performance and Load Testing', () => {
           tags: ['load-test']
         })
         assertions.assertSuccessResponse(result)
-        
+
         // Store for cleanup
         context.testData.createdTasks = context.testData.createdTasks || []
         context.testData.createdTasks.push({ ticketId: testTickets[ticketIndex].id, taskId: result.data.id })
@@ -292,7 +292,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Baseline Performance - Single User', async () => {
     console.log('📊 Running baseline performance test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Baseline Performance',
       description: 'Single user baseline performance measurement',
@@ -321,15 +321,15 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     // Store baseline for comparison
     baselineResults['baseline'] = result
-    
+
     // Validate performance thresholds
     expect(result.metrics.responseTime.p95).toBeLessThan(config.thresholds?.maxResponseTimeMs || 1000)
     expect(result.metrics.errors.errorRate).toBeLessThan(config.thresholds?.maxErrorRate || 1)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(config.thresholds?.minThroughputRps || 1)
-    
+
     console.log('✅ Baseline test completed')
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
     console.log(`   P95: ${result.metrics.responseTime.p95.toFixed(2)}ms`)
@@ -341,7 +341,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Light Load - 10 Concurrent Users', async () => {
     console.log('📊 Running light load test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Light Load',
       description: '10 concurrent users for 60 seconds',
@@ -370,15 +370,15 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     baselineResults['light_load'] = result
-    
+
     // Performance should be stable under light load
     expect(result.metrics.responseTime.p95).toBeLessThan(2000)
     expect(result.metrics.errors.errorRate).toBeLessThan(2)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(5)
     expect(result.metrics.concurrency.actualConcurrentPeak).toBe(10)
-    
+
     console.log('✅ Light load test completed')
     console.log(`   Peak Users: ${result.metrics.concurrency.actualConcurrentPeak}`)
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
@@ -390,7 +390,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Medium Load - 50 Concurrent Users', async () => {
     console.log('📊 Running medium load test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Medium Load',
       description: '50 concurrent users for 90 seconds',
@@ -419,15 +419,15 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     baselineResults['medium_load'] = result
-    
+
     // Performance may degrade but should remain acceptable
     expect(result.metrics.responseTime.p95).toBeLessThan(5000)
     expect(result.metrics.errors.errorRate).toBeLessThan(5)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(15)
     expect(result.metrics.concurrency.actualConcurrentPeak).toBe(50)
-    
+
     console.log('✅ Medium load test completed')
     console.log(`   Peak Users: ${result.metrics.concurrency.actualConcurrentPeak}`)
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
@@ -440,7 +440,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Heavy Load - 100 Concurrent Users', async () => {
     console.log('📊 Running heavy load test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Heavy Load',
       description: '100 concurrent users for 2 minutes',
@@ -470,21 +470,21 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     baselineResults['heavy_load'] = result
-    
+
     // System should handle heavy load with some degradation
     expect(result.metrics.responseTime.p95).toBeLessThan(10000)
     expect(result.metrics.errors.errorRate).toBeLessThan(10)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(20)
     expect(result.metrics.concurrency.actualConcurrentPeak).toBe(100)
-    
+
     console.log('✅ Heavy load test completed')
     console.log(`   Peak Users: ${result.metrics.concurrency.actualConcurrentPeak}`)
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
     console.log(`   P95: ${result.metrics.responseTime.p95.toFixed(2)}ms`)
     console.log(`   Error Rate: ${result.metrics.errors.errorRate.toFixed(2)}%`)
-    
+
     // Check for memory leaks
     if (result.metrics.resources.memoryUsage) {
       const memoryMB = result.metrics.resources.memoryUsage.heapUsed / 1024 / 1024
@@ -498,7 +498,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Stress Test - Write Operations', async () => {
     console.log('📊 Running write operations stress test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Write Stress Test',
       description: 'Heavy write operations to test data consistency',
@@ -527,23 +527,23 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, writeScenarios)
     const result = await runner.run()
-    
+
     baselineResults['write_stress'] = result
-    
+
     // Write operations may have higher latency and error rates
     expect(result.metrics.responseTime.p95).toBeLessThan(8000)
     expect(result.metrics.errors.errorRate).toBeLessThan(15)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(5)
-    
+
     console.log('✅ Write stress test completed')
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
     console.log(`   P95: ${result.metrics.responseTime.p95.toFixed(2)}ms`)
     console.log(`   Error Rate: ${result.metrics.errors.errorRate.toFixed(2)}%`)
-    
+
     // Verify data consistency after stress test
     const projectResult = await client.projects.getProject(testProject.id)
     assertions.assertSuccessResponse(projectResult)
-    
+
     const ticketsResult = await client.tickets.listTickets(testProject.id)
     assertions.assertSuccessResponse(ticketsResult)
     expect(ticketsResult.data.length).toBeGreaterThanOrEqual(testTickets.length)
@@ -554,7 +554,7 @@ describe('Performance and Load Testing', () => {
    */
   test.skip('Endurance Test - 15 Minutes Sustained Load', async () => {
     console.log('📊 Running endurance test (15 minutes)...')
-    
+
     const config: LoadTestConfig = {
       name: 'Endurance Test',
       description: '15 minute sustained load test',
@@ -585,20 +585,20 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     baselineResults['endurance'] = result
-    
+
     // System should maintain stability over extended period
     expect(result.metrics.responseTime.p95).toBeLessThan(5000)
     expect(result.metrics.errors.errorRate).toBeLessThan(5)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(8)
-    
+
     console.log('✅ Endurance test completed')
     console.log(`   Duration: ${(result.totalDuration / 1000 / 60).toFixed(1)} minutes`)
     console.log(`   Total Requests: ${result.metrics.throughput.totalRequests}`)
     console.log(`   Average RPS: ${result.metrics.throughput.requestsPerSecond.toFixed(2)}`)
     console.log(`   Memory Stability: ${result.metrics.resources.memoryUsage ? 'Tracked' : 'Not tracked'}`)
-    
+
     // Check for memory leaks over long duration
     if (result.metrics.resources.memoryUsage) {
       const memoryMB = result.metrics.resources.memoryUsage.heapUsed / 1024 / 1024
@@ -611,14 +611,14 @@ describe('Performance and Load Testing', () => {
    */
   test.skip('Breaking Point Test - Progressive Load Increase', async () => {
     console.log('📊 Running breaking point test...')
-    
+
     const maxUsers = 200
     const stepSize = 25
     const stepDuration = 30000 // 30 seconds per step
-    
+
     for (let targetUsers = stepSize; targetUsers <= maxUsers; targetUsers += stepSize) {
       console.log(`🔄 Testing with ${targetUsers} users...`)
-      
+
       const config: LoadTestConfig = {
         name: `Breaking Point - ${targetUsers} Users`,
         description: `Progressive load test with ${targetUsers} concurrent users`,
@@ -641,11 +641,13 @@ describe('Performance and Load Testing', () => {
 
       const runner = new LoadTestRunner(config, client, coreServiceScenarios)
       const result = await runner.run()
-      
+
       baselineResults[`breaking_point_${targetUsers}`] = result
-      
-      console.log(`   ${targetUsers} users: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS, ${result.metrics.errors.errorRate.toFixed(1)}% errors`)
-      
+
+      console.log(
+        `   ${targetUsers} users: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS, ${result.metrics.errors.errorRate.toFixed(1)}% errors`
+      )
+
       // Stop if error rate exceeds 25% or response time exceeds 30 seconds
       if (result.metrics.errors.errorRate > 25 || result.metrics.responseTime.p95 > 30000) {
         console.log(`💥 Breaking point reached at ${targetUsers} users`)
@@ -653,9 +655,9 @@ describe('Performance and Load Testing', () => {
         console.log(`   P95 Response Time: ${result.metrics.responseTime.p95.toFixed(2)}ms`)
         break
       }
-      
+
       // Brief pause between test steps
-      await new Promise(resolve => setTimeout(resolve, 10000))
+      await new Promise((resolve) => setTimeout(resolve, 10000))
     }
   }, 600000) // 10 minute timeout
 
@@ -664,7 +666,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Performance Regression Detection', async () => {
     console.log('📊 Running regression detection test...')
-    
+
     // Only run if we have baseline results
     if (!baselineResults['baseline']) {
       console.log('⏭️  Skipping regression test - no baseline available')
@@ -694,30 +696,26 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const currentResult = await runner.run()
-    
+
     // Compare with baseline
-    const comparison = PerformanceRegression.compareWithBaseline(
-      currentResult,
-      baselineResults['baseline'],
-      {
-        responseTimeDegradation: 50, // 50% response time degradation threshold
-        throughputDegradation: -30, // 30% throughput degradation threshold
-        errorRateIncrease: 5 // 5 percentage point error rate increase
-      }
-    )
-    
+    const comparison = PerformanceRegression.compareWithBaseline(currentResult, baselineResults['baseline'], {
+      responseTimeDegradation: 50, // 50% response time degradation threshold
+      throughputDegradation: -30, // 30% throughput degradation threshold
+      errorRateIncrease: 5 // 5 percentage point error rate increase
+    })
+
     console.log('📈 Performance Comparison Results:')
     console.log(`   Response Time Change: ${comparison.metrics.responseTimeChange.toFixed(1)}%`)
     console.log(`   Throughput Change: ${comparison.metrics.throughputChange.toFixed(1)}%`)
     console.log(`   Error Rate Change: ${comparison.metrics.errorRateChange.toFixed(1)} pp`)
-    
+
     if (!comparison.passed) {
       console.log('⚠️  Performance Issues Detected:')
-      comparison.issues.forEach(issue => console.log(`   - ${issue}`))
+      comparison.issues.forEach((issue) => console.log(`   - ${issue}`))
     } else {
       console.log('✅ No significant performance regressions detected')
     }
-    
+
     // Test should pass if no critical regressions
     expect(comparison.passed).toBe(true)
   }, 120000)
@@ -727,7 +725,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Performance Report Generation', async () => {
     console.log('📊 Generating performance reports...')
-    
+
     if (Object.keys(baselineResults).length === 0) {
       console.log('⏭️  Skipping report generation - no test results available')
       return
@@ -737,13 +735,13 @@ describe('Performance and Load Testing', () => {
     for (const [testName, result] of Object.entries(baselineResults)) {
       console.log(`\n📋 Report for ${testName}:`)
       console.log(PerformanceReporter.generateReport(result))
-      
+
       // Validate report generation doesn't throw
       expect(typeof PerformanceReporter.generateReport(result)).toBe('string')
       expect(typeof PerformanceReporter.exportToJson(result)).toBe('string')
       expect(typeof PerformanceReporter.exportToCsv(result)).toBe('string')
     }
-    
+
     console.log('✅ Performance reports generated successfully')
   })
 
@@ -752,7 +750,7 @@ describe('Performance and Load Testing', () => {
    */
   test('Resource Utilization Analysis', async () => {
     console.log('📊 Running resource utilization test...')
-    
+
     const config: LoadTestConfig = {
       name: 'Resource Utilization',
       description: 'Monitor system resource usage under load',
@@ -777,25 +775,29 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, coreServiceScenarios)
     const result = await runner.run()
-    
+
     // Analyze resource usage
     const { resources } = result.metrics
-    
+
     if (resources.memoryUsage) {
       const memoryMB = resources.memoryUsage.heapUsed / 1024 / 1024
       console.log(`💾 Memory Usage: ${memoryMB.toFixed(2)} MB`)
       expect(memoryMB).toBeLessThan(800) // Should not exceed 800MB under moderate load
     }
-    
+
     if (resources.gcMetrics) {
-      console.log(`🗑️  Garbage Collection: ${resources.gcMetrics.totalCollections} collections, ${resources.gcMetrics.totalTime.toFixed(2)}ms total`)
+      console.log(
+        `🗑️  Garbage Collection: ${resources.gcMetrics.totalCollections} collections, ${resources.gcMetrics.totalTime.toFixed(2)}ms total`
+      )
       expect(resources.gcMetrics.totalTime).toBeLessThan(result.totalDuration * 0.1) // GC should not exceed 10% of total time
     }
-    
+
     console.log('✅ Resource utilization test completed')
     console.log(`   Peak Concurrent Users: ${result.metrics.concurrency.actualConcurrentPeak}`)
     console.log(`   Average Response Time: ${result.metrics.responseTime.mean.toFixed(2)}ms`)
-    console.log(`   System Efficiency: ${(result.metrics.throughput.requestsPerSecond / result.metrics.concurrency.actualConcurrentPeak).toFixed(2)} RPS/user`)
+    console.log(
+      `   System Efficiency: ${(result.metrics.throughput.requestsPerSecond / result.metrics.concurrency.actualConcurrentPeak).toFixed(2)} RPS/user`
+    )
   }, 180000)
 
   /**
@@ -803,13 +805,13 @@ describe('Performance and Load Testing', () => {
    */
   test('Mixed Workload - Read/Write Balance', async () => {
     console.log('📊 Running mixed workload test...')
-    
+
     // Combine read and write scenarios with realistic distribution
     const mixedScenarios: EndpointTestScenario[] = [
-      ...coreServiceScenarios.map(s => ({ ...s, weight: s.weight * 0.7 })), // 70% reads
-      ...writeScenarios.map(s => ({ ...s, weight: s.weight * 0.3 })) // 30% writes
+      ...coreServiceScenarios.map((s) => ({ ...s, weight: s.weight * 0.7 })), // 70% reads
+      ...writeScenarios.map((s) => ({ ...s, weight: s.weight * 0.3 })) // 30% writes
     ]
-    
+
     const config: LoadTestConfig = {
       name: 'Mixed Workload',
       description: '70% read, 30% write operations under load',
@@ -838,20 +840,20 @@ describe('Performance and Load Testing', () => {
 
     const runner = new LoadTestRunner(config, client, mixedScenarios)
     const result = await runner.run()
-    
+
     baselineResults['mixed_workload'] = result
-    
+
     // Mixed workload should balance performance
     expect(result.metrics.responseTime.p95).toBeLessThan(6000)
     expect(result.metrics.errors.errorRate).toBeLessThan(8)
     expect(result.metrics.throughput.requestsPerSecond).toBeGreaterThan(12)
-    
+
     console.log('✅ Mixed workload test completed')
     console.log(`   Throughput: ${result.metrics.throughput.requestsPerSecond.toFixed(2)} RPS`)
     console.log(`   P95: ${result.metrics.responseTime.p95.toFixed(2)}ms`)
     console.log(`   Error Rate: ${result.metrics.errors.errorRate.toFixed(2)}%`)
     console.log(`   Read/Write Balance: Optimal`)
-    
+
     // Verify data consistency after mixed operations
     const finalTicketsResult = await client.tickets.listTickets(testProject.id)
     assertions.assertSuccessResponse(finalTicketsResult)
@@ -869,22 +871,22 @@ describe('Performance Test Utilities', () => {
       users: { initial: 1, target: 1, rampupTimeMs: 100, sustainTimeMs: 1000 },
       requests: { timeoutMs: 5000 }
     }
-    
+
     const measurement = new PerformanceMeasurement(config)
-    
+
     measurement.start()
-    
+
     // Simulate some operations
     await measurement.measureOperation(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       return 'success'
     }, 'test_operation')
-    
+
     measurement.recordError('Test error', 'test_endpoint', 500)
     measurement.updateActiveUsers(5)
-    
+
     const result = measurement.end()
-    
+
     expect(result.testName).toBe('Utility Test')
     expect(result.metrics.throughput.totalRequests).toBe(1)
     expect(result.metrics.errors.totalErrors).toBe(1)
@@ -902,7 +904,7 @@ describe('Performance Test Utilities', () => {
       metrics: {
         responseTime: { min: 10, max: 100, mean: 50, median: 45, p95: 80, p99: 95, standardDeviation: 20 },
         throughput: { requestsPerSecond: 100, requestsPerMinute: 6000, totalRequests: 100, duration: 1000 },
-        errors: { totalErrors: 1, errorRate: 1, errorsByType: { 'server_error': 1 }, timeouts: 0 },
+        errors: { totalErrors: 1, errorRate: 1, errorsByType: { server_error: 1 }, timeouts: 0 },
         resources: {},
         concurrency: { targetUsers: 10, actualConcurrentPeak: 10, averageConcurrentUsers: 8, userRampupTime: 5000 }
       },
@@ -910,7 +912,7 @@ describe('Performance Test Utilities', () => {
       errors: [],
       timeline: []
     }
-    
+
     const current: LoadTestResult = {
       ...baseline,
       metrics: {
@@ -920,13 +922,13 @@ describe('Performance Test Utilities', () => {
         errors: { ...baseline.metrics.errors, errorRate: 3 } // 2 percentage point increase
       }
     }
-    
+
     const comparison = PerformanceRegression.compareWithBaseline(current, baseline, {
       responseTimeDegradation: 30, // 30% threshold
       throughputDegradation: -15, // 15% threshold
       errorRateIncrease: 1 // 1 percentage point threshold
     })
-    
+
     expect(comparison.passed).toBe(false)
     expect(comparison.issues.length).toBe(3) // All three metrics exceeded thresholds
     expect(comparison.metrics.responseTimeChange).toBe(50)
@@ -943,9 +945,15 @@ describe('Performance Test Utilities', () => {
       metrics: {
         responseTime: { min: 10, max: 200, mean: 75, median: 70, p95: 150, p99: 180, standardDeviation: 25 },
         throughput: { requestsPerSecond: 50, requestsPerMinute: 3000, totalRequests: 50, duration: 1000 },
-        errors: { totalErrors: 2, errorRate: 4, errorsByType: { 'timeout': 1, 'server_error': 1 }, timeouts: 1 },
+        errors: { totalErrors: 2, errorRate: 4, errorsByType: { timeout: 1, server_error: 1 }, timeouts: 1 },
         resources: {
-          memoryUsage: { rss: 50000000, heapUsed: 30000000, heapTotal: 40000000, external: 5000000, arrayBuffers: 2000000 }
+          memoryUsage: {
+            rss: 50000000,
+            heapUsed: 30000000,
+            heapTotal: 40000000,
+            external: 5000000,
+            arrayBuffers: 2000000
+          }
         },
         concurrency: { targetUsers: 10, actualConcurrentPeak: 10, averageConcurrentUsers: 8, userRampupTime: 5000 }
       },
@@ -953,20 +961,20 @@ describe('Performance Test Utilities', () => {
       errors: [],
       timeline: []
     }
-    
+
     const report = PerformanceReporter.generateReport(testResult)
     const jsonExport = PerformanceReporter.exportToJson(testResult)
     const csvExport = PerformanceReporter.exportToCsv(testResult)
-    
+
     expect(report).toContain('Performance Test Report: Test Report')
     expect(report).toContain('Mean: 75.00ms')
     expect(report).toContain('Requests/Second: 50.00')
     expect(report).toContain('Error Rate: 4.00%')
     expect(report).toContain('RSS: 47.68 MB')
-    
+
     expect(typeof jsonExport).toBe('string')
     expect(JSON.parse(jsonExport)).toEqual(testResult)
-    
+
     expect(typeof csvExport).toBe('string')
     expect(csvExport).toContain('timestamp,response_time_ms,endpoint,success,error_type')
   })

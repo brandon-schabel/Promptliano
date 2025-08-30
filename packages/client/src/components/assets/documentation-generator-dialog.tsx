@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@promptliano/ui'
 import { toast } from 'sonner'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useGenerateStructuredData } from '@/hooks/api/use-gen-ai-api'
+import { useGenerateStructuredData } from '@/hooks/generated'
 import { Copy, Download, Loader2, FileText, Code, GitBranch, Database, Book } from 'lucide-react'
 import { estimateTokenCount, formatTokenCount } from '@promptliano/shared'
 import { MarkdownRenderer } from '@/components/markdown-renderer'
 import { ProviderModelSelector, useModelSelection } from '@/components/model-selection'
 import { Separator } from '@promptliano/ui'
-import { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 interface DocumentationGeneratorDialogProps {
   open: boolean
@@ -90,7 +90,8 @@ export function DocumentationGeneratorDialog({
   const docType = documentationType ? documentationTypes[documentationType as keyof typeof documentationTypes] : null
 
   // Form data - initialize with all sections selected
-  const [formData, setFormData] = useState({
+  // Form data - initialize with all sections selected
+  const [formData, setFormData] = useState<DocumentFormData>({
     title: '',
     description: '',
     format: 'detailed',
@@ -105,7 +106,12 @@ export function DocumentationGeneratorDialog({
   const [isGenerating, setIsGenerating] = useState(false)
 
   // Model selection - Default to OpenRouter with Gemini 2.5 Pro
-  const { provider, model, setProvider: setProviderBase, setModel } = useModelSelection({
+  const {
+    provider,
+    model,
+    setProvider: setProviderBase,
+    setModel
+  } = useModelSelection({
     persistenceKey: 'documentation-generator-model',
     defaultProvider: 'openrouter',
     defaultModel: 'google/gemini-2.5-pro-preview'
@@ -224,7 +230,7 @@ export function DocumentationGeneratorDialog({
     setActiveTab('input')
   }
 
-  const updateField = (field: string, value: any) => {
+  const updateField = <K extends keyof DocumentFormData>(field: K, value: DocumentFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -311,13 +317,13 @@ export function DocumentationGeneratorDialog({
                       <Checkbox
                         id={section}
                         checked={formData.sections.includes(section)}
-                        onCheckedChange={(checked) => {
+                        onCheckedChange={(checked: boolean) => {
                           if (checked) {
                             updateField('sections', [...formData.sections, section])
                           } else {
                             updateField(
                               'sections',
-                              formData.sections.filter((s) => s !== section)
+                              formData.sections.filter((s: string) => s !== section)
                             )
                           }
                         }}
@@ -336,14 +342,14 @@ export function DocumentationGeneratorDialog({
                   <label className='flex items-center space-x-2'>
                     <Checkbox
                       checked={formData.includeTableOfContents}
-                      onCheckedChange={(checked) => updateField('includeTableOfContents', checked)}
+                      onCheckedChange={(checked: boolean) => updateField('includeTableOfContents', checked)}
                     />
                     <span className='text-sm'>Include Table of Contents</span>
                   </label>
                   <label className='flex items-center space-x-2'>
                     <Checkbox
                       checked={formData.includeExamples}
-                      onCheckedChange={(checked) => updateField('includeExamples', checked)}
+                      onCheckedChange={(checked: boolean) => updateField('includeExamples', checked)}
                     />
                     <span className='text-sm'>Include Code Examples</span>
                   </label>
@@ -450,7 +456,28 @@ export function DocumentationGeneratorDialog({
 }
 
 // Helper function to prepare user input for API
-function prepareUserInput(documentationType: string, formData: any, projectContext?: any): string {
+interface DocumentFormData {
+  title: string
+  description: string
+  format: string
+  audience: string
+  includeTableOfContents: boolean
+  includeExamples: boolean
+  sections: string[]
+  additionalContext: string
+}
+
+interface ProjectContext {
+  name: string
+  description?: string
+  techStack?: string[]
+}
+
+function prepareUserInput(
+  documentationType: string,
+  formData: DocumentFormData,
+  projectContext?: ProjectContext
+): string {
   const projectName = projectContext?.name || 'the project'
   const projectDesc = projectContext?.description || ''
   const techStack = projectContext?.techStack?.join(', ') || ''

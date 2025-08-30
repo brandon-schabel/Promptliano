@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useCommitLogEnhanced } from '@/hooks/api/use-git-api'
+import { useCommitLogEnhanced } from '@/hooks/api-hooks'
 import type { GitCommitEnhanced } from '@promptliano/schemas'
 import { ScrollArea } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'

@@ -48,7 +48,8 @@ import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { GlobalStateEditorType as EditorType, ProjectFile } from '@promptliano/schemas'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
-import { useProjectGitStatus, useStageFiles, useUnstageFiles } from '@/hooks/api/use-git-api'
+import { useStageFiles } from '@/hooks/generated'
+import { useProjectGitStatus, useUnstageFiles } from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
 import type { GitFileStatus, GitStatus } from '@promptliano/schemas'
 import { GitBranch, Plus, Minus, History, GitCompare } from 'lucide-react'
@@ -710,8 +711,21 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (response.success && response.data?.diff) {
-                    const { original } = parseDiff(response.data.diff)
+                  if (
+                    response &&
+                    ((response.data as any)?.diff ||
+                      response.data?.content ||
+                      (response as any)?.diff ||
+                      (response as any)?.content ||
+                      response)
+                  ) {
+                    const diff =
+                      (response.data as any)?.diff ||
+                      response.data?.content ||
+                      (response as any)?.diff ||
+                      (response as any)?.content ||
+                      response
+                    const { original } = parseDiff(diff)
                     copyToClipboard(original, {
                       successMessage: 'Previous version copied to clipboard',
                       errorMessage: 'Failed to copy previous version'
@@ -743,8 +757,21 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (response.success && response.data?.diff) {
-                    copyToClipboard(response.data.diff, {
+                  if (
+                    response &&
+                    ((response.data as any)?.diff ||
+                      response.data?.content ||
+                      (response as any)?.diff ||
+                      (response as any)?.content ||
+                      response)
+                  ) {
+                    const diff =
+                      (response.data as any)?.diff ||
+                      response.data?.content ||
+                      (response as any)?.diff ||
+                      (response as any)?.content ||
+                      response
+                    copyToClipboard(diff, {
                       successMessage: 'Diff copied to clipboard',
                       errorMessage: 'Failed to copy diff'
                     })
@@ -904,7 +931,7 @@ export const FileTree = forwardRef<FileTreeRef, FileTreeProps>(function FileTree
   const gitStatusMap = useMemo(() => {
     const map = new Map<string, GitFileStatus>()
     if (gitStatus?.success && gitStatus.data.files) {
-      gitStatus.data.files.forEach((file) => {
+      gitStatus.data.files.forEach((file: any) => {
         map.set(file.path, file)
       })
     }

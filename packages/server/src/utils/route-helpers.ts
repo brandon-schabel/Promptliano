@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi'
-import { ApiError } from '@promptliano/shared'
+import { ApiError, ErrorFactory, assertExists, assertValid, withErrorContext } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import type { Context } from 'hono'
 
@@ -7,10 +7,7 @@ import type { Context } from 'hono'
  * Generic success response schema factory
  * Reduces repetitive response schema definitions
  */
-export function createSuccessResponseSchema<T extends z.ZodTypeAny>(
-  dataSchema: T,
-  name: string
-) {
+export function createSuccessResponseSchema<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -22,10 +19,7 @@ export function createSuccessResponseSchema<T extends z.ZodTypeAny>(
 /**
  * Generic list response schema factory
  */
-export function createListResponseSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  name: string
-) {
+export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -37,10 +31,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(
 /**
  * Generic paginated response schema factory
  */
-export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  name: string
-) {
+export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -104,8 +95,8 @@ export function createStandardResponses(successSchema: z.ZodTypeAny) {
  * Create standard responses with custom status code
  */
 export function createStandardResponsesWithStatus(
-  successSchema: z.ZodTypeAny, 
-  statusCode: number = 200, 
+  successSchema: z.ZodTypeAny,
+  statusCode: number = 200,
   description: string = 'Success'
 ) {
   return {
@@ -116,32 +107,32 @@ export function createStandardResponsesWithStatus(
       description
     },
     ...standardResponses
-  }
+  } as const
 }
 
 /**
- * Wrapper for route handlers with automatic error handling
- * Reduces repetitive try-catch blocks
+ * Wrapper for route handlers with automatic error handling using ErrorFactory
+ * Reduces repetitive try-catch blocks and provides consistent error formatting
  */
-export function withErrorHandling<T extends any[], R>(
-  handler: (c: Context, ...args: T) => Promise<R>
-): (c: Context, ...args: T) => Promise<R> {
-  return async (c: Context, ...args: T): Promise<R> => {
+export function withErrorHandling<C extends Context, T extends any[], R>(
+  handler: (c: C, ...args: T) => Promise<R>
+): (c: C, ...args: T) => Promise<R> {
+  return async (c: C, ...args: T): Promise<R> => {
     try {
       return await handler(c, ...args)
     } catch (error) {
       if (error instanceof ApiError) {
         throw error // Will be handled by Hono error middleware
       }
-      
-      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
-      throw new ApiError(500, message, 'INTERNAL_ERROR')
+
+      // Use ErrorFactory.wrap for consistent error handling
+      throw ErrorFactory.wrap(error, 'Route handler')
     }
   }
 }
 
 /**
- * Extract and validate route parameters with better error messages
+ * Extract and validate route parameters with ErrorFactory integration
  */
 export function validateRouteParam(
   c: Context,
@@ -149,19 +140,19 @@ export function validateRouteParam(
   type: 'number' | 'string' = 'number'
 ): number | string {
   const value = c.req.param(paramName)
-  
+
   if (!value) {
-    throw new ApiError(400, `Missing required parameter: ${paramName}`, 'MISSING_PARAM')
+    throw ErrorFactory.missingRequired(paramName, 'route parameter')
   }
-  
+
   if (type === 'number') {
     const parsed = parseInt(value, 10)
     if (isNaN(parsed)) {
-      throw new ApiError(400, `Invalid ${paramName}: must be a number`, 'INVALID_PARAM')
+      throw ErrorFactory.invalidParam(paramName, 'number', value)
     }
     return parsed
   }
-  
+
   return value
 }
 
@@ -208,28 +199,19 @@ export function operationSuccessResponseJson(c: Context, message: string = 'Oper
 /**
  * Create a route handler with built-in validation and error handling
  * Uses safe extraction methods to avoid type system conflicts
- * 
+ *
  * Note: For full type safety, prefer using c.req.valid() directly in route handlers
  * where the Context type is properly constrained by OpenAPI route definitions.
  */
-export function createRouteHandler<
-  TParams = Record<string, any>,
-  TQuery = Record<string, any>,
-  TBody = any
->(
-  handler: (args: {
-    params?: TParams
-    query?: TQuery
-    body?: TBody
-    c: Context
-  }) => Promise<any>
+export function createRouteHandler<TParams = Record<string, any>, TQuery = Record<string, any>, TBody = any>(
+  handler: (args: { params?: TParams; query?: TQuery; body?: TBody; c: Context }) => Promise<any>
 ): (c: Context) => Promise<any> {
   return withErrorHandling(async (c: Context) => {
     // Extract parameters from the context using safe methods
     let params: TParams | undefined
     let query: TQuery | undefined
     let body: TBody | undefined
-    
+
     // Use runtime validation extraction with proper error handling
     try {
       // Check if context has validated params - this works in OpenAPI routes
@@ -239,7 +221,7 @@ export function createRouteHandler<
     } catch {
       // If validation fails, params remain undefined
     }
-    
+
     try {
       // Check if context has validated query - this works in OpenAPI routes
       if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
@@ -248,7 +230,7 @@ export function createRouteHandler<
     } catch {
       // If validation fails, query remains undefined
     }
-    
+
     try {
       // Check if context has validated body - this works in OpenAPI routes
       if ('valid' in c.req && typeof (c.req as any).valid === 'function') {
@@ -257,19 +239,19 @@ export function createRouteHandler<
     } catch {
       // If validation fails, body remains undefined
     }
-    
-    const result = await handler({ 
+
+    const result = await handler({
       params,
       query,
       body,
-      c 
+      c
     })
-    
+
     // If result is already a Response, return it directly
     if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
       return result
     }
-    
+
     return c.json(result)
   })
 }
@@ -278,23 +260,21 @@ export function createRouteHandler<
  * Simple route handler wrapper without parameter extraction
  * Use this when you want to handle c.req.valid() calls manually
  */
-export function createSimpleRouteHandler(
-  handler: (c: Context) => Promise<any>
-) {
+export function createSimpleRouteHandler(handler: (c: Context) => Promise<any>) {
   return withErrorHandling(async (c: Context) => {
     const result = await handler(c)
-    
+
     // If result is already a Response, return it directly
     if (result && typeof result === 'object' && result.constructor?.name === 'Response') {
       return result
     }
-    
+
     return c.json(result)
   })
 }
 
 /**
- * Batch validation helper for multiple entities
+ * Batch validation helper for multiple entities using ErrorFactory
  */
 export async function validateEntities<T>(
   entities: T[],
@@ -311,21 +291,68 @@ export async function validateEntities<T>(
       }
     })
   )
-  
-  const failures = validationResults.filter(r => !r.isValid)
-  
+
+  const failures = validationResults.filter((r) => !r.isValid)
+
   if (failures.length > 0) {
-    throw new ApiError(
-      400,
-      `Validation failed for ${failures.length} ${entityName}(s)`,
-      'BATCH_VALIDATION_ERROR',
-      { failures }
+    throw ErrorFactory.validationFailed(
+      {
+        message: `Validation failed for ${failures.length} ${entityName}(s)`,
+        failures
+      } as any,
+      { entity: entityName, action: 'batch_validation', failures }
     )
   }
 }
 
 /**
- * Create a standard CRUD route set
+ * Enhanced route handler with context-aware error handling
+ */
+export function withRouteContext<T extends any[], R>(
+  entityName: string,
+  action: string,
+  handler: (c: Context, ...args: T) => Promise<R>
+): (c: Context, ...args: T) => Promise<R> {
+  return async (c: Context, ...args: T): Promise<R> => {
+    return await withErrorContext(() => handler(c, ...args), { entity: entityName, action })
+  }
+}
+
+/**
+ * Validate and extract entity ID from route parameters
+ */
+export function extractEntityId(c: Context, paramName: string = 'id'): number {
+  const value = c.req.param(paramName)
+
+  if (!value) {
+    throw ErrorFactory.missingRequired(paramName, 'path parameter')
+  }
+
+  const id = parseInt(value, 10)
+  if (isNaN(id) || id <= 0) {
+    throw ErrorFactory.invalidParam(paramName, 'positive integer', value)
+  }
+
+  return id
+}
+
+/**
+ * Safe JSON body extraction with validation
+ */
+export function extractValidatedBody<T>(c: Context, schema: z.ZodSchema<T>, entityContext?: string): T {
+  try {
+    const body = (c.req as any).valid('json')
+    return assertValid(body, schema, entityContext)
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+    throw ErrorFactory.validationFailed(error, { entity: entityContext })
+  }
+}
+
+/**
+ * Create a standard CRUD route set with ErrorFactory integration
  */
 export function createCrudRoutes<TEntity extends { id: number }>(
   entityName: string,
@@ -337,62 +364,47 @@ export function createCrudRoutes<TEntity extends { id: number }>(
     delete: (id: number) => Promise<boolean>
   }
 ) {
+  const entityErrors = ErrorFactory.forEntity(entityName)
+
   return {
-    list: createSimpleRouteHandler(async (c) => {
+    list: withRouteContext(entityName, 'list', async (c) => {
       const entities = await service.list()
       return successResponseJson(c, entities)
     }),
-    
-    get: createSimpleRouteHandler(async (c) => {
-      const params = (c.req as any).valid('param')
-      const id = parseInt(params.id, 10)
-      if (isNaN(id)) {
-        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
-      }
-      
+
+    get: withRouteContext(entityName, 'get', async (c) => {
+      const id = extractEntityId(c)
       const entity = await service.get(id)
-      
+
       if (!entity) {
-        throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
+        throw entityErrors.notFound(id)
       }
-      
+
       return successResponseJson(c, entity)
     }),
-    
-    create: createSimpleRouteHandler(async (c) => {
+
+    create: withRouteContext(entityName, 'create', async (c) => {
       const body = (c.req as any).valid('json')
-      
       const entity = await service.create(body)
       return successResponseJson(c, entity)
     }),
-    
-    update: createSimpleRouteHandler(async (c) => {
-      const params = (c.req as any).valid('param')
+
+    update: withRouteContext(entityName, 'update', async (c) => {
+      const id = extractEntityId(c)
       const body = (c.req as any).valid('json')
-      
-      const id = parseInt(params.id, 10)
-      if (isNaN(id)) {
-        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
-      }
-      
+
       const entity = await service.update(id, body)
       return successResponseJson(c, entity)
     }),
-    
-    delete: createSimpleRouteHandler(async (c) => {
-      const params = (c.req as any).valid('param')
-      
-      const id = parseInt(params.id, 10)
-      if (isNaN(id)) {
-        throw new ApiError(400, 'Invalid ID parameter', 'INVALID_PARAM')
-      }
-      
+
+    delete: withRouteContext(entityName, 'delete', async (c) => {
+      const id = extractEntityId(c)
       const success = await service.delete(id)
-      
+
       if (!success) {
-        throw new ApiError(404, `${entityName} not found`, `${entityName.toUpperCase()}_NOT_FOUND`)
+        throw entityErrors.notFound(id)
       }
-      
+
       return operationSuccessResponseJson(c, `${entityName} deleted successfully`)
     })
   }

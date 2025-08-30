@@ -3,9 +3,9 @@ import { Badge } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
 import { useNavigate } from '@tanstack/react-router'
-import { useGetQueueWithStats } from '@/hooks/api/use-queue-api'
+import { useQueue } from '@/hooks/generated'
 import { Loader2, Inbox, Pause, Play, AlertCircle, Clock, CheckCircle } from 'lucide-react'
-import type { Ticket, TicketTask } from '@promptliano/schemas'
+import type { Ticket, TicketTask } from '@/hooks/generated/types'
 
 interface QueueBadgeProps {
   item: Partial<Ticket> | Partial<TicketTask>
@@ -46,7 +46,7 @@ export function QueueBadge({
   const queuePosition = item.queuePosition
 
   // Fetch queue details if we have a queueId
-  const { data: queueData, isLoading } = useGetQueueWithStats(queueId || 0, { enabled: !!queueId })
+  const { data: queueData, isLoading } = useQueue(queueId || 0)
 
   // Don't render if no queue
   if (!queueId) {
@@ -88,8 +88,8 @@ export function QueueBadge({
     )
   }
 
-  const queueName = queueData?.queue?.name || `Queue ${queueId}`
-  const isPaused = queueData?.queue?.status === 'paused'
+  const queueName = queueData?.name || `Queue ${queueId}`
+  const isPaused = !queueData?.isActive
 
   return (
     <Badge

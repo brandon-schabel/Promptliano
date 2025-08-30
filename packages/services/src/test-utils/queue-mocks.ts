@@ -1,28 +1,24 @@
 import type {
-  TaskQueue,
+  Queue,
   QueueItem,
   Ticket,
   TicketTask,
   QueueStatus,
-  ItemQueueStatus as QueueItemStatus,
-  CreateQueueBody,
-  EnqueueItemBody
-} from '@promptliano/schemas'
+  CreateQueue as CreateQueueBody
+} from '@promptliano/database'
 
 // Factory functions for test data
-export function createMockQueue(overrides?: Partial<TaskQueue>): TaskQueue {
+export function createMockQueue(overrides?: Partial<Queue>): Queue {
   const now = Date.now()
   return {
     id: Math.floor(Math.random() * 1000000),
     projectId: 1754713756748,
     name: 'Test Queue',
     description: 'Queue for testing',
-    status: 'active' as QueueStatus,
     maxParallelItems: 2,
-    averageProcessingTime: 5000,
-    totalCompletedItems: 0,
-    created: now,
-    updated: now,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
     ...overrides
   }
 }

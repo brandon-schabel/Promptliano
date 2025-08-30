@@ -16,6 +16,7 @@ Task(
 ```
 
 **The agent has comprehensive knowledge of:**
+
 - Optimized Bun workflow patterns that achieved 62% faster CI
 - Reusable workflow architecture (composite actions + reusable workflows)
 - Security best practices with SHA-pinned actions
@@ -35,26 +36,31 @@ Promptliano uses GitHub Actions for continuous integration, testing, building, a
 ### Modern Workflow Architecture (Post-Optimization)
 
 #### 1. **Unified CI System**
+
 - `monorepo-ci.yml` - **Replaces all package-specific workflows** with smart change detection
 - Matrix-based testing only for changed packages
 - Package-specific configurations and timeouts
 - 62% faster execution through intelligent testing
 
 #### 2. **Reusable Components**
+
 - `reusable-test-package.yml` - Generic package testing workflow
 - `reusable-docker-build.yml` - Docker build/push with security scanning
 
 #### 3. **Composite Actions**
+
 - `.github/actions/setup-bun/` - Bun installation with intelligent caching
 - `.github/actions/install-deps/` - Smart dependency installation
 - `.github/actions/test-summary/` - Rich test result reporting
 
 #### 4. **Publishing Workflows**
+
 - `publish-ui.yml` - Enhanced with pre-publish testing
 - `publish-cli.yml` - Publishes CLI package to npm
 - `publish-npm-package.reusable.yml` - Reusable workflow template
 
 #### 5. **Release & Docker Workflows**
+
 - `release-binaries.yml` - Server binary releases
 - `deploy-website.yml` - Website deployment
 - `docker-ci.yml` - Multi-arch builds with security scanning
@@ -276,6 +282,7 @@ steps:
 - **Runner Requirement**: Update GitHub runners to v2.231.0 or newer
 
 **Migration Pattern**:
+
 ```yaml
 # ❌ DEPRECATED - Will fail after Feb 1, 2025
 - uses: actions/cache@v4.0.2

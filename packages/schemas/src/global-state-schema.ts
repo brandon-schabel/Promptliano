@@ -1,9 +1,23 @@
 import { z } from 'zod'
-import { providerSchema, type APIProviders } from './provider-key.schemas'
+// APIProviders type from database - not imported to avoid client build issues
 import { idSchemaSpec, idArraySchemaSpec } from './schema-utils'
 import { DEFAULT_MODEL_EXAMPLES } from './model-defaults'
 
 const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
+
+// Provider schema matching the database APIProviders type
+export const providerSchema = z.enum([
+  'openai',
+  'openrouter',
+  'lmstudio',
+  'ollama',
+  'xai',
+  'google_gemini',
+  'anthropic',
+  'groq',
+  'together',
+  'custom'
+])
 
 export const EDITOR_OPTIONS = [
   { value: 'vscode', label: 'VS Code' },
@@ -172,11 +186,6 @@ export const projectTabStateSchema = z
       .nullable()
       .optional()
       .openapi({ description: 'Timestamp when the tab name was generated' }),
-    claudeCodeEnabled: z
-      .boolean()
-      .optional()
-      .default(false)
-      .openapi({ description: 'Whether Claude Code integration features are enabled for this project.' }),
     assetsEnabled: z
       .boolean()
       .optional()
@@ -390,7 +399,7 @@ export const appSettingsSchema = z
     // Global Chat Model Settings (Referencing the detailed modelSettingsSchema fields)
     provider: providerSchema
       .optional()
-      .default(defaultModelConfigs.provider as APIProviders)
+      .default(defaultModelConfigs.provider)
       .openapi({ description: 'Default AI provider to use for chat.', example: 'openrouter' }),
     model: z
       .string()
@@ -466,8 +475,8 @@ export const globalStateSchema = z
     projectTabs: projectTabsStateRecordSchema.openapi({
       description: 'State of all open project tabs, keyed by tab ID.'
     }),
-    projectActiveTabId: idSchemaSpec,
-    activeChatId: idSchemaSpec,
+    projectActiveTabId: idSchemaSpec.default(-1),
+    activeChatId: idSchemaSpec.default(-1),
     chatLinkSettings: chatLinkSettingsSchema.openapi({ description: 'Link settings specific to each chat session.' })
   })
   .openapi('GlobalState', { description: 'Represents the entire persistent application state.' })
@@ -486,7 +495,8 @@ export const createInitialGlobalState = (): GlobalState => {
           // Set any other non-default initial values if needed
         })
       },
-      projectActiveTabId: 1, // Assuming project tabs remain
+      // No active project tab by default; will be set explicitly once a tab is created/selected
+      projectActiveTabId: -1, // Assuming project tabs remain
       activeChatId: -1,
       chatLinkSettings: {}
     }
@@ -514,7 +524,7 @@ export const createSafeGlobalState = (): GlobalState => ({
     useSpacebarToSelectAutocomplete: true,
     hideInformationalTooltips: false,
     autoScrollEnabled: true,
-    provider: defaultModelConfigs.provider as APIProviders,
+    provider: defaultModelConfigs.provider,
     model: defaultModelConfigs.model ?? 'gpt-4o',
     temperature: defaultModelConfigs.temperature ?? 0.7,
     maxTokens: defaultModelConfigs.maxTokens ?? 4000,
@@ -548,7 +558,7 @@ export const createSafeGlobalState = (): GlobalState => ({
       ticketQueueFilter: 'all' as const,
       promptsPanelCollapsed: true,
       selectedFilesCollapsed: false,
-      claudeCodeEnabled: false,
+
       assetsEnabled: false,
       autoIncludeClaudeMd: false,
       instructionFileSettings: {
@@ -561,7 +571,8 @@ export const createSafeGlobalState = (): GlobalState => ({
       }
     }
   },
-  projectActiveTabId: 1,
+  // -1 indicates no active project tab initially
+  projectActiveTabId: -1,
   activeChatId: -1,
   chatLinkSettings: {}
 })

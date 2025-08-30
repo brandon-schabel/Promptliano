@@ -104,29 +104,26 @@ const CircularProgress: React.FC<{
       <svg className={cn('transform -rotate-90', sizeConfig.circular)}>
         {/* Background circle */}
         <circle
-          cx="50%"
-          cy="50%"
+          cx='50%'
+          cy='50%'
           r={radius}
-          stroke="currentColor"
+          stroke='currentColor'
           strokeWidth={sizeConfig.strokeWidth}
-          fill="none"
-          className="text-muted-foreground/20"
+          fill='none'
+          className='text-muted-foreground/20'
         />
         {/* Progress circle */}
         <circle
-          cx="50%"
-          cy="50%"
+          cx='50%'
+          cy='50%'
           r={radius}
-          stroke="currentColor"
+          stroke='currentColor'
           strokeWidth={sizeConfig.strokeWidth}
-          fill="none"
+          fill='none'
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          strokeLinecap="round"
-          className={cn(
-            colorClasses[color || 'default'],
-            animated && 'transition-all duration-500 ease-in-out'
-          )}
+          strokeLinecap='round'
+          className={cn(colorClasses[color || 'default'], animated && 'transition-all duration-500 ease-in-out')}
           style={{
             strokeDashoffset: offset
           }}
@@ -134,7 +131,7 @@ const CircularProgress: React.FC<{
       </svg>
       {showLabel && (
         <div className={cn('absolute inset-0 flex items-center justify-center', sizeConfig.text)}>
-          <span className="font-semibold">{formatLabel(value, max)}</span>
+          <span className='font-semibold'>{formatLabel(value, max)}</span>
         </div>
       )}
     </div>
@@ -153,8 +150,8 @@ const SteppedProgress: React.FC<{
   const textSize = sizeClasses[size].text
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between">
+    <div className='w-full'>
+      <div className='flex items-center justify-between'>
         {steps.map((step, index) => {
           const isCompleted = index < currentStep
           const isCurrent = index === currentStep
@@ -162,7 +159,7 @@ const SteppedProgress: React.FC<{
 
           return (
             <React.Fragment key={index}>
-              <div className="flex flex-col items-center">
+              <div className='flex flex-col items-center'>
                 <div
                   className={cn(
                     'rounded-full flex items-center justify-center',
@@ -179,14 +176,12 @@ const SteppedProgress: React.FC<{
                     <Circle className={cn('h-full w-full')} />
                   )}
                 </div>
-                <span className={cn('mt-2', textSize, isCurrent && 'font-semibold')}>
-                  {step}
-                </span>
+                <span className={cn('mt-2', textSize, isCurrent && 'font-semibold')}>{step}</span>
               </div>
-              
+
               {index < steps.length - 1 && (
                 <div className={cn('flex-1 mx-2', lineHeight)}>
-                  <div className="relative h-full w-full bg-muted">
+                  <div className='relative h-full w-full bg-muted'>
                     <div
                       className={cn(
                         'absolute left-0 top-0 h-full bg-primary',
@@ -233,32 +228,25 @@ export const ProgressIndicator = React.forwardRef<HTMLDivElement, ProgressIndica
     return (
       <div ref={ref} className={cn('w-full', className)} {...props}>
         {variant === 'linear' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+          <div className='space-y-2'>
+            <div className='flex items-center justify-between'>
               {description && (
-                <span className={cn('text-muted-foreground', sizeClasses[size].text)}>
-                  {description}
-                </span>
+                <span className={cn('text-muted-foreground', sizeClasses[size].text)}>{description}</span>
               )}
               {showLabel && (
-                <span className={cn('font-medium', sizeClasses[size].text)}>
-                  {formatLabel(normalizedValue, max)}
-                </span>
+                <span className={cn('font-medium', sizeClasses[size].text)}>{formatLabel(normalizedValue, max)}</span>
               )}
             </div>
             <Progress
               value={percentage}
               className={cn(sizeClasses[size].height)}
-              indicatorColor={cn(
-                colorClasses[color],
-                animated && 'transition-all duration-500'
-              )}
+              indicatorColor={cn(colorClasses[color], animated && 'transition-all duration-500')}
             />
           </div>
         )}
 
         {variant === 'circular' && (
-          <div className="inline-flex flex-col items-center gap-2">
+          <div className='inline-flex flex-col items-center gap-2'>
             <CircularProgress
               value={normalizedValue}
               max={max}
@@ -268,28 +256,14 @@ export const ProgressIndicator = React.forwardRef<HTMLDivElement, ProgressIndica
               formatLabel={formatLabel}
               animated={animated}
             />
-            {description && (
-              <span className={cn('text-muted-foreground', sizeClasses[size].text)}>
-                {description}
-              </span>
-            )}
+            {description && <span className={cn('text-muted-foreground', sizeClasses[size].text)}>{description}</span>}
           </div>
         )}
 
         {variant === 'stepped' && steps.length > 0 && (
-          <div className="space-y-2">
-            {description && (
-              <span className={cn('text-muted-foreground', sizeClasses[size].text)}>
-                {description}
-              </span>
-            )}
-            <SteppedProgress
-              steps={steps}
-              currentStep={currentStep}
-              size={size}
-              color={color}
-              animated={animated}
-            />
+          <div className='space-y-2'>
+            {description && <span className={cn('text-muted-foreground', sizeClasses[size].text)}>{description}</span>}
+            <SteppedProgress steps={steps} currentStep={currentStep} size={size} color={color} animated={animated} />
           </div>
         )}
       </div>

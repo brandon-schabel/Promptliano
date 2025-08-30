@@ -1,4 +1,4 @@
-import { useProjectGitStatus } from './use-git-api'
+import { useProjectGitStatus } from '../api-hooks'
 
 export function useGitCurrentBranch(projectId: number | undefined, enabled = true) {
   const { data: gitStatus, isLoading, error } = useProjectGitStatus(projectId, enabled)

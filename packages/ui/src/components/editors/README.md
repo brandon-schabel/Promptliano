@@ -36,7 +36,6 @@ Side-by-side diff viewer for comparing code changes.
 
 ```tsx
 import { MonacoDiffViewer } from '@promptliano/ui'
-
 ;<MonacoDiffViewer
   original={originalCode}
   modified={modifiedCode}
@@ -52,7 +51,6 @@ Lazy-loaded version with fallback to textarea if Monaco fails to load.
 
 ```tsx
 import { LazyMonacoEditor } from '@promptliano/ui'
-
 ;<LazyMonacoEditor value={code} onChange={setCode} language='python' theme={theme === 'dark' ? 'vs-dark' : 'light'} />
 ```
 
@@ -62,7 +60,6 @@ Lazy-loaded diff viewer with simple fallback.
 
 ```tsx
 import { LazyMonacoDiffViewer } from '@promptliano/ui'
-
 ;<LazyMonacoDiffViewer original={original} modified={modified} language='json' theme='vs-dark' />
 ```
 

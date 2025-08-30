@@ -1,4 +1,4 @@
-import { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 export type ModelProvider = {
   id: APIProviders
@@ -85,7 +85,7 @@ export const PROVIDERS = [
     linkTitle: 'Configure custom provider',
     isCustom: true,
     description:
-      'Add any OpenAI API-compatible provider. This includes services like LocalAI, FastChat, vLLM, or any other service that implements the OpenAI API specification. You\'ll need to provide the base URL and API key for your custom provider.'
+      "Add any OpenAI API-compatible provider. This includes services like LocalAI, FastChat, vLLM, or any other service that implements the OpenAI API specification. You'll need to provide the base URL and API key for your custom provider."
   }
 ] satisfies ModelProvider[]
 

@@ -87,7 +87,7 @@ export function SuggestedPromptsDialog({ open, onClose, suggestedPrompts }: Sugg
                       className='mt-1'
                     />
                     <div className='flex-1 space-y-1'>
-                      <div className='font-medium text-sm'>{prompt.name}</div>
+                      <div className='font-medium text-sm'>{prompt.title}</div>
                       <div className='text-xs text-muted-foreground line-clamp-3'>{prompt.content}</div>
                     </div>
                   </div>

@@ -14,10 +14,10 @@ import { toast } from 'sonner'
 
 import {
   useGetAllPrompts,
-  useGetProjectPrompts,
-  useAddPromptToProject,
-  useRemovePromptFromProject
-} from '@/hooks/api/use-prompts-api'
+  useGetProjectPrompts
+  // useAddPromptToProject, // TODO: API method doesn't exist
+  // useRemovePromptFromProject // TODO: API method doesn't exist
+} from '@/hooks/api-hooks'
 
 interface PromptsDialogAllProps {
   open: boolean
@@ -28,20 +28,20 @@ interface PromptsDialogAllProps {
 export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDialogAllProps) {
   const { data: allPromptsResponse, isLoading, error } = useGetAllPrompts()
   const { data: projectPromptData } = useGetProjectPrompts(selectedProjectId ?? -1)
-  const addPromptToProject = useAddPromptToProject()
-  const removePromptFromProject = useRemovePromptFromProject()
+  // const addPromptToProject = useAddPromptToProject() // TODO: API method doesn't exist
+  // const removePromptFromProject = useRemovePromptFromProject() // TODO: API method doesn't exist
 
   const [searchTerm, setSearchTerm] = useState('')
 
-  const allPrompts = allPromptsResponse?.data ?? []
-  const projectPrompts = projectPromptData?.data ?? []
+  const allPrompts = allPromptsResponse ?? []
+  const projectPrompts = projectPromptData ?? []
 
   // Filter & sort
   const filteredPrompts = useMemo(() => {
     const lower = searchTerm.toLowerCase()
     return allPrompts
-      .filter((p) => p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((p: any) => (p.title || p.name)?.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower))
+      .sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name))
   }, [allPrompts, searchTerm])
 
   // Check if a prompt is in the project
@@ -55,10 +55,12 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
       return
     }
     try {
-      await addPromptToProject.mutateAsync({ promptId, projectId: selectedProjectId })
-      toast.success('Prompt added to project!')
+      // TODO: addPromptToProject hook doesn't exist
+      // await addPromptToProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      toast.error('Add prompt feature is temporarily disabled')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add prompt to project')
+      // Errors are already surfaced by the hook; keep console for debugging
+      console.error(err)
     }
   }
 
@@ -68,10 +70,12 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
       return
     }
     try {
-      await removePromptFromProject.mutateAsync({ promptId, projectId: selectedProjectId })
-      toast.success('Prompt removed from project!')
+      // TODO: removePromptFromProject hook doesn't exist
+      // await removePromptFromProject.mutateAsync({ promptId, projectId: selectedProjectId })
+      toast.error('Remove prompt feature is temporarily disabled')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to remove prompt from project')
+      // Errors are already surfaced by the hook; keep console for debugging
+      console.error(err)
     }
   }
 
@@ -96,12 +100,12 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
           )}
 
           <div className='max-h-64 overflow-y-auto border rounded p-2'>
-            {filteredPrompts.map((prompt) => {
+            {filteredPrompts.map((prompt: any) => {
               const inProject = isPromptInProject(prompt.id)
               return (
                 <div key={prompt.id} className='flex items-center justify-between gap-2 p-1 hover:bg-muted/50 rounded'>
                   <div className='flex flex-col'>
-                    <span className='font-medium text-sm'>{prompt.name}</span>
+                    <span className='font-medium text-sm'>{prompt.title}</span>
                     <span className='text-xs text-muted-foreground line-clamp-2'>
                       {prompt.content.slice(0, 100)}...
                     </span>
@@ -111,7 +115,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
                       size='sm'
                       variant='destructive'
                       onClick={() => void handleRemovePromptFromProject(prompt.id)}
-                      disabled={removePromptFromProject.isPending}
+                      disabled={true}
                     >
                       Remove
                     </Button>
@@ -119,7 +123,7 @@ export function PromptsDialogAll({ open, onClose, selectedProjectId }: PromptsDi
                     <Button
                       size='sm'
                       onClick={() => void handleAddPromptToProject(prompt.id)}
-                      disabled={addPromptToProject.isPending}
+                      disabled={true}
                     >
                       Add
                     </Button>

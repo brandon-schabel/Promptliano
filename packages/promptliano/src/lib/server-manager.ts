@@ -42,7 +42,7 @@ export class ServerManager {
         serverPath = join(options.installPath, 'packages', 'server')
         scriptPath = 'server.ts'
         logger.info('Using source server at:', sourceServerPath)
-        
+
         // Check if dependencies are installed for source version
         const nodeModulesPath = join(options.installPath, 'node_modules')
         if (!existsSync(nodeModulesPath)) {
@@ -68,7 +68,7 @@ export class ServerManager {
         serverPath = join(options.installPath, 'packages', 'server')
         scriptPath = 'start-server.ts'
         logger.info('Using source server at:', sourceStartPath)
-        
+
         // Check if dependencies are installed for source version
         const nodeModulesPath = join(options.installPath, 'node_modules')
         if (!existsSync(nodeModulesPath)) {

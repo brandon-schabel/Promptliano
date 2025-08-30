@@ -1,6 +1,6 @@
 import { file, write } from 'bun'
 import type { BunFile } from 'bun'
-import { mkdir, readdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'fs/promises'
 import { join, dirname } from 'node:path'
 
 export const AGENT_LOGS_DIR = './data/agent-logs'

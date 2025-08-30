@@ -78,11 +78,13 @@ export const browseDirectoryRoutes = new OpenAPIHono().openapi(browseDirectoryRo
     // Determine parent path
     const parentPath = targetPath === homeDir ? null : dirname(targetPath)
 
-    return c.json(successResponse({
-      currentPath: targetPath,
-      parentPath,
-      entries: directoryEntries
-    }))
+    return c.json(
+      successResponse({
+        currentPath: targetPath,
+        parentPath,
+        entries: directoryEntries
+      })
+    )
   } catch (error: any) {
     if (error instanceof ApiError) {
       throw error

@@ -27,9 +27,10 @@ import { ScrollArea } from '@promptliano/ui'
 import { Plus, Loader2 } from 'lucide-react'
 import { QueueStatsCard } from './queue-stats-card'
 import { QueueDetailsDialog } from './queue-details-dialog'
-import { useGetQueuesWithStats, useCreateQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
+import { useCreateQueue } from '@/hooks/api-hooks'
 import { cn } from '@/lib/utils'
-import { QueueWithStats } from '@promptliano/schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 
 interface QueueManagementPanelProps {
   projectId: number
@@ -49,6 +50,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
   const { data: queuesWithStats, isLoading } = useGetQueuesWithStats(projectId)
   const createQueueMutation = useCreateQueue(projectId)
   const deleteQueueMutation = useDeleteQueue()
+  const updateQueueMutation = useUpdateQueue()
 
   const handleCreateQueue = async () => {
     if (!newQueueName.trim()) return
@@ -66,29 +68,32 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
     setIsCreateDialogOpen(false)
   }
 
-  const handleDeleteQueue = async (queue: QueueWithStats) => {
-    await deleteQueueMutation.mutateAsync({
-      queueId: queue.queue.id,
-      projectId: projectId
-    })
+  const handleDeleteQueue = async (queueWithStats: any) => {
+    await deleteQueueMutation.mutateAsync(queueWithStats.queue.id)
     setQueueToDelete(null)
   }
 
-  const handlePauseQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'paused' })
+  const handlePauseQueue = async (queueWithStats: any) => {
+    await updateQueueMutation.mutateAsync({
+      id: queueWithStats.queue.id,
+      data: { isActive: false }
+    })
   }
 
-  const handleResumeQueue = async (queue: QueueWithStats) => {
-    const updateMutation = useUpdateQueue(queue.queue.id)
-    await updateMutation.mutateAsync({ status: 'active' })
+  const handleResumeQueue = async (queueWithStats: any) => {
+    await updateQueueMutation.mutateAsync({
+      id: queueWithStats.queue.id,
+      data: { isActive: true }
+    })
   }
 
   // Calculate summary stats
-  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + q.stats.inProgressItems, 0) || 0
-  const totalCompleted = queuesWithStats?.reduce((sum, q) => sum + q.stats.completedItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q) => (q.queue.status ?? 'active') === 'active').length || 0
+  const totalQueued = queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.queuedItems, 0) || 0
+  const totalInProgress =
+    queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.inProgressItems, 0) || 0
+  const totalCompleted =
+    queuesWithStats?.reduce((sum: number, q: QueueWithStats) => sum + q.stats.completedItems, 0) || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.queue?.isActive === true).length || 0
 
   return (
     <div className='flex flex-col h-full'>
@@ -195,7 +200,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
           </div>
         ) : queuesWithStats && queuesWithStats.length > 0 ? (
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {queuesWithStats.map((queueWithStats) => (
+            {queuesWithStats.map((queueWithStats: QueueWithStats) => (
               <QueueStatsCard
                 key={queueWithStats.queue.id}
                 queueWithStats={queueWithStats}
@@ -229,7 +234,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Queue</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the queue "{queueToDelete?.queue.name}"? This will also delete all queued
+              Are you sure you want to delete the queue "{queueToDelete?.queue?.name}"? This will also delete all queued
               items. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -248,7 +253,7 @@ export function QueueManagementPanel({ projectId }: QueueManagementPanelProps) {
       {/* Queue details dialog */}
       {selectedQueue && (
         <QueueDetailsDialog
-          queue={selectedQueue}
+          queue={selectedQueue.queue}
           open={!!selectedQueue}
           onOpenChange={(open) => !open && setSelectedQueue(null)}
         />

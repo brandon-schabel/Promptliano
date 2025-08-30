@@ -24,15 +24,6 @@ const roadmapData: RoadmapItem[] = [
   },
   {
     id: '2',
-    title: 'Claude Code Integration',
-    description: 'Deep integration with Claude Code for seamless AI-powered development',
-    status: 'in-progress',
-    quarter: 'Q1 2025',
-    votes: 189,
-    voted: true
-  },
-  {
-    id: '3',
     title: 'Visual Project Builder',
     description: 'Drag-and-drop interface for creating and managing project structures',
     status: 'in-progress',
@@ -41,7 +32,7 @@ const roadmapData: RoadmapItem[] = [
     voted: false
   },
   {
-    id: '4',
+    id: '3',
     title: 'Plugin Marketplace',
     description: 'Community-driven marketplace for sharing Promptliano extensions',
     status: 'planned',
@@ -50,7 +41,7 @@ const roadmapData: RoadmapItem[] = [
     voted: false
   },
   {
-    id: '5',
+    id: '4',
     title: 'AI Code Review',
     description: 'Automated code review with context-aware suggestions',
     status: 'planned',
@@ -59,7 +50,7 @@ const roadmapData: RoadmapItem[] = [
     voted: true
   },
   {
-    id: '6',
+    id: '5',
     title: 'Real-time Collaboration',
     description: 'Work with team members in real-time with shared AI context',
     status: 'planned',

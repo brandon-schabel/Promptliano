@@ -38,16 +38,16 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
   } = useQuery({
     queryKey: ['agent-files', projectId],
     queryFn: async () => {
-      const response = await client?.agentFiles.detectFiles(projectId)
-      return response?.data
+      const response = await client?.typeSafeClient.getProjectsByIdAgentFilesDetect(projectId)
+      return response
     }
   })
 
   const { data: statusData } = useQuery({
     queryKey: ['agent-files-status', projectId],
     queryFn: async () => {
-      const response = await client?.agentFiles.getStatus(projectId)
-      return response?.data
+      const response = await client?.typeSafeClient.getProjectsByIdAgentFilesStatus(projectId)
+      return response
     }
   })
 
@@ -56,13 +56,13 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
       if (!files || files.length === 0) {
         // For update all, we'll process each file in the component
         // This is a batch operation, we'll need to handle it differently
-        const allFiles = [...(filesData?.projectFiles || []), ...(filesData?.globalFiles || [])]
+        const allFiles = [...(filesData?.data?.projectFiles || []), ...(filesData?.data?.globalFiles || [])]
         const results = []
-        
+
         for (const file of allFiles) {
           if (file.exists && file.writable) {
             try {
-              const response = await client?.agentFiles.updateFile(projectId, {
+              const response = await client?.typeSafeClient.createProjectsByIdAgentFilesUpdate(projectId, {
                 filePath: file.path
               })
               results.push(response)
@@ -72,15 +72,15 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
             }
           }
         }
-        
+
         return { data: { results } }
       } else {
         // For specific files
         const results = []
-        
+
         for (const fileUpdate of files) {
           try {
-            const response = await client?.agentFiles.updateFile(projectId, {
+            const response = await client?.typeSafeClient.createProjectsByIdAgentFilesUpdate(projectId, {
               filePath: fileUpdate.path
             })
             results.push(response)
@@ -88,7 +88,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
             console.warn(`Failed to update ${fileUpdate.path}:`, error)
           }
         }
-        
+
         return { data: { results } }
       }
     },
@@ -144,8 +144,8 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
 
   if (filesData && statusData) {
     // Process project files
-    const projectFiles = filesData.projectFiles || []
-    const statusFiles = statusData.files || []
+    const projectFiles = filesData.data?.projectFiles || []
+    const statusFiles = statusData.data?.files || []
 
     // Create a map for quick status lookup
     const statusMap = new Map(statusFiles.map((f: any) => [f.path, f]))
@@ -153,7 +153,7 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
     // Combine project and global files
     const allFiles = [
       ...projectFiles.map((f: any) => ({ ...f, source: 'project' })),
-      ...(filesData.globalFiles || []).map((f: any) => ({ ...f, source: 'global' }))
+      ...(filesData.data?.globalFiles || []).map((f: any) => ({ ...f, source: 'global' }))
     ]
 
     allFiles.forEach((file: any) => {
@@ -162,7 +162,8 @@ export function AgentFilesManager({ projectId }: AgentFilesManagerProps) {
         path: file.path,
         filename: file.path.split('/').pop() || file.name || 'Unknown',
         exists: file.exists,
-        hasInstructions: (statusInfo && typeof statusInfo === 'object' && statusInfo.hasInstructions) || file.hasInstructions || false,
+        hasInstructions:
+          (statusInfo && typeof statusInfo === 'object' && statusInfo.hasInstructions) || file.hasInstructions || false,
         version: (statusInfo && typeof statusInfo === 'object' && statusInfo.instructionVersion) || undefined,
         needsUpdate: (statusInfo && typeof statusInfo === 'object' && statusInfo.isOutdated) || false,
         type: file.type,

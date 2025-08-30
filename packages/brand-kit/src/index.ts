@@ -22,7 +22,9 @@ export function getColorByName(name: string): ColorValue | undefined {
     ...colorsData.neutrals
   }
 
-  return Object.values(allColors).find((color: any) => color.name?.toLowerCase() === name.toLowerCase())
+  return Object.values(allColors).find((color: any) => color.name?.toLowerCase() === name.toLowerCase()) as
+    | ColorValue
+    | undefined
 }
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {

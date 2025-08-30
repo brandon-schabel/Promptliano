@@ -8,11 +8,13 @@ import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Info, FileText } from 'lucide-react'
 import {
-  useGetProjectFiles,
+  useProjectFiles
+} from '@/hooks/generated'
+import {
   useGetProjectSummary,
   useRemoveSummariesFromFiles,
   useSummarizeProjectFiles
-} from '@/hooks/api/use-projects-api'
+} from '@/hooks/api-hooks'
 import { buildCombinedFileSummariesXml } from '@promptliano/shared'
 
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'
@@ -89,14 +91,18 @@ export function ProjectSummarizationSettingsPage() {
   const [maxTokensFilter, setMaxTokensFilter] = useState<number | null>(null)
   const [combinedSummaryDialogOpen, setCombinedSummaryDialogOpen] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  // TODO: Remove if not needed
-  // const {
-  //   data: summaryData,
-  //   isLoading: summaryLoading,
-  //   isError: summaryError
-  // } = useGetProjectSummary(selectedProjectId ?? -1)
+  // Use project summary data for metrics
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    isError: summaryError
+  } = useGetProjectSummary(selectedProjectId ?? -1)
 
-  const { data, isLoading, isError } = useGetProjectFiles(selectedProjectId ?? -1)
+  // Use project files data
+  const { data, isLoading, isError } = useProjectFiles(selectedProjectId ?? -1)
+  // data comes from useProjectFiles hook
+  // isLoading comes from useProjectFiles hook
+  // isError comes from useProjectFiles hook
 
   // Memoize project files to prevent unnecessary recalculations
   const projectFiles = useMemo(() => (data || []) as ProjectFile[], [data])

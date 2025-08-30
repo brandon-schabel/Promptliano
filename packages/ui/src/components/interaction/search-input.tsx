@@ -4,7 +4,8 @@ import { Input } from '../core/input'
 import { Button } from '../core/button'
 import { Search, X, Loader2 } from 'lucide-react'
 
-export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'onSubmit' | 'size'> {
+export interface SearchInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'onSubmit' | 'size'> {
   /**
    * The current search value
    */
@@ -143,12 +144,9 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
     const showClearButton = showClear && value && !isLoading && !disabled
 
     return (
-      <div className="relative flex items-center">
+      <div className='relative flex items-center'>
         {showIcon && (
-          <div className={cn(
-            'absolute left-3 flex items-center pointer-events-none',
-            'text-muted-foreground'
-          )}>
+          <div className={cn('absolute left-3 flex items-center pointer-events-none', 'text-muted-foreground')}>
             {isLoading ? (
               <Loader2 className={cn(iconSizeClasses[size], 'animate-spin')} />
             ) : (
@@ -156,10 +154,10 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             )}
           </div>
         )}
-        
+
         <Input
           ref={mergedRef}
-          type="search"
+          type='search'
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -172,13 +170,13 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             shortcutHint && 'pr-20',
             className
           )}
-          aria-label="Search"
+          aria-label='Search'
           {...props}
         />
 
         {shortcutHint && !showClearButton && (
-          <div className="absolute right-3 flex items-center pointer-events-none">
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+          <div className='absolute right-3 flex items-center pointer-events-none'>
+            <kbd className='hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100'>
               {shortcutHint}
             </kbd>
           </div>
@@ -186,16 +184,12 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
 
         {showClearButton && (
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+            type='button'
+            variant='ghost'
+            size='sm'
             onClick={handleClear}
-            className={cn(
-              'absolute right-1 h-7 w-7 p-0',
-              size === 'sm' && 'h-6 w-6',
-              size === 'lg' && 'h-8 w-8'
-            )}
-            aria-label="Clear search"
+            className={cn('absolute right-1 h-7 w-7 p-0', size === 'sm' && 'h-6 w-6', size === 'lg' && 'h-8 w-8')}
+            aria-label='Clear search'
           >
             <X className={cn(iconSizeClasses[size], 'text-muted-foreground')} />
           </Button>

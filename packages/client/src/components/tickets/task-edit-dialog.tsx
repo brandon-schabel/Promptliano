@@ -6,7 +6,7 @@ import { Textarea } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { X } from 'lucide-react'
-import { useUpdateTask } from '@/hooks/api/use-tickets-api'
+import { useUpdateTask } from '@/hooks/generated'
 import { toast } from 'sonner'
 import type { TicketTask } from '@promptliano/schemas'
 
@@ -33,7 +33,7 @@ export function TaskEditDialog({ isOpen, onClose, task, ticketId, projectId }: T
       setContent(task.content || '')
       setDescription(task.description || '')
       setEstimatedHours(task.estimatedHours?.toString() || '')
-      setTags(task.tags || [])
+      setTags(Array.isArray(task.tags) ? (task.tags as string[]) : [])
       setAgentId(task.agentId || '')
     }
   }, [task])

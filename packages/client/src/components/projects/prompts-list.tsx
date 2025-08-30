@@ -16,14 +16,15 @@ import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'
 import { ScrollArea } from '@promptliano/ui'
 import { FormatTokenCount } from '../format-token-count'
 import { cn } from '@/lib/utils'
-import { useGetProjectPrompts, useDeletePrompt } from '@/hooks/api/use-prompts-api'
+import { useDeletePrompt } from '@/hooks/generated'
+import { useGetProjectPrompts } from '@/hooks/api-hooks'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@promptliano/ui'
 import { PromptDialog } from '@/components/projects/prompt-dialog'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PromptSchema } from '@promptliano/schemas'
+import { PromptSchema, type Prompt } from '@promptliano/schemas'
 
 import { PromptsDialogAll } from '../prompts/all-prompts-dialog'
 import { MarkdownImportDialog } from '../prompts/markdown-import-dialog'
@@ -82,17 +83,17 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
 
   const prompts = useMemo(() => {
     return (
-      promptData?.data.map((prompt) => ({
+      promptData?.map((prompt) => ({
         ...prompt,
         id: Number(prompt.id)
       })) || []
     )
-  }, [promptData?.data])
+  }, [promptData])
 
   const sortedPrompts = useMemo(() => {
     let sortedPrompts = [...prompts]
     if (sortOrder === 'alphabetical') {
-      sortedPrompts.sort((a, b) => a.name.localeCompare(b.name))
+      sortedPrompts.sort((a, b) => a.title.localeCompare(b.title))
     } else if (sortOrder === 'size_desc') {
       sortedPrompts.sort((a, b) => (b.content?.length || 0) - (a.content?.length || 0))
     } else if (sortOrder === 'size_asc') {
@@ -105,8 +106,8 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
     if (!selectedPrompts.length) return
     const allPrompts = selectedPrompts
       .map((id) => {
-        const p = promptData?.data?.find((x: { id: number }) => x.id === id)
-        return p ? `# ${p.name}\n${p.content}\n` : ''
+        const p = promptData?.find((x: { id: number }) => x.id === id)
+        return p ? `# ${p.title}\n${p.content}\n` : ''
       })
       .join('\n')
     copyToClipboard(allPrompts, {
@@ -128,8 +129,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
   const [markdownImportDialogOpen, setMarkdownImportDialogOpen] = useState(false)
 
   // Our form for creating/updating
-  const promptForm = useForm<z.infer<typeof PromptSchema>>({
-    resolver: zodResolver(PromptSchema),
+  const promptForm = useForm({
     defaultValues: {
       name: '',
       content: ''
@@ -139,7 +139,6 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
   const handleDeletePrompt = async (promptId: number) => {
     if (!selectedProjectId) return
     await deletePromptMutation.mutateAsync(promptId)
-    toast.success('Prompt deleted successfully')
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>, index: number, promptId: number) => {
@@ -181,30 +180,27 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
     }
   }, [focusedIndex])
 
-  const handleOpenPromptViewer = (prompt: {
-    id: number
-    name: string
-    content: string
-    created: number
-    updated: number
-    projectId?: number
-  }) => {
+  const handleOpenPromptViewer = (prompt: Prompt) => {
     setViewedPrompt({
       id: prompt.id,
-      name: prompt.name,
+      name: prompt.title,
       content: prompt.content,
-      path: prompt.name,
+      path: prompt.title,
       extension: '.txt',
       projectId: prompt.projectId || selectedProjectId,
-      created: new Date(prompt.created).getTime(),
-      updated: new Date(prompt.updated).getTime(),
+      created: prompt.createdAt,
+      updated: prompt.updatedAt,
       size: prompt.content?.length || 0,
       meta: null,
       summary: null,
       summaryLastUpdated: null,
       checksum: null,
       imports: null,
-      exports: null
+      exports: null,
+      lastModified: null,
+      relevanceScore: null,
+      contentType: null,
+      isRelevant: null
     })
   }
 
@@ -421,7 +417,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
                           />
                           <div className='flex items-center space-x-2 min-w-0'>
                             <span className='font-medium'>
-                              {prompt.name.length > 35 ? `${prompt.name.substring(0, 32)}...` : prompt.name}
+                              {prompt.title.length > 35 ? `${prompt.title.substring(0, 32)}...` : prompt.title}
                             </span>
                             <FormatTokenCount tokenContent={prompt.content ?? ''} />
                           </div>
@@ -476,7 +472,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
                               </DropdownMenuItem>
                               <MarkdownExportMenuItem
                                 promptId={prompt.id}
-                                promptName={prompt.name}
+                                promptName={prompt.title}
                                 onExportComplete={() => {
                                   toast.success('Prompt exported successfully')
                                 }}
@@ -497,7 +493,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
                                     <AlertDialogTitle>Delete Prompt</AlertDialogTitle>
                                   </AlertDialogHeader>
                                   <p className='text-sm text-muted-foreground'>
-                                    Are you sure you want to delete the prompt "{prompt.name}"?
+                                    Are you sure you want to delete the prompt "{prompt.title}"?
                                   </p>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>

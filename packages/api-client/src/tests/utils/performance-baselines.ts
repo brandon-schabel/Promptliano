@@ -114,9 +114,7 @@ export class PerformanceBaselineManager {
     try {
       const fs = await import('fs/promises')
       const files = await fs.readdir(this.baselineDir)
-      return files
-        .filter(file => file.endsWith('.baseline.json'))
-        .map(file => file.replace('.baseline.json', ''))
+      return files.filter((file) => file.endsWith('.baseline.json')).map((file) => file.replace('.baseline.json', ''))
     } catch (error) {
       return []
     }
@@ -155,25 +153,35 @@ export class PerformanceBaselineManager {
     const currentMetrics = currentResult.metrics
     const baselineMetrics = baseline.result.metrics
 
-    const responseTimeChange = ((currentMetrics.responseTime.mean - baselineMetrics.responseTime.mean) / baselineMetrics.responseTime.mean) * 100
-    const throughputChange = ((currentMetrics.throughput.requestsPerSecond - baselineMetrics.throughput.requestsPerSecond) / baselineMetrics.throughput.requestsPerSecond) * 100
+    const responseTimeChange =
+      ((currentMetrics.responseTime.mean - baselineMetrics.responseTime.mean) / baselineMetrics.responseTime.mean) * 100
+    const throughputChange =
+      ((currentMetrics.throughput.requestsPerSecond - baselineMetrics.throughput.requestsPerSecond) /
+        baselineMetrics.throughput.requestsPerSecond) *
+      100
     const errorRateChange = currentMetrics.errors.errorRate - baselineMetrics.errors.errorRate
 
     // Check for regressions
     if (responseTimeChange > effectiveThresholds.responseTimeDegradation) {
-      issues.push(`Response time increased by ${responseTimeChange.toFixed(1)}% (threshold: ${effectiveThresholds.responseTimeDegradation}%)`)
+      issues.push(
+        `Response time increased by ${responseTimeChange.toFixed(1)}% (threshold: ${effectiveThresholds.responseTimeDegradation}%)`
+      )
     } else if (responseTimeChange < -10) {
       improvements.push(`Response time improved by ${Math.abs(responseTimeChange).toFixed(1)}%`)
     }
 
     if (throughputChange < effectiveThresholds.throughputDegradation) {
-      issues.push(`Throughput decreased by ${Math.abs(throughputChange).toFixed(1)}% (threshold: ${Math.abs(effectiveThresholds.throughputDegradation)}%)`)
+      issues.push(
+        `Throughput decreased by ${Math.abs(throughputChange).toFixed(1)}% (threshold: ${Math.abs(effectiveThresholds.throughputDegradation)}%)`
+      )
     } else if (throughputChange > 15) {
       improvements.push(`Throughput improved by ${throughputChange.toFixed(1)}%`)
     }
 
     if (errorRateChange > effectiveThresholds.errorRateIncrease) {
-      issues.push(`Error rate increased by ${errorRateChange.toFixed(1)} percentage points (threshold: ${effectiveThresholds.errorRateIncrease})`)
+      issues.push(
+        `Error rate increased by ${errorRateChange.toFixed(1)} percentage points (threshold: ${effectiveThresholds.errorRateIncrease})`
+      )
     } else if (errorRateChange < -1) {
       improvements.push(`Error rate improved by ${Math.abs(errorRateChange).toFixed(1)} percentage points`)
     }
@@ -186,7 +194,9 @@ export class PerformanceBaselineManager {
       memoryChange = ((currentMemory - baselineMemory) / baselineMemory) * 100
 
       if (memoryChange > effectiveThresholds.memoryIncrease) {
-        issues.push(`Memory usage increased by ${memoryChange.toFixed(1)}% (threshold: ${effectiveThresholds.memoryIncrease}%)`)
+        issues.push(
+          `Memory usage increased by ${memoryChange.toFixed(1)}% (threshold: ${effectiveThresholds.memoryIncrease}%)`
+        )
       } else if (memoryChange < -10) {
         improvements.push(`Memory usage improved by ${Math.abs(memoryChange).toFixed(1)}%`)
       }
@@ -196,7 +206,7 @@ export class PerformanceBaselineManager {
     let recommendation: 'accept' | 'investigate' | 'reject'
     if (issues.length === 0) {
       recommendation = 'accept'
-    } else if (issues.length <= 2 && !issues.some(issue => issue.includes('Error rate'))) {
+    } else if (issues.length <= 2 && !issues.some((issue) => issue.includes('Error rate'))) {
       recommendation = 'investigate'
     } else {
       recommendation = 'reject'
@@ -231,7 +241,7 @@ export class PerformanceBaselineManager {
     try {
       const fs = await import('fs/promises')
       const baselines = await this.listBaselines()
-      
+
       for (const testName of baselines) {
         const baseline = await this.loadBaseline(testName)
         if (!baseline) continue
@@ -250,7 +260,7 @@ export class PerformanceBaselineManager {
    */
   async generateTrendReport(): Promise<string> {
     const baselines = await this.listBaselines()
-    
+
     if (baselines.length === 0) {
       return '📊 Performance Trend Report\n\nNo baselines available for trend analysis.'
     }
@@ -270,18 +280,18 @@ export class PerformanceBaselineManager {
       report += `- **Throughput**: ${metrics.throughput.requestsPerSecond.toFixed(2)} RPS\n`
       report += `- **P95 Response Time**: ${metrics.responseTime.p95.toFixed(2)}ms\n`
       report += `- **Error Rate**: ${metrics.errors.errorRate.toFixed(2)}%\n`
-      
+
       if (metrics.resources.memoryUsage) {
         const memoryMB = metrics.resources.memoryUsage.heapUsed / 1024 / 1024
         report += `- **Memory Usage**: ${memoryMB.toFixed(2)} MB\n`
       }
-      
+
       report += `- **Environment**: ${baseline.environment.platform} (${baseline.environment.nodeVersion})\n`
-      
+
       if (baseline.metadata.commit) {
         report += `- **Commit**: ${baseline.metadata.commit}\n`
       }
-      
+
       report += '\n'
     }
 
@@ -291,7 +301,7 @@ export class PerformanceBaselineManager {
   /**
    * Validates baseline data integrity
    */
-  async validateBaselines(): Promise<{ valid: string[], invalid: string[], issues: string[] }> {
+  async validateBaselines(): Promise<{ valid: string[]; invalid: string[]; issues: string[] }> {
     const baselines = await this.listBaselines()
     const valid: string[] = []
     const invalid: string[] = []
@@ -353,7 +363,7 @@ export class PerformanceBaselineManager {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .replace(/_+/g, '_')
       .toLowerCase()
-    
+
     return `${sanitized}.baseline.json`
   }
 
@@ -386,7 +396,7 @@ export class PerformanceBaselineManager {
 
   private getEnvironmentInfo(): PerformanceBaseline['environment'] {
     const os = require('os')
-    
+
     return {
       nodeVersion: process.version,
       platform: `${os.platform()} ${os.release()}`,
@@ -402,7 +412,7 @@ export class PerformanceBaselineManager {
     baseline: PerformanceBaseline
   ): string {
     let summary = `Performance comparison against baseline from ${new Date(baseline.timestamp).toISOString()}\n\n`
-    
+
     if (recommendation === 'accept') {
       summary += '✅ **ACCEPT**: Performance is within acceptable thresholds\n'
     } else if (recommendation === 'investigate') {
@@ -413,12 +423,12 @@ export class PerformanceBaselineManager {
 
     if (issues.length > 0) {
       summary += '\n**Issues Found:**\n'
-      issues.forEach(issue => summary += `- ${issue}\n`)
+      issues.forEach((issue) => (summary += `- ${issue}\n`))
     }
 
     if (improvements.length > 0) {
       summary += '\n**Improvements:**\n'
-      improvements.forEach(improvement => summary += `- ${improvement}\n`)
+      improvements.forEach((improvement) => (summary += `- ${improvement}\n`))
     }
 
     summary += '\n**Recommendation Actions:**\n'
@@ -461,20 +471,16 @@ export class AutomatedBaselineManager extends PerformanceBaselineManager {
     reason: string
     comparison?: BaselineComparison
   }> {
-    const {
-      updateOnImprovement = true,
-      requireApprovalForUpdate = false,
-      autoArchive = true
-    } = options
+    const { updateOnImprovement = true, requireApprovalForUpdate = false, autoArchive = true } = options
 
     const comparison = await this.compareWithBaseline(result)
-    
+
     if (!comparison) {
       // No baseline exists, create one
       await this.saveBaseline(result, {
         notes: 'Initial baseline created automatically'
       })
-      
+
       return {
         action: 'created',
         reason: 'No existing baseline found, created initial baseline'
@@ -489,11 +495,11 @@ export class AutomatedBaselineManager extends PerformanceBaselineManager {
         await this.saveBaseline(result, {
           notes: `Baseline updated due to improvements: ${comp.improvements.join(', ')}`
         })
-        
+
         if (autoArchive) {
           await this.archiveOldBaselines()
         }
-        
+
         return {
           action: 'updated',
           reason: `Performance improvements detected: ${comp.improvements.join(', ')}`,
@@ -521,7 +527,7 @@ export class AutomatedBaselineManager extends PerformanceBaselineManager {
    */
   async generateCIReport(result: LoadTestResult): Promise<string> {
     const comparison = await this.compareWithBaseline(result)
-    
+
     if (!comparison) {
       return `
 # Performance Test Report
@@ -556,8 +562,8 @@ export class AutomatedBaselineManager extends PerformanceBaselineManager {
 - **P95 Response Time**: ${result.metrics.responseTime.p95.toFixed(2)}ms (${comp.metrics.responseTimeChange >= 0 ? '+' : ''}${comp.metrics.responseTimeChange.toFixed(1)}%)
 - **Error Rate**: ${result.metrics.errors.errorRate.toFixed(2)}% (${comp.metrics.errorRateChange >= 0 ? '+' : ''}${comp.metrics.errorRateChange.toFixed(1)}pp)
 
-${comp.issues.length > 0 ? `## ❌ Issues\n${comp.issues.map(issue => `- ${issue}`).join('\n')}\n` : ''}
-${comp.improvements.length > 0 ? `## ✅ Improvements\n${comp.improvements.map(improvement => `- ${improvement}`).join('\n')}\n` : ''}
+${comp.issues.length > 0 ? `## ❌ Issues\n${comp.issues.map((issue) => `- ${issue}`).join('\n')}\n` : ''}
+${comp.improvements.length > 0 ? `## ✅ Improvements\n${comp.improvements.map((improvement) => `- ${improvement}`).join('\n')}\n` : ''}
 
 ## Summary
 ${comparison.summary}

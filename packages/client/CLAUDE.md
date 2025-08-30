@@ -53,6 +53,13 @@ When working in this package, these agents MUST be used:
    - Use `tanstack-router-expert` for routing implementation
    - Use `zod-schema-architect` for form validation schemas
    - Use `vercel-ai-sdk-expert` for AI chat integration features
+   - Use `promptliano-playwright-expert` for E2E testing with Playwright
+
+4. **Testing Integration**
+   - Use `promptliano-playwright-expert` for writing/debugging E2E tests
+   - Load this agent when creating new test files or Page Objects
+   - Essential for testing MCP integration and React component interactions
+   - Required for comprehensive test coverage of new features
 
 ### Proactive Usage
 
@@ -74,13 +81,14 @@ This package is part of the 12-step fullstack feature development process:
 7. **React hooks** - Setup with TanStack Query (this package)
 8. **UI components** - Build with shadcn/ui (this package)
 9. **Page integration** - Wire everything together (this package)
-10. **Lint & typecheck** - Ensure code quality
-11. **Code review** - MANDATORY staff-engineer-code-reviewer
-12. **Address feedback** - Iterate based on review
+10. **E2E Testing** - Write Playwright tests with `promptliano-playwright-expert` (this package)
+11. **Lint & typecheck** - Ensure code quality
+12. **Code review** - MANDATORY staff-engineer-code-reviewer
+13. **Address feedback** - Iterate based on review
 
 ### This Package's Role
 
-This package handles steps 7-9: Creating React hooks with TanStack Query, building UI components with shadcn/ui, and integrating everything into pages with TanStack Router.
+This package handles steps 7-10: Creating React hooks with TanStack Query, building UI components with shadcn/ui, integrating everything into pages with TanStack Router, and writing E2E tests with Playwright.
 
 See main `/CLAUDE.md` for complete flow documentation.
 
@@ -99,7 +107,6 @@ components/
 ├── navigation/         # App navigation components
 ├── error-boundary/     # Error handling components
 ├── assets/            # Asset generation features
-├── claude-code/       # Claude Code integration
 └── shared/            # Truly shared/generic components
 ```
 
@@ -656,6 +663,97 @@ Use mobile-first responsive patterns:
 ```
 
 ## Testing Strategies
+
+### E2E Testing with Playwright
+
+Use the `promptliano-playwright-expert` agent for comprehensive E2E testing:
+
+```python
+Task(
+  subagent_type: "promptliano-playwright-expert",
+  description: "Create E2E tests for new feature",
+  prompt: "Write Playwright tests for [feature] including MCP integration and error handling"
+)
+```
+
+The agent provides:
+
+- 286 existing tests across 4 test suites
+- Page Object Model architecture
+- MCP integration testing patterns
+- Multi-browser test execution
+- CI/CD integration with GitHub Actions
+
+#### Running E2E Tests
+
+**Prerequisites:**
+
+1. Ensure the development server is running: `bun run dev` (from client package)
+2. Ensure the API server is running: `bun run dev` (from server package)
+
+**Basic Test Commands:**
+
+```bash
+# Run all E2E tests across all browsers
+bunx playwright test
+
+# Run specific test file
+bunx playwright test basic-smoke.spec.ts
+
+# Run tests in headed mode (with browser UI)
+bunx playwright test --headed
+
+# Run tests on specific browser
+bunx playwright test --project=chromium
+bunx playwright test --project=firefox
+bunx playwright test --project=webkit
+
+# Run tests with line reporter for cleaner output
+bunx playwright test --reporter=line
+
+# Run with limited failures for quick feedback
+bunx playwright test --max-failures=3
+
+# Debug mode (opens browser and pauses)
+bunx playwright test --debug
+
+# Generate test report
+bunx playwright test --reporter=html
+bunx playwright show-report
+```
+
+**Test Categories:**
+
+```bash
+# Core functionality smoke tests
+bunx playwright test basic-smoke.spec.ts
+bunx playwright test projects-smoke.spec.ts
+bunx playwright test chat-basic-smoke.spec.ts
+
+# Feature-specific tests
+bunx playwright test providers.spec.ts
+bunx playwright test file-panel.spec.ts
+bunx playwright test git-integration.spec.ts
+
+# Comprehensive workflow tests
+bunx playwright test complete-workflow.spec.ts
+bunx playwright test flow-integration.spec.ts
+```
+
+**Test Configuration:**
+
+- Tests run across 5 browsers: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+- Global setup handles authentication and test project infrastructure
+- Isolated test environments with cleanup between runs
+- Automatic screenshots and videos on failure
+- Network mocking for AI provider endpoints
+
+**Common Issues:**
+
+- **Regex errors**: Fixed in `cloud-provider-configuration.spec.ts` - ensure proper escaping
+- **Strict mode violations**: Fixed in page objects - use `.first()` for multiple matching elements
+- **Mobile test failures**: Expected for responsive UI differences on mobile devices
+- **Initialization timeouts**: Projects page shows initialization screen - this is expected behavior
 
 ### Component Testing
 

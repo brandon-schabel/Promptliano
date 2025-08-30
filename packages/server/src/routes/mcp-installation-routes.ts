@@ -15,6 +15,7 @@ import {
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
 import { createStandardResponses, successResponse } from '../utils/route-helpers'
+import { IDParamsSchema } from '@promptliano/schemas'
 
 // Schemas
 const MCPToolInfoSchema = z.object({
@@ -171,11 +172,9 @@ const detectInstalledToolsRoute = createRoute({
 
 const getInstallationStatusRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/installation/status',
+  path: '/api/projects/{id}/mcp/installation/status',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(InstallationStatusResponseSchema),
   tags: ['MCP Installation'],
@@ -184,11 +183,9 @@ const getInstallationStatusRoute = createRoute({
 
 const installMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/install',
+  path: '/api/projects/{id}/mcp/installation/install',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -204,11 +201,9 @@ const installMCPRoute = createRoute({
 
 const uninstallMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/uninstall',
+  path: '/api/projects/{id}/mcp/installation/uninstall',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -255,11 +250,9 @@ const getGlobalMCPStatusRoute = createRoute({
 
 const updateProjectMCPConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -298,11 +291,9 @@ const updateProjectMCPConfigRoute = createRoute({
 
 const batchInstallMCPRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/installation/batch-install',
+  path: '/api/projects/{id}/mcp/installation/batch-install',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -347,11 +338,9 @@ const batchInstallMCPRoute = createRoute({
 // Create route for project-level MCP installation
 const installProjectConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/install-project-config',
+  path: '/api/projects/{id}/mcp/install-project-config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -392,16 +381,18 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       const tools = await mcpInstallationService.detectInstalledTools()
       const platform = process.platform
 
-      return c.json(successResponse({
-        tools,
-        platform
-      }))
+      return c.json(
+        successResponse({
+          tools,
+          platform
+        })
+      )
     } catch (error) {
       throw new ApiError(500, `Failed to detect tools: ${error}`)
     }
   })
   .openapi(getInstallationStatusRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -417,17 +408,19 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       // Get connection status
       const connectionStatus = await mcpConfigManager.getProjectStatus(projectId)
 
-      return c.json(successResponse({
-        projectConfig,
-        connectionStatus
-      }))
+      return c.json(
+        successResponse({
+          projectConfig,
+          connectionStatus
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to get installation status: ${error}`)
     }
   })
   .openapi(installMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tool, serverUrl, debug } = c.req.valid('json')
 
     try {
@@ -456,19 +449,21 @@ export const mcpInstallationRoutes = new OpenAPIHono()
       const serverName = `promptliano-${project.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
       await mcpConfigManager.addInstalledTool(projectId, tool, result.configPath, serverName)
 
-      return c.json(successResponse({
-        message: result.message,
-        configPath: result.configPath,
-        backedUp: result.backedUp,
-        backupPath: result.backupPath
-      }))
+      return c.json(
+        successResponse({
+          message: result.message,
+          configPath: result.configPath,
+          backedUp: result.backedUp,
+          backupPath: result.backupPath
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to install MCP: ${error}`)
     }
   })
   .openapi(uninstallMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tool } = c.req.valid('json')
 
     try {
@@ -525,7 +520,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(updateProjectMCPConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const updates = c.req.valid('json')
 
     try {
@@ -553,7 +548,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(batchInstallMCPRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { tools, serverUrl, debug } = c.req.valid('json')
 
     try {
@@ -620,7 +615,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
     }
   })
   .openapi(installProjectConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { serverUrl } = c.req.valid('json')
 
     try {

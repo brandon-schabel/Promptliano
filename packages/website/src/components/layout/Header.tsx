@@ -10,6 +10,7 @@ const navigationItems: NavigationItem[] = [
   { id: 'local-first', label: 'Local First', href: '/local-first' },
   { id: 'integrations', label: 'Integrations', href: '/integrations' },
   { id: 'docs', label: 'Docs', href: '/docs' },
+  { id: 'mcp-tools', label: 'MCP Tools', href: '/docs/mcp-tools' },
   { id: 'downloads', label: 'Downloads', href: '/downloads' },
   { id: 'community', label: 'Community', href: '/community' },
   { id: 'about', label: 'About', href: '/about' }

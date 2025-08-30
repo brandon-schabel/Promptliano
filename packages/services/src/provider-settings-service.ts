@@ -6,7 +6,7 @@
  * and can be updated at runtime.
  */
 
-import type { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 interface ProviderSettings {
   ollamaUrl?: string

@@ -33,7 +33,7 @@ export const aiAssistantTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for all actions). Example: 1754713756748'
+        description: 'The project ID (required for all actions). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -51,7 +51,7 @@ export const aiAssistantTool: MCPToolDefinition = {
         switch (action) {
           case AIAssistantAction.OPTIMIZE_PROMPT: {
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"help me fix the authentication flow"')
-            const optimizedPrompt = await optimizeUserInput(projectId, prompt)
+            const optimizedPrompt = await optimizeUserInput(prompt, projectId)
             return {
               content: [{ type: 'text', text: optimizedPrompt }]
             }

@@ -32,7 +32,7 @@ export interface MCPToolResponse {
 
 export interface MCPToolDefinition<TArgs = any> {
   name: string
-  description?: string  // Optional to match MCP SDK Tool schema
+  description?: string // Optional to match MCP SDK Tool schema
   inputSchema: MCPToolInputSchema
   handler: (args: TArgs, projectId?: number) => Promise<MCPToolResponse>
 }

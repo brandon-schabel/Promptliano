@@ -7,10 +7,7 @@ import { z } from 'zod'
 /**
  * Create a standard API response schema
  */
-export function createApiResponseSchema<T extends z.ZodTypeAny>(
-  dataSchema: T,
-  name: string
-) {
+export function createApiResponseSchema<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -22,10 +19,7 @@ export function createApiResponseSchema<T extends z.ZodTypeAny>(
 /**
  * Create a list response schema
  */
-export function createListResponseSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  name: string
-) {
+export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -37,10 +31,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(
 /**
  * Create a paginated response schema
  */
-export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  name: string
-) {
+export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
       success: z.literal(true),
@@ -58,13 +49,10 @@ export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(
 /**
  * Create standard CRUD validation schemas
  */
-export function createCrudValidationSchemas<
-  TCreate extends z.ZodTypeAny,
-  TUpdate extends z.ZodTypeAny
->(
+export function createCrudValidationSchemas<TCreate extends z.ZodTypeAny, TUpdate extends z.ZodTypeAny>(
   createSchema: TCreate,
   updateSchema: TUpdate,
-  idSchema: z.ZodTypeAny = z.string().transform(val => parseInt(val, 10))
+  idSchema: z.ZodTypeAny = z.string().transform((val) => parseInt(val, 10))
 ) {
   return {
     create: {
@@ -81,11 +69,19 @@ export function createCrudValidationSchemas<
       params: z.object({ id: idSchema })
     },
     list: {
-      query: z.object({
-        page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1),
-        limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
-        search: z.string().optional()
-      }).optional()
+      query: z
+        .object({
+          page: z
+            .string()
+            .optional()
+            .transform((val) => (val ? parseInt(val, 10) : 1)),
+          limit: z
+            .string()
+            .optional()
+            .transform((val) => (val ? parseInt(val, 10) : 20)),
+          search: z.string().optional()
+        })
+        .optional()
     }
   }
 }
@@ -103,10 +99,7 @@ export function createTimestampFields() {
 /**
  * Create base entity schema with common fields
  */
-export function createBaseEntitySchema<T extends z.ZodRawShape>(
-  fields: T,
-  name: string
-) {
+export function createBaseEntitySchema<T extends z.ZodRawShape>(fields: T, name: string) {
   return z
     .object({
       id: z.number().int().positive(),
@@ -119,9 +112,7 @@ export function createBaseEntitySchema<T extends z.ZodRawShape>(
 /**
  * Create search/filter query schema
  */
-export function createSearchQuerySchema(
-  additionalFields: z.ZodRawShape = {}
-) {
+export function createSearchQuerySchema(additionalFields: z.ZodRawShape = {}) {
   return z.object({
     q: z.string().optional().describe('Search query'),
     page: z.coerce.number().int().positive().default(1),
@@ -140,16 +131,16 @@ export function createEnumField<T extends readonly [string, ...string[]]>(
   defaultValue: T[number],
   description?: string
 ) {
-  return z.enum(values).default(defaultValue as any).describe(description || `One of: ${values.join(', ')}`)
+  return z
+    .enum(values)
+    .default(defaultValue as any)
+    .describe(description || `One of: ${values.join(', ')}`)
 }
 
 /**
  * Create optional array field with default empty array
  */
-export function createArrayField<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  description?: string
-) {
+export function createArrayField<T extends z.ZodTypeAny>(itemSchema: T, description?: string) {
   return z
     .array(itemSchema)
     .default([])
@@ -159,20 +150,17 @@ export function createArrayField<T extends z.ZodTypeAny>(
 /**
  * Create nullable optional field
  */
-export function createNullableField<T extends z.ZodTypeAny>(
-  schema: T,
-  description?: string
-) {
-  return schema.nullable().optional().describe(description || 'Optional nullable field')
+export function createNullableField<T extends z.ZodTypeAny>(schema: T, description?: string) {
+  return schema
+    .nullable()
+    .optional()
+    .describe(description || 'Optional nullable field')
 }
 
 /**
  * Create a field that accepts multiple input types but normalizes to one
  */
-export function createFlexibleField<T>(
-  targetType: z.ZodType<T>,
-  preprocessor: (value: unknown) => T
-) {
+export function createFlexibleField<T>(targetType: z.ZodType<T>, preprocessor: (value: unknown) => T) {
   return z.preprocess(preprocessor, targetType)
 }
 
@@ -181,27 +169,19 @@ export function createFlexibleField<T>(
  */
 export const commonFields = {
   id: z.number().int().positive().describe('Unique identifier'),
-  
+
   name: z.string().min(1).max(255).describe('Name of the entity'),
-  
+
   description: z.string().default('').describe('Optional description'),
-  
-  status: createEnumField(
-    ['active', 'inactive', 'pending', 'archived'] as const,
-    'active',
-    'Entity status'
-  ),
-  
-  priority: createEnumField(
-    ['low', 'normal', 'high', 'urgent'] as const,
-    'normal',
-    'Priority level'
-  ),
-  
+
+  status: createEnumField(['active', 'inactive', 'pending', 'archived'] as const, 'active', 'Entity status'),
+
+  priority: createEnumField(['low', 'normal', 'high', 'urgent'] as const, 'normal', 'Priority level'),
+
   tags: createArrayField(z.string(), 'Tags for categorization'),
-  
+
   metadata: z.record(z.any()).default({}).describe('Additional metadata'),
-  
+
   ...createTimestampFields()
 }
 
@@ -217,20 +197,23 @@ export function createEntitySchemas<T extends z.ZodRawShape>(
   } = {}
 ) {
   const { createExcludes = [], updateExcludes = [] } = options
-  
+
   // Base entity with timestamps and ID
   const baseSchema = createBaseEntitySchema(baseFields, name)
-  
+
   // Create schema (exclude ID and timestamps, plus any specified excludes)
   const createExcludeKeys = ['id', 'created', 'updated', ...createExcludes]
-  const createOmitObj = Object.fromEntries(createExcludeKeys.map(key => [key, true])) as Record<string, true>
+  const createOmitObj = Object.fromEntries(createExcludeKeys.map((key) => [key, true])) as Record<string, true>
   const createSchema = baseSchema.omit(createOmitObj as any).openapi(`Create${name}`)
-  
+
   // Update schema (partial, exclude ID and timestamps, plus any specified excludes)
   const updateExcludeKeys = ['id', 'created', 'updated', ...updateExcludes]
-  const updateOmitObj = Object.fromEntries(updateExcludeKeys.map(key => [key, true])) as Record<string, true>
-  const updateSchema = baseSchema.omit(updateOmitObj as any).partial().openapi(`Update${name}`)
-  
+  const updateOmitObj = Object.fromEntries(updateExcludeKeys.map((key) => [key, true])) as Record<string, true>
+  const updateSchema = baseSchema
+    .omit(updateOmitObj as any)
+    .partial()
+    .openapi(`Update${name}`)
+
   return {
     base: baseSchema,
     create: createSchema,
@@ -250,7 +233,7 @@ export function createCrudSchemas<T extends z.ZodRawShape>(
   } = {}
 ) {
   const entities = createEntitySchemas(name, baseFields, options)
-  
+
   return {
     ...entities,
     responses: {
@@ -264,20 +247,14 @@ export function createCrudSchemas<T extends z.ZodRawShape>(
 /**
  * Create paginated schema (alias for existing function)
  */
-export function createPaginatedSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  name: string
-) {
+export function createPaginatedSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return createPaginatedResponseSchema(itemSchema, name)
 }
 
 /**
  * Create response schemas factory
  */
-export function createResponseSchemas<T extends z.ZodTypeAny>(
-  dataSchema: T,
-  name: string
-) {
+export function createResponseSchemas<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
   return {
     single: createApiResponseSchema(dataSchema, `${name}Response`),
     list: createListResponseSchema(dataSchema, `${name}ListResponse`),
@@ -312,10 +289,7 @@ export const standardErrorSchema = z.object({
 /**
  * Create batch operation request schema
  */
-export function createBatchRequestSchema<T extends z.ZodTypeAny>(
-  itemSchema: T,
-  maxItems: number = 100
-) {
+export function createBatchRequestSchema<T extends z.ZodTypeAny>(itemSchema: T, maxItems: number = 100) {
   return z.object({
     items: z.array(itemSchema).min(1).max(maxItems),
     continueOnError: z.boolean().default(false)
@@ -325,18 +299,18 @@ export function createBatchRequestSchema<T extends z.ZodTypeAny>(
 /**
  * Create batch operation response schema
  */
-export function createBatchResponseSchema<T extends z.ZodTypeAny>(
-  itemSchema: T
-) {
+export function createBatchResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) {
   return z.object({
     success: z.literal(true),
     data: z.object({
       successful: z.array(itemSchema),
-      failed: z.array(z.object({
-        item: itemSchema.optional(),
-        error: z.string(),
-        index: z.number()
-      })),
+      failed: z.array(
+        z.object({
+          item: itemSchema.optional(),
+          error: z.string(),
+          index: z.number()
+        })
+      ),
       total: z.number(),
       successCount: z.number(),
       failureCount: z.number()

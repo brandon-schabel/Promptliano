@@ -193,7 +193,30 @@ export const useSetActiveProjectTabId = () => {
 }
 
 export const useGetActiveProjectTabId = () => {
-  return useGetKvValue('activeProjectTabId')
+  // Wrap to ensure we don't return an invalid/non-existent active tab id
+  const [rawActiveId, setActiveId] = useGetKvValue('activeProjectTabId')
+  const [projectTabs] = useGetProjectTabs()
+
+  // Validate and auto-correct invalid active tab IDs (e.g., 1 when no tab 1 exists or legacy string key only)
+  const hasNumericTabs = !!projectTabs && Object.keys(projectTabs).some((k) => !isNaN(Number(k)))
+  const activeIsValid =
+    rawActiveId !== undefined &&
+    rawActiveId !== null &&
+    rawActiveId !== -1 &&
+    typeof rawActiveId === 'number' &&
+    !!projectTabs?.[rawActiveId]
+
+  if (!activeIsValid) {
+    // Choose first numeric tab if available, else -1
+    const firstNumericTabId = hasNumericTabs
+      ? Number(Object.keys(projectTabs!).filter((k) => !isNaN(Number(k)))[0])
+      : -1
+    // Set asynchronously to avoid state updates during render loops
+    queueMicrotask(() => setActiveId(firstNumericTabId ?? -1))
+    return [firstNumericTabId ?? -1, setActiveId] as const
+  }
+
+  return [rawActiveId, setActiveId] as const
 }
 
 export const useCreateProjectTab = () => {
@@ -210,7 +233,8 @@ export const useCreateProjectTab = () => {
     const projectTab: ProjectTabState = {
       // id: newTabId,
       // ...currentProjectTabData,
-      selectedProjectId: payload.selectedProjectId ?? currentSelectedProjectId ?? null,
+      // Default to -1 (none) if not provided; do not assume or carry an invalid default
+      selectedProjectId: payload.selectedProjectId ?? currentSelectedProjectId ?? -1,
       editProjectId: -1,
       promptDialogOpen: false,
       editPromptId: -1,
@@ -329,12 +353,12 @@ export function useActiveProjectTab(): [
   const { updateProjectTabById } = useUpdateProjectTabById()
 
   const updateActiveProjectTab = (partialData: Partial<ProjectTabState>) => {
-    if (activeProjectTabId) {
+    if (activeProjectTabId && activeProjectTabId !== -1 && activeProjectTabData) {
       updateProjectTabById(activeProjectTabId, partialData)
     }
   }
 
-  return [activeProjectTabData, updateActiveProjectTab, activeProjectTabId as number | null]
+  return [activeProjectTabData, updateActiveProjectTab, (activeProjectTabId as number | null) ?? null]
 }
 
 export function useActiveChatId(): [number | null, (chatId: number | null) => void] {

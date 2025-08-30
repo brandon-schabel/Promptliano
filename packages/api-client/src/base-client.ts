@@ -57,9 +57,7 @@ export class BaseApiClient {
     } else {
       // Bind default fetch to window context for browser environments
       this.customFetch =
-        typeof window !== 'undefined' && window.fetch
-          ? (window.fetch.bind(window) as typeof fetch)
-          : fetch
+        typeof window !== 'undefined' && window.fetch ? (window.fetch.bind(window) as typeof fetch) : fetch
     }
   }
 
@@ -197,7 +195,7 @@ export class BaseApiClient {
   /**
    * ErrorFactory pattern helpers for consistent error handling
    */
-  
+
   /**
    * Assert that a response exists and is not null/undefined
    */
@@ -222,11 +220,7 @@ export class BaseApiClient {
    */
   protected validateId(id: number, paramName: string): void {
     if (!Number.isInteger(id) || id <= 0) {
-      throw new PromptlianoError(
-        `Invalid ${paramName}: must be a positive integer`,
-        undefined,
-        'VALIDATION_ERROR'
-      )
+      throw new PromptlianoError(`Invalid ${paramName}: must be a positive integer`, undefined, 'VALIDATION_ERROR')
     }
   }
 
@@ -235,19 +229,11 @@ export class BaseApiClient {
    */
   protected validateString(str: string, paramName: string, options?: { minLength?: number; maxLength?: number }): void {
     if (typeof str !== 'string') {
-      throw new PromptlianoError(
-        `Invalid ${paramName}: must be a string`,
-        undefined,
-        'VALIDATION_ERROR'
-      )
+      throw new PromptlianoError(`Invalid ${paramName}: must be a string`, undefined, 'VALIDATION_ERROR')
     }
-    
+
     if (str.trim().length === 0) {
-      throw new PromptlianoError(
-        `Invalid ${paramName}: cannot be empty`,
-        undefined,
-        'VALIDATION_ERROR'
-      )
+      throw new PromptlianoError(`Invalid ${paramName}: cannot be empty`, undefined, 'VALIDATION_ERROR')
     }
 
     if (options?.minLength && str.length < options.minLength) {
@@ -284,60 +270,78 @@ export class BaseApiClient {
   /**
    * HTTP GET request
    */
-  protected async get<TResponse>(endpoint: string, options?: {
-    params?: Record<string, string | number | boolean>
-    responseSchema?: z.ZodType<TResponse>
-    skipValidation?: boolean
-    timeout?: number
-  }): Promise<TResponse> {
+  protected async get<TResponse>(
+    endpoint: string,
+    options?: {
+      params?: Record<string, string | number | boolean>
+      responseSchema?: z.ZodType<TResponse>
+      skipValidation?: boolean
+      timeout?: number
+    }
+  ): Promise<TResponse> {
     return this.request<TResponse>('GET', endpoint, options)
   }
 
   /**
    * HTTP POST request
    */
-  protected async post<TResponse>(endpoint: string, body?: unknown, options?: {
-    params?: Record<string, string | number | boolean>
-    responseSchema?: z.ZodType<TResponse>
-    skipValidation?: boolean
-    timeout?: number
-  }): Promise<TResponse> {
+  protected async post<TResponse>(
+    endpoint: string,
+    body?: unknown,
+    options?: {
+      params?: Record<string, string | number | boolean>
+      responseSchema?: z.ZodType<TResponse>
+      skipValidation?: boolean
+      timeout?: number
+    }
+  ): Promise<TResponse> {
     return this.request<TResponse>('POST', endpoint, { ...options, body })
   }
 
   /**
    * HTTP PATCH request
    */
-  protected async patch<TResponse>(endpoint: string, body?: unknown, options?: {
-    params?: Record<string, string | number | boolean>
-    responseSchema?: z.ZodType<TResponse>
-    skipValidation?: boolean
-    timeout?: number
-  }): Promise<TResponse> {
+  protected async patch<TResponse>(
+    endpoint: string,
+    body?: unknown,
+    options?: {
+      params?: Record<string, string | number | boolean>
+      responseSchema?: z.ZodType<TResponse>
+      skipValidation?: boolean
+      timeout?: number
+    }
+  ): Promise<TResponse> {
     return this.request<TResponse>('PATCH', endpoint, { ...options, body })
   }
 
   /**
    * HTTP PUT request
    */
-  protected async put<TResponse>(endpoint: string, body?: unknown, options?: {
-    params?: Record<string, string | number | boolean>
-    responseSchema?: z.ZodType<TResponse>
-    skipValidation?: boolean
-    timeout?: number
-  }): Promise<TResponse> {
+  protected async put<TResponse>(
+    endpoint: string,
+    body?: unknown,
+    options?: {
+      params?: Record<string, string | number | boolean>
+      responseSchema?: z.ZodType<TResponse>
+      skipValidation?: boolean
+      timeout?: number
+    }
+  ): Promise<TResponse> {
     return this.request<TResponse>('PUT', endpoint, { ...options, body })
   }
 
   /**
    * HTTP DELETE request
    */
-  protected async delete<TResponse>(endpoint: string, options?: {
-    params?: Record<string, string | number | boolean>
-    responseSchema?: z.ZodType<TResponse>
-    skipValidation?: boolean
-    timeout?: number
-  }): Promise<TResponse> {
+  protected async delete<TResponse>(
+    endpoint: string,
+    options?: {
+      params?: Record<string, string | number | boolean>
+      responseSchema?: z.ZodType<TResponse>
+      skipValidation?: boolean
+      timeout?: number
+    }
+  ): Promise<TResponse> {
     return this.request<TResponse>('DELETE', endpoint, options)
   }
 }

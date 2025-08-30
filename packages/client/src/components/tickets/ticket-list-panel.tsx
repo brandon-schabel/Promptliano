@@ -1,6 +1,8 @@
 import React, { useMemo, useCallback } from 'react'
-import { useGetTicketsWithTasks, useDeleteTicket } from '@/hooks/api/use-tickets-api'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
+import { useDeleteTicket } from '@/hooks/generated'
+import { useGetTicketsWithTasks } from '@/hooks/api-hooks'
+import { useGetQueuesWithStats } from '@/hooks/generated'
+import type { QueueWithStats } from '@/hooks/generated/types'
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
@@ -104,10 +106,7 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
   )
 
   // Load tickets with their tasks from the server
-  const { data, isLoading, error } = useGetTicketsWithTasks(
-    Number(projectId),
-    ticketStatus === 'all' ? undefined : ticketStatus === 'non_closed' ? undefined : ticketStatus
-  )
+  const { data, isLoading, error } = useGetTicketsWithTasks(Number(projectId))
   const tickets = (data ?? []) as TicketWithTasks[]
 
   // Apply client-side filtering for status and queue
@@ -162,14 +161,14 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
     switch (ticketSort) {
       case 'created_asc':
         return arr.sort((a, b) => {
-          const aTime = a.ticket.created
-          const bTime = b.ticket.created
+          const aTime = a.ticket.createdAt
+          const bTime = b.ticket.createdAt
           return aTime - bTime
         })
       case 'created_desc':
         return arr.sort((a, b) => {
-          const aTime = a.ticket.created
-          const bTime = b.ticket.created
+          const aTime = a.ticket.createdAt
+          const bTime = b.ticket.createdAt
           return bTime - aTime
         })
       case 'status':
@@ -212,10 +211,7 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
     if (!ticketToDelete) return
 
     try {
-      await deleteTicket.mutateAsync({
-        ticketId: ticketToDelete.ticket.id,
-        projectId: ticketToDelete.ticket.projectId
-      })
+      await deleteTicket.mutateAsync(ticketToDelete.ticket.id)
       toast.success('Ticket deleted successfully')
     } catch (err) {
       toast.error('Failed to delete ticket')
@@ -268,7 +264,7 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
             {queuesData && queuesData.length > 0 && (
               <>
                 <SelectSeparator />
-                {queuesData.map((queueWithStats) => (
+                {queuesData.map((queueWithStats: QueueWithStats) => (
                   <SelectItem key={queueWithStats.queue.id} value={queueWithStats.queue.id.toString()}>
                     {queueWithStats.queue.name}
                   </SelectItem>

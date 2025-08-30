@@ -1,10 +1,10 @@
 /**
  * Git Service - Backwards Compatibility Layer
- * 
+ *
  * This file maintains backwards compatibility by re-exporting all functions
  * from the modularized git services. The actual implementation has been
  * split into specialized services for better organization and maintainability.
- * 
+ *
  * @deprecated Use the specialized services directly from './git-services' for new code
  */
 
@@ -21,4 +21,4 @@ export * from './git-services'
 // - git-remote-service.ts: Remote, push, pull, tags (~250 lines)
 // - git-worktree-service.ts: Worktree management (~250 lines)
 // - git-config-service.ts: Git configuration (~150 lines)
-// - base-git-service.ts: Shared base functionality (~75 lines)
+// - service-factory-base.ts: Shared base functionality and ErrorFactory patterns

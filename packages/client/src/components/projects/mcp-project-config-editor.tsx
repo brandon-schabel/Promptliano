@@ -54,7 +54,7 @@ interface MCPServerConfig {
   timeout?: number
 }
 
-type ProjectMCPConfigInput = 
+type ProjectMCPConfigInput =
   | {
       type: 'promptString'
       id: string
@@ -109,7 +109,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
     queryKey: ['mcp-project-config-locations', projectId],
     queryFn: async () => {
       if (!client) return
-      const result = await client.mcp.getConfigLocations(projectId)
+      const result = await (client as any).mcp?.getConfigLocations(projectId)
       return result.data
     },
     enabled: !!client
@@ -120,7 +120,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
     queryKey: ['mcp-project-config', projectId],
     queryFn: async () => {
       if (!client) return
-      const result = await client.mcp.loadProjectConfig(projectId)
+      const result = await (client as any).mcp?.loadProjectConfig(projectId)
       return result.data
     },
     enabled: !!client
@@ -131,7 +131,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
     queryKey: ['mcp-merged-config', projectId],
     queryFn: async () => {
       if (!client) return
-      const result = await client.mcp.getMergedConfig(projectId)
+      const result = await (client as any).mcp?.getMergedConfig(projectId)
       return result.data
     },
     enabled: !!client
@@ -142,7 +142,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
     queryKey: ['mcp-expanded-config', projectId],
     queryFn: async () => {
       if (!client) return
-      const result = await client.mcp.getExpandedConfig(projectId)
+      const result = await (client as any).mcp?.getExpandedConfig(projectId)
       return result.data
     },
     enabled: !!client
@@ -152,7 +152,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
   const saveConfigMutation = useMutation({
     mutationFn: async (config: ProjectMCPConfig) => {
       if (!client) return
-      await client.mcp.saveProjectConfig(projectId, config)
+      await (client as any).mcp?.saveProjectConfig(projectId, config)
     },
     onSuccess: () => {
       toast.success('MCP configuration saved successfully')
@@ -254,11 +254,7 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
 
       // Save it to the specific location
       if (!client || !defaultConfigResult) return
-      await client.mcp.saveProjectConfigToLocation(
-        projectId,
-        location.path,
-        defaultConfigResult.data.config
-      )
+      await client.mcp.saveProjectConfigToLocation(projectId, location.path, defaultConfigResult.data)
     },
     onSuccess: (_, location) => {
       const editorInfo = getEditorInfoFromPath(location.path)

@@ -18,12 +18,14 @@ import {
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { SuggestedFilesDialog } from '../suggest-files-dialog'
 import { SuggestedPromptsDialog } from '../suggest-prompts-dialog'
-import { useCreateChat } from '@/hooks/api/use-chat-api'
+import { useCreateChat } from '@/hooks/generated'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { Binoculars, Bot, Copy, Check, FileText, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
-import { useGetProjectSummary, useSuggestFiles } from '@/hooks/api/use-projects-api'
-import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api/use-prompts-api'
-import { Prompt } from '@promptliano/schemas'
+import { useGetProjectSummary, useSuggestFiles } from '@/hooks/api-hooks'
+import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api-hooks'
+// Import the correct Prompt type from database schema
+import type { PromptSchema } from '@promptliano/database'
+type Prompt = typeof PromptSchema._type
 import { useProjectFileTree } from '@/hooks/use-project-file-tree'
 import { buildTreeStructure } from './file-panel/file-tree/file-tree'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
@@ -60,7 +62,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const { data: selectedPrompts = [] } = useProjectTabField('selectedPrompts', activeProjectTabId ?? -1)
   const { data: globalUserPrompt = '' } = useProjectTabField('userPrompt', activeProjectTabId ?? -1)
   const [suggestedFiles, setSuggestedFiles] = useState<ProjectFile[]>([])
-  const [suggestedPrompts, setSuggestedPrompts] = useState<Prompt[]>([])
+  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([])  // Matches API return type
 
   // Keep a local copy of userPrompt so that typing is instantly reflected in the textarea
   const [localUserPrompt, setLocalUserPrompt] = useState(globalUserPrompt)
@@ -86,7 +88,19 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
 
   // Calculate total tokens
   const totalTokens = useMemo(() => {
-    return calculateTotalTokens(promptData?.data, selectedPrompts, localUserPrompt, selectedFiles, projectFileMap)
+    // Convert hook prompt format to expected format
+    const prompts =
+      promptData?.map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        description: null,
+        projectId: p.projectId || -1,
+        tags: [],
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt
+      })) || []
+    return calculateTotalTokens(prompts, selectedPrompts, localUserPrompt, selectedFiles, projectFileMap)
   }, [promptData, selectedPrompts, localUserPrompt, selectedFiles, projectFileMap])
 
   // Update localUserPrompt if global changes externally
@@ -109,12 +123,25 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const buildFullProjectContext = () => {
     const finalUserPrompt = promptInputRef.current?.value ?? localUserPrompt
 
-    if (!promptData?.data) {
+    if (!promptData) {
       return
     }
 
+    // Convert hook prompt format to expected format
+    const prompts =
+      promptData?.map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        description: null,
+        projectId: p.projectId || -1,
+        tags: [],
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt
+      })) || []
+
     return buildPromptContent({
-      promptData: promptData?.data,
+      promptData: prompts,
       selectedPrompts,
       userPrompt: finalUserPrompt,
       selectedFiles,
@@ -150,7 +177,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     findSuggestedFilesMutation.mutate(
       {
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
-        params: { userInput: `Please find the relevant files for the following prompt: ${localUserPrompt}` }
+        prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`
       },
       {
         onSuccess: (recommendedFiles) => {
@@ -173,15 +200,33 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     findSuggestedPromptsMutation.mutate(
       {
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
-        params: {
-          userInput: localUserPrompt,
-          limit: 5
-        }
+        userInput: localUserPrompt,
+        limit: 5
       },
       {
         onSuccess: (recommendedPrompts) => {
-          if (recommendedPrompts?.prompts && recommendedPrompts.prompts.length > 0) {
-            setSuggestedPrompts(recommendedPrompts.prompts)
+          if (recommendedPrompts && recommendedPrompts.length > 0) {
+            // Convert HookPrompt objects to Prompt objects
+            // Type the recommendedPrompts parameter properly
+            type HookPrompt = {
+              id: number;
+              name: string;
+              content: string;
+              projectId?: number;
+              created?: number;
+              updated?: number;
+            }
+            const convertedPrompts: Prompt[] = (recommendedPrompts as HookPrompt[]).map((hookPrompt): Prompt => ({
+              id: hookPrompt.id,
+              title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
+              content: hookPrompt.content,
+              description: null, // HookPrompt doesn't have description
+              projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
+              tags: [], // HookPrompt doesn't have tags
+              createdAt: hookPrompt.created || Date.now(),
+              updatedAt: hookPrompt.updated || Date.now()
+            }))
+            setSuggestedPrompts(convertedPrompts)
             setShowPromptSuggestions(true)
           } else {
             toast.info('No relevant prompts found for your input')
@@ -199,10 +244,11 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     setTimeout(async () => {
       try {
         const newChat = await createChatMutation.mutateAsync({
-          title: defaultTitle
+          title: defaultTitle,
+          projectId: activeProjectTabState?.selectedProjectId ?? -1
         })
         // Ensure newChat has an ID (adjust based on actual return type)
-        const newChatId = newChat?.data.id // Type assertion might be needed
+        const newChatId = newChat?.id // Type assertion might be needed
         if (newChatId) {
           setActiveChatId(newChatId)
           // navigate to the chat, where the chat page will load the initial content from local storage

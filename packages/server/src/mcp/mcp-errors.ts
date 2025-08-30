@@ -5,7 +5,6 @@ import {
   listTicketsByProject,
   listAllPrompts,
   getProjectById,
-  listAgents,
   getProjectFiles
 } from '@promptliano/services'
 import * as path from 'path'
@@ -190,14 +189,14 @@ export class MCPError extends ApiError {
     this.suggestion = suggestion
     this.context = context
 
-    // Add structured details to parent class
-    ;(this as any).details = {
-      code,
-      message,
-      suggestion,
-      context,
-      timestamp: Date.now()
-    } as MCPErrorDetails
+      // Add structured details to parent class
+      ; (this as any).details = {
+        code,
+        message,
+        suggestion,
+        context,
+        timestamp: Date.now()
+      } as MCPErrorDetails
   }
   /**
    * Determine appropriate HTTP status code based on error type
@@ -412,8 +411,8 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
 
       if (prompts.length > 0) {
         errorText = `Error: ${error.message}\n\nAvailable prompts:\n`
-        prompts.slice(0, 10).forEach((p) => {
-          errorText += `  ${p.id}: ${p.name}\n`
+        prompts.slice(0, 10).forEach((p: any) => {
+          errorText += `  ${p.id}: ${p.title}\n`
         })
         if (prompts.length > 10) {
           errorText += `  ... and ${prompts.length - 10} more prompts\n`
@@ -427,32 +426,6 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
     }
   }
 
-  // Special handling for AGENT_NOT_FOUND to include available agents
-  if (error.mcpCode === MCPErrorCode.AGENT_NOT_FOUND && error.context?.tool === 'agent_manager') {
-    try {
-      const projectId = error.context?.projectId
-      if (projectId) {
-        const project = await getProjectById(projectId as number)
-        const agents = await listAgents(project.path)
-
-        if (agents.length > 0) {
-          errorText = `Error: ${error.message}\n\nAvailable agents in project ${projectId}:\n`
-          agents.slice(0, 10).forEach((a) => {
-            errorText += `  ${a.id}: ${a.name} - ${a.description}\n`
-          })
-          if (agents.length > 10) {
-            errorText += `  ... and ${agents.length - 10} more agents\n`
-          }
-          errorText += `\nPlease use one of the agent IDs listed above.`
-        } else {
-          errorText +=
-            '\n\nNo agents found in this project. Create an agent first using the "create" action or associate existing agents using "associate_with_project".'
-        }
-      }
-    } catch (listError) {
-      console.error('Failed to list agents for error message:', listError)
-    }
-  }
 
   // Special handling for FILE_NOT_FOUND to suggest similar files
   if (error.mcpCode === MCPErrorCode.FILE_NOT_FOUND && error.context?.tool === 'project_manager') {

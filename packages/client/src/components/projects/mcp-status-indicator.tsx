@@ -20,11 +20,12 @@ interface MCPStatusIndicatorProps {
 export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
   const client = useApiClient()
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['mcp-status', projectId],
+    queryKey: ['mcp-installation-detect'],
     queryFn: async () => {
       if (!client) return
-      const response = await client.projects.getMCPInstallationStatus(projectId)
-      return response.data
+      // Use the MCP installation detection endpoint which returns tools array
+      const response = await client.typeSafeClient.listMcpInstallationDetect()
+      return response
     },
     enabled: !!client,
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -45,35 +46,43 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
     )
   }
 
-  const connectionStatus = data?.connectionStatus
-  const isConnected = connectionStatus?.connected || false
-  const lastActivity = connectionStatus?.lastActivity
+  // MCP installation detection returns tools array with installation status
+  const tools = data?.data?.tools || []
+  const claudeDesktop = tools.find(t => t.tool === 'claude-desktop')
+  const claudeCode = tools.find(t => t.tool === 'claude-code')
+  
+  const isInstalled = claudeDesktop?.installed || claudeCode?.installed || false
+  const hasConfig = claudeDesktop?.configExists || claudeCode?.configExists || false
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Badge
-            variant={isConnected ? 'default' : 'secondary'}
-            className={`gap-1 cursor-help ${isConnected ? 'bg-green-600 hover:bg-green-700' : ''}`}
+            variant={isInstalled && hasConfig ? 'default' : 'secondary'}
+            className={`gap-1 cursor-help ${isInstalled && hasConfig ? 'bg-green-600 hover:bg-green-700' : ''}`}
           >
-            {isConnected ? <Wifi className='h-3 w-3' /> : <WifiOff className='h-3 w-3' />}
-            MCP {isConnected ? 'Connected' : 'Disconnected'}
+            {isInstalled && hasConfig ? <Wifi className='h-3 w-3' /> : <WifiOff className='h-3 w-3' />}
+            MCP {isInstalled && hasConfig ? 'Configured' : 'Not Configured'}
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
           <div className='space-y-1'>
-            <p className='font-semibold'>MCP Status: {isConnected ? 'Connected' : 'Not Connected'}</p>
-            {isConnected && connectionStatus?.sessionId && (
-              <p className='text-xs text-muted-foreground'>Session: {connectionStatus.sessionId.slice(0, 8)}...</p>
+            <p className='font-semibold'>MCP Status: {isInstalled && hasConfig ? 'Configured' : 'Not Configured'}</p>
+            {claudeDesktop?.installed && (
+              <p className='text-xs text-muted-foreground'>Claude Desktop: Installed</p>
             )}
-            {isConnected && lastActivity && (
-              <p className='text-xs text-muted-foreground'>
-                Last active: {formatDistanceToNow(new Date(lastActivity), { addSuffix: true })}
-              </p>
+            {claudeCode?.installed && (
+              <p className='text-xs text-muted-foreground'>Claude Code: Installed</p>
             )}
-            {!isConnected && (
-              <p className='text-xs text-muted-foreground'>Install and restart your AI tool to connect</p>
+            {(!isInstalled || !hasConfig) && (
+              <p className='text-xs text-muted-foreground'>Install MCP tools to enable integration</p>
+            )}
+            {claudeDesktop?.hasPromptliano && (
+              <p className='text-xs text-green-400'>Claude Desktop has Promptliano configured</p>
+            )}
+            {claudeCode?.hasPromptliano && (
+              <p className='text-xs text-green-400'>Claude Code has Promptliano configured</p>
             )}
           </div>
         </TooltipContent>

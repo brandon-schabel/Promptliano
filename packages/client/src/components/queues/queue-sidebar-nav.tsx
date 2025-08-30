@@ -5,8 +5,9 @@ import { Badge } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Plus, ListOrdered, TrendingUp, Clock, LayoutGrid, Pause, Play, AlertCircle } from 'lucide-react'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
+import { useGetQueuesWithStats } from '@/hooks/generated'
 import { type QueueView } from '@/lib/search-schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 
 interface QueueSidebarNavProps {
   projectId: number
@@ -64,9 +65,9 @@ export function QueueSidebarNav({
   const { data: queuesWithStats, isLoading } = useGetQueuesWithStats(projectId)
 
   // Calculate summary stats
-  const totalQueued = queuesWithStats?.reduce((sum, q) => sum + q.stats.queuedItems, 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum, q) => sum + q.stats.inProgressItems, 0) || 0
-  const activeQueues = queuesWithStats?.filter((q) => q.queue.status === 'active').length || 0
+  const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.queuedItems, 0) || 0
+  const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + q.stats.inProgressItems, 0) || 0
+  const activeQueues = queuesWithStats?.filter((q: any) => q.status === 'active').length || 0
 
   return (
     <div className={cn('flex flex-col h-full bg-muted/30', className)}>
@@ -132,7 +133,7 @@ export function QueueSidebarNav({
             </div>
           ) : queuesWithStats && queuesWithStats.length > 0 ? (
             <div className='space-y-1'>
-              {queuesWithStats.map((queueWithStats) => {
+              {queuesWithStats.map((queueWithStats: QueueWithStats) => {
                 const { queue, stats } = queueWithStats
                 const isSelected = selectedQueueId === queue.id
                 const isPaused = queue.status === 'paused'

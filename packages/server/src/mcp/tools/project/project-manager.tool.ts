@@ -29,6 +29,7 @@ import {
   getProjectFileTree,
   getProjectOverview
 } from '@promptliano/services'
+import { createFileSearchService } from '@promptliano/services'
 import type { CreateProjectBody, UpdateProjectBody } from '@promptliano/services'
 import { SummaryOptionsSchema } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
@@ -36,7 +37,7 @@ import { ApiError } from '@promptliano/shared'
 export const projectManagerTool: MCPToolDefinition = {
   name: 'project_manager',
   description:
-    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), get_summary, get_summary_advanced (with options for depth/format/strategy), get_summary_metrics (summary generation metrics), browse_files, get_file_content, update_file_content, suggest_files, get_selection_context (get complete active tab context), search, create_file, get_file_content_partial, get_file_tree (returns project file structure with file IDs), overview (get essential project context - recommended first tool)',
+    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), get_summary, get_summary_advanced (with options for depth/format/strategy), get_summary_metrics (summary generation metrics), browse_files, get_file_content, update_file_content, suggest_files, get_selection_context (get complete active tab context), search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -47,7 +48,7 @@ export const projectManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for all actions except "list" and "create"). Example: 1754713756748'
+        description: 'The project ID (required for all actions except "list" and "create"). Tip: Use project_manager(list) to get a valid ID.'
       },
       data: {
         type: 'object',
@@ -73,9 +74,9 @@ export const projectManagerTool: MCPToolDefinition = {
           }
 
           case ProjectManagerAction.GET: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const project = await getProjectById(validProjectId)
-            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.created).toLocaleString()}\nUpdated: ${new Date(project.updated).toLocaleString()}`
+            const details = `Project: ${project.name}\nPath: ${project.path}\nDescription: ${project.description}\nCreated: ${new Date(project.createdAt).toLocaleString()}\nUpdated: ${new Date(project.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }
@@ -118,6 +119,8 @@ export const projectManagerTool: MCPToolDefinition = {
               })
             }
 
+            if (!deleteProject)
+              throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete project service unavailable')
             const success = await deleteProject(validProjectId)
             return {
               content: [
@@ -271,7 +274,7 @@ Version Info:
           }
 
           case ProjectManagerAction.GET_FILE_CONTENT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/index.ts" or "README.md"')
 
             const project = await getProjectById(validProjectId)
@@ -327,7 +330,7 @@ Version Info:
           }
 
           case ProjectManagerAction.UPDATE_FILE_CONTENT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/index.ts"')
             const content = validateDataField<string>(data, 'content', 'string', '"// Updated content"')
 
@@ -353,6 +356,7 @@ Version Info:
               )
             }
 
+            // Use file.id (which is the path) directly now that service layer is fixed
             await updateFileContent(validProjectId, file.id, content)
             return {
               content: [{ type: 'text', text: `File ${filePath} updated successfully` }]
@@ -360,7 +364,7 @@ Version Info:
           }
 
           case ProjectManagerAction.SUGGEST_FILES: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"authentication flow"')
             const limit = (data?.limit as number) || 10
 
@@ -372,7 +376,7 @@ Version Info:
           }
 
           case ProjectManagerAction.GET_SELECTION_CONTEXT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
             // Get active tab to get selection context
             const activeTab = await getActiveTab(validProjectId)
@@ -429,12 +433,37 @@ Version Info:
           case ProjectManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
             const query = validateDataField<string>(data, 'query', 'string', '"function handleSubmit"')
-            const fileTypes = data?.fileTypes as string[] | undefined
-            const maxResults = (data?.maxResults as number) || 20
+            const fileTypes = (data?.fileTypes as string[] | undefined) || undefined
+            const limit = (data?.limit as number) || (data?.maxResults as number) || 20
+            const offset = (data?.offset as number) || 0
+            const includeContext = (data?.includeContext as boolean) || false
+            const contextLines = (data?.contextLines as number) || 3
+            const caseSensitive = (data?.caseSensitive as boolean) || false
+            const searchType = (data?.searchType as 'exact' | 'fuzzy' | 'semantic' | 'regex') || 'semantic'
+            const scoringMethod = (data?.scoringMethod as 'relevance' | 'recency' | 'frequency') || 'relevance'
+            const output = (data?.output as 'text' | 'json') || 'text'
 
-            // Search functionality needs to be implemented or imported correctly
-            // For now, return empty results to fix the build
-            const results: any[] = []
+            const searchService = createFileSearchService()
+            const { results: rawResults, stats } = await searchService.search(validProjectId, {
+              query,
+              searchType,
+              fileTypes,
+              limit,
+              offset,
+              includeContext,
+              contextLines,
+              scoringMethod,
+              caseSensitive
+            })
+
+            const results = rawResults.map((r) => ({
+              file: r.file,
+              score: r.score,
+              matches: (r.matches || []).map((m: any) => ({
+                lineNumber: m.line ?? m.lineNumber ?? 0,
+                line: (m.text ?? m.line ?? '').toString()
+              }))
+            }))
 
             if (!results || results.length === 0) {
               return {
@@ -442,7 +471,26 @@ Version Info:
               }
             }
 
-            let resultText = `Search results for "${query}":\n\n`
+            if (output === 'json') {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify(
+                      {
+                        query,
+                        stats,
+                        results: rawResults
+                      },
+                      null,
+                      2
+                    )
+                  }
+                ]
+              }
+            }
+
+            let resultText = `Search results for "${query}" (showing ${results.length} / ${stats.totalResults}):\n\n`
             results.forEach((result, index) => {
               resultText += `${index + 1}. ${result.file.path} (score: ${result.score.toFixed(2)})\n`
               result.matches.forEach((match: { lineNumber: number; line: string }) => {
@@ -457,7 +505,7 @@ Version Info:
           }
 
           case ProjectManagerAction.CREATE_FILE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/new-file.ts"')
             const content = (data?.content as string) || ''
 
@@ -482,7 +530,7 @@ Version Info:
           }
 
           case ProjectManagerAction.GET_FILE_CONTENT_PARTIAL: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/index.ts"')
             const startLine = data?.startLine as number | undefined
             const endLine = data?.endLine as number | undefined
@@ -527,7 +575,7 @@ Version Info:
           }
 
           case ProjectManagerAction.DELETE_FILE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/file-to-delete.ts"')
 
             const project = await getProjectById(validProjectId)
@@ -549,20 +597,42 @@ Version Info:
           }
 
           case ProjectManagerAction.GET_FILE_TREE: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const maxDepth = (data?.maxDepth as number) || 10
             const includeHidden = (data?.includeHidden as boolean) || false
             const fileTypes = data?.fileTypes as string[] | undefined
+            const maxFilesPerDir = (data?.maxFilesPerDir as number) || 500
+            const limit = (data?.limit as number) || undefined
+            const offset = (data?.offset as number) || 0
+            const excludePatterns = (data?.excludePatterns as string[] | undefined) || undefined
+            const includeContent = (data?.includeContent as boolean) || false
+            const output = (data?.output as 'text' | 'json') || 'json'
 
-            const tree = await getProjectFileTree(validProjectId)
+            const { tree, meta } = await getProjectFileTree(validProjectId, {
+              maxDepth,
+              includeHidden,
+              fileTypes,
+              maxFilesPerDir,
+              limit,
+              offset,
+              excludePatterns,
+              includeContent
+            })
+
+            if (output === 'text') {
+              const header = `File Tree (files ${meta.offset}-${meta.offset + (meta.returnedFiles || 0)} of ${meta.totalFiles})\n`
+              return {
+                content: [{ type: 'text', text: header + JSON.stringify(tree, null, 2) }]
+              }
+            }
 
             return {
-              content: [{ type: 'text', text: JSON.stringify(tree, null, 2) }]
+              content: [{ type: 'text', text: JSON.stringify({ tree, meta }, null, 2) }]
             }
           }
 
           case ProjectManagerAction.OVERVIEW: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const context = await getProjectOverview(validProjectId)
             return {
               content: [{ type: 'text', text: context }]

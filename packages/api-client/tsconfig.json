@@ -13,6 +13,15 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    
+    // Workspace package resolution
+    "baseUrl": ".",
+    "paths": {
+      "@promptliano/hook-factory": ["../hook-factory/src/index.ts"],
+      "@promptliano/hook-factory/*": ["../hook-factory/src/*"],
+      "@promptliano/shared": ["../shared/src/index.ts"],
+      "@promptliano/shared/*": ["../shared/src/*"]
+    },
 
     // Best practices
     "strict": true,
@@ -25,5 +34,15 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "src/test-*.ts", "src/tests/**", "src/test-utils/**"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test-*.ts",
+    "src/tests/**",
+    "src/test-utils/**"
+  ]
 }

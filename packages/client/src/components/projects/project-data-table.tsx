@@ -59,7 +59,7 @@ export function ProjectDataTable({
 }: ProjectDataTableProps) {
   const navigate = useNavigate()
   const [deleteProjectId, setDeleteProjectId] = React.useState<number | null>(null)
-  const projectToDelete = projects.find(p => p.id === deleteProjectId)
+  const projectToDelete = projects.find((p) => p.id === deleteProjectId)
 
   // Define columns using the column factory
   const columnsConfig: DataTableColumnsConfig<Project> = {
@@ -84,7 +84,7 @@ export function ProjectDataTable({
         }
       },
       {
-        type: 'text', 
+        type: 'text',
         config: {
           accessorKey: 'path',
           header: 'Path',
@@ -96,7 +96,7 @@ export function ProjectDataTable({
       {
         type: 'date',
         config: {
-          accessorKey: 'updated',
+          accessorKey: 'updatedAt',
           header: 'Last Updated',
           format: 'relative',
           enableSorting: true
@@ -131,7 +131,7 @@ export function ProjectDataTable({
             <Plus className='h-4 w-4' /> Project
           </Button>
         </div>
-        
+
         <ConfiguredDataTable
           columns={columns}
           data={projects}
@@ -166,17 +166,19 @@ export function ProjectDataTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
           </AlertDialogHeader>
-          <p className='text-sm text-muted-foreground'>
-            Are you sure you want to delete "{projectToDelete?.name}"?
-          </p>
+          <p className='text-sm text-muted-foreground'>Are you sure you want to delete "{projectToDelete?.name}"?</p>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteProjectId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              if (deleteProjectId) {
-                onDeleteProject(deleteProjectId)
-                setDeleteProjectId(null)
-              }
-            }}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteProjectId) {
+                  onDeleteProject(deleteProjectId)
+                  setDeleteProjectId(null)
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

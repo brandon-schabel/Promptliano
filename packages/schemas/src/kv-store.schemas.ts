@@ -26,7 +26,8 @@ const recentProjectsSchema = z.array(z.number()).max(5).default([])
 export const KvSchemas = {
   [KVKeyEnum.appSettings]: appSettingsSchema,
   [KVKeyEnum.projectTabs]: projectTabsStateRecordSchema,
-  [KVKeyEnum.activeProjectTabId]: idSchemaSpec.default(1),
+  // No active project tab by default; will be set when user opens/selects a project tab
+  [KVKeyEnum.activeProjectTabId]: idSchemaSpec.default(-1),
   [KVKeyEnum.activeChatId]: idSchemaSpec.default(-1),
   [KVKeyEnum.recentProjects]: recentProjectsSchema
 } as const
@@ -44,7 +45,8 @@ const initialGlobalState = getInitialGlobalState()
 
 export const KVDefaultValues: { [K in KVKey]: KVValue<K> } = {
   activeChatId: initialGlobalState.activeChatId ?? 1,
-  activeProjectTabId: initialGlobalState.projectActiveTabId ?? 1,
+  // Default to -1 (none) if not present to avoid referencing a non-existent numeric tab like "1"
+  activeProjectTabId: initialGlobalState.projectActiveTabId ?? -1,
   appSettings: initialGlobalState.appSettings,
   projectTabs: initialGlobalState.projectTabs,
   recentProjects: []

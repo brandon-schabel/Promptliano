@@ -248,16 +248,18 @@ export const mcpGlobalConfigRoutes = new OpenAPIHono()
       // Get current tool statuses
       const toolStatuses = await mcpInstallationService.detectGlobalInstallations()
 
-      return c.json(successResponse({
-        installations,
-        toolStatuses: toolStatuses.map((tool) => ({
-          tool: tool.tool,
-          name: tool.name,
-          installed: tool.installed,
-          hasGlobalPromptliano: tool.hasPromptliano || false,
-          configPath: tool.configPath
-        }))
-      }))
+      return c.json(
+        successResponse({
+          installations,
+          toolStatuses: toolStatuses.map((tool) => ({
+            tool: tool.tool,
+            name: tool.name,
+            installed: tool.installed,
+            hasGlobalPromptliano: tool.hasPromptliano || false,
+            configPath: tool.configPath
+          }))
+        })
+      )
     } catch (error) {
       return handleApiError(error, c)
     }
@@ -273,12 +275,14 @@ export const mcpGlobalConfigRoutes = new OpenAPIHono()
         throw new ApiError(500, result.message, 'INSTALL_FAILED')
       }
 
-      return c.json(successResponse({
-        message: result.message,
-        configPath: result.configPath,
-        backedUp: result.backedUp,
-        backupPath: result.backupPath
-      }))
+      return c.json(
+        successResponse({
+          message: result.message,
+          configPath: result.configPath,
+          backedUp: result.backedUp,
+          backupPath: result.backupPath
+        })
+      )
     } catch (error) {
       return handleApiError(error, c)
     }
@@ -294,9 +298,11 @@ export const mcpGlobalConfigRoutes = new OpenAPIHono()
         throw new ApiError(500, result.message, 'UNINSTALL_FAILED')
       }
 
-      return c.json(successResponse({
-        message: result.message
-      }))
+      return c.json(
+        successResponse({
+          message: result.message
+        })
+      )
     } catch (error) {
       return handleApiError(error, c)
     }
@@ -327,21 +333,23 @@ export const mcpGlobalConfigRoutes = new OpenAPIHono()
         scriptExists = false
       }
 
-      return c.json(successResponse({
-        configExists: true,
-        configPath: path.join(
-          process.env.HOME || process.env.USERPROFILE || '',
-          '.promptliano/global-mcp-config.json'
-        ),
-        lastModified: Date.now(),
-        totalInstallations: installations.length,
-        installedTools: installations.map((i) => i.tool),
-        installation: {
-          supported: true,
-          scriptPath,
-          scriptExists
-        }
-      }))
+      return c.json(
+        successResponse({
+          configExists: true,
+          configPath: path.join(
+            process.env.HOME || process.env.USERPROFILE || '',
+            '.promptliano/global-mcp-config.json'
+          ),
+          lastModified: Date.now(),
+          totalInstallations: installations.length,
+          installedTools: installations.map((i) => i.tool),
+          installation: {
+            supported: true,
+            scriptPath,
+            scriptExists
+          }
+        })
+      )
     } catch (error) {
       return handleApiError(error, c)
     }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { createSuccessResponseSchema, createOperationResponseSchema } from './factories'
 
 export const gitFileStatusTypeSchema = z.enum([
   'added',
@@ -48,10 +49,7 @@ export const gitStatusErrorSchema = z.object({
 export type GitStatusError = z.infer<typeof gitStatusErrorSchema>
 
 export const gitStatusResultSchema = z.union([
-  z.object({
-    success: z.literal(true),
-    data: gitStatusSchema
-  }),
+  createSuccessResponseSchema(gitStatusSchema, { name: 'GitStatusResult' }),
   z.object({
     success: z.literal(false),
     error: gitStatusErrorSchema
@@ -82,10 +80,7 @@ export const unstageFilesRequestSchema = z.object({
 export type UnstageFilesRequest = z.infer<typeof unstageFilesRequestSchema>
 
 // Generic success response for git operations
-export const gitOperationResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string().optional()
-})
+export const gitOperationResponseSchema = createOperationResponseSchema('GitOperation')
 
 export type GitOperationResponse = z.infer<typeof gitOperationResponseSchema>
 

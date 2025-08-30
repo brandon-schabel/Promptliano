@@ -10,11 +10,11 @@ import { Switch } from '@promptliano/ui'
 import { ScrollArea } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
-import { useGetQueuesWithStats } from '@/hooks/api/use-queue-api'
-import { useEnqueueTicket } from '@/hooks/api/use-flow-api'
+import { useGetQueuesWithStats } from '@/hooks/generated'
+import { useEnqueueTicket } from '@/hooks/generated'
 import { toast } from 'sonner'
 import { Inbox, Users, Clock, CheckCircle2, AlertCircle, Pause, Play, Loader2, ListTodo } from 'lucide-react'
-import type { QueueWithStats } from '@promptliano/schemas'
+// QueueWithStats type not used - queue data comes from hook with different structure
 
 interface QueueSelectionDialogProps {
   isOpen: boolean
@@ -63,16 +63,17 @@ export function QueueSelectionDialog({ isOpen, onClose, ticketId, projectId }: Q
     }
   }
 
-  const getQueueHealth = (queue: QueueWithStats) => {
-    const { stats } = queue
-    const total = stats.totalItems || 0
-    const failed = stats.failedItems || 0
-    const completed = stats.completedItems || 0
+  const getQueueHealth = (queueData: { queue: any; stats: any }) => {
+    const { stats } = queueData
+    const total = stats?.totalItems || stats?.total || 0
+    const failed = stats?.failed || 0
+    const completed = stats?.completed || stats?.completedItems || 0
+    const processing = stats?.processing || stats?.inProgressItems || 0
 
     if (total === 0) return 'empty'
     if (failed > total * 0.2) return 'unhealthy'
-    if (completed === total) return 'complete'
-    if (stats.inProgressItems > 0) return 'active'
+    if (completed === total && total > 0) return 'complete'
+    if (processing > 0) return 'active'
     return 'healthy'
   }
 
@@ -116,66 +117,71 @@ export function QueueSelectionDialog({ isOpen, onClose, ticketId, projectId }: Q
                   onValueChange={(value) => setSelectedQueueId(parseInt(value))}
                 >
                   <div className='space-y-2'>
-                    {queues?.map((queueData) => {
-                      const health = getQueueHealth(queueData)
+                    {queues?.map((raw: any) => {
+                      const q = raw?.queue ?? raw // Support both {queue, stats} and flattened
+                      const stats = raw?.stats ?? raw?.stats ?? {}
+                      if (!q) return null
+
+                      const status = (q.status as string) ?? (q.isActive ? 'active' : 'paused')
+                      const health = getQueueHealth({ queue: q, stats })
                       const healthColor = getHealthColor(health)
-                      const isSelected = selectedQueueId === queueData.queue.id
+                      const isSelected = selectedQueueId === q.id
 
                       return (
-                        <div key={queueData.queue.id} className='relative'>
+                        <div key={q.id} className='relative'>
                           <RadioGroupItem
-                            value={queueData.queue.id.toString()}
-                            id={`queue-${queueData.queue.id}`}
+                            value={q.id?.toString?.()}
+                            id={`queue-${q.id}`}
                             className='peer sr-only'
                           />
-                          <Label htmlFor={`queue-${queueData.queue.id}`} className='cursor-pointer'>
+                          <Label htmlFor={`queue-${q.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
                                 'transition-all hover:shadow-md',
                                 isSelected && 'ring-2 ring-primary shadow-md',
-                                (queueData.queue.status ?? 'active') === 'paused' && 'opacity-60'
+                                (status ?? 'active') === 'paused' && 'opacity-60'
                               )}
                             >
                               <CardContent className='p-4'>
                                 <div className='flex items-start justify-between mb-2'>
                                   <div className='flex items-center gap-2'>
                                     <Inbox className='h-4 w-4 text-muted-foreground' />
-                                    <span className='font-semibold'>{queueData.queue.name}</span>
+                                    <span className='font-semibold'>{q.name}</span>
                                     <Badge variant='outline' className='text-xs'>
-                                      {getQueueStatusIcon(queueData.queue.status ?? 'inactive')}
-                                      {queueData.queue.status ?? 'inactive'}
+                                      {getQueueStatusIcon(status ?? 'inactive')}
+                                      {status ?? 'inactive'}
                                     </Badge>
                                   </div>
                                   <Badge className={cn('text-xs', healthColor)}>{health}</Badge>
                                 </div>
 
-                                {queueData.queue.description && (
-                                  <p className='text-sm text-muted-foreground mb-2'>{queueData.queue.description}</p>
+                                {q.description && (
+                                  <p className='text-sm text-muted-foreground mb-2'>{q.description}</p>
                                 )}
 
                                 <div className='grid grid-cols-4 gap-2 text-xs'>
                                   <div className='flex items-center gap-1'>
                                     <Clock className='h-3 w-3 text-blue-500' />
-                                    <span>{queueData.stats.queuedItems} queued</span>
+                                    <span>{stats?.pending || stats?.queuedItems || 0} queued</span>
                                   </div>
                                   <div className='flex items-center gap-1'>
                                     <Loader2 className='h-3 w-3 text-amber-500' />
-                                    <span>{queueData.stats.inProgressItems} active</span>
+                                    <span>{stats?.processing || stats?.inProgressItems || 0} active</span>
                                   </div>
                                   <div className='flex items-center gap-1'>
                                     <CheckCircle2 className='h-3 w-3 text-green-500' />
-                                    <span>{queueData.stats.completedItems} done</span>
+                                    <span>{stats?.completed || stats?.completedItems || 0} done</span>
                                   </div>
                                   <div className='flex items-center gap-1'>
                                     <AlertCircle className='h-3 w-3 text-red-500' />
-                                    <span>{queueData.stats.failedItems} failed</span>
+                                    <span>{stats?.failed || stats?.failedItems || 0} failed</span>
                                   </div>
                                 </div>
 
-                                {queueData.stats.currentAgents && queueData.stats.currentAgents.length > 0 && (
+                                {stats?.currentAgents && stats.currentAgents.length > 0 && (
                                   <div className='mt-2 flex items-center gap-1 text-xs text-muted-foreground'>
                                     <Users className='h-3 w-3' />
-                                    <span>Agents: {queueData.stats.currentAgents.join(', ')}</span>
+                                    <span>Agents: {stats.currentAgents.join(', ')}</span>
                                   </div>
                                 )}
                               </CardContent>

@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:1420",
+      "localStorage": [
+        {
+          "name": "projectTabs",
+          "value": "{}"
+        },
+        {
+          "name": "defaultTabMigrated",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

@@ -1,13 +1,6 @@
 import React from 'react'
 import { cn } from '../../utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../core/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../core/dialog'
 import { Button } from '../core/button'
 import { type LucideIcon, Loader2, X, AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react'
 
@@ -94,7 +87,7 @@ export function DialogBase({
           {actions.map((action, index) => {
             const ActionIcon = action.icon
             const isLoading = action.loading || (index === 0 && isSubmitting)
-            
+
             return (
               <Button
                 key={index}
@@ -141,7 +134,7 @@ export function DialogBase({
             <span className='sr-only'>Close</span>
           </button>
         )}
-        
+
         <DialogHeader className={headerClassName}>
           <div className='flex items-start gap-3'>
             {Icon && (
@@ -151,24 +144,14 @@ export function DialogBase({
             )}
             <div className='flex-1'>
               <DialogTitle>{title}</DialogTitle>
-              {description && (
-                <DialogDescription className='mt-1.5'>
-                  {description}
-                </DialogDescription>
-              )}
+              {description && <DialogDescription className='mt-1.5'>{description}</DialogDescription>}
             </div>
           </div>
         </DialogHeader>
 
-        <div className={cn('py-4', contentClassName)}>
-          {children}
-        </div>
+        <div className={cn('py-4', contentClassName)}>{children}</div>
 
-        {actions && (
-          <DialogFooter className={footerClassName}>
-            {renderActions()}
-          </DialogFooter>
-        )}
+        {actions && <DialogFooter className={footerClassName}>{renderActions()}</DialogFooter>}
       </DialogContent>
     </Dialog>
   )
@@ -206,12 +189,7 @@ export function FormDialog({
       <form onSubmit={handleSubmit} className='space-y-4'>
         {props.children}
         <DialogFooter>
-          <Button
-            type='button'
-            variant='outline'
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
+          <Button type='button' variant='outline' onClick={onClose} disabled={isSubmitting}>
             {cancelLabel}
           </Button>
           <Button type='submit' disabled={isSubmitting}>
@@ -262,7 +240,7 @@ export function ConfirmationDialog({
   isConfirming = false
 }: ConfirmationDialogProps) {
   const { icon, className } = variantIcons[variant]
-  
+
   const confirmVariant = variant === 'danger' ? 'destructive' : 'default'
 
   return (

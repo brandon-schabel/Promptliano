@@ -1,0 +1,341 @@
+{
+  "outputDir": "./src/routes/generated",
+  "imports": {
+    "schemas": "@promptliano/schemas",
+    "services": "@promptliano/services",
+    "shared": "@promptliano/shared"
+  },
+  "entities": [
+    {
+      "name": "Project",
+      "plural": "projects",
+      "tableName": "projects",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": true,
+        "enableBatch": false
+      },
+      "customRoutes": [
+        {
+          "method": "get",
+          "path": "/{id}/tickets",
+          "summary": "Get Ticket for Project",
+          "description": "Retrieve all Ticket associated with this Project",
+          "handlerName": "getTickets",
+          "responseSchema": "TicketListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/chats",
+          "summary": "Get Chat for Project",
+          "description": "Retrieve all Chat associated with this Project",
+          "handlerName": "getChats",
+          "responseSchema": "ChatListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/prompts",
+          "summary": "Get Prompt for Project",
+          "description": "Retrieve all Prompt associated with this Project",
+          "handlerName": "getPrompts",
+          "responseSchema": "PromptListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/queues",
+          "summary": "Get Queue for Project",
+          "description": "Retrieve all Queue associated with this Project",
+          "handlerName": "getQueues",
+          "responseSchema": "QueueListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/claudecommands",
+          "summary": "Get ClaudeCommand for Project",
+          "description": "Retrieve all ClaudeCommand associated with this Project",
+          "handlerName": "getClaudeCommands",
+          "responseSchema": "ClaudeCommandListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/claudehooks",
+          "summary": "Get ClaudeHook for Project",
+          "description": "Retrieve all ClaudeHook associated with this Project",
+          "handlerName": "getClaudeHooks",
+          "responseSchema": "ClaudeHookListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/files",
+          "summary": "Get File for Project",
+          "description": "Retrieve all File associated with this Project",
+          "handlerName": "getFiles",
+          "responseSchema": "FileListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/selectedfiles",
+          "summary": "Get SelectedFile for Project",
+          "description": "Retrieve all SelectedFile associated with this Project",
+          "handlerName": "getSelectedFiles",
+          "responseSchema": "SelectedFileListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/activetabs",
+          "summary": "Get ActiveTab for Project",
+          "description": "Retrieve all ActiveTab associated with this Project",
+          "handlerName": "getActiveTabs",
+          "responseSchema": "ActiveTabListResponseSchema"
+        },
+        {
+          "method": "post",
+          "path": "/{id}/sync",
+          "summary": "Sync project files",
+          "description": "Trigger a manual sync of project files",
+          "handlerName": "sync",
+          "responseSchema": "OperationSuccessResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/allfiles",
+          "summary": "Get all project files",
+          "description": "Get all files in the project (alternative endpoint)",
+          "handlerName": "getAllFiles",
+          "responseSchema": "FileListResponseSchema"
+        },
+        {
+          "method": "get",
+          "path": "/{id}/summary",
+          "summary": "Get project summary",
+          "description": "Get AI-generated project summary",
+          "handlerName": "getSummary",
+          "responseSchema": "ProjectSummaryResponseSchema"
+        }
+      ]
+    },
+    {
+      "name": "Ticket",
+      "plural": "tickets",
+      "tableName": "tickets",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": [
+        {
+          "method": "post",
+          "path": "/{id}/tasks/generate",
+          "summary": "Generate tasks",
+          "description": "Auto-generate tasks for this ticket",
+          "handlerName": "generateTasks",
+          "responseSchema": "TaskListResponseSchema"
+        }
+      ]
+    },
+    {
+      "name": "TicketTask",
+      "plural": "tickettasks",
+      "tableName": "ticket_tasks",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "Chat",
+      "plural": "chats",
+      "tableName": "chats",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": [
+        {
+          "method": "post",
+          "path": "/{id}/messages",
+          "summary": "Add message",
+          "description": "Send a new message to the chat",
+          "handlerName": "addMessage",
+          "requestSchema": {
+            "body": "ChatMessageCreateSchema"
+          },
+          "responseSchema": "ChatMessageResponseSchema"
+        }
+      ]
+    },
+    {
+      "name": "ChatMessage",
+      "plural": "chatmessages",
+      "tableName": "chat_messages",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "Prompt",
+      "plural": "prompts",
+      "tableName": "prompts",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "Queue",
+      "plural": "queues",
+      "tableName": "queues",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": [
+        {
+          "method": "post",
+          "path": "/{id}/process",
+          "summary": "Process queue",
+          "description": "Start processing items in the queue",
+          "handlerName": "process",
+          "responseSchema": "OperationSuccessResponseSchema"
+        }
+      ]
+    },
+    {
+      "name": "QueueItem",
+      "plural": "queueitems",
+      "tableName": "queue_items",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "ClaudeAgent",
+      "plural": "claudeagents",
+      "tableName": "claude_agents",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": true,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "ClaudeCommand",
+      "plural": "claudecommands",
+      "tableName": "claude_commands",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "ClaudeHook",
+      "plural": "claudehooks",
+      "tableName": "claude_hooks",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "ProviderKey",
+      "plural": "providerkeies",
+      "tableName": "provider_keys",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "File",
+      "plural": "files",
+      "tableName": "files",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "SelectedFile",
+      "plural": "selectedfiles",
+      "tableName": "selected_files",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": true
+      },
+      "customRoutes": []
+    },
+    {
+      "name": "ActiveTab",
+      "plural": "activetabs",
+      "tableName": "active_tabs",
+      "schemaPath": "@promptliano/schemas",
+      "servicePath": "@promptliano/services",
+      "options": {
+        "includeSoftDelete": true,
+        "enableSearch": false,
+        "enableBatch": false
+      },
+      "customRoutes": []
+    }
+  ],
+  "options": {
+    "generateTypes": true,
+    "generateDocs": true,
+    "formatCode": true,
+    "watch": {
+      "watchPaths": ["packages/database/src/**/*.ts", "packages/services/src/**/*.ts", "packages/schemas/src/**/*.ts"],
+      "debounceMs": 1000
+    }
+  }
+}

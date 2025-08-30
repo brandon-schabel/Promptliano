@@ -1,61 +1,71 @@
 import { createRoute, z, OpenAPIHono } from '@hono/zod-openapi'
 import { mcpProjectConfigService, ProjectMCPConfigSchema } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
-import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
+import { ApiErrorResponseSchema, OperationSuccessResponseSchema, IDParamsSchema } from '@promptliano/schemas'
 import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Response schemas - properly structured for route helpers
-const ConfigLocationsDataSchema = z.object({
-  locations: z.array(
-    z.object({
-      path: z.string(),
-      exists: z.boolean(),
-      priority: z.number()
-    })
-  )
-}).openapi('ConfigLocationsData')
+const ConfigLocationsDataSchema = z
+  .object({
+    locations: z.array(
+      z.object({
+        path: z.string(),
+        exists: z.boolean(),
+        priority: z.number()
+      })
+    )
+  })
+  .openapi('ConfigLocationsData')
 
-const MergedConfigDataSchema = z.object({
-  config: ProjectMCPConfigSchema
-}).openapi('MergedConfigData')
+const MergedConfigDataSchema = z
+  .object({
+    config: ProjectMCPConfigSchema
+  })
+  .openapi('MergedConfigData')
 
-const ProjectConfigDataSchema = z.object({
-  config: ProjectMCPConfigSchema.nullable(),
-  source: z.string().optional()
-}).openapi('ProjectConfigData')
+const ProjectConfigDataSchema = z
+  .object({
+    config: ProjectMCPConfigSchema.nullable(),
+    source: z.string().optional()
+  })
+  .openapi('ProjectConfigData')
 
 // Success response schemas
-const ConfigLocationsResponseSchema = z.object({
-  success: z.literal(true),
-  data: ConfigLocationsDataSchema
-}).openapi('ConfigLocationsResponse')
+const ConfigLocationsResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ConfigLocationsDataSchema
+  })
+  .openapi('ConfigLocationsResponse')
 
-const MergedConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: MergedConfigDataSchema
-}).openapi('MergedConfigResponse')
+const MergedConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: MergedConfigDataSchema
+  })
+  .openapi('MergedConfigResponse')
 
-const ProjectConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: ProjectConfigDataSchema
-}).openapi('ProjectConfigResponse')
+const ProjectConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: ProjectConfigDataSchema
+  })
+  .openapi('ProjectConfigResponse')
 
 export const mcpProjectConfigApp = new OpenAPIHono()
 
 // Get project MCP configuration locations
 const getConfigLocationsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/locations',
+  path: '/api/projects/{id}/mcp/config/locations',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ConfigLocationsResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const locations = await mcpProjectConfigService.getConfigLocations(projectId)
@@ -72,17 +82,15 @@ mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
 // Get merged project MCP configuration
 const getMergedConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/merged',
+  path: '/api/projects/{id}/mcp/config/merged',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
@@ -99,17 +107,15 @@ mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
 // Get expanded project MCP configuration
 const getExpandedConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/expanded',
+  path: '/api/projects/{id}/mcp/config/expanded',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(MergedConfigResponseSchema)
 })
 
 mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
 
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
@@ -127,11 +133,9 @@ mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
 // Save project MCP configuration
 const saveProjectConfigRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -146,7 +150,7 @@ const saveProjectConfigRoute = createRoute({
 })
 
 mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { config } = c.req.valid('json')
 
   try {
@@ -164,11 +168,9 @@ mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
 // Load project configuration (without merging)
 const loadProjectConfigRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config',
+  path: '/api/projects/{id}/mcp/config',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: IDParamsSchema
   },
   responses: createStandardResponses(ProjectConfigResponseSchema)
 })
@@ -176,11 +178,9 @@ const loadProjectConfigRoute = createRoute({
 // Save project configuration to specific location
 const saveProjectConfigToLocationRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/mcp/config/save-to-location',
+  path: '/api/projects/{id}/mcp/config/save-to-location',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     body: {
       content: {
         'application/json': {
@@ -198,11 +198,9 @@ const saveProjectConfigToLocationRoute = createRoute({
 // Get default config for location
 const getDefaultConfigForLocationRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/mcp/config/default-for-location',
+  path: '/api/projects/{id}/mcp/config/default-for-location',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: IDParamsSchema,
     query: z.object({
       location: z.string()
     })
@@ -212,36 +210,40 @@ const getDefaultConfigForLocationRoute = createRoute({
 
 mcpProjectConfigApp
   .openapi(loadProjectConfigRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const result = await mcpProjectConfigService.loadProjectConfig(projectId)
       if (result) {
-        return c.json(successResponse({
-          config: result.config,
-          source: result.source
-        }))
+        return c.json(
+          successResponse({
+            config: result.config,
+            source: result.source
+          })
+        )
       } else {
-        return c.json(successResponse({
-          config: null
-        }))
+        return c.json(
+          successResponse({
+            config: null
+          })
+        )
       }
     } catch (error) {
       console.error('Failed to load project config:', error)
       if (error instanceof ApiError) {
         throw error
       }
-      
+
       // Handle project not found error specifically
       if (error instanceof Error && error.message.includes('not found')) {
         throw new ApiError(404, error.message, 'PROJECT_NOT_FOUND')
       }
-      
+
       throw new ApiError(500, 'Failed to load project configuration', 'CONFIG_LOAD_ERROR')
     }
   })
   .openapi(saveProjectConfigToLocationRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { config, location } = c.req.valid('json')
 
     try {
@@ -256,7 +258,7 @@ mcpProjectConfigApp
     }
   })
   .openapi(getDefaultConfigForLocationRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { location } = c.req.valid('query')
 
     try {

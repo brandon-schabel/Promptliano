@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@promptliano/ui'
 import { Input } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
-import { useCreateProject, useUpdateProject, useGetProject, useSyncProjectWithProgress } from '@/hooks/api/use-projects-api'
+import { useCreateProject, useUpdateProject, useProject } from '@/hooks/generated'
+import { useSyncProjectWithProgress } from '@/hooks/api-hooks'
 import { useEffect, useState, useRef } from 'react'
 import { CreateProjectRequestBody, type SyncProgressEvent } from '@promptliano/schemas'
 import { useUpdateActiveProjectTab } from '@/hooks/use-kv-local-storage'
@@ -33,7 +34,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
 
   const { mutate: createProject, isPending: isCreating } = useCreateProject()
   const { mutate: updateProject, isPending: isUpdating } = useUpdateProject()
-  const { data: projectData } = useGetProject(projectId ?? -1)
+  const { data: projectData } = useProject(projectId ?? -1)
   const { syncWithProgress } = useSyncProjectWithProgress()
 
   // We'll use this state to know when we have a newly created project to sync
@@ -62,19 +63,32 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
     if (newlyCreatedProjectId && syncingProjectName) {
       // Close the create dialog first
       onOpenChange(false)
-      
+
       // Show sync progress dialog
       setShowSyncProgress(true)
-      
+
       // Start SSE sync with progress tracking
       const abortController = new AbortController()
       abortControllerRef.current = abortController
-      
+
       syncWithProgress(
-        newlyCreatedProjectId, 
+        newlyCreatedProjectId,
         (event) => {
+          // Parse the event data if it's a MessageEvent, otherwise use as-is
+          let progressData: SyncProgressEvent
+          if (event instanceof MessageEvent) {
+            try {
+              progressData = JSON.parse(event.data)
+            } catch (error) {
+              console.error('Failed to parse progress event:', error)
+              return
+            }
+          } else {
+            progressData = event as SyncProgressEvent
+          }
+          
           // Update progress in the dialog
-          syncProgressRef.current?.updateProgress(event)
+          syncProgressRef.current?.updateProgress(progressData)
         },
         abortController.signal
       )
@@ -96,7 +110,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
           setSyncingProjectName('')
           abortControllerRef.current = null
         })
-      
+
       // Cleanup function to abort sync if component unmounts
       return () => {
         abortController.abort()
@@ -119,7 +133,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
     } else {
       // Creating new project
       createProject(formData, {
-        onSuccess: (response) => {
+        onSuccess: (response: any) => {
           if (response) {
             // Set newly created project as current
             updateActiveProjectTab((prev) => ({
@@ -215,8 +229,10 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                     {projectId ? 'Saving...' : 'Creating Project...'}
                   </>
+                ) : projectId ? (
+                  'Save Changes'
                 ) : (
-                  projectId ? 'Save Changes' : 'Create Project'
+                  'Create Project'
                 )}
               </Button>
             </DialogFooter>
@@ -230,7 +246,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
         onSelectPath={handleSelectPath}
         initialPath={formData.path || undefined}
       />
-      
+
       {/* Sync Progress Dialog */}
       <SyncProgressDialog
         open={showSyncProgress}

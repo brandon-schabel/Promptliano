@@ -1,5 +1,11 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { createStandardResponses, createStandardResponsesWithStatus, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  standardResponses,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import {
   TaskQueueSchema,
   QueueStatsSchema,
@@ -58,10 +64,12 @@ const createQueueRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TaskQueueSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(createQueueRoute, async (c) => {
@@ -85,10 +93,12 @@ const listQueuesRoute = createRoute({
       projectId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(TaskQueueSchema)
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(TaskQueueSchema)
+    })
+  )
 })
 
 queueRoutesApp.openapi(listQueuesRoute, async (c) => {
@@ -106,10 +116,12 @@ const getQueueRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TaskQueueSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(getQueueRoute, async (c) => {
@@ -134,10 +146,12 @@ const updateQueueRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TaskQueueSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(updateQueueRoute, async (c) => {
@@ -156,16 +170,18 @@ const deleteQueueRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({ deleted: z.boolean() })
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({ deleted: z.boolean() })
+    })
+  )
 })
 
 queueRoutesApp.openapi(deleteQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
-  await deleteQueue(queueId)
-  return c.json(successResponse({ deleted: true }))
+  const deleted = await deleteQueue(queueId)
+  return c.json(successResponse({ deleted }))
 })
 
 // Enqueue ticket
@@ -188,10 +204,12 @@ const enqueueTicketRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TicketSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TicketSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(enqueueTicketRoute, async (c) => {
@@ -199,8 +217,10 @@ queueRoutesApp.openapi(enqueueTicketRoute, async (c) => {
   const { queueId, priority, includeTasks } = c.req.valid('json')
 
   if (includeTasks) {
-    const result = await enqueueTicketWithAllTasks(queueId, ticketId, priority)
-    return c.json(successResponse(result.ticket))
+    const tasksCount = await enqueueTicketWithAllTasks(ticketId, queueId, priority)
+    // Since enqueueTicketWithAllTasks returns a number, we need to get the ticket separately
+    const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
+    return c.json(successResponse(ticket))
   } else {
     const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
     return c.json(successResponse(ticket))
@@ -227,16 +247,18 @@ const enqueueTaskRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TicketTaskSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TicketTaskSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(enqueueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
   const { queueId, priority } = c.req.valid('json')
-  const task = await enqueueTask(ticketId, taskId, queueId, priority || 0)
+  const task = await enqueueTask(taskId, queueId, priority || 0)
   return c.json(successResponse(task))
 })
 
@@ -249,10 +271,12 @@ const dequeueTicketRoute = createRoute({
       ticketId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TicketSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TicketSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(dequeueTicketRoute, async (c) => {
@@ -271,15 +295,17 @@ const dequeueTaskRoute = createRoute({
       taskId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TicketTaskSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TicketTaskSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(dequeueTaskRoute, async (c) => {
   const { ticketId, taskId } = c.req.valid('param')
-  const task = await dequeueTask(ticketId, taskId)
+  const task = await dequeueTask(taskId)
   return c.json(successResponse(task))
 })
 
@@ -292,10 +318,12 @@ const getQueueStatsRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: QueueStatsSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: QueueStatsSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(getQueueStatsRoute, async (c) => {
@@ -313,10 +341,12 @@ const getQueuesWithStatsRoute = createRoute({
       projectId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(QueueWithStatsSchema)
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(QueueWithStatsSchema)
+    })
+  )
 })
 
 queueRoutesApp.openapi(getQueuesWithStatsRoute, async (c) => {
@@ -343,10 +373,12 @@ const getNextTaskRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: GetNextTaskResponseSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: GetNextTaskResponseSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(getNextTaskRoute, async (c) => {
@@ -365,13 +397,15 @@ const getUnqueuedItemsRoute = createRoute({
       projectId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        tickets: z.array(TicketSchema),
+        tasks: z.array(TicketTaskSchema)
+      })
     })
-  }))
+  )
 })
 
 queueRoutesApp.openapi(getUnqueuedItemsRoute, async (c) => {
@@ -389,10 +423,12 @@ const pauseQueueRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TaskQueueSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(pauseQueueRoute, async (c) => {
@@ -410,10 +446,12 @@ const resumeQueueRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: TaskQueueSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(resumeQueueRoute, async (c) => {
@@ -441,16 +479,18 @@ const completeQueueItemRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({ completed: z.boolean() })
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({ completed: z.boolean() })
+    })
+  )
 })
 
 queueRoutesApp.openapi(completeQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { ticketId } = c.req.valid('json')
-  await completeQueueItem(itemType, itemId, ticketId)
+  await completeQueueItem(Number(itemId), { success: true, metadata: { ticketId } })
   return c.json(successResponse({ completed: true }))
 })
 
@@ -474,16 +514,18 @@ const failQueueItemRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({ failed: z.boolean() })
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({ failed: z.boolean() })
+    })
+  )
 })
 
 queueRoutesApp.openapi(failQueueItemRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { errorMessage, ticketId } = c.req.valid('json')
-  await failQueueItem(itemType, itemId, errorMessage, ticketId)
+  await failQueueItem(Number(itemId), errorMessage, { retry: false })
   return c.json(successResponse({ failed: true }))
 })
 
@@ -507,10 +549,12 @@ const moveItemToQueueRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({ moved: z.boolean() })
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({ moved: z.boolean() })
+    })
+  )
 })
 
 queueRoutesApp.openapi(moveItemToQueueRoute, async (c) => {
@@ -541,22 +585,24 @@ const enqueueTicketToQueueRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(QueueItemSchema)
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(QueueItemSchema)
+    })
+  )
 })
 
 queueRoutesApp.openapi(enqueueTicketToQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { ticketId, priority } = c.req.valid('json')
-  
+
   // Use existing service function to enqueue the ticket
   await enqueueTicket(ticketId, queueId, priority || 0)
-  
+
   // Return the queue items to show the result
   const queueItems = await getQueueItems(queueId)
-  return c.json(successResponse(queueItems.map(item => item.queueItem)))
+  return c.json(successResponse(queueItems.map((item) => item.queueItem)))
 })
 
 // Get queue items with enriched data
@@ -571,20 +617,24 @@ const getQueueItemsRoute = createRoute({
       status: z.string().optional()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(z.object({
-      queueItem: QueueItemSchema,
-      ticket: z.any().optional(),
-      task: z.any().optional()
-    }))
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(
+        z.object({
+          queueItem: QueueItemSchema,
+          ticket: z.any().optional(),
+          task: z.any().optional()
+        })
+      )
+    })
+  )
 })
 
 queueRoutesApp.openapi(getQueueItemsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { status } = c.req.valid('query')
-  
+
   const queueItems = await getQueueItems(queueId, status)
   return c.json(successResponse(queueItems))
 })
@@ -600,35 +650,42 @@ const enqueueItemsRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({
-            ticketId: z.number().optional(),
-            taskId: z.number().optional(),
-            priority: z.number().optional()
-          }).refine((data) => {
-            return (data.ticketId && !data.taskId) || (!data.ticketId && data.taskId)
-          }, {
-            message: 'Either ticketId or taskId must be provided, but not both'
-          })
+          schema: z
+            .object({
+              ticketId: z.number().optional(),
+              taskId: z.number().optional(),
+              priority: z.number().optional()
+            })
+            .refine(
+              (data) => {
+                return (data.ticketId && !data.taskId) || (!data.ticketId && data.taskId)
+              },
+              {
+                message: 'Either ticketId or taskId must be provided, but not both'
+              }
+            )
         }
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: QueueItemSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: QueueItemSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(enqueueItemsRoute, async (c) => {
   const params = c.req.valid('param')
   const { ticketId, taskId, priority } = c.req.valid('json')
-  
+
   // Ensure queueId is valid
   const queueId = params.queueId
   if (!queueId || typeof queueId !== 'number') {
     throw new ApiError(400, 'Invalid queue ID', 'INVALID_QUEUE_ID')
   }
-  
+
   if (ticketId) {
     await enqueueTicket(ticketId, queueId, priority ?? 0)
   } else if (taskId) {
@@ -636,18 +693,20 @@ queueRoutesApp.openapi(enqueueItemsRoute, async (c) => {
     // For now, throw an error - will need to enhance service layer
     throw new ApiError(400, 'Task enqueuing requires ticketId parameter', 'MISSING_TICKET_ID')
   }
-  
+
   // Return empty queue item for now - will enhance when service is complete
-  return c.json(successResponse({
-    id: 0,
-    queueId,
-    ticketId: ticketId || null,
-    taskId: taskId || null,
-    status: 'queued',
-    priority: priority || 0,
-    created: Date.now(),
-    updated: Date.now()
-  }))
+  return c.json(
+    successResponse({
+      id: 0,
+      queueId,
+      ticketId: ticketId || null,
+      taskId: taskId || null,
+      status: 'queued',
+      priority: priority || 0,
+      created: Date.now(),
+      updated: Date.now()
+    })
+  )
 })
 
 // Batch enqueue items
@@ -666,16 +725,18 @@ const batchEnqueueRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array(QueueItemSchema)
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.array(QueueItemSchema)
+    })
+  )
 })
 
 queueRoutesApp.openapi(batchEnqueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { items } = c.req.valid('json')
-  
+
   const results = await batchEnqueueItems(queueId, items)
   return c.json(successResponse(results))
 })
@@ -689,15 +750,17 @@ const getQueueTimelineRoute = createRoute({
       queueId: z.coerce.number().int().positive()
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: QueueTimelineSchema
-  }))
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: QueueTimelineSchema
+    })
+  )
 })
 
 queueRoutesApp.openapi(getQueueTimelineRoute, async (c) => {
   const { queueId } = c.req.valid('param')
-  
+
   const timeline = await getQueueTimeline(queueId)
   return c.json(successResponse(timeline))
 })

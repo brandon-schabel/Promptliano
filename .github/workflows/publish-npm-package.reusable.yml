@@ -78,7 +78,7 @@ jobs:
     permissions:
       contents: read
       id-token: write # For npm provenance
-    
+
     outputs:
       package-published: ${{ steps.publish_result.outputs.published }}
       package-version: ${{ steps.version.outputs.VERSION }}
@@ -96,7 +96,7 @@ jobs:
           node-version: ${{ inputs.node-version }}
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Setup Bun and dependencies  
+      - name: Setup Bun and dependencies
         uses: ./.github/actions/setup-bun
         with:
           bun-version: ${{ inputs.bun-version }}

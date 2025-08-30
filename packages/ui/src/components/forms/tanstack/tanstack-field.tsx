@@ -21,16 +21,16 @@ import { format } from 'date-fns'
 // TANSTACK FIELD TYPES
 // =============================================
 
-export type FieldType = 
-  | 'text' 
-  | 'email' 
-  | 'password' 
-  | 'number' 
-  | 'textarea' 
+export type FieldType =
+  | 'text'
+  | 'email'
+  | 'password'
+  | 'number'
+  | 'textarea'
   | 'select'
-  | 'checkbox' 
-  | 'switch' 
-  | 'radio' 
+  | 'checkbox'
+  | 'switch'
+  | 'radio'
   | 'date'
   | 'tags'
   | 'file'
@@ -44,19 +44,19 @@ export interface BaseFieldProps {
   required?: boolean
   disabled?: boolean
   className?: string
-  
+
   // Layout
   fullWidth?: boolean
   size?: 'sm' | 'md' | 'lg'
-  
+
   // Validation
   validator?: z.ZodSchema<any>
   customValidation?: (value: any) => string | undefined
-  
+
   // Help text
   helpText?: ReactNode
   errorClassName?: string
-  
+
   // Conditional rendering
   condition?: (formValues: any) => boolean
 }
@@ -138,9 +138,9 @@ export interface CustomFieldProps extends BaseFieldProps {
   }) => ReactNode
 }
 
-export type FieldProps = 
+export type FieldProps =
   | ({ fieldType: 'text' } & TextFieldProps)
-  | ({ fieldType: 'textarea' } & TextareaFieldProps) 
+  | ({ fieldType: 'textarea' } & TextareaFieldProps)
   | ({ fieldType: 'select' } & SelectFieldProps)
   | ({ fieldType: 'checkbox' } & CheckboxFieldProps)
   | ({ fieldType: 'switch' } & SwitchFieldProps)
@@ -155,12 +155,12 @@ export type FieldProps =
 // =============================================
 
 export function TanStackField(props: FieldProps) {
-  const { 
-    name, 
-    label, 
-    description, 
-    required, 
-    disabled, 
+  const {
+    name,
+    label,
+    description,
+    required,
+    disabled,
     className,
     fullWidth = true,
     size = 'md',
@@ -171,13 +171,15 @@ export function TanStackField(props: FieldProps) {
 
   // Get form from context
   const form = useTanStackFormContext()
-  
+
   const field = form.useField({
     name,
-    validators: props.validator ? {
-      onChange: props.validator,
-      onBlur: props.validator
-    } : undefined
+    validators: props.validator
+      ? {
+          onChange: props.validator,
+          onBlur: props.validator
+        }
+      : undefined
   })
 
   // Conditional rendering
@@ -190,22 +192,17 @@ export function TanStackField(props: FieldProps) {
 
   const sizeClasses = {
     sm: 'text-sm',
-    md: 'text-base', 
+    md: 'text-base',
     lg: 'text-lg'
   }
 
-  const baseFieldClasses = cn(
-    sizeClasses[size],
-    fullWidth && 'w-full',
-    hasError && 'border-destructive',
-    className
-  )
+  const baseFieldClasses = cn(sizeClasses[size], fullWidth && 'w-full', hasError && 'border-destructive', className)
 
   return (
     <div className={cn('space-y-2', fullWidth && 'w-full')}>
       {/* Label */}
       {label && (
-        <Label 
+        <Label
           htmlFor={name}
           className={cn(
             'text-sm font-medium',
@@ -218,27 +215,17 @@ export function TanStackField(props: FieldProps) {
       )}
 
       {/* Description */}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className='text-xs text-muted-foreground'>{description}</p>}
 
       {/* Field Input */}
-      <div className="space-y-1">
+      <div className='space-y-1'>
         {renderFieldInput()}
-        
+
         {/* Error Message */}
-        {hasError && (
-          <p className={cn('text-xs text-destructive', errorClassName)}>
-            {errorMessage}
-          </p>
-        )}
-        
+        {hasError && <p className={cn('text-xs text-destructive', errorClassName)}>{errorMessage}</p>}
+
         {/* Help Text */}
-        {helpText && !hasError && (
-          <div className="text-xs text-muted-foreground">
-            {helpText}
-          </div>
-        )}
+        {helpText && !hasError && <div className='text-xs text-muted-foreground'>{helpText}</div>}
       </div>
     </div>
   )
@@ -275,10 +262,10 @@ export function TanStackField(props: FieldProps) {
 // FIELD INPUT COMPONENTS
 // =============================================
 
-function TextFieldInput({ 
-  type = 'text', 
-  placeholder, 
-  maxLength, 
+function TextFieldInput({
+  type = 'text',
+  placeholder,
+  maxLength,
   showCount,
   autoComplete,
   pattern,
@@ -293,7 +280,7 @@ function TextFieldInput({
   const currentLength = field.state.value?.toString().length || 0
 
   return (
-    <div className="relative">
+    <div className='relative'>
       <Input
         id={field.name}
         name={field.name}
@@ -308,24 +295,24 @@ function TextFieldInput({
         autoComplete={autoComplete}
         pattern={pattern}
       />
-      
+
       {/* Password Toggle */}
       {isPassword && (
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1"
+          type='button'
+          variant='ghost'
+          size='sm'
+          className='absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1'
           onClick={() => setShowPassword(!showPassword)}
           tabIndex={-1}
         >
-          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
         </Button>
       )}
-      
+
       {/* Character Count */}
       {showCount && maxLength && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        <div className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground'>
           {currentLength}/{maxLength}
         </div>
       )}
@@ -333,10 +320,10 @@ function TextFieldInput({
   )
 }
 
-function TextareaFieldInput({ 
-  placeholder, 
-  rows = 4, 
-  maxLength, 
+function TextareaFieldInput({
+  placeholder,
+  rows = 4,
+  maxLength,
   showCount,
   autoResize,
   disabled,
@@ -346,7 +333,7 @@ function TextareaFieldInput({
   const currentLength = field.state.value?.length || 0
 
   return (
-    <div className="relative">
+    <div className='relative'>
       <Textarea
         id={field.name}
         name={field.name}
@@ -359,9 +346,9 @@ function TextareaFieldInput({
         rows={rows}
         maxLength={maxLength}
       />
-      
+
       {showCount && maxLength && (
-        <div className="absolute right-2 bottom-2 text-xs text-muted-foreground bg-background px-1">
+        <div className='absolute right-2 bottom-2 text-xs text-muted-foreground bg-background px-1'>
           {currentLength}/{maxLength}
         </div>
       )}
@@ -369,8 +356,8 @@ function TextareaFieldInput({
   )
 }
 
-function SelectFieldInput({ 
-  options, 
+function SelectFieldInput({
+  options,
   placeholder,
   multiple,
   disabled,
@@ -378,28 +365,16 @@ function SelectFieldInput({
   className
 }: SelectFieldProps & { field: any; className: string }) {
   return (
-    <Select
-      value={field.state.value || ''}
-      onValueChange={(value) => field.handleChange(value)}
-      disabled={disabled}
-    >
+    <Select value={field.state.value || ''} onValueChange={(value) => field.handleChange(value)} disabled={disabled}>
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
-          <SelectItem 
-            key={option.value} 
-            value={option.value}
-            disabled={option.disabled}
-          >
+          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
             <div>
               <div>{option.label}</div>
-              {option.description && (
-                <div className="text-xs text-muted-foreground">
-                  {option.description}
-                </div>
-              )}
+              {option.description && <div className='text-xs text-muted-foreground'>{option.description}</div>}
             </div>
           </SelectItem>
         ))}
@@ -408,14 +383,14 @@ function SelectFieldInput({
   )
 }
 
-function CheckboxFieldInput({ 
+function CheckboxFieldInput({
   indeterminate,
   disabled,
   field,
   className
 }: CheckboxFieldProps & { field: any; className: string }) {
   return (
-    <div className="flex items-center space-x-2">
+    <div className='flex items-center space-x-2'>
       <Checkbox
         id={field.name}
         checked={field.state.value || false}
@@ -427,11 +402,7 @@ function CheckboxFieldInput({
   )
 }
 
-function SwitchFieldInput({ 
-  disabled,
-  field,
-  className
-}: SwitchFieldProps & { field: any; className: string }) {
+function SwitchFieldInput({ disabled, field, className }: SwitchFieldProps & { field: any; className: string }) {
   return (
     <Switch
       id={field.name}
@@ -443,7 +414,7 @@ function SwitchFieldInput({
   )
 }
 
-function RadioFieldInput({ 
+function RadioFieldInput({
   options,
   orientation = 'vertical',
   disabled,
@@ -455,22 +426,15 @@ function RadioFieldInput({
       value={field.state.value || ''}
       onValueChange={(value) => field.handleChange(value)}
       disabled={disabled}
-      className={cn(
-        orientation === 'horizontal' ? 'flex space-x-4' : 'space-y-2',
-        className
-      )}
+      className={cn(orientation === 'horizontal' ? 'flex space-x-4' : 'space-y-2', className)}
     >
       {options.map((option) => (
-        <div key={option.value} className="flex items-center space-x-2">
+        <div key={option.value} className='flex items-center space-x-2'>
           <RadioGroupItem value={option.value} id={`${field.name}-${option.value}`} />
-          <Label htmlFor={`${field.name}-${option.value}`} className="text-sm">
+          <Label htmlFor={`${field.name}-${option.value}`} className='text-sm'>
             <div>
               <div>{option.label}</div>
-              {option.description && (
-                <div className="text-xs text-muted-foreground">
-                  {option.description}
-                </div>
-              )}
+              {option.description && <div className='text-xs text-muted-foreground'>{option.description}</div>}
             </div>
           </Label>
         </div>
@@ -479,7 +443,7 @@ function RadioFieldInput({
   )
 }
 
-function DateFieldInput({ 
+function DateFieldInput({
   minDate,
   maxDate,
   dateFormat = 'PPP',
@@ -489,12 +453,12 @@ function DateFieldInput({
   className
 }: DateFieldProps & { field: any; className: string }) {
   const [isOpen, setIsOpen] = React.useState(false)
-  
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant='outline'
           className={cn(
             'w-full justify-start text-left font-normal',
             !field.state.value && 'text-muted-foreground',
@@ -502,22 +466,19 @@ function DateFieldInput({
           )}
           disabled={disabled}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className='mr-2 h-4 w-4' />
           {field.state.value ? format(field.state.value, dateFormat) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className='w-auto p-0' align='start'>
         <Calendar
-          mode="single"
+          mode='single'
           selected={field.state.value}
           onSelect={(date) => {
             field.handleChange(date)
             setIsOpen(false)
           }}
-          disabled={(date) =>
-            Boolean((minDate && date < minDate) ||
-            (maxDate && date > maxDate))
-          }
+          disabled={(date) => Boolean((minDate && date < minDate) || (maxDate && date > maxDate))}
           initialFocus
         />
       </PopoverContent>
@@ -525,7 +486,7 @@ function DateFieldInput({
   )
 }
 
-function TagsFieldInput({ 
+function TagsFieldInput({
   maxTags,
   suggestions = [],
   allowCustom = true,
@@ -542,7 +503,7 @@ function TagsFieldInput({
     const trimmedTag = tag.trim()
     if (!trimmedTag || tags.includes(trimmedTag)) return
     if (maxTags && tags.length >= maxTags) return
-    
+
     field.handleChange([...tags, trimmedTag])
     setInputValue('')
   }
@@ -563,28 +524,28 @@ function TagsFieldInput({
   }
 
   return (
-    <div className="space-y-2">
+    <div className='space-y-2'>
       {/* Tags Display */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className='flex flex-wrap gap-2'>
           {tags.map((tag: string, index: number) => (
-            <Badge key={index} variant="secondary" className="text-xs">
+            <Badge key={index} variant='secondary' className='text-xs'>
               {tag}
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="ml-1 h-auto p-0 hover:bg-transparent"
+                type='button'
+                variant='ghost'
+                size='sm'
+                className='ml-1 h-auto p-0 hover:bg-transparent'
                 onClick={() => handleRemoveTag(index)}
                 disabled={disabled}
               >
-                <X className="w-3 h-3" />
+                <X className='w-3 h-3' />
               </Button>
             </Badge>
           ))}
         </div>
       )}
-      
+
       {/* Input */}
       <Input
         value={inputValue}
@@ -594,24 +555,24 @@ function TagsFieldInput({
         disabled={disabled || (maxTags ? tags.length >= maxTags : false)}
         className={className}
       />
-      
+
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className='flex flex-wrap gap-1'>
           {suggestions
-            .filter(suggestion => !tags.includes(suggestion))
+            .filter((suggestion) => !tags.includes(suggestion))
             .slice(0, 5)
             .map((suggestion) => (
               <Button
                 key={suggestion}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-6 text-xs"
+                type='button'
+                variant='outline'
+                size='sm'
+                className='h-6 text-xs'
                 onClick={() => handleAddTag(suggestion)}
                 disabled={disabled || (maxTags ? tags.length >= maxTags : false)}
               >
-                <Plus className="w-3 h-3 mr-1" />
+                <Plus className='w-3 h-3 mr-1' />
                 {suggestion}
               </Button>
             ))}
@@ -621,7 +582,7 @@ function TagsFieldInput({
   )
 }
 
-function FileFieldInput({ 
+function FileFieldInput({
   accept,
   multiple,
   maxFiles,
@@ -638,7 +599,7 @@ function FileFieldInput({
 
   return (
     <Input
-      type="file"
+      type='file'
       accept={accept}
       multiple={multiple}
       onChange={handleFileChange}
@@ -648,11 +609,7 @@ function FileFieldInput({
   )
 }
 
-function CustomFieldInput({ 
-  render,
-  disabled,
-  field
-}: CustomFieldProps & { field: any; className: string }) {
+function CustomFieldInput({ render, disabled, field }: CustomFieldProps & { field: any; className: string }) {
   return render({
     value: field.state.value,
     onChange: field.handleChange,

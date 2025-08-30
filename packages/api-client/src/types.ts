@@ -2,195 +2,50 @@
 export type { ApiConfig, DataResponseSchema } from './base-client'
 export { PromptlianoError } from './base-client'
 
-// Import and re-export commonly used types from schemas
-export type { 
-  CreateChatBody, 
-  UpdateChatBody, 
-  AiChatStreamRequest, 
-  Chat, 
-  ChatMessage 
-} from '@promptliano/schemas'
+// Import and re-export commonly used types from database schemas
+export type {
+  CreateChat as CreateChatBody,
+  UpdateChat as UpdateChatBody,
+  CreateChatMessage,
+  UpdateChatMessage
+} from '@promptliano/database'
+
+// Use schema types for entities
+import type { ChatSchema, ChatMessageSchema } from '@promptliano/database'
+export type Chat = typeof ChatSchema._type
+export type ChatMessage = typeof ChatMessageSchema._type
+
+// Note: AiChatStreamRequest moved to API types
 
 export type {
-  CreateProjectBody,
-  Project,
-  ProjectFile,
-  UpdateProjectBody,
-  ProjectStatistics
-} from '@promptliano/schemas'
+  CreateProject as CreateProjectBody,
+  UpdateProject as UpdateProjectBody,
+  CreateFile as ProjectFile
+} from '@promptliano/database'
 
-export type { 
-  CreatePromptBody, 
-  UpdatePromptBody, 
-  OptimizePromptRequest, 
-  Prompt 
-} from '@promptliano/schemas'
+// Use schema types for entities
+import type { ProjectSchema, FileSchema } from '@promptliano/database'
+export type Project = typeof ProjectSchema._type
+export type File = typeof FileSchema._type
 
-export type { 
-  CreateProviderKeyBody, 
-  ProviderKey, 
-  UpdateProviderKeyBody 
-} from '@promptliano/schemas'
+// Note: ProjectStatistics available via API types
 
-export type { 
-  CreateClaudeAgentBody, 
-  UpdateClaudeAgentBody, 
-  ClaudeAgent 
-} from '@promptliano/schemas'
+export type { CreatePrompt as CreatePromptBody, UpdatePrompt as UpdatePromptBody } from '@promptliano/database'
 
-// Claude Command types
-export type {
-  ClaudeCommand,
-  ClaudeCommandFrontmatter,
-  CreateClaudeCommandBody,
-  UpdateClaudeCommandBody,
-  ExecuteClaudeCommandBody,
-  CommandSuggestions,
-  SearchCommandsQuery,
-  CommandScope,
-  CommandGenerationRequest,
-  CommandGenerationResponse
-} from '@promptliano/schemas'
+// Use schema type for entity
+import type { PromptSchema } from '@promptliano/database'
+export type Prompt = typeof PromptSchema._type
+
+// Note: OptimizePromptRequest available via API types
 
 export type {
-  TestProviderRequest,
-  TestProviderResponse,
-  BatchTestProviderRequest,
-  BatchTestProviderResponse,
-  ProviderHealthStatus,
-  ValidateCustomProviderRequest,
-  CustomProviderFeatures,
-  ProviderModel
-} from '@promptliano/schemas'
+  CreateProviderKey as CreateProviderKeyBody,
+  UpdateProviderKey as UpdateProviderKeyBody
+} from '@promptliano/database'
 
-export type {
-  AiGenerateTextRequest,
-  UnifiedModel
-} from '@promptliano/schemas'
-
-// Claude Code types
-export type {
-  ClaudeSession,
-  ClaudeSessionMetadata,
-  ClaudeSessionCursor,
-  ClaudeMessage,
-  ClaudeProjectData,
-  ClaudeSessionsResponse,
-  ClaudeSessionsPaginatedResponse,
-  ClaudeSessionsMetadataResponse,
-  ClaudeMessagesResponse,
-  ClaudeProjectDataResponse,
-  ClaudeSessionQuery,
-  ClaudeMessageQuery
-} from '@promptliano/schemas'
-
-// Git-related types
-export type {
-  GitBranch,
-  GitCommit,
-  GitStatus,
-  GitStash,
-  GitWorktree,
-  GitFileDiff,
-  GitDiff,
-  GitRemote,
-  GitTag,
-  GitBlame,
-  GitLogEntry,
-  GitDiffResponse,
-  GitOperationResponse,
-  GitStatusResult,
-  GetProjectGitStatusResponse,
-  GitBranchListResponse,
-  GitLogResponse,
-  GitCommitDetailResponse,
-  GitWorktreeListResponse,
-  GitWorktreePruneResponse,
-  GitLogEnhancedRequest,
-  GitLogEnhancedResponse,
-  GitBranchListEnhancedResponse,
-  GitCompareCommitsResponse
-} from '@promptliano/schemas'
-
-// Ticket and Queue types
-export type {
-  Ticket,
-  TicketTask,
-  CreateTicketBody,
-  UpdateTicketBody,
-  CreateTaskBody,
-  UpdateTaskBody,
-  TicketWithTasks,
-  CreateQueueBody,
-  UpdateQueueBody,
-  QueueItem,
-  QueueStats,
-  EnqueueItemBody,
-  QueueWithStats
-} from '@promptliano/schemas'
-
-// Import types that will be redefined locally to avoid conflicts
-import type {
-  GetNextTaskResponse as SchemaGetNextTaskResponse,
-  QueueTimeline as SchemaQueueTimeline,
-  TicketWithTaskCount as SchemaTicketWithTaskCount,
-  TicketTask
-} from '@promptliano/schemas'
-
-// Define Task alias for backwards compatibility
-export type Task = TicketTask
-
-// Use the schema-derived TaskQueue type instead of redefining
-export type { TaskQueue as Queue } from '@promptliano/schemas'
-
-// Missing types needed by queue client
-export type CompleteTaskBody = {
-  itemType: 'ticket' | 'task'
-  itemId: number
-  ticketId?: number
-  completionNotes?: string
-}
-
-export type FailTaskBody = {
-  itemType: 'ticket' | 'task'
-  itemId: number
-  ticketId?: number
-  errorMessage: string
-}
-
-// Re-export types from schemas to avoid conflicts
-export type GetNextTaskResponse = SchemaGetNextTaskResponse
-export type QueueTimeline = SchemaQueueTimeline
-export type TicketWithTaskCount = SchemaTicketWithTaskCount
-
-
-// MCP types (using basic types from schemas, complex ones defined in client)
-export type {
-  MCPServerConfig,
-  MCPServerConfigResponse,
-  MCPToolExecutionRequest,
-  MCPToolExecutionResult,
-  MCPServerState,
-  MCPTool,
-  MCPResource,
-  CreateMCPServerConfigBody,
-  UpdateMCPServerConfigBody,
-  MCPAnalyticsOverview,
-  MCPAnalyticsRequest,
-  MCPExecutionQuery,
-  MCPExecutionTimeline,
-  MCPToolStatistics,
-  MCPToolPattern,
-  MCPToolExecution,
-  MCPExecutionListResponse
-} from '@promptliano/schemas'
-
-
-// Additional types that will be defined in individual client modules
-// as needed rather than importing from schemas to avoid import errors
-
-// Note: Complex types for MCP, Flow, Agent Files, Claude Code, and Markdown
-// are defined within their respective client modules to avoid dependency issues.
+// Use schema type for entity
+import type { ProviderKeySchema } from '@promptliano/database'
+export type ProviderKey = typeof ProviderKeySchema._type
 
 // Define missing types here to satisfy type checker
 export type MCPGlobalConfig = {
@@ -217,7 +72,6 @@ export type MCPProjectConfig = {
   }>
   customInstructions?: string
 }
-
 
 export type MCPInstallationStatus = {
   projectConfig: {
@@ -303,7 +157,6 @@ export type MCPProjectConfigResponse = {
 
 // Note: CreateMCPServerConfigBody and UpdateMCPServerConfigBody are already imported from schemas above
 
-
 // Git-related types that are missing from schemas
 export type GitDiffFile = {
   path: string
@@ -388,12 +241,5 @@ export type GitDiffRequest = {
   staged?: boolean
 }
 
-// Claude Hooks types (imported from schemas)
-export type {
-  CreateHookConfigBody,
-  UpdateHookConfigBody,
-  HookEvent,
-  HookGenerationRequest,
-  HookTestRequest,
-  HookListItem
-} from '@promptliano/schemas'
+
+// Other hook types available via API types

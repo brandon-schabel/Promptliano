@@ -1,9 +1,14 @@
-import { providerKeyStorage } from '@promptliano/storage'
+import { eq, providerKeys } from '@promptliano/database'
+import { validateJsonField } from '@promptliano/database/src/schema-transformers'
+import {
+  type ProviderKey,
+  type CreateProviderKey,
+  type UpdateProviderKey,
+  type APIProviders,
+  ProviderKeySchema
+} from '@promptliano/database'
 import {
   CreateProviderKeyInputSchema,
-  type ProviderKey,
-  ProviderKeySchema,
-  type UpdateProviderKeyInput,
   type TestProviderRequest,
   type TestProviderResponse,
   type BatchTestProviderRequest,
@@ -14,156 +19,223 @@ import {
   ProviderHealthStatusEnum
 } from '@promptliano/schemas'
 import { ApiError } from '@promptliano/shared'
-import { ErrorFactory, assertExists, handleZodError, withErrorContext } from './utils/error-factory'
+import { ErrorFactory, assertExists, handleZodError, withErrorContext } from '@promptliano/shared'
 import { logger } from './utils/logger'
 import { z } from '@hono/zod-openapi'
 import { normalizeToUnixMs } from '@promptliano/shared'
-import { encryptKey, decryptKey, isEncrypted, type EncryptedData } from '@promptliano/shared/src/utils/crypto'
 import { getProviderTimeout, createProviderTimeout } from './utils/provider-timeouts'
 
-// The mapDbRowToProviderKey function is no longer needed as we store objects directly
-// that should conform to the ProviderKey schema.
+// Type aliases for clarity
+export type CreateProviderKeyInput = CreateProviderKey
+export type UpdateProviderKeyInput = UpdateProviderKey
 
-export type CreateProviderKeyInput = z.infer<typeof CreateProviderKeyInputSchema>
+/**
+ * Transform raw database provider key to properly typed provider key
+ * This handles the conversion from repository BaseEntity to ProviderKey using database validators
+ */
+function transformProviderKey(rawKey: any): ProviderKey {
+  const result = ProviderKeySchema.safeParse({
+    ...rawKey,
+    customHeaders: validateJsonField.record(rawKey.customHeaders)
+  })
+  if (result.success) {
+    return result.data as ProviderKey
+  }
+  // Fallback with manual transformation using database validators
+  return {
+    ...rawKey,
+    customHeaders: validateJsonField.record(rawKey.customHeaders) || {},
+    isDefault: Boolean(rawKey.isDefault),
+    isActive: Boolean(rawKey.isActive)
+  } as ProviderKey
+}
+
+/**
+ * Transform array of raw database provider keys
+ */
+function transformProviderKeys(rawKeys: any[]): ProviderKey[] {
+  return rawKeys.map(transformProviderKey)
+}
 
 /**
  * Returns an object of functions to create, list, update, and delete provider keys,
- * using JSON file storage.
+ * using repository pattern with Drizzle ORM.
  */
 export function createProviderKeyService() {
-  async function createKey(data: CreateProviderKeyInput): Promise<ProviderKey> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    const now = normalizeToUnixMs(new Date())
-    let id = providerKeyStorage.generateId()
-    const initialId = id
-    let incrementCount = 0
+  // Lazy import to avoid circular dependency
+  const getRepository = async () => {
+    const { providerKeyRepository } = await import('@promptliano/database')
+    return providerKeyRepository
+  }
 
-    // If this new key is set to default, unset other defaults for the same provider
-    if (data.isDefault) {
-      for (const keyId in allKeys) {
-        const key = allKeys[keyId]
-        if (key && key.provider === data.provider && key.isDefault) {
-          key.isDefault = false
-          key.updated = now
-        }
-      }
-    }
+  /**
+   * Helper function to mask API keys for security
+   * Shows first 4 and last 4 characters with asterisks in between
+   * @param key The API key to mask
+   * @returns Masked version of the key
+   */
+  function maskApiKey(key: string): string {
+    if (!key || key.length <= 8) return '********'
+    return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
+  }
 
-    // Handle ID conflicts by incrementing
-    while (allKeys[id]) {
-      id++
-      incrementCount++
-    }
-
-    if (incrementCount > 0) {
-      console.log(
-        `Provider key ID ${initialId} was taken. Found available ID ${id} after ${incrementCount} increment(s).`
-      )
-    }
-
-    // Encrypt the API key
-    const encryptedData = await encryptKey(data.key)
-
-    const newKeyData: ProviderKey = {
-      id,
-      name: data.name,
-      provider: data.provider,
-      key: encryptedData.encrypted, // Store encrypted key
-      encrypted: true,
-      iv: encryptedData.iv,
-      tag: encryptedData.tag,
-      salt: encryptedData.salt,
-      baseUrl: data.baseUrl, // Custom provider base URL
-      customHeaders: data.customHeaders, // Custom provider headers
-      isDefault: data.isDefault ?? false,
-      isActive: data.isActive ?? true,
-      environment: data.environment ?? 'production',
-      description: data.description,
-      expiresAt: data.expiresAt,
-      lastUsed: data.lastUsed,
-      created: now,
-      updated: now
-    }
-
-    // Validate the new key data against the schema before saving
+  // Resolve actual key value from a secret reference (environment variable name)
+  function resolveSecretRef(secretRef?: string | null): string | null {
+    if (!secretRef) return null
     try {
-      ProviderKeySchema.parse(newKeyData)
-    } catch (error) {
-      console.error(`Validation failed for new provider key data:`, {
-        rawData: data,
-        constructedData: newKeyData
-      })
-      handleZodError(error, 'Provider Key', 'creating')
+      const val = process.env[secretRef]
+      return val && typeof val === 'string' && val.trim().length > 0 ? val : null
+    } catch {
+      return null
     }
+  }
 
-    allKeys[newKeyData.id] = newKeyData
-    await providerKeyStorage.writeProviderKeys(allKeys)
+  // Get the actual key value (from plain text or environment variable)
+  function getKeyValue(keyData: any): string | null {
+    // First try to resolve from environment variable if secretRef is provided
+    const envValue = resolveSecretRef(keyData.secretRef)
+    if (envValue) return envValue
+    
+    // Otherwise return the plain text key
+    return keyData.key || null
+  }
 
-    // Return the key with decrypted value (similar to getKeyById)
-    return { ...newKeyData, key: data.key }
+  /**
+   * Normalize provider identifiers to canonical slugs used by the system
+   */
+  function canonicalizeProviderId(provider: string): APIProviders | string {
+    const raw = (provider || '').trim().toLowerCase()
+    const normalized = raw.replace(/[^a-z]/g, '')
+    switch (normalized) {
+      case 'openrouter':
+        return 'openrouter'
+      case 'openai':
+        return 'openai'
+      case 'anthropic':
+        return 'anthropic'
+      case 'googlegemini':
+        return 'google_gemini'
+      case 'groq':
+        return 'groq'
+      case 'together':
+        return 'together'
+      case 'xai':
+        return 'xai'
+      case 'lmstudio':
+        return 'lmstudio'
+      case 'ollama':
+        return 'ollama'
+      case 'custom':
+        return 'custom'
+      default:
+        // Return lowercased original for unknowns
+        return raw
+    }
+  }
+
+  async function createKey(data: CreateProviderKeyInput & { key?: string | null; secretRef?: string | null }): Promise<ProviderKey> {
+    return withErrorContext(
+      async () => {
+        const now = normalizeToUnixMs(new Date())
+
+        // If this new key is set to default, unset other defaults for the same provider
+        if (data.isDefault) {
+          const repository = await getRepository()
+          const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, data.provider))
+
+          // Update all existing default keys for this provider to not be default
+          const transformedKeys = transformProviderKeys(existingDefaultKeys)
+          const defaultKeys = transformedKeys.filter((key) => key.isDefault)
+          if (defaultKeys.length > 0) {
+            await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
+          }
+        }
+
+        // Simplified: Store either plain text key or environment variable reference
+        const newKeyData = {
+          name: data.name || null,
+          provider: canonicalizeProviderId(data.provider),
+          keyName: data.keyName || data.name || 'default', // Backward compatibility
+          secretRef: (data as any).secretRef || null, // Environment variable name if provided
+          key: (data as any).key || null, // Plain text key if provided
+          baseUrl: data.baseUrl || null,
+          customHeaders: data.customHeaders || {},
+          isDefault: data.isDefault ?? false,
+          isActive: data.isActive ?? true,
+          environment: data.environment ?? 'production',
+          description: data.description || null,
+          expiresAt: data.expiresAt || null,
+          lastUsed: data.lastUsed || null
+        }
+
+        // Create the key using repository (ID, createdAt, updatedAt handled automatically)
+        const repository = await getRepository()
+        const createdKey = await repository.create(newKeyData as any)
+        const transformedKey = transformProviderKey(createdKey)
+
+        // Return with masked key for security
+        const actualKey = getKeyValue(transformedKey)
+        return { ...transformedKey, key: actualKey ? maskApiKey(actualKey) : null }
+      },
+      { entity: 'ProviderKey', action: 'create' }
+    )
   }
 
   async function listKeysCensoredKeys(): Promise<ProviderKey[]> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    const keyList = Object.values(allKeys).map((key) => {
-      // For encrypted keys, we don't decrypt them, just show a generic mask
-      if (key.encrypted) {
-        return { ...key, key: '********' }
-      }
-      // For unencrypted keys (legacy), mask them properly
-      const maskedKey =
-        key.key.length > 8 ? `${key.key.substring(0, 4)}****${key.key.substring(key.key.length - 4)}` : '********'
-      return { ...key, key: maskedKey }
-    })
+    return withErrorContext(
+      async () => {
+        // Get all keys from repository (already sorted by createdAt desc)
+        const repository = await getRepository()
+        const allKeys = await repository.getAll('desc')
+        const transformedKeys = transformProviderKeys(allKeys)
 
-    // Sort by provider, then by created descending (as in original SQL)
-    keyList.sort((a, b) => {
-      if (a.provider < b.provider) return -1
-      if (a.provider > b.provider) return 1
-      // Assuming created are valid ISO strings, direct string comparison for descending order
-      if (a.created > b.created) return -1
-      if (a.created < b.created) return 1
-      return 0
-    })
-    return keyList
+        const keyList = transformedKeys.map((key) => {
+          const actualKey = getKeyValue(key)
+          return { ...key, key: actualKey ? maskApiKey(actualKey) : null }
+        })
+
+        // Sort by provider, then by createdAt descending
+        keyList.sort((a, b) => {
+          if (a.provider < b.provider) return -1
+          if (a.provider > b.provider) return 1
+          // Sort by createdAt descending (newer first)
+          if (a.createdAt > b.createdAt) return -1
+          if (a.createdAt < b.createdAt) return 1
+          return 0
+        })
+
+        return keyList
+      },
+      { entity: 'ProviderKey', action: 'listCensored' }
+    )
   }
 
   async function listKeysUncensored(): Promise<ProviderKey[]> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    const keyList = await Promise.all(
-      Object.values(allKeys).map(async (key) => {
-        // Decrypt key if encrypted
-        if (key.encrypted && key.iv && key.tag && key.salt) {
-          try {
-            const decryptedKey = await decryptKey({
-              encrypted: key.key,
-              iv: key.iv,
-              tag: key.tag,
-              salt: key.salt
-            })
-            return { ...key, key: decryptedKey }
-          } catch (error) {
-            logger.error(`Failed to decrypt key ${key.id}`, { 
-              error, 
-              keyId: key.id,
-              provider: key.provider 
-            })
-            throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${key.id}`)
-          }
-        }
-        return key
-      })
-    )
+    return withErrorContext(
+      async () => {
+        // Get all keys from repository (already sorted by createdAt desc)
+        const repository = await getRepository()
+        const allKeys = await repository.getAll('desc')
+        const transformedKeys = transformProviderKeys(allKeys)
 
-    // Sort by provider, then by created descending
-    keyList.sort((a, b) => {
-      if (a.provider < b.provider) return -1
-      if (a.provider > b.provider) return 1
-      if (a.created > b.created) return -1
-      if (a.created < b.created) return 1
-      return 0
-    })
-    return keyList
+        const keyList = transformedKeys.map((key) => {
+          const actualKey = getKeyValue(key)
+          return { ...key, key: actualKey }
+        })
+
+        // Sort by provider, then by createdAt descending
+        keyList.sort((a, b) => {
+          if (a.provider < b.provider) return -1
+          if (a.provider > b.provider) return 1
+          if (a.createdAt > b.createdAt) return -1
+          if (a.createdAt < b.createdAt) return 1
+          return 0
+        })
+
+        return keyList
+      },
+      { entity: 'ProviderKey', action: 'listUncensored' }
+    )
   }
 
   /**
@@ -171,154 +243,145 @@ export function createProviderKeyService() {
    * Each custom provider will have a unique ID like "custom_<keyId>"
    */
   async function getCustomProviders(): Promise<Array<{ id: string; name: string; baseUrl?: string; keyId: number }>> {
-    const allKeys = await listKeysUncensored()
-    const customKeys = allKeys.filter(key => key.provider === 'custom' && key.baseUrl)
-    
-    return customKeys.map(key => ({
+    // We don't need decrypted keys for this list; use censored to avoid decryption issues
+    const allKeys = await listKeysCensoredKeys()
+    const customKeys = allKeys.filter((key) => key.provider === 'custom' && key.baseUrl)
+
+    return customKeys.map((key) => ({
       id: `custom_${key.id}`,
       name: key.name || 'Custom Provider',
-      baseUrl: key.baseUrl,
+      baseUrl: key.baseUrl || undefined,
       keyId: key.id
     }))
   }
 
   async function getKeyById(id: number): Promise<ProviderKey | null> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    const foundKeyData = allKeys[id]
+    return withErrorContext(
+      async () => {
+        const repository = await getRepository()
+        const foundKeyData = await repository.getById(id)
 
-    if (!foundKeyData) {
-      return null
-    }
+        if (!foundKeyData) {
+          return null
+        }
 
-    // Decrypt key if encrypted
-    if (foundKeyData.encrypted && foundKeyData.iv && foundKeyData.tag && foundKeyData.salt) {
-      try {
-        const decryptedKey = await decryptKey({
-          encrypted: foundKeyData.key,
-          iv: foundKeyData.iv,
-          tag: foundKeyData.tag,
-          salt: foundKeyData.salt
-        })
-        return { ...foundKeyData, key: decryptedKey }
-      } catch (error) {
-        console.error(`Failed to decrypt key ${id}:`, error)
-        throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${id}`)
-      }
-    }
-
-    return foundKeyData
+        const typedKey = transformProviderKey(foundKeyData)
+        const actualKey = getKeyValue(typedKey)
+        return { ...typedKey, key: actualKey }
+      },
+      { entity: 'ProviderKey', action: 'getById', id }
+    )
   }
 
-  async function updateKey(id: number, data: UpdateProviderKeyInput): Promise<ProviderKey> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    const existingKey = allKeys[id]
+  async function updateKey(id: number, data: UpdateProviderKeyInput & { secretRef?: string | null; key?: string | null }): Promise<ProviderKey> {
+    return withErrorContext(
+      async () => {
+        // First, get the existing key to verify it exists
+        const repository = await getRepository()
+        const rawExistingKey = await repository.getById(id)
+        assertExists(rawExistingKey, 'Provider Key', id)
+        const existingKey = transformProviderKey(rawExistingKey)
 
-    assertExists(existingKey, 'Provider Key', id)
+        // If this key is being set to default, unset other defaults for the same provider
+        const targetProvider = data.provider ?? existingKey.provider
+        if (data.isDefault === true && existingKey.provider === targetProvider) {
+          const existingDefaultKeys = await repository.findWhere(eq(providerKeys.provider, targetProvider))
 
-    const now = normalizeToUnixMs(new Date())
-
-    // If this key is being set to default, unset other defaults for the same provider
-    if (data.isDefault === true && existingKey.provider === (data.provider ?? existingKey.provider)) {
-      for (const keyId in allKeys) {
-        const key = allKeys[keyId]
-        if (key && key.id !== id && key.provider === (data.provider ?? existingKey.provider) && key.isDefault) {
-          key.isDefault = false
-          key.updated = now
+          // Update all existing default keys for this provider to not be default (except current key)
+          const transformedUpdateKeys = transformProviderKeys(existingDefaultKeys)
+          const defaultKeys = transformedUpdateKeys.filter((key) => key.isDefault && key.id !== id)
+          if (defaultKeys.length > 0) {
+            await Promise.all(defaultKeys.map((key) => repository.update(key.id, { isDefault: false })))
+          }
         }
-      }
-    }
 
-    let updatedKeyData: ProviderKey = {
-      ...existingKey,
-      name: data.name ?? existingKey.name,
-      provider: data.provider ?? existingKey.provider,
-      baseUrl: data.baseUrl !== undefined ? data.baseUrl : existingKey.baseUrl,
-      customHeaders: data.customHeaders !== undefined ? data.customHeaders : existingKey.customHeaders,
-      isDefault: data.isDefault !== undefined ? data.isDefault : existingKey.isDefault,
-      updated: now
-    }
+        // Prepare update data (only include defined fields)
+        let updateData: Partial<UpdateProviderKeyInput> = {}
 
-    // If key is being updated, encrypt it
-    if (data.key) {
-      const encryptedData = await encryptKey(data.key)
-      updatedKeyData = {
-        ...updatedKeyData,
-        key: encryptedData.encrypted,
-        encrypted: true,
-        iv: encryptedData.iv,
-        tag: encryptedData.tag,
-        salt: encryptedData.salt
-      }
-    } else {
-      // Keep existing encrypted key
-      updatedKeyData.key = existingKey.key
-    }
+        if (data.name !== undefined) updateData.name = data.name
+        if (data.provider !== undefined) updateData.provider = canonicalizeProviderId(data.provider)
+        if (data.baseUrl !== undefined) updateData.baseUrl = data.baseUrl
+        if (data.customHeaders !== undefined) updateData.customHeaders = data.customHeaders
+        if (data.isDefault !== undefined) updateData.isDefault = data.isDefault
+        if (data.isActive !== undefined) updateData.isActive = data.isActive
+        if (data.environment !== undefined) updateData.environment = data.environment
+        if (data.description !== undefined) updateData.description = data.description
+        if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt
+        if (data.lastUsed !== undefined) updateData.lastUsed = data.lastUsed
 
-    try {
-      ProviderKeySchema.parse(updatedKeyData)
-    } catch (error) {
-      console.error(`Validation failed updating provider key ${id}:`, {
-        id,
-        updatePayload: data,
-        mergedData: updatedKeyData
-      })
-      handleZodError(error, 'Provider Key', 'updating')
-    }
+        // Simplified: Update plain text key or environment variable reference
+        if ((data as any).secretRef !== undefined) {
+          (updateData as any).secretRef = (data as any).secretRef
+        }
+        if ((data as any).key !== undefined) {
+          (updateData as any).key = (data as any).key
+        }
 
-    allKeys[id] = updatedKeyData
-    await providerKeyStorage.writeProviderKeys(allKeys)
+        // Update the key using repository
+        const rawUpdatedKey = await repository.update(id, updateData)
+        const updatedKey = transformProviderKey(rawUpdatedKey)
 
-    // Return the key with decrypted value (similar to getKeyById)
-    if (
-      updatedKeyData.encrypted &&
-      updatedKeyData.iv &&
-      updatedKeyData.tag &&
-      updatedKeyData.salt
-    ) {
-      try {
-        const decryptedKey = await decryptKey({
-          encrypted: updatedKeyData.key,
-          iv: updatedKeyData.iv,
-          tag: updatedKeyData.tag,
-          salt: updatedKeyData.salt
-        })
-        return { ...updatedKeyData, key: decryptedKey }
-      } catch (error) {
-        console.error(`Failed to decrypt key ${id}:`, error)
-        throw ErrorFactory.operationFailed('decrypt provider key', `Key ID: ${id}`)
-      }
-    }
-
-    return updatedKeyData
+        // Return with actual key value
+        const actualKey = getKeyValue(updatedKey)
+        return { ...updatedKey, key: actualKey }
+      },
+      { entity: 'ProviderKey', action: 'update', id }
+    )
   }
 
   async function deleteKey(id: number): Promise<boolean> {
-    const allKeys = await providerKeyStorage.readProviderKeys()
-    if (!allKeys[id]) {
-      return false // Key not found, nothing to delete
-    }
+    return withErrorContext(
+      async () => {
+        // Check if key exists first
+        const repository = await getRepository()
+        const keyExists = await repository.exists(id)
+        if (!keyExists) {
+          return false // Key not found, nothing to delete
+        }
 
-    delete allKeys[id]
-    await providerKeyStorage.writeProviderKeys(allKeys)
-    return true
+        // Delete the key using repository
+        const deleted = await repository.delete(id)
+        return deleted
+      },
+      { entity: 'ProviderKey', action: 'delete', id }
+    )
   }
 
   async function testProvider(request: TestProviderRequest): Promise<TestProviderResponse> {
     const startTime = Date.now()
-    const testedAt = normalizeToUnixMs(new Date())
 
     try {
+      // Get provider key by ID
+      const providerKey = await getKeyById(request.providerId)
+      if (!providerKey) {
+        throw ErrorFactory.notFound('Provider', request.providerId)
+      }
+
+      // The key is already resolved (from plain text or env var) by getKeyById
+      const apiKey = providerKey.key || ''
+      if (!apiKey) {
+        throw ErrorFactory.missingRequired('API key', 'provider')
+      }
+
+      // Create extended request for internal testing
+      const testRequest = {
+        ...request,
+        provider: providerKey.provider,
+        apiKey: apiKey,
+        url: providerKey.baseUrl || undefined
+      }
+
       // Test connection based on provider type
-      const result = await performProviderTest(request)
+      const result = await performProviderTest(testRequest)
       const responseTime = Date.now() - startTime
 
       return {
         success: true,
-        provider: request.provider,
-        status: 'connected',
-        models: result.models,
-        responseTime,
-        testedAt
+        providerId: request.providerId,
+        provider: providerKey.provider,
+        model: request.model,
+        latency: responseTime,
+        response: `Connected successfully. Found ${result.models.length} models.`
       }
     } catch (error) {
       const responseTime = Date.now() - startTime
@@ -326,12 +389,11 @@ export function createProviderKeyService() {
 
       return {
         success: false,
-        provider: request.provider,
-        status: 'error',
-        models: [],
-        responseTime,
-        error: errorMessage,
-        testedAt
+        providerId: request.providerId,
+        provider: 'unknown',
+        model: request.model,
+        latency: responseTime,
+        error: errorMessage
       }
     }
   }
@@ -340,31 +402,58 @@ export function createProviderKeyService() {
     const startTime = Date.now()
     let results: TestProviderResponse[]
 
-    if (request.parallel) {
-      // Run tests in parallel
-      results = await Promise.all(request.providers.map(testProvider))
-    } else {
-      // Run tests sequentially
-      results = []
-      for (const providerRequest of request.providers) {
-        const result = await testProvider(providerRequest)
+    // Get provider IDs to test
+    const providerIds = request.providerIds || []
+
+    if (providerIds.length === 0) {
+      // If no provider IDs specified, get all active providers
+      const allProviders = await listKeysUncensored()
+      providerIds.push(
+        ...allProviders.filter((p: ProviderKey) => p.isActive || request.includeInactive).map((p: ProviderKey) => p.id)
+      )
+    }
+
+    // Create test requests
+    const testRequests: TestProviderRequest[] = providerIds.map((providerId) => ({
+      providerId,
+      testPrompt: request.testPrompt,
+      model: undefined
+    }))
+
+    // Run tests sequentially (parallel not supported in schema)
+    results = []
+    for (const testRequest of testRequests) {
+      try {
+        const result = await testProvider(testRequest)
         results.push(result)
+      } catch (error) {
+        // Add failed test result
+        results.push({
+          success: false,
+          providerId: testRequest.providerId,
+          provider: 'unknown',
+          latency: 0,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       }
     }
 
     const totalTime = Date.now() - startTime
 
-    // Calculate summary
-    const summary = {
-      connected: results.filter((r) => r.status === 'connected').length,
-      disconnected: results.filter((r) => r.status === 'disconnected').length,
-      error: results.filter((r) => r.status === 'error').length
-    }
+    // Calculate summary according to schema
+    const successful = results.filter((r) => r.success).length
+    const failed = results.filter((r) => !r.success).length
+    const averageLatency =
+      results.length > 0 ? results.reduce((sum, r) => sum + r.latency, 0) / results.length : undefined
 
     return {
       results,
-      summary,
-      totalTime
+      summary: {
+        total: results.length,
+        successful,
+        failed,
+        averageLatency
+      }
     }
   }
 
@@ -387,41 +476,31 @@ export function createProviderKeyService() {
         if (refresh) {
           // Perform fresh health check
           const testRequest: TestProviderRequest = {
-            provider,
-            apiKey: key.key,
-            timeout: 5000 // Short timeout for health checks
+            providerId: key.id,
+            testPrompt: 'Health check'
           }
 
           const testResult = await testProvider(testRequest)
 
           healthStatuses.push({
-            provider,
-            status: testResult.success ? 'healthy' : 'unhealthy',
-            lastChecked: testResult.testedAt,
-            uptime: testResult.success ? 100 : 0, // Simplified uptime calculation
-            averageResponseTime: testResult.responseTime,
-            modelCount: testResult.models.length
+            status: testResult.success ? 'healthy' : 'down',
+            lastChecked: Date.now(),
+            error: testResult.error,
+            latency: testResult.latency
           })
         } else {
           // Return cached/estimated health status based on key data
           healthStatuses.push({
-            provider,
             status: (key.isActive ?? true) ? 'healthy' : 'unknown',
-            lastChecked: key.lastUsed ?? key.updated,
-            uptime: (key.isActive ?? true) ? 99.8 : 0, // Estimated uptime
-            averageResponseTime: 1000, // Default estimate
-            modelCount: 0 // Unknown without fresh check
+            lastChecked: key.lastUsed ?? key.updatedAt
           })
         }
       } catch (error) {
         // Failed to check this provider
         healthStatuses.push({
-          provider,
-          status: 'unhealthy',
+          status: 'down',
           lastChecked: normalizeToUnixMs(new Date()),
-          uptime: 0,
-          averageResponseTime: 0,
-          modelCount: 0
+          error: error instanceof Error ? error.message : String(error)
         })
       }
     }
@@ -432,17 +511,19 @@ export function createProviderKeyService() {
   /**
    * Internal helper function to perform the actual provider test
    */
-  async function performProviderTest(request: TestProviderRequest): Promise<{ models: ProviderModel[] }> {
+  async function performProviderTest(
+    request: TestProviderRequest & { provider: string; apiKey: string; url?: string; timeout?: number }
+  ): Promise<{ models: ProviderModel[] }> {
     const { provider, apiKey, url } = request
-    
+
     // Use provider-specific timeout, or fallback to request timeout if specified
-    const providerTimeout = getProviderTimeout(provider as any, 'validation')
+    const providerTimeout = getProviderTimeout(provider as APIProviders, 'validation')
     const timeout = request.timeout || providerTimeout
 
     // Create fetch with timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
-    
+
     logger.info(`Testing provider ${provider} with timeout ${timeout}ms`)
 
     try {
@@ -464,12 +545,12 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('OpenAI API request', `${response.status}: ${response.statusText}`)
           }
-          const openaiData = await response.json() as { data?: Array<{ id: string }> }
+          const openaiData = (await response.json()) as { data?: Array<{ id: string }> }
           models =
             openaiData.data?.map((model) => ({
               id: model.id,
               name: model.id,
-              description: `OpenAI model: ${model.id}`
+              provider: 'openai'
             })) || []
           break
 
@@ -495,9 +576,9 @@ export function createProviderKeyService() {
           // Even if we get a specific error, if we get a 200 or auth-related error, the key is working
           if (response.ok || response.status === 400) {
             models = [
-              { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Most intelligent model' },
-              { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fastest model' },
-              { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Powerful model for complex tasks' }
+              { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'anthropic' },
+              { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'anthropic' },
+              { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic' }
             ]
           } else if (response.status === 401) {
             throw ErrorFactory.operationFailed('Anthropic authentication', 'Invalid API key')
@@ -514,12 +595,12 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('Ollama connection', `${response.status}: ${response.statusText}`)
           }
-          const ollamaData = await response.json() as { models?: Array<{ name: string }> }
+          const ollamaData = (await response.json()) as { models?: Array<{ name: string }> }
           models =
             ollamaData.models?.map((model) => ({
               id: model.name,
               name: model.name,
-              description: `Ollama model: ${model.name}`
+              provider: 'ollama'
             })) || []
           break
 
@@ -531,7 +612,7 @@ export function createProviderKeyService() {
           if (!apiKey) {
             throw ErrorFactory.missingRequired('API key', 'custom provider')
           }
-          
+
           // Test with OpenAI-compatible /v1/models endpoint
           const customUrl = url.endsWith('/v1') ? url : `${url.replace(/\/$/, '')}/v1`
           response = await fetch(`${customUrl}/models`, {
@@ -541,12 +622,15 @@ export function createProviderKeyService() {
             },
             signal: controller.signal
           })
-          
+
           if (!response.ok) {
-            throw ErrorFactory.operationFailed('custom provider API request', `${response.status}: ${response.statusText}`)
+            throw ErrorFactory.operationFailed(
+              'custom provider API request',
+              `${response.status}: ${response.statusText}`
+            )
           }
-          
-          const customData = await response.json() as { data?: Array<{ id?: string; name?: string }> }
+
+          const customData = (await response.json()) as { data?: Array<{ id?: string; name?: string }> }
           models =
             customData.data?.map((model) => {
               const modelId = model.id || 'unknown'
@@ -554,7 +638,7 @@ export function createProviderKeyService() {
               return {
                 id: modelId,
                 name: modelName,
-                description: `Custom provider model: ${model.id || model.name || 'unknown'}`
+                provider: 'custom'
               }
             }) || []
           break
@@ -568,12 +652,12 @@ export function createProviderKeyService() {
           if (!response.ok) {
             throw ErrorFactory.operationFailed('LMStudio connection', `${response.status}: ${response.statusText}`)
           }
-          const lmstudioData = await response.json() as { data?: Array<{ id: string }> }
+          const lmstudioData = (await response.json()) as { data?: Array<{ id: string }> }
           models =
             lmstudioData.data?.map((model) => ({
               id: model.id,
               name: model.id,
-              description: `LMStudio model: ${model.id}`
+              provider: 'lmstudio'
             })) || []
           break
 
@@ -601,4 +685,48 @@ export function createProviderKeyService() {
   }
 }
 
-export const providerKeyService = createProviderKeyService()
+// Create route-compatible wrapper around the main service
+function createRouteCompatibleProviderKeyService() {
+  const mainService = createProviderKeyService()
+
+  return {
+    // Route factory compatible methods
+    async list(): Promise<ProviderKey[]> {
+      return await mainService.listKeysCensoredKeys()
+    },
+
+    async getAll(): Promise<ProviderKey[]> {
+      return await mainService.listKeysCensoredKeys()
+    },
+
+    async get(id: number | string): Promise<ProviderKey | null> {
+      return await mainService.getKeyById(Number(id))
+    },
+
+    async getById(id: number | string): Promise<ProviderKey> {
+      const key = await mainService.getKeyById(Number(id))
+      if (!key) {
+        throw ErrorFactory.notFound('ProviderKey', id)
+      }
+      return key
+    },
+
+    async create(data: CreateProviderKeyInput & { key?: string | null; secretRef?: string | null }): Promise<ProviderKey> {
+      // Returns masked key by default for security
+      return await mainService.createKey(data)
+    },
+
+    async update(id: number | string, data: UpdateProviderKeyInput): Promise<ProviderKey> {
+      return await mainService.updateKey(Number(id), data)
+    },
+
+    async delete(id: number | string): Promise<boolean> {
+      return await mainService.deleteKey(Number(id))
+    },
+
+    // Expose all original methods for backward compatibility
+    ...mainService
+  }
+}
+
+export const providerKeyService = createRouteCompatibleProviderKeyService()

@@ -1,7 +1,7 @@
 import React from 'react'
 import { cn } from '../../utils'
 import { Badge } from '../core/badge'
-import { 
+import {
   type LucideIcon,
   CheckCircle,
   XCircle,
@@ -241,13 +241,8 @@ export function StatusBadge({
       onClick={onClick}
     >
       {showIcon && Icon && (
-        <Icon 
-          className={cn(
-            iconSizeClasses[size],
-            showLabel && 'mr-1',
-            shouldAnimate && 'animate-spin',
-            iconClassName
-          )} 
+        <Icon
+          className={cn(iconSizeClasses[size], showLabel && 'mr-1', shouldAnimate && 'animate-spin', iconClassName)}
         />
       )}
       {showLabel && label}

@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { Project } from '@promptliano/database'
 import { zodValidator } from '@tanstack/zod-adapter'
-import { projectsSearchSchema, type ProjectsSearch, type ProjectView } from '@/lib/search-schemas'
+import { projectsSearchSchema, type ProjectView } from '@/lib/search-schemas'
 import React, { useRef, useState, useEffect } from 'react'
 import { Button } from '@promptliano/ui'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@promptliano/ui'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@promptliano/ui'
-import { useGetProjects, useDeleteProject, useGetProject } from '@/hooks/api/use-projects-api'
+import { useProjects, useDeleteProject, useProject } from '@/hooks/generated'
 import { PromptOverviewPanel, type PromptOverviewPanelRef } from '@/components/projects/prompt-overview-panel'
 import { FilePanel, type FilePanelRef } from '@/components/projects/file-panel/file-panel'
 import { UserInputPanel, type UserInputPanelRef } from '@/components/projects/user-input-panel'
@@ -28,7 +29,6 @@ import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
 import { useActiveTabSync } from '@/hooks/utility-hooks/use-active-tab-sync'
-import { ClaudeCodeTabWithSidebar } from '@/components/claude-code'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
 import { ProjectNavigationMenu } from '@/components/projects/project-navigation-menu'
@@ -36,6 +36,7 @@ import { migrateUrlParams, needsUrlMigration, getMigrationMessage } from '@/lib/
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { useServerConnection } from '@/hooks/use-server-connection'
+import { useAutoProjectSync } from '@/hooks/api-hooks'
 
 export function ProjectsPage() {
   const filePanelRef = useRef<FilePanelRef>(null)
@@ -46,42 +47,39 @@ export function ProjectsPage() {
   const [hasMigrationNotified, setHasMigrationNotified] = useState(false)
 
   // Get dependencies first
-  const { data: allProjectsData, isLoading: projectsLoading, isFetching: projectsFetching, isSuccess: projectsQuerySuccess } = useGetProjects()
+  const {
+    data: allProjectsData,
+    isLoading: projectsLoading,
+    isFetching: projectsFetching,
+    isSuccess: projectsQuerySuccess
+  } = useProjects()
   const [tabs] = useGetProjectTabs()
   const updateActiveProjectTab = useUpdateActiveProjectTab()
   const projects = allProjectsData || []
 
-  // Get the selected project ID with fallback logic
+  console.log({
+    activeProjectTabState
+  })
+
+  const rawSelectedProjectId = activeProjectTabState?.selectedProjectId
+  console.log({ rawSelectedProjectId })
+
+  // Validate selectedProjectId against current projects list
   const selectedProjectId = React.useMemo(() => {
-    // Primary: Get from active tab state
-    if (activeProjectTabState?.selectedProjectId) {
-      return activeProjectTabState.selectedProjectId
-    }
-    
-    // Fallback: If we have tabs but no selected project, try to recover
-    if (activeProjectTabId && tabs && tabs[activeProjectTabId]) {
-      const currentTab = tabs[activeProjectTabId]
-      if (currentTab?.selectedProjectId) {
-        // Update the active tab state to fix the inconsistency
-        updateActiveProjectTab({ selectedProjectId: currentTab.selectedProjectId })
-        return currentTab.selectedProjectId
-      }
-    }
-    
-    // Last resort: If we have projects but no selection, select the first available project
-    if (projects.length > 0 && activeProjectTabId) {
-      const firstProject = projects[0]
-      updateActiveProjectTab({ selectedProjectId: firstProject.id })
-      return firstProject.id
-    }
-    
-    return undefined
-  }, [activeProjectTabState?.selectedProjectId, activeProjectTabId, tabs, projects, updateActiveProjectTab])
-  
-  const { data: projectData } = useGetProject(selectedProjectId!)
+    if (!rawSelectedProjectId || rawSelectedProjectId === -1) return undefined
+    if (!projects || projects.length === 0) return undefined
+    return projects.some((p: Project) => p.id === rawSelectedProjectId) ? rawSelectedProjectId : undefined
+  }, [rawSelectedProjectId, projects])
+  console.log({ selectedProjectId })
+
+  // Only fetch project when we have a valid selection
+  const { data: projectData } = useProject(selectedProjectId ?? -1)
 
   // Sync active tab with backend
   useActiveTabSync(selectedProjectId)
+
+  // Auto-sync the active project every ~4s (server lock prevents overlap)
+  useAutoProjectSync(selectedProjectId, 4000)
 
   // Handle backward compatibility - redirect tickets/queues to flow
   useEffect(() => {
@@ -134,11 +132,8 @@ export function ProjectsPage() {
   }, [])
   // Filter out non-numeric tab IDs (like 'defaultTab')
   const validTabKeys = Object.keys(tabs || {}).filter((key) => !isNaN(Number(key)))
-  const tabsLen = validTabKeys.length
+
   const noTabsYet = validTabKeys.length === 0
-  const tabsArray = validTabKeys.map((key) => tabs[key])
-  const tabsKeys = validTabKeys
-  const { mutate: updateProjectTabs } = useSetKvValue('projectTabs')
 
   // Sync tab from URL on initial load
   useEffect(() => {
@@ -212,13 +207,15 @@ export function ProjectsPage() {
   const handleSelectProject = async (id: number) => {
     // If no tabs exist, create a new tab first
     if (noTabsYet) {
-      const project = projects.find((p) => p.id === id)
-      const newTabId = createProjectTabFromHook({
+      const project = projects.find((p: Project) => p.id === id)
+      const projectTabData = {
         displayName: project?.name || `Tab ${Date.now().toString().slice(-4)}`,
         selectedProjectId: id,
         selectedFiles: [],
         selectedPrompts: []
-      })
+      }
+      console.log({ projectTabData })
+      const newTabId = createProjectTabFromHook(projectTabData)
       setActiveProjectTabId(newTabId)
     } else {
       // Update existing tab
@@ -342,7 +339,7 @@ export function ProjectsPage() {
               onViewChange={(value) => {
                 // Ensure the value is valid before navigating
                 const validValue = value as ProjectView
-                const newSearch: any = { ...search, activeView: validValue }
+                const newSearch = { ...search, activeView: validValue }
 
                 // If navigating to manage tab, ensure we have a default manageView
                 if (validValue === 'manage' && !search.manageView) {
@@ -355,7 +352,6 @@ export function ProjectsPage() {
                   replace: true
                 })
               }}
-              claudeCodeEnabled={(activeProjectTabState as any)?.claudeCodeEnabled}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
               showTabs={false}
               showMenus={true}
@@ -368,7 +364,7 @@ export function ProjectsPage() {
               onViewChange={(value) => {
                 // Ensure the value is valid before navigating
                 const validValue = value as ProjectView
-                const newSearch: any = { ...search, activeView: validValue }
+                const newSearch = { ...search, activeView: validValue }
 
                 // If navigating to manage tab, ensure we have a default manageView
                 if (validValue === 'manage' && !search.manageView) {
@@ -381,7 +377,6 @@ export function ProjectsPage() {
                   replace: true
                 })
               }}
-              claudeCodeEnabled={(activeProjectTabState as any)?.claudeCodeEnabled}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
               showTabs={true}
               showMenus={false}
@@ -487,39 +482,6 @@ export function ProjectsPage() {
               <div className='p-6 text-center text-muted-foreground'>
                 <p>Assets is not enabled for this project.</p>
                 <p className='mt-2'>Enable it in the Settings tab to access Assets.</p>
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value='claude-code' className='flex-1 overflow-y-auto mt-0 ring-0 focus-visible:ring-0'>
-            {activeProjectTabState?.claudeCodeEnabled ? (
-              selectedProjectId && projectData ? (
-                <ClaudeCodeTabWithSidebar
-                  projectId={selectedProjectId}
-                  projectName={projectData.name}
-                  claudeCodeView={search.claudeCodeView}
-                  sessionId={search.sessionId}
-                  onClaudeCodeViewChange={(view) => {
-                    navigate({
-                      to: '/projects',
-                      search: (prev) => ({ ...prev, claudeCodeView: view }),
-                      replace: true
-                    })
-                  }}
-                  onSessionIdChange={(sessionId) => {
-                    navigate({
-                      to: '/projects',
-                      search: (prev) => ({ ...prev, sessionId }),
-                      replace: true
-                    })
-                  }}
-                />
-              ) : (
-                <p className='p-4 md:p-6'>No project selected for Claude Code.</p>
-              )
-            ) : (
-              <div className='p-6 text-center text-muted-foreground'>
-                <p>Claude Code is not enabled for this project.</p>
-                <p className='mt-2'>Enable it in the Settings tab to access Claude Code features.</p>
               </div>
             )}
           </TabsContent>

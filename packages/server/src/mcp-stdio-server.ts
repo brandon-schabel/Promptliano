@@ -19,7 +19,7 @@ import { CONSOLIDATED_TOOLS, getConsolidatedToolByName } from './mcp/tools-regis
 const server = new Server(
   {
     name: 'promptliano-mcp',
-    version: '0.9.4'
+    version: '0.10.0'
   },
   {
     capabilities: {
@@ -151,19 +151,29 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
     ]
 
     // Add individual file resources (limit to first 20 for performance)
-    const fileResources = (files || []).slice(0, 20).map((file) => ({
-      uri: `promptliano://projects/${projectId}/files/${file.id}`,
-      name: file.name,
-      description: `File: ${file.path} (${file.size} bytes)`,
-      mimeType:
-        file.extension === '.json'
-          ? 'application/json'
-          : file.extension === '.md'
-            ? 'text/markdown'
-            : file.extension.match(/\.(js|ts|jsx|tsx)$/)
-              ? 'text/javascript'
-              : 'text/plain'
-    }))
+    const fileResources = (files || []).slice(0, 20).map((file) => {
+      // Extract extension from file path
+      const extension =
+        file.extension ||
+        (() => {
+          const pathParts = file.path.split('.')
+          return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+        })()
+
+      return {
+        uri: `promptliano://projects/${projectId}/files/${file.id}`,
+        name: file.name,
+        description: `File: ${file.path} (${file.size} bytes)`,
+        mimeType:
+          extension === '.json'
+            ? 'application/json'
+            : extension === '.md'
+              ? 'text/markdown'
+              : extension.match(/\.(js|ts|jsx|tsx)$/)
+                ? 'text/javascript'
+                : 'text/plain'
+      }
+    })
 
     resources.push(...fileResources)
 
@@ -191,7 +201,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             {
               uri,
               mimeType: 'text/plain',
-              text: `Promptliano MCP Server v0.9.4
+              text: `Promptliano MCP Server v0.10.0
 
 Promptliano is a powerful project management and AI assistance tool.
 
@@ -229,7 +239,7 @@ For more information, visit: https://github.com/Ejb503/promptliano`
           const project = await getProjectById(projectId)
           const files = await getProjectFiles(projectId)
           const fileCount = files?.length || 0
-          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.created).toLocaleString()}`
+          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.createdAt).toLocaleString()}`
 
           return {
             contents: [
@@ -266,7 +276,7 @@ For more information, visit: https://github.com/Ejb503/promptliano`
           }
         } else if (urlParts[2] === 'files' && urlParts[3]) {
           // Individual file resource
-          const fileId = parseInt(urlParts[3])
+          const fileId = urlParts[3] // File ID is the file path, keep as string
           const files = await getProjectFiles(projectId)
           const file = files?.find((f) => f.id === fileId)
 
@@ -274,16 +284,24 @@ For more information, visit: https://github.com/Ejb503/promptliano`
             throw new Error(`File not found with ID: ${fileId}`)
           }
 
+          // Extract extension from file path
+          const extension =
+            file.extension ||
+            (() => {
+              const pathParts = file.path.split('.')
+              return pathParts.length > 1 ? '.' + pathParts.pop()?.toLowerCase() : ''
+            })()
+
           return {
             contents: [
               {
                 uri,
                 mimeType:
-                  file.extension === '.json'
+                  extension === '.json'
                     ? 'application/json'
-                    : file.extension === '.md'
+                    : extension === '.md'
                       ? 'text/markdown'
-                      : file.extension.match(/\.(js|ts|jsx|tsx)$/)
+                      : extension.match(/\.(js|ts|jsx|tsx)$/)
                         ? 'text/javascript'
                         : 'text/plain',
                 text: file.content

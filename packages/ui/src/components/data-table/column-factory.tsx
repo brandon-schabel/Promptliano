@@ -37,7 +37,10 @@ export interface DateColumnConfig<TData> extends ColumnFactoryConfig<TData> {
 }
 
 export interface StatusColumnConfig<TData> extends ColumnFactoryConfig<TData> {
-  statuses?: Record<string, { label: string; variant?: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }>
+  statuses?: Record<
+    string,
+    { label: string; variant?: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }
+  >
 }
 
 export interface ActionsColumnConfig<TData> {
@@ -67,11 +70,11 @@ export function createTextColumn<TData>(config: TextColumnConfig<TData>): Column
   } = config
 
   // Ensure we have either accessorKey or accessorFn, or provide an id
-  const baseColumn: Partial<ColumnDef<TData>> = accessorFn 
+  const baseColumn: Partial<ColumnDef<TData>> = accessorFn
     ? { accessorFn }
-    : accessorKey 
-    ? { accessorKey: accessorKey as string }
-    : { id: header }
+    : accessorKey
+      ? { accessorKey: accessorKey as string }
+      : { id: header }
 
   return {
     ...baseColumn,
@@ -82,15 +85,10 @@ export function createTextColumn<TData>(config: TextColumnConfig<TData>): Column
         value = formatFn(value)
       }
       const text = String(value || '')
-      const displayText = truncate && text.length > maxLength 
-        ? `${text.substring(0, maxLength)}...` 
-        : text
+      const displayText = truncate && text.length > maxLength ? `${text.substring(0, maxLength)}...` : text
 
       return (
-        <div 
-          className={cn('text-sm', className)} 
-          title={truncate && text.length > maxLength ? text : undefined}
-        >
+        <div className={cn('text-sm', className)} title={truncate && text.length > maxLength ? text : undefined}>
           {displayText}
         </div>
       )
@@ -118,11 +116,11 @@ export function createDateColumn<TData>(config: DateColumnConfig<TData>): Column
   } = config
 
   // Ensure we have either accessorKey or accessorFn, or provide an id
-  const baseColumn: Partial<ColumnDef<TData>> = accessorFn 
+  const baseColumn: Partial<ColumnDef<TData>> = accessorFn
     ? { accessorFn }
-    : accessorKey 
-    ? { accessorKey: accessorKey as string }
-    : { id: header }
+    : accessorKey
+      ? { accessorKey: accessorKey as string }
+      : { id: header }
 
   return {
     ...baseColumn,
@@ -174,11 +172,11 @@ export function createStatusColumn<TData>(config: StatusColumnConfig<TData>): Co
   } = config
 
   // Ensure we have either accessorKey or accessorFn, or provide an id
-  const baseColumn: Partial<ColumnDef<TData>> = accessorFn 
+  const baseColumn: Partial<ColumnDef<TData>> = accessorFn
     ? { accessorFn }
-    : accessorKey 
-    ? { accessorKey: accessorKey as string }
-    : { id: header }
+    : accessorKey
+      ? { accessorKey: accessorKey as string }
+      : { id: header }
 
   return {
     ...baseColumn,
@@ -188,10 +186,7 @@ export function createStatusColumn<TData>(config: StatusColumnConfig<TData>): Co
       const statusConfig = statuses[value] || { label: value, variant: 'default' as const }
 
       return (
-        <Badge 
-          variant={statusConfig.variant} 
-          className={cn(statusConfig.className, className)}
-        >
+        <Badge variant={statusConfig.variant} className={cn(statusConfig.className, className)}>
           {statusConfig.label}
         </Badge>
       )
@@ -215,9 +210,7 @@ export function createActionsColumn<TData>(config: ActionsColumnConfig<TData>): 
     id: 'actions',
     header: () => <span className='sr-only'>Actions</span>,
     cell: ({ row }) => {
-      const visibleActions = actions.filter(action => 
-        action.show ? action.show(row.original) : true
-      )
+      const visibleActions = actions.filter((action) => (action.show ? action.show(row.original) : true))
 
       if (visibleActions.length === 0) return null
 
@@ -259,10 +252,7 @@ export function createSelectionColumn<TData>(): ColumnDef<TData> {
     id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label='Select all'
       />
@@ -293,16 +283,14 @@ export interface DataTableColumnsConfig<TData> {
   actions?: ActionsColumnConfig<TData>
 }
 
-export function createDataTableColumns<TData>(
-  config: DataTableColumnsConfig<TData>
-): ColumnDef<TData>[] {
+export function createDataTableColumns<TData>(config: DataTableColumnsConfig<TData>): ColumnDef<TData>[] {
   const columns: ColumnDef<TData>[] = []
 
   if (config.selectable) {
     columns.push(createSelectionColumn<TData>())
   }
 
-  config.columns.forEach(col => {
+  config.columns.forEach((col) => {
     switch (col.type) {
       case 'text':
         columns.push(createTextColumn(col.config))

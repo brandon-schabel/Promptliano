@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
-import { useGetMessages, useCreateChat, useForkChat } from '@/hooks/api/use-chat-api'
-import { ForkChatRequestBody } from '@promptliano/schemas'
+import { useCreateChat, useForkChat } from '@/hooks/generated'
+import { useGetMessages } from '@/hooks/api-hooks'
+import { ForkChatFromMessageBody } from '@promptliano/schemas'
 
 export function useCreateChatHandler() {
   const createChatMutation = useCreateChat()
@@ -10,8 +11,7 @@ export function useCreateChatHandler() {
       try {
         return await createChatMutation.mutateAsync({
           title: chatTitle,
-          copyExisting: false,
-          ...(currentChatId && { currentChatId: currentChatId })
+          projectId: 1
         })
       } catch (error) {
         console.error('[handleCreateChat] Error:', error)
@@ -41,7 +41,7 @@ export function useForkChatHandler({ chatId }: { chatId: number }) {
   const handleForkChat = useCallback(async () => {
     if (!chatId) return
     try {
-      const inputBody: ForkChatRequestBody = {
+      const inputBody = {
         excludedMessageIds: []
       }
       await forkChatMutation.mutateAsync({

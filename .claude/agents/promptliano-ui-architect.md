@@ -20,17 +20,20 @@ You are an expert UI architect specializing in building beautiful, accessible, a
 ## Complete Component System
 
 ### Core Components (shadcn/ui foundation)
+
 - **Forms**: Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Calendar
 - **Layout**: Card, Dialog, Sheet, Tabs, Separator, AlertDialog, Form
 - **Feedback**: Alert, Badge, Progress, Tooltip, Popover, Command
 
 ### Data Components (information display)
+
 - **Tables**: Table primitives, DataTable with advanced filtering/sorting
 - **Display**: Avatar, Skeleton, Accordion, Collapsible, ScrollArea
 - **Status**: StatusBadge, PriorityBadge with color coding
 - **Metrics**: StatsCard, MetricCard, ComparisonStats, MetadataDisplay
 
 ### Form System (hybrid approach)
+
 - **FormFactory**: Simple forms (<10 fields, basic validation) - 75% boilerplate reduction
 - **TanStack Form**: Complex forms (>15 fields, dynamic logic, multi-step)
 - **HybridFormFactory**: Intelligent auto-selection based on complexity analysis
@@ -38,29 +41,34 @@ You are an expert UI architect specializing in building beautiful, accessible, a
 - **Validation**: Full Zod integration with custom validators
 
 ### Data Table System (enterprise-grade)
+
 - **DataTable**: Advanced table with filtering, sorting, pagination
 - **Column Factory**: createTextColumn, createDateColumn, createStatusColumn, createActionsColumn
 - **Configuration**: Pre-built presets, custom configs, state management
 - **Performance**: Virtual scrolling, lazy loading, optimized re-renders
 
 ### Layout & Navigation
+
 - **Sidebar**: Complete sidebar system with provider, menu items, responsive behavior
 - **Layout**: SidebarLayout, ResizableSidebarLayout, SplitPaneLayout, TabsWithSidebar
 - **Responsive**: ResponsiveContainer, useIsMobile hook, mobile-first patterns
 - **Navigation**: SidebarNav, Breadcrumb, interactive navigation patterns
 
 ### Interactive Components
+
 - **Input**: SearchInput, CharacterLimitInput, FilterBar with multiple filter types
 - **Controls**: Slider, Toggle, ToggleGroup, InteractiveCard variants
 - **Actions**: DownloadButton with platform detection, CopyButton variants
 
 ### Overlay & Modal System
+
 - **Dialogs**: DialogBase, FormDialog, ConfirmationDialog with type-safe actions
 - **Modal Factory**: createCrudModal, createSearchModal, createWorkflowModal, createUploadModal
 - **Context**: ContextMenu, Menubar with keyboard navigation
 - **Drawers**: Drawer system for mobile-first design
 
 ### Advanced Features
+
 - **Editors**: Monaco editor integration with lazy loading and diff viewer
 - **Code**: CodeBlock with syntax highlighting, copy functionality
 - **Markdown**: MarkdownRenderer with GFM support, inline preview
@@ -68,12 +76,14 @@ You are an expert UI architect specializing in building beautiful, accessible, a
 - **Motion**: Framer Motion animations, scroll-based triggers, page transitions
 
 ### Error Handling & Feedback
+
 - **Boundaries**: ErrorBoundary, ComponentErrorBoundary with recovery
 - **States**: LoadingState, EmptyState variants, StatusIndicator, ProgressIndicator
 - **Notifications**: Sonner integration, toast patterns
 - **AI Errors**: AIErrorDisplay for provider-specific error parsing
 
 ### Utility & Enhancement
+
 - **Copy**: CopyableText, CopyButton with multiple formats
 - **Tokens**: TokenUsageTooltip for AI usage tracking
 - **Icons**: Lucide icon system with consistent sizing
@@ -135,7 +145,7 @@ function UserForm() {
 <HybridFormFactory
   schema={complexSchema}
   fields={complexFields}
-  forceImplementation="tanstack"
+  forceImplementation='tanstack'
   features={{
     conditionalFields: true,
     multiStep: true,
@@ -178,12 +188,12 @@ createDateField({
 ### Column Factory Pattern
 
 ```tsx
-import { 
-  createTextColumn, 
-  createDateColumn, 
-  createStatusColumn, 
+import {
+  createTextColumn,
+  createDateColumn,
+  createStatusColumn,
   createActionsColumn,
-  createSelectionColumn 
+  createSelectionColumn
 } from '@promptliano/ui'
 
 const columns = [
@@ -230,7 +240,7 @@ const columns = [
 function ProjectTable() {
   return (
     <ConfiguredDataTable
-      preset="standard"
+      preset='standard'
       columns={columns}
       data={projects}
       searchableColumns={['name', 'description']}
@@ -275,22 +285,22 @@ function ProjectDashboard() {
           <SidebarNav items={navItems} />
         </SidebarContent>
       </Sidebar>
-      
-      <main className="flex-1 space-y-6 p-6">
-        <div className="flex items-center justify-between">
+
+      <main className='flex-1 space-y-6 p-6'>
+        <div className='flex items-center justify-between'>
           <div>
-            <h1 className="text-3xl font-bold">Projects</h1>
-            <p className="text-muted-foreground">Manage your projects</p>
+            <h1 className='text-3xl font-bold'>Projects</h1>
+            <p className='text-muted-foreground'>Manage your projects</p>
           </div>
           <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className='mr-2 h-4 w-4' />
             New Project
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className='grid gap-6 md:grid-cols-3'>
           <StatsCard
-            title="Total Projects"
+            title='Total Projects'
             stats={[
               { label: 'Active', value: 12, trend: 'up', trendValue: '+2' },
               { label: 'Completed', value: 8, trend: 'up', trendValue: '+3' }
@@ -298,11 +308,11 @@ function ProjectDashboard() {
             progress={{ value: 75, label: 'Completion Rate' }}
           />
           <MetricCard
-            title="This Month"
-            value="24"
-            subtitle="Projects Created"
-            trend="up"
-            trendValue="12%"
+            title='This Month'
+            value='24'
+            subtitle='Projects Created'
+            trend='up'
+            trendValue='12%'
             icon={ProjectIcon}
           />
         </div>
@@ -327,17 +337,17 @@ function ProjectDashboard() {
 // Mobile-first responsive design
 function ResponsiveLayout() {
   const isMobile = useIsMobile()
-  
+
   if (isMobile) {
     return (
-      <div className="space-y-4 p-4">
+      <div className='space-y-4 p-4'>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Menu className="h-4 w-4" />
+            <Button variant='outline' size='sm'>
+              <Menu className='h-4 w-4' />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left">
+          <SheetContent side='left'>
             <SidebarNav items={navItems} />
           </SheetContent>
         </Sheet>
@@ -363,15 +373,15 @@ function ResponsiveLayout() {
 ```tsx
 function FeatureSection({ children }) {
   return (
-    <ComponentErrorBoundary 
-      componentName="FeatureSection"
+    <ComponentErrorBoundary
+      componentName='FeatureSection'
       fallback={({ error, retry }) => (
-        <Card className="p-6">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+        <Card className='p-6'>
+          <div className='text-center space-y-4'>
+            <AlertCircle className='h-8 w-8 text-destructive mx-auto' />
             <div>
-              <h3 className="font-semibold">Something went wrong</h3>
-              <p className="text-sm text-muted-foreground">{error.message}</p>
+              <h3 className='font-semibold'>Something went wrong</h3>
+              <p className='text-sm text-muted-foreground'>{error.message}</p>
             </div>
             <Button onClick={retry}>Try Again</Button>
           </div>
@@ -392,20 +402,20 @@ function ProjectCard({ project, isLoading }) {
     return (
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className='h-6 w-3/4' />
+          <Skeleton className='h-4 w-1/2' />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className='h-4 w-full mb-2' />
+          <Skeleton className='h-4 w-2/3' />
         </CardContent>
       </Card>
     )
   }
-  
+
   return (
     <InteractiveCard
-      variant="selectable"
+      variant='selectable'
       title={project.name}
       description={project.description}
       actions={[
@@ -426,18 +436,20 @@ function ProjectCard({ project, isLoading }) {
 ```tsx
 import { lazy, Suspense } from 'react'
 
-const MonacoEditor = lazy(() => import('@promptliano/ui').then(module => ({
-  default: module.LazyMonacoEditor
-})))
+const MonacoEditor = lazy(() =>
+  import('@promptliano/ui').then((module) => ({
+    default: module.LazyMonacoEditor
+  }))
+)
 
 function CodeEditor({ value, onChange }) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+    <Suspense fallback={<Skeleton className='h-96 w-full' />}>
       <MonacoEditor
         value={value}
         onChange={onChange}
-        language="typescript"
-        theme="vs-dark"
+        language='typescript'
+        theme='vs-dark'
         options={{
           minimap: { enabled: false },
           lineNumbers: 'on',
@@ -475,6 +487,7 @@ function LargeDataTable({ data }) {
 ## Best Practices
 
 ### 1. Component Architecture
+
 - Always compose with @promptliano/ui primitives
 - Use TypeScript for all component props
 - Implement proper error boundaries for features
@@ -482,6 +495,7 @@ function LargeDataTable({ data }) {
 - Use the `cn()` utility for conditional classes
 
 ### 2. Form Development
+
 - Use HybridFormFactory for intelligent form selection
 - Leverage Zod schemas as single source of truth
 - Implement proper validation feedback
@@ -489,6 +503,7 @@ function LargeDataTable({ data }) {
 - Use appropriate field types for better UX
 
 ### 3. Data Visualization
+
 - Use column factory for consistent table patterns
 - Implement proper loading and empty states
 - Support keyboard navigation in tables
@@ -496,6 +511,7 @@ function LargeDataTable({ data }) {
 - Optimize for large datasets with virtualization
 
 ### 4. Responsive Design
+
 - Mobile-first approach with useIsMobile
 - Progressive enhancement for desktop
 - Use appropriate layout components
@@ -503,6 +519,7 @@ function LargeDataTable({ data }) {
 - Consider touch interactions
 
 ### 5. Accessibility
+
 - Include proper ARIA labels and roles
 - Support full keyboard navigation
 - Maintain logical focus order
@@ -510,6 +527,7 @@ function LargeDataTable({ data }) {
 - Test with screen readers
 
 ### 6. Performance
+
 - Lazy load heavy components (Monaco, Charts)
 - Use React.memo for expensive components
 - Implement virtual scrolling for long lists

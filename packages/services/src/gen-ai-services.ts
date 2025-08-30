@@ -5,22 +5,52 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { createChatService, createProviderKeyService } from '@promptliano/services'
-import type { APIProviders, ProviderKey } from '@promptliano/schemas'
-import type { AiChatStreamRequest } from '@promptliano/schemas'
-import type { AiSdkOptions } from '@promptliano/schemas'
+import { createChatService } from './chat-service'
+import { createProviderKeyService } from './provider-key-service'
+import { chatRepository } from '@promptliano/database'
+import type { APIProviders, ProviderKey } from '@promptliano/database'
 import { LOW_MODEL_CONFIG, getProvidersConfig } from '@promptliano/config'
-import { structuredDataSchemas } from '@promptliano/schemas'
+import { structuredDataSchemas } from '@promptliano/schemas' // AI generation schemas - may remain in schemas package
 
 import { ApiError } from '@promptliano/shared'
 import { mapProviderErrorToApiError } from './error-mappers'
-import { ErrorFactory, assertExists } from './utils/error-factory'
+import { ErrorFactory, assertExists } from '@promptliano/shared'
 import { retryOperation } from './utils/bulk-operations'
 import { getProviderUrl } from './provider-settings-service'
 import { LMStudioProvider } from './providers/lmstudio-provider'
 import { mergeHeaders } from './utils/header-sanitizer'
+import { nullToUndefined } from './utils/file-utils'
 
 const providersConfig = getProvidersConfig()
+
+// AI SDK compatible options type for function parameters
+interface AiSdkCompatibleOptions {
+  temperature?: number | null
+  maxTokens?: number | null
+  topP?: number | null
+  frequencyPenalty?: number | null
+  presencePenalty?: number | null
+  topK?: number | null
+  responseFormat?: any | null
+  provider?: string | APIProviders
+  model?: string
+  ollamaUrl?: string
+  lmstudioUrl?: string
+}
+
+// Stream request interface for chat handling
+interface AiChatStreamRequest {
+  chatId: number
+  userMessage: string
+  options?: AiSdkCompatibleOptions
+  systemMessage?: string
+  tempId?: string
+  debug?: boolean
+  enableChatAutoNaming?: boolean
+}
+
+// Extended type for chat streaming requests
+type AiChatRequest = AiChatStreamRequest
 
 // Provider capabilities map - which providers support structured output via generateObject
 // Note: LM Studio now uses a custom provider that supports native structured outputs
@@ -39,20 +69,70 @@ const PROVIDER_CAPABILITIES = {
 
 let providerKeysCache: ProviderKey[] | null = null
 
+// Type guard to check if a value is a valid number
+function isValidNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value) && isFinite(value)
+}
+
+// Utility function to convert database null values to undefined for AI SDK compatibility
+// Handles the type mismatch between Drizzle's `number | null` and AI SDK's `number | undefined`
+function convertDbOptionsToAiSdk(dbOptions: AiSdkCompatibleOptions): {
+  temperature?: number
+  maxTokens?: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  topK?: number
+  responseFormat?: any
+} {
+  // Filter out null values and convert to undefined, with type validation
+  const result: ReturnType<typeof convertDbOptionsToAiSdk> = {}
+
+  if (isValidNumber(dbOptions.temperature)) {
+    result.temperature = dbOptions.temperature
+  }
+
+  if (isValidNumber(dbOptions.maxTokens)) {
+    result.maxTokens = dbOptions.maxTokens
+  }
+
+  if (isValidNumber(dbOptions.topP)) {
+    result.topP = dbOptions.topP
+  }
+
+  if (isValidNumber(dbOptions.frequencyPenalty)) {
+    result.frequencyPenalty = dbOptions.frequencyPenalty
+  }
+
+  if (isValidNumber(dbOptions.presencePenalty)) {
+    result.presencePenalty = dbOptions.presencePenalty
+  }
+
+  if (isValidNumber(dbOptions.topK)) {
+    result.topK = dbOptions.topK
+  }
+
+  if (dbOptions.responseFormat !== null && dbOptions.responseFormat !== undefined) {
+    result.responseFormat = dbOptions.responseFormat
+  }
+
+  return result
+}
+
 // Helper function to get provider key configuration
 async function getProviderKeyById(provider: string, debug: boolean = false): Promise<ProviderKey | null> {
   const providerKeyService = createProviderKeyService()
   const keys = await providerKeyService.listKeysUncensored()
-  
+
   // Find the default key for this provider, or the first one
-  const providerKeys = keys.filter(k => k.provider === provider)
-  const defaultKey = providerKeys.find(k => k.isDefault)
+  const providerKeys = keys.filter((k) => k.provider === provider)
+  const defaultKey = providerKeys.find((k) => k.isDefault)
   const key = defaultKey || providerKeys[0]
-  
+
   if (debug && key) {
     console.log(`[UnifiedProviderService] Found provider key for ${provider}: ${key.name}`)
   }
-  
+
   return key || null
 }
 
@@ -64,10 +144,10 @@ export async function handleChatMessage({
   tempId,
   debug = false,
   enableChatAutoNaming = false
-}: AiChatStreamRequest & { enableChatAutoNaming?: boolean }): Promise<ReturnType<typeof streamText>> {
+}: AiChatRequest): Promise<ReturnType<typeof streamText>> {
   let finalAssistantMessageId: number | undefined
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
   const chatService = createChatService()
   const modelInstance = await getProviderLanguageModelInterface(finalOptions.provider as APIProviders, finalOptions)
   let messagesToProcess: CoreMessage[] = []
@@ -76,7 +156,7 @@ export async function handleChatMessage({
     messagesToProcess.push({ role: 'system', content: systemMessage })
   }
 
-  const dbMessages = (await chatService.getChatMessages(chatId)).map((msg) => ({
+  const dbMessages = (await chatRepository.getMessages(chatId)).map((msg) => ({
     role: msg.role as 'user' | 'assistant' | 'system',
     content: msg.content
   }))
@@ -86,37 +166,32 @@ export async function handleChatMessage({
 
   messagesToProcess.push(...dbMessages)
 
-  const savedUserMessage = await chatService.saveMessage({
-    chatId,
+  const savedUserMessage = await chatService.addMessage(chatId, {
     role: 'user',
     content: userMessage,
-    tempId: tempId ? `${tempId}-user` : undefined
-  } as any)
+    metadata: tempId ? { tempId: `${tempId}-user` } : undefined
+  })
 
   messagesToProcess.push({ role: 'user', content: userMessage })
 
-  await chatService.updateChatTimestamp(chatId)
+  // Update timestamp will be handled by the repository automatically
 
-  const initialAssistantMessage = await chatService.saveMessage({
-    chatId,
+  const initialAssistantMessage = await chatService.addMessage(chatId, {
     role: 'assistant',
     content: '...',
-    tempId: tempId
-  } as any)
+    metadata: tempId ? { tempId } : undefined
+  })
   finalAssistantMessageId = initialAssistantMessage.id
+
+  const aiSdkOptions = convertDbOptionsToAiSdk(finalOptions)
 
   return streamText({
     model: modelInstance,
     messages: messagesToProcess,
-    temperature: finalOptions.temperature,
-    maxTokens: finalOptions.maxTokens,
-    topP: finalOptions.topP,
-    frequencyPenalty: finalOptions.frequencyPenalty,
-    presencePenalty: finalOptions.presencePenalty,
-    topK: finalOptions.topK,
-    // Pass through response_format if provided in options
-    ...(finalOptions.response_format && {
-      response_format: finalOptions.response_format
+    ...aiSdkOptions,
+    // Pass through responseFormat if provided in options
+    ...(finalOptions.responseFormat && {
+      responseFormat: finalOptions.responseFormat
     }),
 
     // Handle completion and errors
@@ -132,7 +207,12 @@ export async function handleChatMessage({
       // Update the placeholder Assistant Message with Final Content
       if (finalAssistantMessageId) {
         try {
-          await chatService.updateMessageContent(chatId, finalAssistantMessageId, finalContent)
+          // Update message content by deleting and recreating (since messages don't have update)
+          await chatRepository.deleteMessage(finalAssistantMessageId)
+          await chatService.addMessage(chatId, {
+            role: 'assistant',
+            content: finalContent
+          })
         } catch (dbError) {
           console.error(
             `[UnifiedProviderService] Failed to update final message content in DB for ID ${finalAssistantMessageId}:`,
@@ -145,13 +225,12 @@ export async function handleChatMessage({
       if (isFirstUserMessage && enableChatAutoNaming) {
         try {
           // Get current chat to check if it has a default name
-          const allChats = await chatService.getAllChats()
-          const currentChat = allChats.find((chat) => chat.id === chatId)
+          const currentChat = await chatService.getById(chatId)
 
           if (currentChat && (currentChat.title.startsWith('New Chat') || currentChat.title.startsWith('Chat '))) {
             // Generate a name based on the user's message
             const generatedName = await generateChatName(userMessage)
-            await chatService.updateChat(chatId, generatedName)
+            await chatService.update(chatId, { title: generatedName })
 
             if (debug) {
               console.log(`[UnifiedProviderService] Auto-named chat ${chatId}: "${generatedName}"`)
@@ -180,12 +259,21 @@ export async function handleChatMessage({
                 ? 'Error: Service temporarily unavailable. Please try again.'
                 : `Error: ${mappedError.message}`
 
-        chatService.updateMessageContent(chatId, finalAssistantMessageId, errorMessage).catch((dbError) => {
-          console.error(
-            `[UnifiedProviderService] Failed to update message content with stream error in DB for ID ${finalAssistantMessageId}:`,
-            dbError
+        // Update error message by deleting and recreating
+        chatRepository
+          .deleteMessage(finalAssistantMessageId)
+          .then(() =>
+            chatService.addMessage(chatId, {
+              role: 'assistant',
+              content: errorMessage
+            })
           )
-        })
+          .catch((dbError: any) => {
+            console.error(
+              `[UnifiedProviderService] Failed to update message content with stream error in DB for ID ${finalAssistantMessageId}:`,
+              dbError
+            )
+          })
       }
     }
   })
@@ -208,7 +296,7 @@ async function getKey(provider: APIProviders, debug: boolean): Promise<string | 
       `[UnifiedProviderService] API key for provider "${provider}" not found in DB. SDK might check environment variables.`
     )
   }
-  return keyEntry?.key
+  return nullToUndefined(keyEntry?.key)
 }
 
 /**
@@ -217,7 +305,7 @@ async function getKey(provider: APIProviders, debug: boolean): Promise<string | 
  */
 async function getProviderLanguageModelInterface(
   provider: APIProviders | string,
-  options: AiSdkOptions = {},
+  options: AiSdkCompatibleOptions = {},
   debug: boolean = false
 ): Promise<LanguageModel> {
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
@@ -241,24 +329,24 @@ async function getProviderLanguageModelInterface(
       if (!customKey || customKey.provider !== 'custom' || !customKey.baseUrl) {
         throw ErrorFactory.notFound('Custom provider configuration', keyId || 'default')
       }
-      
+
       const baseURL = customKey.baseUrl
       const apiKey = customKey.key
-      
+
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
-      
+
       // Ensure URL is properly formatted for OpenAI compatibility
       const customUrl = baseURL.endsWith('/v1') ? baseURL : `${baseURL.replace(/\/$/, '')}/v1`
-      
+
       if (debug) {
         console.log(`[UnifiedProviderService] Using custom provider at: ${customUrl}`)
       }
-      
+
       // Prepare headers if any custom headers are defined
       const customHeaders = customKey.customHeaders || {}
-      
+
       // Use OpenAI SDK with custom configuration
       return createOpenAI({
         baseURL: customUrl,
@@ -340,35 +428,35 @@ async function getProviderLanguageModelInterface(
       if (!customKey) {
         throw ErrorFactory.notFound('Custom provider configuration', 'default')
       }
-      
+
       const baseURL = customKey.baseUrl
       if (!baseURL) {
         throw ErrorFactory.missingRequired('Base URL', 'custom provider')
       }
-      
+
       const apiKey = await getKey('custom', debug)
       if (!apiKey) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
-      
+
       // Ensure URL is properly formatted for OpenAI compatibility
       const customUrl = baseURL.endsWith('/v1') ? baseURL : `${baseURL.replace(/\/$/, '')}/v1`
-      
+
       if (debug) {
         console.log(`[UnifiedProviderService] Using custom provider at: ${customUrl}`)
       }
-      
+
       // Prepare base headers for API key
       const baseHeaders = {
-        'Authorization': `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`
       }
-      
+
       // Merge with sanitized custom headers
-      const sanitizedHeaders = mergeHeaders(baseHeaders, customKey.customHeaders)
-      
+      const sanitizedHeaders = mergeHeaders(baseHeaders, nullToUndefined(customKey.customHeaders))
+
       // Remove the Authorization header since OpenAI SDK handles it separately
       const { Authorization, ...customHeaders } = sanitizedHeaders
-      
+
       // Use OpenAI SDK with custom configuration
       return createOpenAI({
         baseURL: customUrl,
@@ -420,12 +508,12 @@ export async function generateSingleText({
 }: {
   prompt: string
   messages?: CoreMessage[]
-  options?: AiSdkOptions
+  options?: AiSdkCompatibleOptions
   systemMessage?: string
   debug?: boolean
 }): Promise<string> {
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'generateSingleText')
   }
@@ -447,15 +535,11 @@ export async function generateSingleText({
     // Wrap the AI call in retry logic
     const result = await retryOperation(
       async () => {
+        const aiSdkOptions = convertDbOptionsToAiSdk(finalOptions)
         const { text, usage, finishReason } = await generateText({
           model: modelInstance,
           messages: messagesToProcess,
-          temperature: finalOptions.temperature,
-          maxTokens: finalOptions.maxTokens,
-          topP: finalOptions.topP,
-          frequencyPenalty: finalOptions.frequencyPenalty,
-          presencePenalty: finalOptions.presencePenalty,
-          topK: finalOptions.topK
+          ...aiSdkOptions
         })
 
         if (debug) {
@@ -502,7 +586,7 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
   schema: T
   systemMessage?: string
   debug?: boolean
-  options?: AiSdkOptions
+  options?: AiSdkCompatibleOptions
 }): Promise<{
   object: z.infer<T>
   usage: { completionTokens: number; promptTokens: number; totalTokens: number }
@@ -510,7 +594,7 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
 }> {
   // Return structure from generateObject
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
 
   const model = finalOptions.model
 
@@ -519,8 +603,9 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
   }
 
   // Check if provider supports structured output
-  const supportsStructuredOutput = PROVIDER_CAPABILITIES[provider]?.structuredOutput ?? true
-  const useCustomProvider = PROVIDER_CAPABILITIES[provider]?.useCustomProvider ?? false
+  const providerKey = provider as keyof typeof PROVIDER_CAPABILITIES
+  const supportsStructuredOutput = PROVIDER_CAPABILITIES[providerKey]?.structuredOutput ?? true
+  const useCustomProvider = PROVIDER_CAPABILITIES[providerKey]?.useCustomProvider ?? false
 
   if (debug) {
     console.log(
@@ -535,15 +620,26 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
     }
 
     try {
-      const lmstudioProvider = new LMStudioProvider({ ...finalOptions, debug })
+      // Convert null values to undefined for LMStudio provider
+      const convertedOptions = {
+        ...finalOptions,
+        temperature: nullToUndefined(finalOptions.temperature),
+        maxTokens: nullToUndefined(finalOptions.maxTokens),
+        topP: nullToUndefined(finalOptions.topP),
+        topK: nullToUndefined(finalOptions.topK),
+        frequencyPenalty: nullToUndefined(finalOptions.frequencyPenalty),
+        presencePenalty: nullToUndefined(finalOptions.presencePenalty),
+        debug
+      }
+      const lmstudioProvider = new LMStudioProvider(convertedOptions)
       const result = await lmstudioProvider.generateObject(schema, prompt, {
         model: model,
         systemMessage,
-        temperature: finalOptions.temperature,
-        maxTokens: finalOptions.maxTokens,
-        topP: finalOptions.topP,
-        frequencyPenalty: finalOptions.frequencyPenalty,
-        presencePenalty: finalOptions.presencePenalty,
+        temperature: nullToUndefined(finalOptions.temperature),
+        maxTokens: nullToUndefined(finalOptions.maxTokens),
+        topP: nullToUndefined(finalOptions.topP),
+        frequencyPenalty: nullToUndefined(finalOptions.frequencyPenalty),
+        presencePenalty: nullToUndefined(finalOptions.presencePenalty),
         debug
       })
 
@@ -682,10 +778,7 @@ Start your response with { and end with }`
           )
         }
 
-        throw ErrorFactory.operationFailed(
-          `${provider} JSON generation`,
-          'Model did not return valid JSON response.'
-        )
+        throw ErrorFactory.operationFailed(`${provider} JSON generation`, 'Model did not return valid JSON response.')
       }
 
       // Validate against schema
@@ -718,17 +811,13 @@ Start your response with { and end with }`
     // Wrap the AI call in retry logic
     const result = await retryOperation(
       async () => {
+        const aiSdkOptions = convertDbOptionsToAiSdk(finalOptions)
         const result = await generateObject({
           model: modelInstance,
           schema: schema,
           prompt: prompt,
           system: systemMessage,
-          temperature: finalOptions.temperature,
-          maxTokens: finalOptions.maxTokens,
-          topP: finalOptions.topP,
-          frequencyPenalty: finalOptions.frequencyPenalty,
-          presencePenalty: finalOptions.presencePenalty,
-          topK: finalOptions.topK
+          ...aiSdkOptions
         })
 
         if (debug) {
@@ -774,12 +863,12 @@ export async function genTextStream({
 }: {
   prompt?: string
   messages?: CoreMessage[]
-  options?: AiSdkOptions
+  options?: AiSdkCompatibleOptions
   systemMessage?: string
   debug?: boolean
 }): Promise<ReturnType<typeof streamText>> {
   const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = finalOptions.provider as APIProviders
+  const provider = (finalOptions.provider || 'openai') as APIProviders
 
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'genTextStream')
@@ -803,7 +892,11 @@ export async function genTextStream({
     }
 
     if (messagesToProcess.length === 0) {
-      throw new Error('No valid input content (prompt or messages) resulted in messages to process.')
+      throw ErrorFactory.invalidInput('messages', 'at least one valid message', messagesToProcess, {
+        context: 'genTextStream',
+        provider,
+        model: modelInstance?.modelId
+      })
     }
 
     if (debug) {
@@ -813,17 +906,13 @@ export async function genTextStream({
       )
     }
 
+    const aiSdkOptions = convertDbOptionsToAiSdk(options)
     return streamText({
       model: modelInstance,
       messages: messagesToProcess,
-      temperature: options.temperature,
-      maxTokens: options.maxTokens,
-      topP: options.topP,
-      frequencyPenalty: options.frequencyPenalty,
-      presencePenalty: options.presencePenalty,
-      topK: options.topK,
-      ...(options.response_format && {
-        response_format: options.response_format
+      ...aiSdkOptions,
+      ...(options.responseFormat && {
+        responseFormat: options.responseFormat
       }),
 
       onFinish: ({ text, usage, finishReason }) => {
@@ -854,7 +943,7 @@ export async function generateChatName(chatContent: string): Promise<string> {
       prompt: chatContent,
       schema: chatNamingConfig.schema,
       systemMessage: chatNamingConfig.systemPrompt,
-      options: chatNamingConfig.modelSettings
+      options: chatNamingConfig.modelSettings || {}
     })
 
     return result.object.chatName
@@ -886,7 +975,7 @@ export async function generateTabName(
       prompt: promptData,
       schema: tabNamingConfig.schema,
       systemMessage: tabNamingConfig.systemPrompt,
-      options: tabNamingConfig.modelSettings
+      options: tabNamingConfig.modelSettings || {}
     })
 
     return result.object.tabName

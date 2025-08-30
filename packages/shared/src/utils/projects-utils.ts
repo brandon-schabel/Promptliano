@@ -1,6 +1,7 @@
 import { estimateTokenCount } from './file-tree-utils/file-node-tree-utils'
 import type { FileNode } from './file-tree-utils/file-node-tree-utils'
-import type { ProjectFile, ProjectFileMap, Prompt } from '@promptliano/schemas'
+import type { ProjectFile, ProjectFileMap } from '@promptliano/schemas'
+import type { Prompt } from '@promptliano/database'
 
 export function buildPromptContent({
   fileMap,
@@ -20,7 +21,7 @@ export function buildPromptContent({
   for (const prompt of promptData ?? []) {
     if (selectedPrompts.includes(prompt.id)) {
       // Using a more descriptive tag for clarity
-      contentToCopy += `<system_prompt index="${promptCount}" name="${prompt.name}">\n<![CDATA[\n${prompt.content}\n]]>\n</system_prompt>\n\n`
+      contentToCopy += `<system_prompt index="${promptCount}" name="${prompt.title}">\n<![CDATA[\n${prompt.content}\n]]>\n</system_prompt>\n\n`
       promptCount++
     }
   }

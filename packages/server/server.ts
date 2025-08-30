@@ -39,7 +39,7 @@ export async function instantiateServer({
 }: ServerConfig = {}): Promise<Server> {
   logger.info(`Starting server initialization on port ${port}...`)
   const server = serve({
-    // idleTimeout of 255 seconds (4.25 minutes) to support long-running operations  
+    // idleTimeout of 255 seconds (4.25 minutes) to support long-running operations
     // like asset generation which can take up to 3 minutes
     idleTimeout: 255,
     port,
@@ -85,7 +85,7 @@ export async function instantiateServer({
       }
 
       return serveStatic('index.html')
-    },
+    }
 
     // WebSocket functionality temporarily disabled after job queue removal
     // TODO: Implement WebSocket management without job queue dependency
@@ -118,7 +118,6 @@ export async function instantiateServer({
     }
 
     cleanupService.start()
-
   })()
 
   logger.info(`Server running at http://${serverConfig.host}:${server.port}`)

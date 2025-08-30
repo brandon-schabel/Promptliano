@@ -15,22 +15,22 @@
 ```typescript
 // Test Environment Structure
 interface TestEnvironment {
-  server?: TestServerInstance     // Isolated server (when useIsolatedServer: true)
-  baseUrl: string                // API base URL for requests
-  config: TestEnvironmentConfig  // Complete test configuration
-  isCI: boolean                  // Environment detection
-  isLocal: boolean               // Environment detection
-  cleanup: () => Promise<void>   // Cleanup function
+  server?: TestServerInstance // Isolated server (when useIsolatedServer: true)
+  baseUrl: string // API base URL for requests
+  config: TestEnvironmentConfig // Complete test configuration
+  isCI: boolean // Environment detection
+  isLocal: boolean // Environment detection
+  cleanup: () => Promise<void> // Cleanup function
 }
 ```
 
 ### Environment Configuration Matrix
 
-| Environment | Database | AI Tests | Rate Limit | Log Level | Timeout |
-|-------------|----------|----------|------------|-----------|----------|
-| **Local Dev** | File/Memory | ✅ LMStudio | Disabled | warn | 30s |
-| **CI/CD** | Memory Only | ❌ Skipped | Disabled | error | 15s |
-| **Debug** | File | ✅ LMStudio | Disabled | debug | 60s |
+| Environment   | Database    | AI Tests    | Rate Limit | Log Level | Timeout |
+| ------------- | ----------- | ----------- | ---------- | --------- | ------- |
+| **Local Dev** | File/Memory | ✅ LMStudio | Disabled   | warn      | 30s     |
+| **CI/CD**     | Memory Only | ❌ Skipped  | Disabled   | error     | 15s     |
+| **Debug**     | File        | ✅ LMStudio | Disabled   | debug     | 60s     |
 
 ## AI Test Isolation Strategy
 
@@ -57,19 +57,19 @@ test.skipIf(skipAITests)('AI endpoint test', async () => {
 beforeAll(async () => {
   // 1. Check LMStudio availability
   const lmstudioStatus = await checkLMStudioAvailability(testEnv.config.ai.lmstudio)
-  
+
   // 2. Skip tests if unavailable
   if (!lmstudioStatus.available) {
     console.warn('⚠️  LMStudio not available:', lmstudioStatus.message)
     skipAITests = true
     return
   }
-  
+
   // 3. Verify target model is loaded
-  const hasTargetModel = lmstudioStatus.models.some(model => 
-    model === 'openai/gpt-oss-20b' || model.includes('gpt-oss')
+  const hasTargetModel = lmstudioStatus.models.some(
+    (model) => model === 'openai/gpt-oss-20b' || model.includes('gpt-oss')
   )
-  
+
   if (!hasTargetModel) {
     console.warn('⚠️  Target model not loaded in LMStudio')
     skipAITests = true
@@ -115,40 +115,40 @@ describe('Feature API Tests', () => {
       database: { useMemory: true }, // Fast in-memory DB
       execution: { logLevel: 'silent' } // Quiet during tests
     })
-    
-    client = createPromptlianoClient({ 
+
+    client = createPromptlianoClient({
       baseUrl: testEnv.baseUrl,
       timeout: testEnv.config.execution.apiTimeout
     })
-    
+
     // Auto-cleanup manager
     dataManager = new TestDataManager(client)
   })
 
   afterAll(async () => {
     await dataManager.cleanup() // Clean up test data
-    await testEnv.cleanup()     // Clean up server
+    await testEnv.cleanup() // Clean up server
   })
 
   test('should handle CRUD operations', async () => {
     // Use factories for consistent test data
     const entityData = factories.createEntityData({ name: 'Test Entity' })
-    
+
     // Create
     const created = await dataManager.createEntity(entityData)
     assertions.assertSuccessResponse(created)
-    
+
     // Read
     const retrieved = await client.entities.getEntity(created.data.id)
     assertions.assertSuccessResponse(retrieved)
     expect(retrieved.data.name).toBe('Test Entity')
-    
+
     // Update
     const updated = await client.entities.updateEntity(created.data.id, {
       name: 'Updated Entity'
     })
     assertions.assertSuccessResponse(updated)
-    
+
     // Delete (handled by dataManager.cleanup())
   })
 })
@@ -162,13 +162,13 @@ describe('Error Handling', () => {
     const response = await client.entities.createEntity({
       // Invalid data - missing required fields
     })
-    
+
     assertions.assertErrorResponse(response, {
       statusCode: 400,
       errorCode: 'VALIDATION_ERROR'
     })
   })
-  
+
   test('should handle not found scenarios', async () => {
     const response = await client.entities.getEntity(999999)
     assertions.assertErrorResponse(response, {
@@ -176,13 +176,13 @@ describe('Error Handling', () => {
       errorCode: 'ENTITY_NOT_FOUND'
     })
   })
-  
+
   test('should handle timeout scenarios', async () => {
     const shortTimeoutClient = createPromptlianoClient({
       baseUrl: testEnv.baseUrl,
       timeout: 100 // Very short timeout
     })
-    
+
     try {
       await shortTimeoutClient.longRunningOperation()
       expect.unreachable('Should have timed out')
@@ -198,54 +198,61 @@ describe('Error Handling', () => {
 ```typescript
 describe('AI Endpoints', () => {
   let skipAITests = false
-  
+
   beforeAll(async () => {
     // Check LMStudio availability
     const status = await checkLMStudioAvailability(testEnv.config.ai.lmstudio)
     skipAITests = !status.available || testEnv.isCI
-    
+
     if (skipAITests) {
       console.warn('⚠️  Skipping AI tests:', status.message)
     }
   })
-  
-  test.skipIf(skipAITests)('should generate completion', async () => {
-    try {
-      const response = await client.ai.generateCompletion({
-        prompt: 'Write a hello world function:',
-        maxTokens: 100,
-        temperature: 0.3
-      })
-      
-      assertions.assertSuccessResponse(response)
-      expect(response.data.content).toBeDefined()
-      expect(response.data.content.length).toBeGreaterThan(0)
-      
-    } catch (error) {
-      if (error.message.includes('ECONNREFUSED')) {
-        // LMStudio connection failed during test
-        console.warn('LMStudio connection lost during test')
-        expect(testEnv.config.ai.useMockWhenUnavailable).toBe(true)
-      } else {
-        throw error
+
+  test.skipIf(skipAITests)(
+    'should generate completion',
+    async () => {
+      try {
+        const response = await client.ai.generateCompletion({
+          prompt: 'Write a hello world function:',
+          maxTokens: 100,
+          temperature: 0.3
+        })
+
+        assertions.assertSuccessResponse(response)
+        expect(response.data.content).toBeDefined()
+        expect(response.data.content.length).toBeGreaterThan(0)
+      } catch (error) {
+        if (error.message.includes('ECONNREFUSED')) {
+          // LMStudio connection failed during test
+          console.warn('LMStudio connection lost during test')
+          expect(testEnv.config.ai.useMockWhenUnavailable).toBe(true)
+        } else {
+          throw error
+        }
       }
-    }
-  }, 30000) // Longer timeout for AI operations
-  
-  test.skipIf(skipAITests)('should handle streaming responses', async () => {
-    const stream = await client.ai.generateStreamingCompletion({
-      prompt: 'Count to 5:',
-      maxTokens: 50
-    })
-    
-    const chunks: string[] = []
-    for await (const chunk of stream) {
-      chunks.push(chunk.content)
-    }
-    
-    expect(chunks.length).toBeGreaterThan(0)
-    expect(chunks.join('').length).toBeGreaterThan(0)
-  }, 30000)
+    },
+    30000
+  ) // Longer timeout for AI operations
+
+  test.skipIf(skipAITests)(
+    'should handle streaming responses',
+    async () => {
+      const stream = await client.ai.generateStreamingCompletion({
+        prompt: 'Count to 5:',
+        maxTokens: 50
+      })
+
+      const chunks: string[] = []
+      for await (const chunk of stream) {
+        chunks.push(chunk.content)
+      }
+
+      expect(chunks.length).toBeGreaterThan(0)
+      expect(chunks.join('').length).toBeGreaterThan(0)
+    },
+    30000
+  )
 })
 ```
 
@@ -321,7 +328,9 @@ describe('New Service API Tests', () => {
 
     test('should update entity', async () => {
       const entity = await dataManager.createNewServiceEntity()
-      const response = await client.newService.update(entity.id, { /* updates */ })
+      const response = await client.newService.update(entity.id, {
+        /* updates */
+      })
       assertions.assertSuccessResponse(response)
     })
 
@@ -334,7 +343,7 @@ describe('New Service API Tests', () => {
     test('should list entities', async () => {
       await dataManager.createNewServiceEntity()
       await dataManager.createNewServiceEntity()
-      
+
       const response = await client.newService.list()
       assertions.assertSuccessResponse(response)
       assertions.assertArrayOfItems(response.data, 2)
@@ -378,7 +387,7 @@ export const factories = {
     path: `/tmp/test-${Date.now()}`,
     ...overrides
   }),
-  
+
   // Add new service factories
   createTicketData: (overrides = {}) => ({
     title: `Test Ticket ${Date.now()}`,
@@ -387,21 +396,21 @@ export const factories = {
     status: 'open',
     ...overrides
   }),
-  
+
   createTaskData: (overrides = {}) => ({
     content: `Test task ${Date.now()}`,
     description: 'Test task description',
     done: false,
     ...overrides
   }),
-  
+
   createQueueData: (overrides = {}) => ({
     name: `Test Queue ${Date.now()}`,
     description: 'Test queue description',
     maxParallelItems: 3,
     ...overrides
   }),
-  
+
   // AI-specific factories
   createCompletionRequest: (overrides = {}) => ({
     prompt: 'Write a hello world function:',
@@ -409,7 +418,7 @@ export const factories = {
     temperature: 0.3,
     ...overrides
   }),
-  
+
   createChatRequest: (overrides = {}) => ({
     messages: [{ role: 'user', content: 'Hello' }],
     maxTokens: 50,
@@ -432,12 +441,15 @@ export const assertions = {
       expect(response.data).toMatchObject(expectedData)
     }
   },
-  
-  assertErrorResponse: (response: any, expected: {
-    statusCode?: number
-    errorCode?: string
-    message?: string
-  }) => {
+
+  assertErrorResponse: (
+    response: any,
+    expected: {
+      statusCode?: number
+      errorCode?: string
+      message?: string
+    }
+  ) => {
     expect(response.success).toBe(false)
     expect(response.error).toBeDefined()
     if (expected.statusCode) {
@@ -447,33 +459,33 @@ export const assertions = {
       expect(response.error.code).toBe(expected.errorCode)
     }
   },
-  
+
   // Data assertions
   assertValidEntity: (entity: any, requiredFields: string[]) => {
     expect(entity).toBeDefined()
     expect(entity.id).toBeDefined()
     expect(entity.created).toBeDefined()
     expect(entity.updated).toBeDefined()
-    
-    requiredFields.forEach(field => {
+
+    requiredFields.forEach((field) => {
       expect(entity[field]).toBeDefined()
     })
   },
-  
+
   assertArrayOfItems: (array: any[], expectedLength?: number) => {
     expect(Array.isArray(array)).toBe(true)
     if (expectedLength !== undefined) {
       expect(array.length).toBe(expectedLength)
     }
   },
-  
+
   // AI-specific assertions
   assertValidAIResponse: (response: any) => {
     expect(response.content).toBeDefined()
     expect(typeof response.content).toBe('string')
     expect(response.content.length).toBeGreaterThan(0)
   },
-  
+
   assertValidStreamingResponse: (chunks: string[]) => {
     expect(chunks.length).toBeGreaterThan(0)
     expect(chunks.join('').length).toBeGreaterThan(0)

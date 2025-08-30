@@ -20,13 +20,14 @@ import {
   generateStructuredData,
   genTextStream,
   providerKeyService,
-  updateProviderSettings
+  updateProviderSettings,
+  handleChatMessage
 } from '@promptliano/services' // Import the service instance
-import { type APIProviders, type ProviderKey } from '@promptliano/schemas'
+import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import {
   type ProviderKeysConfig,
   ModelFetcherService
-} from '@promptliano/services/src/model-providers/model-fetcher-service'
+} from '@promptliano/services'
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
 import { stream } from 'hono/streaming'
 
@@ -47,15 +48,39 @@ const FilenameSuggestionSchema = z
   })
   .openapi('FilenameSuggestionOutput')
 
-const ProvidersListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    isCustom: z.boolean().optional(),
-    baseUrl: z.string().optional()
-  }))
-}).openapi('ProvidersListResponse')
+const ProvidersListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        isCustom: z.boolean().optional(),
+        baseUrl: z.string().optional()
+      })
+    )
+  })
+  .openapi('ProvidersListResponse')
+
+// Vercel AI SDK-compatible chat request schema (messages-based)
+const AiSdkChatRequestSchema = z
+  .object({
+    id: z.string().optional().describe('Chat/session identifier (maps to chatId)'),
+    messages: z
+      .array(
+        z.object({
+          role: z.enum(['user', 'assistant', 'system']),
+          content: z.string()
+        })
+      )
+      .min(1),
+    provider: z.string().optional().default('openai'),
+    model: z.string(),
+    temperature: z.number().optional(),
+    maxTokens: z.number().int().optional(),
+    topP: z.number().optional()
+  })
+  .openapi('AiSdkChatRequest')
 
 // Use the imported structuredDataSchemas from @promptliano/schemas
 // which now includes all our asset generators
@@ -77,6 +102,52 @@ const getModelsRoute = createRoute({
     query: ModelsQuerySchema
   },
   responses: createStandardResponses(ModelsListResponseSchema)
+})
+
+// AI SDK chat endpoint compatible with @ai-sdk/react useChat
+const postAiChatSdkRoute = createRoute({
+  method: 'post',
+  path: '/api/ai/chat',
+  tags: ['AI'],
+  summary: 'Chat completion (Vercel AI SDK compatible, streaming)',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: AiSdkChatRequestSchema
+        }
+      },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      content: {
+        'text/event-stream': {
+          schema: z
+            .string()
+            .openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
+        }
+      },
+      description: 'Successfully initiated AI response stream.'
+    },
+    400: {
+      content: {
+        'application/json': {
+          schema: ApiErrorResponseSchema
+        }
+      },
+      description: 'Bad request - invalid chat request parameters.'
+    },
+    500: {
+      content: {
+        'application/json': {
+          schema: ApiErrorResponseSchema
+        }
+      },
+      description: 'Internal server error.'
+    }
+  }
 })
 
 const generateTextRoute = createRoute({
@@ -173,12 +244,63 @@ const updateProviderSettingsRoute = createRoute({
       description: 'Provider settings to update'
     }
   },
-  responses: createStandardResponses(OperationSuccessResponseSchema.extend({
-    data: UpdateProviderSettingsSchema
-  }))
+  responses: createStandardResponses(
+    OperationSuccessResponseSchema.extend({
+      data: UpdateProviderSettingsSchema
+    })
+  )
 })
 
 export const genAiRoutes = new OpenAPIHono()
+  .openapi(postAiChatSdkRoute, async (c) => {
+    const body = c.req.valid('json') as z.infer<typeof AiSdkChatRequestSchema>
+
+    // Extract the most recent user message and optional system message
+    const lastUser = [...body.messages].reverse().find((m) => m.role === 'user')
+    const systemMsg = body.messages.find((m) => m.role === 'system')?.content
+
+    const chatId = body.id ? Number(body.id) : NaN
+    if (!lastUser || !Number.isFinite(chatId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: !Number.isFinite(chatId)
+              ? 'Missing or invalid chat id'
+              : 'Missing user message',
+            code: 'INVALID_CHAT_REQUEST'
+          }
+        },
+        400
+      )
+    }
+
+    // Prepare unified options expected by the chat handler
+    const unifiedOptions = {
+      provider: body.provider || 'openai',
+      model: body.model,
+      ...(body.temperature !== undefined && { temperature: body.temperature }),
+      ...(body.maxTokens !== undefined && { maxTokens: body.maxTokens }),
+      ...(body.topP !== undefined && { topP: body.topP })
+    }
+
+    c.header('Content-Type', 'text/event-stream; charset=utf-8')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    const readableStream = await handleChatMessage({
+      chatId,
+      userMessage: lastUser.content,
+      options: unifiedOptions,
+      systemMessage: systemMsg
+    })
+
+    return c.body(readableStream.toDataStream(), 200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    })
+  })
   .openapi(getProvidersRoute, async (c) => {
     try {
       // Get predefined providers
@@ -193,19 +315,19 @@ export const genAiRoutes = new OpenAPIHono()
         { id: 'lmstudio', name: 'LMStudio', isCustom: false },
         { id: 'ollama', name: 'Ollama', isCustom: false }
       ]
-      
+
       // Get custom providers
       const customProviders = await providerKeyService.getCustomProviders()
-      const formattedCustomProviders = customProviders.map(cp => ({
+      const formattedCustomProviders = customProviders.map((cp) => ({
         id: cp.id,
         name: cp.name,
         isCustom: true,
         baseUrl: cp.baseUrl
       }))
-      
+
       // Combine both lists
       const allProviders = [...predefinedProviders, ...formattedCustomProviders]
-      
+
       return c.json(successResponse(allProviders))
     } catch (error) {
       console.error('Failed to fetch providers:', error)
@@ -224,8 +346,14 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage
     })
 
-    return stream(c, async (streamInstance) => {
-      await streamInstance.pipe(aiSDKStream.toDataStream())
+    c.header('Content-Type', 'text/event-stream; charset=utf-8')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    return c.body(aiSDKStream.toDataStream(), 200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
     })
   })
   .openapi(generateTextRoute, async (c) => {
@@ -273,26 +401,26 @@ export const genAiRoutes = new OpenAPIHono()
     const { provider } = c.req.valid('query')
 
     // Check if this is a custom provider with format "custom_<keyId>"
-    if (provider.startsWith('custom_')) {
+    if (provider && provider.startsWith('custom_')) {
       const keyId = parseInt(provider.replace('custom_', ''), 10)
       if (!isNaN(keyId)) {
         // Get the specific custom provider key
         const customKey = await providerKeyService.getKeyById(keyId)
-        if (customKey && customKey.provider === 'custom' && customKey.baseUrl) {
+        if (customKey && customKey.provider === 'custom' && customKey.baseUrl && customKey.key) {
           const modelFetcherService = new ModelFetcherService({})
-          
+
           try {
             const models = await modelFetcherService.listCustomProviderModels({
               baseUrl: customKey.baseUrl,
               apiKey: customKey.key
             })
-            
+
             const modelData = models.map((model) => ({
               id: model.id,
               name: model.name,
               provider
             }))
-            
+
             return c.json(successResponse(modelData))
           } catch (error) {
             console.error(`Failed to fetch models for custom provider ${keyId}:`, error)
@@ -303,11 +431,67 @@ export const genAiRoutes = new OpenAPIHono()
     }
 
     // Handle standard providers
-    const keys: ProviderKey[] = await providerKeyService.listKeysUncensored()
-    const providerKeysConfig: ProviderKeysConfig = keys.reduce((acc, key) => {
-      acc[`${key.provider}Key`] = key.key
-      return acc
-    }, {} as any)
+    let keys: ProviderKey[] = []
+    try {
+      keys = await providerKeyService.listKeysUncensored()
+    } catch (err) {
+      console.warn('Failed to load provider keys; continuing with empty set', err)
+      keys = []
+    }
+    // Normalize provider names to config keys to avoid casing/alias issues
+    // Use a normalized provider id (letters only, lowercase) so "OpenRouter", "open_router", etc. all match
+    const PROVIDER_TO_CONFIG_KEY_NORMALIZED: Record<string, keyof ProviderKeysConfig> = {
+      openai: 'openaiKey',
+      anthropic: 'anthropicKey',
+      googlegemini: 'googleGeminiKey',
+      groq: 'groqKey',
+      together: 'togetherKey',
+      xai: 'xaiKey',
+      openrouter: 'openrouterKey'
+      // Local providers (ollama, lmstudio) and custom don't need API keys here
+    }
+
+    const providerKeysConfig: ProviderKeysConfig = {}
+
+    for (const key of keys) {
+      const rawProviderId = String(key.provider || '')
+      const normalized = rawProviderId.toLowerCase().replace(/[^a-z]/g, '')
+      const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
+      // Only set known providers and only if we have a decrypted key string
+      if (configProp && typeof key.key === 'string' && key.key.length > 0) {
+        // Prefer the first (most recent due to sorting) or an explicit default
+        if (!providerKeysConfig[configProp] || key.isDefault) {
+          providerKeysConfig[configProp] = key.key as any
+        }
+      }
+    }
+
+    // Environment fallbacks for providers if DB key is not present
+    providerKeysConfig.openrouterKey = providerKeysConfig.openrouterKey || (process.env.OPENROUTER_API_KEY as any)
+    providerKeysConfig.openaiKey = providerKeysConfig.openaiKey || (process.env.OPENAI_API_KEY as any)
+    providerKeysConfig.anthropicKey = providerKeysConfig.anthropicKey || (process.env.ANTHROPIC_API_KEY as any)
+    providerKeysConfig.googleGeminiKey =
+      providerKeysConfig.googleGeminiKey || (process.env.GOOGLE_GENERATIVE_AI_API_KEY as any)
+    providerKeysConfig.groqKey = providerKeysConfig.groqKey || (process.env.GROQ_API_KEY as any)
+    providerKeysConfig.togetherKey = providerKeysConfig.togetherKey || (process.env.TOGETHER_API_KEY as any)
+    providerKeysConfig.xaiKey = providerKeysConfig.xaiKey || (process.env.XAI_API_KEY as any)
+
+    // If a required API key is missing for the selected provider, return an empty list gracefully
+    const REQUIRED_KEY_BY_PROVIDER: Record<string, keyof ProviderKeysConfig> = {
+      openai: 'openaiKey',
+      anthropic: 'anthropicKey',
+      google_gemini: 'googleGeminiKey',
+      groq: 'groqKey',
+      together: 'togetherKey',
+      xai: 'xaiKey',
+      openrouter: 'openrouterKey'
+    }
+
+    const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
+    if (requiredKeyProp && !providerKeysConfig[requiredKeyProp]) {
+      // No configured key for this provider; return empty list so UI can handle without error
+      return c.json(successResponse([]))
+    }
 
     const modelFetcherService = new ModelFetcherService(providerKeysConfig)
 
@@ -335,6 +519,92 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.json(successResponse(modelData))
   })
+  // Debug route to inspect provider key resolution without exposing secrets
+  .openapi(
+    createRoute({
+      method: 'get',
+      path: '/api/providers/_debug-config',
+      tags: ['AI'],
+      summary: 'Debug provider key resolution (no secrets)',
+      responses: createStandardResponses(
+        z.object({
+          success: z.literal(true),
+          data: z.object({
+            providerKeysConfig: z.record(z.string(), z.boolean()),
+            envFallback: z.record(z.string(), z.boolean()),
+            keys: z.array(
+              z.object({
+                id: z.number(),
+                provider: z.string(),
+                normalized: z.string(),
+                isDefault: z.boolean().optional(),
+                decrypted: z.boolean(),
+                createdAt: z.number(),
+                updatedAt: z.number()
+              })
+            )
+          })
+        })
+      )
+    }),
+    async (c) => {
+      const keys: ProviderKey[] = await providerKeyService.listKeysUncensored()
+
+      const PROVIDER_TO_CONFIG_KEY_NORMALIZED: Record<string, keyof ProviderKeysConfig> = {
+        openai: 'openaiKey',
+        anthropic: 'anthropicKey',
+        googlegemini: 'googleGeminiKey',
+        groq: 'groqKey',
+        together: 'togetherKey',
+        xai: 'xaiKey',
+        openrouter: 'openrouterKey'
+      }
+
+      const providerKeysConfig: ProviderKeysConfig = {}
+      for (const key of keys) {
+        const normalized = String(key.provider || '').toLowerCase().replace(/[^a-z]/g, '')
+        const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
+        if (configProp && typeof key.key === 'string' && key.key.length > 0) {
+          if (!providerKeysConfig[configProp] || key.isDefault) {
+            providerKeysConfig[configProp] = key.key as any
+          }
+        }
+      }
+
+      const redactedConfig: Record<string, boolean> = {}
+      Object.entries(providerKeysConfig).forEach(([k, v]) => {
+        redactedConfig[k] = typeof v === 'string' && v.length > 0
+      })
+
+      const envFallback = {
+        OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
+        OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+        ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+        GOOGLE_GENERATIVE_AI_API_KEY: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        GROQ_API_KEY: !!process.env.GROQ_API_KEY,
+        TOGETHER_API_KEY: !!process.env.TOGETHER_API_KEY,
+        XAI_API_KEY: !!process.env.XAI_API_KEY
+      }
+
+      const keysMeta = keys.map((k) => ({
+        id: k.id,
+        provider: k.provider,
+        normalized: String(k.provider || '').toLowerCase().replace(/[^a-z]/g, ''),
+        isDefault: k.isDefault,
+        decrypted: typeof k.key === 'string' && k.key.length > 0,
+        createdAt: k.createdAt,
+        updatedAt: k.updatedAt
+      }))
+
+      return c.json(
+        successResponse({
+          providerKeysConfig: redactedConfig,
+          envFallback,
+          keys: keysMeta
+        })
+      )
+    }
+  )
   .openapi(postAiGenerateTextRoute, async (c) => {
     const { prompt, options, systemMessage } = c.req.valid('json')
 

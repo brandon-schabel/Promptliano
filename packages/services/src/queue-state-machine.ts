@@ -4,6 +4,8 @@
  * Manages valid state transitions for queue items
  */
 
+import ErrorFactory from '@promptliano/shared/src/error/error-factory'
+
 export type QueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
 
 export interface StateTransition {
@@ -30,32 +32,32 @@ const VALID_TRANSITIONS: Record<QueueStatus, QueueStatus[]> = {
 const TRANSITION_HOOKS: Partial<Record<`${QueueStatus}->${QueueStatus}`, (context: any) => void>> = {
   'queued->in_progress': (context) => {
     // Set started_at timestamp
-    context.queue_started_at = Date.now()
+    context.queueStartedAt = Date.now()
   },
   'in_progress->completed': (context) => {
     // Set completed_at and calculate actual processing time
-    context.queue_completed_at = Date.now()
-    if (context.queue_started_at) {
-      context.actual_processing_time = context.queue_completed_at - context.queue_started_at
+    context.queueCompletedAt = Date.now()
+    if (context.queueStartedAt) {
+      context.actualProcessingTime = context.queueCompletedAt - context.queueStartedAt
     }
   },
   'in_progress->failed': (context) => {
     // Set completed_at even for failures
-    context.queue_completed_at = Date.now()
+    context.queueCompletedAt = Date.now()
   },
   'failed->queued': (context) => {
     // Clear error state for retry
-    context.queue_error_message = null
-    context.queue_started_at = null
-    context.queue_completed_at = null
-    context.actual_processing_time = null
+    context.queueErrorMessage = null
+    context.queueStartedAt = null
+    context.queueCompletedAt = null
+    context.actualProcessingTime = null
   },
   'cancelled->queued': (context) => {
     // Clear all processing state
-    context.queue_started_at = null
-    context.queue_completed_at = null
-    context.queue_error_message = null
-    context.actual_processing_time = null
+    context.queueStartedAt = null
+    context.queueCompletedAt = null
+    context.queueErrorMessage = null
+    context.actualProcessingTime = null
   }
 }
 
@@ -87,9 +89,10 @@ export class QueueStateMachine {
 
     if (!this.isValidTransition(currentStatus, newStatus)) {
       const validStates = this.getValidNextStates(currentStatus)
-      throw new Error(
-        `Invalid state transition from '${currentStatus}' to '${newStatus}'. ` +
-          `Valid transitions: ${validStates.length > 0 ? validStates.join(', ') : 'none (terminal state)'}`
+      throw ErrorFactory.invalidState(
+        'Queue item',
+        currentStatus,
+        `transition to '${newStatus}' (valid: ${validStates.length > 0 ? validStates.join(', ') : 'none - terminal state'})`
       )
     }
 
@@ -106,8 +109,8 @@ export class QueueStateMachine {
     if (hook) hook(updatedItem)
 
     // Apply additional options
-    if (options?.errorMessage && newStatus === 'failed') updatedItem.queue_error_message = options.errorMessage
-    if (options?.agentId && newStatus === 'in_progress') updatedItem.queue_agent_id = options.agentId
+    if (options?.errorMessage && newStatus === 'failed') updatedItem.queueErrorMessage = options.errorMessage
+    if (options?.agentId && newStatus === 'in_progress') updatedItem.queueAgentId = options.agentId
 
     return updatedItem
   }

@@ -5,15 +5,17 @@ This document defines standardized error handling patterns for all workflows in 
 ## 🎯 Error Handling Principles
 
 ### 1. **Fail Fast for Critical Operations**
+
 Critical operations should fail the entire workflow immediately.
 
 ```yaml
 - name: Run critical tests
   run: bun test
-  continue-on-error: false  # Explicit (default behavior)
+  continue-on-error: false # Explicit (default behavior)
 ```
 
 ### 2. **Continue for Optional Operations**
+
 Optional operations should not break the workflow.
 
 ```yaml
@@ -23,6 +25,7 @@ Optional operations should not break the workflow.
 ```
 
 ### 3. **Always Run Cleanup and Summaries**
+
 Cleanup and summary steps should always execute.
 
 ```yaml
@@ -36,6 +39,7 @@ Cleanup and summary steps should always execute.
 ```
 
 ### 4. **Conditional Failure for PR vs Main**
+
 Some operations can be non-critical for PRs but critical for main branch.
 
 ```yaml
@@ -47,6 +51,7 @@ Some operations can be non-critical for PRs but critical for main branch.
 ## 🏗️ Standard Patterns
 
 ### Critical Test Steps
+
 ```yaml
 - name: Run unit tests
   working-directory: packages/${{ matrix.package }}
@@ -60,6 +65,7 @@ Some operations can be non-critical for PRs but critical for main branch.
 ```
 
 ### Optional Quality Checks
+
 ```yaml
 - name: Run linting
   working-directory: packages/${{ matrix.package }}
@@ -72,6 +78,7 @@ Some operations can be non-critical for PRs but critical for main branch.
 ```
 
 ### Artifact Operations
+
 ```yaml
 - name: Upload test results
   if: always()
@@ -91,13 +98,14 @@ Some operations can be non-critical for PRs but critical for main branch.
 ```
 
 ### External Service Operations
+
 ```yaml
 - name: Login to Docker Hub
   uses: docker/login-action@v3
   with:
     username: ${{ secrets.DOCKER_HUB_USERNAME }}
     password: ${{ secrets.DOCKER_HUB_TOKEN }}
-  continue-on-error: true  # Don't fail if credentials not set
+  continue-on-error: true # Don't fail if credentials not set
 
 - name: Publish to npm
   run: npm publish
@@ -105,6 +113,7 @@ Some operations can be non-critical for PRs but critical for main branch.
 ```
 
 ### Summary and Cleanup Jobs
+
 ```yaml
 workflow-summary:
   name: Workflow Summary
@@ -119,6 +128,7 @@ workflow-summary:
 ## 🚨 Error Handling Categories
 
 ### Category 1: Critical (MUST NOT continue-on-error)
+
 - Unit tests
 - Integration tests
 - Type checking
@@ -126,11 +136,13 @@ workflow-summary:
 - Build failures for production deployments
 
 ### Category 2: Important (conditional continue-on-error)
+
 - End-to-end tests (continue for PRs, fail for main)
 - Performance benchmarks (continue for PRs, fail for main)
 - Publishing operations (continue for PRs, fail for releases)
 
 ### Category 3: Optional (SHOULD continue-on-error)
+
 - Linting
 - Code formatting checks
 - Documentation generation
@@ -139,6 +151,7 @@ workflow-summary:
 - Cleanup operations
 
 ### Category 4: Always Execute (MUST use if: always())
+
 - Summary generation
 - Resource cleanup
 - Telemetry collection
@@ -147,38 +160,39 @@ workflow-summary:
 
 ## 📋 Decision Matrix
 
-| Operation Type | continue-on-error | if condition | Notes |
-|---------------|-------------------|--------------|-------|
-| Unit Tests | `false` | - | Critical for code quality |
-| Type Checking | `false` | - | Critical for TypeScript projects |
-| Linting | `true` | - | Optional quality check |
-| Build (Production) | `false` | - | Critical for deployments |
-| Build (Development) | `${{ github.event_name == 'pull_request' }}` | - | Conditional based on context |
-| Artifact Upload | `true` | `always()` | Should not fail workflow |
-| Summary Generation | `true` | `always()` | Always provide feedback |
-| Cleanup | `true` | `always()` | Always clean up resources |
-| External API Calls | `true` | - | Network operations can be flaky |
-| Security Scans | `false` | - | Critical for security |
-| Performance Tests | `${{ github.event_name == 'pull_request' }}` | - | Conditional based on context |
+| Operation Type      | continue-on-error                            | if condition | Notes                            |
+| ------------------- | -------------------------------------------- | ------------ | -------------------------------- |
+| Unit Tests          | `false`                                      | -            | Critical for code quality        |
+| Type Checking       | `false`                                      | -            | Critical for TypeScript projects |
+| Linting             | `true`                                       | -            | Optional quality check           |
+| Build (Production)  | `false`                                      | -            | Critical for deployments         |
+| Build (Development) | `${{ github.event_name == 'pull_request' }}` | -            | Conditional based on context     |
+| Artifact Upload     | `true`                                       | `always()`   | Should not fail workflow         |
+| Summary Generation  | `true`                                       | `always()`   | Always provide feedback          |
+| Cleanup             | `true`                                       | `always()`   | Always clean up resources        |
+| External API Calls  | `true`                                       | -            | Network operations can be flaky  |
+| Security Scans      | `false`                                      | -            | Critical for security            |
+| Performance Tests   | `${{ github.event_name == 'pull_request' }}` | -            | Conditional based on context     |
 
 ## 🔧 Implementation Examples
 
 ### Example 1: Package Testing Workflow
+
 ```yaml
 - name: Run TypeScript validation
   working-directory: ${{ matrix.path }}
   run: bun run typecheck
-  continue-on-error: false  # Critical
+  continue-on-error: false # Critical
 
 - name: Run unit tests
   working-directory: ${{ matrix.path }}
   run: bun test
-  continue-on-error: false  # Critical
+  continue-on-error: false # Critical
 
 - name: Run linting
   working-directory: ${{ matrix.path }}
   run: bun run lint
-  continue-on-error: true   # Optional
+  continue-on-error: true # Optional
 
 - name: Upload test artifacts
   if: always()
@@ -186,32 +200,34 @@ workflow-summary:
   with:
     name: test-results
     path: test-results/
-  continue-on-error: true   # Should not fail workflow
+  continue-on-error: true # Should not fail workflow
 ```
 
 ### Example 2: Docker Build Workflow
+
 ```yaml
 - name: Build Docker image
   uses: docker/build-push-action@v5
   with:
     push: false
-  continue-on-error: false  # Critical
+  continue-on-error: false # Critical
 
 - name: Run security scan
   uses: aquasecurity/trivy-action@master
   with:
     image-ref: ${{ steps.build.outputs.imageid }}
     exit-code: '1'
-  continue-on-error: false  # Critical for security
+  continue-on-error: false # Critical for security
 
 - name: Upload to Docker Hub
   uses: docker/build-push-action@v5
   with:
     push: true
-  continue-on-error: ${{ github.event_name == 'pull_request' }}  # Conditional
+  continue-on-error: ${{ github.event_name == 'pull_request' }} # Conditional
 ```
 
 ### Example 3: Summary Job
+
 ```yaml
 summary:
   name: Workflow Summary
@@ -224,7 +240,7 @@ summary:
         echo "Tests: ${{ needs.test.result }}"
         echo "Build: ${{ needs.build.result }}"
         echo "Security: ${{ needs.security.result }}"
-      continue-on-error: true  # Summary should not fail
+      continue-on-error: true # Summary should not fail
 ```
 
 ## 🎯 Best Practices
@@ -238,22 +254,25 @@ summary:
 ## 🚫 Anti-Patterns to Avoid
 
 ❌ **Don't use continue-on-error: true for critical tests**
+
 ```yaml
 # BAD
 - name: Run tests
   run: bun test
-  continue-on-error: true  # Tests should fail the workflow!
+  continue-on-error: true # Tests should fail the workflow!
 ```
 
 ❌ **Don't fail workflows on optional operations**
+
 ```yaml
 # BAD
 - name: Upload documentation
   run: upload-docs.sh
-  continue-on-error: false  # Documentation upload shouldn't fail CI
+  continue-on-error: false # Documentation upload shouldn't fail CI
 ```
 
 ❌ **Don't skip cleanup on failure**
+
 ```yaml
 # BAD
 - name: Cleanup
@@ -262,11 +281,12 @@ summary:
 ```
 
 ❌ **Don't ignore security scan failures**
+
 ```yaml
 # BAD
 - name: Security scan
   run: security-scanner
-  continue-on-error: true  # Security issues should fail the workflow!
+  continue-on-error: true # Security issues should fail the workflow!
 ```
 
 ## 📊 Monitoring and Telemetry
@@ -277,14 +297,15 @@ Use the standardized telemetry action for monitoring:
 - name: Collect telemetry
   uses: ./.github/actions/workflow-telemetry
   with:
-    step-name: "package-tests"
-    step-type: "test"
+    step-name: 'package-tests'
+    step-type: 'test'
     workflow-name: ${{ github.workflow }}
     package-name: ${{ matrix.package }}
     critical: true
 ```
 
 This provides:
+
 - Step timing data
 - Success/failure rates
 - Performance metrics

@@ -4,13 +4,13 @@ import { Badge } from '@promptliano/ui'
 import { Skeleton } from '@promptliano/ui'
 import { Alert, AlertDescription } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
-import { useGetQueuesWithStats, useGetQueueItems } from '@/hooks/api/use-queue-api'
-import { useGetTicketsWithTasks } from '@/hooks/api/use-tickets-api'
+import { useQueues, useTickets } from '@/hooks/generated'
+import { useGetFlowData } from '@/hooks/api-hooks'
 import { format, addMinutes } from 'date-fns'
 import { Clock, AlertCircle, CheckCircle2, XCircle, Play, Pause, ListTodo, FileText, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ensureArray, safeFormatDate } from '@/utils/queue-item-utils'
-import { QueueItem, ItemQueueStatus } from '@promptliano/schemas'
+import type { QueueItem, TaskQueue, TicketWithTasks } from '@/hooks/generated/types'
 
 interface QueueTimelineViewProps {
   projectId: number
@@ -27,13 +27,50 @@ interface TimelineItem {
 }
 
 export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineViewProps) {
-  const { data: queuesWithStats } = useGetQueuesWithStats(projectId)
-  const { data: items, isLoading } = useGetQueueItems(selectedQueueId || 0)
-  const { data: ticketsWithTasks } = useGetTicketsWithTasks(projectId)
+  const { data: queues } = (useQueues as any)({ projectId })
+  const { data: flowData, isLoading } = useGetFlowData(projectId)
+  const { data: ticketsWithTasks } = (useTickets as any)({ projectId })
 
   // Find selected queue
-  const selectedQueue = queuesWithStats?.find((q) => q.queue.id === selectedQueueId)
-  const avgProcessingTime = selectedQueue?.stats.averageProcessingTime || 300000 // Default 5 minutes
+  const selectedQueue = queues?.find((q: TaskQueue) => q.id === selectedQueueId)
+  const avgProcessingTime = 300000 // Default 5 minutes
+
+  // Extract queue items from flow data
+  const items: QueueItem[] = useMemo(() => {
+    if (!selectedQueueId || !flowData?.queues?.[selectedQueueId]) return []
+    const queueData = flowData.queues[selectedQueueId]
+    const queueItems: QueueItem[] = []
+
+    // Add tickets as queue items
+    queueData.tickets?.forEach((ticket, index) => {
+      queueItems.push({
+        id: ticket.id,
+        queueId: selectedQueueId,
+        ticketId: ticket.id,
+        itemType: 'ticket' as const,
+        itemId: ticket.id,
+        priority: index,
+        status: 'pending' as const,
+        createdAt: ticket.createdAt
+      })
+    })
+
+    // Add tasks as queue items
+    queueData.tasks?.forEach((task, index) => {
+      queueItems.push({
+        id: task.id,
+        queueId: selectedQueueId,
+        taskId: task.id,
+        itemType: 'task' as const,
+        itemId: task.id,
+        priority: (queueData.tickets?.length || 0) + index,
+        status: 'pending' as const,
+        createdAt: task.createdAt
+      })
+    })
+
+    return queueItems
+  }, [flowData, selectedQueueId])
 
   // Calculate timeline items
   const timelineItems = useMemo(() => {
@@ -113,17 +150,29 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
 
   // Get task details
   const getTaskDetails = (item: QueueItem) => {
-    if (!item.ticketId || !item.taskId || !ticketsWithTasks) return null
+    if ((item.itemType !== 'ticket' && item.itemType !== 'task') || !ticketsWithTasks) return null
 
-    const ticket = ticketsWithTasks.find((t) => t.ticket.id === item.ticketId)
-    if (!ticket) return null
+    if (item.itemType === 'ticket') {
+      const ticketWithTasks = ticketsWithTasks.find((t: TicketWithTasks) => t.ticket.id === item.itemId)
+      return ticketWithTasks ? { ticket: ticketWithTasks.ticket, task: null } : null
+    }
 
-    const task = ticket.tasks.find((t) => t.id === item.taskId)
-    return task ? { ticket: ticket.ticket, task } : null
+    if (item.itemType === 'task') {
+      // Find the ticket that contains this task
+      for (const ticket of ticketsWithTasks) {
+        const ticketTasks = (ticket as any).tasks || []
+        const task = ticketTasks.find((t: any) => t.id === item.itemId)
+        if (task) {
+          return { ticket, task }
+        }
+      }
+    }
+    return null
   }
 
   const statusConfig = {
     queued: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    pending: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
     in_progress: { icon: Play, color: 'text-green-600', bgColor: 'bg-green-100' },
     completed: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100' },
     failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
@@ -157,9 +206,9 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
               <SelectValue placeholder='Select a queue' />
             </SelectTrigger>
             <SelectContent>
-              {queuesWithStats?.map((q) => (
-                <SelectItem key={q.queue.id} value={q.queue.id.toString()}>
-                  {q.queue.name}
+              {queues?.map((q: TaskQueue) => (
+                <SelectItem key={q.id} value={q.id.toString()}>
+                  {q.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -172,12 +221,12 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
             <div className='space-y-1'>
               <p className='text-sm text-muted-foreground'>Queue Status</p>
               <div className='flex items-center gap-2'>
-                {selectedQueue.queue.status === 'active' ? (
+                {selectedQueue.isActive ? (
                   <Play className='h-4 w-4 text-green-600' />
                 ) : (
                   <Pause className='h-4 w-4 text-muted-foreground' />
                 )}
-                <p className='font-semibold capitalize'>{selectedQueue.queue.status}</p>
+                <p className='font-semibold capitalize'>{selectedQueue.isActive ? 'active' : 'inactive'}</p>
               </div>
             </div>
             <div className='space-y-1'>

@@ -147,7 +147,7 @@ export const yourToolManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for: list, create). Example: 1754713756748'
+        description: 'The project ID (required for: list, create). Tip: use project_manager(list) to fetch a valid ID.'
       },
       resourceId: {
         type: 'number',
@@ -169,7 +169,7 @@ export const yourToolManagerTool: MCPToolDefinition = {
 
         switch (action) {
           case YourToolManagerAction.LIST: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             // Implementation
           }
 
@@ -248,7 +248,7 @@ Use the shared validation utilities for consistent error handling:
 
 ```typescript
 // Required parameters
-const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
 // Data field validation
 const name = validateDataField<string>(data, 'name', 'string', '"Resource Name"')
@@ -940,7 +940,7 @@ export const exampleManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'Project ID (required for: list, create, search). Example: 1754713756748'
+        description: 'Project ID (required for: list, create, search). Tip: use project_manager(list) to fetch a valid ID.'
       },
       exampleId: {
         type: 'number',
@@ -962,7 +962,7 @@ export const exampleManagerTool: MCPToolDefinition = {
 
         switch (action) {
           case ExampleManagerAction.LIST: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             // Implementation here
             return {
               content: [{ type: 'text', text: 'List of examples' }]

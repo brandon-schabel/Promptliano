@@ -21,11 +21,18 @@ export function useGenerateTabName() {
         userInput: `Project Name: ${params.projectName}, Selected Files: ${params.selectedFiles?.join(', ') || 'None'}, Context: ${params.context || 'General project work'}`
       })
 
-      if (!response.success || !response.data?.output?.tabName) {
+      // Handle various response formats for generated content
+      const tabName =
+        (response as any)?.data?.output?.tabName ||
+        (response as any)?.data?.tabName ||
+        (response as any)?.output?.tabName ||
+        (response as any)?.tabName
+
+      if (!response?.success || !tabName) {
         throw new Error('Failed to generate tab name')
       }
 
-      return response.data.output.tabName
+      return tabName as string
     },
     onError: (error) => {
       console.error('Failed to generate tab name:', error)

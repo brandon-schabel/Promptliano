@@ -45,6 +45,10 @@ export function useActiveTabSync(projectId: number | undefined) {
     queryFn: async () => {
       if (!projectId || projectId === -1) return null
       if (!client) return null // Return null instead of undefined
+      if (!client.projects.getActiveTab) {
+        // Method not available in this API version, return null
+        return null
+      }
       const response = await client.projects.getActiveTab(projectId)
       return response.data
     },
@@ -66,6 +70,10 @@ export function useActiveTabSync(projectId: number | undefined) {
       tabMetadata?: ReturnType<typeof getTabMetadata>
     }) => {
       if (!client) return
+      if (!client.projects.setActiveTab) {
+        // Method not available, skip sync
+        return null
+      }
       return await client.projects.setActiveTab(projectId, { tabId, tabMetadata })
     },
     onSuccess: () => {
@@ -87,7 +95,7 @@ export function useActiveTabSync(projectId: number | undefined) {
 
   // Sync when active tab changes or tab data changes
   useEffect(() => {
-    if (!projectId || projectId === -1 || !activeTabId) return
+    if (!projectId || projectId === -1 || !activeTabId || activeTabId === -1) return
 
     // Convert activeTabId to number if it's a string
     const tabIdNumber = typeof activeTabId === 'string' ? parseInt(activeTabId) : activeTabId
@@ -105,7 +113,7 @@ export function useActiveTabSync(projectId: number | undefined) {
 
   // Optional interval-based sync as a safety net (every 30 seconds)
   useEffect(() => {
-    if (!projectId || projectId === -1 || !activeTabId) return
+    if (!projectId || projectId === -1 || !activeTabId || activeTabId === -1) return
 
     const intervalId = setInterval(() => {
       const tabIdNumber = typeof activeTabId === 'string' ? parseInt(activeTabId) : activeTabId
@@ -126,7 +134,7 @@ export function useActiveTabSync(projectId: number | undefined) {
 
   // Function to manually trigger sync
   const syncNow = useCallback(() => {
-    if (!projectId || projectId === -1 || !activeTabId) return
+    if (!projectId || projectId === -1 || !activeTabId || activeTabId === -1) return
 
     const tabIdNumber = typeof activeTabId === 'string' ? parseInt(activeTabId) : activeTabId
     if (isNaN(tabIdNumber)) return
@@ -139,6 +147,10 @@ export function useActiveTabSync(projectId: number | undefined) {
   const clearActiveTab = useMutation({
     mutationFn: async (projectId: number) => {
       if (!client) return
+      if (!client.projects.clearActiveTab) {
+        // Method not available, skip clear
+        return null
+      }
       return await client.projects.clearActiveTab(projectId)
     },
     onSuccess: () => {

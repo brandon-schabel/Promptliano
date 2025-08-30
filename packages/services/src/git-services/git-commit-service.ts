@@ -1,6 +1,6 @@
 import type {
-  GitLogEntry,
   GitCommit,
+  GitLogEntry,
   GitDiff,
   GitLogEnhancedRequest,
   GitLogEnhancedResponse,
@@ -9,331 +9,330 @@ import type {
   GitCommitDetailResponse,
   GitFileDiff
 } from '@promptliano/schemas'
-import { ApiError } from '@promptliano/shared'
-import { BaseGitService } from './base-git-service'
-import { gitStatusService } from './git-status-service'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
+import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 import * as path from 'path'
 
+export interface GitCommitServiceDeps extends GitServiceDependencies {
+  gitStatusService?: {
+    clearCache: (projectId: number) => void
+  }
+}
+
 /**
- * Service for Git commit operations, history, and logs
+ * Create Git commit service with functional factory pattern
  */
-export class GitCommitService extends BaseGitService {
-  /**
-   * Commit staged changes
-   */
-  async commitChanges(projectId: number, message: string): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      // Check if there are staged changes
-      const status = await git.status()
-      if (status.staged.length === 0) {
-        throw new ApiError(400, 'No staged changes to commit', 'NO_STAGED_CHANGES')
+export function createGitCommitService(dependencies?: GitCommitServiceDeps) {
+  return createGitServiceFactory({
+    entityName: 'GitCommit',
+    serviceName: 'Commit',
+    dependencies
+  }, (deps) => {
+    const gitUtils = createGitUtils(deps.projectService, deps.errorHandler)
+    
+    // Default git status service dependency
+    const gitStatusService = dependencies?.gitStatusService || {
+      clearCache: (projectId: number) => {
+        // Import lazily to avoid circular dependencies
+        import('./git-status-service').then(module => {
+          module.gitStatusService.clearCache(projectId)
+        })
       }
-
-      await git.commit(message)
-      gitStatusService.clearCache(projectId)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'commit changes')
     }
-  }
 
-  /**
-   * Get commit log
-   */
-  async getCommitLog(
-    projectId: number,
-    options?: {
-      limit?: number
-      skip?: number
-      offset?: number
-      branch?: string
-      file?: string
+    // Helper functions
+    const getRelativeTime = (dateString: string): string => {
+      const date = new Date(dateString)
+      const now = new Date()
+      const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+      if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''} ago`
+
+      const minutes = Math.floor(seconds / 60)
+      if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
+
+      const hours = Math.floor(minutes / 60)
+      if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+
+      const days = Math.floor(hours / 24)
+      if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`
+
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`
+
+      const months = Math.floor(days / 30)
+      if (months < 12) return `${months} month${months !== 1 ? 's' : ''} ago`
+
+      const years = Math.floor(days / 365)
+      return `${years} year${years !== 1 ? 's' : ''} ago`
     }
-  ): Promise<GitLogEntry[]> {
-    try {
-      const { git, projectPath } = await this.getGitInstance(projectId)
 
-      const logOptions: any = {
-        format: {
-          hash: '%H',
-          abbreviatedHash: '%h',
-          message: '%s',
-          authorName: '%an',
-          authorEmail: '%ae',
-          date: '%ai',
-          refs: '%D'
+    const parseRefs = (refsString: string): string[] => {
+      if (!refsString) return []
+      const cleaned = refsString.replace(/HEAD\s*->\s*/, '')
+      if (!cleaned) return []
+      return cleaned
+        .split(',')
+        .map((ref) => ref.trim())
+        .filter(Boolean)
+    }
+
+    return {
+      /**
+       * Commit staged changes
+       */
+      async commitChanges(projectId: number, message: string): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+
+          // Check if there are staged changes
+          const status = await git.status()
+          if (status.staged.length === 0) {
+            throw ErrorFactory.validationFailed(
+              new Error('No staged changes to commit'), 
+              { code: 'NO_STAGED_CHANGES' }
+            )
+          }
+
+          await git.commit(message)
+          gitStatusService.clearCache(projectId)
+        }, 'commit changes')
+      },
+
+      /**
+       * Get commit log
+       */
+      async getCommitLog(
+        projectId: number,
+        options?: {
+          limit?: number
+          skip?: number
+          offset?: number
+          branch?: string
+          file?: string
         }
-      }
+      ): Promise<GitLogEntry[]> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git, projectPath } = await gitUtils.getGitInstance(projectId)
 
-      // Handle pagination
-      const skipCount = options?.skip ?? options?.offset ?? 0
-      if (options?.limit || skipCount > 0) {
-        logOptions.maxCount = (options?.limit || 100) + skipCount
-      }
+          const logOptions: any = {
+            format: {
+              hash: '%H',
+              abbreviatedHash: '%h',
+              message: '%s',
+              authorName: '%an',
+              authorEmail: '%ae',
+              date: '%ai',
+              refs: '%D'
+            }
+          }
 
-      if (options?.file) {
-        logOptions.file = path.join(projectPath, options.file)
-      }
+          // Handle pagination
+          const skipCount = options?.skip ?? options?.offset ?? 0
+          if (options?.limit || skipCount > 0) {
+            logOptions.maxCount = (options?.limit || 100) + skipCount
+          }
 
-      const logResult = options?.branch ? await git.log([options.branch], logOptions) : await git.log(logOptions)
+          if (options?.file) {
+            logOptions.file = path.join(projectPath, options.file)
+          }
 
-      const allEntries = logResult.all.map((commit: any) => ({
-        hash: commit.hash,
-        abbreviatedHash: commit.abbreviatedHash || commit.hash.substring(0, 7),
-        message: commit.message,
-        author: {
-          name: commit.authorName || '',
-          email: commit.authorEmail || ''
-        },
-        date: commit.date || new Date().toISOString(),
-        refs: commit.refs || ''
-      }))
+          const logResult = options?.branch ? await git.log([options.branch], logOptions) : await git.log(logOptions)
 
-      // Apply offset/skip
-      if (skipCount > 0) {
-        return allEntries.slice(skipCount, skipCount + (options?.limit || allEntries.length))
-      }
-      return allEntries
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'get commit log')
-    }
-  }
+          const allEntries = logResult.all.map((commit: any) => ({
+            hash: commit.hash,
+            abbreviatedHash: commit.abbreviatedHash || commit.hash.substring(0, 7),
+            message: commit.message,
+            author: {
+              name: commit.authorName || '',
+              email: commit.authorEmail || ''
+            },
+            date: commit.date || new Date().toISOString(),
+            refs: commit.refs || ''
+          }))
 
-  /**
-   * Get commit details
-   */
-  async getCommitDetails(projectId: number, commitHash: string): Promise<GitCommit> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
+          // Apply offset/skip
+          if (skipCount > 0) {
+            return allEntries.slice(skipCount, skipCount + (options?.limit || allEntries.length))
+          }
+          return allEntries
+        }, 'get commit log')
+      },
 
-      const [commitInfo, diffSummary] = await Promise.all([
-        git.show([commitHash, '--format=%H%n%s%n%b%n%an%n%ae%n%ai%n%cn%n%ce%n%ci%n%P']),
-        git.diffSummary([`${commitHash}^`, commitHash])
-      ])
+      /**
+       * Get commit details
+       */
+      async getCommitDetails(projectId: number, commitHash: string): Promise<GitCommit> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
 
-      const lines = commitInfo.split('\n')
-      const hash = lines[0] || ''
-      const subject = lines[1] || ''
-      const body = lines[2] || ''
-      const message = body ? `${subject}\n\n${body}` : subject
+          const [commitInfo, diffSummary] = await Promise.all([
+            git.show([commitHash, '--format=%H%n%s%n%b%n%an%n%ae%n%ai%n%cn%n%ce%n%ci%n%P']),
+            git.diffSummary([`${commitHash}^`, commitHash])
+          ])
 
-      return {
-        hash,
-        message,
-        author: {
-          name: lines[3] || '',
-          email: lines[4] || '',
-          date: lines[5] || ''
-        },
-        committer: {
-          name: lines[6] || '',
-          email: lines[7] || '',
-          date: lines[8] || ''
-        },
-        parents: lines[9] ? lines[9].split(' ') : [],
-        files: diffSummary.files.map((f) => f.file)
-      }
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'get commit details')
-    }
-  }
-
-  /**
-   * Get commit diff
-   */
-  async getCommitDiff(projectId: number, commitHash: string): Promise<GitDiff> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      const [diffSummary, diffContent] = await Promise.all([
-        git.diffSummary([`${commitHash}^`, commitHash]),
-        git.diff([`${commitHash}^`, commitHash])
-      ])
-
-      return {
-        files: diffSummary.files.map((file) => {
-          const isBinary = 'binary' in file ? file.binary : false
-          const additions = 'insertions' in file ? file.insertions : 0
-          const deletions = 'deletions' in file ? file.deletions : 0
+          const lines = commitInfo.split('\n')
+          const hash = lines[0] || ''
+          const subject = lines[1] || ''
+          const body = lines[2] || ''
+          const message = body ? `${subject}\n\n${body}` : subject
 
           return {
-            path: file.file,
-            type: isBinary
-              ? 'modified'
-              : additions > 0 && deletions === 0
-                ? 'added'
-                : additions === 0 && deletions > 0
-                  ? 'deleted'
-                  : 'modified',
-            additions,
-            deletions,
-            binary: isBinary
+            hash,
+            message,
+            author: {
+              name: lines[3] || '',
+              email: lines[4] || '',
+              date: lines[5] || ''
+            },
+            committer: {
+              name: lines[6] || '',
+              email: lines[7] || '',
+              date: lines[8] || ''
+            },
+            parents: lines[9] ? lines[9].split(' ') : [],
+            files: diffSummary.files.map((f: any) => f.file)
           }
-        }),
-        additions: diffSummary.insertions,
-        deletions: diffSummary.deletions,
-        content: diffContent
-      }
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'get commit diff')
-    }
-  }
+        }, 'get commit details')
+      },
 
-  /**
-   * Cherry-pick a commit
-   */
-  async cherryPick(projectId: number, commitHash: string): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-      await git.raw(['cherry-pick', commitHash])
-      gitStatusService.clearCache(projectId)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'cherry-pick commit')
-    }
-  }
+      /**
+       * Get commit diff
+       */
+      async getCommitDiff(projectId: number, commitHash: string): Promise<GitDiff> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
 
-  /**
-   * Revert a commit
-   */
-  async revert(projectId: number, commitHash: string, options?: { noCommit?: boolean }): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
+          const [diffSummary, diffContent] = await Promise.all([
+            git.diffSummary([`${commitHash}^`, commitHash]),
+            git.diff([`${commitHash}^`, commitHash])
+          ])
 
-      const revertOptions: string[] = []
-      if (options?.noCommit) {
-        revertOptions.push('--no-commit')
-      }
+          return {
+            files: diffSummary.files.map((file: any) => {
+              const isBinary = 'binary' in file ? file.binary : false
+              const additions = 'insertions' in file ? file.insertions : 0
+              const deletions = 'deletions' in file ? file.deletions : 0
 
-      await git.revert(commitHash, revertOptions)
-      gitStatusService.clearCache(projectId)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'revert commit')
-    }
-  }
+              return {
+                path: file.file,
+                type: isBinary
+                  ? 'modified'
+                  : additions > 0 && deletions === 0
+                    ? 'added'
+                    : additions === 0 && deletions > 0
+                      ? 'deleted'
+                      : 'modified',
+                additions,
+                deletions,
+                binary: isBinary
+              }
+            }),
+            additions: diffSummary.insertions,
+            deletions: diffSummary.deletions,
+            content: diffContent
+          }
+        }, 'get commit diff')
+      },
 
-  /**
-   * Get blame for a file
-   */
-  async blame(projectId: number, filePath: string): Promise<import('@promptliano/schemas').GitBlame> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
+      /**
+       * Cherry-pick a commit
+       */
+      async cherryPick(projectId: number, commitHash: string): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+          await git.raw(['cherry-pick', commitHash])
+          gitStatusService.clearCache(projectId)
+        }, 'cherry-pick commit')
+      },
 
-      const blameResult = await git.raw(['blame', '--porcelain', filePath])
-      const lines: import('@promptliano/schemas').GitBlameLine[] = []
-      const blameLines = blameResult.split('\n')
-      let i = 0
+      /**
+       * Revert a commit
+       */
+      async revert(projectId: number, commitHash: string, options?: { noCommit?: boolean }): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
 
-      while (i < blameLines.length) {
-        const line = blameLines[i]
-        if (!line) {
-          i++
-          continue
-        }
+          const revertOptions: string[] = []
+          if (options?.noCommit) {
+            revertOptions.push('--no-commit')
+          }
 
-        const match = line.match(/^([0-9a-f]+) (\d+) (\d+)/)
-        if (match) {
-          const commit = match[1] || ''
-          const lineNumber = parseInt(match[3] || '0', 10)
+          await git.revert(commitHash, revertOptions)
+          gitStatusService.clearCache(projectId)
+        }, 'revert commit')
+      },
 
-          let author = ''
-          let date = ''
-          let content = ''
+      /**
+       * Get blame for a file
+       */
+      async blame(projectId: number, filePath: string): Promise<import('@promptliano/schemas').GitBlame> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
 
-          i++
-          while (i < blameLines.length && blameLines[i] && !blameLines[i]?.startsWith('\t')) {
-            const metaLine = blameLines[i]
-            if (metaLine && metaLine.startsWith('author ')) {
-              author = metaLine.substring(7)
-            } else if (metaLine && metaLine.startsWith('author-time ')) {
-              const timestamp = parseInt(metaLine.substring(12), 10)
-              date = new Date(timestamp * 1000).toISOString()
+          const blameResult = await git.raw(['blame', '--porcelain', filePath])
+          const lines: import('@promptliano/schemas').GitBlameLine[] = []
+          const blameLines = blameResult.split('\n')
+          let i = 0
+
+          while (i < blameLines.length) {
+            const line = blameLines[i]
+            if (!line) {
+              i++
+              continue
+            }
+
+            const match = line.match(/^([0-9a-f]+) (\d+) (\d+)/)
+            if (match) {
+              const commit = match[1] || ''
+              const lineNumber = parseInt(match[3] || '0', 10)
+
+              let author = ''
+              let date = ''
+              let content = ''
+
+              i++
+              while (i < blameLines.length && blameLines[i] && !blameLines[i]?.startsWith('\t')) {
+                const metaLine = blameLines[i]
+                if (metaLine && metaLine.startsWith('author ')) {
+                  author = metaLine.substring(7)
+                } else if (metaLine && metaLine.startsWith('author-time ')) {
+                  const timestamp = parseInt(metaLine.substring(12), 10)
+                  date = new Date(timestamp * 1000).toISOString()
+                }
+                i++
+              }
+
+              if (i < blameLines.length && blameLines[i] && blameLines[i]?.startsWith('\t')) {
+                content = blameLines[i]?.substring(1) || ''
+              }
+
+              lines.push({
+                line: lineNumber,
+                content,
+                commit,
+                author,
+                date
+              })
             }
             i++
           }
 
-          if (i < blameLines.length && blameLines[i] && blameLines[i]?.startsWith('\t')) {
-            content = blameLines[i]?.substring(1) || ''
+          return {
+            path: filePath,
+            lines
           }
+        }, 'get blame')
+      },
 
-          lines.push({
-            line: lineNumber,
-            content,
-            commit,
-            author,
-            date
-          })
-        }
-        i++
-      }
 
-      return {
-        path: filePath,
-        lines
-      }
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'get blame')
-    }
-  }
-
-  /**
-   * Calculate relative time from a date string
-   */
-  private getRelativeTime(dateString: string): string {
-    const date = new Date(dateString)
-    const now = new Date()
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-    if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''} ago`
-
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
-
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-
-    const days = Math.floor(hours / 24)
-    if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`
-
-    const weeks = Math.floor(days / 7)
-    if (weeks < 4) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`
-
-    const months = Math.floor(days / 30)
-    if (months < 12) return `${months} month${months !== 1 ? 's' : ''} ago`
-
-    const years = Math.floor(days / 365)
-    return `${years} year${years !== 1 ? 's' : ''} ago`
-  }
-
-  /**
-   * Parse refs string into array
-   */
-  private parseRefs(refsString: string): string[] {
-    if (!refsString) return []
-    const cleaned = refsString.replace(/HEAD\s*->\s*/, '')
-    if (!cleaned) return []
-    return cleaned
-      .split(',')
-      .map((ref) => ref.trim())
-      .filter(Boolean)
-  }
-
-  /**
-   * Get enhanced commit log
-   */
-  async getCommitLogEnhanced(
-    projectId: number,
-    request: GitLogEnhancedRequest
-  ): Promise<GitLogEnhancedResponse> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
+      /**
+       * Get enhanced commit log
+       */
+      async getCommitLogEnhanced(projectId: number, request: GitLogEnhancedRequest): Promise<GitLogEnhancedResponse> {
+        return withErrorContext(async () => {
+          try {
+            const { git } = await gitUtils.getGitInstance(projectId)
 
       const currentBranch = request.branch || (await git.status()).current || 'HEAD'
       const skip = (request.page - 1) * request.perPage
@@ -384,9 +383,9 @@ export class GitCommitService extends BaseGitService {
             },
             authoredDate: commit.authorDate || new Date().toISOString(),
             committedDate: commit.committerDate || commit.authorDate || new Date().toISOString(),
-            relativeTime: this.getRelativeTime(commit.authorDate || new Date().toISOString()),
+            relativeTime: getRelativeTime(commit.authorDate || new Date().toISOString()),
             parents: commit.parents ? commit.parents.split(' ').filter(Boolean) : [],
-            refs: this.parseRefs(commit.refs || ''),
+            refs: parseRefs(commit.refs || ''),
             stats: {
               filesChanged: 0,
               additions: 0,
@@ -443,7 +442,7 @@ export class GitCommitService extends BaseGitService {
                 result.fileStats = fileStats
               }
             } catch (error) {
-              this.logger.error(`Failed to get stats for commit ${commit.hash}:`, error)
+              deps.logger.error(`Failed to get stats for commit ${commit.hash}:`, error)
             }
           }
 
@@ -451,58 +450,61 @@ export class GitCommitService extends BaseGitService {
         })
       )
 
-      return {
-        success: true,
-        data: {
-          commits: enhancedCommits,
-          pagination: {
-            page: request.page,
-            perPage: request.perPage,
-            hasMore,
-            totalCount: undefined
-          },
-          branch: currentBranch
-        }
-      }
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      return {
-        success: false,
-        message: `Failed to get enhanced commit log: ${error instanceof Error ? error.message : String(error)}`
-      }
-    }
-  }
+            return {
+              success: true,
+              data: {
+                commits: enhancedCommits,
+                pagination: {
+                  page: request.page,
+                  perPage: request.perPage,
+                  hasMore,
+                  totalCount: undefined
+                },
+                branch: currentBranch
+              }
+            }
+          } catch (error) {
+            return {
+              success: false,
+              message: `Failed to get enhanced commit log: ${error instanceof Error ? error.message : String(error)}`
+            }
+          }
+        }, { entity: 'GitCommit', action: 'getCommitLogEnhanced' })
+      },
 
-  /**
-   * Get detailed commit information
-   */
-  async getCommitDetail(
-    projectId: number,
-    commitHash: string,
-    includeFileContents: boolean = false
-  ): Promise<GitCommitDetailResponse> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
+      /**
+       * Get detailed commit information
+       */
+      async getCommitDetail(
+        projectId: number,
+        commitHash: string,
+        includeFileContents: boolean = false
+      ): Promise<GitCommitDetailResponse> {
+        return withErrorContext(async () => {
+          try {
+            const { git } = await gitUtils.getGitInstance(projectId)
 
-      const commitFormat = [
-        '%H', '%h', '%s', '%b', '%an', '%ae', '%aI',
-        '%cn', '%ce', '%cI', '%P', '%D'
-      ].join('%n')
+      const commitFormat = ['%H', '%h', '%s', '%b', '%an', '%ae', '%aI', '%cn', '%ce', '%cI', '%P', '%D'].join('%n')
 
       const showResult = await git.show([commitHash, `--format=${commitFormat}`, '--no-patch'])
       const lines = showResult.split('\n')
       const [hash = '', abbreviatedHash = '', subject = '', ...bodyAndRest] = lines
 
-      let bodyEndIndex = bodyAndRest.findIndex((line) => line === '')
+      let bodyEndIndex = bodyAndRest.findIndex((line: string) => line === '')
       if (bodyEndIndex === -1) bodyEndIndex = bodyAndRest.length
 
       const body = bodyAndRest.slice(0, bodyEndIndex).join('\n')
       const metadataLines = bodyAndRest.slice(bodyEndIndex + 1)
 
       const [
-        authorName = '', authorEmail = '', authorDate = '',
-        committerName = '', committerEmail = '', committerDate = '',
-        parents = '', refs = ''
+        authorName = '',
+        authorEmail = '',
+        authorDate = '',
+        committerName = '',
+        committerEmail = '',
+        committerDate = '',
+        parents = '',
+        refs = ''
       ] = metadataLines
 
       const numstatResult = await git.raw(['show', '--numstat', '--format=', commitHash])
@@ -581,9 +583,9 @@ export class GitCommitService extends BaseGitService {
         },
         authoredDate: authorDate || new Date().toISOString(),
         committedDate: committerDate || authorDate || new Date().toISOString(),
-        relativeTime: this.getRelativeTime(authorDate || new Date().toISOString()),
+        relativeTime: getRelativeTime(authorDate || new Date().toISOString()),
         parents: parents ? parents.split(' ').filter(Boolean) : [],
-        refs: this.parseRefs(refs || ''),
+        refs: parseRefs(refs || ''),
         stats: {
           filesChanged: fileDiffs.length,
           additions: totalAdditions,
@@ -607,37 +609,53 @@ export class GitCommitService extends BaseGitService {
         }
       }
 
-      return {
-        success: true,
-        data: {
-          commit: enhancedCommit,
-          files: fileDiffs,
-          totalDiff
-        }
-      }
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      return {
-        success: false,
-        message: `Failed to get commit detail: ${error instanceof Error ? error.message : String(error)}`
-      }
-    }
-  }
+            return {
+              success: true,
+              data: {
+                commit: enhancedCommit,
+                files: fileDiffs,
+                totalDiff
+              }
+            }
+          } catch (error) {
+            return {
+              success: false,
+              message: `Failed to get commit detail: ${error instanceof Error ? error.message : String(error)}`
+            }
+          }
+        }, { entity: 'GitCommit', action: 'getCommitDetail' })
+      },
 
-  /**
-   * Reset to a specific ref
-   */
-  async reset(projectId: number, ref: string, mode: 'soft' | 'mixed' | 'hard' = 'mixed'): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-      await git.reset([`--${mode}`, ref])
-      gitStatusService.clearCache(projectId)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'reset')
+      /**
+       * Reset to a specific ref
+       */
+      async reset(projectId: number, ref: string, mode: 'soft' | 'mixed' | 'hard' = 'mixed'): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+          await git.reset([`--${mode}`, ref])
+          gitStatusService.clearCache(projectId)
+        }, 'reset')
+      }
     }
-  }
+  })
 }
 
-// Export singleton instance
-export const gitCommitService = new GitCommitService()
+// Export type for consumers
+export type GitCommitService = ReturnType<typeof createGitCommitService>
+
+// Export singleton instance for backward compatibility
+export const gitCommitService = createGitCommitService()
+
+// Export individual functions for tree-shaking
+export const {
+  commitChanges,
+  getCommitLog,
+  getCommitDetails,
+  getCommitDiff,
+  cherryPick,
+  revert,
+  blame,
+  getCommitLogEnhanced,
+  getCommitDetail,
+  reset
+} = gitCommitService

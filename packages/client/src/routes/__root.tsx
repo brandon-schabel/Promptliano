@@ -19,14 +19,11 @@ import {
 import { NavigationCommands } from '@/components/navigation/navigation-commands'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { ComponentErrorBoundary } from '@/components/error-boundary/component-error-boundary'
-import { useGetProjects } from '@/hooks/api/use-projects-api'
+import { useProjects } from '@/hooks/generated'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useNavigate } from '@tanstack/react-router'
 import {
   useGetActiveProjectTabId,
-  useGetAppSettings,
-  useGetProjectTab,
-  useGetProjectTabs
 } from '@/hooks/use-kv-local-storage'
 import { MenuIcon } from 'lucide-react' // For a custom trigger example
 import { Button } from '@promptliano/ui'
@@ -39,7 +36,7 @@ function GlobalCommandPalette() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const navigate = useNavigate()
-  const { data: projectsData } = useGetProjects()
+  const { data: projectsData } = useProjects()
 
   useHotkeys('mod+k', (evt) => {
     evt.preventDefault()
@@ -53,7 +50,7 @@ function GlobalCommandPalette() {
   })
 
   const filteredProjects = (projectsData ?? [])
-    .filter((project) => {
+    .filter((project: any) => {
       const searchLower = debouncedSearch.toLowerCase()
       return (
         project.name.toLowerCase().includes(searchLower) || project.description?.toLowerCase().includes(searchLower)
@@ -62,8 +59,13 @@ function GlobalCommandPalette() {
     .slice(0, 5)
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder='Type a command or search...' value={search} onValueChange={setSearch} />
+    <CommandDialog open={open} onOpenChange={setOpen} data-testid='command-palette'>
+      <CommandInput
+        placeholder='Type a command or search...'
+        value={search}
+        onValueChange={setSearch}
+        data-testid='command-input'
+      />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading='Navigation'>
@@ -189,9 +191,9 @@ function RootComponent() {
         <div className='flex h-screen w-screen bg-background text-foreground'>
           {/* Ensure background and text colors are set */}
           <ComponentErrorBoundary componentName='Sidebar'>
-            <AppSidebar />
+            <AppSidebar data-testid='app-sidebar' />
           </ComponentErrorBoundary>
-          <main className='flex-1 min-h-0 overflow-auto relative'>
+          <main className='flex-1 min-h-0 overflow-auto relative' data-testid='main-content'>
             {/* pt-[env(safe-area-inset-top)] can be added if needed */}
             {/* Example of a manual SidebarTrigger fixed in the content area */}
             {/* You might not need this if SidebarRail is sufficient */}

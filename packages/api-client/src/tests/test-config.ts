@@ -5,7 +5,8 @@ export const TEST_API_URL = 'http://localhost:3147'
 export const TEST_DB_PATH = process.env.TEST_DB_PATH || '/tmp/promptliano-test.db'
 
 // Test encryption key
-export const TEST_ENCRYPTION_KEY = process.env.PROMPTLIANO_ENCRYPTION_KEY || 'test-key-for-automated-tests-only-not-secure'
+export const TEST_ENCRYPTION_KEY =
+  process.env.PROMPTLIANO_ENCRYPTION_KEY || 'test-key-for-automated-tests-only-not-secure'
 
 // Test server configuration
 export const TEST_SERVER_CONFIG = {
@@ -114,21 +115,19 @@ export function detectCIEnvironment(): { isCI: boolean; ciProvider: string | nul
   const ciProviders = {
     'GitHub Actions': process.env.GITHUB_ACTIONS,
     'GitLab CI': process.env.GITLAB_CI,
-    'CircleCI': process.env.CIRCLECI,
-    'Buildkite': process.env.BUILDKITE,
-    'Jenkins': process.env.JENKINS_URL,
+    CircleCI: process.env.CIRCLECI,
+    Buildkite: process.env.BUILDKITE,
+    Jenkins: process.env.JENKINS_URL,
     'Azure DevOps': process.env.TF_BUILD,
-    'TeamCity': process.env.TEAMCITY_VERSION,
+    TeamCity: process.env.TEAMCITY_VERSION,
     'Travis CI': process.env.TRAVIS,
-    'AppVeyor': process.env.APPVEYOR,
-    'CodeBuild': process.env.CODEBUILD_BUILD_ID,
-    'Drone': process.env.DRONE,
+    AppVeyor: process.env.APPVEYOR,
+    CodeBuild: process.env.CODEBUILD_BUILD_ID,
+    Drone: process.env.DRONE,
     'Generic CI': process.env.CI
   }
 
-  const detectedProvider = Object.entries(ciProviders)
-    .find(([_, value]) => value)
-    ?.[0] || null
+  const detectedProvider = Object.entries(ciProviders).find(([_, value]) => value)?.[0] || null
 
   const isCI = detectedProvider !== null || process.env.FORCE_CI_MODE === 'true'
   const isLocal = !isCI && !process.env.FORCE_CI_MODE
@@ -264,7 +263,7 @@ export const TEST_ENV_VARS = {
  */
 export function printTestConfig(config?: EnhancedTestConfig): void {
   const testConfig = config || getEnhancedTestConfig()
-  
+
   console.log('🧪 Test Configuration:')
   console.log('  Environment:')
   console.log(`    CI Provider: ${testConfig.ci.provider || 'Local Development'}`)

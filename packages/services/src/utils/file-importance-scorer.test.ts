@@ -5,16 +5,15 @@ import {
   getTopImportantFiles,
   filterByImportance
 } from './file-importance-scorer'
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
 
 // Helper to create test files
 function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
   return {
-    id: 1,
+    id: '1',
     projectId: 1,
     name: 'test.ts',
     path: '/src/test.ts',
-    extension: 'ts',
     size: 1000,
     content: '',
     summary: null,
@@ -23,8 +22,12 @@ function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     checksum: 'abc123',
     imports: [],
     exports: [],
-    created: Date.now(),
-    updated: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    isRelevant: null,
+    relevanceScore: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   }
 }
@@ -236,30 +239,30 @@ describe('file-importance-scorer', () => {
 
     describe('recency scoring', () => {
       test('scores files modified today highest', () => {
-        const recent = createTestFile({ updated: Date.now() })
+        const recent = createTestFile({ updatedAt: Date.now() })
         expect(getFileImportance(recent).factors.recency).toBe(3.0)
       })
 
       test('scores files modified this week high', () => {
         const thisWeek = createTestFile({
-          updated: Date.now() - 3 * 24 * 60 * 60 * 1000 // 3 days ago
+          updatedAt: Date.now() - 3 * 24 * 60 * 60 * 1000 // 3 days ago
         })
         expect(getFileImportance(thisWeek).factors.recency).toBe(2.5)
       })
 
       test('scores files modified this month moderately', () => {
         const thisMonth = createTestFile({
-          updated: Date.now() - 15 * 24 * 60 * 60 * 1000 // 15 days ago
+          updatedAt: Date.now() - 15 * 24 * 60 * 60 * 1000 // 15 days ago
         })
         expect(getFileImportance(thisMonth).factors.recency).toBe(2.0)
       })
 
       test('scores old files low', () => {
         const old = createTestFile({
-          updated: Date.now() - 200 * 24 * 60 * 60 * 1000 // 200 days ago
+          updatedAt: Date.now() - 200 * 24 * 60 * 60 * 1000 // 200 days ago
         })
         const veryOld = createTestFile({
-          updated: Date.now() - 400 * 24 * 60 * 60 * 1000 // 400 days ago
+          updatedAt: Date.now() - 400 * 24 * 60 * 60 * 1000 // 400 days ago
         })
 
         expect(getFileImportance(old).factors.recency).toBe(1.0)
@@ -275,7 +278,7 @@ describe('file-importance-scorer', () => {
           imports: Array(10).fill({ source: 'module', specifiers: [] }),
           exports: Array(5).fill({ type: 'named', source: null, specifiers: [] }),
           size: 5000,
-          updated: Date.now()
+          updatedAt: Date.now()
         })
 
         const importance = getFileImportance(file)
@@ -293,7 +296,7 @@ describe('file-importance-scorer', () => {
           imports: Array(100).fill({ source: 'module', specifiers: [] }),
           exports: Array(100).fill({ type: 'named', source: null, specifiers: [] }),
           size: 8000,
-          updated: Date.now()
+          updatedAt: Date.now()
         })
 
         const importance = getFileImportance(superImportant)

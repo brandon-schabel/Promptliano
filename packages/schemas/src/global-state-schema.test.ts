@@ -18,7 +18,7 @@ describe('Global State Schema', () => {
       expect(state).toBeDefined()
       expect(state.appSettings).toBeDefined()
       expect(state.projectTabs).toBeDefined()
-      expect(state.projectActiveTabId).toBe(1)
+      expect(state.projectActiveTabId).toBe(-1)
       expect(state.activeChatId).toBe(-1)
       expect(state.chatLinkSettings).toEqual({})
 

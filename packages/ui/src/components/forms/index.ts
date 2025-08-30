@@ -57,7 +57,7 @@ export {
   TanStackMultiStepForm,
   useTanStackFormContext,
   useTanStackFormState,
-  
+
   // Field Creators
   createTanStackTextField,
   createTanStackTextareaField,
@@ -73,7 +73,7 @@ export {
   createTanStackPasswordField,
   createTanStackNumberField,
   createTanStackFieldGroup,
-  
+
   // Validation System
   tanstackValidation,
   tanstackPatterns,
@@ -108,16 +108,9 @@ export type {
 // HYBRID FORM SYSTEM (Intelligent Selection)
 // =============================================
 
-export {
-  HybridFormFactory,
-  generateMigrationGuide,
-  getFormImplementationDecision
-} from './hybrid-form-factory'
+export { HybridFormFactory, generateMigrationGuide, getFormImplementationDecision } from './hybrid-form-factory'
 
-export type {
-  HybridFormConfig,
-  MigrationGuide
-} from './hybrid-form-factory'
+export type { HybridFormConfig, MigrationGuide } from './hybrid-form-factory'
 
 // =============================================
 // COMPREHENSIVE EXAMPLES

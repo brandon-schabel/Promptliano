@@ -2,18 +2,8 @@ import * as React from 'react'
 import { cn } from '../../utils'
 import { Button } from '../core/button'
 import { Badge } from '../core/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '../core/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '../core/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../core/select'
+import { Popover, PopoverContent, PopoverTrigger } from '../core/popover'
 import { Filter, X, ChevronDown, RotateCcw } from 'lucide-react'
 import { ScrollArea } from '../data/scroll-area'
 import { Checkbox } from '../core/checkbox'
@@ -90,18 +80,15 @@ const FilterItem: React.FC<{
   if (filter.type === 'select') {
     return (
       <Select value={value as string} onValueChange={onChange}>
-        <SelectTrigger className={cn(
-          'min-w-[120px]',
-          size === 'sm' && 'h-8 text-sm'
-        )}>
-          {filter.icon && <span className="mr-2">{filter.icon}</span>}
+        <SelectTrigger className={cn('min-w-[120px]', size === 'sm' && 'h-8 text-sm')}>
+          {filter.icon && <span className='mr-2'>{filter.icon}</span>}
           <SelectValue placeholder={filter.label} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="_all">All</SelectItem>
+          <SelectItem value='_all'>All</SelectItem>
           {filter.options?.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              <div className="flex items-center gap-2">
+              <div className='flex items-center gap-2'>
                 {option.icon}
                 {option.label}
               </div>
@@ -120,35 +107,32 @@ const FilterItem: React.FC<{
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            variant='outline'
             size={size}
-            className={cn(
-              'min-w-[120px] justify-between',
-              selectedCount > 0 && 'border-primary'
-            )}
+            className={cn('min-w-[120px] justify-between', selectedCount > 0 && 'border-primary')}
           >
-            <span className="flex items-center gap-2">
+            <span className='flex items-center gap-2'>
               {filter.icon}
               {filter.label}
               {selectedCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1">
+                <Badge variant='secondary' className='ml-1 h-5 px-1'>
                   {selectedCount}
                 </Badge>
               )}
             </span>
-            <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+            <ChevronDown className='ml-2 h-4 w-4 opacity-50' />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-0" align="start">
-          <div className="p-2">
-            <div className="text-sm font-medium p-2">{filter.label}</div>
-            <Separator className="my-2" />
-            <ScrollArea className="h-48">
-              <div className="space-y-2 p-2">
+        <PopoverContent className='w-56 p-0' align='start'>
+          <div className='p-2'>
+            <div className='text-sm font-medium p-2'>{filter.label}</div>
+            <Separator className='my-2' />
+            <ScrollArea className='h-48'>
+              <div className='space-y-2 p-2'>
                 {filter.options?.map((option) => {
                   const isChecked = selectedValues.includes(option.value)
                   return (
-                    <div key={option.value} className="flex items-center space-x-2">
+                    <div key={option.value} className='flex items-center space-x-2'>
                       <Checkbox
                         id={`${filter.id}-${option.value}`}
                         checked={isChecked}
@@ -156,13 +140,13 @@ const FilterItem: React.FC<{
                           if (checked) {
                             onChange([...selectedValues, option.value])
                           } else {
-                            onChange(selectedValues.filter(v => v !== option.value))
+                            onChange(selectedValues.filter((v) => v !== option.value))
                           }
                         }}
                       />
                       <Label
                         htmlFor={`${filter.id}-${option.value}`}
-                        className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                        className='text-sm font-normal cursor-pointer flex items-center gap-2'
                       >
                         {option.icon}
                         {option.label}
@@ -184,9 +168,9 @@ const FilterItem: React.FC<{
         variant={value ? 'default' : 'outline'}
         size={size}
         onClick={() => onChange(!value)}
-        className="min-w-[100px]"
+        className='min-w-[100px]'
       >
-        <span className="flex items-center gap-2">
+        <span className='flex items-center gap-2'>
           {filter.icon}
           {filter.label}
         </span>
@@ -247,18 +231,15 @@ export const FilterBar = React.forwardRef<HTMLDivElement, FilterBarProps>(
       return (
         <div ref={ref} className={cn('flex items-center gap-2', className)}>
           <Button
-            variant="outline"
+            variant='outline'
             size={size}
             onClick={() => setIsCollapsed(false)}
-            className={cn(
-              'gap-2',
-              hasActiveFilters && 'border-primary'
-            )}
+            className={cn('gap-2', hasActiveFilters && 'border-primary')}
           >
-            <Filter className="h-4 w-4" />
+            <Filter className='h-4 w-4' />
             Filters
             {activeFilterCount > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge variant='secondary' className='ml-1'>
                 {activeFilterCount}
               </Badge>
             )}
@@ -268,16 +249,10 @@ export const FilterBar = React.forwardRef<HTMLDivElement, FilterBarProps>(
     }
 
     return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex flex-wrap items-center gap-2',
-          className
-        )}
-      >
+      <div ref={ref} className={cn('flex flex-wrap items-center gap-2', className)}>
         {showIcon && (
-          <div className="flex items-center text-muted-foreground">
-            <Filter className="h-4 w-4" />
+          <div className='flex items-center text-muted-foreground'>
+            <Filter className='h-4 w-4' />
           </div>
         )}
 
@@ -293,27 +268,17 @@ export const FilterBar = React.forwardRef<HTMLDivElement, FilterBarProps>(
 
         {showReset && hasActiveFilters && (
           <>
-            <Separator orientation="vertical" className="h-6" />
-            <Button
-              variant="ghost"
-              size={size}
-              onClick={handleReset}
-              className="gap-2"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
+            <Separator orientation='vertical' className='h-6' />
+            <Button variant='ghost' size={size} onClick={handleReset} className='gap-2'>
+              <RotateCcw className='h-3.5 w-3.5' />
               Reset
             </Button>
           </>
         )}
 
         {collapsible && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCollapsed(true)}
-            className="ml-auto lg:hidden"
-          >
-            <X className="h-4 w-4" />
+          <Button variant='ghost' size='sm' onClick={() => setIsCollapsed(true)} className='ml-auto lg:hidden'>
+            <X className='h-4 w-4' />
           </Button>
         )}
       </div>

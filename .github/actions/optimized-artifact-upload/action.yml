@@ -49,7 +49,7 @@ runs:
       shell: bash
       run: |
         SHOULD_UPLOAD="false"
-        
+
         case "${{ inputs.upload-condition }}" in
           "always")
             SHOULD_UPLOAD="true"
@@ -73,7 +73,7 @@ runs:
             SHOULD_UPLOAD="${{ inputs.upload-condition }}"
             ;;
         esac
-        
+
         echo "should-upload=$SHOULD_UPLOAD" >> $GITHUB_OUTPUT
         echo "📋 Upload condition: ${{ inputs.upload-condition }} → $SHOULD_UPLOAD"
 
@@ -84,7 +84,7 @@ runs:
       run: |
         # Validate and sanitize artifact path to prevent path traversal
         ARTIFACT_PATH="${{ inputs.artifact-path }}"
-        
+
         # Security check: Prevent path traversal attacks
         if [[ "$ARTIFACT_PATH" == *".."* ]] || [[ "$ARTIFACT_PATH" == "/"* && "$ARTIFACT_PATH" != "/tmp/"* && "$ARTIFACT_PATH" != "/github/"* ]]; then
           echo "🚨 Security: Invalid artifact path detected: $ARTIFACT_PATH"
@@ -92,35 +92,35 @@ runs:
           echo "exists=false" >> $GITHUB_OUTPUT
           exit 1
         fi
-        
+
         # Resolve to absolute path within workspace
         if [[ "$ARTIFACT_PATH" != "/"* ]]; then
           ARTIFACT_PATH="$GITHUB_WORKSPACE/$ARTIFACT_PATH"
         fi
-        
+
         if [ ! -e "$ARTIFACT_PATH" ]; then
           echo "⚠️ Artifact path does not exist: $ARTIFACT_PATH"
           echo "artifact-size=0" >> $GITHUB_OUTPUT
           echo "exists=false" >> $GITHUB_OUTPUT
           exit 0
         fi
-        
+
         # Calculate total size
         if [ -d "$ARTIFACT_PATH" ]; then
           TOTAL_SIZE=$(du -sb "$ARTIFACT_PATH" | cut -f1)
         else
           TOTAL_SIZE=$(stat -f%z "$ARTIFACT_PATH" 2>/dev/null || stat -c%s "$ARTIFACT_PATH" 2>/dev/null || echo "0")
         fi
-        
+
         TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))
         MAX_SIZE_MB=${{ inputs.max-size-mb }}
-        
+
         echo "artifact-size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
         echo "artifact-size-mb=$TOTAL_SIZE_MB" >> $GITHUB_OUTPUT
         echo "exists=true" >> $GITHUB_OUTPUT
-        
+
         echo "📊 Artifact size: ${TOTAL_SIZE_MB}MB (limit: ${MAX_SIZE_MB}MB)"
-        
+
         # Determine if compression is needed
         SHOULD_COMPRESS="false"
         if [ "${{ inputs.compress }}" = "true" ]; then
@@ -129,7 +129,7 @@ runs:
           SHOULD_COMPRESS="true"
           echo "🗜️ Auto-compression triggered (size > ${MAX_SIZE_MB}MB)"
         fi
-        
+
         echo "should-compress=$SHOULD_COMPRESS" >> $GITHUB_OUTPUT
 
     - name: Compress artifact if needed
@@ -138,25 +138,25 @@ runs:
       shell: bash
       run: |
         echo "🗜️ Compressing artifact..."
-        
+
         ORIGINAL_PATH="${{ inputs.artifact-path }}"
         COMPRESSED_PATH="/tmp/${{ inputs.artifact-name }}.tar.gz"
-        
+
         if [ -d "$ORIGINAL_PATH" ]; then
           tar -czf "$COMPRESSED_PATH" -C "$(dirname "$ORIGINAL_PATH")" "$(basename "$ORIGINAL_PATH")"
         else
           tar -czf "$COMPRESSED_PATH" "$ORIGINAL_PATH"
         fi
-        
+
         ORIGINAL_SIZE=$(echo "${{ steps.size.outputs.artifact-size }}")
         COMPRESSED_SIZE=$(stat -f%z "$COMPRESSED_PATH" 2>/dev/null || stat -c%s "$COMPRESSED_PATH" 2>/dev/null || echo "0")
         COMPRESSION_RATIO=$((100 - (COMPRESSED_SIZE * 100 / ORIGINAL_SIZE)))
-        
+
         echo "compressed-path=$COMPRESSED_PATH" >> $GITHUB_OUTPUT
         echo "compressed-size=$COMPRESSED_SIZE" >> $GITHUB_OUTPUT
         echo "compression-ratio=$COMPRESSION_RATIO" >> $GITHUB_OUTPUT
         echo "was-compressed=true" >> $GITHUB_OUTPUT
-        
+
         echo "✅ Compression completed: ${COMPRESSION_RATIO}% reduction"
 
     - name: Add git information
@@ -179,7 +179,7 @@ runs:
           "compressed": "${{ steps.compress.outputs.was-compressed || 'false' }}"
         }
         EOF
-        
+
         echo "📝 Added git metadata to artifact"
 
     - name: Upload artifact
@@ -192,7 +192,7 @@ runs:
           ${{ steps.compress.outputs.was-compressed == 'true' && steps.compress.outputs.compressed-path || inputs.artifact-path }}
           ${{ inputs.include-git-info == 'true' && '/tmp/artifact-metadata/' || '' }}
         retention-days: ${{ inputs.retention-days }}
-        compression-level: 0  # Don't double-compress
+        compression-level: 0 # Don't double-compress
       continue-on-error: true
 
     - name: Upload summary
@@ -201,7 +201,7 @@ runs:
       run: |
         echo "## 📦 Artifact Upload: ${{ inputs.artifact-name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ "${{ steps.size.outputs.exists }}" = "true" ]; then
           if [ "${{ steps.upload.outcome }}" = "success" ]; then
             echo "### ✅ Upload Successful" >> $GITHUB_STEP_SUMMARY
@@ -230,5 +230,5 @@ runs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The specified path \`${{ inputs.artifact-path }}\` does not exist." >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY

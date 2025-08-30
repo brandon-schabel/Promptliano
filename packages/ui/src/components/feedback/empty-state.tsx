@@ -39,11 +39,11 @@ export const EmptyState = React.memo(function EmptyState({
 }: EmptyStateProps) {
   const renderActions = () => {
     if (!actions) return null
-    
+
     if (React.isValidElement(actions)) {
       return actions
     }
-    
+
     if (Array.isArray(actions)) {
       return (
         <div className='flex flex-col sm:flex-row gap-2 justify-center'>
@@ -74,20 +74,16 @@ export const EmptyState = React.memo(function EmptyState({
         </div>
       )
     }
-    
+
     return null
   }
 
   if (variant === 'minimal') {
     return (
       <div className={cn('text-center py-8 px-4', className)}>
-        {Icon && (
-          <Icon className={cn('mx-auto h-8 w-8 text-muted-foreground mb-3', iconClassName)} />
-        )}
+        {Icon && <Icon className={cn('mx-auto h-8 w-8 text-muted-foreground mb-3', iconClassName)} />}
         <p className='text-sm text-muted-foreground'>{title}</p>
-        {description && (
-          <p className='text-xs text-muted-foreground mt-1'>{description}</p>
-        )}
+        {description && <p className='text-xs text-muted-foreground mt-1'>{description}</p>}
         {actions && <div className='mt-4'>{renderActions()}</div>}
         {children}
       </div>
@@ -106,20 +102,12 @@ export const EmptyState = React.memo(function EmptyState({
             </div>
           )}
           <CardTitle className='text-xl'>{title}</CardTitle>
-          {description && (
-            <CardDescription className='mt-2 max-w-md mx-auto'>
-              {description}
-            </CardDescription>
-          )}
+          {description && <CardDescription className='mt-2 max-w-md mx-auto'>{description}</CardDescription>}
         </CardHeader>
         {(actions || tip || children) && (
           <CardContent className='text-center pb-6'>
             {renderActions()}
-            {tip && (
-              <div className='mt-4 text-xs text-muted-foreground italic'>
-                💡 {tip}
-              </div>
-            )}
+            {tip && <div className='mt-4 text-xs text-muted-foreground italic'>💡 {tip}</div>}
             {children}
           </CardContent>
         )}
@@ -129,10 +117,12 @@ export const EmptyState = React.memo(function EmptyState({
 
   if (variant === 'decorated') {
     return (
-      <div className={cn(
-        'relative flex flex-col items-center justify-center min-h-[400px] p-8 overflow-hidden',
-        className
-      )}>
+      <div
+        className={cn(
+          'relative flex flex-col items-center justify-center min-h-[400px] p-8 overflow-hidden',
+          className
+        )}
+      >
         {/* Background decorations */}
         <div className='absolute inset-0 -z-10'>
           <div className='absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5' />
@@ -140,7 +130,7 @@ export const EmptyState = React.memo(function EmptyState({
           <div className='absolute right-0 top-0 -mt-20 -mr-20 h-[300px] w-[300px] rounded-full bg-primary/10 blur-[100px]' />
           <div className='absolute left-0 bottom-0 -mb-20 -ml-20 h-[300px] w-[300px] rounded-full bg-secondary/10 blur-[100px]' />
         </div>
-        
+
         {/* Content */}
         <div className='relative z-10 text-center space-y-4 max-w-2xl'>
           {Icon && (
@@ -153,23 +143,15 @@ export const EmptyState = React.memo(function EmptyState({
               </div>
             </div>
           )}
-          
+
           <h3 className='text-2xl font-bold tracking-tight'>{title}</h3>
-          
-          {description && (
-            <p className='text-muted-foreground max-w-md mx-auto'>
-              {description}
-            </p>
-          )}
-          
+
+          {description && <p className='text-muted-foreground max-w-md mx-auto'>{description}</p>}
+
           {renderActions()}
-          
-          {tip && (
-            <div className='mt-6 text-sm text-muted-foreground italic'>
-              💡 {tip}
-            </div>
-          )}
-          
+
+          {tip && <div className='mt-6 text-sm text-muted-foreground italic'>💡 {tip}</div>}
+
           {children}
         </div>
       </div>
@@ -178,34 +160,28 @@ export const EmptyState = React.memo(function EmptyState({
 
   // Default 'simple' variant
   return (
-    <div className={cn(
-      'flex flex-col items-center justify-center text-center py-12 px-4 space-y-4',
-      'border rounded-lg bg-muted/20',
-      className
-    )}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center text-center py-12 px-4 space-y-4',
+        'border rounded-lg bg-muted/20',
+        className
+      )}
+    >
       {Icon && (
         <div className='text-muted-foreground'>
           <Icon className={cn('mx-auto h-12 w-12 opacity-50', iconClassName)} />
         </div>
       )}
-      
+
       <div className='space-y-2'>
         <h3 className='text-lg font-semibold'>{title}</h3>
-        {description && (
-          <p className='text-sm text-muted-foreground max-w-md'>
-            {description}
-          </p>
-        )}
+        {description && <p className='text-sm text-muted-foreground max-w-md'>{description}</p>}
       </div>
-      
+
       {renderActions()}
-      
-      {tip && (
-        <div className='mt-4 text-xs text-muted-foreground italic'>
-          💡 {tip}
-        </div>
-      )}
-      
+
+      {tip && <div className='mt-4 text-xs text-muted-foreground italic'>💡 {tip}</div>}
+
       {children}
     </div>
   )
@@ -217,20 +193,10 @@ export interface ListEmptyStateProps extends Omit<EmptyStateProps, 'variant'> {
   addLabel?: string
 }
 
-export function ListEmptyState({
-  onAdd,
-  addLabel = 'Add Item',
-  ...props
-}: ListEmptyStateProps) {
+export function ListEmptyState({ onAdd, addLabel = 'Add Item', ...props }: ListEmptyStateProps) {
   const actions = onAdd ? [{ label: addLabel, onClick: onAdd }] : props.actions
-  
-  return (
-    <EmptyState
-      {...props}
-      actions={actions}
-      variant='simple'
-    />
-  )
+
+  return <EmptyState {...props} actions={actions} variant='simple' />
 }
 
 // Specialized variant for search/filter empty states
@@ -239,11 +205,7 @@ export interface SearchEmptyStateProps extends Omit<EmptyStateProps, 'variant' |
   onClear?: () => void
 }
 
-export function SearchEmptyState({
-  searchTerm,
-  onClear,
-  ...props
-}: SearchEmptyStateProps) {
+export function SearchEmptyState({ searchTerm, onClear, ...props }: SearchEmptyStateProps) {
   return (
     <EmptyState
       {...props}
@@ -261,13 +223,9 @@ export interface ErrorEmptyStateProps extends Omit<EmptyStateProps, 'variant'> {
   onRetry?: () => void
 }
 
-export function ErrorEmptyState({
-  error,
-  onRetry,
-  ...props
-}: ErrorEmptyStateProps) {
+export function ErrorEmptyState({ error, onRetry, ...props }: ErrorEmptyStateProps) {
   const errorMessage = error instanceof Error ? error.message : error
-  
+
   return (
     <EmptyState
       {...props}

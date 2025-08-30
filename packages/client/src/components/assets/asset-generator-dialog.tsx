@@ -13,14 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@promptliano/ui'
 import { toast } from 'sonner'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
-import { useGenerateStructuredData } from '@/hooks/api/use-gen-ai-api'
+import { useGenerateStructuredData } from '@/hooks/generated'
 import { Copy, Download, Loader2, Sparkles, Code } from 'lucide-react'
 import { estimateTokenCount, formatTokenCount } from '@promptliano/shared'
 import { SvgPreview } from '@/components/svg-preview'
 import { MarkdownRenderer } from '@/components/markdown-renderer'
 import { ProviderModelSelector, useModelSelection } from '@/components/model-selection'
 import { Separator } from '@promptliano/ui'
-import { APIProviders } from '@promptliano/schemas'
+import type { APIProviders } from '@promptliano/database'
 
 interface AssetGeneratorDialogProps {
   open: boolean
@@ -96,7 +96,12 @@ export function AssetGeneratorDialog({ open, onOpenChange, assetType, onSuccess 
   const [isGenerating, setIsGenerating] = useState(false)
 
   // Model selection state
-  const { provider, model, setProvider: setProviderBase, setModel } = useModelSelection({
+  const {
+    provider,
+    model,
+    setProvider: setProviderBase,
+    setModel
+  } = useModelSelection({
     persistenceKey: 'asset-generator-model',
     defaultProvider: 'openai',
     defaultModel: 'gpt-4o'
@@ -176,7 +181,7 @@ export function AssetGeneratorDialog({ open, onOpenChange, assetType, onSuccess 
       }
 
       const response = await generateMutation.mutateAsync({
-        schemaKey,
+        schemaKey: schemaKey,
         userInput,
         options: {
           model,
@@ -589,14 +594,14 @@ function renderInputForm(
                 <label className='flex items-center space-x-2'>
                   <Checkbox
                     checked={markdownFormData.includeTableOfContents}
-                    onCheckedChange={(checked) => updateMarkdownField('includeTableOfContents', checked)}
+                    onCheckedChange={(checked: boolean) => updateMarkdownField('includeTableOfContents', checked)}
                   />
                   <span className='text-sm'>Include Table of Contents</span>
                 </label>
                 <label className='flex items-center space-x-2'>
                   <Checkbox
                     checked={markdownFormData.includeExamples}
-                    onCheckedChange={(checked) => updateMarkdownField('includeExamples', checked)}
+                    onCheckedChange={(checked: boolean) => updateMarkdownField('includeExamples', checked)}
                   />
                   <span className='text-sm'>Include Code Examples</span>
                 </label>
@@ -756,7 +761,10 @@ function renderInputForm(
 }
 
 // Helper function to prepare user input for API
-function prepareUserInput(assetType: string, formData: CommonFormData & Partial<SvgFormData> & Partial<MarkdownFormData>): string {
+function prepareUserInput(
+  assetType: string,
+  formData: CommonFormData & Partial<SvgFormData> & Partial<MarkdownFormData>
+): string {
   // Handle markdown asset types
   if (assetType === 'architecture-doc') {
     const formatNote = formData.documentFormat ? `\n\nDocument format: ${formData.documentFormat}` : ''

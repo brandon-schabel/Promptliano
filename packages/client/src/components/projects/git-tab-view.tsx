@@ -17,7 +17,8 @@ import {
   Plus,
   Minus
 } from 'lucide-react'
-import { useProjectGitStatus, useStageFiles, useUnstageFiles, useCommitChanges } from '@/hooks/api/use-git-api'
+import { useStageFiles } from '@/hooks/generated'
+import { useProjectGitStatus, useUnstageFiles, useCommitChanges } from '@/hooks/api-hooks'
 import type { GitFileStatus } from '@promptliano/schemas'
 import { getFileName } from '@/lib/git-utils'
 import { GitDiffDialog } from './git-diff-dialog'
@@ -87,18 +88,20 @@ export function GitTabView({ projectId }: GitTabViewProps) {
 
   const { data } = gitStatus
   const allFiles = data.files || []
-  const stagedFiles = allFiles.filter((f) => f.staged)
-  const unstagedFiles = allFiles.filter((f) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored')
+  const stagedFiles = allFiles.filter((f: GitFileStatus) => f.staged)
+  const unstagedFiles = allFiles.filter(
+    (f: GitFileStatus) => !f.staged && f.status !== 'unchanged' && f.status !== 'ignored'
+  )
 
   const handleStageAll = async () => {
-    const filesToStage = unstagedFiles.map((f) => f.path)
+    const filesToStage = unstagedFiles.map((f: GitFileStatus) => f.path)
     if (filesToStage.length > 0) {
       await stageFiles.mutateAsync(filesToStage)
     }
   }
 
   const handleUnstageAll = async () => {
-    const filesToUnstage = stagedFiles.map((f) => f.path)
+    const filesToUnstage = stagedFiles.map((f: GitFileStatus) => f.path)
     if (filesToUnstage.length > 0) {
       await unstageFiles.mutateAsync(filesToUnstage)
     }
@@ -164,7 +167,7 @@ export function GitTabView({ projectId }: GitTabViewProps) {
                 </div>
               ) : (
                 <div className='space-y-1'>
-                  {unstagedFiles.map((file) => (
+                  {unstagedFiles.map((file: GitFileStatus) => (
                     <div
                       key={file.path}
                       className='flex items-center gap-2 p-2 hover:bg-accent rounded-md group cursor-pointer'
@@ -234,7 +237,7 @@ export function GitTabView({ projectId }: GitTabViewProps) {
                 </div>
               ) : (
                 <div className='space-y-1'>
-                  {stagedFiles.map((file) => (
+                  {stagedFiles.map((file: GitFileStatus) => (
                     <div
                       key={file.path}
                       className='flex items-center gap-2 p-2 hover:bg-accent rounded-md group cursor-pointer'

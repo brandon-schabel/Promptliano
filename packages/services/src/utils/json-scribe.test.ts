@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 import { writeJson, readJson, jsonScribe } from './json-scribe'
 import { z, ZodError } from 'zod'
 import path from 'node:path'
-import { rmSync, mkdirSync } from 'node:fs'
+import { rmSync, mkdirSync } from 'fs'
 
 // Test directory for file operations
 const TEST_DIR = path.join(process.cwd(), '.test-json-scribe')
@@ -23,10 +23,10 @@ describe('json-scribe', () => {
 
     test('adds .json extension if missing', async () => {
       const filePath = 'test-file'
-      await writeJson({ 
-        path: filePath, 
+      await writeJson({
+        path: filePath,
         data: { test: true },
-        basePath: TEST_DIR 
+        basePath: TEST_DIR
       })
 
       const expectedPath = path.join(TEST_DIR, 'test-file.json')
@@ -36,10 +36,10 @@ describe('json-scribe', () => {
 
     test('preserves existing .json extension', async () => {
       const filePath = 'test-file.json'
-      await writeJson({ 
-        path: filePath, 
+      await writeJson({
+        path: filePath,
         data: { test: true },
-        basePath: TEST_DIR 
+        basePath: TEST_DIR
       })
 
       const expectedPath = path.join(TEST_DIR, 'test-file.json')
@@ -48,10 +48,10 @@ describe('json-scribe', () => {
     })
 
     test('handles array paths', async () => {
-      await writeJson({ 
-        path: ['sub', 'dir', 'file'], 
+      await writeJson({
+        path: ['sub', 'dir', 'file'],
         data: { test: true },
-        basePath: TEST_DIR 
+        basePath: TEST_DIR
       })
 
       const expectedPath = path.join(TEST_DIR, 'sub', 'dir', 'file.json')
@@ -61,8 +61,8 @@ describe('json-scribe', () => {
 
     test('handles absolute paths', async () => {
       const absolutePath = path.join(TEST_DIR, 'absolute-test.json')
-      await writeJson({ 
-        path: absolutePath, 
+      await writeJson({
+        path: absolutePath,
         data: { test: true }
       })
 
@@ -72,10 +72,10 @@ describe('json-scribe', () => {
 
     test('normalizes slashes in paths', async () => {
       const mixedPath = 'sub\\dir/file'
-      await writeJson({ 
-        path: mixedPath, 
+      await writeJson({
+        path: mixedPath,
         data: { test: true },
-        basePath: TEST_DIR 
+        basePath: TEST_DIR
       })
 
       const expectedPath = path.join(TEST_DIR, 'sub', 'dir', 'file.json')
@@ -179,7 +179,7 @@ describe('json-scribe', () => {
         url: z.string().refine(
           async (val) => {
             // Simulate async validation
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await new Promise((resolve) => setTimeout(resolve, 10))
             return val.startsWith('https://')
           },
           { message: 'URL must use HTTPS' }
@@ -198,12 +198,12 @@ describe('json-scribe', () => {
     })
 
     test('pretty prints JSON with 2-space indentation', async () => {
-      const data = { 
-        level1: { 
-          level2: { 
-            value: 'nested' 
-          } 
-        } 
+      const data = {
+        level1: {
+          level2: {
+            value: 'nested'
+          }
+        }
       }
 
       await writeJson({
@@ -214,7 +214,7 @@ describe('json-scribe', () => {
 
       const filePath = path.join(TEST_DIR, 'pretty.json')
       const fileContent = await Bun.file(filePath).text()
-      
+
       expect(fileContent).toContain('  "level1"') // 2 spaces
       expect(fileContent).toContain('    "level2"') // 4 spaces
       expect(fileContent).toContain('      "value"') // 6 spaces
@@ -222,7 +222,7 @@ describe('json-scribe', () => {
 
     test('overwrites existing files', async () => {
       const path1 = path.join(TEST_DIR, 'overwrite.json')
-      
+
       // Write initial data
       await writeJson({
         path: path1,
@@ -408,7 +408,7 @@ describe('json-scribe', () => {
 
     test('works with the namespace methods', async () => {
       const data = { using: 'namespace' }
-      
+
       await jsonScribe.write({
         path: 'namespace-test.json',
         data,
@@ -430,7 +430,7 @@ describe('json-scribe', () => {
         id: z.number(),
         username: z.string().min(3),
         email: z.string().email(),
-        createdAt: z.date().transform(d => d.toISOString())
+        createdAt: z.date().transform((d) => d.toISOString())
       })
 
       const userData = {
@@ -465,7 +465,7 @@ describe('json-scribe', () => {
     })
 
     test('handles concurrent writes to different files', async () => {
-      const writes = Array.from({ length: 10 }, (_, i) => 
+      const writes = Array.from({ length: 10 }, (_, i) =>
         writeJson({
           path: `concurrent-${i}.json`,
           data: { index: i, timestamp: Date.now() },

@@ -3,7 +3,7 @@ import { Badge } from '@promptliano/ui'
 import { Progress } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { cn } from '@/lib/utils'
-import { QueueWithStats } from '@promptliano/schemas'
+import type { QueueWithStats } from '@/hooks/generated/types'
 import { Play, Pause, Trash2, Users, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -27,7 +27,7 @@ export function QueueStatsCard({
   onSelect
 }: QueueStatsCardProps) {
   const { queue, stats } = queueWithStats
-  const isActive = queue.status === 'active'
+  const isActive = queue.isActive === true
 
   const totalProcessed = stats.completedItems + stats.failedItems + stats.cancelledItems
   const progressPercentage = stats.totalItems > 0 ? (totalProcessed / stats.totalItems) * 100 : 0

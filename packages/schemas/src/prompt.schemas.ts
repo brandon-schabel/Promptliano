@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi'
-import { ProjectIdParamsSchema } from './project.schemas'
+import { IDParamsSchema } from './project.schemas'
 import {
   unixTSOptionalSchemaSpec,
   unixTSSchemaSpec,
@@ -8,43 +8,53 @@ import {
   entityIdCoercibleSchema
 } from './schema-utils'
 
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Prompt as DatabasePrompt } from '@promptliano/database'
+
+// Recreate schema locally to avoid runtime imports from database package
 export const PromptSchema = z
   .object({
-    id: entityIdSchema,
-    name: z.string().openapi({ example: 'Code Refactoring Prompt', description: 'Prompt name' }),
-    content: z.string().openapi({
-      example: 'Refactor the following code to be more efficient: {code}',
-      description: 'Prompt content template'
-    }),
-    projectId: entityIdOptionalSchema,
-    created: unixTSSchemaSpec,
-    updated: unixTSSchemaSpec
+    id: z.number(),
+    projectId: z.number(),
+    title: z.string(),
+    content: z.string(),
+    description: z.string().nullable(),
+    tags: z.array(z.string()),
+    createdAt: z.number(),
+    updatedAt: z.number()
   })
   .openapi('Prompt')
 
-export const CreatePromptBodySchema = z
-  .object({
-    // Allow projectId to be optional during creation, linking can happen separately or via this field
+// Type verification to ensure schema matches database type
+const _promptTypeCheck: z.infer<typeof PromptSchema> = {} as DatabasePrompt
+
+// API Request Body Schemas - derived from database schema
+export const CreatePromptBodySchema = PromptSchema.pick({
+  title: true,
+  content: true,
+  projectId: true
+})
+  .extend({
     projectId: entityIdOptionalSchema,
-    name: z.string().min(1).openapi({ example: 'My New Prompt' }),
+    title: z.string().min(1).openapi({ example: 'My New Prompt' }),
     content: z.string().min(1).openapi({ example: 'Translate this text: {text}' })
   })
   .openapi('CreatePromptRequestBody')
 
-export const UpdatePromptBodySchema = z
-  .object({
-    name: z.string().min(1).optional().openapi({ example: 'Updated Prompt Name' }),
-    content: z.string().min(1).optional().openapi({ example: 'Updated content: {variable}' })
-  })
-  .refine((data) => data.name || data.content, {
-    message: 'At least one of name or content must be provided for update'
+export const UpdatePromptBodySchema = CreatePromptBodySchema.pick({
+  title: true,
+  content: true
+})
+  .partial()
+  .refine((data) => data.title || data.content, {
+    message: 'At least one of title or content must be provided for update'
   })
   .openapi('UpdatePromptRequestBody')
 
 // --- Request Parameter Schemas ---
 export const PromptIdParamsSchema = z
   .object({
-    promptId: entityIdCoercibleSchema.openapi({ param: { name: 'promptId', in: 'path' } })
+    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
   })
   .openapi('PromptIdParams')
 
@@ -69,12 +79,18 @@ export const PromptListResponseSchema = z
   })
   .openapi('PromptListResponse')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreatePromptSchema = CreatePromptBodySchema
+export const UpdatePromptSchema = UpdatePromptBodySchema
+
 // Export types if needed elsewhere
 export type CreatePromptBody = z.infer<typeof CreatePromptBodySchema>
 export type UpdatePromptBody = z.infer<typeof UpdatePromptBodySchema>
-export type PromptIdParams = z.infer<typeof PromptIdParamsSchema>
-export type ProjectIdParams = z.infer<typeof ProjectIdParamsSchema>
+export type CreatePrompt = z.infer<typeof CreatePromptSchema>
+export type UpdatePrompt = z.infer<typeof UpdatePromptSchema>
+export type PromptIdParams = z.infer<typeof PromptIdParamsSchema> // Now: { id: number }
 export type ProjectAndPromptIdParams = z.infer<typeof ProjectAndPromptIdParamsSchema>
+// Note: ProjectIdParams is exported from project.schemas.ts to avoid conflicts
 
 // --- Request Body Schema ---
 export const OptimizeUserInputRequestSchema = z

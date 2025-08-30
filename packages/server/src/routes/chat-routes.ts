@@ -1,9 +1,15 @@
 import { createRoute, z } from '@hono/zod-openapi'
 
 import { createChatService, handleChatMessage } from '@promptliano/services'
-import { ApiError } from '@promptliano/shared'
+import { ApiError, ErrorFactory, withErrorContext } from '@promptliano/shared'
 import { ApiErrorResponseSchema, MessageRoleEnum, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, standardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  standardResponses,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import {
   ChatListResponseSchema,
   ChatResponseSchema,
@@ -22,7 +28,7 @@ import {
 } from '@promptliano/schemas'
 
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { type APIProviders, type ProviderKey } from '@promptliano/schemas'
+import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import { stream } from 'hono/streaming'
 
 const chatService = createChatService()
@@ -53,13 +59,7 @@ const createChatRoute = createRoute({
       description: 'Data for the new chat session'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat created successfully'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat created successfully')
 })
 
 // GET /chats/:chatId/messages
@@ -94,28 +94,12 @@ const postAiChatSdkRoute = createRoute({
     200: {
       content: {
         'text/event-stream': {
-          // Standard content type for SSE/streaming text
           schema: z.string().openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
         }
       },
       description: 'Successfully initiated AI response stream.'
     },
-    422: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Validation error (invalid request body)'
-    },
-    404: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Chat session (chatId) not found.'
-    },
-    400: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Bad Request (e.g., missing API key for provider, invalid provider/model)'
-    },
-    500: {
-      content: { 'application/json': { schema: ApiErrorResponseSchema } },
-      description: 'Internal Server Error or AI provider communication error'
-    }
+    ...standardResponses
   }
 })
 
@@ -133,13 +117,7 @@ const forkChatRoute = createRoute({
       description: 'Optional message IDs to exclude from the fork'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat forked successfully'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat forked successfully')
 })
 
 // POST /chats/{chatId}/fork/{messageId}
@@ -156,13 +134,7 @@ const forkChatFromMessageRoute = createRoute({
       description: 'Optional message IDs to exclude from the fork'
     }
   },
-  responses: {
-    201: {
-      content: { 'application/json': { schema: ChatResponseSchema } },
-      description: 'Chat forked successfully from message'
-    },
-    ...standardResponses
-  }
+  responses: createStandardResponsesWithStatus(ChatResponseSchema, 201, 'Chat forked successfully from message')
 })
 
 // DELETE /chats/{chatId}/messages/{messageId}
@@ -207,30 +179,29 @@ const deleteChatRoute = createRoute({
 })
 export const chatRoutes = new OpenAPIHono()
   .openapi(getAllChatsRoute, async (c) => {
-    const userChats = await chatService.getAllChats()
-    // Assuming chatService.getAllChats now returns Chat[] with correct date strings
-    // or mapDbRowToChat correctly formats them.
-    return c.json(
-      {
-        success: true,
-        data: userChats // No need to remap if service formats correctly
-      } satisfies z.infer<typeof ChatListResponseSchema>,
-      200
+    return await withErrorContext(
+      async () => {
+        const userChats = await chatService.getAllChats()
+        return c.json(
+          {
+            success: true,
+            data: userChats
+          } satisfies z.infer<typeof ChatListResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'list' }
     )
   })
-  .openapi(createChatRoute, async (c) => {
+  .openapi(createChatRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
+    
     const chat = await chatService.createChat(body.title, {
       copyExisting: body.copyExisting,
       currentChatId: body.currentChatId
     })
-    return c.json(
-      {
-        success: true,
-        data: chat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
+    
+    return c.json(successResponse(chat), 201)
   })
   .openapi(getChatMessagesRoute, async (c) => {
     const { chatId } = c.req.valid('param')
@@ -255,71 +226,46 @@ export const chatRoutes = new OpenAPIHono()
 
     console.log(`[Hono AI Chat] /ai/chat request: ChatID=${chatId}, Provider=${provider}, Model=${model}`)
 
-    try {
-      const unifiedOptions = { ...options, model }
+    return await withErrorContext(
+      async () => {
+        const unifiedOptions = { ...options, model }
 
-      c.header('Content-Type', 'text/event-stream; charset=utf-8')
-      c.header('Cache-Control', 'no-cache')
-      c.header('Connection', 'keep-alive')
+        c.header('Content-Type', 'text/event-stream; charset=utf-8')
+        c.header('Cache-Control', 'no-cache')
+        c.header('Connection', 'keep-alive')
 
-      const readableStream = await handleChatMessage({
-        chatId,
-        userMessage,
-        options: unifiedOptions,
-        systemMessage,
-        tempId,
-        enableChatAutoNaming
-      })
+        const readableStream = await handleChatMessage({
+          chatId,
+          userMessage,
+          options: unifiedOptions,
+          systemMessage,
+          tempId,
+          enableChatAutoNaming
+        })
 
-      return stream(c, async (streamInstance) => {
-        await streamInstance.pipe(readableStream.toDataStream())
-      })
-    } catch (error: any) {
-      console.error(`[Hono AI Chat] /ai/chat Error:`, error)
-      if (error instanceof ApiError) {
-        throw error
+        return stream(c, async (streamInstance) => {
+          await streamInstance.pipe(readableStream.toDataStream())
+        })
+      },
+      {
+        entity: 'Chat',
+        action: 'ai_stream',
+        correlationId: String(chatId),
+        metadata: { provider, model, tempId }
       }
-      if (error.message?.includes('not found') || error.code === 'CHAT_NOT_FOUND') {
-        // Check code too
-        throw new ApiError(
-          404,
-          `Chat session with ID ${chatId} not found. Details: ${error.message}`,
-          'CHAT_NOT_FOUND',
-          { originalError: error.message }
-        )
-      }
-      if (error.message?.toLowerCase().includes('api key') || error.code === 'MISSING_API_KEY') {
-        throw new ApiError(400, error.message, 'MISSING_API_KEY', { originalError: error.message })
-      }
-      // Add more specific error conversions if identifiable from `handleChatMessage`
-      throw new ApiError(500, error.message || 'Error processing AI chat stream', 'AI_STREAM_ERROR', {
-        originalError: error.message
-      })
-    }
+    )
   })
-  .openapi(forkChatRoute, async (c) => {
+  .openapi(forkChatRoute, async (c): Promise<any> => {
     const { chatId } = c.req.valid('param')
     const { excludedMessageIds } = c.req.valid('json')
     const newChat = await chatService.forkChat(chatId, excludedMessageIds)
-    return c.json(
-      {
-        success: true,
-        data: newChat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
+    return c.json(successResponse(newChat), 201)
   })
-  .openapi(forkChatFromMessageRoute, async (c) => {
+  .openapi(forkChatFromMessageRoute, async (c): Promise<any> => {
     const { chatId, messageId } = c.req.valid('param')
     const { excludedMessageIds } = c.req.valid('json')
     const newChat = await chatService.forkChatFromMessage(chatId, messageId, excludedMessageIds)
-    return c.json(
-      {
-        success: true,
-        data: newChat
-      } satisfies z.infer<typeof ChatResponseSchema>,
-      201
-    )
+    return c.json(successResponse(newChat), 201)
   })
   .openapi(deleteMessageRoute, async (c) => {
     const { messageId, chatId } = c.req.valid('param')

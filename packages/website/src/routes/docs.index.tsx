@@ -40,6 +40,7 @@ const docSections: DocSection[] = [
     title: 'API Reference',
     description: 'Detailed documentation of all Promptliano APIs and MCP tools',
     links: [
+      { label: 'MCP Tools Overview', href: '/docs/mcp-tools', badge: 'Updated' },
       { label: 'Project Manager', href: '/docs/api#project-manager' },
       { label: 'Prompt Manager', href: '/docs/api#prompt-manager' },
       { label: 'Task Manager', href: '/docs/api#task-manager' },

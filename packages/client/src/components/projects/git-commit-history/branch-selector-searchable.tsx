@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useBranchesEnhanced } from '@/hooks/api/use-git-api'
+import { useBranchesEnhanced } from '@/hooks/api-hooks'
 import type { GitBranchEnhanced } from '@promptliano/schemas'
 import {
   Command,
@@ -34,7 +34,9 @@ export function BranchSelectorSearchable({ projectId, selectedBranch, onBranchCh
 
   // Sort and filter branches
   const { localBranches, remoteBranches } = useMemo(() => {
-    const filtered = branches.filter((branch: GitBranchEnhanced) => branch.name.toLowerCase().includes(search.toLowerCase()))
+    const filtered = branches.filter((branch: GitBranchEnhanced) =>
+      branch.name.toLowerCase().includes(search.toLowerCase())
+    )
 
     // Sort: current branch first, then by last activity
     const sorted = filtered.sort((a: GitBranchEnhanced, b: GitBranchEnhanced) => {

@@ -7,7 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Separator } from '@promptliano/ui'
 import { cn } from '@promptliano/ui'
-import { useCreateTicket, useUpdateTicket } from '@/hooks/api/use-tickets-api'
+import { useCreateTicket, useUpdateTicket } from '@/hooks/generated'
 import { PromptlianoTooltip } from '../promptliano/promptliano-tooltip'
 import { TicketTasksPanel } from './ticket-tasks-panel'
 import { QueueBadge, AddToQueueButton } from '../queues/queue-badge'
@@ -129,7 +129,11 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
       setOverview(ticketWithTasks.ticket.overview ?? '')
       setPriority(ticketWithTasks.ticket.priority as 'low' | 'normal' | 'high')
       setStatus(ticketWithTasks.ticket.status as 'open' | 'in_progress' | 'closed')
-      setSelectedFileIds(ticketWithTasks.ticket.suggestedFileIds || [])
+      setSelectedFileIds(
+        Array.isArray(ticketWithTasks.ticket.suggestedFileIds)
+          ? (ticketWithTasks.ticket.suggestedFileIds as string[])
+          : []
+      )
     } else {
       resetForm()
     }
@@ -143,7 +147,7 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
     try {
       if (ticketWithTasks) {
         await updateTicket.mutateAsync({
-          ticketId: ticketWithTasks.ticket.id,
+          id: ticketWithTasks.ticket.id,
           data: {
             title,
             overview,
@@ -158,7 +162,9 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
           overview,
           priority,
           status,
-          suggestedFileIds: selectedFileIds
+          suggestedFileIds: selectedFileIds,
+          suggestedAgentIds: [],
+          suggestedPromptIds: []
         })
         // Reset form after successful creation
         resetForm()

@@ -14,7 +14,6 @@ packages/server/src/mcp/
 ├── consolidated-tools.ts        # Tool aggregation and exports
 ├── mcp-errors.ts               # Enhanced error handling system
 ├── mcp-transaction.ts          # Transaction wrapper for complex operations
-├── command-manager-tool.ts     # Command management tool
 ├── hook-manager-tool.ts        # Hook management tool
 └── tools/                      # Modular tool organization
     ├── index.ts                # Main tool aggregator
@@ -160,7 +159,7 @@ handler: createTrackedHandler('my_tool', async (args): Promise<MCPToolResponse> 
     switch (action) {
       case MyToolAction.LIST: {
         // Validate required parameters
-        const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+        const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
         // Call service layer
         const items = await listMyItems(validProjectId)

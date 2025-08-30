@@ -14,13 +14,10 @@ import { Loader2 } from 'lucide-react'
 import { UseFormReturn } from 'react-hook-form'
 import { ExpandableTextarea } from '@/components/expandable-textarea'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import {
-  useCreatePrompt,
-  useUpdatePrompt,
-  useGetProjectPrompts,
-  useAddPromptToProject
-} from '@/hooks/api/use-prompts-api'
-import { toast } from 'sonner'
+import { useCreatePrompt, useUpdatePrompt } from '@/hooks/generated'
+import { useGetProjectPrompts } from '@/hooks/api-hooks'
+import { PROMPT_ENHANCED_KEYS } from '@/hooks/generated/query-keys'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
 interface PromptDialogProps {
@@ -35,21 +32,21 @@ interface PromptDialogProps {
 export function PromptDialog({ open, editPromptId, promptForm, projectId, onClose, onSuccess }: PromptDialogProps) {
   const createPromptMutation = useCreatePrompt()
   const updatePromptMutation = useUpdatePrompt()
-  const addPromptToProjectMutation = useAddPromptToProject()
   const { data: promptData } = useGetProjectPrompts(projectId)
+  const queryClient = useQueryClient()
 
   // Populate form when editing
   useEffect(() => {
-    if (editPromptId && promptData?.data) {
-      const prompt = promptData.data.find((p) => p.id === editPromptId)
+    if (editPromptId && promptData) {
+      const prompt = promptData.find((p) => p.id === editPromptId)
       if (prompt) {
-        promptForm.setValue('name', prompt.name)
+        promptForm.setValue('title', prompt.title)
         promptForm.setValue('content', prompt.content)
       }
     } else {
       promptForm.reset()
     }
-  }, [editPromptId, promptData?.data, promptForm])
+  }, [editPromptId, promptData, promptForm])
 
   const handleFormKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.target instanceof HTMLTextAreaElement) {
@@ -57,53 +54,42 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
     }
   }
 
-  const handleCreatePrompt = async (values: { name: string; content: string }) => {
+  const handleCreatePrompt = async (values: { title: string; content: string }) => {
     try {
       const result = await createPromptMutation.mutateAsync({
         projectId,
-        name: values.name,
+        title: values.title,
         content: values.content
       })
 
       if (!result) {
-        toast.error('Failed to create prompt')
         return
       }
 
-      try {
-        await addPromptToProjectMutation.mutateAsync({
-          projectId,
-          promptId: result.data.id
-        })
-      } catch (e) {
-        toast.error('Failed to add prompt to project')
-      }
-
-      toast.success('Prompt created successfully')
+      // Invalidate project prompts explicitly (generated hooks also invalidate all prompts)
+      queryClient.invalidateQueries({ queryKey: PROMPT_ENHANCED_KEYS.projectPrompts(projectId) })
       onSuccess?.()
     } catch (error) {
       console.error('Error creating prompt:', error)
-      toast.error('Failed to create prompt')
+      // Error toasts are handled by the generated hook
     }
   }
 
-  const handleUpdatePrompt = async (values: { name: string; content: string }) => {
+  const handleUpdatePrompt = async (values: { title: string; content: string }) => {
     if (!editPromptId) return
 
     try {
       await updatePromptMutation.mutateAsync({
-        promptId: editPromptId,
+        id: editPromptId,
         data: {
-          name: values.name,
+          title: values.title,
           content: values.content
         }
       })
-
-      toast.success('Prompt updated successfully')
       onSuccess?.()
     } catch (error) {
       console.error('Error updating prompt:', error)
-      toast.error('Failed to update prompt')
+      // Error toasts are handled by the generated hook
     }
   }
 
@@ -135,10 +121,10 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
             >
               <FormField
                 control={promptForm.control}
-                name='name'
+                name='title'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prompt Name</FormLabel>
+                    <FormLabel>Prompt Title</FormLabel>
                     <FormControl>
                       <Input placeholder='e.g. Summarize Document' {...field} />
                     </FormControl>
@@ -173,7 +159,7 @@ export function PromptDialog({ open, editPromptId, promptForm, projectId, onClos
                   disabled={createPromptMutation.isPending || updatePromptMutation.isPending}
                   onClick={(e) => {
                     e.preventDefault()
-                    // handle form submit/prompt creation becuase form submit is not working
+                    // handle form submit/prompt creation because form submit is not working
                     if (editPromptId) {
                       handleUpdatePrompt(promptForm.getValues())
                     } else {

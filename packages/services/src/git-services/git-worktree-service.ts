@@ -1,18 +1,28 @@
 import type { GitWorktree } from '@promptliano/schemas'
-import { ApiError } from '@promptliano/shared'
-import { BaseGitService } from './base-git-service'
+import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
+import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 import * as path from 'path'
 
+export interface GitWorktreeServiceDeps extends GitServiceDependencies {}
+
 /**
- * Service for Git worktree management
+ * Create Git worktree service with functional factory pattern
  */
-export class GitWorktreeService extends BaseGitService {
-  /**
-   * Get all worktrees
-   */
-  async getWorktrees(projectId: number): Promise<GitWorktree[]> {
-    try {
-      const { git, projectPath } = await this.getGitInstance(projectId)
+export function createGitWorktreeService(dependencies?: GitWorktreeServiceDeps) {
+  return createGitServiceFactory({
+    entityName: 'GitWorktree',
+    serviceName: 'Worktree',
+    dependencies
+  }, (deps) => {
+    const gitUtils = createGitUtils(deps.projectService, deps.errorHandler)
+
+    const service = {
+      /**
+       * Get all worktrees
+       */
+      async getWorktrees(projectId: number): Promise<GitWorktree[]> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git, projectPath } = await gitUtils.getGitInstance(projectId)
 
       // Get worktrees using porcelain format
       const worktreeList = await git.raw(['worktree', 'list', '--porcelain'])
@@ -85,162 +95,164 @@ export class GitWorktreeService extends BaseGitService {
         })
       }
 
-      return worktrees
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'get worktrees')
-    }
-  }
+          return worktrees
+        }, 'get worktrees')
+      },
 
-  /**
-   * Add a worktree
-   */
-  async addWorktree(
-    projectId: number,
-    options: {
-      path: string
-      branch?: string
-      newBranch?: string
-      commitish?: string
-      detach?: boolean
-    }
-  ): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      // Resolve the worktree path to absolute
-      const worktreePath = path.resolve(options.path)
-
-      const args = ['worktree', 'add']
-
-      // Add options
-      if (options.newBranch) {
-        args.push('-b', options.newBranch)
-      } else if (options.detach) {
-        args.push('--detach')
-      }
-
-      args.push(worktreePath)
-
-      // Add branch/commit to checkout
-      if (options.commitish) {
-        args.push(options.commitish)
-      } else if (options.branch && !options.newBranch) {
-        args.push(options.branch)
-      }
-
-      await git.raw(args)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'add worktree')
-    }
-  }
-
-  /**
-   * Remove a worktree
-   */
-  async removeWorktree(projectId: number, worktreePath: string, force: boolean = false): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      // Get current worktrees to validate
-      const worktrees = await this.getWorktrees(projectId)
-      const targetPath = path.resolve(worktreePath)
-      const worktree = worktrees.find((w) => path.resolve(w.path) === targetPath)
-
-      if (!worktree) {
-        throw new ApiError(404, 'Worktree not found', 'WORKTREE_NOT_FOUND')
-      }
-
-      if (worktree.isMain) {
-        throw new ApiError(400, 'Cannot remove the main worktree', 'CANNOT_REMOVE_MAIN_WORKTREE')
-      }
-
-      const args = ['worktree', 'remove']
-      if (force) {
-        args.push('--force')
-      }
-      args.push(targetPath)
-
-      await git.raw(args)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'remove worktree')
-    }
-  }
-
-  /**
-   * Lock a worktree
-   */
-  async lockWorktree(projectId: number, worktreePath: string, reason?: string): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      const targetPath = path.resolve(worktreePath)
-
-      const args = ['worktree', 'lock']
-      if (reason) {
-        args.push('--reason', reason)
-      }
-      args.push(targetPath)
-
-      await git.raw(args)
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'lock worktree')
-    }
-  }
-
-  /**
-   * Unlock a worktree
-   */
-  async unlockWorktree(projectId: number, worktreePath: string): Promise<void> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      const targetPath = path.resolve(worktreePath)
-
-      await git.raw(['worktree', 'unlock', targetPath])
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'unlock worktree')
-    }
-  }
-
-  /**
-   * Prune worktrees
-   */
-  async pruneWorktrees(projectId: number, dryRun: boolean = false): Promise<string[]> {
-    try {
-      const { git } = await this.getGitInstance(projectId)
-
-      const args = ['worktree', 'prune']
-      if (dryRun) {
-        args.push('--dry-run')
-      }
-      args.push('--verbose')
-
-      const result = await git.raw(args)
-
-      // Parse the output to get pruned worktree paths
-      const prunedPaths: string[] = []
-      const lines = result.split('\n').filter(Boolean)
-
-      for (const line of lines) {
-        // Git outputs lines like "Removing worktrees/branch-name: gitdir file points to non-existent location"
-        const match = line.match(/^Removing (.+?):|^Would remove (.+?):/)
-        if (match) {
-          prunedPaths.push(match[1] || match[2] || '')
+      /**
+       * Add a worktree
+       */
+      async addWorktree(
+        projectId: number,
+        options: {
+          path: string
+          branch?: string
+          newBranch?: string
+          commitish?: string
+          detach?: boolean
         }
-      }
+      ): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
 
-      return prunedPaths
-    } catch (error) {
-      if (error instanceof ApiError) throw error
-      this.handleGitError(error, 'prune worktrees')
+          // Resolve the worktree path to absolute
+          const worktreePath = path.resolve(options.path)
+
+          const args = ['worktree', 'add']
+
+          // Add options
+          if (options.newBranch) {
+            args.push('-b', options.newBranch)
+          } else if (options.detach) {
+            args.push('--detach')
+          }
+
+          args.push(worktreePath)
+
+          // Add branch/commit to checkout
+          if (options.commitish) {
+            args.push(options.commitish)
+          } else if (options.branch && !options.newBranch) {
+            args.push(options.branch)
+          }
+
+          await git.raw(args)
+        }, 'add worktree')
+      },
+
+      /**
+       * Remove a worktree
+       */
+      async removeWorktree(projectId: number, worktreePath: string, force: boolean = false): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+
+          // Get current worktrees to validate
+          const worktrees = await service.getWorktrees(projectId)
+          const targetPath = path.resolve(worktreePath)
+          const worktree = worktrees.find((w) => path.resolve(w.path) === targetPath)
+
+          if (!worktree) {
+            throw ErrorFactory.notFound('Worktree', worktreePath)
+          }
+
+          if (worktree.isMain) {
+            throw ErrorFactory.validationFailed(
+              new Error('Cannot remove the main worktree'),
+              { code: 'CANNOT_REMOVE_MAIN_WORKTREE' }
+            )
+          }
+
+          const args = ['worktree', 'remove']
+          if (force) {
+            args.push('--force')
+          }
+          args.push(targetPath)
+
+          await git.raw(args)
+        }, 'remove worktree')
+      },
+
+      /**
+       * Lock a worktree
+       */
+      async lockWorktree(projectId: number, worktreePath: string, reason?: string): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+
+          const targetPath = path.resolve(worktreePath)
+
+          const args = ['worktree', 'lock']
+          if (reason) {
+            args.push('--reason', reason)
+          }
+          args.push(targetPath)
+
+          await git.raw(args)
+        }, 'lock worktree')
+      },
+
+      /**
+       * Unlock a worktree
+       */
+      async unlockWorktree(projectId: number, worktreePath: string): Promise<void> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+
+          const targetPath = path.resolve(worktreePath)
+
+          await git.raw(['worktree', 'unlock', targetPath])
+        }, 'unlock worktree')
+      },
+
+      /**
+       * Prune worktrees
+       */
+      async pruneWorktrees(projectId: number, dryRun: boolean = false): Promise<string[]> {
+        return deps.errorHandler.withGitErrorHandling(async () => {
+          const { git } = await gitUtils.getGitInstance(projectId)
+
+          const args = ['worktree', 'prune']
+          if (dryRun) {
+            args.push('--dry-run')
+          }
+          args.push('--verbose')
+
+          const result = await git.raw(args)
+
+          // Parse the output to get pruned worktree paths
+          const prunedPaths: string[] = []
+          const lines = result.split('\n').filter(Boolean)
+
+          for (const line of lines) {
+            // Git outputs lines like "Removing worktrees/branch-name: gitdir file points to non-existent location"
+            const match = line.match(/^Removing (.+?):|^Would remove (.+?):/)
+            if (match) {
+              prunedPaths.push(match[1] || match[2] || '')
+            }
+          }
+
+          return prunedPaths
+        }, 'prune worktrees')
+      }
     }
-  }
+    
+    return service
+  })
 }
 
-// Export singleton instance
-export const gitWorktreeService = new GitWorktreeService()
+// Export type for consumers
+export type GitWorktreeService = ReturnType<typeof createGitWorktreeService>
+
+// Export singleton instance for backward compatibility
+export const gitWorktreeService = createGitWorktreeService()
+
+// Export individual functions for tree-shaking
+export const {
+  getWorktrees,
+  addWorktree,
+  removeWorktree,
+  lockWorktree,
+  unlockWorktree,
+  pruneWorktrees
+} = gitWorktreeService

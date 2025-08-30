@@ -1,4 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+
+// Define valid HTTP status codes that have response bodies (are "contentful")
+type ContentfulStatusCode = 200 | 201 | 202 | 400 | 401 | 403 | 404 | 409 | 422 | 500 | 502 | 503 | 504
+
 import {
   gitOperationResponseSchema,
   gitRemoteSchema,
@@ -8,30 +12,24 @@ import {
   gitResetRequestSchema,
   ApiErrorResponseSchema
 } from '@promptliano/schemas'
-import * as gitService from '@promptliano/services'
-import { createStandardResponses, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  getRemotes,
+  push,
+  fetch,
+  pull,
+  getTags,
+  createTag,
+  stash,
+  stashList,
+  stashApply,
+  reset
+} from '@promptliano/services'
+import { createStandardResponses, createStandardResponsesWithStatus, createListResponseSchema, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
-// Define reusable response schemas
-const RemotesResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitRemoteSchema)
-  })
-  .openapi('RemotesResponse')
-
-const TagsResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitTagSchema)
-  })
-  .openapi('TagsResponse')
-
-const StashListResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(gitStashSchema)
-  })
-  .openapi('StashListResponse')
+// Define reusable response schemas using factory functions
+const RemotesResponseSchema = createListResponseSchema(gitRemoteSchema, 'RemotesResponse')
+const TagsResponseSchema = createListResponseSchema(gitTagSchema, 'TagsResponse')
+const StashListResponseSchema = createListResponseSchema(gitStashSchema, 'StashListResponse')
 
 export const gitAdvancedRoutes = new OpenAPIHono()
 
@@ -42,10 +40,10 @@ export const gitAdvancedRoutes = new OpenAPIHono()
 // Get remotes route
 const getRemotesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/remotes',
+  path: '/api/projects/{id}/git/remotes',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     })
   },
   responses: createStandardResponses(RemotesResponseSchema),
@@ -54,18 +52,18 @@ const getRemotesRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getRemotesRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
-  const remotes = await gitService.getRemotes(projectId)
+  const { id: projectId } = c.req.valid('param')
+  const remotes = await getRemotes(projectId)
   return c.json(successResponse(remotes))
 })
 
 // Push route
 const pushRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/push',
+  path: '/api/projects/{id}/git/push',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -81,23 +79,21 @@ const pushRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(pushRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
+  const { id: projectId } = c.req.valid('param')
   const { remote, branch, force, setUpstream } = c.req.valid('json')
 
-  await gitService.push(projectId, remote || 'origin', branch, { force, setUpstream })
+  await push(projectId, remote || 'origin', branch, { force, setUpstream })
 
-  return c.json(operationSuccessResponse(
-    `Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`
-  ))
+  return c.json(operationSuccessResponse(`Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
 })
 
 // Fetch route
 const fetchRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/fetch',
+  path: '/api/projects/{id}/git/fetch',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -110,84 +106,26 @@ const fetchRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Fetched successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Fetch updates from a remote repository'
 })
 
 gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { remote, prune } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { remote, prune } = c.req.valid('json')
 
-    await gitService.fetch(projectId, remote || 'origin', { prune })
+  await fetch(projectId, remote || 'origin', { prune })
 
-    return c.json({
-      success: true,
-      message: `Successfully fetched from ${remote || 'origin'}`
-    })
-  } catch (error) {
-    console.error('[Fetch] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to fetch from remote'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Successfully fetched from ${remote || 'origin'}`))
 })
 
 // Pull route
 const pullRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/pull',
+  path: '/api/projects/{id}/git/pull',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -200,74 +138,18 @@ const pullRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Pulled successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Pull changes from a remote repository'
 })
 
 gitAdvancedRoutes.openapi(pullRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { remote, branch, rebase } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { remote, branch, rebase } = c.req.valid('json')
 
-    await gitService.pull(projectId, remote || 'origin', branch, { rebase })
+  await pull(projectId, remote || 'origin', branch, { rebase })
 
-    return c.json({
-      success: true,
-      message: `Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`
-    })
-  } catch (error) {
-    console.error('[Pull] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to pull changes'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
 })
 
 // ============================================
@@ -277,11 +159,9 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
 // Get tags route
 const getTagsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/tags',
+  path: '/api/projects/{id}/git/tags',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    })
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) })
   },
   responses: createStandardResponses(TagsResponseSchema),
   tags: ['Git'],
@@ -289,19 +169,17 @@ const getTagsRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getTagsRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
-  const tags = await gitService.getTags(projectId)
+  const { id: projectId } = c.req.valid('param')
+  const tags = await getTags(projectId)
   return c.json(successResponse(tags))
 })
 
 // Create tag route
 const createTagRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/tags',
+  path: '/api/projects/{id}/git/tags',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -314,74 +192,18 @@ const createTagRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Tag created successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Create a new tag in the git repository'
 })
 
 gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { name, message, ref } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { name, message, ref } = c.req.valid('json')
 
-    await gitService.createTag(projectId, name, { message, ref })
+  await createTag(projectId, name, { message, ref })
 
-    return c.json({
-      success: true,
-      message: `Tag '${name}' created successfully`
-    })
-  } catch (error) {
-    console.error('[CreateTag] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to create tag'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Tag '${name}' created successfully`))
 })
 
 // ============================================
@@ -391,11 +213,9 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
 // Stash changes route
 const stashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -406,84 +226,26 @@ const stashRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Changes stashed successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Stash current changes'
 })
 
 gitAdvancedRoutes.openapi(stashRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { message } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { message } = c.req.valid('json')
 
-    await gitService.stash(projectId, message)
+  await stash(projectId, message)
 
-    return c.json({
-      success: true,
-      message: `Changes stashed successfully${message ? `: ${message}` : ''}`
-    })
-  } catch (error) {
-    console.error('[Stash] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to stash changes'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`))
 })
 
 // Get stash list route
 const getStashListRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/git/stash',
+  path: '/api/projects/{id}/git/stash',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    })
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) })
   },
   responses: createStandardResponses(StashListResponseSchema),
   tags: ['Git'],
@@ -491,19 +253,17 @@ const getStashListRoute = createRoute({
 })
 
 gitAdvancedRoutes.openapi(getStashListRoute, async (c) => {
-  const { projectId } = c.req.valid('param')
-  const stashes = await gitService.stashList(projectId)
+  const { id: projectId } = c.req.valid('param')
+  const stashes = await stashList(projectId)
   return c.json(successResponse(stashes))
 })
 
 // Apply stash route
 const applyStashRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/stash/apply',
+  path: '/api/projects/{id}/git/stash/apply',
   request: {
-    params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
-    }),
+    params: z.object({ id: z.string().transform((val) => parseInt(val, 10)) }),
     body: {
       content: {
         'application/json': {
@@ -514,74 +274,18 @@ const applyStashRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Stash applied successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Apply a stash without removing it from the stash list'
 })
 
 gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { ref } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { ref } = c.req.valid('json')
 
-    await gitService.stashApply(projectId, ref || 'stash@{0}')
+  await stashApply(projectId, ref || 'stash@{0}')
 
-    return c.json({
-      success: true,
-      message: `Applied stash: ${ref || 'stash@{0}'}`
-    })
-  } catch (error) {
-    console.error('[ApplyStash] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to apply stash'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Applied stash: ${ref || 'stash@{0}'}`))
 })
 
 // ============================================
@@ -591,10 +295,10 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
 // Reset route
 const resetRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/git/reset',
+  path: '/api/projects/{id}/git/reset',
   request: {
     params: z.object({
-      projectId: z.string().transform((val) => parseInt(val, 10))
+      id: z.string().transform((val) => parseInt(val, 10))
     }),
     body: {
       content: {
@@ -604,72 +308,16 @@ const resetRoute = createRoute({
       }
     }
   },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Reset successfully'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Bad request'
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Project not found'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: gitOperationResponseSchema
-        }
-      },
-      description: 'Internal server error'
-    }
-  },
+  responses: createStandardResponses(gitOperationResponseSchema),
   tags: ['Git'],
   description: 'Reset current HEAD to a specified state'
 })
 
 gitAdvancedRoutes.openapi(resetRoute, async (c) => {
-  try {
-    const { projectId } = c.req.valid('param')
-    const { ref, mode } = c.req.valid('json')
+  const { id: projectId } = c.req.valid('param')
+  const { ref, mode } = c.req.valid('json')
 
-    await gitService.reset(projectId, ref, mode || 'mixed')
+  await reset(projectId, ref, mode || 'mixed')
 
-    return c.json({
-      success: true,
-      message: `Reset to ${ref} (${mode || 'mixed'} mode)`
-    })
-  } catch (error) {
-    console.error('[Reset] Error:', error)
-    if (error instanceof Error) {
-      return c.json(
-        {
-          success: false,
-          message: error.message
-        },
-        500
-      )
-    }
-    return c.json(
-      {
-        success: false,
-        message: 'Failed to reset'
-      },
-      500
-    )
-  }
+  return c.json(operationSuccessResponse(`Reset to ${ref} (${mode || 'mixed'} mode)`))
 })

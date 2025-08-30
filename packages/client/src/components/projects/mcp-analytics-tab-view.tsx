@@ -28,9 +28,9 @@ import {
   useGetMCPExecutions,
   useGetMCPToolStatistics,
   useGetMCPExecutionTimeline,
-  useGetMCPErrorPatterns
-} from '@/hooks/api/use-mcp-analytics-api'
-import { useGlobalMCPManager } from '@/hooks/api/use-mcp-global-api'
+  useGetMCPErrorPatterns,
+  useGlobalMCPManager
+} from '@/hooks/generated'
 import type { MCPAnalyticsRequest, MCPExecutionQuery, MCPToolSummary, MCPToolExecution } from '@promptliano/schemas'
 
 // Type for tool statistics data structure
@@ -40,7 +40,7 @@ type ToolStatisticsData = {
   toolName: string
   periodStart: number
   periodEnd: number
-  periodType: "month" | "day" | "hour" | "week"
+  periodType: 'month' | 'day' | 'hour' | 'week'
   executionCount: number
   errorCount: number
   timeoutCount: number
@@ -123,7 +123,8 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
   const handleInstallUniversalMCP = async () => {
     try {
       // Find tools that don't have Promptliano installed
-      const uninstalledTools = toolStatuses?.filter((tool: ToolStatus) => tool.installed && !tool.hasGlobalPromptliano) || []
+      const uninstalledTools =
+        toolStatuses?.filter((tool: ToolStatus) => tool.installed && !tool.hasGlobalPromptliano) || []
 
       if (uninstalledTools.length === 0) {
         toast.info('All installed tools already have Promptliano MCP configured')
@@ -187,7 +188,10 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
             {/* Universal MCP Installation Button */}
             {!isGlobalLoading && (
               <div className='flex items-center gap-1'>
-                {globalStatus && !globalStatus.installed ? (
+                {globalStatus &&
+                typeof globalStatus === 'object' &&
+                'configExists' in globalStatus &&
+                !globalStatus.configExists ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button size='sm' variant='outline' onClick={handleInstallUniversalMCP} disabled={isInstalling}>
@@ -344,68 +348,70 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                         <p className='text-sm mt-1'>Try selecting a different time range</p>
                       </div>
                     ) : (
-                      topToolsData.map((tool: MCPToolSummary | ToolStatisticsData) => {
+                      (topToolsData as (MCPToolSummary | ToolStatisticsData)[]).map((tool) => {
                         const isToolSummary = isMCPToolSummary(tool)
                         const isStatistics = isToolStatisticsData(tool)
-                        
-                        const toolName = tool.toolName
-                        const totalExecutions = isToolSummary ? tool.totalExecutions : isStatistics ? tool.executionCount : 0
-                        const successRate = isToolSummary ? tool.successRate : isStatistics ? (tool.successCount / Math.max(tool.executionCount, 1)) : 0
-                        
-                        return (
-                        <div key={toolName} className='p-3 border rounded-lg space-y-2'>
-                          <div className='flex items-center justify-between'>
-                            <h4 className='font-medium'>{toolName}</h4>
-                            <div className='flex items-center gap-2'>
-                              <Badge variant='secondary'>{totalExecutions} calls</Badge>
-                              <Badge
-                                variant={
-                                  successRate > 0.9
-                                    ? 'default'
-                                    : successRate > 0.7
-                                      ? 'warning'
-                                      : 'destructive'
-                                }
-                                className={cn(
-                                  successRate > 0.9 && 'bg-green-100 text-green-700',
-                                  successRate > 0.7 && successRate <= 0.9 && 'bg-yellow-100 text-yellow-700',
-                                  successRate <= 0.7 && 'bg-red-100 text-red-700'
-                                )}
-                              >
-                                {(successRate * 100).toFixed(1)}% success
-                              </Badge>
-                            </div>
-                          </div>
 
-                          <div className='grid grid-cols-3 gap-4 text-sm'>
-                            <div>
-                              <p className='text-muted-foreground'>Avg Duration</p>
-                              <p className='font-medium'>
-                                {isToolSummary && tool.avgDurationMs 
-                                  ? `${(tool.avgDurationMs / 1000).toFixed(2)}s` 
-                                  : isStatistics && tool.maxDurationMs 
-                                    ? `${(tool.maxDurationMs / 1000).toFixed(2)}s (max)` 
+                        const toolName = tool.toolName
+                        const totalExecutions = isToolSummary
+                          ? tool.totalExecutions
+                          : isStatistics
+                            ? tool.executionCount
+                            : 0
+                        const successRate = isToolSummary
+                          ? tool.successRate
+                          : isStatistics
+                            ? tool.successCount / Math.max(tool.executionCount, 1)
+                            : 0
+
+                        return (
+                          <div key={toolName} className='p-3 border rounded-lg space-y-2'>
+                            <div className='flex items-center justify-between'>
+                              <h4 className='font-medium'>{toolName}</h4>
+                              <div className='flex items-center gap-2'>
+                                <Badge variant='secondary'>{totalExecutions} calls</Badge>
+                                <Badge
+                                  variant={
+                                    successRate > 0.9 ? 'default' : successRate > 0.7 ? 'warning' : 'destructive'
+                                  }
+                                  className={cn(
+                                    successRate > 0.9 && 'bg-green-100 text-green-700',
+                                    successRate > 0.7 && successRate <= 0.9 && 'bg-yellow-100 text-yellow-700',
+                                    successRate <= 0.7 && 'bg-red-100 text-red-700'
+                                  )}
+                                >
+                                  {(successRate * 100).toFixed(1)}% success
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className='grid grid-cols-3 gap-4 text-sm'>
+                              <div>
+                                <p className='text-muted-foreground'>Avg Duration</p>
+                                <p className='font-medium'>
+                                  {isToolSummary && tool.avgDurationMs
+                                    ? `${(tool.avgDurationMs / 1000).toFixed(2)}s`
+                                    : isStatistics && tool.maxDurationMs
+                                      ? `${(tool.maxDurationMs / 1000).toFixed(2)}s (max)`
+                                      : 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-muted-foreground'>Min/Max</p>
+                                <p className='font-medium'>
+                                  {isToolSummary && tool.minDurationMs && tool.maxDurationMs
+                                    ? `${(tool.minDurationMs / 1000).toFixed(2)}s - ${(tool.maxDurationMs / 1000).toFixed(2)}s`
                                     : 'N/A'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className='text-muted-foreground'>Min/Max</p>
-                              <p className='font-medium'>
-                                {isToolSummary && tool.minDurationMs && tool.maxDurationMs
-                                  ? `${(tool.minDurationMs / 1000).toFixed(2)}s - ${(tool.maxDurationMs / 1000).toFixed(2)}s`
-                                  : 'N/A'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className='text-muted-foreground'>Total Output</p>
-                              <p className='font-medium'>
-                                {isToolSummary 
-                                  ? `${(tool.totalOutputSize / 1024).toFixed(1)} KB`
-                                  : 'N/A'}
-                              </p>
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-muted-foreground'>Total Output</p>
+                                <p className='font-medium'>
+                                  {isToolSummary ? `${(tool.totalOutputSize / 1024).toFixed(1)} KB` : 'N/A'}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
                         )
                       })
                     )}
@@ -450,7 +456,7 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                         <p>No errors in the selected period</p>
                       </div>
                     ) : (
-                      overviewData.recentErrors.map((error: MCPToolExecution) => (
+                      (overviewData.recentErrors as MCPToolExecution[]).map((error) => (
                         <div
                           key={error.id}
                           className='p-3 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/20'

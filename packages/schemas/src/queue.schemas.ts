@@ -6,73 +6,53 @@ import {
   entityIdOptionalSchema,
   entityIdNullableOptionalSchema
 } from './schema-utils'
-import { createEntitySchemas } from './schema-factories'
 
-// Queue status enum
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Queue as DatabaseQueue, QueueItem as DatabaseQueueItem } from '@promptliano/database'
+
+// Recreate schemas locally to avoid runtime imports from database package
+export const TaskQueueSchema = z
+  .object({
+    id: z.number(),
+    projectId: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+    maxParallelItems: z.number(),
+    isActive: z.boolean(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('TaskQueue')
+
+export const QueueItemSchema = z
+  .object({
+    id: z.number(),
+    queueId: z.number(),
+    itemType: z.enum(['ticket', 'task', 'chat', 'prompt']),
+    itemId: z.number(),
+    priority: z.number(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']),
+    agentId: z.string().nullable(),
+    errorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+    startedAt: z.number().nullable(),
+    completedAt: z.number().nullable(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('QueueItem')
+
+// Type verification to ensure schemas match database types
+const _queueTypeCheck: z.infer<typeof TaskQueueSchema> = {} as DatabaseQueue
+const _queueItemTypeCheck: z.infer<typeof QueueItemSchema> = {} as DatabaseQueueItem
+
+// Queue status enums (keep for API validation)
 export const QueueStatusEnum = z.enum(['active', 'paused', 'inactive'])
 export type QueueStatus = z.infer<typeof QueueStatusEnum>
 
-// Item queue status enum for tickets/tasks in Flow System
 export const ItemQueueStatusEnum = z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled', 'timeout'])
 export type ItemQueueStatus = z.infer<typeof ItemQueueStatusEnum>
-
-// Task queue schemas using factory pattern
-const queueSchemas = createEntitySchemas('TaskQueue', {
-  projectId: entityIdSchema,
-  name: z.string().min(1).max(100),
-  description: z.string().default(''),
-  status: QueueStatusEnum.default('active'),
-  maxParallelItems: z.number().min(1).max(10).default(1),
-  averageProcessingTime: z.number().nullable().optional(), // in milliseconds
-  totalCompletedItems: z.number().default(0)
-}, {
-  // Don't exclude status from updates - we want it to remain required
-  updateExcludes: []
-})
-
-// Create a custom update schema that keeps status required while making other fields optional
-export const UpdateTaskQueueSchema = queueSchemas.base
-  .omit({ id: true, created: true, updated: true })
-  .partial()
-  .merge(z.object({
-    status: QueueStatusEnum // Keep status required
-  }))
-  .openapi('UpdateTaskQueue')
-
-export const TaskQueueSchema = queueSchemas.base
-
-// Queue item schemas using factory pattern
-const queueItemSchemas = createEntitySchemas('QueueItem', {
-  queueId: entityIdSchema,
-  ticketId: entityIdNullableOptionalSchema,
-  taskId: entityIdNullableOptionalSchema,
-  status: ItemQueueStatusEnum.default('queued'),
-  priority: z.number().default(0),
-  position: z.number().nullable().optional(),
-  estimatedProcessingTime: z.number().nullable().optional(), // in milliseconds
-  actualProcessingTime: z.number().nullable().optional(), // in milliseconds
-  agentId: z.string().nullable().optional(),
-  errorMessage: z.string().nullable().optional(),
-  retryCount: z.number().default(0).optional(),
-  maxRetries: z.number().default(3).optional(),
-  timeoutAt: z.number().nullable().optional(), // Unix timestamp for timeout
-  startedAt: unixTSOptionalSchemaSpec,
-  completedAt: unixTSOptionalSchemaSpec
-})
-
-export const QueueItemSchema = queueItemSchemas.base
-  .refine(
-    (data) => {
-      // Ensure either ticketId or taskId is set, but not both
-      const hasTicket = data.ticketId != null // Check for both null and undefined
-      const hasTask = data.taskId != null // Check for both null and undefined
-      return (hasTicket && !hasTask) || (!hasTicket && hasTask)
-    },
-    {
-      message: 'Either ticketId or taskId must be set, but not both'
-    }
-  )
-  .openapi('QueueItem')
 
 // Queue statistics schema
 export const QueueStatsSchema = z
@@ -94,22 +74,29 @@ export const QueueStatsSchema = z
   })
   .openapi('QueueStats')
 
-// Create and update schemas - manually define to avoid complex omit operations
-export const CreateQueueBodySchema = z
-  .object({
-    projectId: entityIdSchema,
+// API Request Body Schemas - derived from database schemas
+export const CreateQueueBodySchema = TaskQueueSchema.pick({
+  projectId: true,
+  name: true,
+  description: true,
+  maxParallelItems: true
+})
+  .extend({
     name: z.string().min(1).max(100),
     description: z.string().optional(),
     maxParallelItems: z.number().min(1).max(10).optional()
   })
   .openapi('CreateQueueBody')
 
-export const UpdateQueueBodySchema = z
-  .object({
-    name: z.string().min(1).max(100).optional(),
-    description: z.string().optional(),
+export const UpdateQueueBodySchema = CreateQueueBodySchema.pick({
+  name: true,
+  description: true,
+  maxParallelItems: true
+})
+  .partial()
+  .extend({
     status: QueueStatusEnum.optional(),
-    maxParallelItems: z.number().min(1).max(10).optional()
+    isActive: z.boolean().optional()
   })
   .openapi('UpdateQueueBody')
 
@@ -165,13 +152,20 @@ export const QueueWithStatsSchema = z
   })
   .openapi('QueueWithStats')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreateQueueSchema = CreateQueueBodySchema
+export const UpdateQueueSchema = UpdateQueueBodySchema
+export const CreateQueueItemSchema = EnqueueItemBodySchema
+
 // Type exports
 export type TaskQueue = z.infer<typeof TaskQueueSchema>
-export type UpdateTaskQueue = z.infer<typeof UpdateTaskQueueSchema>
 export type QueueItem = z.infer<typeof QueueItemSchema>
 export type QueueStats = z.infer<typeof QueueStatsSchema>
 export type CreateQueueBody = z.infer<typeof CreateQueueBodySchema>
 export type UpdateQueueBody = z.infer<typeof UpdateQueueBodySchema>
+export type CreateQueue = z.infer<typeof CreateQueueSchema>
+export type UpdateQueue = z.infer<typeof UpdateQueueSchema>
+export type CreateQueueItem = z.infer<typeof CreateQueueItemSchema>
 export type EnqueueItemBody = z.infer<typeof EnqueueItemBodySchema>
 export type GetNextTaskResponse = z.infer<typeof GetNextTaskResponseSchema>
 export type BatchEnqueueResult = z.infer<typeof BatchEnqueueResultSchema>

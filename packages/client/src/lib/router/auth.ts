@@ -1,4 +1,5 @@
 import { redirect } from '@tanstack/react-router'
+import type { ParsedLocation } from '@tanstack/react-router'
 
 /**
  * Authentication state interface
@@ -42,7 +43,7 @@ export function getAuthState(): AuthState {
  * beforeLoad function to check authentication
  * Redirects to login if not authenticated
  */
-export async function requireAuth({ location, context }: { location: any; context: any }) {
+export async function requireAuth({ location, context }: { location: ParsedLocation; context: Record<string, unknown> }) {
   const auth = getAuthState()
 
   if (!auth.isAuthenticated) {
@@ -60,7 +61,7 @@ export async function requireAuth({ location, context }: { location: any; contex
 /**
  * beforeLoad function for admin-only routes
  */
-export async function requireAdmin({ location, context }: { location: any; context: any }) {
+export async function requireAdmin({ location, context }: { location: ParsedLocation; context: Record<string, unknown> }) {
   const auth = getAuthState()
 
   if (!auth.isAuthenticated) {

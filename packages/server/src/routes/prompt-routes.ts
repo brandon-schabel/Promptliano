@@ -1,12 +1,18 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
-import { createStandardResponses, createStandardResponsesWithStatus, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 import {
   CreatePromptBodySchema,
   UpdatePromptBodySchema,
   PromptIdParamsSchema,
   ProjectAndPromptIdParamsSchema,
+  IDParamsSchema,
   PromptResponseSchema,
   PromptListResponseSchema,
   SuggestPromptsRequestSchema,
@@ -33,7 +39,6 @@ import {
   promptToMarkdown,
   validateMarkdownContent
 } from '@promptliano/services'
-import { ProjectIdParamsSchema } from '@promptliano/schemas'
 
 // File upload constants for markdown imports
 const MARKDOWN_UPLOAD_CONFIG = {
@@ -41,6 +46,8 @@ const MARKDOWN_UPLOAD_CONFIG = {
   ALLOWED_EXTENSIONS: ['.md', '.markdown'],
   ALLOWED_MIME_TYPES: ['text/markdown', 'text/x-markdown', 'text/plain']
 } as const
+
+// All manual routes normalized to {id}; use ProjectIdParamsSchema
 
 const createPromptRoute = createRoute({
   method: 'post',
@@ -66,23 +73,23 @@ const listAllPromptsRoute = createRoute({
 
 const listProjectPromptsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/prompts',
+  path: '/api/projects/{id}/prompts',
   tags: ['Projects', 'Prompts'],
   summary: 'List prompts associated with a specific project',
   request: {
-    params: ProjectIdParamsSchema
+    params: IDParamsSchema
   },
   responses: createStandardResponses(PromptListResponseSchema)
 })
 
 const suggestPromptsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/suggest-prompts',
+  path: '/api/projects/{id}/suggest-prompts',
   tags: ['Projects', 'Prompts', 'AI'],
   summary: 'Get AI-suggested prompts based on user input',
   description: 'Uses AI to analyze user input and suggest the most relevant prompts from the project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: { 'application/json': { schema: SuggestPromptsRequestSchema } },
       required: true
@@ -93,22 +100,22 @@ const suggestPromptsRoute = createRoute({
 
 const addPromptToProjectRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/prompts/{promptId}',
+  path: '/api/projects/{id}/prompts/{promptId}',
   tags: ['Projects', 'Prompts'],
   summary: 'Associate a prompt with a project',
   request: {
-    params: ProjectAndPromptIdParamsSchema
+    params: z.object({ id: IDParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
 
 const removePromptFromProjectRoute = createRoute({
   method: 'delete',
-  path: '/api/projects/{projectId}/prompts/{promptId}',
+  path: '/api/projects/{id}/prompts/{promptId}',
   tags: ['Projects', 'Prompts'],
   summary: 'Disassociate a prompt from a project',
   request: {
-    params: ProjectAndPromptIdParamsSchema
+    params: z.object({ id: IDParamsSchema.shape.id, promptId: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
@@ -245,12 +252,12 @@ const exportBatchPromptsRoute = createRoute({
 
 const importProjectPromptsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/prompts/import',
+  path: '/api/projects/{id}/prompts/import',
   tags: ['Projects', 'Prompts', 'Import/Export'],
   summary: 'Import prompts to a specific project',
   description: 'Upload and import markdown files with prompts directly to a project',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     body: {
       content: {
         'multipart/form-data': {
@@ -283,12 +290,12 @@ const importProjectPromptsRoute = createRoute({
 
 const exportAllProjectPromptsRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/prompts/export',
+  path: '/api/projects/{id}/prompts/export',
   tags: ['Projects', 'Prompts', 'Import/Export'],
   summary: 'Export all prompts from a project',
   description: 'Download all prompts from a project as markdown file(s)',
   request: {
-    params: ProjectIdParamsSchema,
+    params: IDParamsSchema,
     query: z.object({
       format: z.enum(['single-file', 'multi-file']).optional().default('single-file').openapi({
         description: 'Export format'
@@ -335,52 +342,59 @@ const validateMarkdownRoute = createRoute({
 export const promptRoutes = new OpenAPIHono()
   .openapi(createPromptRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
-    const createdPrompt = await createPrompt({
-      name: body.name,
+    const promptData = {
+      title: body.title,
       content: body.content,
       projectId: body.projectId
-    })
+    }
+    const createdPrompt = await createPrompt(promptData)
     return c.json(successResponse(createdPrompt), 201)
   }) as any)
   .openapi(listAllPromptsRoute, async (c) => {
     return c.json(successResponse(await listAllPrompts()))
   })
   .openapi(listProjectPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const projectPrompts = await listPromptsByProject(projectId)
     return c.json(successResponse(projectPrompts))
   })
   .openapi(suggestPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const { userInput, limit } = c.req.valid('json')
-    const suggestedPrompts = await suggestPrompts(projectId, userInput, limit)
+    const suggestedPrompts = await suggestPrompts(projectId, userInput)
     return c.json(successResponse({ prompts: suggestedPrompts }))
   })
 
   .openapi(addPromptToProjectRoute, async (c) => {
-    const { promptId, projectId } = c.req.valid('param')
+    const { promptId, id: projectId } = c.req.valid('param')
     await addPromptToProject(promptId, projectId)
     return c.json(operationSuccessResponse('Prompt linked to project.'))
   })
   .openapi(removePromptFromProjectRoute, async (c) => {
-    const { promptId, projectId } = c.req.valid('param')
-    await removePromptFromProject(promptId, projectId)
+    const { promptId, id: projectId } = c.req.valid('param')
+    await removePromptFromProject(promptId)
     return c.json(operationSuccessResponse('Prompt unlinked from project.'))
   })
   .openapi(getPromptByIdRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
     return c.json(successResponse(prompt))
   })
   .openapi(updatePromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const body = (c.req as any).valid('json')
     const updatedPrompt = await updatePrompt(promptId, body)
     return c.json(successResponse(updatedPrompt))
   })
   .openapi(deletePromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
-    await deletePrompt(promptId)
+    const { id: promptId } = c.req.valid('param')
+    if (!deletePrompt) {
+      throw new Error('Delete prompt function not available')
+    }
+    const deleted = await deletePrompt(promptId)
+    if (!deleted) {
+      throw new Error('Failed to delete prompt')
+    }
     return c.json(operationSuccessResponse('Prompt deleted successfully.'))
   })
 
@@ -419,8 +433,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-          ;(error as any).statusCode = 413
-          ;(error as any).code = 'FILE_TOO_LARGE'
+            ; (error as any).statusCode = 413
+            ; (error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
@@ -442,11 +456,16 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
 
   .openapi(exportPromptRoute, async (c) => {
-    const { promptId } = c.req.valid('param')
+    const { id: promptId } = c.req.valid('param')
     const prompt = await getPromptById(promptId)
-    const markdownContent = await promptToMarkdown(prompt)
+    // Ensure tags are properly typed for the promptToMarkdown function
+    const promptForMarkdown = {
+      ...prompt,
+      tags: Array.isArray(prompt.tags) ? prompt.tags.filter((tag): tag is string => typeof tag === 'string') : []
+    }
+    const markdownContent = await promptToMarkdown(promptForMarkdown)
 
-    const filename = `${prompt.name
+    const filename = `${prompt.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')}.md`
@@ -477,7 +496,7 @@ export const promptRoutes = new OpenAPIHono()
   })
 
   .openapi(importProjectPromptsRoute, (async (c: Context) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const body = await c.req.formData()
     const overwriteExisting = body.get('overwriteExisting') === 'true'
 
@@ -510,8 +529,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-          ;(error as any).statusCode = 413
-          ;(error as any).code = 'FILE_TOO_LARGE'
+            ; (error as any).statusCode = 413
+            ; (error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
@@ -533,7 +552,7 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
 
   .openapi(exportAllProjectPromptsRoute, async (c) => {
-    const { projectId } = (c.req as any).valid('param')
+    const { id: projectId } = (c.req as any).valid('param')
     const { format, sortBy, sortOrder } = c.req.valid('query')
 
     const projectPrompts = await listPromptsByProject(projectId)
@@ -575,11 +594,14 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(validateMarkdownRoute, async (c) => {
     const { content } = c.req.valid('json')
     const validationResult = await validateMarkdownContent(content)
-    
-    return c.json({
-      success: true,
-      data: validationResult.validation
-    }, 200)
+
+    return c.json(
+      {
+        success: true,
+        data: validationResult.validation
+      },
+      200
+    )
   })
 
 export type PromptRouteTypes = typeof promptRoutes

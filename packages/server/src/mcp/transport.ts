@@ -27,17 +27,17 @@ interface JSONRPCRequest {
   jsonrpc: '2.0'
   id?: string | number
   method: string
-  params?: any
+  params?: Record<string, unknown> | unknown[]
 }
 
 interface JSONRPCResponse {
   jsonrpc: '2.0'
   id: string | number
-  result?: any
+  result?: unknown
   error?: {
     code: number
     message: string
-    data?: any
+    data?: unknown
   }
 }
 
@@ -47,7 +47,7 @@ interface JSONRPCError {
   error: {
     code: number
     message: string
-    data?: any
+    data?: unknown
   }
 }
 
@@ -69,9 +69,9 @@ interface MCPSession {
   projectId?: number
   createdAt: number
   lastActivity: number
-  capabilities: any
-  clientInfo?: any
-  clientCapabilities?: any
+  capabilities: Record<string, unknown>
+  clientInfo?: Record<string, unknown>
+  clientCapabilities?: Record<string, unknown>
 }
 
 const sessions = new Map<string, MCPSession>()
@@ -168,7 +168,7 @@ async function handleJSONRPCRequest(
 
     switch (method) {
       case 'initialize':
-        result = await handleInitialize(id, params, projectId)
+        result = await handleInitialize(id, Array.isArray(params) ? {} : params, projectId)
         break
       case 'tools/list':
         result = await handleToolsList(id, params, projectId, sessionId)
@@ -224,7 +224,7 @@ async function handleJSONRPCRequest(
 }
 
 // Initialize MCP session
-async function handleInitialize(id: string | number, params: any, projectId?: string): Promise<JSONRPCResponse> {
+async function handleInitialize(id: string | number, params: Record<string, unknown> | undefined, projectId?: string): Promise<JSONRPCResponse> {
   const { capabilities, clientInfo } = params || {}
 
   const sessionId = generateSessionId()
@@ -243,11 +243,12 @@ async function handleInitialize(id: string | number, params: any, projectId?: st
   }
 
   // Validate client capabilities and create server capabilities
+  const clientCapabilities = capabilities && typeof capabilities === 'object' && capabilities !== null ? capabilities as Record<string, unknown> : {}
   const serverCapabilities = {
-    tools: capabilities?.tools !== false,
-    resources: capabilities?.resources !== false,
-    prompts: capabilities?.prompts !== false,
-    logging: capabilities?.logging !== false
+    tools: clientCapabilities.tools !== false,
+    resources: clientCapabilities.resources !== false,
+    prompts: clientCapabilities.prompts !== false,
+    logging: clientCapabilities.logging !== false
   }
 
   const session: MCPSession = {
@@ -256,8 +257,8 @@ async function handleInitialize(id: string | number, params: any, projectId?: st
     createdAt: Date.now(),
     lastActivity: Date.now(),
     capabilities: serverCapabilities,
-    clientInfo,
-    clientCapabilities: capabilities
+    clientInfo: clientInfo && typeof clientInfo === 'object' && clientInfo !== null ? clientInfo as Record<string, unknown> : undefined,
+    clientCapabilities: clientCapabilities
   }
 
   sessions.set(sessionId, session)
@@ -282,7 +283,7 @@ async function handleInitialize(id: string | number, params: any, projectId?: st
 // List available tools
 async function handleToolsList(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
@@ -307,7 +308,7 @@ async function handleToolsList(
               type: 'object' as const,
               properties:
                 tool.parameters?.reduce(
-                  (acc, param) => {
+                  (acc: Record<string, any>, param: any) => {
                     acc[param.name] = {
                       type: param.type,
                       description: param.description,
@@ -318,7 +319,7 @@ async function handleToolsList(
                   },
                   {} as Record<string, any>
                 ) || {},
-              required: tool.parameters?.filter((p) => p.required).map((p) => p.name) || []
+              required: tool.parameters?.filter((p: any) => p.required).map((p: any) => p.name) || []
             }
           }
           mcpTools.push(externalTool as any)
@@ -349,12 +350,13 @@ async function handleToolsList(
 // Execute a tool
 async function handleToolsCall(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const { name, arguments: args } = params
+    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const { name, arguments: args } = paramsObj
 
     if (!name) {
       return {
@@ -367,8 +369,8 @@ async function handleToolsCall(
       }
     }
 
-    // Handle built-in Promptliano tools
-    if (name.startsWith('external_')) {
+    // Handle built-in Promptliano tools  
+    if (typeof name === 'string' && name.startsWith('external_')) {
       // Handle external MCP server tools
       if (!projectId) {
         return {
@@ -381,9 +383,9 @@ async function handleToolsCall(
         }
       }
 
-      const externalToolName = name.replace('external_', '')
+      const externalToolName = typeof name === 'string' ? name.replace('external_', '') : ''
       const tools = await getMCPClientManager().listAllTools(parseInt(projectId))
-      const tool = tools.find((t) => t.name === externalToolName)
+      const tool = tools.find((t: any) => t.name === externalToolName)
 
       if (!tool) {
         return {
@@ -400,13 +402,13 @@ async function handleToolsCall(
       const executionId = await startMCPToolExecution(
         `external_${externalToolName}`,
         parseInt(projectId),
-        args,
+        (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}),
         undefined,
         sessionId
       )
 
       try {
-        const result = await getMCPClientManager().executeTool(tool.serverId, externalToolName, args || {})
+        const result = await getMCPClientManager().executeTool(tool.serverId, externalToolName, (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}))
         const content = Array.isArray(result)
           ? result
           : [
@@ -438,7 +440,7 @@ async function handleToolsCall(
     }
 
     // Handle built-in tools using shared registry
-    const tool = getConsolidatedToolByName(name)
+    const tool = typeof name === 'string' ? getConsolidatedToolByName(name) : null
 
     if (!tool) {
       return {
@@ -458,15 +460,15 @@ async function handleToolsCall(
       // Track built-in tool execution
       console.log('[MCP] Starting tool tracking:', { sessionId, name, projectId })
       executionId = await startMCPToolExecution(
-        name,
+        typeof name === 'string' ? name : 'unknown',
         projectId ? parseInt(projectId) : undefined,
-        args || {},
+        (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}),
         undefined,
         sessionId || 'unknown'
       )
       console.log('[MCP] Execution ID:', executionId)
 
-      const toolResult = await tool.handler(args || {}, projectId ? parseInt(projectId) : undefined)
+      const toolResult = await tool.handler((args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}), projectId ? parseInt(projectId) : undefined)
       result = toolResult.content
 
       // Calculate output size
@@ -519,7 +521,7 @@ async function handleToolsCall(
 // List available resources
 async function handleResourcesList(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
@@ -577,14 +579,16 @@ async function handleResourcesList(
           uri: `promptliano://projects/${projectId}/files/${file.id}`,
           name: file.name,
           description: `File: ${file.path} (${file.size} bytes)`,
-          mimeType:
-            file.extension === '.json'
+          mimeType: (() => {
+            const extension = file.path.split('.').pop()?.toLowerCase()
+            return extension === 'json'
               ? 'application/json'
-              : file.extension === '.md'
+              : extension === 'md'
                 ? 'text/markdown'
-                : file.extension.match(/\.(js|ts|jsx|tsx)$/)
+                : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
                   ? 'text/javascript'
                   : 'text/plain'
+          })()
         }))
 
         mcpResources.push(...fileResources)
@@ -597,7 +601,7 @@ async function handleResourcesList(
     if (projectId) {
       try {
         const externalResources = await getMCPClientManager().listAllResources(parseInt(projectId))
-        const externalMcpResources = externalResources.map((resource) => ({
+        const externalMcpResources = externalResources.map((resource: any) => ({
           uri: `external://${resource.uri}`,
           name: `[External] ${resource.name}`,
           description: resource.description,
@@ -631,12 +635,13 @@ async function handleResourcesList(
 // Read a resource
 async function handleResourcesRead(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const { uri } = params
+    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const { uri } = paramsObj
 
     if (!uri) {
       return {
@@ -650,7 +655,7 @@ async function handleResourcesRead(
     }
 
     // Handle external resources
-    if (uri.startsWith('external://')) {
+    if (typeof uri === 'string' && uri.startsWith('external://')) {
       if (!projectId) {
         return {
           jsonrpc: '2.0',
@@ -662,9 +667,9 @@ async function handleResourcesRead(
         }
       }
 
-      const externalUri = uri.replace('external://', '')
+      const externalUri = typeof uri === 'string' ? uri.replace('external://', '') : ''
       const resources = await getMCPClientManager().listAllResources(parseInt(projectId))
-      const resource = resources.find((r) => r.uri === externalUri)
+      const resource = resources.find((r: any) => r.uri === externalUri)
 
       if (!resource) {
         return {
@@ -696,7 +701,7 @@ async function handleResourcesRead(
     }
 
     // Handle built-in Promptliano resources
-    if (uri.startsWith('promptliano://')) {
+    if (typeof uri === 'string' && uri.startsWith('promptliano://')) {
       const urlParts = uri.replace('promptliano://', '').split('/')
 
       // Handle global projects list
@@ -785,7 +790,7 @@ async function handleResourcesRead(
         } else if (urlParts[2] === 'files' && urlParts[3]) {
           // Individual file resource
           const fileId = parseInt(urlParts[3])
-          
+
           // Ensure projectId is valid before parsing
           if (!projectId) {
             return {
@@ -797,9 +802,9 @@ async function handleResourcesRead(
               }
             }
           }
-          
+
           const files = await getProjectFiles(parseInt(projectId))
-          const file = files?.find((f) => f.id === fileId)
+          const file = files?.find((f: any) => f.id === fileId || f.id === String(fileId))
 
           if (!file) {
             return {
@@ -819,14 +824,16 @@ async function handleResourcesRead(
               contents: [
                 {
                   uri,
-                  mimeType:
-                    file.extension === '.json'
+                  mimeType: (() => {
+                    const extension = file.path.split('.').pop()?.toLowerCase()
+                    return extension === 'json'
                       ? 'application/json'
-                      : file.extension === '.md'
+                      : extension === 'md'
                         ? 'text/markdown'
-                        : file.extension.match(/\.(js|ts|jsx|tsx)$/)
+                        : ['js', 'ts', 'jsx', 'tsx'].includes(extension || '')
                           ? 'text/javascript'
-                          : 'text/plain',
+                          : 'text/plain'
+                  })(),
                   text: file.content
                 }
               ]
@@ -860,7 +867,7 @@ async function handleResourcesRead(
 // List available prompts
 async function handlePromptsList(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
@@ -887,12 +894,13 @@ async function handlePromptsList(
 // Get a specific prompt
 async function handlePromptsGet(
   id: string | number,
-  params: any,
+  params: Record<string, unknown> | unknown[] | undefined,
   projectId?: string,
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const { name } = params
+    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const { name } = paramsObj
 
     if (!name) {
       return {
@@ -928,11 +936,12 @@ async function handlePromptsGet(
 }
 
 // Set logging level
-async function handleLoggingSetLevel(id: string | number, params: any, sessionId?: string): Promise<JSONRPCResponse> {
+async function handleLoggingSetLevel(id: string | number, params: Record<string, unknown> | unknown[] | undefined, sessionId?: string): Promise<JSONRPCResponse> {
   try {
-    const { level } = params
+    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const { level } = paramsObj
 
-    if (!level || !['error', 'warn', 'info', 'debug'].includes(level)) {
+    if (!level || typeof level !== 'string' || !['error', 'warn', 'info', 'debug'].includes(level)) {
       return {
         jsonrpc: '2.0',
         id,
@@ -1019,11 +1028,15 @@ async function handlePOSTRequest(c: Context): Promise<Response> {
 
     // Check if this was an initialize response with a new session
     const firstResponse = responses[0]
-    if (responses.length === 1 && firstResponse?.result?._meta?.sessionId) {
-      responseSessionId = firstResponse.result._meta.sessionId
-      // Remove _meta from the actual response
-      if (firstResponse.result._meta) {
-        delete firstResponse.result._meta
+    if (responses.length === 1 && firstResponse?.result && typeof firstResponse.result === 'object' && firstResponse.result !== null) {
+      const result = firstResponse.result as Record<string, unknown>
+      if (result._meta && typeof result._meta === 'object' && result._meta !== null) {
+        const meta = result._meta as Record<string, unknown>
+        if (typeof meta.sessionId === 'string') {
+          responseSessionId = meta.sessionId
+        }
+        // Remove _meta from the actual response
+        delete result._meta
       }
     }
 

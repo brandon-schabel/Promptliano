@@ -7,116 +7,143 @@ import {
   entityIdNullableOptionalSchema,
   entityIdArraySchema
 } from './schema-utils'
-import { createEntitySchemas } from './schema-factories'
 
-// Ticket schemas using factory pattern
-const ticketSchemas = createEntitySchemas('Ticket', {
-  projectId: entityIdSchema,
-  title: z.string().min(1),
-  overview: z.string().optional(),
-  status: z.enum(['open', 'in_progress', 'closed']).optional(),
-  priority: z.enum(['low', 'normal', 'high']).optional(),
-  suggestedFileIds: z.array(z.string()).optional(),
-  suggestedAgentIds: z.array(z.string()).optional(),
-  suggestedPromptIds: z.array(entityIdSchema).optional(),
-  // Queue integration fields (unified flow system)
-  queueId: entityIdNullableOptionalSchema,
-  queuePosition: z.number().nullable().optional(),
-  queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable().optional(),
-  queuePriority: z.number().optional(),
-  queuedAt: unixTSOptionalSchemaSpec,
-  queueStartedAt: unixTSOptionalSchemaSpec,
-  queueCompletedAt: unixTSOptionalSchemaSpec,
-  queueAgentId: z.string().nullable().optional(),
-  queueErrorMessage: z.string().nullable().optional(),
-  estimatedProcessingTime: z.number().nullable().optional(),
-  actualProcessingTime: z.number().nullable().optional()
-})
+// Import only types from database (not runtime schemas to avoid Vite bundling issues)
+import type { Ticket as DatabaseTicket, TicketTask as DatabaseTicketTask } from '@promptliano/database'
 
-export const TicketSchema = ticketSchemas.base
+// Recreate schemas locally to avoid runtime imports from database package
+// These must stay in sync with the database schemas
+export const TicketSchema = z
+  .object({
+    id: z.number(),
+    projectId: z.number(),
+    title: z.string(),
+    overview: z.string().nullable(),
+    status: z.enum(['open', 'in_progress', 'closed']),
+    priority: z.enum(['low', 'normal', 'high']),
+    suggestedFileIds: z.array(z.string()),
+    suggestedAgentIds: z.array(z.string()),
+    suggestedPromptIds: z.array(z.number()),
 
-// Enhanced Task schema - keeping original definition to maintain compatibility
+    // Queue integration fields (unified flow system)
+    queueId: z.number().nullable(),
+    queuePosition: z.number().nullable(),
+    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable(),
+    queuePriority: z.number().nullable(),
+    queuedAt: z.number().nullable(),
+    queueStartedAt: z.number().nullable(),
+    queueCompletedAt: z.number().nullable(),
+    queueAgentId: z.string().nullable(),
+    queueErrorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+
+    createdAt: z.number(),
+    updatedAt: z.number()
+  })
+  .openapi('Ticket')
+
 export const TicketTaskSchema = z
   .object({
-    id: entityIdSchema,
-    ticketId: entityIdSchema,
-    content: z.string().min(1), // Keep as task title/summary
-    description: z.string().optional(), // NEW: Detailed task breakdown
-    suggestedFileIds: z.array(z.string()).optional(), // NEW: File associations
-    done: z.boolean().default(false),
-    orderIndex: z.number().min(0),
-    estimatedHours: z.number().nullable().optional(), // NEW: Time estimation
-    dependencies: z.array(entityIdSchema).optional(), // NEW: Task dependencies
-    tags: z.array(z.string()).optional(), // NEW: Tags for categorization
-    agentId: z.string().nullable().optional(), // NEW: Assigned agent for this task
-    suggestedPromptIds: z.array(entityIdSchema).optional(), // NEW: Suggested prompts
+    id: z.number(),
+    ticketId: z.number(),
+    content: z.string(),
+    description: z.string().nullable(),
+    suggestedFileIds: z.array(z.string()),
+    done: z.boolean(),
+    status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+    orderIndex: z.number(),
+    estimatedHours: z.number().nullable(),
+    dependencies: z.array(z.number()),
+    tags: z.array(z.string()),
+    agentId: z.string().nullable(),
+    suggestedPromptIds: z.array(z.number()),
+
     // Queue integration fields (unified flow system)
-    queueId: entityIdNullableOptionalSchema,
-    queuePosition: z.number().nullable().optional(),
-    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable().optional(),
-    queuePriority: z.number().optional(),
-    queuedAt: unixTSOptionalSchemaSpec,
-    queueStartedAt: unixTSOptionalSchemaSpec,
-    queueCompletedAt: unixTSOptionalSchemaSpec,
-    queueAgentId: z.string().nullable().optional(),
-    queueErrorMessage: z.string().nullable().optional(),
-    estimatedProcessingTime: z.number().nullable().optional(),
-    actualProcessingTime: z.number().nullable().optional(),
-    created: unixTSSchemaSpec,
-    updated: unixTSSchemaSpec
+    queueId: z.number().nullable(),
+    queuePosition: z.number().nullable(),
+    queueStatus: z.enum(['queued', 'in_progress', 'completed', 'failed', 'cancelled']).nullable(),
+    queuePriority: z.number().nullable(),
+    queuedAt: z.number().nullable(),
+    queueStartedAt: z.number().nullable(),
+    queueCompletedAt: z.number().nullable(),
+    queueAgentId: z.string().nullable(),
+    queueErrorMessage: z.string().nullable(),
+    estimatedProcessingTime: z.number().nullable(),
+    actualProcessingTime: z.number().nullable(),
+
+    createdAt: z.number(),
+    updatedAt: z.number()
   })
   .openapi('TicketTask')
 
-// Create schemas - manually define to avoid complex omit operations
-export const CreateTicketBodySchema = z
-  .object({
-    projectId: entityIdSchema,
+// Type verification to ensure our schemas match the database types
+// These will cause TypeScript errors if schemas drift out of sync
+const _ticketTypeCheck: z.infer<typeof TicketSchema> = {} as DatabaseTicket
+const _taskTypeCheck: z.infer<typeof TicketTaskSchema> = {} as DatabaseTicketTask
+
+// API Request Body Schemas - derived from database schemas
+export const CreateTicketBodySchema = TicketSchema.pick({
+  projectId: true,
+  title: true,
+  overview: true,
+  status: true,
+  priority: true,
+  suggestedFileIds: true,
+  suggestedAgentIds: true,
+  suggestedPromptIds: true
+})
+  .extend({
     title: z.string().min(1),
-    overview: z.string().default(''),
+    overview: z.string().nullable().default(null),
     status: z.enum(['open', 'in_progress', 'closed']).default('open'),
-    priority: z.enum(['low', 'normal', 'high']).default('normal'),
-    suggestedFileIds: z.array(z.string()).optional(),
-    suggestedAgentIds: z.array(z.string()).optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
+    priority: z.enum(['low', 'normal', 'high']).default('normal')
   })
   .openapi('CreateTicketBody')
 
-export const UpdateTicketBodySchema = z
-  .object({
-    title: z.string().min(1).optional(),
-    overview: z.string().optional(),
-    status: z.enum(['open', 'in_progress', 'closed']).optional(),
-    priority: z.enum(['low', 'normal', 'high']).optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
-    suggestedAgentIds: z.array(z.string()).optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
-  })
+export const UpdateTicketBodySchema = CreateTicketBodySchema.pick({
+  projectId: true,
+  title: true,
+  overview: true,
+  status: true,
+  priority: true,
+  suggestedFileIds: true,
+  suggestedAgentIds: true,
+  suggestedPromptIds: true
+})
+  .partial()
   .openapi('UpdateTicketBody')
 
-export const CreateTaskBodySchema = z
-  .object({
-    content: z.string().min(1),
-    description: z.string().optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
-    estimatedHours: z.number().nullable().optional(),
-    dependencies: z.array(entityIdSchema).optional(),
-    tags: z.array(z.string()).optional(),
-    agentId: z.string().optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
+export const CreateTaskBodySchema = TicketTaskSchema.pick({
+  ticketId: true,
+  content: true,
+  description: true,
+  suggestedFileIds: true,
+  estimatedHours: true,
+  dependencies: true,
+  tags: true,
+  agentId: true,
+  suggestedPromptIds: true
+})
+  .extend({
+    content: z.string().min(1)
   })
   .openapi('CreateTaskBody')
 
-export const UpdateTaskBodySchema = z
-  .object({
-    content: z.string().min(1).optional(),
-    description: z.string().optional(),
-    suggestedFileIds: z.array(z.string()).optional(),
+export const UpdateTaskBodySchema = CreateTaskBodySchema.pick({
+  content: true,
+  description: true,
+  suggestedFileIds: true,
+  estimatedHours: true,
+  dependencies: true,
+  tags: true,
+  agentId: true,
+  suggestedPromptIds: true
+})
+  .partial()
+  .extend({
     done: z.boolean().optional(),
-    estimatedHours: z.number().nullable().optional(),
-    dependencies: z.array(entityIdSchema).optional(),
-    tags: z.array(z.string()).optional(),
-    agentId: z.string().optional(),
-    suggestedPromptIds: z.array(entityIdSchema).optional()
+    orderIndex: z.number().optional()
   })
   .openapi('UpdateTaskBody')
 
@@ -183,13 +210,23 @@ export const TicketWithTaskCountSchema = z
   })
   .openapi('TicketWithTaskCount')
 
+// Aliases for auto-generated routes (they expect different names)
+export const CreateTicketSchema = CreateTicketBodySchema
+export const UpdateTicketSchema = UpdateTicketBodySchema
+export const CreateTicketTaskSchema = CreateTaskBodySchema
+export const UpdateTicketTaskSchema = UpdateTaskBodySchema
+
 // Type exports
 export type Ticket = z.infer<typeof TicketSchema>
 export type TicketTask = z.infer<typeof TicketTaskSchema>
 export type CreateTicketBody = z.infer<typeof CreateTicketBodySchema>
 export type UpdateTicketBody = z.infer<typeof UpdateTicketBodySchema>
+export type CreateTicket = z.infer<typeof CreateTicketSchema>
+export type UpdateTicket = z.infer<typeof UpdateTicketSchema>
 export type CreateTaskBody = z.infer<typeof CreateTaskBodySchema>
 export type UpdateTaskBody = z.infer<typeof UpdateTaskBodySchema>
+export type CreateTicketTask = z.infer<typeof CreateTicketTaskSchema>
+export type UpdateTicketTask = z.infer<typeof UpdateTicketTaskSchema>
 export type ReorderTasksBody = z.infer<typeof ReorderTasksBodySchema>
 export type TaskSuggestions = z.infer<typeof TaskSuggestionsSchema>
 export type TicketWithTasks = z.infer<typeof TicketWithTasksSchema>

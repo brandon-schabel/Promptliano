@@ -99,11 +99,9 @@ const CreateAgentFileBodySchema = z.object({
 // Routes
 const detectAgentFilesRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/agent-files/detect',
+  path: '/api/projects/{id}/agent-files/detect',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(AgentFilesDetectionResponseSchema),
   tags: ['Agent Files'],
@@ -112,11 +110,9 @@ const detectAgentFilesRoute = createRoute({
 
 const updateAgentFileRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/update',
+  path: '/api/projects/{id}/agent-files/update',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -132,11 +128,9 @@ const updateAgentFileRoute = createRoute({
 
 const removeInstructionsRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/remove-instructions',
+  path: '/api/projects/{id}/agent-files/remove-instructions',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -154,11 +148,9 @@ const removeInstructionsRoute = createRoute({
 
 const getAgentFileStatusRoute = createRoute({
   method: 'get',
-  path: '/api/projects/{projectId}/agent-files/status',
+  path: '/api/projects/{id}/agent-files/status',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    })
+    params: z.object({ id: z.coerce.number().int().positive() })
   },
   responses: createStandardResponses(AgentFileStatusResponseSchema),
   tags: ['Agent Files'],
@@ -167,11 +159,9 @@ const getAgentFileStatusRoute = createRoute({
 
 const createAgentFileRoute = createRoute({
   method: 'post',
-  path: '/api/projects/{projectId}/agent-files/create',
+  path: '/api/projects/{id}/agent-files/create',
   request: {
-    params: z.object({
-      projectId: z.coerce.number().int().positive()
-    }),
+    params: z.object({ id: z.coerce.number().int().positive() }),
     body: {
       content: {
         'application/json': {
@@ -188,7 +178,7 @@ const createAgentFileRoute = createRoute({
 // Handlers
 export const agentFilesRoutes = new OpenAPIHono()
   .openapi(detectAgentFilesRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -203,9 +193,10 @@ export const agentFilesRoutes = new OpenAPIHono()
       // Convert to response format with instruction status
       const enhancedProjectFiles = await Promise.all(
         projectFiles.map(async (file) => {
-          const hasInstructions = file.exists && file.content ? file.content.includes('PROMPTLIANO_MCP_INSTRUCTIONS_START') : false
+          const hasInstructions =
+            file.exists && file.content ? file.content.includes('PROMPTLIANO_MCP_INSTRUCTIONS_START') : false
           const versionMatch = file.content?.match(/PROMPTLIANO_MCP_INSTRUCTIONS_START v([\d.]+)/)
-          
+
           // Only include properties defined in the schema
           return {
             type: file.type,
@@ -222,38 +213,41 @@ export const agentFilesRoutes = new OpenAPIHono()
       )
 
       // Convert global files to match schema
-      const enhancedGlobalFiles = globalFiles.map(file => ({
+      const enhancedGlobalFiles = globalFiles.map((file) => ({
         type: file.type,
         name: file.name,
         path: file.path,
         scope: file.scope,
         exists: file.exists,
         writable: file.writable,
-        hasInstructions: file.exists && file.content ? file.content.includes('PROMPTLIANO_MCP_INSTRUCTIONS_START') : false,
+        hasInstructions:
+          file.exists && file.content ? file.content.includes('PROMPTLIANO_MCP_INSTRUCTIONS_START') : false,
         instructionVersion: file.content?.match(/PROMPTLIANO_MCP_INSTRUCTIONS_START v([\d.]+)/)?.[1],
         metadata: file.metadata
       }))
 
       // Get suggested files
       const suggestedFilesRaw = agentFileDetectionService.getSuggestedFiles(project.path, projectFiles)
-      const suggestedFiles = suggestedFilesRaw.map(pattern => ({
+      const suggestedFiles = suggestedFilesRaw.map((pattern) => ({
         type: pattern.type,
         name: pattern.name,
         suggestedPath: pattern.suggestedPath || ''
       }))
 
-      return c.json(successResponse({
-        projectFiles: enhancedProjectFiles,
-        globalFiles: enhancedGlobalFiles,
-        suggestedFiles
-      }))
+      return c.json(
+        successResponse({
+          projectFiles: enhancedProjectFiles,
+          globalFiles: enhancedGlobalFiles,
+          suggestedFiles
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to detect agent files: ${error}`)
     }
   })
   .openapi(updateAgentFileRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { filePath, includeExamples, customInstructions } = c.req.valid('json')
 
     try {
@@ -274,18 +268,20 @@ export const agentFilesRoutes = new OpenAPIHono()
         throw new ApiError(500, result.message, 'UPDATE_FAILED')
       }
 
-      return c.json(successResponse({
-        message: result.message,
-        backedUp: result.backedUp,
-        filePath
-      }))
+      return c.json(
+        successResponse({
+          message: result.message,
+          backedUp: result.backedUp,
+          filePath
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to update agent file: ${error}`)
     }
   })
   .openapi(removeInstructionsRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { filePath } = c.req.valid('json')
 
     try {
@@ -300,16 +296,18 @@ export const agentFilesRoutes = new OpenAPIHono()
         throw new ApiError(500, result.message, 'REMOVE_FAILED')
       }
 
-      return c.json(successResponse({
-        message: result.message
-      }))
+      return c.json(
+        successResponse({
+          message: result.message
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to remove instructions: ${error}`)
     }
   })
   .openapi(getAgentFileStatusRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
 
     try {
       const project = await getProjectById(projectId)
@@ -328,17 +326,19 @@ export const agentFilesRoutes = new OpenAPIHono()
         isOutdated: file.hasInstructions && agentInstructionService.isOutdated(file.instructionVersion)
       }))
 
-      return c.json(successResponse({
-        currentVersion,
-        files: fileStatuses
-      }))
+      return c.json(
+        successResponse({
+          currentVersion,
+          files: fileStatuses
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to get agent file status: ${error}`)
     }
   })
   .openapi(createAgentFileRoute, async (c) => {
-    const { projectId } = c.req.valid('param')
+    const { id: projectId } = c.req.valid('param')
     const { type, includeExamples, customInstructions } = c.req.valid('json')
 
     try {
@@ -376,10 +376,12 @@ export const agentFilesRoutes = new OpenAPIHono()
         throw new ApiError(500, updateResult.message, 'UPDATE_FAILED')
       }
 
-      return c.json(successResponse({
-        message: 'Successfully created agent file with instructions',
-        filePath
-      }))
+      return c.json(
+        successResponse({
+          message: 'Successfully created agent file with instructions',
+          filePath
+        })
+      )
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to create agent file: ${error}`)

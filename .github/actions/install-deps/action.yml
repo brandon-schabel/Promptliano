@@ -116,7 +116,7 @@ runs:
       shell: bash
       run: |
         echo "Verifying dependency installation..."
-        
+
         # Check if node_modules exists and has content
         if [ -d "node_modules" ] && [ "$(ls -A node_modules)" ]; then
           DEPENDENCY_COUNT=$(ls node_modules | wc -l)

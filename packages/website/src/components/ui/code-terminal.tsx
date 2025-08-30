@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { ReactNode, useState, useEffect } from 'react'
+import { ReactNode, useState, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Copy, Check, Terminal, Maximize2, Minimize2 } from 'lucide-react'
 
@@ -26,45 +26,59 @@ export function CodeTerminal({
   animated = true,
   language = 'bash'
 }: CodeTerminalProps) {
-  // Convert code string to lines array if needed
-  const lines =
-    propLines ||
-    (code
-      ? code.split('\n').map((content) => ({
-          type: 'output' as const,
-          content,
-          delay: 100
-        }))
-      : [])
+  // Convert code string to lines array if needed (memoized to avoid re-running animations)
+  const lines = useMemo(() => {
+    if (propLines && propLines.length) return propLines
+    if (!code) return []
+    return code.split('\n').map((content) => ({
+      type: 'output' as const,
+      content,
+      delay: 100
+    }))
+  }, [propLines, code])
 
   const [visibleLines, setVisibleLines] = useState<number>(animated ? 0 : lines.length)
   const [copied, setCopied] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  useEffect(() => {
-    if (!animated) return
+  // Keep track of scheduled timeouts to prevent overlapping loops
+  const timeoutsRef = useRef<number[]>([])
 
-    let currentLine = 0
-    const showNextLine = () => {
+  useEffect(() => {
+    // Only animate when requested and when there are still lines to reveal
+    if (!animated || visibleLines >= lines.length) return
+
+    let currentLine = visibleLines
+    const schedule = () => {
       if (currentLine < lines.length) {
-        const delay = lines[currentLine].delay || 500
-        setTimeout(() => {
-          setVisibleLines(currentLine + 1)
+        const delay = lines[currentLine]?.delay ?? 500
+        const id = window.setTimeout(() => {
+          setVisibleLines((v) => Math.min(lines.length, Math.max(v, currentLine + 1)))
           currentLine++
-          showNextLine()
+          schedule()
         }, delay)
+        timeoutsRef.current.push(id)
       }
     }
-    showNextLine()
-  }, [lines, animated])
+    schedule()
+
+    return () => {
+      timeoutsRef.current.forEach((id) => clearTimeout(id))
+      timeoutsRef.current = []
+    }
+  }, [animated, lines, visibleLines])
 
   const handleCopy = () => {
-    const text = lines
+    let text = lines
       .filter((line) => line.type === 'command')
       .map((line) => line.content)
       .join('\n')
+    // Fallback: if no explicit commands, copy the provided code or visible content
+    if (!text || text.trim().length === 0) {
+      text = code || lines.map((l) => l.content).join('\n')
+    }
 
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text || '')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -136,7 +150,7 @@ export function CodeTerminal({
       </div>
 
       {/* Terminal Content */}
-      <div className='p-4 font-mono text-sm'>
+      <div className='p-4 font-mono text-sm overflow-x-auto'>
         <AnimatePresence>
           {lines.slice(0, visibleLines).map((line, index) => (
             <motion.div
@@ -150,7 +164,7 @@ export function CodeTerminal({
               {line.type === 'comment' && <span className='text-muted-foreground select-none'>#</span>}
               <span
                 className={cn(
-                  'flex-1',
+                  'flex-1 whitespace-pre',
                   line.type === 'command' && 'text-foreground',
                   line.type === 'output' && 'text-muted-foreground',
                   line.type === 'comment' && 'text-muted-foreground italic'

@@ -57,10 +57,17 @@ export function useLocalModelStatus(provider: LocalModelProvider, options: UseLo
         })()
 
         // Race between timeout and fetch
-        const response = await Promise.race([fetchPromise, timeoutPromise])
+        const response = await Promise.race([fetchPromise, timeoutPromise]) as any
 
-        if (response.success && Array.isArray(response.data)) {
-          console.log(`[${provider}] Connected! Found ${response.data.length} models`)
+        // Accept both wrapped and unwrapped shapes
+        const models = Array.isArray(response)
+          ? response
+          : response && typeof response === 'object' && 'data' in response
+            ? (response as any).data
+            : null
+
+        if (Array.isArray(models)) {
+          console.log(`[${provider}] Connected! Found ${models.length} models`)
           return {
             connected: true,
             lastChecked: new Date(),

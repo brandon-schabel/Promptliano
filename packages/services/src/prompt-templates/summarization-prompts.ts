@@ -1,4 +1,5 @@
-import type { ProjectFile } from '@promptliano/schemas'
+import type { File as ProjectFile } from '@promptliano/database'
+import { getFileExtension } from '../utils/file-utils'
 
 export interface SummarizationContext {
   fileType?: string
@@ -30,7 +31,7 @@ You are analyzing source code to generate a comprehensive summary. Follow this e
 
 ## File Information
 - Path: ${file.path}
-- Type: ${file.extension ?? 'unknown'}
+- Type: ${getFileExtension(file.path) || 'unknown'}
 - Size: ${file.size} bytes
 ${context.wasTruncated ? '- Note: File was truncated for analysis' : ''}
 
@@ -64,7 +65,7 @@ PATTERNS: <patterns used>
 RELATES: <system relationships>
 
 ## File Content:
-\`\`\`${file.extension ?? ''}
+\`\`\`${getFileExtension(file.path) || ''}
 ${file.content}
 \`\`\`
 
@@ -123,7 +124,7 @@ Summary:`
    * Generate few-shot examples for common file types
    */
   static getFewShotPrompt(file: ProjectFile, context: SummarizationContext): string {
-    const examples = this.getFewShotExamples(file.extension ?? '')
+    const examples = this.getFewShotExamples(getFileExtension(file.path) || '')
 
     return `You are an expert code analyst. Here are examples of high-quality summaries for similar files:
 
@@ -132,7 +133,7 @@ ${examples}
 Now analyze the following file using the same approach:
 
 File: ${file.path}
-Type: ${file.extension ?? 'unknown'}
+Type: ${getFileExtension(file.path) || 'unknown'}
 ${context.importsContext ? `Imports: ${context.importsContext}` : ''}
 ${context.exportsContext ? `Exports: ${context.exportsContext}` : ''}
 
@@ -241,7 +242,7 @@ ${files
   .map(
     (f, i) => `
 ### File ${i + 1}: ${f.path}
-- Type: ${f.extension ?? 'unknown'}
+- Type: ${getFileExtension(f.path) || 'unknown'}
 - Size: ${f.size} bytes
 - Preview: ${f.content?.substring(0, 500)}...
 `
@@ -337,7 +338,7 @@ Provide an updated comprehensive summary.`
     const suffix = Object.keys(specializedPrompts).find((ext) => file.path.endsWith(ext))
     const specialization = suffix ? specializedPrompts[suffix] : ''
 
-    return `Analyze this ${file.extension ?? 'unknown'} file with special attention:
+    return `Analyze this ${getFileExtension(file.path) || 'unknown'} file with special attention:
 ${specialization}
 
 File: ${file.path}
@@ -416,7 +417,8 @@ export function selectPromptStrategy(file: ProjectFile, context: SummarizationCo
   }
 
   // Use few-shot for common file types
-  if (['.tsx', '.ts', '.js', '.jsx'].includes(file.extension ?? '')) {
+  const extension = getFileExtension(file.path)
+  if (['tsx', 'ts', 'js', 'jsx'].includes(extension)) {
     return {
       depth: 'standard',
       format: 'structured',

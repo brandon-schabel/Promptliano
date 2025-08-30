@@ -39,12 +39,12 @@ import {
 } from 'lucide-react'
 import { LocalModelStatusIndicator } from '@/components/settings/local-model-status-indicator'
 import { useLocalModelStatus } from '@/hooks/use-local-model-status'
-import { useTestProvider } from '@/hooks/api/use-providers-api'
-import { useGetModels } from '@/hooks/api/use-gen-ai-api'
+import { useTestProvider } from '@/hooks/generated'
+import { useGetModels } from '@/hooks/generated'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { ProviderTestDialog } from './provider-test-dialog'
 import { ModelListPopover } from './model-list-popover'
-import type { ProviderKey } from '@promptliano/schemas'
+import type { ProviderKey } from '@/hooks/generated/providers-hooks'
 import { toast } from 'sonner'
 import { useApiClient } from '@/hooks/api/use-api-client'
 
@@ -241,7 +241,7 @@ export function LocalProviderSection({ providers, onEdit, isLoading }: LocalProv
                 </div>
               </div>
               <ModelListPopover
-                models={models?.data || []}
+                models={Array.isArray(models) ? models : []}
                 isLoading={modelsLoading}
                 providerName={providerName}
                 isConnected={status.isConnected}
@@ -366,7 +366,9 @@ export function LocalProviderSection({ providers, onEdit, isLoading }: LocalProv
             <div className='pt-3 border-t space-y-2'>
               <div className='flex items-center justify-between text-sm'>
                 <span className='text-muted-foreground'>Provider Key</span>
-                <code className='text-xs bg-muted px-2 py-1 rounded'>{providerKey.key.substring(0, 8)}••••</code>
+                <code className='text-xs bg-muted px-2 py-1 rounded'>
+                  {providerKey.key ? providerKey.key.substring(0, 8) : ''}••••
+                </code>
               </div>
               {providerKey.isDefault && (
                 <Badge variant='secondary' className='text-xs'>

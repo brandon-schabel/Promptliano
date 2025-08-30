@@ -8,16 +8,15 @@ import {
   SuggestionMetricsTracker,
   getFileCategory
 } from './file-suggestion-utils'
-import type { ProjectFile, RelevanceScore } from '@promptliano/schemas'
+import type { File as ProjectFile, RelevanceScore } from '@promptliano/database'
 
 // Helper to create test files
 function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
   return {
-    id: 1,
+    id: '1',
     projectId: 1,
     name: 'file.ts',
     path: '/src/file.ts',
-    extension: 'ts',
     size: 1000,
     content: '',
     summary: null,
@@ -26,8 +25,12 @@ function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     checksum: 'abc123',
     imports: [],
     exports: [],
-    created: Date.now(),
-    updated: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    isRelevant: null,
+    relevanceScore: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   }
 }
@@ -179,24 +182,24 @@ describe('file-suggestion-utils', () => {
   describe('mergeFileSuggestions', () => {
     test('merges suggestions from multiple sources', () => {
       const suggestions = [
-        { fileIds: [1, 2, 3], source: 'keyword' },
-        { fileIds: [2, 4, 5], source: 'path' },
-        { fileIds: [1, 5, 6], source: 'type' }
+        { fileIds: ['1', '2', '3'], source: 'keyword' },
+        { fileIds: ['2', '4', '5'], source: 'path' },
+        { fileIds: ['1', '5', '6'], source: 'type' }
       ]
 
       const result = mergeFileSuggestions(suggestions)
 
-      expect(result.mergedFileIds).toContain(1) // Appears in 2 sources
-      expect(result.mergedFileIds).toContain(2) // Appears in 2 sources
-      expect(result.mergedFileIds).toContain(5) // Appears in 2 sources
-      expect(result.mergedFileIds).toContain(3) // Appears in 1 source
-      expect(result.mergedFileIds).toContain(4) // Appears in 1 source
-      expect(result.mergedFileIds).toContain(6) // Appears in 1 source
+      expect(result.mergedFileIds).toContain('1') // Appears in 2 sources
+      expect(result.mergedFileIds).toContain('2') // Appears in 2 sources
+      expect(result.mergedFileIds).toContain('5') // Appears in 2 sources
+      expect(result.mergedFileIds).toContain('3') // Appears in 1 source
+      expect(result.mergedFileIds).toContain('4') // Appears in 1 source
+      expect(result.mergedFileIds).toContain('6') // Appears in 1 source
     })
 
     test('averages scores from multiple sources', () => {
       const score1: RelevanceScore = {
-        fileId: 1,
+        fileId: '1',
         totalScore: 0.8,
         keywordScore: 0.9,
         pathScore: 0.7,
@@ -206,7 +209,7 @@ describe('file-suggestion-utils', () => {
       }
 
       const score2: RelevanceScore = {
-        fileId: 1,
+        fileId: '1',
         totalScore: 0.6,
         keywordScore: 0.5,
         pathScore: 0.7,
@@ -216,12 +219,12 @@ describe('file-suggestion-utils', () => {
       }
 
       const suggestions = [
-        { fileIds: [1], scores: [score1], source: 'source1' },
-        { fileIds: [1], scores: [score2], source: 'source2' }
+        { fileIds: ['1'], scores: [score1], source: 'source1' },
+        { fileIds: ['1'], scores: [score2], source: 'source2' }
       ]
 
       const result = mergeFileSuggestions(suggestions)
-      const mergedScore = result.mergedScores.get(1)!
+      const mergedScore = result.mergedScores.get('1')!
 
       expect(mergedScore.totalScore).toBe(0.7) // Average of 0.8 and 0.6
       expect(mergedScore.keywordScore).toBe(0.7) // Average of 0.9 and 0.5
@@ -229,10 +232,10 @@ describe('file-suggestion-utils', () => {
     })
 
     test('creates default scores when not provided', () => {
-      const suggestions = [{ fileIds: [1, 2], source: 'test' }]
+      const suggestions = [{ fileIds: ['1', '2'], source: 'test' }]
 
       const result = mergeFileSuggestions(suggestions)
-      const score = result.mergedScores.get(1)!
+      const score = result.mergedScores.get('1')!
 
       expect(score.totalScore).toBe(0.5)
       expect(score.keywordScore).toBe(0)
@@ -242,14 +245,30 @@ describe('file-suggestion-utils', () => {
     test('sorts by score and source count', () => {
       const suggestions = [
         {
-          fileIds: [1, 2],
+          fileIds: ['1', '2'],
           scores: [
-            { fileId: 1, totalScore: 0.5, keywordScore: 0, pathScore: 0, typeScore: 0, recencyScore: 0, importScore: 0 },
-            { fileId: 2, totalScore: 0.9, keywordScore: 0, pathScore: 0, typeScore: 0, recencyScore: 0, importScore: 0 }
+            {
+              fileId: '1',
+              totalScore: 0.5,
+              keywordScore: 0,
+              pathScore: 0,
+              typeScore: 0,
+              recencyScore: 0,
+              importScore: 0
+            },
+            {
+              fileId: '2',
+              totalScore: 0.9,
+              keywordScore: 0,
+              pathScore: 0,
+              typeScore: 0,
+              recencyScore: 0,
+              importScore: 0
+            }
           ],
           source: 'source1'
         },
-        { fileIds: [1, 3], source: 'source2' } // File 1 appears in 2 sources
+        { fileIds: ['1', '3'], source: 'source2' } // File 1 appears in 2 sources
       ]
 
       const result = mergeFileSuggestions(suggestions)
@@ -257,7 +276,7 @@ describe('file-suggestion-utils', () => {
       // File 2 has higher score (0.9) but only 1 source
       // File 1 has lower score (0.5) but 2 sources (0.5 + 0.2 = 0.7)
       // File 3 has default score (0.5) and 1 source (0.5 + 0.1 = 0.6)
-      expect(result.mergedFileIds[0]).toBe(2) // Highest total
+      expect(result.mergedFileIds[0]).toBe('2') // Highest total
     })
 
     test('handles empty suggestions', () => {
@@ -270,11 +289,11 @@ describe('file-suggestion-utils', () => {
 
   describe('filterFilesByPattern', () => {
     const files = [
-      createTestFile({ id: 1, path: '/src/components/Button.tsx' }),
-      createTestFile({ id: 2, path: '/src/utils/helper.ts' }),
-      createTestFile({ id: 3, path: '/tests/Button.test.tsx' }),
-      createTestFile({ id: 4, path: '/docs/README.md' }),
-      createTestFile({ id: 5, path: '/src/services/api.ts' })
+      createTestFile({ id: '1', path: '/src/components/Button.tsx' }),
+      createTestFile({ id: '2', path: '/src/utils/helper.ts' }),
+      createTestFile({ id: '3', path: '/tests/Button.test.tsx' }),
+      createTestFile({ id: '4', path: '/docs/README.md' }),
+      createTestFile({ id: '5', path: '/src/services/api.ts' })
     ]
 
     test('filters by include patterns', () => {
@@ -283,8 +302,8 @@ describe('file-suggestion-utils', () => {
       })
 
       expect(filtered).toHaveLength(2)
-      expect(filtered[0].id).toBe(1)
-      expect(filtered[1].id).toBe(5)
+      expect(filtered[0].id).toBe('1')
+      expect(filtered[1].id).toBe('5')
     })
 
     test('filters by exclude patterns', () => {
@@ -293,7 +312,7 @@ describe('file-suggestion-utils', () => {
       })
 
       expect(filtered).toHaveLength(3)
-      expect(filtered.map(f => f.id)).toEqual([1, 2, 5])
+      expect(filtered.map((f) => f.id)).toEqual(['1', '2', '5'])
     })
 
     test('combines include and exclude patterns', () => {
@@ -303,7 +322,7 @@ describe('file-suggestion-utils', () => {
       })
 
       expect(filtered).toHaveLength(2)
-      expect(filtered.map(f => f.id)).toEqual([1, 5])
+      expect(filtered.map((f) => f.id)).toEqual(['1', '5'])
     })
 
     test('is case insensitive', () => {
@@ -357,10 +376,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('handles root files', () => {
-      const files = [
-        createTestFile({ path: 'README.md' }),
-        createTestFile({ path: 'package.json' })
-      ]
+      const files = [createTestFile({ path: 'README.md' }), createTestFile({ path: 'package.json' })]
 
       const groups = groupFilesByDirectory(files)
 
@@ -369,9 +385,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('handles deeply nested paths', () => {
-      const files = [
-        createTestFile({ path: '/a/b/c/d/e/f/file.ts' })
-      ]
+      const files = [createTestFile({ path: '/a/b/c/d/e/f/file.ts' })]
 
       const groups = groupFilesByDirectory(files)
 
@@ -405,7 +419,7 @@ describe('file-suggestion-utils', () => {
       expect(metrics?.filesAnalyzed).toBe(0)
 
       // Update metrics
-      tracker.updateMetrics(id, { 
+      tracker.updateMetrics(id, {
         filesAnalyzed: 50,
         cacheHit: true,
         tokensUsed: 1000
@@ -458,11 +472,11 @@ describe('file-suggestion-utils', () => {
     test('calculates average metrics', async () => {
       // Complete two operations
       tracker.startTracking('op1', 100, 'fast')
-      await new Promise(resolve => setTimeout(resolve, 1)) // Add small delay
+      await new Promise((resolve) => setTimeout(resolve, 1)) // Add small delay
       tracker.finishTracking('op1', 50, [])
 
       tracker.startTracking('op2', 200, 'thorough')
-      await new Promise(resolve => setTimeout(resolve, 1)) // Add small delay
+      await new Promise((resolve) => setTimeout(resolve, 1)) // Add small delay
       tracker.finishTracking('op2', 100, [])
 
       const avgMetrics = tracker.getAverageMetrics()
@@ -556,7 +570,7 @@ describe('file-suggestion-utils', () => {
     })
 
     test('prioritizes path patterns over extensions', () => {
-      const file = createTestFile({ 
+      const file = createTestFile({
         path: '/src/Button.test.tsx',
         extension: 'tsx' // Would be 'react' by extension
       })

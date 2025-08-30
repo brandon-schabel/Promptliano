@@ -8,100 +8,93 @@ export const tanstackValidation = {
   // Basic string validations
   required: (message = 'This field is required') => z.string().min(1, message),
   optional: z.string().optional(),
-  
+
   // Email validation
   email: z.string().email('Please enter a valid email address'),
-  
+
   // Password validation
-  password: z.string()
+  password: z
+    .string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/\d/, 'Password must contain at least one number'),
-  
-  // Name validation  
-  name: z.string()
+
+  // Name validation
+  name: z
+    .string()
     .min(1, 'Name is required')
     .max(100, 'Name must be less than 100 characters')
     .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes'),
-  
+
   // Description validation
-  description: z.string()
-    .max(1000, 'Description must be less than 1000 characters')
-    .optional(),
-  
+  description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
+
   // URL validation
   url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  
+
   // Phone validation
-  phone: z.string()
+  phone: z
+    .string()
     .regex(/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number')
     .optional(),
-  
+
   // Number validations
   positiveNumber: z.number().positive('Must be a positive number'),
   nonNegativeNumber: z.number().min(0, 'Must be zero or greater'),
   integer: z.number().int('Must be a whole number'),
-  
+
   // Date validations
   date: z.date(),
-  futureDate: z.date().refine(date => date > new Date(), 'Date must be in the future'),
-  pastDate: z.date().refine(date => date < new Date(), 'Date must be in the past'),
-  
+  futureDate: z.date().refine((date) => date > new Date(), 'Date must be in the future'),
+  pastDate: z.date().refine((date) => date < new Date(), 'Date must be in the past'),
+
   // Array validations
   tags: z.array(z.string()).default([]),
-  nonEmptyArray: (message = 'At least one item is required') => 
-    z.array(z.any()).min(1, message),
-  
+  nonEmptyArray: (message = 'At least one item is required') => z.array(z.any()).min(1, message),
+
   // Boolean validation
   boolean: z.boolean(),
-  requiredBoolean: (message = 'You must accept this') => 
-    z.boolean().refine(val => val === true, message),
-  
+  requiredBoolean: (message = 'You must accept this') => z.boolean().refine((val) => val === true, message),
+
   // Custom validation helpers
-  minLength: (min: number, message?: string) => 
-    z.string().min(min, message || `Must be at least ${min} characters`),
-  
-  maxLength: (max: number, message?: string) => 
+  minLength: (min: number, message?: string) => z.string().min(min, message || `Must be at least ${min} characters`),
+
+  maxLength: (max: number, message?: string) =>
     z.string().max(max, message || `Must be no more than ${max} characters`),
-  
-  length: (exact: number, message?: string) => 
+
+  length: (exact: number, message?: string) =>
     z.string().length(exact, message || `Must be exactly ${exact} characters`),
-  
-  regex: (pattern: RegExp, message: string) => 
-    z.string().regex(pattern, message),
-  
+
+  regex: (pattern: RegExp, message: string) => z.string().regex(pattern, message),
+
   oneOf: <T extends readonly [string, ...string[]]>(values: T, message?: string) =>
-    z.enum(values, { 
+    z.enum(values, {
       errorMap: () => ({ message: message || `Must be one of: ${values.join(', ')}` })
     }),
-  
+
   // Date range validation
-  dateRange: (min: Date, max: Date) => 
-    z.date()
+  dateRange: (min: Date, max: Date) =>
+    z
+      .date()
       .min(min, `Date must be after ${min.toLocaleDateString()}`)
       .max(max, `Date must be before ${max.toLocaleDateString()}`),
-  
+
   // File validation
   file: z.instanceof(File),
   files: z.array(z.instanceof(File)),
-  
+
   // Image file validation
-  imageFile: z.instanceof(File).refine(
-    file => file.type.startsWith('image/'),
-    'File must be an image'
-  ),
-  
+  imageFile: z.instanceof(File).refine((file) => file.type.startsWith('image/'), 'File must be an image'),
+
   // File size validation
-  maxFileSize: (maxSize: number) => 
-    z.instanceof(File).refine(
-      file => file.size <= maxSize,
-      `File size must be less than ${(maxSize / 1024 / 1024).toFixed(1)}MB`
-    ),
-  
+  maxFileSize: (maxSize: number) =>
+    z
+      .instanceof(File)
+      .refine((file) => file.size <= maxSize, `File size must be less than ${(maxSize / 1024 / 1024).toFixed(1)}MB`),
+
   // Multiple file validation
-  maxFiles: (max: number) =>
-    z.array(z.instanceof(File)).max(max, `Maximum ${max} files allowed`)
+  maxFiles: (max: number) => z.array(z.instanceof(File)).max(max, `Maximum ${max} files allowed`)
 }
 
 // =============================================
@@ -119,7 +112,7 @@ export const tanstackPatterns = {
     website: tanstackValidation.url,
     avatar: tanstackValidation.imageFile.optional()
   }),
-  
+
   // Contact form schema
   contactForm: z.object({
     name: tanstackValidation.name,
@@ -129,7 +122,7 @@ export const tanstackPatterns = {
     priority: tanstackValidation.oneOf(['low', 'medium', 'high']),
     subscribe: z.boolean().default(false)
   }),
-  
+
   // Project creation schema
   projectForm: z.object({
     name: tanstackValidation.minLength(1).and(tanstackValidation.maxLength(100)),
@@ -140,30 +133,29 @@ export const tanstackPatterns = {
     dueDate: tanstackValidation.futureDate.optional(),
     budget: tanstackValidation.positiveNumber.optional()
   }),
-  
+
   // Login form schema
   loginForm: z.object({
     email: tanstackValidation.email,
     password: z.string().min(1, 'Password is required'),
     rememberMe: z.boolean().default(false)
   }),
-  
+
   // Registration form schema
-  registrationForm: z.object({
-    firstName: tanstackValidation.name,
-    lastName: tanstackValidation.name,
-    email: tanstackValidation.email,
-    password: tanstackValidation.password,
-    confirmPassword: z.string(),
-    agreeToTerms: tanstackValidation.requiredBoolean('You must agree to the terms and conditions')
-  }).refine(
-    data => data.password === data.confirmPassword,
-    {
+  registrationForm: z
+    .object({
+      firstName: tanstackValidation.name,
+      lastName: tanstackValidation.name,
+      email: tanstackValidation.email,
+      password: tanstackValidation.password,
+      confirmPassword: z.string(),
+      agreeToTerms: tanstackValidation.requiredBoolean('You must agree to the terms and conditions')
+    })
+    .refine((data) => data.password === data.confirmPassword, {
       message: "Passwords don't match",
       path: ['confirmPassword']
-    }
-  ),
-  
+    }),
+
   // Settings form schema
   settingsForm: z.object({
     notifications: z.object({
@@ -190,36 +182,29 @@ export const tanstackPatterns = {
 
 export const tanstackDynamicValidation = {
   // Conditional validation based on other fields
-  conditional: <T>(
-    condition: (data: any) => boolean,
-    schema: z.ZodSchema<T>,
-    fallback?: z.ZodSchema<T>
-  ) => {
+  conditional: <T>(condition: (data: any) => boolean, schema: z.ZodSchema<T>, fallback?: z.ZodSchema<T>) => {
     return z.any().superRefine((data, ctx) => {
       const shouldValidate = condition(data)
       if (shouldValidate) {
         const result = schema.safeParse(data)
         if (!result.success) {
-          result.error.issues.forEach(issue => {
+          result.error.issues.forEach((issue) => {
             ctx.addIssue(issue)
           })
         }
       } else if (fallback) {
         const result = fallback.safeParse(data)
         if (!result.success) {
-          result.error.issues.forEach(issue => {
+          result.error.issues.forEach((issue) => {
             ctx.addIssue(issue)
           })
         }
       }
     })
   },
-  
+
   // Cross-field validation
-  crossField: <T>(
-    validator: (data: T) => boolean | string,
-    path: string[]
-  ) => {
+  crossField: <T>(validator: (data: T) => boolean | string, path: string[]) => {
     return z.any().superRefine((data, ctx) => {
       const result = validator(data)
       if (typeof result === 'string') {
@@ -237,11 +222,9 @@ export const tanstackDynamicValidation = {
       }
     })
   },
-  
+
   // Async validation
-  async: <T>(
-    validator: (value: T) => Promise<boolean | string>
-  ) => {
+  async: <T>(validator: (value: T) => Promise<boolean | string>) => {
     return z.any().superRefine(async (data, ctx) => {
       try {
         const result = await validator(data)
@@ -264,12 +247,9 @@ export const tanstackDynamicValidation = {
       }
     })
   },
-  
+
   // Unique field validation
-  unique: <T>(
-    checkUnique: (value: T) => Promise<boolean>,
-    message = 'This value must be unique'
-  ) => {
+  unique: <T>(checkUnique: (value: T) => Promise<boolean>, message = 'This value must be unique') => {
     return z.any().superRefine(async (data, ctx) => {
       try {
         const isUnique = await checkUnique(data)
@@ -301,7 +281,7 @@ export const tanstackSchemaUtils = {
     }
     return []
   },
-  
+
   // Check if field is required
   isFieldRequired: <T>(schema: z.ZodSchema<T>, fieldName: string): boolean => {
     if (schema instanceof z.ZodObject) {
@@ -310,7 +290,7 @@ export const tanstackSchemaUtils = {
     }
     return false
   },
-  
+
   // Get field schema
   getFieldSchema: <T>(schema: z.ZodSchema<T>, fieldName: string): z.ZodSchema<any> | null => {
     if (schema instanceof z.ZodObject) {
@@ -318,12 +298,12 @@ export const tanstackSchemaUtils = {
     }
     return null
   },
-  
+
   // Create partial schema for multi-step forms
   createStepSchema: <T>(schema: z.ZodSchema<T>, fieldNames: string[]): z.ZodSchema<Partial<T>> => {
     if (schema instanceof z.ZodObject) {
       const stepShape: Record<string, any> = {}
-      fieldNames.forEach(fieldName => {
+      fieldNames.forEach((fieldName) => {
         if (schema.shape[fieldName]) {
           stepShape[fieldName] = schema.shape[fieldName]
         }
@@ -332,7 +312,7 @@ export const tanstackSchemaUtils = {
     }
     return z.object({}).partial() as unknown as z.ZodSchema<Partial<T>>
   },
-  
+
   // Merge multiple schemas
   mergeSchemas: <T extends Record<string, any>>(...schemas: z.ZodSchema<any>[]): z.ZodSchema<T> => {
     return schemas.reduce((merged, current) => {
@@ -352,29 +332,29 @@ export const tanstackErrorUtils = {
   // Format Zod errors for display
   formatErrors: (error: z.ZodError): Record<string, string[]> => {
     const formattedErrors: Record<string, string[]> = {}
-    
-    error.issues.forEach(issue => {
+
+    error.issues.forEach((issue) => {
       const path = issue.path.join('.')
       if (!formattedErrors[path]) {
         formattedErrors[path] = []
       }
       formattedErrors[path].push(issue.message)
     })
-    
+
     return formattedErrors
   },
-  
+
   // Get first error message for field
   getFirstError: (errors: Record<string, string[]>, fieldName: string): string | null => {
     const fieldErrors = errors[fieldName]
     return fieldErrors && fieldErrors.length > 0 ? fieldErrors[0] : null
   },
-  
+
   // Check if field has errors
   hasError: (errors: Record<string, string[]>, fieldName: string): boolean => {
     return errors[fieldName] && errors[fieldName].length > 0
   },
-  
+
   // Get all error messages as flat array
   getAllErrors: (errors: Record<string, string[]>): string[] => {
     return Object.values(errors).flat()

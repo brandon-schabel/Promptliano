@@ -4,13 +4,11 @@
 import { documentationSearchTool, websiteDemoRunnerTool } from './website'
 import { mcpConfigGeneratorTool, mcpCompatibilityCheckerTool, mcpSetupValidatorTool } from './setup'
 import { tabManagerTool } from './ui'
-import { aiAssistantTool, agentManagerTool } from './content'
+import { aiAssistantTool } from './content'
 import { projectManagerTool, promptManagerTool, markdownPromptManagerTool } from './project'
 import { ticketManagerTool, taskManagerTool, queueManagerTool, queueProcessorTool } from './workflow'
 import { gitManagerTool } from './git'
 
-// Import the command manager tool from parent directory
-import { commandManagerTool } from '../command-manager-tool'
 
 // Import types
 import type { MCPToolDefinition } from '../tools-registry'
@@ -28,7 +26,6 @@ export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = [
   queueProcessorTool,
   // Content tools
   aiAssistantTool,
-  agentManagerTool,
   // Website tools
   documentationSearchTool,
   websiteDemoRunnerTool,
@@ -38,8 +35,6 @@ export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = [
   mcpSetupValidatorTool,
   // UI tools
   tabManagerTool,
-  // Command tool
-  commandManagerTool,
   // Git tool
   gitManagerTool
 ] as const

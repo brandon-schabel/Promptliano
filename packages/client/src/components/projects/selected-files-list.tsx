@@ -29,7 +29,7 @@ import { FileViewerDialog } from '../navigation/file-viewer-dialog'
 import { ProjectFile } from '@promptliano/schemas'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { useProjectTabById, useUpdateProjectTabState } from '@/hooks/use-kv-local-storage'
-import { useUpdateFileContent } from '@/hooks/api/use-projects-api'
+import { useUpdateFileContent } from '@/hooks/api-hooks'
 
 type SelectedFilesListProps = {
   onRemoveFile: (fileId: number) => void

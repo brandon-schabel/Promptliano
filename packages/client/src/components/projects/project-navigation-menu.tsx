@@ -47,7 +47,6 @@ interface ProjectNavigationMenuProps {
   currentSearch: ProjectsSearch
   activeView: ProjectView | undefined
   onViewChange: (view: ProjectView) => void
-  claudeCodeEnabled?: boolean
   assetsEnabled?: boolean
   showMenus?: boolean
   showTabs?: boolean
@@ -57,7 +56,6 @@ export function ProjectNavigationMenu({
   currentSearch,
   activeView,
   onViewChange,
-  claudeCodeEnabled,
   assetsEnabled,
   showMenus = true,
   showTabs = true
@@ -100,7 +98,7 @@ export function ProjectNavigationMenu({
     }
   })
 
-  const hasProjectMcpConfig = !!mcpConfigData?.config
+  const hasProjectMcpConfig = !!mcpConfigData
 
   // Git pull mutation
   const pullMutation = useMutation({
@@ -202,31 +200,7 @@ export function ProjectNavigationMenu({
         <TabButton view='flow' icon={Workflow} label='Flow' />
         <TabButton view='manage' icon={Sliders} label='Manage' />
         {assetsEnabled && <TabButton view='assets' icon={FolderOpen} label='Assets' />}
-        {claudeCodeEnabled &&
-          (isCompact ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={activeView === 'claude-code' ? 'secondary' : 'ghost'}
-                  size='sm'
-                  onClick={() => onViewChange('claude-code')}
-                  className='h-7 px-2 text-sm'
-                >
-                  C
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Claude</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              variant={activeView === 'claude-code' ? 'secondary' : 'ghost'}
-              size='sm'
-              onClick={() => onViewChange('claude-code')}
-              className='h-7 px-3 text-sm'
-            >
-              Claude
-            </Button>
-          ))}
+        
       </div>
     )
   }

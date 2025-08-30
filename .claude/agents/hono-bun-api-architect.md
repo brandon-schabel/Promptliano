@@ -90,16 +90,16 @@ const getUserRoute = createRoute({
 const getUserHandler = async (c) => {
   const { id } = c.req.valid('param')
   const userId = parseInt(id, 10)
-  
+
   if (isNaN(userId)) {
     ErrorFactory.invalidParam('id', 'number', id)
   }
-  
+
   const user = await userService.getById(userId)
   if (!user) {
     ErrorFactory.notFound('User', userId)
   }
-  
+
   return successResponse(c, user)
 }
 ```
@@ -150,6 +150,7 @@ You have deep expertise in handling all types of HTTP parameters correctly:
    - Array handling: Parse comma-separated or multiple field values
 
 4. **Common Validation Patterns:**
+
    ```typescript
    // Pagination (query parameters)
    const PaginationQuerySchema = z.object({
@@ -169,7 +170,10 @@ You have deep expertise in handling all types of HTTP parameters correctly:
    const SearchQuerySchema = z.object({
      query: z.string().optional(),
      category: z.string().optional(),
-     tags: z.string().transform(s => s ? s.split(',') : []).optional(),
+     tags: z
+       .string()
+       .transform((s) => (s ? s.split(',') : []))
+       .optional(),
      dateFrom: z.string().datetime().optional(),
      dateTo: z.string().datetime().optional(),
      includeArchived: z.coerce.boolean().default(false)
@@ -199,22 +203,25 @@ const ProjectListQuerySchema = z.object({
   // Pagination
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  
+
   // Search
   search: z.string().optional(),
-  
+
   // Filters
   status: z.enum(['active', 'inactive', 'archived']).optional(),
-  tags: z.string().transform(s => s ? s.split(',').map(t => t.trim()) : []).optional(),
-  
+  tags: z
+    .string()
+    .transform((s) => (s ? s.split(',').map((t) => t.trim()) : []))
+    .optional(),
+
   // Date filters
   createdAfter: z.string().datetime().optional(),
   createdBefore: z.string().datetime().optional(),
-  
+
   // Sorting
   sortBy: z.enum(['name', 'createdAt', 'updatedAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
-  
+
   // Boolean flags
   includeArchived: z.coerce.boolean().default(false),
   includeStats: z.coerce.boolean().default(true)
@@ -232,8 +239,11 @@ const UserPermissionParamsSchema = z.object({
 
 // Numeric ID with validation
 const ProjectParamsSchema = z.object({
-  projectId: z.coerce.number().int().positive()
-    .refine(id => id <= Number.MAX_SAFE_INTEGER, 'Project ID too large')
+  projectId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .refine((id) => id <= Number.MAX_SAFE_INTEGER, 'Project ID too large')
 })
 
 // ===== FORM DATA HANDLING =====
@@ -243,7 +253,10 @@ const FileUploadSchema = z.object({
   file: z.instanceof(File),
   projectId: z.coerce.number().int().positive(),
   category: z.enum(['document', 'image', 'archive']).default('document'),
-  tags: z.string().transform(s => s ? s.split(',').map(t => t.trim()) : []).optional(),
+  tags: z
+    .string()
+    .transform((s) => (s ? s.split(',').map((t) => t.trim()) : []))
+    .optional(),
   isPublic: z.coerce.boolean().default(false),
   description: z.string().max(500).optional()
 })
@@ -251,61 +264,70 @@ const FileUploadSchema = z.object({
 // ===== COMPLEX QUERY TRANSFORMATIONS =====
 
 // Advanced search with nested filters
-const AdvancedSearchSchema = z.object({
-  // Basic search
-  q: z.string().optional(),
-  
-  // Faceted search
-  filters: z.string()
-    .transform(s => {
-      if (!s) return {}
-      try {
-        return JSON.parse(s)
-      } catch {
-        return {}
-      }
-    })
-    .pipe(z.record(z.string(), z.union([z.string(), z.array(z.string())])))
-    .optional()
-    .default({}),
-  
-  // Geographic bounds (comma-separated coordinates)
-  bounds: z.string()
-    .transform(s => {
-      if (!s) return null
-      const coords = s.split(',').map(Number)
-      if (coords.length !== 4 || coords.some(isNaN)) return null
-      return { north: coords[0], south: coords[1], east: coords[2], west: coords[3] }
-    })
-    .optional(),
-  
-  // Price range
-  priceMin: z.coerce.number().min(0).optional(),
-  priceMax: z.coerce.number().min(0).optional()
-}).refine(data => !data.priceMin || !data.priceMax || data.priceMin <= data.priceMax, {
-  message: 'Price minimum must be less than or equal to maximum',
-  path: ['priceMin']
-})
+const AdvancedSearchSchema = z
+  .object({
+    // Basic search
+    q: z.string().optional(),
+
+    // Faceted search
+    filters: z
+      .string()
+      .transform((s) => {
+        if (!s) return {}
+        try {
+          return JSON.parse(s)
+        } catch {
+          return {}
+        }
+      })
+      .pipe(z.record(z.string(), z.union([z.string(), z.array(z.string())])))
+      .optional()
+      .default({}),
+
+    // Geographic bounds (comma-separated coordinates)
+    bounds: z
+      .string()
+      .transform((s) => {
+        if (!s) return null
+        const coords = s.split(',').map(Number)
+        if (coords.length !== 4 || coords.some(isNaN)) return null
+        return { north: coords[0], south: coords[1], east: coords[2], west: coords[3] }
+      })
+      .optional(),
+
+    // Price range
+    priceMin: z.coerce.number().min(0).optional(),
+    priceMax: z.coerce.number().min(0).optional()
+  })
+  .refine((data) => !data.priceMin || !data.priceMax || data.priceMin <= data.priceMax, {
+    message: 'Price minimum must be less than or equal to maximum',
+    path: ['priceMin']
+  })
 
 // ===== ERROR-RESISTANT PATTERNS =====
 
 // Handle common edge cases in query parameters
 const RobustQuerySchema = z.object({
   // Handle empty strings as undefined
-  name: z.string().transform(s => s.trim() || undefined).optional(),
-  
+  name: z
+    .string()
+    .transform((s) => s.trim() || undefined)
+    .optional(),
+
   // Coerce with fallback for invalid numbers
-  count: z.string()
-    .transform(s => {
+  count: z
+    .string()
+    .transform((s) => {
       const num = parseInt(s, 10)
       return isNaN(num) ? 0 : Math.max(0, Math.min(num, 1000))
     })
     .optional()
     .default(10),
-  
+
   // Parse JSON with error handling
-  metadata: z.string()
-    .transform(s => {
+  metadata: z
+    .string()
+    .transform((s) => {
       if (!s) return {}
       try {
         const parsed = JSON.parse(s)
@@ -316,10 +338,11 @@ const RobustQuerySchema = z.object({
     })
     .optional()
     .default({}),
-  
+
   // Email list with validation
-  emails: z.string()
-    .transform(s => s ? s.split(',').map(e => e.trim()) : [])
+  emails: z
+    .string()
+    .transform((s) => (s ? s.split(',').map((e) => e.trim()) : []))
     .pipe(z.array(z.string().email()))
     .optional()
     .default([])
@@ -340,13 +363,13 @@ const getProjectsRoute = createRoute({
 
 const getProjectsHandler = async (c) => {
   const query = c.req.valid('query')
-  
+
   // Query is now properly typed and validated:
   // - query.page is number (not string)
   // - query.limit is number with range validation
   // - query.tags is string[] (already split and trimmed)
   // - query.includeArchived is boolean
-  
+
   try {
     const projects = await projectService.list({
       pagination: { page: query.page, limit: query.limit },
@@ -358,7 +381,7 @@ const getProjectsHandler = async (c) => {
       },
       sorting: { by: query.sortBy, order: query.sortOrder }
     })
-    
+
     return successResponse(c, projects)
   } catch (error) {
     if (error instanceof ApiError) throw error
@@ -375,30 +398,30 @@ describe('Parameter Validation', () => {
   it('should coerce string numbers to numbers', () => {
     const input = { limit: '50', offset: '10' }
     const result = ClaudeSessionQuerySchema.parse(input)
-    
+
     expect(result.limit).toBe(50)
     expect(result.offset).toBe(10)
     expect(typeof result.limit).toBe('number')
     expect(typeof result.offset).toBe('number')
   })
-  
+
   it('should use defaults for missing values', () => {
     const result = ClaudeSessionQuerySchema.parse({})
-    
+
     expect(result.limit).toBe(50)
     expect(result.offset).toBe(0)
   })
-  
+
   it('should handle edge cases gracefully', () => {
     const result = RobustQuerySchema.parse({
-      name: '  ',  // Empty string after trim
-      count: 'abc',  // Invalid number
+      name: '  ', // Empty string after trim
+      count: 'abc', // Invalid number
       emails: 'user@example.com, invalid-email, user2@test.com'
     })
-    
+
     expect(result.name).toBeUndefined()
-    expect(result.count).toBe(0)  // Fallback value
-    expect(result.emails).toEqual(['user@example.com'])  // Only valid emails
+    expect(result.count).toBe(0) // Fallback value
+    expect(result.emails).toEqual(['user@example.com']) // Only valid emails
   })
 })
 ```
@@ -412,22 +435,28 @@ You have comprehensive knowledge of Hono's sophisticated routing system and how 
 Hono implements a **multi-strategy routing system** that automatically selects the best algorithm based on route patterns:
 
 ### 1. **Trie-Based Router (TrieRouter)**
+
 For static routes and simple patterns, uses a prefix tree structure with O(n) complexity:
+
 ```typescript
-app.get('/users', handler)          // Static route - uses trie
-app.get('/users/profile', handler)  // Static route - uses trie
-app.get('/posts', handler)          // Static route - uses trie
+app.get('/users', handler) // Static route - uses trie
+app.get('/users/profile', handler) // Static route - uses trie
+app.get('/posts', handler) // Static route - uses trie
 ```
 
-### 2. **RegExp Router** 
+### 2. **RegExp Router**
+
 For dynamic routes with parameters, compiles routes into optimized regular expressions:
+
 ```typescript
-app.get('/users/:id', handler)           // Dynamic - uses RegExp
-app.get('/posts/:year/:month', handler)  // Dynamic - uses RegExp
+app.get('/users/:id', handler) // Dynamic - uses RegExp
+app.get('/posts/:year/:month', handler) // Dynamic - uses RegExp
 ```
 
 ### 3. **Smart Router Selection**
+
 Hono automatically chooses the optimal router:
+
 - **LinearRouter**: Very few routes (< 10)
 - **TrieRouter**: Static paths and simple patterns
 - **RegExpRouter**: Routes with parameters or complex matching
@@ -436,7 +465,7 @@ Hono automatically chooses the optimal router:
 
 1. **Path Normalization**: URL paths are normalized (trailing slashes removed, etc.)
 2. **Method Filtering**: Routes filtered by HTTP method first
-3. **Pattern Matching**: 
+3. **Pattern Matching**:
    - Static routes: Direct trie lookup
    - Dynamic routes: RegExp matching against compiled patterns
 4. **Parameter Extraction**: Path parameters extracted for matched routes
@@ -452,32 +481,35 @@ Hono automatically chooses the optimal router:
 
 ```typescript
 // ✅ CORRECT ORDER - Specific routes first
-app.get('/api/claude-code/sessions/:projectId/metadata', getSessionMetadataHandler)
-app.get('/api/claude-code/sessions/:projectId/recent', getRecentSessionsHandler)
-app.get('/api/claude-code/sessions/:projectId', getSessionHandler)  // Generic last
+app.get('/api/coder/sessions/:projectId/metadata', getSessionMetadataHandler)
+app.get('/api/coder/sessions/:projectId/recent', getRecentSessionsHandler)
+app.get('/api/coder/sessions/:projectId', getSessionHandler) // Generic last
 
 // ❌ WRONG ORDER - Generic route catches everything
-app.get('/api/claude-code/sessions/:projectId', getSessionHandler)  // Too early!
-app.get('/api/claude-code/sessions/:projectId/metadata', getSessionMetadataHandler)  // Never reached
-app.get('/api/claude-code/sessions/:projectId/recent', getRecentSessionsHandler)    // Never reached
+app.get('/api/coder/sessions/:projectId', getSessionHandler) // Too early!
+app.get('/api/coder/sessions/:projectId/metadata', getSessionMetadataHandler) // Never reached
+app.get('/api/coder/sessions/:projectId/recent', getRecentSessionsHandler) // Never reached
 ```
 
 ### Common Route Ordering Patterns
 
 1. **Exact matches before parameter matches:**
+
 ```typescript
-app.get('/api/users/me', getCurrentUserHandler)        // Exact match first
-app.get('/api/users/:id', getUserHandler)              // Parameter match second
+app.get('/api/users/me', getCurrentUserHandler) // Exact match first
+app.get('/api/users/:id', getUserHandler) // Parameter match second
 ```
 
 2. **Specific parameter patterns before generic ones:**
+
 ```typescript
-app.get('/api/files/:id/download', downloadFileHandler)     // Specific action
-app.get('/api/files/:id/metadata', getFileMetadataHandler)  // Specific action
-app.get('/api/files/:id', getFileHandler)                   // Generic last
+app.get('/api/files/:id/download', downloadFileHandler) // Specific action
+app.get('/api/files/:id/metadata', getFileMetadataHandler) // Specific action
+app.get('/api/files/:id', getFileHandler) // Generic last
 ```
 
 3. **Multiple parameters - most specific first:**
+
 ```typescript
 app.get('/api/projects/:projectId/users/:userId/permissions', getUserPermissionsHandler)
 app.get('/api/projects/:projectId/users/:userId', getProjectUserHandler)
@@ -505,23 +537,26 @@ When routes aren't matching as expected:
 ## Advanced Route Features
 
 ### Wildcard Support
+
 ```typescript
-app.get('/files/*', handler)  // Matches /files/anything/here/deeply/nested
+app.get('/files/*', handler) // Matches /files/anything/here/deeply/nested
 ```
 
 ### Optional Parameters
+
 ```typescript
-app.get('/posts/:id?', handler)  // id parameter is optional
+app.get('/posts/:id?', handler) // id parameter is optional
 ```
 
 ### Route Groups with Middleware
+
 ```typescript
 const api = new Hono()
-api.use('*', authMiddleware)  // Apply to all routes in this group
+api.use('*', authMiddleware) // Apply to all routes in this group
 api.get('/users', getUsersHandler)
 api.get('/posts', getPostsHandler)
 
-app.route('/api', api)  // Mount the group
+app.route('/api', api) // Mount the group
 ```
 
 ## Error Prevention Checklist

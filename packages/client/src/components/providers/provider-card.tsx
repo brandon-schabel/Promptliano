@@ -42,10 +42,11 @@ import {
   Database,
   Cpu
 } from 'lucide-react'
-import type { ProviderKey, ProviderHealthStatus } from '@promptliano/schemas'
+import type { ProviderKey } from '@/hooks/generated/providers-hooks'
+import type { ProviderHealthStatus } from '@promptliano/schemas'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
-import { useGetModels } from '@/hooks/api/use-gen-ai-api'
+import { useGetModels } from '@/hooks/generated'
 import { ModelListPopover } from './model-list-popover'
 import { copyToClipboard } from '@/utils/clipboard'
 
@@ -84,7 +85,9 @@ export function ProviderCard({
   const { data: modelsResponse, isLoading: modelsLoading } = useGetModels(provider.provider, {})
 
   const handleCopyKey = () => {
-    copyToClipboard(provider.key, 'API key copied to clipboard')
+    if (provider.key) {
+      copyToClipboard(provider.key, 'Secret copied to clipboard')
+    }
   }
 
   const getStatusColor = () => {
@@ -254,7 +257,7 @@ export function ProviderCard({
           {isConnected && (
             <div className='grid grid-cols-3 gap-2 animate-in fade-in duration-300'>
               <ModelListPopover
-                models={modelsResponse?.data || []}
+                models={Array.isArray(modelsResponse) ? modelsResponse : []}
                 isLoading={modelsLoading}
                 providerName={meta?.name || provider.provider}
                 isConnected={isConnected}
@@ -265,7 +268,7 @@ export function ProviderCard({
                     {modelsLoading ? (
                       <Loader2 className='h-3 w-3 animate-spin' />
                     ) : (
-                      modelsResponse?.data?.length || health?.modelCount || '--'
+                      (Array.isArray(modelsResponse) ? modelsResponse.length : 0) || health?.modelCount || '--'
                     )}
                   </p>
                 </button>
@@ -283,15 +286,15 @@ export function ProviderCard({
             </div>
           )}
 
-          {/* API Key Display */}
+          {/* Secret Display (resolved from env) */}
           <div className='space-y-1'>
             <p className='text-xs text-muted-foreground flex items-center gap-1'>
               <Shield className='h-3 w-3' />
-              API Key
+              Secret
             </p>
             <div className='flex items-center gap-2'>
               <code className='text-xs bg-muted/50 px-2 py-1.5 rounded flex-1 truncate font-mono'>
-                {provider.key.substring(0, 12)}
+                {provider.key ? provider.key.substring(0, 12) : 'No secret'}
                 {'•'.repeat(8)}
               </code>
               <TooltipProvider>
@@ -301,7 +304,7 @@ export function ProviderCard({
                       <Copy className='h-3 w-3' />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Copy API Key</TooltipContent>
+                  <TooltipContent>Copy Secret</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>

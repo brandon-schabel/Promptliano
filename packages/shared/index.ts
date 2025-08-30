@@ -2,6 +2,8 @@
 export * from './src/error/api-error'
 export * from './src/error/domain-error'
 export * from './src/error/entity-errors'
+export * from './src/error/error-factory'
+export * from './src/error/error-code-mapping'
 
 // Utils
 // NOTE: crypto.ts is excluded from client builds due to storage dependency
@@ -14,11 +16,9 @@ export * from './src/utils/projects-utils'
 export * from './src/utils/prompts-map'
 export * from './src/utils/secure-path-validator'
 export * from './src/utils/service-utils'
-export * from './src/utils/sqlite-converters'
 export * from './src/utils/summary-formatters'
 export * from './src/utils/project-summary-formatter'
 export * from './src/utils/zod-utils'
-export * from './src/utils/generate-key'
 export * from './src/utils/test-utils'
 export * from './src/utils/queue-field-utils'
 
@@ -28,9 +28,6 @@ export * from './src/utils/file-tree-utils/import-resolver'
 
 // Constants
 export * from './src/constants/file-limits'
-
-// Templates
-export * from './src/claude-hook-templates'
 
 // Parsers
 export * from './src/parsers'

@@ -100,14 +100,14 @@ export interface MetadataDisplayProps extends React.HTMLAttributes<HTMLDivElemen
 }
 
 const defaultIcons = {
-  date: <Calendar className="h-4 w-4" />,
-  datetime: <Clock className="h-4 w-4" />,
-  'relative-time': <Clock className="h-4 w-4" />,
-  number: <Hash className="h-4 w-4" />,
-  user: <User className="h-4 w-4" />,
-  tag: <Tag className="h-4 w-4" />,
-  text: <FileText className="h-4 w-4" />,
-  link: <Link2 className="h-4 w-4" />
+  date: <Calendar className='h-4 w-4' />,
+  datetime: <Clock className='h-4 w-4' />,
+  'relative-time': <Clock className='h-4 w-4' />,
+  number: <Hash className='h-4 w-4' />,
+  user: <User className='h-4 w-4' />,
+  tag: <Tag className='h-4 w-4' />,
+  text: <FileText className='h-4 w-4' />,
+  link: <Link2 className='h-4 w-4' />
 }
 
 const sizeClasses = {
@@ -147,40 +147,35 @@ const formatValue = (item: MetadataItem): React.ReactNode => {
   }
 
   if (value === null || value === undefined) {
-    return <span className="text-muted-foreground">—</span>
+    return <span className='text-muted-foreground'>—</span>
   }
 
   switch (type) {
     case 'date':
       return format(new Date(value as string | number | Date), 'MMM d, yyyy')
-    
+
     case 'datetime':
       return format(new Date(value as string | number | Date), 'MMM d, yyyy h:mm a')
-    
+
     case 'relative-time':
       return formatDistanceToNow(new Date(value as string | number | Date), { addSuffix: true })
-    
+
     case 'number':
       return typeof value === 'number' ? value.toLocaleString() : String(value)
-    
+
     case 'boolean':
       return value ? 'Yes' : 'No'
-    
+
     case 'badge':
       return <Badge variant={badgeVariant}>{String(value)}</Badge>
-    
+
     case 'link':
       return (
-        <a
-          href={href || '#'}
-          className="text-primary hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={href || '#'} className='text-primary hover:underline' target='_blank' rel='noopener noreferrer'>
           {String(value)}
         </a>
       )
-    
+
     default:
       return String(value)
   }
@@ -212,12 +207,8 @@ const MetadataItemComponent: React.FC<{
       onClick={item.onClick}
       title={item.tooltip}
     >
-      {showIcons && icon && (
-        <div className={cn('flex-shrink-0 text-muted-foreground', sizeConfig.icon)}>
-          {icon}
-        </div>
-      )}
-      
+      {showIcons && icon && <div className={cn('flex-shrink-0 text-muted-foreground', sizeConfig.icon)}>{icon}</div>}
+
       <div className={cn('flex-1 min-w-0', layout === 'inline' && 'flex items-center gap-1')}>
         {showLabels && (
           <span className={cn('text-muted-foreground', sizeConfig.label, layout !== 'inline' && 'block')}>
@@ -225,9 +216,7 @@ const MetadataItemComponent: React.FC<{
             {layout === 'inline' && ':'}
           </span>
         )}
-        <span className={cn('font-medium', sizeConfig.text, layout !== 'inline' && 'block')}>
-          {formattedValue}
-        </span>
+        <span className={cn('font-medium', sizeConfig.text, layout !== 'inline' && 'block')}>{formattedValue}</span>
       </div>
     </div>
   )
@@ -251,8 +240,8 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
     },
     ref
   ) => {
-    const filteredItems = items.filter(item => 
-      item.hideIfEmpty === false || (item.value !== null && item.value !== undefined)
+    const filteredItems = items.filter(
+      (item) => item.hideIfEmpty === false || (item.value !== null && item.value !== undefined)
     )
 
     if (filteredItems.length === 0) {
@@ -261,22 +250,9 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
 
     if (layout === 'grid') {
       return (
-        <div
-          ref={ref}
-          className={cn(
-            'grid gap-4',
-            columnClasses[columns],
-            className
-          )}
-          {...props}
-        >
+        <div ref={ref} className={cn('grid gap-4', columnClasses[columns], className)} {...props}>
           {filteredItems.map((item) => (
-            <div
-              key={item.key}
-              className={cn(
-                bordered && 'pb-4 border-b last:border-b-0'
-              )}
-            >
+            <div key={item.key} className={cn(bordered && 'pb-4 border-b last:border-b-0')}>
               <MetadataItemComponent
                 item={item}
                 size={size}
@@ -292,18 +268,9 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
 
     if (layout === 'list') {
       return (
-        <div
-          ref={ref}
-          className={cn('space-y-3', className)}
-          {...props}
-        >
+        <div ref={ref} className={cn('space-y-3', className)} {...props}>
           {filteredItems.map((item) => (
-            <div
-              key={item.key}
-              className={cn(
-                bordered && 'pb-3 border-b last:border-b-0'
-              )}
-            >
+            <div key={item.key} className={cn(bordered && 'pb-3 border-b last:border-b-0')}>
               <MetadataItemComponent
                 item={item}
                 size={size}
@@ -319,11 +286,7 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
 
     if (layout === 'inline') {
       return (
-        <div
-          ref={ref}
-          className={cn('flex flex-wrap items-center gap-3', className)}
-          {...props}
-        >
+        <div ref={ref} className={cn('flex flex-wrap items-center gap-3', className)} {...props}>
           {filteredItems.map((item, index) => (
             <React.Fragment key={item.key}>
               <MetadataItemComponent
@@ -333,9 +296,7 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
                 showLabels={showLabels}
                 layout={layout}
               />
-              {index < filteredItems.length - 1 && (
-                <span className="text-muted-foreground">{separator}</span>
-              )}
+              {index < filteredItems.length - 1 && <span className='text-muted-foreground'>{separator}</span>}
             </React.Fragment>
           ))}
         </div>
@@ -344,28 +305,12 @@ export const MetadataDisplay = React.forwardRef<HTMLDivElement, MetadataDisplayP
 
     if (layout === 'compact') {
       return (
-        <div
-          ref={ref}
-          className={cn('flex flex-wrap gap-2', className)}
-          {...props}
-        >
+        <div ref={ref} className={cn('flex flex-wrap gap-2', className)} {...props}>
           {filteredItems.map((item) => (
-            <Badge
-              key={item.key}
-              variant="secondary"
-              className={cn('gap-1', sizeClasses[size].text)}
-            >
-              {showIcons && item.icon && (
-                <span className={sizeClasses[size].icon}>
-                  {item.icon}
-                </span>
-              )}
-              {showLabels && (
-                <span className="text-muted-foreground">
-                  {item.label}:
-                </span>
-              )}
-              <span className="font-medium">{formatValue(item)}</span>
+            <Badge key={item.key} variant='secondary' className={cn('gap-1', sizeClasses[size].text)}>
+              {showIcons && item.icon && <span className={sizeClasses[size].icon}>{item.icon}</span>}
+              {showLabels && <span className='text-muted-foreground'>{item.label}:</span>}
+              <span className='font-medium'>{formatValue(item)}</span>
             </Badge>
           ))}
         </div>

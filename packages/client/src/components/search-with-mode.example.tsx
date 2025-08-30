@@ -13,19 +13,19 @@ export function SearchWithModeExample() {
       value: 'name',
       label: 'Search Names',
       shortLabel: 'Names',
-      icon: <FileText className="h-4 w-4" />
+      icon: <FileText className='h-4 w-4' />
     },
     {
       value: 'content',
-      label: 'Search Content', 
+      label: 'Search Content',
       shortLabel: 'Content',
-      icon: <Code className="h-4 w-4" />
+      icon: <Code className='h-4 w-4' />
     },
     {
       value: 'both',
       label: 'Search Both',
       shortLabel: 'Both',
-      icon: <Search className="h-4 w-4" />
+      icon: <Search className='h-4 w-4' />
     }
   ]
 
@@ -40,11 +40,11 @@ export function SearchWithModeExample() {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-lg font-semibold">SearchWithMode Component Example</h2>
-      
-      <div className="space-y-2">
-        <label className="text-sm font-medium">File Search:</label>
+    <div className='p-6 space-y-4'>
+      <h2 className='text-lg font-semibold'>SearchWithMode Component Example</h2>
+
+      <div className='space-y-2'>
+        <label className='text-sm font-medium'>File Search:</label>
         <SearchWithMode
           value={searchValue}
           onChange={setSearchValue}
@@ -58,11 +58,17 @@ export function SearchWithModeExample() {
         />
       </div>
 
-      <div className="text-sm text-muted-foreground space-y-1">
-        <p><strong>Current Value:</strong> {searchValue || '(empty)'}</p>
-        <p><strong>Current Mode:</strong> {searchMode}</p>
-        <p><strong>Keyboard shortcuts:</strong></p>
-        <ul className="ml-4 list-disc space-y-1">
+      <div className='text-sm text-muted-foreground space-y-1'>
+        <p>
+          <strong>Current Value:</strong> {searchValue || '(empty)'}
+        </p>
+        <p>
+          <strong>Current Mode:</strong> {searchMode}
+        </p>
+        <p>
+          <strong>Keyboard shortcuts:</strong>
+        </p>
+        <ul className='ml-4 list-disc space-y-1'>
           <li>Ctrl/Cmd + M to open mode selector</li>
           <li>Arrow keys to navigate modes when dropdown is open</li>
           <li>Enter to select mode</li>

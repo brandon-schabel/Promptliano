@@ -1,15 +1,14 @@
 import { describe, test, expect } from 'bun:test'
 import { CompactFileFormatter, calculateTokenSavings } from './compact-file-formatter'
-import type { ProjectFile, CompactLevel } from '@promptliano/schemas'
+import type { File as ProjectFile, CompactLevel } from '@promptliano/database'
 
 // Helper to create test files
 function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
   return {
-    id: 1,
+    id: '1',
     projectId: 1,
     name: 'test.ts',
     path: '/src/test.ts',
-    extension: 'ts',
     size: 1000,
     content: '',
     summary: 'Test file summary',
@@ -18,8 +17,12 @@ function createTestFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     checksum: 'abc123',
     imports: [],
     exports: [],
-    created: Date.now(),
-    updated: Date.now(),
+    lastModified: Date.now(),
+    contentType: 'text/plain',
+    isRelevant: null,
+    relevanceScore: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides
   }
 }
@@ -28,16 +31,16 @@ describe('CompactFileFormatter', () => {
   describe('ultraCompact', () => {
     test('formats files with only id and path', () => {
       const files = [
-        createTestFile({ id: 1, path: '/src/index.ts' }),
-        createTestFile({ id: 2, path: '/src/utils/helper.ts' })
+        createTestFile({ id: '1', path: '/src/index.ts' }),
+        createTestFile({ id: '2', path: '/src/utils/helper.ts' })
       ]
 
       const result = CompactFileFormatter.ultraCompact(files)
       const parsed = JSON.parse(result)
 
       expect(parsed).toHaveLength(2)
-      expect(parsed[0]).toEqual({ i: 1, p: '/src/index.ts' })
-      expect(parsed[1]).toEqual({ i: 2, p: '/src/utils/helper.ts' })
+      expect(parsed[0]).toEqual({ i: '1', p: '/src/index.ts' })
+      expect(parsed[1]).toEqual({ i: '2', p: '/src/utils/helper.ts' })
     })
 
     test('truncates long paths', () => {
@@ -61,8 +64,8 @@ describe('CompactFileFormatter', () => {
   describe('compact', () => {
     test('includes id, path, and summary', () => {
       const files = [
-        createTestFile({ 
-          id: 1, 
+        createTestFile({
+          id: 1,
           path: '/src/index.ts',
           summary: 'Main entry point for the application'
         })
@@ -78,7 +81,8 @@ describe('CompactFileFormatter', () => {
 
     test('truncates long summaries', () => {
       const file = createTestFile({
-        summary: 'This is a very long summary that exceeds the maximum allowed length and should be truncated appropriately'
+        summary:
+          'This is a very long summary that exceeds the maximum allowed length and should be truncated appropriately'
       })
 
       const result = CompactFileFormatter.compact([file])
@@ -113,18 +117,18 @@ describe('CompactFileFormatter', () => {
   describe('standard', () => {
     test('includes all fields', () => {
       const file = createTestFile({
-        id: 1,
+        id: '1',
         path: '/src/component.tsx',
         summary: 'React component',
         extension: 'tsx',
-        updated: 1609459200000
+        updatedAt: 1609459200000
       })
 
       const result = CompactFileFormatter.standard([file])
       const parsed = JSON.parse(result)
 
       expect(parsed[0]).toEqual({
-        i: 1,
+        i: '1',
         p: '/src/component.tsx',
         s: 'React component',
         t: 'tsx',
@@ -194,9 +198,7 @@ describe('CompactFileFormatter', () => {
     })
 
     test('handles files without summaries', () => {
-      const files = [
-        createTestFile({ id: 1, path: '/src/index.ts', summary: null })
-      ]
+      const files = [createTestFile({ id: 1, path: '/src/index.ts', summary: null })]
 
       const prompt = CompactFileFormatter.toAIPrompt(files)
 
@@ -205,12 +207,10 @@ describe('CompactFileFormatter', () => {
     })
 
     test('respects format level', () => {
-      const files = [
-        createTestFile({ id: 1, path: '/very/long/path/file.ts', summary: 'Test' })
-      ]
+      const files = [createTestFile({ id: 1, path: '/very/long/path/file.ts', summary: 'Test' })]
 
       const ultraPrompt = CompactFileFormatter.toAIPrompt(files, 'ultra')
-      
+
       expect(ultraPrompt).not.toContain(' - Test')
     })
   })
@@ -234,11 +234,11 @@ describe('CompactFileFormatter', () => {
     })
 
     test('limits files per category to 5', () => {
-      const files = Array.from({ length: 10 }, (_, i) => 
-        createTestFile({ 
-          id: i, 
+      const files = Array.from({ length: 10 }, (_, i) =>
+        createTestFile({
+          id: i,
           path: `/src/service${i}.service.ts`,
-          extension: 'ts' 
+          extension: 'ts'
         })
       )
 
@@ -246,15 +246,15 @@ describe('CompactFileFormatter', () => {
 
       expect(summary).toContain('Services (10):')
       expect(summary).toContain('...and 5 more')
-      
+
       // Should show exactly 5 service files
-      const serviceLines = summary.split('\n').filter(line => line.includes('service') && line.startsWith('-'))
+      const serviceLines = summary.split('\n').filter((line) => line.includes('service') && line.startsWith('-'))
       expect(serviceLines).toHaveLength(5)
     })
 
     test('includes summaries when available', () => {
       const files = [
-        createTestFile({ 
+        createTestFile({
           path: '/src/auth.service.ts',
           summary: 'Handles user authentication and authorization'
         })
@@ -280,9 +280,7 @@ describe('CompactFileFormatter', () => {
     })
 
     test('handles unknown extensions', () => {
-      const files = [
-        createTestFile({ path: '/src/unknown.xyz', extension: 'xyz' })
-      ]
+      const files = [createTestFile({ path: '/src/unknown.xyz', extension: 'xyz' })]
 
       const summary = CompactFileFormatter.categorizedSummary(files)
 
@@ -292,9 +290,7 @@ describe('CompactFileFormatter', () => {
 
   describe('path truncation', () => {
     test('preserves short paths', () => {
-      const files = [
-        createTestFile({ path: '/src/index.ts' })
-      ]
+      const files = [createTestFile({ path: '/src/index.ts' })]
 
       const result = CompactFileFormatter.ultraCompact(files)
       const parsed = JSON.parse(result)
@@ -304,8 +300,8 @@ describe('CompactFileFormatter', () => {
 
     test('truncates middle of long paths', () => {
       const files = [
-        createTestFile({ 
-          path: '/src/components/features/dashboard/widgets/analytics/performance/chart.tsx' 
+        createTestFile({
+          path: '/src/components/features/dashboard/widgets/analytics/performance/chart.tsx'
         })
       ]
 
@@ -317,9 +313,7 @@ describe('CompactFileFormatter', () => {
     })
 
     test('handles paths with few segments', () => {
-      const files = [
-        createTestFile({ path: '/verylongfilenamethatshouldbetruncatedtomeetthe50characterlimit.ts' })
-      ]
+      const files = [createTestFile({ path: '/verylongfilenamethatshouldbetruncatedtomeetthe50characterlimit.ts' })]
 
       const result = CompactFileFormatter.ultraCompact(files)
       const parsed = JSON.parse(result)
@@ -329,9 +323,7 @@ describe('CompactFileFormatter', () => {
     })
 
     test('handles root files', () => {
-      const files = [
-        createTestFile({ path: 'package.json' })
-      ]
+      const files = [createTestFile({ path: 'package.json' })]
 
       const result = CompactFileFormatter.ultraCompact(files)
       const parsed = JSON.parse(result)
@@ -342,9 +334,7 @@ describe('CompactFileFormatter', () => {
 
   describe('summary truncation', () => {
     test('preserves short summaries', () => {
-      const files = [
-        createTestFile({ summary: 'Short summary' })
-      ]
+      const files = [createTestFile({ summary: 'Short summary' })]
 
       const result = CompactFileFormatter.compact(files)
       const parsed = JSON.parse(result)
@@ -354,7 +344,7 @@ describe('CompactFileFormatter', () => {
 
     test('truncates long summaries with ellipsis', () => {
       const files = [
-        createTestFile({ 
+        createTestFile({
           summary: 'This is a very long summary that definitely exceeds the maximum character limit'
         })
       ]
@@ -382,9 +372,7 @@ describe('CompactFileFormatter', () => {
     })
 
     test('removes newlines and trims whitespace', () => {
-      const files = [
-        createTestFile({ summary: '  Line one\n\nLine two  \n  Line three  ' })
-      ]
+      const files = [createTestFile({ summary: '  Line one\n\nLine two  \n  Line three  ' })]
 
       const result = CompactFileFormatter.compact(files)
       const parsed = JSON.parse(result)
@@ -395,8 +383,8 @@ describe('CompactFileFormatter', () => {
 
   describe('calculateTokenSavings', () => {
     test('calculates token savings for file list', () => {
-      const files = Array.from({ length: 10 }, (_, i) => 
-        createTestFile({ 
+      const files = Array.from({ length: 10 }, (_, i) =>
+        createTestFile({
           id: i,
           path: `/src/file${i}.ts`,
           summary: `File ${i} summary`
@@ -422,8 +410,8 @@ describe('CompactFileFormatter', () => {
     })
 
     test('shows significant savings for large file lists', () => {
-      const files = Array.from({ length: 100 }, (_, i) => 
-        createTestFile({ 
+      const files = Array.from({ length: 100 }, (_, i) =>
+        createTestFile({
           id: i,
           path: `/src/component${i}.tsx`,
           summary: 'React component'

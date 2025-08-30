@@ -85,18 +85,15 @@ function renderStatItem(item: StatItem, variant: StatsCardProps['variant'] = 'de
           <span>{item.label}</span>
         </div>
         <div className='flex items-center gap-1'>
-          <span className={cn('font-medium text-sm', item.color)}>
-            {item.value}
-          </span>
-          {item.badge && (
-            typeof item.badge === 'string' ? (
+          <span className={cn('font-medium text-sm', item.color)}>{item.value}</span>
+          {item.badge &&
+            (typeof item.badge === 'string' ? (
               <Badge variant='secondary' className='text-xs px-1 py-0 h-4'>
                 {item.badge}
               </Badge>
             ) : (
               item.badge
-            )
-          )}
+            ))}
         </div>
       </div>
     )
@@ -105,10 +102,7 @@ function renderStatItem(item: StatItem, variant: StatsCardProps['variant'] = 'de
   return (
     <div
       key={item.label}
-      className={cn(
-        'space-y-1',
-        item.onClick && 'cursor-pointer hover:bg-muted/50 -m-2 p-2 rounded transition-colors'
-      )}
+      className={cn('space-y-1', item.onClick && 'cursor-pointer hover:bg-muted/50 -m-2 p-2 rounded transition-colors')}
       onClick={item.onClick}
     >
       <div className='flex items-center gap-2 text-sm text-muted-foreground'>
@@ -127,18 +121,13 @@ function renderStatItem(item: StatItem, variant: StatsCardProps['variant'] = 'de
         )}
       </div>
       <div className='flex items-baseline gap-2'>
-        <p className={cn(
-          variant === 'detailed' ? 'text-2xl font-semibold' : 'text-xl font-semibold',
-          item.color
-        )}>
+        <p className={cn(variant === 'detailed' ? 'text-2xl font-semibold' : 'text-xl font-semibold', item.color)}>
           {item.value}
         </p>
         {item.trend && (
           <div className={cn('flex items-center gap-1', trendColor)}>
             {TrendIcon && <TrendIcon className='h-3 w-3' />}
-            {item.trendValue && (
-              <span className='text-xs font-medium'>{item.trendValue}</span>
-            )}
+            {item.trendValue && <span className='text-xs font-medium'>{item.trendValue}</span>}
           </div>
         )}
       </div>
@@ -166,8 +155,8 @@ export const StatsCard = React.memo(function StatsCard({
   selected
 }: StatsCardProps) {
   const isGrid = Array.isArray(stats) && stats.length > 0 && !Array.isArray(stats[0])
-  const statsArray = isGrid ? stats as StatItem[] : []
-  const statsGroups = !isGrid && Array.isArray(stats) ? stats as StatItem[][] : []
+  const statsArray = isGrid ? (stats as StatItem[]) : []
+  const statsGroups = !isGrid && Array.isArray(stats) ? (stats as StatItem[][]) : []
 
   return (
     <Card
@@ -183,25 +172,11 @@ export const StatsCard = React.memo(function StatsCard({
         <CardHeader className={variant === 'compact' ? 'pb-2' : 'pb-4'}>
           <div className='flex items-start justify-between'>
             <div className='space-y-1'>
-              <CardTitle className={variant === 'compact' ? 'text-base' : 'text-lg'}>
-                {title}
-              </CardTitle>
-              {subtitle && (
-                <div className='text-sm text-muted-foreground'>{subtitle}</div>
-              )}
-              {description && (
-                <CardDescription className='text-xs'>{description}</CardDescription>
-              )}
+              <CardTitle className={variant === 'compact' ? 'text-base' : 'text-lg'}>{title}</CardTitle>
+              {subtitle && <div className='text-sm text-muted-foreground'>{subtitle}</div>}
+              {description && <CardDescription className='text-xs'>{description}</CardDescription>}
             </div>
-            {badge && (
-              <div className='ml-2'>
-                {typeof badge === 'string' ? (
-                  <Badge>{badge}</Badge>
-                ) : (
-                  badge
-                )}
-              </div>
-            )}
+            {badge && <div className='ml-2'>{typeof badge === 'string' ? <Badge>{badge}</Badge> : badge}</div>}
           </div>
         </CardHeader>
       )}
@@ -217,26 +192,23 @@ export const StatsCard = React.memo(function StatsCard({
                   <span className='font-medium'>{Math.round(progress.value)}%</span>
                 </div>
               )}
-              <Progress
-                value={progress.value}
-                className={cn('h-2', progress.color)}
-              />
+              <Progress value={progress.value} className={cn('h-2', progress.color)} />
             </div>
           )}
 
           {/* Stats display */}
           {isGrid ? (
-            <div className={cn(
-              layout === 'list' 
-                ? 'space-y-2'
-                : layout === 'grid'
-                ? `grid gap-4 ${statsArray.length === 2 ? 'grid-cols-2' : statsArray.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`
-                : 'space-y-4'
-            )}>
+            <div
+              className={cn(
+                layout === 'list'
+                  ? 'space-y-2'
+                  : layout === 'grid'
+                    ? `grid gap-4 ${statsArray.length === 2 ? 'grid-cols-2' : statsArray.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`
+                    : 'space-y-4'
+              )}
+            >
               {statsArray.map((item, index) => (
-                <React.Fragment key={index}>
-                  {renderStatItem(item, variant)}
-                </React.Fragment>
+                <React.Fragment key={index}>{renderStatItem(item, variant)}</React.Fragment>
               ))}
             </div>
           ) : (
@@ -246,15 +218,15 @@ export const StatsCard = React.memo(function StatsCard({
                   key={groupIndex}
                   className={cn(
                     'grid gap-4',
-                    group.length === 2 ? 'grid-cols-2' : 
-                    group.length === 3 ? 'grid-cols-3' : 
-                    'grid-cols-2 sm:grid-cols-4'
+                    group.length === 2
+                      ? 'grid-cols-2'
+                      : group.length === 3
+                        ? 'grid-cols-3'
+                        : 'grid-cols-2 sm:grid-cols-4'
                   )}
                 >
                   {group.map((item, index) => (
-                    <React.Fragment key={index}>
-                      {renderStatItem(item, variant)}
-                    </React.Fragment>
+                    <React.Fragment key={index}>{renderStatItem(item, variant)}</React.Fragment>
                   ))}
                 </div>
               ))}
@@ -262,19 +234,11 @@ export const StatsCard = React.memo(function StatsCard({
           )}
 
           {/* Actions */}
-          {actions && (
-            <div className='pt-2'>
-              {actions}
-            </div>
-          )}
+          {actions && <div className='pt-2'>{actions}</div>}
         </div>
       </CardContent>
 
-      {footer && (
-        <div className='px-6 py-3 border-t bg-muted/30'>
-          {footer}
-        </div>
-      )}
+      {footer && <div className='px-6 py-3 border-t bg-muted/30'>{footer}</div>}
     </Card>
   )
 })
@@ -308,11 +272,7 @@ export function MetricCard({
 
   return (
     <Card
-      className={cn(
-        'p-4 transition-all',
-        onClick && 'cursor-pointer hover:shadow-md',
-        className
-      )}
+      className={cn('p-4 transition-all', onClick && 'cursor-pointer hover:shadow-md', className)}
       onClick={onClick}
     >
       <div className='flex items-start justify-between'>
@@ -326,16 +286,12 @@ export function MetricCard({
             <p className='text-sm text-muted-foreground'>{label}</p>
           </div>
           <p className={cn('text-2xl font-bold', color)}>{value}</p>
-          {description && (
-            <p className='text-xs text-muted-foreground'>{description}</p>
-          )}
+          {description && <p className='text-xs text-muted-foreground'>{description}</p>}
         </div>
         {trend && (
           <div className={cn('flex items-center gap-1', trendColor)}>
             {TrendIcon && <TrendIcon className='h-4 w-4' />}
-            {trendValue && (
-              <span className='text-sm font-medium'>{trendValue}</span>
-            )}
+            {trendValue && <span className='text-sm font-medium'>{trendValue}</span>}
           </div>
         )}
       </div>
@@ -361,13 +317,7 @@ export interface ComparisonStatsProps {
   className?: string
 }
 
-export function ComparisonStats({
-  title,
-  current,
-  previous,
-  change,
-  className
-}: ComparisonStatsProps) {
+export function ComparisonStats({ title, current, previous, change, className }: ComparisonStatsProps) {
   const TrendIcon = change ? getTrendIcon(change.trend) : null
   const trendColor = change ? getTrendColor(change.trend) : ''
 
@@ -381,9 +331,7 @@ export function ComparisonStats({
         </div>
         <div>
           <p className='text-xs text-muted-foreground'>{previous.label}</p>
-          <p className='text-xl font-semibold text-muted-foreground'>
-            {previous.value}
-          </p>
+          <p className='text-xl font-semibold text-muted-foreground'>{previous.value}</p>
         </div>
       </div>
       {change && (

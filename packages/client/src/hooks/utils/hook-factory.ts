@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryOptions,
+  type UseMutationOptions
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApiError } from '@promptliano/shared'
 
@@ -218,15 +224,14 @@ export function createMutationHook<TData, TVariables>(
       mutationFn,
       onSuccess: (data, variables) => {
         if (options.invalidateKeys) {
-          options.invalidateKeys.forEach(key => {
+          options.invalidateKeys.forEach((key) => {
             queryClient.invalidateQueries({ queryKey: key })
           })
         }
 
         if (options.successMessage) {
-          const message = typeof options.successMessage === 'function' 
-            ? options.successMessage(data)
-            : options.successMessage
+          const message =
+            typeof options.successMessage === 'function' ? options.successMessage(data) : options.successMessage
           toast.success(message)
         }
 
@@ -238,7 +243,7 @@ export function createMutationHook<TData, TVariables>(
             ? options.errorMessage(error)
             : options.errorMessage
           : error?.message || 'An error occurred'
-        
+
         toast.error(message)
       },
       ...mutationOptions
@@ -249,15 +254,13 @@ export function createMutationHook<TData, TVariables>(
 /**
  * Create optimistic update mutation
  */
-export function createOptimisticMutation<TData, TVariables, TContext = unknown>(
-  options: {
-    mutationFn: (variables: TVariables) => Promise<TData>
-    queryKey: (variables: TVariables) => readonly unknown[]
-    optimisticUpdate: (old: TData | undefined, variables: TVariables) => TData
-    successMessage?: string
-    errorMessage?: string
-  }
-) {
+export function createOptimisticMutation<TData, TVariables, TContext = unknown>(options: {
+  mutationFn: (variables: TVariables) => Promise<TData>
+  queryKey: (variables: TVariables) => readonly unknown[]
+  optimisticUpdate: (old: TData | undefined, variables: TVariables) => TData
+  successMessage?: string
+  errorMessage?: string
+}) {
   return (mutationOptions?: Partial<UseMutationOptions<TData, ApiError, TVariables, TContext>>) => {
     const queryClient = useQueryClient()
 
@@ -265,29 +268,24 @@ export function createOptimisticMutation<TData, TVariables, TContext = unknown>(
       mutationFn: options.mutationFn,
       onMutate: async (variables) => {
         const queryKey = options.queryKey(variables)
-        
+
         // Cancel outgoing refetches
         await queryClient.cancelQueries({ queryKey })
-        
+
         // Snapshot previous value
         const previousData = queryClient.getQueryData<TData>(queryKey)
-        
+
         // Optimistically update
-        queryClient.setQueryData(queryKey, (old: TData | undefined) => 
-          options.optimisticUpdate(old, variables)
-        )
-        
+        queryClient.setQueryData(queryKey, (old: TData | undefined) => options.optimisticUpdate(old, variables))
+
         return { previousData, queryKey } as TContext
       },
       onError: (error, _, context) => {
         // Rollback on error
         if (context && typeof context === 'object' && 'queryKey' in context && 'previousData' in context) {
-          queryClient.setQueryData(
-            (context as any).queryKey,
-            (context as any).previousData
-          )
+          queryClient.setQueryData((context as any).queryKey, (context as any).previousData)
         }
-        
+
         toast.error(options.errorMessage || error?.message || 'An error occurred')
       },
       onSuccess: () => {

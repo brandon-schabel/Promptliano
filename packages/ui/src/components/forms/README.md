@@ -7,7 +7,7 @@ A comprehensive, intelligent form system that combines the simplicity of FormFac
 This system provides **three approaches** to building forms in Promptliano:
 
 1. **FormFactory** - Simple, fast forms for basic use cases (80% of forms)
-2. **TanStack Form** - Advanced forms for complex scenarios (20% of forms) 
+2. **TanStack Form** - Advanced forms for complex scenarios (20% of forms)
 3. **HybridFormFactory** - Intelligent switching between both based on complexity
 
 ## 📊 Quick Decision Guide
@@ -45,7 +45,7 @@ function ContactForm() {
           required: true
         }),
         createEmailField({
-          name: 'email', 
+          name: 'email',
           label: 'Email Address',
           required: true
         }),
@@ -72,7 +72,7 @@ function ContactForm() {
   // ... other props
 />
 
-// Force TanStack Form for complex forms  
+// Force TanStack Form for complex forms
 <HybridFormFactory
   forceImplementation="tanstack"
   features={{
@@ -115,10 +115,10 @@ The intelligent form component that automatically chooses the best implementatio
 interface HybridFormConfig<T> {
   schema: z.ZodSchema<T>
   fields: FieldConfig[]
-  
+
   // Force specific implementation
   forceImplementation?: 'original' | 'tanstack'
-  
+
   // Advanced features (suggests TanStack)
   features?: {
     conditionalFields?: boolean
@@ -128,10 +128,10 @@ interface HybridFormConfig<T> {
     crossFieldValidation?: boolean
     autoSave?: boolean
   }
-  
+
   // Development helpers
-  showComplexityAnalysis?: boolean  // Shows decision reasoning
-  migrationMode?: boolean          // Side-by-side comparison
+  showComplexityAnalysis?: boolean // Shows decision reasoning
+  migrationMode?: boolean // Side-by-side comparison
 }
 ```
 
@@ -152,9 +152,10 @@ Perfect for straightforward forms with basic validation:
 ```
 
 **Best for:**
+
 - ✅ < 10 fields
 - ✅ Basic validation
-- ✅ Static field structure  
+- ✅ Static field structure
 - ✅ Contact forms, login forms
 - ✅ Simple settings forms
 
@@ -181,6 +182,7 @@ For complex forms requiring advanced features:
 ```
 
 **Best for:**
+
 - ✅ > 15 fields
 - ✅ Dynamic field arrays
 - ✅ Conditional logic
@@ -321,9 +323,7 @@ createFieldGroup({
     {
       title: 'Preferences',
       description: 'Your preferences',
-      fields: [
-        createSelectField({ name: 'theme', label: 'Theme', options: themeOptions })
-      ]
+      fields: [createSelectField({ name: 'theme', label: 'Theme', options: themeOptions })]
     }
   ]}
   onSubmit={handleSubmit}
@@ -335,8 +335,8 @@ createFieldGroup({
 
 ```tsx
 <TanStackDynamicArrayField
-  name="teamMembers"
-  label="Team Members"
+  name='teamMembers'
+  label='Team Members'
   fieldTemplate={(index) => ({
     name: `teamMembers.${index}.name`,
     label: `Member ${index + 1} Name`,
@@ -344,8 +344,8 @@ createFieldGroup({
   })}
   minItems={1}
   maxItems={10}
-  addButtonText="Add Team Member"
-  removeButtonText="Remove"
+  addButtonText='Add Team Member'
+  removeButtonText='Remove'
 />
 ```
 
@@ -396,31 +396,27 @@ const schema = z.object({
 
 ```tsx
 // Synchronous validation
-const customField = z.string().refine(
-  value => value.includes('special'),
-  'Must contain "special"'
-)
+const customField = z.string().refine((value) => value.includes('special'), 'Must contain "special"')
 
 // Asynchronous validation
-const uniqueEmail = z.string().email().refine(
-  async (email) => {
+const uniqueEmail = z
+  .string()
+  .email()
+  .refine(async (email) => {
     const exists = await checkEmailExists(email)
     return !exists
-  },
-  'Email already in use'
-)
+  }, 'Email already in use')
 
 // Cross-field validation
-const passwordSchema = z.object({
-  password: z.string().min(8),
-  confirmPassword: z.string()
-}).refine(
-  data => data.password === data.confirmPassword,
-  {
+const passwordSchema = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string()
+  })
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword']
-  }
-)
+  })
 ```
 
 ### Pre-built Patterns
@@ -443,10 +439,10 @@ const registrationSchema = tanstackPatterns.registrationForm
 ```tsx
 <HybridFormFactory
   layout={{
-    columns: 2,              // Responsive grid
-    spacing: 'lg',           // 'sm' | 'md' | 'lg'
-    showCard: true,          // Wrap in card
-    direction: 'vertical'    // 'horizontal' | 'vertical'
+    columns: 2, // Responsive grid
+    spacing: 'lg', // 'sm' | 'md' | 'lg'
+    showCard: true, // Wrap in card
+    direction: 'vertical' // 'horizontal' | 'vertical'
   }}
 />
 ```
@@ -486,12 +482,12 @@ const registrationSchema = tanstackPatterns.registrationForm
 
 ### When to Migrate
 
-| Current Setup | Recommendation | Effort |
-|---------------|----------------|--------|
-| < 5 fields, basic validation | Keep FormFactory | None |
-| 5-10 fields, moderate complexity | Consider TanStack | Low |
-| > 15 fields, advanced features | Migrate to TanStack | Medium |
-| Dynamic arrays, multi-step | Migrate to TanStack | High |
+| Current Setup                    | Recommendation      | Effort |
+| -------------------------------- | ------------------- | ------ |
+| < 5 fields, basic validation     | Keep FormFactory    | None   |
+| 5-10 fields, moderate complexity | Consider TanStack   | Low    |
+| > 15 fields, advanced features   | Migrate to TanStack | Medium |
+| Dynamic arrays, multi-step       | Migrate to TanStack | High   |
 
 ### Migration Steps
 
@@ -521,7 +517,7 @@ const decision = getFormImplementationDecision({
 // Get detailed migration guide
 const guide = generateMigrationGuide(formConfig)
 console.log(guide.recommendation) // 'upgrade-to-tanstack'
-console.log(guide.benefits)      // ['Better performance', ...]
+console.log(guide.benefits) // ['Better performance', ...]
 console.log(guide.migrationSteps) // ['Step 1: ...', ...]
 ```
 
@@ -542,7 +538,7 @@ function ContactForm() {
         createTextareaField({ name: 'message', label: 'Message', required: true })
       ]}
       onSubmit={(data) => sendMessage(data)}
-      forceImplementation="original" // Simple enough for FormFactory
+      forceImplementation='original' // Simple enough for FormFactory
     />
   )
 }
@@ -593,12 +589,12 @@ function AdaptiveApplicationForm() {
       fields={applicationFields}
       onSubmit={(data) => submitApplication(data)}
       features={{
-        conditionalFields: true,    // Triggers TanStack if needed
+        conditionalFields: true, // Triggers TanStack if needed
         fieldDependencies: false,
         autoSave: false
       }}
       showComplexityAnalysis={true} // Shows decision in dev mode
-      migrationMode={false}         // Set to true to compare both
+      migrationMode={false} // Set to true to compare both
     />
   )
 }
@@ -645,11 +641,11 @@ Test both implementations simultaneously:
 
 ### Bundle Size Impact
 
-| Implementation | Gzipped Size | Best For |
-|----------------|--------------|----------|
-| FormFactory only | ~15KB | Simple forms, size-critical |
-| TanStack Form only | ~25KB | Complex forms, feature-rich |
-| Hybrid (both) | ~35KB | Mixed complexity, flexibility |
+| Implementation     | Gzipped Size | Best For                      |
+| ------------------ | ------------ | ----------------------------- |
+| FormFactory only   | ~15KB        | Simple forms, size-critical   |
+| TanStack Form only | ~25KB        | Complex forms, feature-rich   |
+| Hybrid (both)      | ~35KB        | Mixed complexity, flexibility |
 
 ### Rendering Performance
 
@@ -698,6 +694,7 @@ Test both implementations simultaneously:
 ### Common Issues
 
 **Form not submitting**
+
 ```tsx
 // Check validation errors
 const form = useFormContext()
@@ -705,12 +702,14 @@ console.log(form.formState.errors)
 ```
 
 **Performance issues with many fields**
+
 ```tsx
 // Switch to TanStack Form
-<HybridFormFactory forceImplementation="tanstack" />
+<HybridFormFactory forceImplementation='tanstack' />
 ```
 
 **Conditional fields not updating**
+
 ```tsx
 // Ensure proper dependencies
 createTextField({
@@ -720,6 +719,7 @@ createTextField({
 ```
 
 **Validation not working**
+
 ```tsx
 // Check schema definition
 const schema = z.object({
@@ -751,15 +751,15 @@ const schema = z.object({
 
 ### HybridFormFactory Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `schema` | `z.ZodSchema` | Zod validation schema |
-| `fields` | `FieldConfig[]` | Array of field configurations |
-| `onSubmit` | `(data: T) => void` | Form submission handler |
-| `forceImplementation` | `'original' \| 'tanstack'` | Override automatic selection |
-| `features` | `FormFeatures` | Advanced features configuration |
-| `showComplexityAnalysis` | `boolean` | Show decision reasoning (dev) |
-| `migrationMode` | `boolean` | Side-by-side comparison mode |
+| Prop                     | Type                       | Description                     |
+| ------------------------ | -------------------------- | ------------------------------- |
+| `schema`                 | `z.ZodSchema`              | Zod validation schema           |
+| `fields`                 | `FieldConfig[]`            | Array of field configurations   |
+| `onSubmit`               | `(data: T) => void`        | Form submission handler         |
+| `forceImplementation`    | `'original' \| 'tanstack'` | Override automatic selection    |
+| `features`               | `FormFeatures`             | Advanced features configuration |
+| `showComplexityAnalysis` | `boolean`                  | Show decision reasoning (dev)   |
+| `migrationMode`          | `boolean`                  | Side-by-side comparison mode    |
 
 ### Field Factory Functions
 

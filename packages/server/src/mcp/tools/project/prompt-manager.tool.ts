@@ -22,7 +22,9 @@ import {
   removePromptFromProject,
   suggestPrompts
 } from '@promptliano/services'
+import { addTimestamps } from '@promptliano/services/src/utils/file-utils'
 import type { CreatePromptBody, UpdatePromptBody } from '@promptliano/schemas'
+import type { Prompt } from '@promptliano/database'
 
 export const promptManagerTool: MCPToolDefinition = {
   name: 'prompt_manager',
@@ -39,7 +41,7 @@ export const promptManagerTool: MCPToolDefinition = {
       projectId: {
         type: 'number',
         description:
-          'The project ID (required for: list_by_project, add_to_project, remove_from_project, suggest_prompts). Example: 1754713756748'
+          'The project ID (required for: list_by_project, add_to_project, remove_from_project, suggest_prompts). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -59,7 +61,9 @@ export const promptManagerTool: MCPToolDefinition = {
           case PromptManagerAction.LIST: {
             const prompts = await listAllPrompts()
             const promptList = prompts
-              .map((p) => `${p.id}: ${p.name} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`)
+              .map(
+                (p: any) => `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`
+              )
               .join('\n')
             return {
               content: [{ type: 'text', text: promptList || 'No prompts found' }]
@@ -69,7 +73,7 @@ export const promptManagerTool: MCPToolDefinition = {
           case PromptManagerAction.GET: {
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
             const prompt = await getPromptById(promptId)
-            const details = `Name: ${prompt.name}\nProject ID: ${prompt.projectId || 'None'}\nContent:\n${prompt.content}\n\nCreated: ${new Date(prompt.created).toLocaleString()}\nUpdated: ${new Date(prompt.updated).toLocaleString()}`
+            const details = `Name: ${prompt.title}\nProject ID: ${prompt.projectId || 'None'}\nContent:\n${prompt.content}\n\nCreated: ${new Date(prompt.createdAt).toLocaleString()}\nUpdated: ${new Date(prompt.updatedAt).toLocaleString()}`
             return {
               content: [{ type: 'text', text: details }]
             }
@@ -77,14 +81,17 @@ export const promptManagerTool: MCPToolDefinition = {
 
           case PromptManagerAction.CREATE: {
             const createData = data as CreatePromptBody
-            const name = validateDataField<string>(createData, 'name', 'string', '"Code Review Prompt"')
+            const title = validateDataField<string>(createData, 'title', 'string', '"Code Review Prompt"')
             const content = validateDataField<string>(
               createData,
               'content',
               'string',
               '"Review this code for best practices..."'
             )
-            const prompt = await createPrompt(createData)
+            // Ensure projectId is provided (required by database schema)
+            const validProjectId =
+              projectId || validateDataField<number>(createData, 'projectId', 'number', '<PROJECT_ID>')
+            const prompt = await createPrompt(addTimestamps({ ...createData, projectId: validProjectId }))
 
             // Auto-associate with project if projectId is provided
             if (projectId) {
@@ -94,7 +101,7 @@ export const promptManagerTool: MCPToolDefinition = {
                   content: [
                     {
                       type: 'text',
-                      text: `Prompt created and associated with project ${projectId}: ${prompt.name} (ID: ${prompt.id})`
+                      text: `Prompt created and associated with project ${projectId}: ${prompt.title} (ID: ${prompt.id})`
                     }
                   ]
                 }
@@ -105,7 +112,7 @@ export const promptManagerTool: MCPToolDefinition = {
                   content: [
                     {
                       type: 'text',
-                      text: `Prompt created successfully: ${prompt.name} (ID: ${prompt.id})\nNote: Failed to associate with project ${projectId}`
+                      text: `Prompt created successfully: ${prompt.title} (ID: ${prompt.id})\nNote: Failed to associate with project ${projectId}`
                     }
                   ]
                 }
@@ -113,23 +120,24 @@ export const promptManagerTool: MCPToolDefinition = {
             }
 
             return {
-              content: [{ type: 'text', text: `Prompt created successfully: ${prompt.name} (ID: ${prompt.id})` }]
+              content: [{ type: 'text', text: `Prompt created successfully: ${prompt.title} (ID: ${prompt.id})` }]
             }
           }
 
           case PromptManagerAction.UPDATE: {
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
             const updateData: UpdatePromptBody = {}
-            if (data.name !== undefined) updateData.name = data.name
+            if (data.title !== undefined) updateData.title = data.title
             if (data.content !== undefined) updateData.content = data.content
             const prompt = await updatePrompt(promptId, updateData)
             return {
-              content: [{ type: 'text', text: `Prompt updated successfully: ${prompt.name} (ID: ${promptId})` }]
+              content: [{ type: 'text', text: `Prompt updated successfully: ${prompt.title} (ID: ${promptId})` }]
             }
           }
 
           case PromptManagerAction.DELETE: {
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
+            if (!deletePrompt) throw createMCPError(MCPErrorCode.OPERATION_FAILED, 'Delete prompt service unavailable')
             const success = await deletePrompt(promptId)
             return {
               content: [
@@ -142,10 +150,13 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.LIST_BY_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const prompts = await listPromptsByProject(validProjectId)
             const promptList = prompts
-              .map((p) => `${p.id}: ${p.name} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`)
+              .map(
+                (p: Prompt) =>
+                  `${p.id}: ${p.title} - ${p.content.substring(0, 100)}${p.content.length > 100 ? '...' : ''}`
+              )
               .join('\n')
             return {
               content: [{ type: 'text', text: promptList || `No prompts found for project ${validProjectId}` }]
@@ -153,7 +164,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.ADD_TO_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
             await addPromptToProject(promptId, validProjectId)
             return {
@@ -164,9 +175,9 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.REMOVE_FROM_PROJECT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const promptId = validateDataField<number>(data, 'promptId', 'number', '123')
-            await removePromptFromProject(promptId, validProjectId)
+            await removePromptFromProject(promptId)
             return {
               content: [
                 { type: 'text', text: `Prompt ${promptId} successfully removed from project ${validProjectId}` }
@@ -175,7 +186,7 @@ export const promptManagerTool: MCPToolDefinition = {
           }
 
           case PromptManagerAction.SUGGEST_PROMPTS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '1754713756748')
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
 
             // Enhanced validation for userInput
             if (!data || !data.userInput) {
@@ -194,7 +205,7 @@ export const promptManagerTool: MCPToolDefinition = {
             const limit = (data?.limit as number) || 5
 
             // First try to get project-specific prompts
-            const suggestedPrompts = await suggestPrompts(validProjectId, userInput, limit)
+            const suggestedPrompts = await suggestPrompts(validProjectId, userInput)
 
             // If no project-specific prompts found, check if there are any prompts at all
             if (suggestedPrompts.length === 0) {
@@ -232,7 +243,7 @@ export const promptManagerTool: MCPToolDefinition = {
             }
 
             const promptList = suggestedPrompts
-              .map((p) => `${p.id}: ${p.name}\n   ${p.content.substring(0, 150)}${p.content.length > 150 ? '...' : ''}`)
+              .map((suggestion: string, index: number) => `${index + 1}: ${suggestion}`)
               .join('\n\n')
 
             return {

@@ -46,22 +46,22 @@ runs:
       run: |
         echo "## 🧪 ${{ inputs.test-name }} Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         # Overall status
         OVERALL_STATUS="success"
         if [ "${{ inputs.test-status }}" = "failure" ] || [ "${{ inputs.typecheck-status }}" = "failure" ] || [ "${{ inputs.build-status }}" = "failure" ]; then
           OVERALL_STATUS="failure"
         fi
-        
+
         if [ "$OVERALL_STATUS" = "success" ]; then
           echo "### ✅ Overall Result: PASSED" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ❌ Overall Result: FAILED" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Test Components" >> $GITHUB_STEP_SUMMARY
-        
+
         # Type checking results
         case "${{ inputs.typecheck-status }}" in
           "success")
@@ -74,7 +74,7 @@ runs:
             echo "- ⏭️ **Type Checking**: Skipped" >> $GITHUB_STEP_SUMMARY
             ;;
         esac
-        
+
         # Test results
         case "${{ inputs.test-status }}" in
           "success")
@@ -87,7 +87,7 @@ runs:
             echo "- ⏭️ **Unit Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
             ;;
         esac
-        
+
         # Build results
         case "${{ inputs.build-status }}" in
           "success")
@@ -100,7 +100,7 @@ runs:
             echo "- ⏭️ **Build**: Skipped" >> $GITHUB_STEP_SUMMARY
             ;;
         esac
-        
+
         # Lint results
         case "${{ inputs.lint-status }}" in
           "success")
@@ -113,24 +113,24 @@ runs:
             echo "- ⏭️ **Linting**: Skipped" >> $GITHUB_STEP_SUMMARY
             ;;
         esac
-        
+
         # Coverage info
         if [ "${{ inputs.coverage-generated }}" = "true" ]; then
           echo "- 📊 **Coverage**: Generated" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         # Additional metadata
         echo "### Details" >> $GITHUB_STEP_SUMMARY
         echo "- **Package Path**: \`${{ inputs.working-directory }}\`" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ -n "${{ inputs.duration }}" ]; then
           echo "- **Duration**: ${{ inputs.duration }}s" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ -n "${{ inputs.additional-info }}" ]; then
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Additional Information" >> $GITHUB_STEP_SUMMARY
@@ -143,19 +143,19 @@ runs:
         if [ "${{ inputs.test-status }}" = "failure" ]; then
           echo "::error title=${{ inputs.test-name }} Tests::Unit tests failed for ${{ inputs.test-name }}"
         fi
-        
+
         if [ "${{ inputs.typecheck-status }}" = "failure" ]; then
           echo "::error title=${{ inputs.test-name }} TypeCheck::Type checking failed for ${{ inputs.test-name }}"
         fi
-        
+
         if [ "${{ inputs.build-status }}" = "failure" ]; then
           echo "::error title=${{ inputs.test-name }} Build::Build failed for ${{ inputs.test-name }}"
         fi
-        
+
         if [ "${{ inputs.lint-status }}" = "failure" ]; then
           echo "::warning title=${{ inputs.test-name }} Lint::Linting issues found in ${{ inputs.test-name }}"
         fi
-        
+
         # Success notices
         if [ "${{ inputs.test-status }}" = "success" ]; then
           echo "::notice title=${{ inputs.test-name }} Tests::All tests passed for ${{ inputs.test-name }}"

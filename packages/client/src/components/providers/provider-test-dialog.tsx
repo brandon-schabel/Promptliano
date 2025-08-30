@@ -32,8 +32,9 @@ import {
   Trophy,
   TrendingUp
 } from 'lucide-react'
-import { useTestProvider } from '@/hooks/api/use-providers-api'
-import type { ProviderKey, TestProviderResponse } from '@promptliano/schemas'
+import { useTestProvider } from '@/hooks/generated'
+import type { ProviderKey } from '@/hooks/generated/providers-hooks'
+import type { TestProviderResponse } from '@promptliano/schemas'
 import type { DataResponseSchema } from '@promptliano/api-client'
 import { toast } from 'sonner'
 
@@ -134,8 +135,9 @@ export function ProviderTestDialog({ provider, open, onOpenChange }: ProviderTes
         // Last phase - actually run the test
         try {
           const result: unknown = await testMutation.mutateAsync({
-            provider: provider.provider,
-            timeout: 30000
+            providerId: provider.id,
+            model: undefined,
+            testPrompt: 'Hello, this is a test message.'
           })
 
           const phaseTime = Date.now() - startTime

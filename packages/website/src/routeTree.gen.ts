@@ -29,6 +29,7 @@ import { Route as IntegrationsCompatibilityRouteImport } from './routes/integrat
 import { Route as IntegrationsClaudeDesktopRouteImport } from './routes/integrations.claude-desktop'
 import { Route as IntegrationsClaudeCodeRouteImport } from './routes/integrations.claude-code'
 import { Route as DocsUiOverviewRouteImport } from './routes/docs.ui-overview'
+import { Route as DocsMcpToolsRouteImport } from './routes/docs.mcp-tools'
 import { Route as DocsGuidesRouteImport } from './routes/docs.guides'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs.getting-started'
 import { Route as DocsDownloadInstallationRouteImport } from './routes/docs.download-installation'
@@ -141,6 +142,11 @@ const DocsUiOverviewRoute = DocsUiOverviewRouteImport.update({
   path: '/ui-overview',
   getParentRoute: () => DocsRoute,
 } as any)
+const DocsMcpToolsRoute = DocsMcpToolsRouteImport.update({
+  id: '/mcp-tools',
+  path: '/mcp-tools',
+  getParentRoute: () => DocsRoute,
+} as any)
 const DocsGuidesRoute = DocsGuidesRouteImport.update({
   id: '/guides',
   path: '/guides',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/docs/download-installation': typeof DocsDownloadInstallationRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/guides': typeof DocsGuidesRoute
+  '/docs/mcp-tools': typeof DocsMcpToolsRoute
   '/docs/ui-overview': typeof DocsUiOverviewRoute
   '/integrations/claude-code': typeof IntegrationsClaudeCodeRoute
   '/integrations/claude-desktop': typeof IntegrationsClaudeDesktopRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/docs/download-installation'
     | '/docs/getting-started'
     | '/docs/guides'
+    | '/docs/mcp-tools'
     | '/docs/ui-overview'
     | '/integrations/claude-code'
     | '/integrations/claude-desktop'
@@ -517,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsUiOverviewRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/docs/mcp-tools': {
+      id: '/docs/mcp-tools'
+      path: '/mcp-tools'
+      fullPath: '/docs/mcp-tools'
+      preLoaderRoute: typeof DocsMcpToolsRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/docs/guides': {
       id: '/docs/guides'
       path: '/guides'
@@ -581,6 +600,7 @@ interface DocsRouteChildren {
   DocsDownloadInstallationRoute: typeof DocsDownloadInstallationRoute
   DocsGettingStartedRoute: typeof DocsGettingStartedRoute
   DocsGuidesRoute: typeof DocsGuidesRoute
+  DocsMcpToolsRoute: typeof DocsMcpToolsRoute
   DocsUiOverviewRoute: typeof DocsUiOverviewRoute
   DocsIndexRoute: typeof DocsIndexRoute
   DocsHowToBuildingContextRoute: typeof DocsHowToBuildingContextRoute
@@ -594,6 +614,7 @@ const DocsRouteChildren: DocsRouteChildren = {
   DocsDownloadInstallationRoute: DocsDownloadInstallationRoute,
   DocsGettingStartedRoute: DocsGettingStartedRoute,
   DocsGuidesRoute: DocsGuidesRoute,
+  DocsMcpToolsRoute: DocsMcpToolsRoute,
   DocsUiOverviewRoute: DocsUiOverviewRoute,
   DocsIndexRoute: DocsIndexRoute,
   DocsHowToBuildingContextRoute: DocsHowToBuildingContextRoute,

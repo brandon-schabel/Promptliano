@@ -78,7 +78,7 @@ For complex forms, add features to trigger TanStack:
 Force implementation if needed:
 
 ```tsx
-<HybridFormFactory forceImplementation="tanstack" />
+<HybridFormFactory forceImplementation='tanstack' />
 ```
 
 ## Examples
@@ -101,10 +101,7 @@ Example from examples/simple-forms.tsx:
 // Simple contact form
 <FormFactory
   schema={contactSchema}
-  fields={[
-    createTextField({ name: 'name', label: 'Name' }),
-    createEmailField({ name: 'email', label: 'Email' })
-  ]}
+  fields={[createTextField({ name: 'name', label: 'Name' }), createEmailField({ name: 'email', label: 'Email' })]}
   onSubmit={handleSubmit}
 />
 ```
@@ -131,7 +128,7 @@ Best for: Dynamic arrays, conditionals, auto-save.
 
 ## Field Types
 
-Fields work with both implementations via converters in hybrid-form-factory.tsx. Use create*Field functions.
+Fields work with both implementations via converters in hybrid-form-factory.tsx. Use create\*Field functions.
 
 Examples:
 

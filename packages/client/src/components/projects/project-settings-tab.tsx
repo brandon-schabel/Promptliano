@@ -1,5 +1,5 @@
 import { useProjectTabField, useUpdateActiveProjectTab, useAppSettings } from '@/hooks/use-kv-local-storage'
-import { useSyncProjectWithProgress, useGetProject } from '@/hooks/api/use-projects-api'
+import { useSyncProjectWithProgress, useGetProject } from '@/hooks/api-hooks'
 import { SyncProgressDialog } from './sync-progress-dialog'
 import type { SyncProgressEvent } from '@promptliano/schemas'
 import { GlobalStateEditorType as EditorType, EDITOR_OPTIONS } from '@promptliano/schemas'
@@ -43,7 +43,6 @@ export function ProjectSettingsTab() {
   const { data: resolveImports } = useProjectTabField('resolveImports')
   const { data: preferredEditor } = useProjectTabField('preferredEditor')
   const { data: projectId } = useProjectTabField('selectedProjectId')
-  const { data: claudeCodeEnabled } = useProjectTabField('claudeCodeEnabled')
   const { data: assetsEnabled } = useProjectTabField('assetsEnabled')
   const { data: autoIncludeClaudeMd } = useProjectTabField('autoIncludeClaudeMd')
   const { data: instructionFileSettings } = useProjectTabField('instructionFileSettings')
@@ -54,19 +53,32 @@ export function ProjectSettingsTab() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
   const [showInstructionFileSettings, setShowInstructionFileSettings] = useState(false)
   const [showSyncProgress, setShowSyncProgress] = useState(false)
-  
+
   const { syncWithProgress } = useSyncProjectWithProgress()
   const syncProgressRef = useRef<{ updateProgress: (event: SyncProgressEvent) => void } | null>(null)
 
   // Removed auto-sync to prevent blocking - sync is now handled with progress tracking on demand
-  
+
   const handleManualSync = () => {
     if (!projectId || !projectData) return
-    
+
     setShowSyncProgress(true)
-    
+
     syncWithProgress(projectId, (event) => {
-      syncProgressRef.current?.updateProgress(event)
+      // Parse the event data if it's a MessageEvent, otherwise use as-is
+      let progressData: SyncProgressEvent
+      if (event instanceof MessageEvent) {
+        try {
+          progressData = JSON.parse(event.data)
+        } catch (error) {
+          console.error('Failed to parse progress event:', error)
+          return
+        }
+      } else {
+        progressData = event as SyncProgressEvent
+      }
+      
+      syncProgressRef.current?.updateProgress(progressData)
     })
       .then(() => {
         toast.success('Project synced successfully!')
@@ -89,13 +101,6 @@ export function ProjectSettingsTab() {
     updateActiveProjectTab((prev) => ({
       ...prev,
       resolveImports: value
-    }))
-  }
-
-  const setClaudeCodeEnabled = (value: boolean) => {
-    updateActiveProjectTab((prev) => ({
-      ...prev,
-      claudeCodeEnabled: value
     }))
   }
 
@@ -188,7 +193,7 @@ export function ProjectSettingsTab() {
                   </Tooltip>
                 </div>
               </div>
-              
+
               <div className='pt-4 border-t'>
                 <Button variant='outline' onClick={handleManualSync} className='w-full'>
                   <RefreshCw className='h-4 w-4 mr-2' />
@@ -418,25 +423,6 @@ export function ProjectSettingsTab() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Claude Code Integration (Beta)</CardTitle>
-            <CardDescription>Enable advanced Claude Code features for this project</CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-6'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-0.5'>
-                <label className='text-base font-medium'>Enable Claude Code</label>
-                <p className='text-sm text-muted-foreground'>
-                  Activate Claude Code tab with agent management, sessions, and chat features. This feature is currently
-                  in beta.
-                </p>
-              </div>
-              <Switch checked={!!claudeCodeEnabled} onCheckedChange={setClaudeCodeEnabled} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Assets (Beta)</CardTitle>
             <CardDescription>Enable the Assets tab for this project</CardDescription>
           </CardHeader>
@@ -485,7 +471,7 @@ export function ProjectSettingsTab() {
           </div>
         )}
       </div>
-      
+
       {/* Sync Progress Dialog */}
       {projectData && (
         <SyncProgressDialog

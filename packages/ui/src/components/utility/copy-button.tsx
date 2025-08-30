@@ -69,10 +69,10 @@ export interface CopyButtonProps extends Omit<ButtonProps, 'onClick'> {
 }
 
 const formatIcons: Record<CopyFormat, React.ReactNode> = {
-  text: <Copy className="h-4 w-4" />,
-  markdown: <FileText className="h-4 w-4" />,
-  json: <FileJson className="h-4 w-4" />,
-  code: <Code className="h-4 w-4" />
+  text: <Copy className='h-4 w-4' />,
+  markdown: <FileText className='h-4 w-4' />,
+  json: <FileJson className='h-4 w-4' />,
+  code: <Code className='h-4 w-4' />
 }
 
 const formatLabels: Record<CopyFormat, string> = {
@@ -112,10 +112,9 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
 
     const displayLabel = label || formatLabels[format]
     const displayIcon = icon || formatIcons[format]
-    const shouldShowLabel = showLabel !== undefined 
-      ? showLabel 
-      : variant !== 'ghost' && variant !== 'link' && size !== 'icon'
-    
+    const shouldShowLabel =
+      showLabel !== undefined ? showLabel : variant !== 'ghost' && variant !== 'link' && size !== 'icon'
+
     const tooltipContent = React.useMemo(() => {
       if (error) return errorMessage
       if (isCopied) return successMessage
@@ -181,16 +180,8 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         aria-label={displayLabel}
         {...props}
       >
-        {showIcon && (
-          isCopied ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            displayIcon
-          )
-        )}
-        {shouldShowLabel && (
-          <span>{isCopied ? 'Copied!' : displayLabel}</span>
-        )}
+        {showIcon && (isCopied ? <Check className='h-4 w-4' /> : displayIcon)}
+        {shouldShowLabel && <span>{isCopied ? 'Copied!' : displayLabel}</span>}
       </Button>
     )
 
@@ -239,8 +230,8 @@ export const InlineCopyButton = React.forwardRef<HTMLButtonElement, InlineCopyBu
     return (
       <CopyButton
         ref={ref}
-        variant="ghost"
-        size="icon"
+        variant='ghost'
+        size='icon'
         showLabel={false}
         className={cn(sizeClasses[size], className)}
         icon={<Copy className={iconSizes[size]} />}
@@ -282,31 +273,11 @@ export interface CopyBlockProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const CopyBlock = React.forwardRef<HTMLDivElement, CopyBlockProps>(
-  (
-    {
-      className,
-      text,
-      format = 'text',
-      monospace,
-      maxLines,
-      wrap = false,
-      ...props
-    },
-    ref
-  ) => {
-    const shouldUseMonospace = monospace !== undefined 
-      ? monospace 
-      : format === 'code' || format === 'json'
+  ({ className, text, format = 'text', monospace, maxLines, wrap = false, ...props }, ref) => {
+    const shouldUseMonospace = monospace !== undefined ? monospace : format === 'code' || format === 'json'
 
     return (
-      <div
-        ref={ref}
-        className={cn(
-          'relative group rounded-lg border bg-muted/30 p-3 pr-12',
-          className
-        )}
-        {...props}
-      >
+      <div ref={ref} className={cn('relative group rounded-lg border bg-muted/30 p-3 pr-12', className)} {...props}>
         <pre
           className={cn(
             'text-sm',
@@ -315,17 +286,19 @@ export const CopyBlock = React.forwardRef<HTMLDivElement, CopyBlockProps>(
             wrap && 'whitespace-pre-wrap break-words',
             maxLines && 'line-clamp-[var(--max-lines)]'
           )}
-          style={{
-            '--max-lines': maxLines
-          } as React.CSSProperties}
+          style={
+            {
+              '--max-lines': maxLines
+            } as React.CSSProperties
+          }
         >
           {text}
         </pre>
-        <div className="absolute right-2 top-2">
+        <div className='absolute right-2 top-2'>
           <InlineCopyButton
             text={text}
             format={format}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            className='opacity-0 group-hover:opacity-100 transition-opacity'
           />
         </div>
       </div>

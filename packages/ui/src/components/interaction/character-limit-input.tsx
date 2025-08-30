@@ -90,10 +90,7 @@ export interface CharacterLimitInputProps {
   inputProps?: React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>
 }
 
-export const CharacterLimitInput = React.forwardRef<
-  HTMLInputElement | HTMLTextAreaElement,
-  CharacterLimitInputProps
->(
+export const CharacterLimitInput = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, CharacterLimitInputProps>(
   (
     {
       value,
@@ -139,12 +136,12 @@ export const CharacterLimitInput = React.forwardRef<
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const newValue = e.target.value
-      
+
       if (limitType === 'hard' && newValue.length > maxLength) {
         // Prevent exceeding max length in hard limit mode
         return
       }
-      
+
       onChange(newValue)
     }
 
@@ -158,91 +155,80 @@ export const CharacterLimitInput = React.forwardRef<
     const showError = error || (isOverLimit && limitType === 'soft')
     const errorMessage = error || (isOverLimit && limitType === 'soft' ? `Maximum ${maxLength} characters allowed` : '')
 
-    const inputElement = type === 'input' ? (
-      <Input
-        ref={ref as React.Ref<HTMLInputElement>}
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        maxLength={limitType === 'hard' ? maxLength : undefined}
-        required={required}
-        className={cn(
-          showError && 'border-destructive focus-visible:ring-destructive',
-          inputClassName
-        )}
-        aria-invalid={showError ? 'true' : 'false'}
-        aria-describedby={showError ? 'error-message' : helperText ? 'helper-text' : undefined}
-        {...(inputProps as React.InputHTMLAttributes<HTMLInputElement>)}
-      />
-    ) : (
-      <Textarea
-        ref={ref as React.Ref<HTMLTextAreaElement>}
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        maxLength={limitType === 'hard' ? maxLength : undefined}
-        required={required}
-        rows={rows}
-        className={cn(
-          'resize-none',
-          showError && 'border-destructive focus-visible:ring-destructive',
-          inputClassName
-        )}
-        aria-invalid={showError ? 'true' : 'false'}
-        aria-describedby={showError ? 'error-message' : helperText ? 'helper-text' : undefined}
-        {...(inputProps as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
-      />
-    )
+    const inputElement =
+      type === 'input' ? (
+        <Input
+          ref={ref as React.Ref<HTMLInputElement>}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          maxLength={limitType === 'hard' ? maxLength : undefined}
+          required={required}
+          className={cn(showError && 'border-destructive focus-visible:ring-destructive', inputClassName)}
+          aria-invalid={showError ? 'true' : 'false'}
+          aria-describedby={showError ? 'error-message' : helperText ? 'helper-text' : undefined}
+          {...(inputProps as React.InputHTMLAttributes<HTMLInputElement>)}
+        />
+      ) : (
+        <Textarea
+          ref={ref as React.Ref<HTMLTextAreaElement>}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          maxLength={limitType === 'hard' ? maxLength : undefined}
+          required={required}
+          rows={rows}
+          className={cn(
+            'resize-none',
+            showError && 'border-destructive focus-visible:ring-destructive',
+            inputClassName
+          )}
+          aria-invalid={showError ? 'true' : 'false'}
+          aria-describedby={showError ? 'error-message' : helperText ? 'helper-text' : undefined}
+          {...(inputProps as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+        />
+      )
 
     return (
       <div className={cn('space-y-2', className)}>
         {label && (
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <div className='flex items-center justify-between'>
+            <label className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'>
               {label}
-              {required && <span className="text-destructive ml-1">*</span>}
+              {required && <span className='text-destructive ml-1'>*</span>}
             </label>
-            {showCount && (
-              <span className={cn('text-xs', getCountColor())}>
-                {countDisplay}
-              </span>
-            )}
+            {showCount && <span className={cn('text-xs', getCountColor())}>{countDisplay}</span>}
           </div>
         )}
 
-        <div className="space-y-1">
+        <div className='space-y-1'>
           {inputElement}
 
           {showProgress && (
             <Progress
               value={Math.min(percentUsed, 100)}
-              className="h-1"
-              indicatorColor={cn(
-                'transition-all duration-300',
-                getProgressColor()
-              )}
+              className='h-1'
+              indicatorColor={cn('transition-all duration-300', getProgressColor())}
             />
           )}
 
           {!label && showCount && (
-            <div className="flex justify-end">
-              <span className={cn('text-xs', getCountColor())}>
-                {countDisplay}
-              </span>
+            <div className='flex justify-end'>
+              <span className={cn('text-xs', getCountColor())}>{countDisplay}</span>
             </div>
           )}
         </div>
 
         {helperText && !showError && (
-          <p id="helper-text" className="text-xs text-muted-foreground">
+          <p id='helper-text' className='text-xs text-muted-foreground'>
             {helperText}
           </p>
         )}
 
         {showError && (
-          <p id="error-message" className="text-xs text-destructive">
+          <p id='error-message' className='text-xs text-destructive'>
             {errorMessage}
           </p>
         )}

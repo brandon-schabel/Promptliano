@@ -73,7 +73,7 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     tempDir = mkdtempSync(join(tmpdir(), 'promptliano-test-'))
     databasePath = config.databasePath || join(tempDir, 'test.db')
   }
-  
+
   // Store original environment for restoration
   const originalEnv = {
     NODE_ENV: process.env.NODE_ENV,
@@ -81,29 +81,29 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED,
     LOG_LEVEL: process.env.LOG_LEVEL
   }
-  
+
   try {
     // Set test environment variables
     process.env.NODE_ENV = 'test'
     process.env.PROMPTLIANO_DB_PATH = databasePath
     process.env.RATE_LIMIT_ENABLED = config.enableRateLimit ? 'true' : 'false'
     process.env.LOG_LEVEL = config.logLevel || 'silent'
-    
+
     // Reset database instance for test isolation
     DatabaseManager.resetInstance()
-    
+
     // Initialize database with timeout protection
     await Promise.race([
       runMigrations(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Database initialization timeout after ${dbInitTimeout}ms`)), dbInitTimeout)
       )
     ])
-    
+
     // Start server with startup timeout protection
     const port = config.port || 0
     let server: Server
-    
+
     try {
       server = serve({
         port,
@@ -120,55 +120,56 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     } catch (error) {
       throw new Error(`Failed to start server: ${error}`)
     }
-    
+
     const actualPort = server.port
     const baseUrl = `http://localhost:${actualPort}`
-    
+
     // Enhanced health check with timeout protection
     const isServerReady = await Promise.race([
       waitForServerEnhanced(baseUrl, healthCheckTimeout, healthCheckInterval),
-      new Promise<boolean>((_, reject) => 
+      new Promise<boolean>((_, reject) =>
         setTimeout(() => reject(new Error(`Server startup timeout after ${startupTimeout}ms`)), startupTimeout)
       )
     ])
-    
+
     if (!isServerReady) {
       server.stop(true)
       throw new Error('Server failed to become ready')
     }
-    
+
     // Resource monitoring setup
     let resourceMonitor: NodeJS.Timer | undefined
     if (enableResourceMonitoring) {
       resourceMonitor = setInterval(() => {
         const usage = process.memoryUsage()
-        if (usage.heapUsed > 100 * 1024 * 1024) { // 100MB threshold
+        if (usage.heapUsed > 100 * 1024 * 1024) {
+          // 100MB threshold
           console.warn(`High memory usage detected: ${Math.round(usage.heapUsed / 1024 / 1024)}MB`)
         }
       }, 5000)
     }
-    
+
     // Enhanced cleanup function with graceful shutdown
     const cleanup = async () => {
       try {
         if (resourceMonitor) {
           clearInterval(resourceMonitor)
         }
-        
+
         if (enableGracefulShutdown) {
           // Give ongoing requests time to complete
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
-        
+
         // Stop the server
         server.stop(true)
-        
+
         // Reset database instance
         DatabaseManager.resetInstance()
-        
+
         // Restore environment variables
         Object.assign(process.env, originalEnv)
-        
+
         // Clean up temporary database and directory (skip for memory DB)
         if (!isMemoryDB && tempDir) {
           try {
@@ -185,7 +186,7 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
         }
       }
     }
-    
+
     // Health check function
     const healthCheck = async (): Promise<boolean> => {
       try {
@@ -197,15 +198,17 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
         return false
       }
     }
-    
+
     // Resource usage function
-    const getResourceUsage = enableResourceMonitoring ? async (): Promise<ResourceUsage> => {
-      return {
-        memoryUsage: process.memoryUsage(),
-        uptime: Date.now() - startTime
-      }
-    } : undefined
-    
+    const getResourceUsage = enableResourceMonitoring
+      ? async (): Promise<ResourceUsage> => {
+          return {
+            memoryUsage: process.memoryUsage(),
+            uptime: Date.now() - startTime
+          }
+        }
+      : undefined
+
     return {
       server,
       port: actualPort,
@@ -231,31 +234,27 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
 /**
  * Enhanced health check with better error reporting and retry logic
  */
-async function waitForServerEnhanced(
-  baseUrl: string, 
-  timeoutMs = 5000, 
-  intervalMs = 100
-): Promise<boolean> {
+async function waitForServerEnhanced(baseUrl: string, timeoutMs = 5000, intervalMs = 100): Promise<boolean> {
   const start = Date.now()
   let lastError: string = ''
   let attempts = 0
-  
+
   while (Date.now() - start < timeoutMs) {
     attempts++
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 2000)
-      
+
       const response = await fetch(`${baseUrl}/api/health`, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'promptliano-test-client',
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       })
-      
+
       clearTimeout(timeoutId)
-      
+
       if (response.ok) {
         const data = await response.json()
         // Verify the health response structure
@@ -280,13 +279,12 @@ async function waitForServerEnhanced(
         lastError = String(error)
       }
     }
-    
-    await new Promise(resolve => setTimeout(resolve, intervalMs))
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
   }
-  
+
   throw new Error(
-    `Test server failed to start within ${timeoutMs}ms. ` +
-    `Last error after ${attempts} attempts: ${lastError}`
+    `Test server failed to start within ${timeoutMs}ms. ` + `Last error after ${attempts} attempts: ${lastError}`
   )
 }
 
@@ -304,11 +302,11 @@ export async function resetTestDatabase(databasePath: string, timeoutMs = 5000):
   try {
     // Reset database instance to clear cached state
     DatabaseManager.resetInstance()
-    
+
     // Re-run migrations with timeout protection
     await Promise.race([
       runMigrations(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Database reset timeout after ${timeoutMs}ms`)), timeoutMs)
       )
     ])
@@ -325,7 +323,7 @@ export async function validateTestDatabase(databasePath: string): Promise<boolea
   try {
     // Test basic database operations
     const db = DatabaseManager.getInstance()
-    
+
     // Check if critical tables exist
     const tables = ['projects', 'tickets', 'tasks', 'queues']
     for (const table of tables) {
@@ -336,7 +334,7 @@ export async function validateTestDatabase(databasePath: string): Promise<boolea
         return false
       }
     }
-    
+
     return true
   } catch (error) {
     console.error('Database validation failed:', error)
@@ -352,14 +350,14 @@ export async function withTestServer<T>(
   config?: TestServerConfig
 ): Promise<T> {
   const testServer = await createTestServer(config)
-  
+
   try {
     // Pre-test health check
     const isHealthy = await testServer.healthCheck()
     if (!isHealthy) {
       throw new Error('Test server failed pre-test health check')
     }
-    
+
     return await testFn(testServer)
   } finally {
     await testServer.cleanup()
@@ -374,18 +372,16 @@ export async function withMultipleTestServers<T>(
   configs: TestServerConfig[]
 ): Promise<T> {
   const factory = createTestServerFactory()
-  
+
   try {
-    const instances = await Promise.all(
-      configs.map(config => factory.createServer(config))
-    )
-    
+    const instances = await Promise.all(configs.map((config) => factory.createServer(config)))
+
     // Health check all instances
     const { healthy, total } = await factory.healthCheckAll()
     if (healthy !== total) {
       throw new Error(`Only ${healthy}/${total} servers passed health check`)
     }
-    
+
     return await testFn(instances)
   } finally {
     await factory.cleanupAll()
@@ -398,15 +394,15 @@ export async function withMultipleTestServers<T>(
 export function createTestServerFactory() {
   const activeServers: TestServerInstance[] = []
   let isShuttingDown = false
-  
+
   const createServer = async (config?: TestServerConfig): Promise<TestServerInstance> => {
     if (isShuttingDown) {
       throw new Error('Cannot create server during shutdown')
     }
-    
+
     const instance = await createTestServer(config)
     activeServers.push(instance)
-    
+
     // Validate server is actually working
     const isHealthy = await instance.healthCheck()
     if (!isHealthy) {
@@ -417,52 +413,50 @@ export function createTestServerFactory() {
       }
       throw new Error('Created server failed health check')
     }
-    
+
     return instance
   }
-  
+
   const cleanupAll = async (): Promise<void> => {
     if (isShuttingDown) return
     isShuttingDown = true
-    
+
     try {
       // Cleanup servers in parallel with timeout protection
       const cleanupPromises = activeServers.map(async (instance) => {
         try {
           await Promise.race([
             instance.cleanup(),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Cleanup timeout')), 5000)
-            )
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 5000))
           ])
         } catch (error) {
           console.warn('Failed to cleanup server instance:', error)
         }
       })
-      
+
       await Promise.all(cleanupPromises)
     } finally {
       activeServers.length = 0
       isShuttingDown = false
     }
   }
-  
+
   const healthCheckAll = async (): Promise<{ healthy: number; total: number }> => {
-    const healthPromises = activeServers.map(instance => instance.healthCheck())
+    const healthPromises = activeServers.map((instance) => instance.healthCheck())
     const results = await Promise.all(healthPromises)
     const healthy = results.filter(Boolean).length
-    
+
     return { healthy, total: activeServers.length }
   }
-  
+
   const getResourceUsage = async (): Promise<ResourceUsage[]> => {
     const usagePromises = activeServers
-      .filter(instance => instance.getResourceUsage)
-      .map(instance => instance.getResourceUsage!())
-    
+      .filter((instance) => instance.getResourceUsage)
+      .map((instance) => instance.getResourceUsage!())
+
     return Promise.all(usagePromises)
   }
-  
+
   return {
     createServer,
     cleanupAll,
