@@ -37,11 +37,19 @@ export default defineConfig({
             const line = lines[i].trim()
 
             // Check for non-type imports from database package
-            const importMatch = line.match(/^import\s+(?!type\s).*from\s+['"`]@promptliano\/database['"`]/)
-            if (importMatch) {
+            // Allow both forms of type-only imports:
+            // 1. import type { ... } from '@promptliano/database'
+            // 2. import { type ... } from '@promptliano/database'
+            const isTypeOnlyImport = 
+              line.match(/^import\s+type\s+.*from\s+['"`]@promptliano\/database['"`]/) || // Prefix form
+              line.match(/^import\s+\{\s*type\s+.*\}\s*from\s+['"`]@promptliano\/database['"`]/) // Inline form
+            
+            const isAnyImport = line.match(/^import\s+.*from\s+['"`]@promptliano\/database['"`]/)
+            
+            if (isAnyImport && !isTypeOnlyImport) {
               console.error(`🚫 BLOCKED: Non-type import from database package at ${id}:${i + 1}`)
               console.error(`   Line: ${line}`)
-              console.error(`💡 All database imports must use 'import type { ... }' syntax`)
+              console.error(`💡 All database imports must use 'import type { ... }' or 'import { type ... }' syntax`)
               console.error(`   Database package should only provide types to the client`)
               throw new Error(`Non-type import from database package not allowed: ${line}`)
             }

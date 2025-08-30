@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { type APIProviders } from '@promptliano/database'
+// APIProviders type from database - not imported to avoid client build issues
 import { idSchemaSpec, idArraySchemaSpec } from './schema-utils'
 import { DEFAULT_MODEL_EXAMPLES } from './model-defaults'
 
 const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
 
-// Provider schema based on APIProviders type from database
+// Provider schema matching the database APIProviders type
 export const providerSchema = z.enum([
   'openai',
   'openrouter',
@@ -399,7 +399,7 @@ export const appSettingsSchema = z
     // Global Chat Model Settings (Referencing the detailed modelSettingsSchema fields)
     provider: providerSchema
       .optional()
-      .default(defaultModelConfigs.provider as APIProviders)
+      .default(defaultModelConfigs.provider)
       .openapi({ description: 'Default AI provider to use for chat.', example: 'openrouter' }),
     model: z
       .string()
@@ -524,7 +524,7 @@ export const createSafeGlobalState = (): GlobalState => ({
     useSpacebarToSelectAutocomplete: true,
     hideInformationalTooltips: false,
     autoScrollEnabled: true,
-    provider: defaultModelConfigs.provider as APIProviders,
+    provider: defaultModelConfigs.provider,
     model: defaultModelConfigs.model ?? 'gpt-4o',
     temperature: defaultModelConfigs.temperature ?? 0.7,
     maxTokens: defaultModelConfigs.maxTokens ?? 4000,
