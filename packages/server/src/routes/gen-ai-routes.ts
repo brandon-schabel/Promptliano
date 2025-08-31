@@ -457,12 +457,23 @@ export const genAiRoutes = new OpenAPIHono()
       const rawProviderId = String(key.provider || '')
       const normalized = rawProviderId.toLowerCase().replace(/[^a-z]/g, '')
       const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
-      // Only set known providers and only if we have a decrypted key string
-      if (configProp && typeof key.key === 'string' && key.key.length > 0) {
-        // Prefer the first (most recent due to sorting) or an explicit default
-        if (!providerKeysConfig[configProp] || key.isDefault) {
-          providerKeysConfig[configProp] = key.key as any
+      if (!configProp) continue
+
+      // Prefer explicit plaintext key if present
+      let resolvedKey: string | undefined
+      if (typeof key.key === 'string' && key.key.length > 0) {
+        resolvedKey = key.key
+      } else if (typeof (key as any).secretRef === 'string' && (key as any).secretRef) {
+        // Fall back to environment variable via secretRef name (e.g., OPENROUTER_API_KEY)
+        const envVar = (key as any).secretRef as string
+        const envVal = (process.env as Record<string, string | undefined>)[envVar]
+        if (typeof envVal === 'string' && envVal.length > 0) {
+          resolvedKey = envVal
         }
+      }
+
+      if (resolvedKey && (!providerKeysConfig[configProp] || key.isDefault)) {
+        providerKeysConfig[configProp] = resolvedKey as any
       }
     }
 
@@ -490,6 +501,7 @@ export const genAiRoutes = new OpenAPIHono()
     const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
     if (requiredKeyProp && !providerKeysConfig[requiredKeyProp]) {
       // No configured key for this provider; return empty list so UI can handle without error
+      console.warn(`[GenAI Models] Missing API key for provider '${provider}'. Returning empty model list.`)
       return c.json(successResponse([]))
     }
 
@@ -564,10 +576,19 @@ export const genAiRoutes = new OpenAPIHono()
       for (const key of keys) {
         const normalized = String(key.provider || '').toLowerCase().replace(/[^a-z]/g, '')
         const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
-        if (configProp && typeof key.key === 'string' && key.key.length > 0) {
-          if (!providerKeysConfig[configProp] || key.isDefault) {
-            providerKeysConfig[configProp] = key.key as any
+        if (!configProp) continue
+        let resolvedKey: string | undefined
+        if (typeof key.key === 'string' && key.key.length > 0) {
+          resolvedKey = key.key
+        } else if (typeof (key as any).secretRef === 'string' && (key as any).secretRef) {
+          const envVar = (key as any).secretRef as string
+          const envVal = (process.env as Record<string, string | undefined>)[envVar]
+          if (typeof envVal === 'string' && envVal.length > 0) {
+            resolvedKey = envVal
           }
+        }
+        if (resolvedKey && (!providerKeysConfig[configProp] || key.isDefault)) {
+          providerKeysConfig[configProp] = resolvedKey as any
         }
       }
 

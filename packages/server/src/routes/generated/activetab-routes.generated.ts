@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR ACTIVETAB
- * Generated at: 2025-08-27T15:26:33.554Z
+ * Generated at: 2025-08-30T20:39:29.818Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas

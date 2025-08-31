@@ -64,6 +64,23 @@ export class PromptlianoClient {
     return this.typeSafe
   }
 
+  // Model Configuration endpoints
+  public readonly modelConfigs = {
+    list: () => this.http.get('/api/model-configs'),
+    getById: (id: number) => this.http.get(`/api/model-configs/${id}`),
+    create: (data: any) => this.http.post('/api/model-configs', data),
+    update: (id: number, data: any) => this.http.put(`/api/model-configs/${id}`, data),
+    delete: (id: number) => this.http.delete(`/api/model-configs/${id}`),
+    getDefaultForProvider: (provider: string) => this.http.get(`/api/model-configs/default/${provider}`),
+    getModelPresets: (configId: number) => this.http.get(`/api/model-configs/${configId}/presets`),
+    createPreset: (configId: number, data: any) => this.http.post(`/api/model-configs/${configId}/presets`, data),
+    updatePreset: (configId: number, presetId: number, data: any) => this.http.put(`/api/model-configs/${configId}/presets/${presetId}`, data),
+    deletePreset: (configId: number, presetId: number) => this.http.delete(`/api/model-configs/${configId}/presets/${presetId}`),
+    applyPreset: (configId: number, presetId: number) => this.http.post(`/api/model-configs/${configId}/presets/${presetId}/apply`),
+    exportConfigs: () => this.http.get('/api/model-configs/export'),
+    importConfigs: (data: any) => this.http.post('/api/model-configs/import', data)
+  }
+
   // BACKWARD-COMPATIBLE service namespaces (core methods only)
   public readonly projects = {
     listProjects: () => this.typeSafe.getProjects(),

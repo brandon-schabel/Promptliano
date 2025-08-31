@@ -145,7 +145,8 @@ export function useGetMessages(chatId: number) {
       }
       return Promise.resolve([]) // Fallback for missing method
     },
-    enabled: !!client && !!chatId,
+    // Only enable when we have a valid positive chatId
+    enabled: !!client && Number.isFinite(chatId) && chatId > 0,
     staleTime: 30 * 1000 // 30 seconds for messages
   })
 }

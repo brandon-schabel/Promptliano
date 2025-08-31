@@ -1205,6 +1205,8 @@ export type InsertPrompt = typeof prompts.$inferInsert
 export type InsertQueue = typeof queues.$inferInsert
 export type InsertQueueItem = typeof queueItems.$inferInsert
 export type InsertProviderKey = typeof providerKeys.$inferInsert
+export type InsertModelConfig = typeof modelConfigs.$inferInsert
+export type InsertModelPreset = typeof modelPresets.$inferInsert
 export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
 export type InsertActiveTab = typeof activeTabs.$inferInsert
@@ -1215,6 +1217,12 @@ export type InsertGitRemote = typeof gitRemotes.$inferInsert
 export type InsertGitTag = typeof gitTags.$inferInsert
 export type InsertGitStash = typeof gitStashes.$inferInsert
 export type InsertGitWorktree = typeof gitWorktrees.$inferInsert
+
+// Helper types for creating model configurations
+export type CreateModelConfig = Omit<InsertModelConfig, 'id' | 'createdAt' | 'updatedAt'>
+export type UpdateModelConfig = Partial<CreateModelConfig>
+export type CreateModelPreset = Omit<InsertModelPreset, 'id' | 'createdAt' | 'updatedAt'>
+export type UpdateModelPreset = Partial<CreateModelPreset>
 export type InsertAiSdkOptions = typeof aiSdkOptions.$inferInsert
 export type InsertMcpServerConfig = typeof mcpServerConfigs.$inferInsert
 export type InsertFileImportInfo = typeof fileImportInfo.$inferInsert
@@ -1273,6 +1281,18 @@ export type ProviderKey = Omit<ProviderKeyInferred, 'customHeaders'> & {
   customHeaders: Record<string, string> | null
 }
 
+// Override ModelConfig type to fix JSON field types
+type ModelConfigInferred = typeof modelConfigs.$inferSelect
+export type ModelConfig = Omit<ModelConfigInferred, 'responseFormat'> & {
+  responseFormat?: Record<string, any> | null
+}
+
+// Override ModelPreset type to fix JSON field types
+type ModelPresetInferred = typeof modelPresets.$inferSelect
+export type ModelPreset = Omit<ModelPresetInferred, 'metadata'> & {
+  metadata?: Record<string, any> | null
+}
+
 // Override File type to fix JSON field types
 type FileInferred = typeof files.$inferSelect
 export type File = Omit<FileInferred, 'imports' | 'exports'> & {
@@ -1316,14 +1336,6 @@ export type GitTag = Omit<GitTagInferred, 'tagger'> & {
 export type GitStash = typeof gitStashes.$inferSelect
 export type GitWorktree = typeof gitWorktrees.$inferSelect
 
-// Define proper types for Claude message content
-export interface ToolUseResult {
-  content?: Array<{
-    type: 'tool_result'
-    tool_use_id: string
-    content: string | Record<string, unknown>
-  }>
-}
 
 // Override AiSdkOptions type to fix JSON field types
 type AiSdkOptionsInferred = typeof aiSdkOptions.$inferSelect
@@ -1403,7 +1415,6 @@ export type GitFileStatusType =
   | 'untracked'
   | 'ignored'
   | 'unchanged'
-export type ClaudeMessageType = 'user' | 'assistant' | 'result' | 'system' | 'summary'
 export type FileRelationshipType = 'imports' | 'exports' | 'sibling' | 'parent' | 'child' | 'semantic'
 export type GroupingStrategy = 'imports' | 'directory' | 'semantic' | 'mixed'
 export type ExportType = 'default' | 'named' | 'all'
@@ -1481,6 +1492,84 @@ export type ProjectWithGit = Project & {
 }
 
 // =============================================================================
+// MODEL CONFIGURATION TABLES
+// =============================================================================
+
+export const modelConfigs = sqliteTable(
+  'model_configs',
+  {
+    id: integer('id').primaryKey(),
+    name: text('name').notNull(), // e.g., 'low', 'medium', 'high', 'custom_1'
+    displayName: text('display_name'), // User-friendly name
+    provider: text('provider').notNull(), // 'openai', 'anthropic', etc.
+    model: text('model').notNull(), // Specific model identifier
+    temperature: real('temperature').default(0.7),
+    maxTokens: integer('max_tokens').default(4096),
+    topP: real('top_p').default(1.0),
+    topK: integer('top_k').default(0),
+    frequencyPenalty: real('frequency_penalty').default(0),
+    presencePenalty: real('presence_penalty').default(0),
+    responseFormat: text('response_format', { mode: 'json' }), // JSON string for response format
+    isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
+    isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    userId: integer('user_id'), // Optional: for user-specific configs
+    description: text('description'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (table) => ({
+    nameIdx: index('model_configs_name_idx').on(table.name),
+    providerIdx: index('model_configs_provider_idx').on(table.provider),
+    isDefaultIdx: index('model_configs_is_default_idx').on(table.isDefault),
+    userIdx: index('model_configs_user_idx').on(table.userId)
+  })
+)
+
+export const modelPresets = sqliteTable(
+  'model_presets',
+  {
+    id: integer('id').primaryKey(),
+    name: text('name').notNull(), // Preset name (e.g., 'Quick Response', 'Deep Analysis')
+    description: text('description'),
+    configId: integer('config_id').notNull().references(() => modelConfigs.id, { onDelete: 'cascade' }),
+    category: text('category', { enum: ['general', 'coding', 'creative', 'analysis', 'custom'] }).default('general'),
+    isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    userId: integer('user_id'), // For user-created presets
+    usageCount: integer('usage_count').notNull().default(0),
+    lastUsedAt: integer('last_used_at'),
+    metadata: text('metadata', { mode: 'json' }), // Additional preset-specific settings
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (table) => ({
+    categoryIdx: index('model_presets_category_idx').on(table.category),
+    configIdx: index('model_presets_config_idx').on(table.configId),
+    userIdx: index('model_presets_user_idx').on(table.userId),
+    usageIdx: index('model_presets_usage_idx').on(table.usageCount)
+  })
+)
+
+// Model Configuration Relations
+export const modelConfigsRelations = relations(modelConfigs, ({ many }) => ({
+  presets: many(modelPresets)
+}))
+
+export const modelPresetsRelations = relations(modelPresets, ({ one }) => ({
+  config: one(modelConfigs, {
+    fields: [modelPresets.configId],
+    references: [modelConfigs.id]
+  })
+}))
+
+// Model Configuration Schemas
+export const insertModelConfigSchema = createInsertSchema(modelConfigs)
+export const insertModelPresetSchema = createInsertSchema(modelPresets)
+export const selectModelConfigSchema = createSelectSchema(modelConfigs)
+export const selectModelPresetSchema = createSelectSchema(modelPresets)
+
+// =============================================================================
 // UTILITY TYPES FOR MIGRATIONS
 // =============================================================================
 
@@ -1518,8 +1607,6 @@ export type LegacyTicketTask = {
 // =============================================================================
 // BACKWARD COMPATIBILITY ALIASES
 // =============================================================================
-
-// Claude-related types have been removed
 
 // Alias for ProjectTabMetadata for existing imports
 export type ActiveTabMetadata = ProjectTabMetadata

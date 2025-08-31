@@ -254,7 +254,9 @@ export function MCPProjectConfigEditor({ projectId }: MCPProjectConfigEditorProp
 
       // Save it to the specific location
       if (!client || !defaultConfigResult) return
-      await client.mcp.saveProjectConfigToLocation(projectId, location.path, defaultConfigResult.data)
+      // defaultConfigResult has shape { success, data: { config } }
+      const config = (defaultConfigResult as any)?.data?.config ?? (defaultConfigResult as any)?.config ?? defaultConfigResult
+      await client.mcp.saveProjectConfigToLocation(projectId, location.path, config)
     },
     onSuccess: (_, location) => {
       const editorInfo = getEditorInfoFromPath(location.path)

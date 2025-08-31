@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROJECT
- * Generated at: 2025-08-27T15:26:33.552Z
+ * Generated at: 2025-08-30T20:39:29.813Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
@@ -15,7 +15,7 @@ import {
   ProjectSchema,
   CreateProjectSchema,
   UpdateProjectSchema,
-  IDParamsSchema,
+  ProjectIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
   ProjectSummaryResponseSchema,
@@ -29,14 +29,12 @@ import {
   QueueItemResponseSchema,
   QueueStatsResponseSchema,
   OptimizePromptResponseSchema,
-  // Missing list response schemas
   TicketListResponseSchema,
   ChatListResponseSchema,
+  PromptListResponseSchema,
   QueueListResponseSchema,
-
   SelectedFileListResponseSchema,
-  ActiveTabListResponseSchema,
-  PromptListResponseSchema
+  ActiveTabListResponseSchema
 } from '@promptliano/schemas'
 import { z } from '@hono/zod-openapi'
 
@@ -52,7 +50,7 @@ const projectConfig: EntityConfig = {
     entity: ProjectSchema,
     create: CreateProjectSchema,
     update: UpdateProjectSchema,
-    id: IDParamsSchema.shape.id
+    id: ProjectIdParamsSchema.shape.id
   },
   service: projectServiceV2,
   options: {
@@ -93,7 +91,6 @@ const projectConfig: EntityConfig = {
       handlerName: 'getQueues',
       response: QueueListResponseSchema,
     },
-
     {
       method: 'get',
       path: '/{id}/files',
@@ -175,7 +172,6 @@ export const projectRoutes = {
   getChats: `GET /api/projects/{id}/chats`,
   getPrompts: `GET /api/projects/{id}/prompts`,
   getQueues: `GET /api/projects/{id}/queues`,
-
   getFiles: `GET /api/projects/{id}/files`,
   getSelectedFiles: `GET /api/projects/{id}/selectedfiles`,
   getActiveTabs: `GET /api/projects/{id}/activetabs`,

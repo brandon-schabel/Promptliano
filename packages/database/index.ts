@@ -9,6 +9,8 @@ export * from './src/schema/mcp-executions'
 export * from './src/db'
 export * from './src/repositories'
 export * from './src/schema-transformers'
+// Migrations helpers
+export { runMigrations, createInitialSchema } from './src/migrations/migrate'
 
 // Export table definitions for services that need direct access
 export {
@@ -24,7 +26,9 @@ export {
   selectedFiles,
   activeTabs,
 
-  providerKeys
+  providerKeys,
+  modelConfigs,
+  modelPresets
 } from './src/schema'
 
 export { mcpToolExecutions, mcpToolStatistics, mcpExecutionChains, mcpErrorPatterns } from './src/schema/mcp-executions'
@@ -48,6 +52,8 @@ import {
   selectFileSchema,
 
   selectProviderKeySchema,
+  selectModelConfigSchema,
+  selectModelPresetSchema,
   selectActiveTabSchema,
   selectSelectedFileSchema,
   insertProjectSchema,
@@ -61,6 +67,8 @@ import {
   insertFileSchema,
 
   insertProviderKeySchema,
+  insertModelConfigSchema,
+  insertModelPresetSchema,
   insertActiveTabSchema,
   insertSelectedFileSchema,
 

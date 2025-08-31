@@ -79,24 +79,8 @@ export function createProviderKeyService() {
     return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
   }
 
-  // Resolve actual key value from a secret reference (environment variable name)
-  function resolveSecretRef(secretRef?: string | null): string | null {
-    if (!secretRef) return null
-    try {
-      const val = process.env[secretRef]
-      return val && typeof val === 'string' && val.trim().length > 0 ? val : null
-    } catch {
-      return null
-    }
-  }
-
-  // Get the actual key value (from plain text or environment variable)
+  // Get the actual key value (plain text only)
   function getKeyValue(keyData: any): string | null {
-    // First try to resolve from environment variable if secretRef is provided
-    const envValue = resolveSecretRef(keyData.secretRef)
-    if (envValue) return envValue
-    
-    // Otherwise return the plain text key
     return keyData.key || null
   }
 
@@ -133,7 +117,7 @@ export function createProviderKeyService() {
     }
   }
 
-  async function createKey(data: CreateProviderKeyInput & { key?: string | null; secretRef?: string | null }): Promise<ProviderKey> {
+  async function createKey(data: CreateProviderKeyInput & { key?: string | null }): Promise<ProviderKey> {
     return withErrorContext(
       async () => {
         const now = normalizeToUnixMs(new Date())
@@ -151,13 +135,12 @@ export function createProviderKeyService() {
           }
         }
 
-        // Simplified: Store either plain text key or environment variable reference
+        // Store plain text key
         const newKeyData = {
           name: data.name || null,
           provider: canonicalizeProviderId(data.provider),
           keyName: data.keyName || data.name || 'default', // Backward compatibility
-          secretRef: (data as any).secretRef || null, // Environment variable name if provided
-          key: (data as any).key || null, // Plain text key if provided
+          key: (data as any).key || null, // Plain text key
           baseUrl: data.baseUrl || null,
           customHeaders: data.customHeaders || {},
           isDefault: data.isDefault ?? false,
@@ -273,7 +256,7 @@ export function createProviderKeyService() {
     )
   }
 
-  async function updateKey(id: number, data: UpdateProviderKeyInput & { secretRef?: string | null; key?: string | null }): Promise<ProviderKey> {
+  async function updateKey(id: number, data: UpdateProviderKeyInput & { key?: string | null }): Promise<ProviderKey> {
     return withErrorContext(
       async () => {
         // First, get the existing key to verify it exists
@@ -309,10 +292,7 @@ export function createProviderKeyService() {
         if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt
         if (data.lastUsed !== undefined) updateData.lastUsed = data.lastUsed
 
-        // Simplified: Update plain text key or environment variable reference
-        if ((data as any).secretRef !== undefined) {
-          (updateData as any).secretRef = (data as any).secretRef
-        }
+        // Update plain text key
         if ((data as any).key !== undefined) {
           (updateData as any).key = (data as any).key
         }
@@ -381,7 +361,8 @@ export function createProviderKeyService() {
         provider: providerKey.provider,
         model: request.model,
         latency: responseTime,
-        response: `Connected successfully. Found ${result.models.length} models.`
+        response: `Connected successfully. Found ${result.models.length} models.`,
+        models: result.models
       }
     } catch (error) {
       const responseTime = Date.now() - startTime
@@ -661,6 +642,31 @@ export function createProviderKeyService() {
             })) || []
           break
 
+        case 'openrouter':
+          if (!apiKey) {
+            throw ErrorFactory.missingRequired('API key', 'OpenRouter provider')
+          }
+          response = await fetch('https://openrouter.ai/api/v1/models', {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              Referer: 'http://localhost:3147',
+              'X-Title': 'Promptliano'
+            },
+            signal: controller.signal
+          })
+          if (!response.ok) {
+            throw ErrorFactory.operationFailed('OpenRouter API request', `${response.status}: ${response.statusText}`)
+          }
+          const openrouterData = (await response.json()) as { data?: Array<{ id: string; name: string }> }
+          models =
+            openrouterData.data?.map((model) => ({
+              id: model.id,
+              name: model.name,
+              provider: 'openrouter'
+            })) || []
+          break
+
         default:
           throw ErrorFactory.invalidParam('provider', 'supported provider type', provider)
       }
@@ -711,7 +717,7 @@ function createRouteCompatibleProviderKeyService() {
       return key
     },
 
-    async create(data: CreateProviderKeyInput & { key?: string | null; secretRef?: string | null }): Promise<ProviderKey> {
+    async create(data: CreateProviderKeyInput & { key?: string | null }): Promise<ProviderKey> {
       // Returns masked key by default for security
       return await mainService.createKey(data)
     },

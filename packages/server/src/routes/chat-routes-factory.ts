@@ -72,6 +72,35 @@ customRoutes.openapi(getChatMessagesRoute, async (c) => {
   }
 })
 
+// ============= GET CHAT MESSAGES (query param variant) =============
+const getChatMessagesByQueryRoute = createRoute({
+  method: 'get',
+  path: '/api/chats/messages',
+  tags: ['Chats'],
+  summary: 'Get messages for a specific chat (query param)',
+  request: {
+    query: z.object({
+      chatId: z.coerce.number().int().positive(),
+      limit: z.coerce.number().int().positive().optional().default(100),
+      offset: z.coerce.number().int().min(0).optional().default(0)
+    })
+  },
+  responses: createStandardResponses(
+    z.object({ success: z.literal(true), data: z.array(ChatMessageSchema) })
+  )
+})
+
+customRoutes.openapi(getChatMessagesByQueryRoute, async (c) => {
+  try {
+    const { chatId } = c.req.valid('query')
+    const messages = await chatService.getChatMessages(chatId)
+    return c.json(successResponse(messages))
+  } catch (error) {
+    console.error('[GetChatMessages:query] Error:', error)
+    throw ErrorFactory.wrap(error, 'Get chat messages (query)')
+  }
+})
+
 // ============= FORK CHAT =============
 const forkChatRoute = createRoute({
   method: 'post',

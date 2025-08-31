@@ -215,9 +215,8 @@ export const providerKeyRoutes = new OpenAPIHono()
     const body = (c.req as any).valid('json')
     const createKeyInput = {
       ...body,
-      encrypted: false,
-      isActive: true,
-      environment: 'production',
+      isActive: body.isActive ?? true,
+      environment: body.environment ?? 'production',
       isDefault: body.isDefault ?? false
     }
     const newKey = await providerKeyService.createKey(createKeyInput)

@@ -24,6 +24,7 @@ import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
 import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
+import { modelConfigRoutes } from './routes/model-config-routes'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import packageJson from '../package.json'
@@ -234,6 +235,7 @@ app.route('/', providerKeyLegacyRoutes)
 app.route('/', activeTabRoutes)           // Factory: Get/Set/Clear operations (/api/active-tab)
 app.route('/', projectRoutes)      // Factory: CRUD + sync, files, summary operations
 app.route('/', mcpConfigRoutes)    // Factory: Global + project MCP config
+app.route('/', modelConfigRoutes)  // Model configuration and presets
 
 // KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)

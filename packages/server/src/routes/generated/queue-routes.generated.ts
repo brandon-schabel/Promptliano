@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR QUEUE
- * Generated at: 2025-08-27T15:26:33.553Z
+ * Generated at: 2025-08-30T20:39:29.817Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas

@@ -1,9 +1,9 @@
 /**
  * AUTO-GENERATED ROUTE INDEX
- * Generated at: 2025-08-27T15:26:33.554Z
+ * Generated at: 2025-08-30T20:39:29.819Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
- * 📊 Consolidates 15 entity route modules
+ * 📊 Consolidates 12 entity route modules
  * 🎯 Achieves 40% reduction in route boilerplate
  */
 
@@ -14,6 +14,8 @@ import { registerTicketTaskRoutes } from './tickettask-routes.generated'
 import { registerChatRoutes } from './chat-routes.generated'
 import { registerChatMessageRoutes } from './chatmessage-routes.generated'
 import { registerPromptRoutes } from './prompt-routes.generated'
+import { registerQueueRoutes } from './queue-routes.generated'
+import { registerQueueItemRoutes } from './queueitem-routes.generated'
 import { registerProviderKeyRoutes } from './providerkey-routes.generated'
 import { registerFileRoutes } from './file-routes.generated'
 import { registerSelectedFileRoutes } from './selectedfile-routes.generated'
@@ -41,18 +43,20 @@ import type { ActiveTabRouteTypes } from './activetab-routes.generated'
  */
 export function registerAllGeneratedRoutes(app: OpenAPIHono): OpenAPIHono {
   console.log('🏭 Registering auto-generated routes...')
-
+  
   registerProjectRoutes(app)
   registerTicketRoutes(app)
   registerTicketTaskRoutes(app)
   registerChatRoutes(app)
   registerChatMessageRoutes(app)
   registerPromptRoutes(app)
+  registerQueueRoutes(app)
+  registerQueueItemRoutes(app)
   registerProviderKeyRoutes(app)
   registerFileRoutes(app)
   registerSelectedFileRoutes(app)
   registerActiveTabRoutes(app)
-
+  
   console.log('✅ All generated routes registered successfully')
   return app
 }
@@ -70,7 +74,6 @@ export type AllRouteTypes = {
   Prompt: PromptRouteTypes
   Queue: QueueRouteTypes
   QueueItem: QueueItemRouteTypes
-
   ProviderKey: ProviderKeyRouteTypes
   File: FileRouteTypes
   SelectedFile: SelectedFileRouteTypes
@@ -82,8 +85,8 @@ export type AllRouteTypes = {
 // =============================================================================
 
 export const routeStats = {
-  totalEntities: 15,
-  totalRoutes: 90,
+  totalEntities: 12,
+  totalRoutes: 73,
   codeReduction: '~40%',
-  generatedAt: '2025-08-27T15:26:33.554Z'
+  generatedAt: '2025-08-30T20:39:29.819Z'
 } as const

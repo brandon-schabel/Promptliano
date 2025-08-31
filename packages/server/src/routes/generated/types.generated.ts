@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE TYPE DEFINITIONS
- * Generated at: 2025-08-27T15:26:33.554Z
+ * Generated at: 2025-08-30T20:39:29.819Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
@@ -19,7 +19,6 @@ export interface ProjectRoutes {
   getChats: string
   getPrompts: string
   getQueues: string
-
   getFiles: string
   getSelectedFiles: string
   getActiveTabs: string
@@ -86,8 +85,6 @@ export interface QueueItemRoutes {
   update: string
   delete: string
 }
-
-
 
 export interface ProviderKeyRoutes {
   create: string

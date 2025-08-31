@@ -44,19 +44,18 @@ When working in this package, these agents MUST be used:
    - Ensure React best practices, performance optimizations, and accessibility
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on component composition and reusability
 
 3. **Package-Specific Agents**
-   - Use `promptliano-ui-architect` for React component development
-   - Use `tanstack-router-expert` for routing implementation
-   - Use `zod-schema-architect` for form validation schemas
-   - Use `vercel-ai-sdk-expert` for AI chat integration features
-   - Use `promptliano-playwright-expert` for E2E testing with Playwright
+   - Use `promptliano-frontend-architect` for React component development and routing
+   - Use `promptliano-schema-architect` for form validation schemas
+   - Use `promptliano-ai-architect` for AI chat integration features
+   - Use `promptliano-testing-architect` for E2E testing with Playwright
 
 4. **Testing Integration**
-   - Use `promptliano-playwright-expert` for writing/debugging E2E tests
+   - Use `promptliano-testing-architect` for writing/debugging E2E tests
    - Load this agent when creating new test files or Page Objects
    - Essential for testing MCP integration and React component interactions
    - Required for comprehensive test coverage of new features
@@ -666,11 +665,11 @@ Use mobile-first responsive patterns:
 
 ### E2E Testing with Playwright
 
-Use the `promptliano-playwright-expert` agent for comprehensive E2E testing:
+Use the `promptliano-testing-architect` agent for comprehensive E2E testing:
 
 ```python
 Task(
-  subagent_type: "promptliano-playwright-expert",
+  subagent_type: "promptliano-testing-architect",
   description: "Create E2E tests for new feature",
   prompt: "Write Playwright tests for [feature] including MCP integration and error handling"
 )

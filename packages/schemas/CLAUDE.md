@@ -7,11 +7,11 @@ The `@promptliano/schemas` package handles **application-level validation only**
 ### Mandatory Agent Usage
 
 1. **After Implementation** - Always use `staff-engineer-code-reviewer`
-2. **For Refactoring** - Use `code-modularization-expert`
+2. **For Refactoring** - Use `promptliano-code-quality-architect`
 3. **Package-Specific Agents**:
-   - `zod-schema-architect` - Application-level validation patterns
-   - `promptliano-drizzle-sqlite-expert` - Database schemas (primary source)
-   - `hono-bun-api-architect` - API integration
+   - `promptliano-schema-architect` - Application-level validation patterns
+   - `promptliano-database-architect` - Database schemas (primary source)
+   - `promptliano-api-architect` - API integration
 
 ## Architecture: Database-First Design
 

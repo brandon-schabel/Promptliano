@@ -60,41 +60,6 @@ export const FileIdParamsSchema = z
   })
   .openapi('FileIdParams')
 
-// Claude Agent ID Parameters
-export const ClaudeAgentIdParamsSchema = z
-  .object({
-    id: z.string().openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeAgentIdParams')
-
-// Agent ID Parameters (backward compatibility alias)
-export const AgentIdParamsSchema = z
-  .object({
-    id: z.string().openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('AgentIdParams')
-
-// Command Name Parameters
-export const CommandNameParamsSchema = z
-  .object({
-    commandName: z.string().openapi({ param: { name: 'commandName', in: 'path' } })
-  })
-  .openapi('CommandNameParams')
-
-// Claude Command ID Parameters
-export const ClaudeCommandIdParamsSchema = z
-  .object({
-    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeCommandIdParams')
-
-// Claude Hook ID Parameters
-export const ClaudeHookIdParamsSchema = z
-  .object({
-    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeHookIdParams')
-
 // Provider Key ID Parameters
 export const ProviderKeyIdParamsSchema = z
   .object({

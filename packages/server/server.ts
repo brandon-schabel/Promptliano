@@ -7,6 +7,7 @@ import { app } from './src/app'
 import { listProjects, createLogger } from '@promptliano/services'
 import { getServerConfig } from '@promptliano/config'
 import { watchersManager, createCleanupService } from '@promptliano/services'
+import { runMigrations } from '@promptliano/database'
 
 interface WebSocketData {
   clientId: string
@@ -38,6 +39,14 @@ export async function instantiateServer({
   port = Number(serverConfig.serverPort)
 }: ServerConfig = {}): Promise<Server> {
   logger.info(`Starting server initialization on port ${port}...`)
+  // Ensure database schema is up-to-date before serving requests or starting watchers
+  try {
+    await runMigrations()
+    logger.info('Database migrations completed')
+  } catch (error) {
+    logger.error('Database migration failed during server startup', error)
+    throw error
+  }
   const server = serve({
     // idleTimeout of 255 seconds (4.25 minutes) to support long-running operations
     // like asset generation which can take up to 3 minutes

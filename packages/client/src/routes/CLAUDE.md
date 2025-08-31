@@ -10,17 +10,16 @@ The client routes package implements file-based routing using TanStack Router v1
 
 When implementing new routes or modifying routing logic, you MUST use these specialized agents:
 
-1. **tanstack-router-expert** - For all routing implementation, navigation patterns, and route configuration
-2. **promptliano-ui-architect** - For UI components within routes
-3. **zod-schema-architect** - For search parameter schema validation
-4. **staff-engineer-code-reviewer** - MANDATORY after implementing any route changes
+1. **promptliano-frontend-architect** - For routing, UI components, and navigation patterns
+2. **promptliano-schema-architect** - For search parameter schema validation
+3. **staff-engineer-code-reviewer** - MANDATORY after implementing any route changes
 
 ### Agent Workflow Example
 
 ```typescript
-// 1. Use tanstack-router-expert to design route structure
-// 2. Use zod-schema-architect for search params schema
-// 3. Use promptliano-ui-architect for UI components
+// 1. Use promptliano-frontend-architect to design route structure
+// 2. Use promptliano-schema-architect for search params schema
+// 3. Use promptliano-frontend-architect for UI components
 // 4. Use staff-engineer-code-reviewer to validate implementation
 ```
 
@@ -720,4 +719,4 @@ TanStack Router provides a powerful, type-safe routing solution for the Promptli
 5. **Follow file-based routing** conventions
 6. **Use specialized agents** for implementation
 
-When implementing routes, always use the appropriate agents (tanstack-router-expert, zod-schema-architect) and finish with staff-engineer-code-reviewer for quality assurance.
+When implementing routes, always use the appropriate agents (promptliano-frontend-architect, promptliano-schema-architect) and finish with staff-engineer-code-reviewer for quality assurance.

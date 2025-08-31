@@ -159,6 +159,7 @@ export {
 // Other services (unchanged)
 export * from './src/project-statistics-service'
 export * from './src/provider-key-service'
+export * from './src/model-config-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
 

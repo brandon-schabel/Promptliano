@@ -1,6 +1,6 @@
 import { ChangeEvent, KeyboardEvent, ClipboardEvent, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import React from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { persistListParams } from '@/lib/router/search-middleware'
 import {
@@ -677,6 +677,7 @@ export function ChatMessages({
 }
 
 export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const navigate = useNavigate()
   const [activeChatId, setActiveChatId] = useActiveChatId()
   const [editingChatId, setEditingChatId] = useState<number | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -778,10 +779,12 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     (chatId: number) => {
       if (!editingChatId) {
         setActiveChatId(chatId)
+        // Reflect selection in URL search params
+        navigate({ to: '/chat', search: { chatId } })
         onClose()
       }
     },
-    [setActiveChatId, editingChatId, onClose]
+    [setActiveChatId, editingChatId, onClose, navigate]
   )
 
   useEffect(() => {
@@ -956,9 +959,11 @@ export const Route = createFileRoute('/chat')({
 })
 
 function ChatPage() {
+  const navigate = useNavigate()
+  const search = Route.useSearch()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const [activeChatId] = useActiveChatId()
+  const [activeChatId, setActiveChatId] = useActiveChatId()
   const { settings: modelSettings, setModel } = useChatModelParams()
   const provider = modelSettings.provider ?? 'openrouter'
   const model = modelSettings.model
@@ -1038,6 +1043,15 @@ function ChatPage() {
   const hasActiveChat = !!activeChatId
 
   const toggleSidebar = useCallback(() => setIsSidebarOpen((prev) => !prev), [])
+
+  // Sync URL search param -> active chat selection (one-way authority: URL)
+  useEffect(() => {
+    const urlChatId = Number(search?.chatId)
+    if (Number.isFinite(urlChatId) && urlChatId > 0 && urlChatId !== activeChatId) {
+      // Update KV state to match URL
+      setActiveChatId(urlChatId)
+    }
+  }, [search?.chatId, activeChatId, setActiveChatId])
 
   useEffect(() => {
     if (
