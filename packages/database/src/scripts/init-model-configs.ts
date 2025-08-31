@@ -1,15 +1,128 @@
 #!/usr/bin/env bun
 /**
  * Initialize system default model configurations
- * Run this script to seed the database with default model configs and presets
+ * Run this script to seed the database with intelligence-based presets
  */
 
 import { db } from '../db'
 import { modelConfigs, modelPresets } from '../schema'
 import type { CreateModelConfig, CreateModelPreset } from '../schema'
+// Intelligence level configurations based on models.config.ts
+const INTELLIGENCE_CONFIGS = {
+  low: {
+    provider: 'lmstudio',
+    model: 'unsloth-qwen3-coder-30b-a3b-instruct-qx4-mlx',
+    temperature: 0.7,
+    maxTokens: 32000,
+    topP: 0,
+    topK: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0
+  },
+  medium: {
+    provider: 'openrouter',
+    model: 'google/gemini-2.5-flash',
+    temperature: 0.7,
+    maxTokens: 25000,
+    topP: 0,
+    topK: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0
+  },
+  high: {
+    provider: 'openrouter',
+    model: 'google/gemini-2.5-pro',
+    temperature: 0.7,
+    maxTokens: 200000,
+    topP: 0,
+    topK: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0
+  },
+  planning: {
+    provider: 'openrouter',
+    model: 'google/gemini-2.5-flash',
+    temperature: 0.7,
+    maxTokens: 25000,
+    topP: 0,
+    topK: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0
+  }
+} as const
 
-const defaultConfigs: CreateModelConfig[] = [
-  // OpenAI Models
+const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number})[] = [
+  // Intelligence-based configurations
+  {
+    name: 'low-intelligence',
+    displayName: 'Low Intelligence (Fast)',
+    provider: INTELLIGENCE_CONFIGS.low.provider as any,
+    model: INTELLIGENCE_CONFIGS.low.model,
+    temperature: INTELLIGENCE_CONFIGS.low.temperature,
+    maxTokens: INTELLIGENCE_CONFIGS.low.maxTokens,
+    topP: INTELLIGENCE_CONFIGS.low.topP || 1.0,
+    topK: INTELLIGENCE_CONFIGS.low.topK,
+    frequencyPenalty: INTELLIGENCE_CONFIGS.low.frequencyPenalty,
+    presencePenalty: INTELLIGENCE_CONFIGS.low.presencePenalty,
+    systemPrompt: 'You are a helpful AI assistant optimized for quick, concise responses.',
+    isDefault: false,
+    isSystemPreset: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  },
+  {
+    name: 'medium-intelligence',
+    displayName: 'Medium Intelligence (Balanced)',
+    provider: INTELLIGENCE_CONFIGS.medium.provider as any,
+    model: INTELLIGENCE_CONFIGS.medium.model,
+    temperature: INTELLIGENCE_CONFIGS.medium.temperature,
+    maxTokens: INTELLIGENCE_CONFIGS.medium.maxTokens,
+    topP: INTELLIGENCE_CONFIGS.medium.topP || 1.0,
+    topK: INTELLIGENCE_CONFIGS.medium.topK,
+    frequencyPenalty: INTELLIGENCE_CONFIGS.medium.frequencyPenalty,
+    presencePenalty: INTELLIGENCE_CONFIGS.medium.presencePenalty,
+    systemPrompt: 'You are a helpful AI assistant with balanced capabilities for development tasks.',
+    isDefault: true,
+    isSystemPreset: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  },
+  {
+    name: 'high-intelligence',
+    displayName: 'High Intelligence (Complex)',
+    provider: INTELLIGENCE_CONFIGS.high.provider as any,
+    model: INTELLIGENCE_CONFIGS.high.model,
+    temperature: INTELLIGENCE_CONFIGS.high.temperature,
+    maxTokens: INTELLIGENCE_CONFIGS.high.maxTokens,
+    topP: INTELLIGENCE_CONFIGS.high.topP || 1.0,
+    topK: INTELLIGENCE_CONFIGS.high.topK,
+    frequencyPenalty: INTELLIGENCE_CONFIGS.high.frequencyPenalty,
+    presencePenalty: INTELLIGENCE_CONFIGS.high.presencePenalty,
+    systemPrompt: 'You are an expert AI assistant capable of handling complex tasks with large context windows.',
+    isDefault: false,
+    isSystemPreset: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  },
+  {
+    name: 'planning-intelligence',
+    displayName: 'Planning Intelligence',
+    provider: INTELLIGENCE_CONFIGS.planning.provider as any,
+    model: INTELLIGENCE_CONFIGS.planning.model,
+    temperature: INTELLIGENCE_CONFIGS.planning.temperature,
+    maxTokens: INTELLIGENCE_CONFIGS.planning.maxTokens,
+    topP: INTELLIGENCE_CONFIGS.planning.topP || 1.0,
+    topK: INTELLIGENCE_CONFIGS.planning.topK,
+    frequencyPenalty: INTELLIGENCE_CONFIGS.planning.frequencyPenalty,
+    presencePenalty: INTELLIGENCE_CONFIGS.planning.presencePenalty,
+    systemPrompt: 'You are a planning specialist optimized for breaking down complex tasks and creating actionable plans.',
+    isDefault: false,
+    isSystemPreset: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  },
+  
+  // Keep some provider-specific models for flexibility
   {
     name: 'gpt-4o',
     displayName: 'GPT-4o',
@@ -20,8 +133,7 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
-    isDefault: true,
+    isDefault: false,
     isSystemPreset: true,
     createdAt: Date.now(),
     updatedAt: Date.now()
@@ -36,7 +148,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: false,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -88,7 +199,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -104,7 +214,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: false,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -122,7 +231,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -158,7 +266,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -176,7 +283,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -194,7 +300,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -212,7 +317,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -230,7 +334,6 @@ const defaultConfigs: CreateModelConfig[] = [
     topP: 1.0,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant.',
     isDefault: true,
     isSystemPreset: true,
     createdAt: Date.now(),
@@ -239,89 +342,150 @@ const defaultConfigs: CreateModelConfig[] = [
 ]
 
 const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
+  // Intelligence-based presets
   {
-    name: 'Creative Writing',
-    displayName: 'Creative Writing',
-    description: 'Higher temperature for creative and varied outputs',
-    category: 'creative',
-    temperature: 0.9,
-    maxTokens: 4096,
-    topP: 0.95,
-    frequencyPenalty: 0.5,
-    presencePenalty: 0.5,
-    systemPrompt: 'You are a creative writing assistant. Be imaginative, descriptive, and engaging.',
+    name: 'Quick Summary',
+    description: 'Fast summarization using low intelligence model',
+    category: 'productivity',
+    metadata: {
+      intelligenceLevel: 'low',
+      temperature: 0.3,
+      maxTokens: 2048,
+      topP: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'Provide concise, clear summaries focusing on key points.'
+    },
     isSystemPreset: true,
-    usageCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    usageCount: 0
+  },
+  {
+    name: 'File Analysis',
+    description: 'Intelligent file selection with large context',
+    category: 'analysis',
+    metadata: {
+      intelligenceLevel: 'high',
+      temperature: 0.5,
+      maxTokens: 8192,
+      topP: 0.95,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'Analyze files and suggest the most relevant ones based on the task context.'
+    },
+    isSystemPreset: true,
+    usageCount: 0
+  },
+  {
+    name: 'Task Planning',
+    description: 'Break down complex tasks into actionable items',
+    category: 'productivity',
+    metadata: {
+      intelligenceLevel: 'planning',
+      temperature: 0.6,
+      maxTokens: 4096,
+      topP: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'Create detailed, actionable task breakdowns with clear dependencies and priorities.'
+    },
+    isSystemPreset: true,
+    usageCount: 0
   },
   {
     name: 'Code Generation',
-    displayName: 'Code Generation',
+    description: 'Generate code with medium intelligence',
+    category: 'coding',
+    metadata: {
+      intelligenceLevel: 'medium',
+      temperature: 0.3,
+      maxTokens: 8192,
+      topP: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'You are an expert programmer. Generate clean, efficient, and well-documented code.'
+    },
+    isSystemPreset: true,
+    usageCount: 0
+  },
+  {
+    name: 'Creative Writing',
+    description: 'Higher temperature for creative and varied outputs',
+    category: 'creative',
+    metadata: {
+      intelligenceLevel: 'medium',
+      temperature: 0.9,
+      maxTokens: 4096,
+      topP: 0.95,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+      systemPrompt: 'You are a creative writing assistant. Be imaginative, descriptive, and engaging.'
+    },
+    isSystemPreset: true,
+    usageCount: 0
+  },
+  {
+    name: 'Code Generation',
     description: 'Optimized for generating code with lower temperature',
     category: 'coding',
-    temperature: 0.3,
-    maxTokens: 8192,
-    topP: 0.9,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are an expert programmer. Generate clean, efficient, and well-documented code.',
+    metadata: {
+      temperature: 0.3,
+      maxTokens: 8192,
+      topP: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'You are an expert programmer. Generate clean, efficient, and well-documented code.'
+    },
     isSystemPreset: true,
-    usageCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    usageCount: 0
   },
   {
     name: 'Analytical',
-    displayName: 'Analytical Reasoning',
     description: 'Precise and focused responses for analysis',
     category: 'analysis',
-    temperature: 0.2,
-    maxTokens: 4096,
-    topP: 0.85,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are an analytical assistant. Provide precise, logical, and well-reasoned responses.',
+    metadata: {
+      temperature: 0.2,
+      maxTokens: 4096,
+      topP: 0.85,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'You are an analytical assistant. Provide precise, logical, and well-reasoned responses.'
+    },
     isSystemPreset: true,
-    usageCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    usageCount: 0
   },
   {
     name: 'Conversational',
-    displayName: 'Conversational',
     description: 'Natural conversation with balanced parameters',
     category: 'chat',
-    temperature: 0.7,
-    maxTokens: 2048,
-    topP: 1.0,
-    frequencyPenalty: 0.3,
-    presencePenalty: 0.3,
-    systemPrompt: 'You are a friendly conversational assistant. Be natural, engaging, and helpful.',
+    metadata: {
+      temperature: 0.7,
+      maxTokens: 2048,
+      topP: 1.0,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.3,
+      systemPrompt: 'You are a friendly conversational assistant. Be natural, engaging, and helpful.'
+    },
     isSystemPreset: true,
-    usageCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    usageCount: 0
   },
   {
     name: 'Summarization',
-    displayName: 'Summarization',
     description: 'Concise and focused summaries',
     category: 'productivity',
-    temperature: 0.3,
-    maxTokens: 1024,
-    topP: 0.9,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are a summarization expert. Provide concise, accurate summaries that capture key points.',
+    metadata: {
+      temperature: 0.3,
+      maxTokens: 1024,
+      topP: 0.9,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      systemPrompt: 'You are a summarization expert. Provide concise, accurate summaries that capture key points.'
+    },
     isSystemPreset: true,
-    usageCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    usageCount: 0
   }
 ]
 
-async function initializeModelConfigs() {
+export async function initializeModelConfigs() {
   console.log('🚀 Initializing model configurations...')
   
   try {
@@ -346,7 +510,9 @@ async function initializeModelConfigs() {
       // Create presets for each model config
       const presetsForConfig = defaultPresets.map(preset => ({
         ...preset,
-        configId: config.id
+        configId: config.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       }))
       
       if (presetsForConfig.length > 0) {

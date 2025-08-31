@@ -12,6 +12,9 @@ export * from './src/schema-transformers'
 // Migrations helpers
 export { runMigrations, createInitialSchema } from './src/migrations/migrate'
 
+// Model configuration initialization
+export { initializeModelConfigs } from './src/scripts/init-model-configs'
+
 // Export table definitions for services that need direct access
 export {
   projects,

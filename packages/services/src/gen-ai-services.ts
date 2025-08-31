@@ -7,9 +7,10 @@ import { createGroq } from '@ai-sdk/groq'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createChatService } from './chat-service'
 import { createProviderKeyService } from './provider-key-service'
+import { createModelConfigService } from './model-config-service'
 import { chatRepository } from '@promptliano/database'
 import type { APIProviders, ProviderKey } from '@promptliano/database'
-import { LOW_MODEL_CONFIG, getProvidersConfig } from '@promptliano/config'
+import { getProvidersConfig, LOW_MODEL_CONFIG } from '@promptliano/config'
 import { structuredDataSchemas } from '@promptliano/schemas' // AI generation schemas - may remain in schemas package
 
 import { ApiError } from '@promptliano/shared'
@@ -20,6 +21,7 @@ import { getProviderUrl } from './provider-settings-service'
 import { LMStudioProvider } from './providers/lmstudio-provider'
 import { mergeHeaders } from './utils/header-sanitizer'
 import { nullToUndefined } from './utils/file-utils'
+import { logModelUsage, logModelError, logModelCompletion } from './utils/model-usage-logger'
 
 const providersConfig = getProvidersConfig()
 
@@ -146,8 +148,28 @@ export async function handleChatMessage({
   enableChatAutoNaming = false
 }: AiChatRequest): Promise<ReturnType<typeof streamText>> {
   let finalAssistantMessageId: number | undefined
-  const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = (finalOptions.provider || 'openai') as APIProviders
+  
+  // Get dynamic model configuration
+  const modelConfigService = createModelConfigService()
+  const provider = (options.provider || 'openai') as APIProviders
+  
+  // Try to get default config for provider, or use provided options
+  let defaultConfig = await modelConfigService.getDefaultConfig(provider)
+  
+  // If no default config found, use the provided options as fallback
+  const finalOptions = defaultConfig 
+    ? { 
+        provider: defaultConfig.provider,
+        model: defaultConfig.model,
+        temperature: defaultConfig.temperature,
+        maxTokens: defaultConfig.maxTokens,
+        topP: defaultConfig.topP,
+        topK: defaultConfig.topK,
+        frequencyPenalty: defaultConfig.frequencyPenalty,
+        presencePenalty: defaultConfig.presencePenalty,
+        ...options // User options override defaults
+      }
+    : options
   const chatService = createChatService()
   const modelInstance = await getProviderLanguageModelInterface(finalOptions.provider as APIProviders, finalOptions)
   let messagesToProcess: CoreMessage[] = []
@@ -197,8 +219,10 @@ export async function handleChatMessage({
     // Handle completion and errors
     onFinish: async ({ text, usage, finishReason }) => {
       if (debug) {
-        console.log(
-          `[UnifiedProviderService] streamText finished for ${provider}/${modelInstance.modelId}. Reason: ${finishReason}. Usage: ${JSON.stringify(usage)}`
+        logModelCompletion(
+          finalOptions.provider as string,
+          finalOptions.model as string,
+          usage
         )
       }
 
@@ -275,6 +299,9 @@ export async function handleChatMessage({
             )
           })
       }
+
+      // Propagate to client so UI can surface a toast
+      throw mappedError
     }
   })
 }
@@ -291,12 +318,48 @@ async function loadUncensoredKeys(): Promise<ProviderKey[]> {
 async function getKey(provider: APIProviders, debug: boolean): Promise<string | undefined> {
   const keys = await loadUncensoredKeys()
   const keyEntry = keys.find((k) => k.provider === provider)
-  if (!keyEntry && debug) {
+
+  // Prefer explicit DB key
+  let resolved: string | undefined = nullToUndefined(keyEntry?.key)
+
+  // Fall back to environment using secretRef if present
+  if (!resolved && keyEntry && (keyEntry as any).secretRef) {
+    const envVar = String((keyEntry as any).secretRef)
+    const envVal = (process.env as Record<string, string | undefined>)[envVar]
+    if (typeof envVal === 'string' && envVal.length > 0) {
+      resolved = envVal
+      if (debug) {
+        console.log(`[UnifiedProviderService] Resolved ${provider} key from secretRef env var ${envVar}`)
+      }
+    }
+  }
+
+  // Provider-specific env fallback
+  if (!resolved) {
+    const envFallbackMap: Record<string, string> = {
+      openai: 'OPENAI_API_KEY',
+      anthropic: 'ANTHROPIC_API_KEY',
+      google_gemini: 'GOOGLE_GENERATIVE_AI_API_KEY',
+      groq: 'GROQ_API_KEY',
+      together: 'TOGETHER_API_KEY',
+      xai: 'XAI_API_KEY',
+      openrouter: 'OPENROUTER_API_KEY'
+    }
+    const envName = envFallbackMap[provider]
+    if (envName && process.env[envName]) {
+      resolved = process.env[envName]
+      if (debug) {
+        console.log(`[UnifiedProviderService] Resolved ${provider} key from ${envName}`)
+      }
+    }
+  }
+
+  if (!resolved && debug) {
     console.warn(
-      `[UnifiedProviderService] API key for provider "${provider}" not found in DB. SDK might check environment variables.`
+      `[UnifiedProviderService] API key for provider "${provider}" not found (DB/secretRef/env). Requests will fail.`
     )
   }
-  return nullToUndefined(keyEntry?.key)
+  return resolved
 }
 
 /**
@@ -308,8 +371,11 @@ async function getProviderLanguageModelInterface(
   options: AiSdkCompatibleOptions = {},
   debug: boolean = false
 ): Promise<LanguageModel> {
-  const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const modelId = finalOptions.model || LOW_MODEL_CONFIG.model || ''
+  // Use dynamic preset config with fallback to static for compatibility
+  const modelConfigService = createModelConfigService()
+  const defaultConfig = await modelConfigService.getPresetConfig('low').catch(() => LOW_MODEL_CONFIG)
+  const finalOptions = { ...defaultConfig, ...options }
+  const modelId = finalOptions.model || defaultConfig.model || ''
 
   if (!modelId) {
     throw ErrorFactory.missingRequired('Model ID', `provider ${provider}`)
@@ -381,10 +447,17 @@ async function getProviderLanguageModelInterface(
       return createGroq({ apiKey })(modelId)
     }
     case 'openrouter': {
-      const apiKey = await getKey('openrouter', debug)
-      if (!apiKey && !process.env.OPENROUTER_API_KEY)
-        throw ErrorFactory.missingRequired('OpenRouter API Key', 'database or environment')
-      return createOpenRouter({ apiKey })(modelId)
+      const apiKey = (await getKey('openrouter', debug)) || process.env.OPENROUTER_API_KEY
+      if (!apiKey) throw ErrorFactory.missingRequired('OpenRouter API Key', 'database or environment')
+      const defaultHeaders: Record<string, string> = {
+        Referer: process.env.OPENROUTER_SITE_URL || 'http://localhost:1420',
+        'X-Title': process.env.OPENROUTER_APP_TITLE || 'Promptliano'
+      }
+      return createOpenRouter({
+        apiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+        headers: defaultHeaders
+      })(modelId)
     }
     // --- OpenAI Compatible Providers ---
     case 'lmstudio': {
@@ -487,7 +560,9 @@ async function getProviderLanguageModelInterface(
       // Fallback logic
       try {
         const fallbackApiKey = await getKey('openai', debug)
-        const fallbackModel = LOW_MODEL_CONFIG.model ?? 'gpt-4o'
+        const modelConfigService = createModelConfigService()
+        const lowConfig = await modelConfigService.getPresetConfig('low').catch(() => LOW_MODEL_CONFIG)
+        const fallbackModel = lowConfig.model ?? 'gpt-4o'
         return createOpenAI({ apiKey: fallbackApiKey })(fallbackModel)
       } catch (fallbackError: any) {
         throw ErrorFactory.operationFailed(
@@ -512,8 +587,28 @@ export async function generateSingleText({
   systemMessage?: string
   debug?: boolean
 }): Promise<string> {
-  const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = (finalOptions.provider || 'openai') as APIProviders
+  // Get dynamic model configuration
+  const modelConfigService = createModelConfigService()
+  const provider = (options.provider || 'openai') as APIProviders
+  
+  // Try to get default config for provider
+  let defaultConfig = await modelConfigService.getDefaultConfig(provider)
+  
+  // Merge with provided options
+  const finalOptions = defaultConfig 
+    ? { 
+        provider: defaultConfig.provider,
+        model: defaultConfig.model,
+        temperature: defaultConfig.temperature,
+        maxTokens: defaultConfig.maxTokens,
+        topP: defaultConfig.topP,
+        topK: defaultConfig.topK,
+        frequencyPenalty: defaultConfig.frequencyPenalty,
+        presencePenalty: defaultConfig.presencePenalty,
+        ...options // User options override defaults
+      }
+    : options
+    
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'generateSingleText')
   }
@@ -532,6 +627,18 @@ export async function generateSingleText({
       messagesToProcess.push({ role: 'user', content: prompt })
     }
 
+    // Log model usage
+    logModelUsage({
+      provider: provider,
+      model: finalOptions.model || '',
+      temperature: finalOptions.temperature,
+      maxTokens: finalOptions.maxTokens,
+      topP: finalOptions.topP,
+      frequencyPenalty: finalOptions.frequencyPenalty,
+      presencePenalty: finalOptions.presencePenalty,
+      mode: 'text'
+    })
+
     // Wrap the AI call in retry logic
     const result = await retryOperation(
       async () => {
@@ -543,8 +650,10 @@ export async function generateSingleText({
         })
 
         if (debug) {
-          console.log(
-            `[UnifiedProviderService] generateText finished for ${provider}/${modelInstance.modelId}. Reason: ${finishReason}. Usage: ${JSON.stringify(usage)}`
+          logModelCompletion(
+            provider,
+            finalOptions.model || modelInstance.modelId,
+            usage
           )
         }
 
@@ -567,8 +676,8 @@ export async function generateSingleText({
     return result
   } catch (error: any) {
     if (error instanceof ApiError) throw error
-    // Catch errors from getProviderLanguageModelInterface or generateText
-    console.error(`[UnifiedProviderService - generateSingleText] Error for ${provider}:`, error)
+    // Log error and re-throw
+    logModelError(provider, finalOptions.model || '', error)
     throw mapProviderErrorToApiError(error, provider, 'generateSingleText')
   }
 }
@@ -592,9 +701,27 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
   usage: { completionTokens: number; promptTokens: number; totalTokens: number }
   finishReason: string /* ...other potential fields */
 }> {
-  // Return structure from generateObject
-  const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
-  const provider = (finalOptions.provider || 'openai') as APIProviders
+  // Get dynamic model configuration
+  const modelConfigService = createModelConfigService()
+  const provider = (options.provider || 'openai') as APIProviders
+  
+  // Try to get default config for provider
+  let defaultConfig = await modelConfigService.getDefaultConfig(provider)
+  
+  // Merge with provided options
+  const finalOptions = defaultConfig 
+    ? { 
+        provider: defaultConfig.provider,
+        model: defaultConfig.model,
+        temperature: defaultConfig.temperature,
+        maxTokens: defaultConfig.maxTokens,
+        topP: defaultConfig.topP,
+        topK: defaultConfig.topK,
+        frequencyPenalty: defaultConfig.frequencyPenalty,
+        presencePenalty: defaultConfig.presencePenalty,
+        ...options // User options override defaults
+      }
+    : options
 
   const model = finalOptions.model
 
@@ -607,9 +734,21 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
   const supportsStructuredOutput = PROVIDER_CAPABILITIES[providerKey]?.structuredOutput ?? true
   const useCustomProvider = PROVIDER_CAPABILITIES[providerKey]?.useCustomProvider ?? false
 
+  // Log model usage
+  logModelUsage({
+    provider: provider,
+    model: model || '',
+    temperature: finalOptions.temperature,
+    maxTokens: finalOptions.maxTokens,
+    topP: finalOptions.topP,
+    frequencyPenalty: finalOptions.frequencyPenalty,
+    presencePenalty: finalOptions.presencePenalty,
+    mode: 'structured'
+  })
+
   if (debug) {
     console.log(
-      `[UnifiedProviderService] Generating structured data: Provider=${provider}, ModelID=${model}, Schema=${schema.description || 'Unnamed Schema'}, SupportsStructuredOutput=${supportsStructuredOutput}, UseCustomProvider=${useCustomProvider}`
+      `[UnifiedProviderService] Schema=${schema.description || 'Unnamed Schema'}, SupportsStructuredOutput=${supportsStructuredOutput}`
     )
   }
 
@@ -652,7 +791,7 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
       return result
     } catch (error: any) {
       if (error instanceof ApiError) throw error
-      console.error(`[UnifiedProviderService - generateStructuredData] LM Studio custom provider error:`, error)
+      logModelError(provider, model || '', error)
       throw mapProviderErrorToApiError(error, provider, 'generateStructuredData')
     }
   }
@@ -796,6 +935,7 @@ Start your response with { and end with }`
       }
     } catch (error: any) {
       if (error instanceof ApiError) throw error
+      logModelError(provider, model || '', error)
       console.error(
         `[UnifiedProviderService - generateStructuredData] Text generation fallback error for ${provider}:`,
         error
@@ -821,8 +961,10 @@ Start your response with { and end with }`
         })
 
         if (debug) {
-          console.log(
-            `[UnifiedProviderService] generateObject finished. Reason: ${result.finishReason}. Usage: ${JSON.stringify(result.usage)}`
+          logModelCompletion(
+            provider,
+            model || '',
+            result.usage
           )
         }
 
@@ -849,7 +991,7 @@ Start your response with { and end with }`
     return result
   } catch (error: any) {
     if (error instanceof ApiError) throw error
-    console.error(`[UnifiedProviderService - generateStructuredData] Error for ${provider}:`, error)
+    logModelError(provider, model || '', error)
     throw mapProviderErrorToApiError(error, provider, 'generateStructuredData')
   }
 }
@@ -867,7 +1009,10 @@ export async function genTextStream({
   systemMessage?: string
   debug?: boolean
 }): Promise<ReturnType<typeof streamText>> {
-  const finalOptions = { ...LOW_MODEL_CONFIG, ...options }
+  // Use dynamic preset config with fallback to static for compatibility
+  const modelConfigService = createModelConfigService()
+  const defaultConfig = await modelConfigService.getPresetConfig('low').catch(() => LOW_MODEL_CONFIG)
+  const finalOptions = { ...defaultConfig, ...options }
   const provider = (finalOptions.provider || 'openai') as APIProviders
 
   if (!prompt && (!messages || messages.length === 0)) {
@@ -899,10 +1044,22 @@ export async function genTextStream({
       })
     }
 
+    // Log model usage
+    logModelUsage({
+      provider: provider,
+      model: finalOptions.model || modelInstance.modelId,
+      temperature: finalOptions.temperature,
+      maxTokens: finalOptions.maxTokens,
+      topP: finalOptions.topP,
+      frequencyPenalty: finalOptions.frequencyPenalty,
+      presencePenalty: finalOptions.presencePenalty,
+      mode: 'stream'
+    })
+
     if (debug) {
       console.log(
-        `[UnifiedProviderService - genTextStream] Starting stream for ${provider}/${modelInstance.modelId}. Messages:`,
-        messagesToProcess
+        `[UnifiedProviderService - genTextStream] Messages:`,
+        messagesToProcess.length
       )
     }
 
@@ -917,8 +1074,10 @@ export async function genTextStream({
 
       onFinish: ({ text, usage, finishReason }) => {
         if (debug) {
-          console.log(
-            `[UnifiedProviderService - genTextStream] streamText finished for ${provider}/${modelInstance.modelId}. Reason: ${finishReason}. Usage: ${JSON.stringify(usage)}.`
+          logModelCompletion(
+            provider,
+            finalOptions.model || modelInstance.modelId,
+            usage
           )
         }
       },
@@ -931,7 +1090,7 @@ export async function genTextStream({
     })
   } catch (error: any) {
     if (error instanceof ApiError) throw error
-    console.error(`[UnifiedProviderService - genTextStream] Error setting up stream for ${provider}:`, error)
+    logModelError(provider, finalOptions.model || '', error)
     throw mapProviderErrorToApiError(error, provider, 'genTextStream')
   }
 }

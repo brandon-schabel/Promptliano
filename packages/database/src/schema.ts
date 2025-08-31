@@ -1510,6 +1510,7 @@ export const modelConfigs = sqliteTable(
     frequencyPenalty: real('frequency_penalty').default(0),
     presencePenalty: real('presence_penalty').default(0),
     responseFormat: text('response_format', { mode: 'json' }), // JSON string for response format
+    systemPrompt: text('system_prompt'), // System prompt for the model
     isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
     isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -1533,7 +1534,7 @@ export const modelPresets = sqliteTable(
     name: text('name').notNull(), // Preset name (e.g., 'Quick Response', 'Deep Analysis')
     description: text('description'),
     configId: integer('config_id').notNull().references(() => modelConfigs.id, { onDelete: 'cascade' }),
-    category: text('category', { enum: ['general', 'coding', 'creative', 'analysis', 'custom'] }).default('general'),
+    category: text('category', { enum: ['general', 'coding', 'creative', 'analysis', 'custom', 'chat', 'productivity'] }).default('general'),
     isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     userId: integer('user_id'), // For user-created presets

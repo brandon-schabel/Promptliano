@@ -111,6 +111,7 @@ import { LocalProviderSection } from '@/components/providers/local-provider-sect
 import { ProviderCard } from '@/components/providers/provider-card'
 import { ProviderTestDialog } from '@/components/providers/provider-test-dialog'
 import { CustomProviderDialog } from '@/components/providers/custom-provider-dialog'
+import { ModelPresetConfigurator } from '@/components/providers/model-preset-configurator'
 import { useLocalModelStatus } from '@/hooks/use-local-model-status'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 // Encryption UI removed; provider keys use secretRef only
@@ -126,7 +127,7 @@ const providerFormSchema = z.object({
 type ProviderFormValues = z.infer<typeof providerFormSchema>
 
 function ProvidersPage() {
-  const [activeTab, setActiveTab] = useState<'all' | 'api' | 'local'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'api' | 'local' | 'presets'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isCustomProviderDialogOpen, setIsCustomProviderDialogOpen] = useState(false)
@@ -432,7 +433,7 @@ function ProvidersPage() {
                 {/* Search and Tabs */}
                 <div className='flex items-center justify-between gap-4'>
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className='w-auto'>
-                    <TabsList className='grid grid-cols-3 w-[400px]'>
+                    <TabsList className='grid grid-cols-4 w-[550px]'>
                       <TabsTrigger value='all' className='gap-2'>
                         <Sparkles className='h-4 w-4' />
                         All Providers
@@ -444,6 +445,10 @@ function ProvidersPage() {
                       <TabsTrigger value='local' className='gap-2'>
                         <Monitor className='h-4 w-4' />
                         Local Providers
+                      </TabsTrigger>
+                      <TabsTrigger value='presets' className='gap-2'>
+                        <Settings className='h-4 w-4' />
+                        Model Presets
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -528,6 +533,12 @@ function ProvidersPage() {
                   )}
 
                   {activeTab === 'api' && renderApiProviders(filteredProviders)}
+
+                  {activeTab === 'presets' && (
+                    <div className='pb-6'>
+                      <ModelPresetConfigurator />
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </div>
@@ -586,7 +597,7 @@ function ProvidersPage() {
                               field.onChange(value)
                             }
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -647,26 +658,34 @@ function ProvidersPage() {
                     )}
                   />
 
-                  {form.watch('provider') && (
-                    <Alert>
-                      <AlertCircle className='h-4 w-4' />
-                      <AlertTitle>Provider Information</AlertTitle>
-                      <AlertDescription>
-                        {PROVIDERS.find((p) => p.id === form.watch('provider'))?.description}
-                        {PROVIDERS.find((p) => p.id === form.watch('provider'))?.link && (
-                          <a
-                            href={PROVIDERS.find((p) => p.id === form.watch('provider'))?.link}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='flex items-center gap-1 text-primary hover:underline mt-2'
-                          >
-                            {PROVIDERS.find((p) => p.id === form.watch('provider'))?.linkTitle}
-                            <ExternalLink className='h-3 w-3' />
-                          </a>
-                        )}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {(() => {
+                    const selectedProviderId = form.watch('provider')
+                    if (!selectedProviderId) return null
+                    
+                    const provider = PROVIDERS.find((p) => p.id === selectedProviderId)
+                    if (!provider) return null
+                    
+                    return (
+                      <Alert>
+                        <AlertCircle className='h-4 w-4' />
+                        <AlertTitle>Provider Information</AlertTitle>
+                        <AlertDescription>
+                          {provider.description}
+                          {provider.link && (
+                            <a
+                              href={provider.link}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='flex items-center gap-1 text-primary hover:underline mt-2'
+                            >
+                              {provider.linkTitle}
+                              <ExternalLink className='h-3 w-3' />
+                            </a>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )
+                  })()}
 
                   <DialogFooter>
                     <Button type='button' variant='outline' onClick={() => setIsAddDialogOpen(false)}>

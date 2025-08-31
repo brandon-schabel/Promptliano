@@ -14,18 +14,20 @@ export const modelConfigRepository = {
    * Get all model configurations
    */
   async getAll(): Promise<ModelConfig[]> {
-    return await db.select().from(modelConfigs).orderBy(modelConfigs.name)
+    const results = await db.select().from(modelConfigs).orderBy(modelConfigs.name)
+    return results as ModelConfig[]
   },
 
   /**
    * Get model configurations by provider
    */
   async getByProvider(provider: string): Promise<ModelConfig[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelConfigs)
       .where(and(eq(modelConfigs.provider, provider), eq(modelConfigs.isActive, true)))
       .orderBy(modelConfigs.name)
+    return results as ModelConfig[]
   },
 
   /**
@@ -38,7 +40,7 @@ export const modelConfigRepository = {
       .where(and(eq(modelConfigs.provider, provider), eq(modelConfigs.isDefault, true), eq(modelConfigs.isActive, true)))
       .limit(1)
 
-    return results[0] || null
+    return (results[0] as ModelConfig) || null
   },
 
   /**
@@ -47,18 +49,19 @@ export const modelConfigRepository = {
   async getByName(name: string): Promise<ModelConfig | null> {
     const results = await db.select().from(modelConfigs).where(eq(modelConfigs.name, name)).limit(1)
 
-    return results[0] || null
+    return (results[0] as ModelConfig) || null
   },
 
   /**
    * Get system presets
    */
   async getSystemPresets(): Promise<ModelConfig[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelConfigs)
       .where(and(eq(modelConfigs.isSystemPreset, true), eq(modelConfigs.isActive, true)))
       .orderBy(modelConfigs.name)
+    return results as ModelConfig[]
   },
 
   /**
@@ -66,19 +69,21 @@ export const modelConfigRepository = {
    */
   async getUserConfigs(userId?: number): Promise<ModelConfig[]> {
     if (userId) {
-      return await db
+      const results = await db
         .select()
         .from(modelConfigs)
         .where(and(eq(modelConfigs.userId, userId), eq(modelConfigs.isActive, true)))
         .orderBy(modelConfigs.name)
+      return results as ModelConfig[]
     }
 
     // Get all non-system configs when no userId provided
-    return await db
+    const results = await db
       .select()
       .from(modelConfigs)
       .where(and(eq(modelConfigs.isSystemPreset, false), eq(modelConfigs.isActive, true)))
       .orderBy(modelConfigs.name)
+    return results as ModelConfig[]
   },
 
   /**
@@ -98,7 +103,7 @@ export const modelConfigRepository = {
         .set({ isDefault: true, updatedAt: Date.now() })
         .where(and(eq(modelConfigs.id, id), eq(modelConfigs.provider, provider)))
 
-      return result.changes > 0
+      return (result as any).changes > 0
     })
   },
 
@@ -116,7 +121,7 @@ export const modelConfigRepository = {
       })
       .returning()
 
-    return result[0]
+    return result[0] as ModelConfig
   },
 
   /**
@@ -132,7 +137,7 @@ export const modelConfigRepository = {
       .where(eq(modelConfigs.id, id))
       .returning()
 
-    return result[0] || null
+    return (result[0] as ModelConfig) || null
   },
 
   /**
@@ -144,7 +149,7 @@ export const modelConfigRepository = {
       .set({ isActive: false, updatedAt: Date.now() })
       .where(eq(modelConfigs.id, id))
 
-    return result.changes > 0
+    return (result as any).changes > 0
   },
 
   /**
@@ -152,7 +157,15 @@ export const modelConfigRepository = {
    */
   async hardDelete(id: number): Promise<boolean> {
     const result = await db.delete(modelConfigs).where(eq(modelConfigs.id, id))
-    return result.changes > 0
+    return (result as any).changes > 0
+  },
+
+  /**
+   * Get by ID
+   */
+  async getById(id: number): Promise<ModelConfig | null> {
+    const results = await db.select().from(modelConfigs).where(eq(modelConfigs.id, id)).limit(1)
+    return (results[0] as ModelConfig) || null
   },
 
   /**

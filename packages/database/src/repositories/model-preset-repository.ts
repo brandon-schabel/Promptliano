@@ -14,7 +14,7 @@ export const modelPresetRepository = {
    * Get all presets with their associated configurations
    */
   async getAllWithConfigs(): Promise<(ModelPreset & { config: ModelConfig })[]> {
-    return await db
+    const results = await db
       .select({
         preset: modelPresets,
         config: modelConfigs
@@ -23,29 +23,31 @@ export const modelPresetRepository = {
       .innerJoin(modelConfigs, eq(modelPresets.configId, modelConfigs.id))
       .where(eq(modelPresets.isActive, true))
       .orderBy(desc(modelPresets.usageCount), modelPresets.name)
-      .then((results) => results.map((r) => ({ ...r.preset, config: r.config })))
+    return results.map((r) => ({ ...(r.preset as ModelPreset), config: r.config as ModelConfig }))
   },
 
   /**
    * Get presets by category
    */
   async getByCategory(category: string): Promise<ModelPreset[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelPresets)
-      .where(and(eq(modelPresets.category, category), eq(modelPresets.isActive, true)))
+      .where(and(eq(modelPresets.category, category as any), eq(modelPresets.isActive, true)))
       .orderBy(desc(modelPresets.usageCount), modelPresets.name)
+    return results as ModelPreset[]
   },
 
   /**
    * Get system presets
    */
   async getSystemPresets(): Promise<ModelPreset[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelPresets)
       .where(and(eq(modelPresets.isSystemPreset, true), eq(modelPresets.isActive, true)))
       .orderBy(modelPresets.name)
+    return results as ModelPreset[]
   },
 
   /**
@@ -53,43 +55,47 @@ export const modelPresetRepository = {
    */
   async getUserPresets(userId?: number): Promise<ModelPreset[]> {
     if (userId) {
-      return await db
+      const results = await db
         .select()
         .from(modelPresets)
         .where(and(eq(modelPresets.userId, userId), eq(modelPresets.isActive, true)))
         .orderBy(desc(modelPresets.usageCount), modelPresets.name)
+      return results as ModelPreset[]
     }
 
     // Get all non-system presets when no userId provided
-    return await db
+    const results = await db
       .select()
       .from(modelPresets)
       .where(and(eq(modelPresets.isSystemPreset, false), eq(modelPresets.isActive, true)))
       .orderBy(desc(modelPresets.usageCount), modelPresets.name)
+    return results as ModelPreset[]
   },
 
   /**
    * Get most used presets
    */
   async getMostUsed(limit = 5): Promise<ModelPreset[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelPresets)
       .where(eq(modelPresets.isActive, true))
       .orderBy(desc(modelPresets.usageCount))
       .limit(limit)
+    return results as ModelPreset[]
   },
 
   /**
    * Get recently used presets
    */
   async getRecentlyUsed(limit = 5): Promise<ModelPreset[]> {
-    return await db
+    const results = await db
       .select()
       .from(modelPresets)
       .where(and(eq(modelPresets.isActive, true)))
       .orderBy(desc(modelPresets.lastUsedAt))
       .limit(limit)
+    return results as ModelPreset[]
   },
 
   /**
@@ -107,8 +113,8 @@ export const modelPresetRepository = {
       .limit(1)
 
     if (results.length === 0) return null
-    const { preset, config } = results[0]
-    return { ...preset, config }
+    const result = results[0]
+    return { ...(result.preset as ModelPreset), config: result.config as ModelConfig }
   },
 
   /**
@@ -125,7 +131,7 @@ export const modelPresetRepository = {
       })
       .returning()
 
-    return result[0]
+    return result[0] as ModelPreset
   },
 
   /**
@@ -141,7 +147,7 @@ export const modelPresetRepository = {
       .where(eq(modelPresets.id, id))
       .returning()
 
-    return result[0] || null
+    return (result[0] as ModelPreset) || null
   },
 
   /**
@@ -152,13 +158,13 @@ export const modelPresetRepository = {
     const result = await db
       .update(modelPresets)
       .set({
-        usageCount: modelPresets.usageCount + 1,
+        usageCount: (modelPresets.usageCount as any) + 1,
         lastUsedAt: now,
         updatedAt: now
       })
       .where(eq(modelPresets.id, id))
 
-    return result.changes > 0
+    return (result as any).changes > 0
   },
 
   /**
@@ -170,7 +176,7 @@ export const modelPresetRepository = {
       .set({ isActive: false, updatedAt: Date.now() })
       .where(eq(modelPresets.id, id))
 
-    return result.changes > 0
+    return (result as any).changes > 0
   },
 
   /**
@@ -178,7 +184,15 @@ export const modelPresetRepository = {
    */
   async hardDelete(id: number): Promise<boolean> {
     const result = await db.delete(modelPresets).where(eq(modelPresets.id, id))
-    return result.changes > 0
+    return (result as any).changes > 0
+  },
+
+  /**
+   * Get by ID
+   */
+  async getById(id: number): Promise<ModelPreset | null> {
+    const results = await db.select().from(modelPresets).where(eq(modelPresets.id, id)).limit(1)
+    return (results[0] as ModelPreset) || null
   },
 
   /**

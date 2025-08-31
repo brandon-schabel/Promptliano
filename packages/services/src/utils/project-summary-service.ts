@@ -16,7 +16,6 @@ import type {
 import type { File as ProjectFile } from '@promptliano/database'
 import { getProjectFiles } from '../project-service'
 import { generateSingleText } from '../gen-ai-services'
-import { LOW_MODEL_CONFIG } from '@promptliano/config'
 import { sortFilesByImportance, getTopImportantFiles, filterByImportance } from './file-importance-scorer'
 
 // Convert database File to legacy ProjectFile for compatibility

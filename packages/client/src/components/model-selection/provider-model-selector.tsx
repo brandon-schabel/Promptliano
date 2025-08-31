@@ -33,6 +33,7 @@ export interface ProviderModelSelectorProps {
   modelClassName?: string
   filterProviders?: APIProviders[]
   filterModels?: (model: ValidatedModelData) => boolean
+  showProviderSelect?: boolean // Optional prop to show/hide provider select
 }
 
 export function ProviderModelSelector({

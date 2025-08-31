@@ -160,6 +160,7 @@ export {
 export * from './src/project-statistics-service'
 export * from './src/provider-key-service'
 export * from './src/model-config-service'
+export * from './src/intelligence-model-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
 
@@ -274,6 +275,7 @@ export * from './src/utils/error-handlers'
 export * from './src/utils/bulk-operations'
 export * from './src/core/base-service'
 export * from './src/utils/logger'
+export * from './src/utils/model-usage-logger'
 
 // server side utils
 export * from './src/utils/project-summary-service'

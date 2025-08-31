@@ -3,7 +3,7 @@ import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/er
 import { createFileRelevanceService, type RelevanceScoreResult } from './file-relevance-service'
 import { CompactFileFormatter } from '../utils/compact-file-formatter'
 import { generateStructuredData } from '../gen-ai-services'
-import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG } from '@promptliano/config'
+import { modelConfigService } from '../model-config-service'
 import type { ModelOptionsWithProvider } from '@promptliano/config'
 import { z } from 'zod'
 import { getProjectFiles } from '../project-service'
@@ -222,9 +222,10 @@ Select the ${maxResults} most relevant file IDs from the above list.`
           fileIds: z.array(z.string()).max(maxResults)
         })
 
-        const modelConfig: ModelOptionsWithProvider = config.aiModel === 'high' 
-          ? HIGH_MODEL_CONFIG 
-          : MEDIUM_MODEL_CONFIG
+        // Get dynamic preset config based on AI model setting
+        const modelConfig: ModelOptionsWithProvider = await modelConfigService.getPresetConfig(
+          config.aiModel === 'high' ? 'high' : 'medium'
+        )
 
         const result = await generateStructuredData({
           prompt: userPrompt,

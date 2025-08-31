@@ -7,7 +7,7 @@ import { app } from './src/app'
 import { listProjects, createLogger } from '@promptliano/services'
 import { getServerConfig } from '@promptliano/config'
 import { watchersManager, createCleanupService } from '@promptliano/services'
-import { runMigrations } from '@promptliano/database'
+import { runMigrations, initializeModelConfigs } from '@promptliano/database'
 
 interface WebSocketData {
   clientId: string
@@ -43,9 +43,12 @@ export async function instantiateServer({
   try {
     await runMigrations()
     logger.info('Database migrations completed')
+    
+    // Initialize model presets
+    await initializeModelConfigs()
+    logger.info('Model presets initialized')
   } catch (error) {
     logger.error('Database migration failed during server startup', error)
-    throw error
   }
   const server = serve({
     // idleTimeout of 255 seconds (4.25 minutes) to support long-running operations
@@ -111,23 +114,23 @@ export async function instantiateServer({
     // }
   })
 
-  // Start watchers for existing projects
-  ;(async () => {
-    logger.info('Starting project watchers...')
-    try {
-      const allProjects = await listProjects()
-      logger.info(`Found ${allProjects.length} projects to watch`)
-      for (const project of allProjects) {
-        // TODO: this seems to slow down server startup sometimes, so this this should be done async/in a different process
-        watchersManager.startWatchingProject(project, ['node_modules', 'dist', '.git', '*.tmp', '*.db-journal'])
+    // Start watchers for existing projects
+    ; (async () => {
+      logger.info('Starting project watchers...')
+      try {
+        const allProjects = await listProjects()
+        logger.info(`Found ${allProjects.length} projects to watch`)
+        for (const project of allProjects) {
+          // TODO: this seems to slow down server startup sometimes, so this this should be done async/in a different process
+          watchersManager.startWatchingProject(project, ['node_modules', 'dist', '.git', '*.tmp', '*.db-journal'])
+        }
+        logger.info('Project watchers started')
+      } catch (error) {
+        logger.error('Error starting project watchers', error)
       }
-      logger.info('Project watchers started')
-    } catch (error) {
-      logger.error('Error starting project watchers', error)
-    }
 
-    cleanupService.start()
-  })()
+      cleanupService.start()
+    })()
 
   logger.info(`Server running at http://${serverConfig.host}:${server.port}`)
   logger.info(`Server swagger at http://${serverConfig.host}:${server.port}/swagger`)
@@ -155,7 +158,7 @@ function serveStatic(path: string): Response {
 }
 
 if (import.meta.main) {
-  ;(async () => {
+  ; (async () => {
     // Parse command line arguments
     const args = process.argv.slice(2)
 

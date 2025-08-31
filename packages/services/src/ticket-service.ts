@@ -38,7 +38,7 @@ import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
 import { suggestFiles as aiSuggestFiles } from './file-services/file-suggestion-strategy-service'
 import { getProjectSummaryWithOptions, getCompactProjectSummary } from './utils/project-summary-service'
-import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG, PLANNING_MODEL_CONFIG } from '@promptliano/config'
+import { modelConfigService } from './model-config-service'
 
 // Use transformed types for service returns
 type Ticket = z.infer<typeof TicketSchema>
@@ -645,7 +645,15 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     // Ask the model for structured task suggestions with provider/model fallbacks
     let suggestions: z.infer<typeof TaskSuggestionListSchema>['tasks'] = []
     const promptCombined = promptParts.join('\n')
-    const modelFallbacks = [PLANNING_MODEL_CONFIG, HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG]
+    
+    // Get dynamic model configs with fallback order
+    const modelFallbacks = await Promise.all([
+      modelConfigService.getPresetConfig('planning'),
+      modelConfigService.getPresetConfig('high'),
+      modelConfigService.getPresetConfig('medium'),
+      modelConfigService.getPresetConfig('low')
+    ])
+    
     let lastError: any = null
     for (const modelOptions of modelFallbacks) {
       try {

@@ -63,7 +63,9 @@ import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGetModels } from '@/hooks/generated'
 import {
   ProviderModelSelector,
-  ModelSettingsPopover as ReusableModelSettingsPopover
+  ModelSettingsPopover as ReusableModelSettingsPopover,
+  PresetSelector,
+  type ModelPreset
 } from '@/components/model-selection'
 import { AIErrorDisplay } from '@/components/errors'
 
@@ -907,8 +909,10 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 }
 
 export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+  const navigate = useNavigate()
   const [activeChatId] = useActiveChatId()
   const { data: chatsData } = useGetChats()
+  const { settings: modelSettings, setTemperature, setMaxTokens, setTopP, setFreqPenalty, setPresPenalty } = useChatModelParams()
 
   const activeChat = useMemo(() => chatsData?.find((c: Chat) => c.id === activeChatId), [chatsData, activeChatId])
 
@@ -938,10 +942,35 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
         )}
       </div>
 
-      {/* Right: Model Settings or Placeholder */}
-      <div className='flex-shrink-0 w-8'>
-        {/* Ensure right side takes up same space as left button */}
-        {activeChatId && <ModelSettingsPopover />}
+      {/* Right: Model Settings and Config Switcher */}
+      <div className='flex-shrink-0 flex items-center gap-1'>
+        {activeChatId && (
+          <>
+            <PresetSelector
+              value={'medium' as ModelPreset} // TODO: Store and retrieve preset from state
+              onChange={async (preset) => {
+                // Apply preset configuration
+                const presetConfigs = {
+                  low: { temperature: 0.7, maxTokens: 32000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
+                  medium: { temperature: 0.7, maxTokens: 25000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
+                  high: { temperature: 0.7, maxTokens: 200000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
+                  planning: { temperature: 0.7, maxTokens: 200000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 }
+                }
+                const config = presetConfigs[preset]
+                if (config) {
+                  setTemperature(config.temperature)
+                  setMaxTokens(config.maxTokens)
+                  setTopP(config.topP)
+                  setFreqPenalty(config.frequencyPenalty)
+                  setPresPenalty(config.presencePenalty)
+                }
+              }}
+              className='w-40'
+              compact
+            />
+            <ModelSettingsPopover />
+          </>
+        )}
       </div>
     </div>
   )
