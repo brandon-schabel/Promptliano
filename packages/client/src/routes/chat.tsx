@@ -1,7 +1,8 @@
 import { ChangeEvent, KeyboardEvent, ClipboardEvent, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { z } from 'zod'
+import { zodValidator } from '@tanstack/zod-adapter'
+import { chatSearchSchema } from '@/lib/search-schemas'
 import { persistListParams } from '@/lib/router/search-middleware'
 import {
   MessageSquareIcon,
@@ -57,7 +58,7 @@ import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { useDebounceCallback } from '@/hooks/utility-hooks/use-debounce'
 import { PROVIDER_SELECT_OPTIONS } from '@/constants/providers-constants'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useActiveChatId, useSelectSetting, useProjectTabField, useAppSettings } from '@/hooks/use-kv-local-storage'
+import { useSelectSetting, useProjectTabField, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGetModels } from '@/hooks/generated'
@@ -681,7 +682,8 @@ export function ChatMessages({
 
 export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const navigate = useNavigate()
-  const [activeChatId, setActiveChatId] = useActiveChatId()
+  const search = Route.useSearch()
+  const activeChatId = search.chatId ?? null
   const [editingChatId, setEditingChatId] = useState<number | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [visibleCount, setVisibleCount] = useState(50)
@@ -710,7 +712,11 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       })
       const newChatId = newChat?.id
       if (newChatId) {
-        setActiveChatId(newChatId)
+        navigate({
+          to: '/chat',
+          search: { ...search, chatId: newChatId },
+          replace: true
+        })
         toast.success('New chat created')
         setEditingTitle('')
         setEditingChatId(null)
@@ -722,7 +728,7 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       console.error('Error creating chat:', error)
       toast.error('Failed to create chat')
     }
-  }, [createChatMutation, setActiveChatId, onClose])
+  }, [createChatMutation, navigate, search, onClose])
 
   const handleDeleteChat = useCallback(
     async (chatId: number, e: React.MouseEvent) => {
@@ -732,7 +738,12 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         await deleteChatMutation.mutateAsync(chatId)
         toast.success('Chat deleted')
         if (activeChatId === chatId) {
-          setActiveChatId(null)
+          // Clear chatId from URL when deleting the active chat
+          navigate({
+            to: '/chat',
+            search: { ...search, chatId: undefined },
+            replace: true
+          })
         }
         if (editingChatId === chatId) {
           setEditingChatId(null)
@@ -743,7 +754,7 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         toast.error('Failed to delete chat')
       }
     },
-    [deleteChatMutation, activeChatId, setActiveChatId, editingChatId]
+    [deleteChatMutation, activeChatId, navigate, search, editingChatId]
   )
 
   const startEditingChat = useCallback((chat: Chat, e: React.MouseEvent) => {
@@ -781,13 +792,12 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const handleSelectChat = useCallback(
     (chatId: number) => {
       if (!editingChatId) {
-        setActiveChatId(chatId)
-        // Reflect selection in URL search params
-        navigate({ to: '/chat', search: { chatId } })
+        // Navigate to chat with URL search param as single source of truth
+        navigate({ to: '/chat', search: { ...search, chatId }, replace: true })
         onClose()
       }
     },
-    [setActiveChatId, editingChatId, onClose, navigate]
+    [navigate, search, editingChatId, onClose]
   )
 
   useEffect(() => {
@@ -911,7 +921,8 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 
 export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const navigate = useNavigate()
-  const [activeChatId] = useActiveChatId()
+  const search = Route.useSearch()
+  const activeChatId = search.chatId ?? null
   const { data: chatsData } = useGetChats()
   const { 
     settings: modelSettings, 
@@ -974,14 +985,9 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   )
 }
 
-const chatSearchSchema = z.object({
-  chatId: z.coerce.number().optional().catch(undefined),
-  prefill: z.boolean().optional().default(false).catch(false),
-  projectId: z.coerce.number().optional().catch(undefined)
-})
 
 export const Route = createFileRoute('/chat')({
-  validateSearch: chatSearchSchema,
+  validateSearch: zodValidator(chatSearchSchema),
   component: ChatPage
 })
 
@@ -990,7 +996,8 @@ function ChatPage() {
   const search = Route.useSearch()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const [activeChatId, setActiveChatId] = useActiveChatId()
+  // Use URL search param as single source of truth for active chat ID
+  const activeChatId = search.chatId ?? null
   const { settings: modelSettings, setModel } = useChatModelParams()
   const provider = modelSettings.provider ?? 'openrouter'
   const model = modelSettings.model
@@ -1071,14 +1078,6 @@ function ChatPage() {
 
   const toggleSidebar = useCallback(() => setIsSidebarOpen((prev) => !prev), [])
 
-  // Sync URL search param -> active chat selection (one-way authority: URL)
-  useEffect(() => {
-    const urlChatId = Number(search?.chatId)
-    if (Number.isFinite(urlChatId) && urlChatId > 0 && urlChatId !== activeChatId) {
-      // Update KV state to match URL
-      setActiveChatId(urlChatId)
-    }
-  }, [search?.chatId, activeChatId, setActiveChatId])
 
   useEffect(() => {
     if (
