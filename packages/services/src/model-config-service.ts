@@ -339,7 +339,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
 
         // Validate name uniqueness
         if (await presetRepository.nameExists(data.name)) {
-          throw ErrorFactory.alreadyExists('Preset name already exists', { name: data.name })
+          throw ErrorFactory.alreadyExists('Preset', 'name', data.name)
         }
 
         const preset = await presetRepository.create(data)
@@ -365,7 +365,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         // Validate name uniqueness if changing
         if (data.name && data.name !== existing.name) {
           if (await presetRepository.nameExists(data.name, id)) {
-            throw ErrorFactory.alreadyExists('Preset name already exists', { name: data.name })
+            throw ErrorFactory.alreadyExists('Preset', 'name', data.name)
           }
         }
 
@@ -504,7 +504,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         logger.info('Initialized system default configurations')
       } catch (error) {
         logger.error('Failed to initialize system defaults', { error })
-        throw ErrorFactory.service.operationFailed('Failed to initialize system defaults')
+        throw ErrorFactory.operationFailed('initializeSystemDefaults', 'Failed to initialize system defaults')
       }
     },
 
@@ -556,7 +556,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         return { configs, presets }
       } catch (error) {
         logger.error('Failed to export configurations', { error })
-        throw ErrorFactory.service.operationFailed('Failed to export configurations')
+        throw ErrorFactory.operationFailed('exportConfigurations', 'Failed to export configurations')
       }
     },
 
@@ -596,7 +596,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         return { configsImported, presetsImported }
       } catch (error) {
         logger.error('Failed to import configurations', { error })
-        throw ErrorFactory.service.operationFailed('Failed to import configurations')
+        throw ErrorFactory.operationFailed('importConfigurations', 'Failed to import configurations')
       }
     }
   }

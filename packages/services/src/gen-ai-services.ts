@@ -723,7 +723,7 @@ export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeD
       }
     : options
 
-  const model = finalOptions.model
+  const model = finalOptions.model || 'default'
 
   if (!prompt) {
     throw ErrorFactory.missingRequired('prompt', 'generateStructuredData')

@@ -5,6 +5,7 @@ import { CompactFileFormatter } from '../utils/compact-file-formatter'
 import { generateStructuredData } from '../gen-ai-services'
 import { modelConfigService } from '../model-config-service'
 import type { ModelOptionsWithProvider } from '@promptliano/config'
+import { nullToUndefined } from '../utils/file-utils'
 import { z } from 'zod'
 import { getProjectFiles } from '../project-service'
 import { createFileService, createFileCache, type FileServiceConfig } from './file-service-factory'
@@ -223,9 +224,21 @@ Select the ${maxResults} most relevant file IDs from the above list.`
         })
 
         // Get dynamic preset config based on AI model setting
-        const modelConfig: ModelOptionsWithProvider = await modelConfigService.getPresetConfig(
+        const presetConfig = await modelConfigService.getPresetConfig(
           config.aiModel === 'high' ? 'high' : 'medium'
         )
+        
+        // Convert ModelConfig (with null values) to ModelOptionsWithProvider (with undefined values)
+        const modelConfig: ModelOptionsWithProvider = {
+          provider: presetConfig.provider as ModelOptionsWithProvider['provider'],
+          model: presetConfig.model,
+          frequencyPenalty: nullToUndefined(presetConfig.frequencyPenalty),
+          presencePenalty: nullToUndefined(presetConfig.presencePenalty),
+          maxTokens: nullToUndefined(presetConfig.maxTokens),
+          temperature: nullToUndefined(presetConfig.temperature),
+          topP: nullToUndefined(presetConfig.topP),
+          topK: nullToUndefined(presetConfig.topK)
+        }
 
         const result = await generateStructuredData({
           prompt: userPrompt,
