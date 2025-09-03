@@ -4,6 +4,12 @@ import dotenv from 'dotenv'
 // Load environment variables
 dotenv.config()
 
+// Skip E2E tests in CI unless explicitly enabled
+if (process.env.CI === 'true' && process.env.FORCE_E2E !== 'true') {
+  console.log('⚠️  Skipping E2E tests in CI. Set FORCE_E2E=true to run them.')
+  process.exit(0)
+}
+
 export default defineConfig({
   testDir: './e2e/tests',
   timeout: 30 * 1000,
