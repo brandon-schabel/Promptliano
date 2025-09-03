@@ -79,9 +79,37 @@ export function createProviderKeyService() {
     return `${key.substring(0, 4)}${'*'.repeat(Math.min(key.length - 8, 20))}${key.substring(key.length - 4)}`
   }
 
-  // Get the actual key value (plain text only)
+  /**
+   * Get the actual key value - either direct or from environment variable
+   * @param keyData The provider key data
+   * @returns The actual API key value
+   */
   function getKeyValue(keyData: any): string | null {
-    return keyData.key || null
+    // If direct key is stored, return it
+    if (keyData.key) {
+      return keyData.key
+    }
+    
+    // If secretRef is provided, look up environment variable
+    if (keyData.secretRef) {
+      const envValue = process.env[keyData.secretRef]
+      if (!envValue) {
+        logger.warn(`Environment variable '${keyData.secretRef}' not found for provider ${keyData.provider}`)
+        return null
+      }
+      return envValue
+    }
+    
+    return null
+  }
+  
+  /**
+   * Get storage method indicator for a key
+   */
+  function getStorageMethod(keyData: any): 'direct' | 'env' | null {
+    if (keyData.key) return 'direct'
+    if (keyData.secretRef) return 'env'
+    return null
   }
 
   /**
@@ -135,12 +163,13 @@ export function createProviderKeyService() {
           }
         }
 
-        // Store plain text key
+        // Store plain text key or environment variable reference
         const newKeyData = {
           name: data.name || null,
           provider: canonicalizeProviderId(data.provider),
           keyName: data.keyName || data.name || 'default', // Backward compatibility
           key: (data as any).key || null, // Plain text key
+          secretRef: (data as any).secretRef || null, // Environment variable reference
           baseUrl: data.baseUrl || null,
           customHeaders: data.customHeaders || {},
           isDefault: data.isDefault ?? false,
@@ -173,8 +202,17 @@ export function createProviderKeyService() {
         const transformedKeys = transformProviderKeys(allKeys)
 
         const keyList = transformedKeys.map((key) => {
+          const storageMethod = getStorageMethod(key)
           const actualKey = getKeyValue(key)
-          return { ...key, key: actualKey ? maskApiKey(actualKey) : null }
+          
+          // Add storage method and handle display appropriately
+          return { 
+            ...key, 
+            key: actualKey ? maskApiKey(actualKey) : null,
+            storageMethod,
+            // Show environment variable name if using env storage
+            displayValue: storageMethod === 'env' ? `ENV: ${key.secretRef}` : (actualKey ? maskApiKey(actualKey) : null)
+          }
         })
 
         // Sort by provider, then by createdAt descending

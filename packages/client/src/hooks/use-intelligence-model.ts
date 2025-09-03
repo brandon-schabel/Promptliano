@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { promptlianoClient } from '@/lib/api-client'
+import { useApiClient } from '@/hooks/api/use-api-client'
 import type { IntelligenceLevel } from '@promptliano/services'
 
 export interface UseIntelligenceModelOptions {
@@ -69,19 +69,23 @@ export function useIntelligenceModel(options: UseIntelligenceModelOptions = {}) 
 
   const [selectedLevel, setSelectedLevel] = useState<IntelligenceLevel>(defaultLevel)
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(true)
+  
+  const client = useApiClient()
 
   // Fetch model configurations from server
   const { data: modelConfigs, isLoading } = useQuery({
     queryKey: ['model-configs', 'intelligence'],
     queryFn: async () => {
+      if (!client) return []
       try {
-        const response = await promptlianoClient.modelConfigs.list()
+        const response = await client.modelConfigs.list()
         return response.data.filter((config: any) => config.name?.includes('intelligence'))
       } catch (error) {
         console.error('Failed to fetch model configs:', error)
         return []
       }
     },
+    enabled: !!client,
     staleTime: 5 * 60 * 1000 // Cache for 5 minutes
   })
 

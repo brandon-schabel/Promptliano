@@ -68,6 +68,7 @@ import {
   type ModelPreset
 } from '@/components/model-selection'
 import { AIErrorDisplay } from '@/components/errors'
+import { useModelConfigPresets } from '@/hooks/use-model-presets'
 
 export function ModelSettingsPopover() {
   const {
@@ -912,7 +913,17 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   const navigate = useNavigate()
   const [activeChatId] = useActiveChatId()
   const { data: chatsData } = useGetChats()
-  const { settings: modelSettings, setTemperature, setMaxTokens, setTopP, setFreqPenalty, setPresPenalty } = useChatModelParams()
+  const { 
+    settings: modelSettings, 
+    setTemperature, 
+    setMaxTokens, 
+    setTopP, 
+    setFreqPenalty, 
+    setPresPenalty,
+    setPreset,
+    selectedPreset
+  } = useChatModelParams()
+  const { defaultPreset } = useModelConfigPresets()
 
   const activeChat = useMemo(() => chatsData?.find((c: Chat) => c.id === activeChatId), [chatsData, activeChatId])
 
@@ -947,23 +958,10 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
         {activeChatId && (
           <>
             <PresetSelector
-              value={'medium' as ModelPreset} // TODO: Store and retrieve preset from state
-              onChange={async (preset) => {
-                // Apply preset configuration
-                const presetConfigs = {
-                  low: { temperature: 0.7, maxTokens: 32000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
-                  medium: { temperature: 0.7, maxTokens: 25000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
-                  high: { temperature: 0.7, maxTokens: 200000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 },
-                  planning: { temperature: 0.7, maxTokens: 200000, topP: 0, frequencyPenalty: 0, presencePenalty: 0 }
-                }
-                const config = presetConfigs[preset]
-                if (config) {
-                  setTemperature(config.temperature)
-                  setMaxTokens(config.maxTokens)
-                  setTopP(config.topP)
-                  setFreqPenalty(config.frequencyPenalty)
-                  setPresPenalty(config.presencePenalty)
-                }
+              value={selectedPreset || defaultPreset}
+              onChange={(preset) => {
+                // Apply all preset settings from backend
+                setPreset(preset)
               }}
               className='w-40'
               compact

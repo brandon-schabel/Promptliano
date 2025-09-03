@@ -1,15 +1,24 @@
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { AiSdkOptions } from '@promptliano/schemas'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect } from 'react'
 import { APIProviders } from '@promptliano/database'
 import { modelsTempNotAllowed } from '@promptliano/schemas'
+import { useModelConfigPresets, type PresetCategory } from '@/hooks/use-model-presets'
 
 type ModelParamMutationFn = (value: number) => void
 
 export function useChatModelParams() {
   const [settings, updateSettings] = useAppSettings()
+  const { presets, getPresetConfig, defaultPreset } = useModelConfigPresets()
 
-  const { temperature, maxTokens, topP, frequencyPenalty, presencePenalty, model, provider } = settings
+  const { temperature, maxTokens, topP, frequencyPenalty, presencePenalty, model, provider, selectedPreset } = settings
+
+  // Initialize preset if not set
+  useEffect(() => {
+    if (!selectedPreset && defaultPreset && presets) {
+      updateSettings({ selectedPreset: defaultPreset })
+    }
+  }, [selectedPreset, defaultPreset, presets, updateSettings])
 
   const isTempDisabled = useMemo(() => {
     if (!model) return false
@@ -66,6 +75,26 @@ export function useChatModelParams() {
     [updateSettings]
   )
 
+  const setPreset = useCallback(
+    (preset: PresetCategory) => {
+      const presetConfig = getPresetConfig(preset)
+      if (presetConfig) {
+        // Apply all settings from the preset
+        updateSettings({
+          selectedPreset: preset,
+          provider: presetConfig.provider as APIProviders,
+          model: presetConfig.model,
+          temperature: presetConfig.temperature ?? 0.7,
+          maxTokens: presetConfig.maxTokens ?? 10000,
+          topP: presetConfig.topP ?? 1.0,
+          frequencyPenalty: presetConfig.frequencyPenalty ?? 0,
+          presencePenalty: presetConfig.presencePenalty ?? 0
+        })
+      }
+    },
+    [getPresetConfig, updateSettings]
+  )
+
   const modelSettings: AiSdkOptions = useMemo(
     () => ({
       temperature: temperature ?? 0.7,
@@ -90,6 +119,8 @@ export function useChatModelParams() {
     setPresPenalty,
     isTempDisabled,
     setModel,
-    setProvider
+    setProvider,
+    setPreset,
+    selectedPreset: selectedPreset as PresetCategory | undefined
   }
 }

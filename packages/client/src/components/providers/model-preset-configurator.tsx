@@ -4,8 +4,8 @@ import { Button } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { Alert, AlertDescription } from '@promptliano/ui'
-// Tabs not used in this simplified implementation
-import { Loader2, Save, RotateCcw, Settings, Zap, Gauge, Rocket, Brain, AlertCircle } from 'lucide-react'
+import { Loader2, Save, RotateCcw, Settings, AlertCircle } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { ModelParameterEditor } from '@/components/model-selection/model-parameter-editor'
 import { ProviderModelSelector } from '@/components/model-selection'
 import { useModelConfigs, useUpdateModelConfig } from '@/hooks/generated/model-config-hooks'
@@ -13,82 +13,48 @@ import { toast } from 'sonner'
 import type { ModelConfig, APIProviders } from '@promptliano/database'
 import { Label } from '@promptliano/ui'
 
-type PresetName = 'low' | 'medium' | 'high' | 'planning'
-
-const PRESET_INFO: Record<PresetName, {
-  label: string
-  icon: React.ElementType
-  color: string
-  description: string
-  defaultProvider: APIProviders
-}> = {
-  low: {
-    label: 'Low - Fast Local',
-    icon: Zap,
-    color: 'text-green-600',
-    description: 'Optimized for quick responses using local models',
-    defaultProvider: 'lmstudio'
-  },
-  medium: {
-    label: 'Medium - Balanced',
-    icon: Gauge,
-    color: 'text-blue-600',
-    description: 'Balance between speed and quality',
-    defaultProvider: 'openrouter'
-  },
-  high: {
-    label: 'High - Maximum Quality',
-    icon: Rocket,
-    color: 'text-purple-600',
-    description: 'Best quality for complex tasks',
-    defaultProvider: 'openrouter'
-  },
-  planning: {
-    label: 'Planning - Task Breakdown',
-    icon: Brain,
-    color: 'text-orange-600',
-    description: 'Optimized for planning and task analysis',
-    defaultProvider: 'openrouter'
-  }
-}
-
 export function ModelPresetConfigurator() {
-  const [activePreset, setActivePreset] = useState<PresetName>('medium')
-  const [editedConfigs, setEditedConfigs] = useState<Record<string, Partial<ModelConfig>>>({})
+  const [activePresetId, setActivePresetId] = useState<number | null>(null)
+  const [editedConfigs, setEditedConfigs] = useState<Record<number, Partial<ModelConfig>>>({})
   const [hasChanges, setHasChanges] = useState(false)
 
   const { data: configs, isLoading, refetch } = useModelConfigs()
   const updateMutation = useUpdateModelConfig()
 
-  // Debug logging
-  console.log('ModelPresetConfigurator - configs:', configs)
-  console.log('ModelPresetConfigurator - isLoading:', isLoading)
+  // Filter to only system presets with preset categories
+  const systemPresets = useMemo(() => {
+    const presets = configs?.filter((c: any) => 
+      c.isSystemPreset && c.presetCategory && ['low', 'medium', 'high', 'planning'].includes(c.presetCategory)
+    ) || []
+    // Sort by uiOrder
+    return presets.sort((a: any, b: any) => (a.uiOrder || 0) - (b.uiOrder || 0))
+  }, [configs])
 
-  // Filter to only system presets
-  const systemPresets = configs?.filter((c: any) => 
-    c.isSystemPreset && ['low', 'medium', 'high', 'planning'].includes(c.name)
-  ) || []
+  // Set initial active preset when presets load
+  useEffect(() => {
+    if (systemPresets.length > 0 && !activePresetId) {
+      // Find the default preset or use the first one
+      const defaultPreset = systemPresets.find((p: any) => p.isDefault) || systemPresets[0]
+      setActivePresetId(defaultPreset.id)
+    }
+  }, [systemPresets, activePresetId])
 
-  console.log('ModelPresetConfigurator - systemPresets:', systemPresets)
-
-  // Get config for active preset
-  const activeConfig = systemPresets.find((c: any) => c.name === activePreset)
-  const editedConfig = editedConfigs[activePreset] || {}
+  // Get current active config
+  const activeConfig = systemPresets.find((c: any) => c.id === activePresetId)
+  const editedConfig = activePresetId ? editedConfigs[activePresetId] || {} : {}
   const currentConfig = activeConfig ? { ...activeConfig, ...editedConfig } : null
-  
-  console.log('ModelPresetConfigurator - currentConfig:', currentConfig)
 
   useEffect(() => {
     setHasChanges(Object.keys(editedConfigs).length > 0)
   }, [editedConfigs])
 
   const handleParameterChange = (params: any) => {
-    if (!currentConfig) return
+    if (!currentConfig || !activePresetId) return
     
     setEditedConfigs(prev => ({
       ...prev,
-      [activePreset]: {
-        ...prev[activePreset],
+      [activePresetId]: {
+        ...prev[activePresetId],
         temperature: params.temperature,
         maxTokens: params.maxTokens,
         topP: params.topP,
@@ -100,10 +66,11 @@ export function ModelPresetConfigurator() {
   }
 
   const handleProviderChange = (provider: APIProviders) => {
+    if (!activePresetId) return
     setEditedConfigs(prev => ({
       ...prev,
-      [activePreset]: {
-        ...prev[activePreset],
+      [activePresetId]: {
+        ...prev[activePresetId],
         provider,
         model: '' // Reset model when provider changes
       }
@@ -111,10 +78,11 @@ export function ModelPresetConfigurator() {
   }
 
   const handleModelChange = (model: string) => {
+    if (!activePresetId) return
     setEditedConfigs(prev => ({
       ...prev,
-      [activePreset]: {
-        ...prev[activePreset],
+      [activePresetId]: {
+        ...prev[activePresetId],
         model
       }
     }))
@@ -123,11 +91,11 @@ export function ModelPresetConfigurator() {
   const handleSave = async () => {
     try {
       // Save all edited configurations
-      const updates = Object.entries(editedConfigs).map(async ([presetName, changes]) => {
-        const config = systemPresets.find((c: any) => c.name === presetName)
-        if (config && Object.keys(changes).length > 0) {
+      const updates = Object.entries(editedConfigs).map(async ([presetId, changes]) => {
+        const id = Number(presetId)
+        if (!isNaN(id) && Object.keys(changes).length > 0) {
           await updateMutation.mutateAsync({
-            id: config.id,
+            id,
             data: changes
           })
         }
@@ -151,11 +119,19 @@ export function ModelPresetConfigurator() {
   }
 
   const handleResetPreset = () => {
+    if (!activePresetId) return
     setEditedConfigs(prev => {
       const updated = { ...prev }
-      delete updated[activePreset]
+      delete updated[activePresetId]
       return updated
     })
+  }
+
+  // Helper function to get icon component
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return Settings
+    // @ts-ignore - Dynamic icon lookup
+    return LucideIcons[iconName] || Settings
   }
 
   if (isLoading) {
@@ -177,7 +153,7 @@ export function ModelPresetConfigurator() {
     )
   }
 
-  const PresetIcon = PRESET_INFO[activePreset].icon
+  const PresetIcon = activeConfig ? getIconComponent(activeConfig.uiIcon) : Settings
 
   return (
     <div className='space-y-6'>
@@ -221,25 +197,25 @@ export function ModelPresetConfigurator() {
         </Alert>
       )}
 
-      {/* Preset Tabs - Simplified to debug infinite loop */}
+      {/* Preset Tabs - Dynamic from backend */}
       <div className='mb-6'>
         <div className='flex gap-2 p-1 bg-muted rounded-lg'>
-          {Object.entries(PRESET_INFO).map(([key, info]) => {
-            const Icon = info.icon
-            const hasEdits = !!editedConfigs[key]
+          {systemPresets.map((preset: any) => {
+            const Icon = getIconComponent(preset.uiIcon)
+            const hasEdits = !!editedConfigs[preset.id]
             return (
               <button
-                key={key}
+                key={preset.id}
                 type='button'
-                onClick={() => setActivePreset(key as PresetName)}
+                onClick={() => setActivePresetId(preset.id)}
                 className={`flex-1 px-3 py-2 rounded-md flex items-center justify-center gap-2 transition-colors ${
-                  activePreset === key 
+                  activePresetId === preset.id 
                     ? 'bg-background shadow-sm' 
                     : 'hover:bg-background/50'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${info.color}`} />
-                <span>{info.label.split(' - ')[0]}</span>
+                <Icon className={`h-4 w-4 ${preset.uiColor || 'text-muted-foreground'}`} />
+                <span>{preset.displayName?.split(' - ')[0] || preset.name}</span>
                 {hasEdits && (
                   <div className='h-2 w-2 bg-yellow-500 rounded-full' />
                 )}
@@ -251,22 +227,20 @@ export function ModelPresetConfigurator() {
 
       {/* Content */}
       <div>
-        {Object.entries(PRESET_INFO).map(([presetKey, presetInfo]) => {
-          if (activePreset !== presetKey) return null
-          return (
-          <div key={presetKey} className='space-y-6 mt-6'>
+        {currentConfig && (
+          <div className='space-y-6 mt-6'>
             {/* Preset Header */}
             <Card>
               <CardHeader>
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-3'>
-                    <PresetIcon className={`h-6 w-6 ${presetInfo.color}`} />
+                    <PresetIcon className={`h-6 w-6 ${currentConfig.uiColor || 'text-muted-foreground'}`} />
                     <div>
-                      <CardTitle>{presetInfo.label}</CardTitle>
-                      <CardDescription>{presetInfo.description}</CardDescription>
+                      <CardTitle>{currentConfig.displayName || currentConfig.name}</CardTitle>
+                      <CardDescription>{currentConfig.description || 'Configure this preset'}</CardDescription>
                     </div>
                   </div>
-                  {editedConfigs[presetKey] && (
+                  {activePresetId && editedConfigs[activePresetId] && (
                     <Button
                       variant='ghost'
                       size='sm'
@@ -352,8 +326,7 @@ export function ModelPresetConfigurator() {
               />
             </div>
           </div>
-          )
-        })}
+        )}
       </div>
     </div>
   )

@@ -1499,8 +1499,8 @@ export const modelConfigs = sqliteTable(
   'model_configs',
   {
     id: integer('id').primaryKey(),
-    name: text('name').notNull(), // e.g., 'low', 'medium', 'high', 'custom_1'
-    displayName: text('display_name'), // User-friendly name
+    name: text('name').notNull(), // e.g., 'low-intelligence', 'medium-intelligence', 'high-intelligence', 'custom_1'
+    displayName: text('display_name'), // User-friendly name like "Low - Fast Local"
     provider: text('provider').notNull(), // 'openai', 'anthropic', etc.
     model: text('model').notNull(), // Specific model identifier
     temperature: real('temperature').default(0.7),
@@ -1515,7 +1515,14 @@ export const modelConfigs = sqliteTable(
     isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     userId: integer('user_id'), // Optional: for user-specific configs
-    description: text('description'),
+    description: text('description'), // Description like "Optimized for quick responses using local models"
+    
+    // UI metadata for preset display
+    presetCategory: text('preset_category', { enum: ['low', 'medium', 'high', 'planning', 'custom'] }), // Category for UI grouping
+    uiIcon: text('ui_icon'), // Icon name for UI display (e.g., 'Zap', 'Gauge', 'Rocket', 'Brain')
+    uiColor: text('ui_color'), // Color class for UI (e.g., 'text-green-600', 'text-blue-600')
+    uiOrder: integer('ui_order').default(0), // Display order in UI
+    
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull()
   },

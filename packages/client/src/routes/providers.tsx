@@ -44,7 +44,9 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
-  ScrollArea
+  ScrollArea,
+  RadioGroup,
+  RadioGroupItem
 } from '@promptliano/ui'
 import {
   Activity,
@@ -120,9 +122,24 @@ import { useAppSettings } from '@/hooks/use-kv-local-storage'
 const providerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   provider: z.string().min(1, 'Provider is required'),
-  secretRef: z.string().min(1, 'Secret reference is required'),
+  storageMethod: z.enum(['direct', 'env']).default('direct'),
+  key: z.string().optional(),
+  secretRef: z.string().optional(),
   isDefault: z.boolean().default(false)
-})
+}).refine(
+  (data) => {
+    // Validate that either key or secretRef is provided based on storage method
+    if (data.storageMethod === 'direct') {
+      return data.key && data.key.length > 0
+    } else {
+      return data.secretRef && data.secretRef.length > 0
+    }
+  },
+  {
+    message: 'API key or environment variable is required',
+    path: ['key'] // Show error on key field
+  }
+)
 
 type ProviderFormValues = z.infer<typeof providerFormSchema>
 
@@ -135,6 +152,7 @@ function ProvidersPage() {
   const [deletingProvider, setDeletingProvider] = useState<ProviderKey | null>(null)
   const [testingProvider, setTestingProvider] = useState<ProviderKey | null>(null)
   const [testingProviders, setTestingProviders] = useState<Set<number>>(new Set())
+  const [storageMethod, setStorageMethod] = useState<'direct' | 'env'>('direct')
   // Encryption key configuration removed
 
   // API Hooks
@@ -317,12 +335,22 @@ function ProvidersPage() {
         // await updateMutation.mutateAsync({ keyId: editingProvider.id, ...values })
         console.log('Provider update not implemented yet')
       } else {
-        await createMutation.mutateAsync({
+        // Prepare the data based on storage method
+        const createData: any = {
           provider: values.provider,
           keyName: values.name,
-          secretRef: values.secretRef,
+          name: values.name,
           isDefault: values.isDefault
-        })
+        }
+
+        // Add either key or secretRef based on storage method
+        if (values.storageMethod === 'direct') {
+          createData.key = values.key
+        } else {
+          createData.secretRef = values.secretRef
+        }
+
+        await createMutation.mutateAsync(createData)
       }
       setIsAddDialogOpen(false)
       setEditingProvider(null)
@@ -627,20 +655,84 @@ function ProvidersPage() {
                     )}
                   />
 
+                  {/* Storage Method Selection */}
                   <FormField
                     control={form.control}
-                    name='secretRef'
+                    name='storageMethod'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Secret Reference</FormLabel>
+                        <FormLabel>Storage Method</FormLabel>
                         <FormControl>
-                          <Input placeholder='OPENAI_API_KEY' {...field} />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-row space-x-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="direct" id="direct" />
+                              <Label htmlFor="direct" className="font-normal cursor-pointer">
+                                Direct API Key
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="env" id="env" />
+                              <Label htmlFor="env" className="font-normal cursor-pointer">
+                                Environment Variable
+                              </Label>
+                            </div>
+                          </RadioGroup>
                         </FormControl>
-                        <FormDescription>Name of the environment secret that contains the API key</FormDescription>
+                        <FormDescription>
+                          Choose how to store the API key - directly or via environment variable
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Conditional Fields based on Storage Method */}
+                  {form.watch('storageMethod') === 'direct' ? (
+                    <FormField
+                      control={form.control}
+                      name='key'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API Key</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password"
+                              placeholder='sk-...' 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The actual API key will be stored securely in the database
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name='secretRef'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Environment Variable Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder='OPENAI_API_KEY' 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Name of the environment variable containing the API key (without $ prefix)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
