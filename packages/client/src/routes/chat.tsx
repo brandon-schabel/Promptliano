@@ -16,7 +16,8 @@ import {
   GitFork,
   Trash,
   SendIcon,
-  MessageSquareText
+  MessageSquareText,
+  Search
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Message } from '@ai-sdk/react'
@@ -36,6 +37,7 @@ import type { Chat, ChatMessage } from '@promptliano/database'
 import { cn } from '@/lib/utils'
 import {
   ScrollArea,
+  Badge,
   Select,
   SelectContent,
   SelectItem,
@@ -52,6 +54,7 @@ import {
   Label,
   Slider
 } from '@promptliano/ui'
+import { ChatCard } from '@/components/chat/chat-card'
 import { MarkdownRenderer } from '@promptliano/ui'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import type { APIProviders, AiSdkOptions } from '@promptliano/database'
@@ -103,7 +106,10 @@ export function ModelSettingsPopover() {
   }
 
   const handleProviderChange = (value: string) => {
+    // When the provider changes via the settings UI, clear the model
+    // so the model selector can pick a valid one for the new provider.
     setProvider(value as APIProviders)
+    setModel('')
   }
 
   const handleModelChange = (value: string) => {
@@ -995,6 +1001,7 @@ function ChatPage() {
   const navigate = useNavigate()
   const search = Route.useSearch()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Use URL search param as single source of truth for active chat ID
   const activeChatId = search.chatId ?? null
@@ -1002,12 +1009,33 @@ function ChatPage() {
   const provider = modelSettings.provider ?? 'openrouter'
   const model = modelSettings.model
   const { data: modelsData } = useGetModels(provider as APIProviders)
+  const { presets } = useModelConfigPresets()
   const [appSettings] = useAppSettings()
   const enableChatAutoNaming = appSettings?.enableChatAutoNaming ?? true
   const { copyToClipboard } = useCopyClipboard()
   const [excludedMessageIds, setExcludedMessageIds] = useState<number[]>([])
 
   const [initialChatContent, setInitialChatContent] = useLocalStorage<string | null>('initial-chat-content', null)
+
+  // Get chats data for the grid view
+  const { data: chatsData, isLoading: isLoadingChats } = useGetChats()
+  const deleteChat = useDeleteChat()
+  const updateChat = useUpdateChat()
+  const createChat = useCreateChat()
+
+  // Filter and sort chats
+  const filteredAndSortedChats = useMemo(() => {
+    if (!chatsData) return []
+    
+    let filtered = chatsData
+    if (searchTerm.trim()) {
+      filtered = chatsData.filter(chat => 
+        (chat.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+    
+    return filtered.sort((a, b) => b.updatedAt - a.updatedAt)
+  }, [chatsData, searchTerm])
 
   useEffect(() => {
     if (activeChatId && !model && Array.isArray(modelsData) && modelsData[0]) {
@@ -1041,6 +1069,17 @@ function ChatPage() {
       ? (modelsData.find((m: { id: string; name: string }) => m.id === model)?.name ?? model ?? '...')
       : (model ?? '...')
   }, [modelsData, model])
+
+  // Detect if current provider+model matches a known preset
+  const matchedPreset = useMemo(() => {
+    if (!presets || !provider || !model) return null as null | { key: string }
+    for (const [key, cfg] of Object.entries(presets)) {
+      if (cfg && cfg.provider === provider && cfg.model === model) {
+        return { key }
+      }
+    }
+    return null
+  }, [presets, provider, model])
 
   const handleToggleExclude = useCallback((messageId: number) => {
     setExcludedMessageIds((prev) =>
@@ -1077,6 +1116,47 @@ function ChatPage() {
   const hasActiveChat = !!activeChatId
 
   const toggleSidebar = useCallback(() => setIsSidebarOpen((prev) => !prev), [])
+
+  // Chat actions
+  const handleCreateNewChat = useCallback(async () => {
+    const defaultTitle = `New Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    try {
+      const newChat = await createChat.mutateAsync({
+        title: defaultTitle,
+        projectId: 1
+      })
+      const newChatId = newChat?.id
+      if (newChatId) {
+        navigate({
+          to: '/chat',
+          search: { ...search, chatId: newChatId },
+          replace: true
+        })
+        toast.success('New chat created')
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error)
+      toast.error('Failed to create chat')
+    }
+  }, [createChat, navigate, search])
+
+  const handleDeleteChat = useCallback(async (chatId: number) => {
+    if (!window.confirm('Are you sure you want to delete this chat?')) return
+    try {
+      await deleteChat.mutateAsync(chatId)
+      toast.success('Chat deleted')
+      if (activeChatId === chatId) {
+        navigate({
+          to: '/chat',
+          search: { ...search, chatId: undefined },
+          replace: true
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error)
+      toast.error('Failed to delete chat')
+    }
+  }, [deleteChat, activeChatId, navigate, search])
 
 
   useEffect(() => {
@@ -1126,17 +1206,25 @@ function ChatPage() {
               onSubmit={handleFormSubmit}
               className='border-t border-l border-r bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-[env(safe-area-inset-bottom)] max-w-[80rem] rounded-t-lg shadow-md w-full'
             >
-              <div className='mx-auto w-full max-w-[72rem] px-4 pt-2 pb-1 text-xs text-muted-foreground text-center flex items-center justify-center gap-1'>
+              <div className='mx-auto w-full max-w-[72rem] px-4 pt-2 pb-1 text-xs text-muted-foreground text-center flex items-center justify-center gap-2'>
                 Using: {provider} /
-                <span className='inline-flex items-center gap-1'>
+                <span className='inline-flex items-center gap-2'>
                   {selectedModelName}
+                  {matchedPreset && (
+                    <Badge variant='outline' className='ml-1'>Preset: {matchedPreset.key}</Badge>
+                  )}
                   {model && (
                     <Button
+                      type='button'
                       variant='ghost'
                       size='icon'
                       className='h-4 w-4 text-muted-foreground hover:text-foreground'
                       title={`Copy model ID: ${model}`}
-                      onClick={() => copyToClipboard(model, { successMessage: 'Model ID copied!' })}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        copyToClipboard(model, { successMessage: 'Model ID copied!' })
+                      }}
                     >
                       <Copy className='h-3 w-3' />
                     </Button>
@@ -1176,24 +1264,99 @@ function ChatPage() {
             </form>
           </>
         ) : (
-          <div className='flex-1 flex items-center justify-center p-4 w-full'>
-            <Card className='p-6 max-w-md text-center'>
-              <MessageSquareIcon className='mx-auto h-12 w-12 text-muted-foreground mb-4' />
-              <h2 className='text-xl font-semibold text-foreground mb-2'>
-                {activeChatId ? 'Loading Chat...' : 'Welcome!'}
-              </h2>
-              <p className='text-sm text-muted-foreground mb-4'>
-                {activeChatId
-                  ? 'Loading model information and messages.'
-                  : 'Select a chat from the sidebar or start a new conversation.'}
-              </p>
-              {activeChatId && !model && <p className='text-sm text-muted-foreground'>Initializing model...</p>}
-              {!activeChatId && (
-                <Button variant='outline' size='sm' onClick={toggleSidebar}>
-                  <PlusIcon className='mr-2 h-4 w-4' /> Create or Select Chat
-                </Button>
-              )}
-            </Card>
+          <div className='flex-1 overflow-auto'>
+            {activeChatId ? (
+              // Loading state when a chat is selected but model isn't ready
+              <div className='flex-1 flex items-center justify-center p-4 w-full'>
+                <Card className='p-6 max-w-md text-center'>
+                  <MessageSquareIcon className='mx-auto h-12 w-12 text-muted-foreground mb-4' />
+                  <h2 className='text-xl font-semibold text-foreground mb-2'>Loading Chat...</h2>
+                  <p className='text-sm text-muted-foreground mb-4'>Loading model information and messages.</p>
+                  {!model && <p className='text-sm text-muted-foreground'>Initializing model...</p>}
+                </Card>
+              </div>
+            ) : (
+              // Chat grid view when no chat is selected
+              <div className='max-w-7xl mx-auto p-6'>
+                {/* Header */}
+                <div className='mb-8'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6'>
+                    <div>
+                      <h1 className='text-3xl font-bold tracking-tight'>Recent Chats</h1>
+                      <p className='text-muted-foreground mt-1'>
+                        Continue your conversations or start a new one
+                      </p>
+                    </div>
+                    
+                    {/* New Chat Button */}
+                    <Button 
+                      onClick={handleCreateNewChat}
+                      size='lg'
+                      className='gap-2 shadow-lg hover:shadow-xl transition-all'
+                      disabled={createChat.isPending}
+                    >
+                      <PlusIcon className='h-5 w-5' />
+                      New Chat
+                    </Button>
+                  </div>
+
+                  {/* Search Bar */}
+                  {chatsData && chatsData.length > 0 && (
+                    <div className='relative max-w-md'>
+                      <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+                      <Input
+                        placeholder='Search chats...'
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className='pl-10'
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                {isLoadingChats ? (
+                  <div className='flex items-center justify-center py-12'>
+                    <div className='text-center'>
+                      <MessageSquareIcon className='mx-auto h-12 w-12 text-muted-foreground mb-4 animate-pulse' />
+                      <p className='text-muted-foreground'>Loading your chats...</p>
+                    </div>
+                  </div>
+                ) : filteredAndSortedChats.length === 0 ? (
+                  <div className='flex items-center justify-center py-12'>
+                    <Card className='p-8 max-w-md text-center'>
+                      <MessageSquareIcon className='mx-auto h-16 w-16 text-muted-foreground mb-6' />
+                      <h3 className='text-xl font-semibold mb-2'>
+                        {searchTerm.trim() ? 'No matching chats' : 'No chats yet'}
+                      </h3>
+                      <p className='text-muted-foreground mb-6'>
+                        {searchTerm.trim() 
+                          ? 'Try adjusting your search terms' 
+                          : 'Start your first conversation to see it here'
+                        }
+                      </p>
+                      {!searchTerm.trim() && (
+                        <Button onClick={handleCreateNewChat} disabled={createChat.isPending}>
+                          <PlusIcon className='mr-2 h-4 w-4' />
+                          Create Your First Chat
+                        </Button>
+                      )}
+                    </Card>
+                  </div>
+                ) : (
+                  /* Chat Grid */
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                    {filteredAndSortedChats.map((chat) => (
+                      <ChatCard
+                        key={chat.id}
+                        chat={chat}
+                        onDelete={handleDeleteChat}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

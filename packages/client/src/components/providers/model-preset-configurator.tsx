@@ -88,6 +88,36 @@ export function ModelPresetConfigurator() {
     }))
   }
 
+  const handleSaveProviderModel = async () => {
+    if (!activePresetId || !currentConfig) return
+    try {
+      await updateMutation.mutateAsync({
+        id: activePresetId,
+        data: {
+          provider: currentConfig.provider as APIProviders,
+          model: currentConfig.model
+        }
+      })
+      // Clear provider/model edits for this preset (keep other param edits)
+      setEditedConfigs((prev) => {
+        const existing = prev[activePresetId]
+        if (!existing) return prev
+        const { provider, model, ...rest } = existing
+        const next = { ...prev }
+        if (Object.keys(rest).length === 0) {
+          delete next[activePresetId]
+        } else {
+          next[activePresetId] = rest
+        }
+        return next
+      })
+      toast.success('Provider & model saved')
+      refetch()
+    } catch (e) {
+      toast.error('Failed to save provider/model')
+    }
+  }
+
   const handleSave = async () => {
     try {
       // Save all edited configurations
@@ -309,6 +339,20 @@ export function ModelPresetConfigurator() {
                       </Badge>
                     </div>
                   </div>
+
+                  {/* Contextual Save button only when provider/model changed */}
+                  {activeConfig && (currentConfig.provider !== activeConfig.provider || currentConfig.model !== activeConfig.model) && (
+                    <div className='pt-2 flex justify-end'>
+                      <Button onClick={handleSaveProviderModel} disabled={updateMutation.isPending || !currentConfig.model}>
+                        {updateMutation.isPending ? (
+                          <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        ) : (
+                          <Save className='h-4 w-4 mr-2' />
+                        )}
+                        Save Provider & Model
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
