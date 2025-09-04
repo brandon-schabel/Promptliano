@@ -220,8 +220,10 @@ export {
   startMCPServer as startMCPServerLegacy,
   stopMCPServer as stopMCPServerLegacy
 } from './src/mcp-service'
-export * from './src/git-service'
 export * from './src/active-tab-service'
+
+// Git services - Re-export all git functionality
+export * from './src/git-services'
 // Do not export agent-logger - it contains Bun imports and should only be used server-side
 // export * from './src/agents/agent-logger'
 

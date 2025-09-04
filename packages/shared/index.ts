@@ -20,7 +20,6 @@ export * from './src/utils/summary-formatters'
 export * from './src/utils/project-summary-formatter'
 export * from './src/utils/zod-utils'
 export * from './src/utils/test-utils'
-export * from './src/utils/queue-field-utils'
 
 // File tree utils
 export * from './src/utils/file-tree-utils/file-node-tree-utils'
