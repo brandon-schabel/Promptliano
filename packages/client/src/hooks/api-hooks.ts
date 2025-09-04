@@ -576,6 +576,80 @@ export function useExportPromptAsMarkdown() {
   })
 }
 
+export function useExportPromptsBatch() {
+  const client = useApiClient()
+
+  return useMutation({
+    mutationFn: async (request: BatchExportRequest) => {
+      if (!client) throw new Error('Client not connected')
+
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/prompts/export-batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request)
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to export prompts')
+      }
+
+      // Check content type to handle different response formats
+      const contentType = response.headers.get('content-type')
+      
+      if (contentType?.includes('application/zip')) {
+        // Multi-file format returns binary ZIP
+        const blob = await response.blob()
+        const contentDisposition = response.headers.get('content-disposition')
+        const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || 'prompts-export.zip'
+        
+        return {
+          format: 'multi-file',
+          blob,
+          filename,
+          promptCount: request.promptIds.length // Estimate from request
+        }
+      } else {
+        // Single-file format returns JSON
+        const result = await response.json()
+        return result.data
+      }
+    },
+    onSuccess: (result) => {
+      // Handle download based on format
+      if (result.format === 'single-file') {
+        // Download single markdown file
+        const blob = new Blob([result.content], { type: 'text/markdown;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = result.filename || 'prompts-export.md'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      } else if (result.format === 'multi-file') {
+        // Download ZIP file (blob already created)
+        const url = URL.createObjectURL(result.blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = result.filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+
+      toast.success(`${result.promptCount} prompt${result.promptCount !== 1 ? 's' : ''} exported successfully`)
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to export prompts')
+    }
+  })
+}
+
 export function useValidateMarkdownFile() {
   const client = useApiClient()
 
@@ -596,46 +670,57 @@ export function useValidateMarkdownFile() {
       }
 
       try {
-        // Check for frontmatter
-        if (!content.startsWith('---')) {
-          validation.errors.push({ message: 'Missing frontmatter', path: [] } as any)
-          return { isValid: false, ...validation }
-        }
-
-        const frontmatterEnd = content.indexOf('---', 3)
-        if (frontmatterEnd === -1) {
-          validation.errors.push({ message: 'Invalid frontmatter format', path: [] } as any)
-          return { isValid: false, ...validation }
-        }
-
-        validation.hasValidFrontmatter = true
-
-        // Extract frontmatter
-        const frontmatterContent = content.substring(3, frontmatterEnd).trim()
-
-        // Parse frontmatter as YAML-like structure
         let metadata: any = {}
-        const lines = frontmatterContent.split('\n')
-        for (const line of lines) {
-          const colonIndex = line.indexOf(':')
-          if (colonIndex > 0) {
-            const key = line.substring(0, colonIndex).trim()
-            const value = line.substring(colonIndex + 1).trim()
-            metadata[key] = value
+        let promptContent: string
+        
+        // Check for frontmatter (optional)
+        if (content.startsWith('---')) {
+          const frontmatterEnd = content.indexOf('---', 3)
+          if (frontmatterEnd === -1) {
+            validation.errors.push({ message: 'Invalid frontmatter format', path: [] } as any)
+            return { isValid: false, ...validation }
           }
-        }
 
-        // Check for required 'name' field
-        if (!metadata.name) {
-          validation.errors.push({ message: 'Missing required field: name', path: ['name'] } as any)
-          validation.hasRequiredFields = false
+          validation.hasValidFrontmatter = true
+
+          // Extract frontmatter
+          const frontmatterContent = content.substring(3, frontmatterEnd).trim()
+
+          // Parse frontmatter as YAML-like structure
+          const lines = frontmatterContent.split('\n')
+          for (const line of lines) {
+            const colonIndex = line.indexOf(':')
+            if (colonIndex > 0) {
+              const key = line.substring(0, colonIndex).trim()
+              const value = line.substring(colonIndex + 1).trim()
+              metadata[key] = value
+            }
+          }
+
+          // Check content after frontmatter
+          promptContent = content.substring(frontmatterEnd + 3).trim()
         } else {
-          validation.hasRequiredFields = true
-          validation.estimatedPrompts = 1
+          // No frontmatter - use filename as name
+          validation.hasValidFrontmatter = false
+          
+          // Extract filename without extension and clean it up
+          const fileName = file.name
+          const promptName = fileName
+            .replace(/\.(md|markdown)$/i, '')
+            .replace(/[-_]/g, ' ')
+            .replace(/\s+/g, ' ')  // Normalize multiple spaces
+            .replace(/\b\w/g, l => l.toUpperCase())
+            .trim() || 'Untitled Prompt'
+            
+          metadata.name = promptName
+          promptContent = content.trim()
         }
 
-        // Check content after frontmatter
-        const promptContent = content.substring(frontmatterEnd + 3).trim()
+        // Always mark as having required fields since we generate name from filename if needed
+        validation.hasRequiredFields = true
+        validation.estimatedPrompts = promptContent.length > 0 ? 1 : 0
+
+        // Check content length
         if (promptContent.length === 0) {
           validation.warnings.push('Prompt content is empty')
         }

@@ -272,7 +272,6 @@ export const prompts = sqliteTable(
   {
     id: integer('id').primaryKey(),
     projectId: integer('project_id')
-      .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     content: text('content').notNull(),
