@@ -8,6 +8,7 @@
     "dev:client": "bun run scripts/start-client-dev.ts",
     "dev:server": "bun run scripts/start-server-dev.ts",
     "build": "bun run scripts/build-all.ts",
+    "build:client": "cd packages/client && bun run build",
     "build:binaries": "bun run scripts/build-binaries.ts",
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",

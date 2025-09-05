@@ -2,6 +2,29 @@
 
 This directory contains comprehensive end-to-end (E2E) tests for the Promptliano client application using Playwright. The tests cover all major functionality including project management, prompt creation, ticket workflows, queue processing, and MCP (Model Context Protocol) integration.
 
+## 🚀 **NEW: Enhanced Testing Infrastructure**
+
+The testing suite has been significantly enhanced with:
+
+✅ **Custom Fixtures** - Complete test isolation with database, API, and authentication fixtures
+✅ **Advanced Utilities** - Monaco editor testing, token counting validation, git integration testing  
+✅ **Enhanced Page Objects** - Comprehensive coverage of all UI interactions including hover actions, context menus
+✅ **Test Data Builders** - Fluent API for creating realistic test scenarios with relationships
+✅ **Smart Wait Strategies** - Robust waiting for React hydration, API responses, and complex async operations
+
+### Key New Features
+
+- **Monaco Editor Testing**: Full support for code editor interactions, syntax highlighting, and content validation
+- **Token Counting Tests**: Verify token calculations update correctly as content changes  
+- **Git Integration**: Test file staging/unstaging, diff viewing, and git status indicators
+- **Prompt Management**: Comprehensive testing of hover actions, 3-dot menus, and CRUD operations
+- **File Tree Operations**: Context menus, bulk selections, and token counting for file selections
+- **Drag & Drop Testing**: Queue management and file organization with validation
+- **Accessibility Testing**: Keyboard navigation, ARIA labels, and responsive design
+- **Performance Testing**: Large dataset handling and concurrent operations
+
+📖 **See [COMPREHENSIVE_TESTING_GUIDE.md](docs/COMPREHENSIVE_TESTING_GUIDE.md) for detailed usage examples.**
+
 ## 📁 Project Structure
 
 ```

@@ -345,8 +345,15 @@ export class BaseRepository<
    */
   protected validateEntity(entity: any): TEntity {
     if (this.schema) {
-      const result = this.schema.safeParse(entity)
+      // First attempt: validate as-is
+      let result = this.schema.safeParse(entity)
       if (!result.success) {
+        // Apply light normalization for known legacy inconsistencies (backward compatibility)
+        const normalized = this.normalizeForSchema(entity)
+        if (normalized !== entity) {
+          result = this.schema.safeParse(normalized)
+          if (result.success) return result.data
+        }
         console.warn('Entity validation failed:', result.error.errors)
         if (ErrorFactory.validationFailed) {
           throw ErrorFactory.validationFailed(result.error, {
@@ -363,6 +370,36 @@ export class BaseRepository<
       return result.data
     }
     return entity as TEntity
+  }
+
+  /**
+   * Normalize known legacy values to match current schema without breaking old data.
+   * - Ticket priority used to allow 'medium'; now it is 'normal'.
+   * - Some clients may send 'urgent'; treat as 'high'.
+   */
+  private normalizeForSchema(entity: any): any {
+    if (!entity || typeof entity !== 'object') return entity
+    // Clone shallowly to avoid mutating caller object
+    const out: any = { ...entity }
+
+    // Normalize priority values for ticket-like entities
+    if (typeof out.priority === 'string') {
+      const p = out.priority.toLowerCase()
+      if (p === 'medium') out.priority = 'normal'
+      else if (p === 'urgent') out.priority = 'high'
+    }
+
+    // Normalize status hyphen variant if ever present
+    if (typeof out.status === 'string' && out.status === 'in-progress') {
+      out.status = 'in_progress'
+    }
+
+    // Normalize queueStatus hyphen variant if ever present
+    if (typeof out.queueStatus === 'string' && out.queueStatus === 'in-progress') {
+      out.queueStatus = 'in_progress'
+    }
+
+    return out
   }
 
   /**

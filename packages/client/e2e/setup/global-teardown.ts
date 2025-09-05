@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { TestProjectHelpers } from '../utils/test-project-helpers'
+import { cleanupTestDatabase } from './test-database-setup'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -11,6 +12,10 @@ async function globalTeardown(config: FullConfig) {
   console.log('🧹 Starting global teardown for E2E tests...')
 
   try {
+    // Clean up test database
+    console.log('🗄️  Cleaning up test database...')
+    await cleanupTestDatabase()
+
     // Clean up test projects
     console.log('🗂️ Cleaning up test projects...')
     await TestProjectHelpers.cleanupTestProjects()

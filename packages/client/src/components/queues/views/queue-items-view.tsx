@@ -184,8 +184,11 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
             const details = getTaskDetails(item)
             if (!details) {
               return (
-                <div className='text-muted-foreground'>
-                  {item.itemType} #{item.itemId}
+                <div className='flex items-center gap-2 text-muted-foreground'>
+                  <span>{item.itemType} #{item.itemId}</span>
+                  <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                    {item.itemType === 'ticket' ? 'T#' : 'TS#'}{item.itemId}
+                  </Badge>
                 </div>
               )
             }
@@ -195,10 +198,18 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
                 <div className='flex items-center gap-2'>
                   <ListTodo className='h-3 w-3 text-muted-foreground' />
                   <span className='font-medium'>{details.ticket.title}</span>
+                  <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                    T#{details.ticket.id}
+                  </Badge>
                 </div>
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <FileText className='h-3 w-3' />
                   <span className='truncate max-w-[300px]'>{details.task?.content || 'Task not found'}</span>
+                  {details.task && (
+                    <Badge variant='outline' className='font-mono text-xs px-1 py-0 ml-1'>
+                      TS#{details.task.id}
+                    </Badge>
+                  )}
                 </div>
                 {details.task?.suggestedFileIds &&
                   Array.isArray(details.task.suggestedFileIds) &&
@@ -354,7 +365,12 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
             <SelectContent>
               {queues?.map((q: TaskQueue) => (
                 <SelectItem key={q.id} value={q.id.toString()}>
-                  {q.name}
+                  <div className='flex items-center gap-2'>
+                    <span>{q.name}</span>
+                    <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                      Q#{q.id}
+                    </Badge>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

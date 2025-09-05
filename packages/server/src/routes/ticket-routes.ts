@@ -449,9 +449,17 @@ const parseNumericId = (id: string): number => {
 }
 
 const formatTicketData = (ticket: any): z.infer<typeof TicketSchema> => {
-  // The ticket data from service already matches the schema format
-  // Just ensure all fields are present and valid
-  return TicketSchema.parse(ticket)
+  // Normalize legacy priority values and minor variants before validation
+  const normalized = { ...ticket }
+  if (typeof normalized.priority === 'string') {
+    const p = normalized.priority.toLowerCase()
+    if (p === 'medium') normalized.priority = 'normal'
+    else if (p === 'urgent') normalized.priority = 'high'
+  }
+  if (typeof normalized.status === 'string' && normalized.status === 'in-progress') {
+    normalized.status = 'in_progress'
+  }
+  return TicketSchema.parse(normalized)
 }
 
 const formatTaskData = (task: any): z.infer<typeof TaskSchema> => {

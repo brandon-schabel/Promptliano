@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { AppPage } from '../pages/app.page'
 import { PromptsPage } from '../pages/prompts.page'
-import { PromptManagementPage } from '../pages/prompt-management-page'
+import { PromptManagementPage } from '../pages/prompt-management.page'
 import { TestDataFactory, TestDataTemplates } from '../fixtures/test-data'
-import { PromptTestDataManager } from '../utils/prompt-test-data-manager'
 import { TestAssertions, TestDataManager, MCPTestHelpers } from '../utils/test-helpers'
 
 test.describe('Prompt Management - Basic Functionality', () => {

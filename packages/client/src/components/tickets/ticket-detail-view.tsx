@@ -98,8 +98,6 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false)
   const [isAddToQueueDialogOpen, setIsAddToQueueDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState<TicketTask | null>(null)
-  const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false)
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
   const [isAgentDialogOpen, setIsAgentDialogOpen] = useState(false)
   const [taskToQueue, setTaskToQueue] = useState<TicketTask | null>(null)
@@ -359,6 +357,9 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
         {/* Status and Priority */}
         <div className='flex items-center gap-3'>
+          <Badge variant='outline' className='font-mono text-xs'>
+            TICKET #{t.id}
+          </Badge>
           <Badge className={cn(STATUS_COLORS[t.status as keyof typeof STATUS_COLORS])}>
             {t.status?.replace('_', ' ').toUpperCase()}
           </Badge>
@@ -414,7 +415,12 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
             <CardContent className='space-y-2'>
               <div className='flex items-center justify-between text-sm'>
                 <span className='text-muted-foreground'>Queue Name:</span>
-                <span className='font-medium'>{queueData.name}</span>
+                <div className='flex items-center gap-2'>
+                  <span className='font-medium'>{queueData.name}</span>
+                  <Badge variant='outline' className='font-mono text-xs'>
+                    QUEUE #{queueData.id}
+                  </Badge>
+                </div>
               </div>
               {t.queuePosition !== null && t.queuePosition !== undefined && (
                 <div className='flex items-center justify-between text-sm'>

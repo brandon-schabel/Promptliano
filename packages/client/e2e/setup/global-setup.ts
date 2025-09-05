@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { TestProjectHelpers } from '../utils/test-project-helpers'
 import { mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
+import { setupTestDatabase } from './test-database-setup'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -14,6 +15,10 @@ async function globalSetup(config: FullConfig) {
   const { baseURL } = config.projects[0].use
 
   try {
+    // Setup test database first
+    console.log('🗄️  Setting up test database...')
+    await setupTestDatabase()
+
     // Setup test project infrastructure
     console.log('📁 Setting up test project infrastructure...')
     await setupTestProjectInfrastructure()

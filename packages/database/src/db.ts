@@ -137,6 +137,81 @@ try {
   }
 
   // With a consolidated base migration, no conditional per-file bootstraps needed
+  // Ensure MCP analytics tables exist (idempotent): apply 0003 if missing
+  const hasMcpStatsTable = sqlite
+    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_tool_statistics'")
+    .all().length > 0
+
+  if (!hasMcpStatsTable && process.env.NODE_ENV !== 'test') {
+    try {
+      console.log('📊 Creating MCP analytics tables (applying 0003_glorious_justice)...')
+      const migrationPath = join(drizzleDir, '0003_glorious_justice.sql')
+      const migrationSql = readFileSync(migrationPath, 'utf8')
+      const statements = migrationSql.split('--> statement-breakpoint')
+      for (const statement of statements) {
+        const cleanStatement = statement.trim()
+        if (cleanStatement && !cleanStatement.startsWith('--')) {
+          try {
+            sqlite.exec(cleanStatement)
+          } catch (e: any) {
+            const msg = String(e?.message || e)
+            if (!/already exists/i.test(msg)) throw e
+          }
+        }
+      }
+      console.log('✅ MCP analytics tables created successfully')
+    } catch (e) {
+      console.warn('⚠️ Failed to apply MCP migration automatically. You may need to run drizzle migrations.', e)
+    }
+  }
+  // Ensure provider_keys has latest columns (apply 0001 alterations) if needed
+  try {
+    const providerKeysInfo = sqlite.query("PRAGMA table_info('provider_keys')").all() as any[]
+    const hasEncryptedCol = providerKeysInfo.some((c) => String(c?.name) === 'encrypted')
+    if (!hasEncryptedCol && process.env.NODE_ENV !== 'test') {
+      try {
+        console.log('🛠 Applying migration 0001_orange_tarantula (ensuring provider_keys columns)...')
+        const migrationPath = join(drizzleDir, '0001_orange_tarantula.sql')
+        const migrationSql = readFileSync(migrationPath, 'utf8')
+        const statements = migrationSql.split('--> statement-breakpoint')
+        for (const statement of statements) {
+          const cleanStatement = statement.trim()
+          if (cleanStatement && !cleanStatement.startsWith('--')) {
+            try {
+              sqlite.exec(cleanStatement)
+            } catch (e: any) {
+              const msg = String(e?.message || e)
+              if (!/already exists/i.test(msg)) throw e
+            }
+          }
+        }
+        console.log('✅ Migration 0001 applied or already up-to-date')
+      } catch (e) {
+        console.warn('⚠️ Failed to apply 0001_orange_tarantula automatically. You may need to run drizzle migrations.', e)
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not inspect provider_keys schema for auto-migration:', e)
+  }
+
+  // Normalize legacy/invalid values in existing data for backward compatibility
+  try {
+    if (process.env.NODE_ENV !== 'test') {
+      // Fix legacy ticket priorities: 'medium' -> 'normal', 'urgent' -> 'high'
+      const legacyPriorityCount = sqlite
+        .query("SELECT COUNT(1) as c FROM tickets WHERE priority IN ('medium','urgent')")
+        .get() as any
+      const countVal = Number(legacyPriorityCount?.c || 0)
+      if (countVal > 0) {
+        console.log(`🧹 Normalizing ${countVal} legacy ticket priority value(s)`) 
+        sqlite.exec("UPDATE tickets SET priority = 'normal' WHERE priority = 'medium'")
+        sqlite.exec("UPDATE tickets SET priority = 'high' WHERE priority = 'urgent'")
+        console.log('✅ Ticket priorities normalized (medium→normal, urgent→high)')
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not normalize legacy ticket priorities:', e)
+  }
 
   // encryption_keys table no longer used; per-column encryption removed in favor of env secretRef
 } catch (error) {

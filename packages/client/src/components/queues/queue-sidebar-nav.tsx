@@ -158,6 +158,9 @@ export function QueueSidebarNav({
                       <div className='flex-1 text-left'>
                         <div className='flex items-center gap-2'>
                           <span className='text-sm font-medium truncate'>{queue.name}</span>
+                          <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                            Q#{queue.id}
+                          </Badge>
                           {isPaused && (
                             <Badge variant='secondary' className='text-xs px-1 py-0'>
                               Paused

@@ -46,6 +46,38 @@ setup('authenticate', async ({ page }) => {
       // For now, we'll just ensure we can navigate the app
     }
 
+    // Configure test server URL in localStorage
+    await page.evaluate(() => {
+      const testServerUrl = 'http://localhost:53147'
+      const appSettings = {
+        promptlianoServerUrl: testServerUrl,
+        theme: 'system'
+      }
+      localStorage.setItem('appSettings', JSON.stringify(appSettings))
+      console.log('📡 Configured test server URL:', testServerUrl)
+    })
+
+    // Reload the page to apply the new server URL
+    await page.reload()
+    
+    // Wait for the app to reconnect with the new server
+    await page.waitForTimeout(2000)
+    
+    // Check if we're connected now by looking for the server status indicator
+    const serverStatus = page.locator('[data-testid="server-status"], text=/localhost:53147/')
+    const isConnected = await serverStatus.isVisible().catch(() => false)
+    
+    if (isConnected) {
+      console.log('✅ Connected to test server')
+    } else {
+      // Try to click retry if the connection failed
+      const retryButton = page.locator('button:has-text("Retry")')
+      if (await retryButton.isVisible().catch(() => false)) {
+        await retryButton.click()
+        await page.waitForTimeout(2000)
+      }
+    }
+
     // Verify we can access core functionality
     // Check that the page has loaded successfully
     await expect(page).toHaveTitle(/.+/) // Any title is fine, just not empty

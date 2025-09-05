@@ -21,7 +21,8 @@ import {
   enqueueTicket,
   enqueueTask,
   dequeueTicket,
-  dequeueTask
+  dequeueTask,
+  flowService
 } from '@promptliano/services'
 import type { CreateQueueBody, UpdateQueueBody } from '@promptliano/schemas'
 import type { Queue } from '@promptliano/database'
@@ -251,13 +252,14 @@ Priority: ${task.queuePriority}`
 
           case QueueManagerAction.DEQUEUE_TICKET: {
             const ticketId = validateDataField<number>(data, 'ticketId', 'number', '456')
-            await dequeueTicket(ticketId)
+            // Use flowService to dequeue ticket with all its tasks
+            await flowService.dequeueTicketWithTasks(ticketId)
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Ticket ${ticketId} removed from queue`
+                  text: `Ticket ${ticketId} and all associated tasks removed from queue`
                 }
               ]
             }

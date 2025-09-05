@@ -208,7 +208,12 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
             <SelectContent>
               {queues?.map((q: TaskQueue) => (
                 <SelectItem key={q.id} value={q.id.toString()}>
-                  {q.name}
+                  <div className='flex items-center gap-2'>
+                    <span>{q.name}</span>
+                    <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                      Q#{q.id}
+                    </Badge>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -312,6 +317,9 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
                               <>
                                 <ListTodo className='h-3 w-3 text-muted-foreground' />
                                 <span className='text-sm font-medium'>{timeline.ticketTitle}</span>
+                                <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                                  T#{timeline.item.ticketId}
+                                </Badge>
                               </>
                             )}
                           </div>
@@ -319,6 +327,9 @@ export function QueueTimelineView({ projectId, selectedQueueId }: QueueTimelineV
                             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                               <FileText className='h-3 w-3' />
                               <span>{timeline.taskTitle}</span>
+                              <Badge variant='outline' className='font-mono text-xs px-1 py-0 ml-1'>
+                                TS#{timeline.item.taskId}
+                              </Badge>
                             </div>
                           )}
                         </div>

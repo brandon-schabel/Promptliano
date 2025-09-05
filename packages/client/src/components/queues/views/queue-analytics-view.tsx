@@ -229,7 +229,12 @@ export function QueueAnalyticsView({ projectId, selectedQueueId }: QueueAnalytic
             <SelectContent>
               {queues?.map((q: TaskQueue) => (
                 <SelectItem key={q.id} value={q.id.toString()}>
-                  {q.name}
+                  <div className='flex items-center gap-2'>
+                    <span>{q.name}</span>
+                    <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                      Q#{q.id}
+                    </Badge>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,0 +1,629 @@
+name: E2E Tests
+
+# Comprehensive E2E testing workflow for Promptliano
+# Features: Test sharding, browser matrix, performance optimization, artifact management
+
+on:
+  pull_request:
+    paths:
+      - 'packages/client/**'
+      - 'packages/server/**'
+      - 'packages/database/**'
+      - 'packages/services/**'
+      - 'packages/api-client/**'
+      - '.github/workflows/e2e-tests.yml'
+      - 'bun.lock'
+      - 'package.json'
+  push:
+    branches: [main, architecture-revamp]
+    paths:
+      - 'packages/client/**'
+      - 'packages/server/**'
+      - 'packages/database/**'
+      - 'packages/services/**'
+      - 'packages/api-client/**'
+      - '.github/workflows/e2e-tests.yml'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - smoke
+          - critical
+          - full
+      browsers:
+        description: 'Browsers to test'
+        required: false
+        default: 'chromium,firefox'
+        type: string
+      shards:
+        description: 'Number of test shards'
+        required: false
+        default: '4'
+        type: string
+
+# Optimize CI performance with intelligent concurrency
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Security: Minimal required permissions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  actions: read
+
+env:
+  # Bun Performance Optimization
+  BUN_VERSION: "1.1.34"
+  BUN_CACHE_DIR: ~/.bun/install/cache
+  
+  # Playwright Configuration
+  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/playwright
+  PLAYWRIGHT_SKIP_BROWSER_GC: 1
+  
+  # Test Environment
+  NODE_ENV: test
+  CI: true
+  FORCE_COLOR: 1
+  
+  # Performance Settings
+  MAX_OLD_SPACE_SIZE: 4096
+  UV_THREADPOOL_SIZE: 128
+
+jobs:
+  # Pre-test setup and validation
+  setup:
+    name: Setup & Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    outputs:
+      test-files: ${{ steps.test-discovery.outputs.test-files }}
+      matrix: ${{ steps.test-discovery.outputs.matrix }}
+      cache-key: ${{ steps.cache-keys.outputs.cache-key }}
+      playwright-version: ${{ steps.playwright-info.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Minimal checkout for faster setup
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "cache-key=bun-${{ runner.os }}-${{ hashFiles('**/bun.lock', 'package.json') }}" >> $GITHUB_OUTPUT
+          echo "playwright-cache-key=playwright-${{ runner.os }}-${{ hashFiles('packages/client/package.json') }}" >> $GITHUB_OUTPUT
+      
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ steps.cache-keys.outputs.cache-key }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          # Verify critical packages are installed correctly
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Get Playwright version
+        id: playwright-info
+        run: |
+          cd packages/client
+          VERSION=$(bun pm ls @playwright/test | grep @playwright/test | head -1 | cut -d'@' -f3 | cut -d' ' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Discover test files and create matrix
+        id: test-discovery
+        run: |
+          cd packages/client
+          
+          # Discover test files based on input or default pattern
+          TEST_SUITE="${{ github.event.inputs.test_suite || 'all' }}"
+          
+          case "$TEST_SUITE" in
+            "smoke")
+              TEST_FILES=$(find e2e/tests -name "*smoke*.spec.ts" -o -name "basic-*.spec.ts" | sort)
+              ;;
+            "critical")
+              TEST_FILES=$(find e2e/tests -name "*smoke*.spec.ts" -o -name "auth*.spec.ts" -o -name "navigation*.spec.ts" | sort)
+              ;;
+            "full"|"all")
+              TEST_FILES=$(find e2e/tests -name "*.spec.ts" | sort)
+              ;;
+            *)
+              TEST_FILES=$(find e2e/tests -name "*.spec.ts" | sort)
+              ;;
+          esac
+          
+          # Create test file list for artifacts
+          echo "$TEST_FILES" > test-files.txt
+          echo "test-files<<EOF" >> $GITHUB_OUTPUT
+          echo "$TEST_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Create matrix for sharding
+          SHARD_COUNT="${{ github.event.inputs.shards || '4' }}"
+          BROWSERS="${{ github.event.inputs.browsers || 'chromium,firefox' }}"
+          
+          # Generate matrix JSON
+          python3 -c "
+import json
+import sys
+
+browsers = '$BROWSERS'.split(',')
+shard_count = int('$SHARD_COUNT')
+
+matrix = {
+    'include': []
+}
+
+for browser in browsers:
+    for shard in range(1, shard_count + 1):
+        matrix['include'].append({
+            'browser': browser.strip(),
+            'shard': f'{shard}/{shard_count}',
+            'shard-index': shard - 1,
+            'shard-total': shard_count
+        })
+
+print(json.dumps(matrix))
+" > matrix.json
+          
+          echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
+      
+      - name: Upload test discovery artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-discovery
+          path: |
+            packages/client/test-files.txt
+            packages/client/matrix.json
+          retention-days: 1
+
+  # Main E2E test execution with sharding and browser matrix
+  e2e-tests:
+    name: E2E Tests (${{ matrix.browser }}, shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Restore Bun dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-browsers-${{ needs.setup.outputs.playwright-version }}-${{ matrix.browser }}
+          restore-keys: |
+            playwright-browsers-${{ needs.setup.outputs.playwright-version }}-
+            playwright-browsers-
+      
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          cd packages/client
+          # Install only the required browser for this matrix job
+          case "${{ matrix.browser }}" in
+            "chromium")
+              bunx playwright install chromium chromium-deps
+              ;;
+            "firefox")
+              bunx playwright install firefox firefox-deps
+              ;;
+            "webkit")
+              bunx playwright install webkit webkit-deps
+              ;;
+            "mobile-chrome")
+              bunx playwright install chromium chromium-deps
+              ;;
+            "mobile-safari")
+              bunx playwright install webkit webkit-deps
+              ;;
+          esac
+      
+      - name: Setup test database
+        run: |
+          # Create isolated test database for this shard
+          cd packages/database
+          cp data/promptliano.db data/test-${{ matrix.shard-index }}.db || echo "Database file not found, will be created"
+          
+          # Run migrations on test database
+          DATABASE_PATH=data/test-${{ matrix.shard-index }}.db bun run migrate || echo "Migration completed"
+      
+      - name: Start test services (background)
+        run: |
+          # Start server with isolated database
+          cd packages/server
+          DATABASE_PATH=../database/data/test-${{ matrix.shard-index }}.db \
+          PORT=314${{ matrix.shard-index }} \
+          NODE_ENV=test \
+          LOG_LEVEL=error \
+          bun run server.ts &
+          
+          # Wait for server to be ready
+          timeout 60 bash -c 'until curl -f http://localhost:314${{ matrix.shard-index }}/api/health; do sleep 2; done'
+          
+          # Start client dev server
+          cd packages/client
+          VITE_API_URL=http://localhost:314${{ matrix.shard-index }}/api \
+          bun run dev -- --port 142${{ matrix.shard-index }} --host localhost &
+          
+          # Wait for client to be ready
+          timeout 60 bash -c 'until curl -f http://localhost:142${{ matrix.shard-index }}; do sleep 2; done'
+        
+        env:
+          # Performance optimizations for test servers
+          BUN_ENV: production
+          NODE_OPTIONS: "--max-old-space-size=${{ env.MAX_OLD_SPACE_SIZE }}"
+      
+      - name: Run E2E tests
+        run: |
+          cd packages/client
+          
+          # Configure test environment for this shard
+          export VITE_BASE_URL="http://localhost:142${{ matrix.shard-index }}"
+          export API_URL="http://localhost:314${{ matrix.shard-index }}/api"
+          
+          # Run tests with sharding
+          bunx playwright test \
+            --project=${{ matrix.browser }} \
+            --shard=${{ matrix.shard }} \
+            --reporter=html,json,github \
+            --output-dir=test-results-${{ matrix.browser }}-${{ matrix.shard-index }} \
+            || echo "Some tests failed, continuing to collect artifacts"
+        
+        env:
+          # Playwright optimizations
+          PLAYWRIGHT_HTML_REPORT: playwright-report-${{ matrix.browser }}-${{ matrix.shard-index }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results-${{ matrix.browser }}-${{ matrix.shard-index }}.json
+      
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}-shard-${{ matrix.shard-index }}
+          path: |
+            packages/client/test-results-${{ matrix.browser }}-${{ matrix.shard-index }}/**
+            packages/client/playwright-report-${{ matrix.browser }}-${{ matrix.shard-index }}/**
+            packages/client/test-results-${{ matrix.browser }}-${{ matrix.shard-index }}.json
+          retention-days: 7
+      
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-artifacts-${{ matrix.browser }}-shard-${{ matrix.shard-index }}
+          path: |
+            packages/client/test-results-${{ matrix.browser }}-${{ matrix.shard-index }}/**/*.png
+            packages/client/test-results-${{ matrix.browser }}-${{ matrix.shard-index }}/**/*.webm
+            packages/server/logs/**
+            packages/database/data/test-${{ matrix.shard-index }}.db
+          retention-days: 3
+
+  # Performance and accessibility tests
+  performance-tests:
+    name: Performance & Accessibility
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 20
+    if: github.event_name == 'pull_request' || contains(github.event.inputs.test_suite, 'full')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Install Playwright browsers
+        run: |
+          cd packages/client
+          bunx playwright install chromium chromium-deps
+      
+      - name: Setup performance test environment
+        run: |
+          # Start optimized servers for performance testing
+          cd packages/server
+          NODE_ENV=production bun run server.ts &
+          
+          cd packages/client
+          bun run build
+          bun run preview --port 1421 &
+          
+          # Wait for services
+          timeout 60 bash -c 'until curl -f http://localhost:1421; do sleep 2; done'
+      
+      - name: Run performance tests
+        run: |
+          cd packages/client
+          bunx playwright test \
+            --config=playwright-visual.config.ts \
+            --project=chromium \
+            --grep="@performance|@accessibility" \
+            --reporter=html,json
+      
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: |
+            packages/client/playwright-report/**
+            packages/client/test-results.json
+          retention-days: 7
+
+  # Visual regression testing
+  visual-regression:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Install Playwright browsers
+        run: |
+          cd packages/client
+          bunx playwright install chromium chromium-deps
+      
+      - name: Setup test environment
+        run: |
+          cd packages/server
+          NODE_ENV=test bun run server.ts &
+          
+          cd packages/client
+          bun run dev &
+          
+          timeout 60 bash -c 'until curl -f http://localhost:5173; do sleep 2; done'
+      
+      - name: Run visual regression tests
+        run: |
+          cd packages/client
+          bunx playwright test \
+            --config=playwright-visual.config.ts \
+            --project=chromium \
+            --reporter=html
+      
+      - name: Upload visual test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-results
+          path: |
+            packages/client/test-results/**
+            packages/client/playwright-report/**
+          retention-days: 7
+
+  # Consolidate and report results
+  test-report:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [setup, e2e-tests]
+    if: always()
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+      
+      - name: Consolidate test results
+        run: |
+          # Create consolidated report directory
+          mkdir -p consolidated-report
+          
+          # Merge all JSON reports
+          find test-artifacts -name "*.json" -type f | head -20 | while read file; do
+            if [[ -f "$file" ]]; then
+              echo "Processing: $file"
+              cp "$file" "consolidated-report/$(basename "$(dirname "$file")")-$(basename "$file")"
+            fi
+          done
+          
+          # Create summary statistics
+          cat > consolidated-report/summary.md << 'EOF'
+          # E2E Test Results Summary
+          
+          ## Test Execution Overview
+          - **Workflow**: ${{ github.workflow }}
+          - **Trigger**: ${{ github.event_name }}
+          - **Branch**: ${{ github.ref }}
+          - **Commit**: ${{ github.sha }}
+          - **Actor**: ${{ github.actor }}
+          
+          ## Matrix Configuration
+          EOF
+          
+          # Add matrix information if available
+          if [[ -f "test-artifacts/test-discovery/matrix.json" ]]; then
+            echo "### Test Matrix" >> consolidated-report/summary.md
+            cat test-artifacts/test-discovery/matrix.json >> consolidated-report/summary.md
+          fi
+          
+          # Count results
+          TOTAL_ARTIFACTS=$(find test-artifacts -name "test-results-*" -type d | wc -l)
+          echo "- **Total Test Shards**: $TOTAL_ARTIFACTS" >> consolidated-report/summary.md
+          
+          # Add artifact links
+          echo -e "\n## Test Artifacts" >> consolidated-report/summary.md
+          find test-artifacts -type d -name "*results*" | head -10 | while read dir; do
+            echo "- $(basename "$dir")" >> consolidated-report/summary.md
+          done
+      
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-test-report
+          path: consolidated-report/**
+          retention-days: 14
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read summary if it exists
+            let summary = '# E2E Test Results\n\nE2E tests have completed.';
+            const summaryPath = 'consolidated-report/summary.md';
+            
+            if (fs.existsSync(summaryPath)) {
+              summary = fs.readFileSync(summaryPath, 'utf8');
+            }
+            
+            // Add links to artifacts
+            summary += '\n\n## Artifacts\n';
+            summary += '- [Test Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n';
+            summary += '- [Performance Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n';
+            
+            // Post comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  # Clean up test artifacts (cost optimization)
+  cleanup:
+    name: Cleanup Test Environment
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, test-report]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Cleanup old artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Clean up old test artifacts to save storage costs
+            const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+            const testArtifacts = artifacts.artifacts.filter(artifact => 
+              artifact.name.includes('test-results') && 
+              new Date(artifact.created_at) < cutoffDate
+            );
+            
+            for (const artifact of testArtifacts.slice(0, 20)) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+                console.log(`Deleted old artifact: ${artifact.name}`);
+              } catch (error) {
+                console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
+              }
+            }

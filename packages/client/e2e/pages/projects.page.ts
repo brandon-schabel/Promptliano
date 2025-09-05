@@ -1,299 +1,392 @@
-import { type Page, expect } from '@playwright/test'
-import { BasePage } from './base.page'
+import { type Page, type Locator, expect } from '@playwright/test'
 
-export class ProjectsPage extends BasePage {
+/**
+ * Simple Page Object Model for Projects Page
+ * Follows modern Playwright best practices with minimal abstraction
+ */
+export class ProjectsPage {
+  readonly page: Page
+
   constructor(page: Page) {
-    super(page)
+    this.page = page
   }
 
-  // Project list elements
-  get projectGrid() {
-    return this.page.locator('[data-testid="projects-grid"], .projects-grid')
+  // ============================================
+  // NAVIGATION & HEADER
+  // ============================================
+
+  get projectsButton() {
+    return this.page.getByRole('button', { name: 'Projects', exact: true })
   }
 
-  get projectCards() {
-    return this.page.locator('[data-testid="project-card"], .project-card')
+  get projectSwitcher() {
+    return this.page.getByTestId('project-switcher')
   }
 
-  get emptyState() {
-    return this.page.locator('[data-testid="no-projects"], text="No projects found"')
+  get breadcrumbs() {
+    return this.page.getByTestId('breadcrumbs')
   }
 
-  // Project actions
-  get createProjectButton() {
-    return this.page.locator(
-      '[data-testid="create-project"], button:has-text("New Project"), button:has-text("Create Project")'
+  // ============================================
+  // TAB NAVIGATION
+  // ============================================
+
+  get contextTab() {
+    return this.page.getByRole('tab', { name: /context/i })
+  }
+
+  get flowTab() {
+    return this.page.getByRole('tab', { name: /flow/i })
+  }
+
+  get gitTab() {
+    return this.page.getByRole('tab', { name: /git/i })
+  }
+
+  get manageTab() {
+    return this.page.getByRole('tab', { name: /manage/i })
+  }
+
+  // ============================================
+  // CONTEXT TAB ELEMENTS
+  // ============================================
+
+  get userInputTextarea() {
+    return this.page.getByPlaceholder(/describe your task/i).or(
+      this.page.getByTestId('user-input-textarea')
     )
   }
 
-  get importProjectButton() {
-    return this.page.locator('[data-testid="import-project"], button:has-text("Import Project")')
+  get copyAllButton() {
+    return this.page.getByRole('button', { name: /copy all/i })
   }
 
-  // Project dialog elements
-  get projectDialog() {
-    return this.page.locator('[role="dialog"], [data-testid="project-dialog"]')
+  get searchFilesButton() {
+    return this.page.getByRole('button', { name: /search files/i })
+  }
+
+  get suggestPromptsButton() {
+    return this.page.getByRole('button', { name: /suggest prompts/i })
+  }
+
+  get chatButton() {
+    return this.page.getByRole('button', { name: /chat/i })
+  }
+
+  // File Panel
+  get fileSearchInput() {
+    return this.page.getByPlaceholder(/search files/i)
+  }
+
+  get fileTree() {
+    return this.page.getByTestId('file-tree')
+  }
+
+  get selectedFilesList() {
+    return this.page.getByTestId('selected-files-list')
+  }
+
+  // Prompt Panel
+  get promptSearchInput() {
+    return this.page.getByPlaceholder(/search prompts/i)
+  }
+
+  get promptList() {
+    return this.page.getByTestId('prompt-list')
+  }
+
+  get selectedPromptsList() {
+    return this.page.getByTestId('selected-prompts-list')
+  }
+
+  // ============================================
+  // FLOW TAB ELEMENTS
+  // ============================================
+
+  get flowViewSelector() {
+    return this.page.getByTestId('flow-view-selector')
+  }
+
+  get queuesList() {
+    return this.page.getByTestId('queues-list')
+  }
+
+  get ticketsList() {
+    return this.page.getByTestId('tickets-list')
+  }
+
+  get kanbanBoard() {
+    return this.page.getByTestId('kanban-board')
+  }
+
+  get createTicketButton() {
+    return this.page.getByRole('button', { name: /create ticket/i })
+  }
+
+  get createQueueButton() {
+    return this.page.getByRole('button', { name: /create queue/i })
+  }
+
+  // ============================================
+  // GIT TAB ELEMENTS
+  // ============================================
+
+  get gitStatusSection() {
+    return this.page.getByTestId('git-status')
+  }
+
+  get gitChangedFiles() {
+    return this.page.getByTestId('git-changed-files')
+  }
+
+  get gitCommitHistory() {
+    return this.page.getByTestId('git-commit-history')
+  }
+
+  get gitBranchSelector() {
+    return this.page.getByTestId('git-branch-selector')
+  }
+
+  get gitStageButton() {
+    return this.page.getByRole('button', { name: /stage/i })
+  }
+
+  get gitCommitButton() {
+    return this.page.getByRole('button', { name: /commit/i })
+  }
+
+  // ============================================
+  // MANAGE TAB ELEMENTS
+  // ============================================
+
+  get projectSettingsForm() {
+    return this.page.getByTestId('project-settings-form')
   }
 
   get projectNameInput() {
-    return this.page.locator('input[name="name"], input[placeholder*="project name" i]')
+    return this.page.getByLabel(/project name/i)
   }
 
   get projectPathInput() {
-    return this.page.locator('input[name="path"], input[placeholder*="path" i]')
+    return this.page.getByLabel(/project path/i)
   }
 
-  get projectDescriptionInput() {
-    return this.page.locator('textarea[name="description"], textarea[placeholder*="description" i]')
+  get deleteProjectButton() {
+    return this.page.getByRole('button', { name: /delete project/i })
   }
 
-  get selectDirectoryButton() {
-    return this.page.locator('[data-testid="select-directory"], button:has-text("Select Directory")')
+  get saveSettingsButton() {
+    return this.page.getByRole('button', { name: /save/i })
   }
 
-  get submitProjectButton() {
-    return this.page.locator('button[type="submit"], button:has-text("Create"), button:has-text("Save")')
+  // ============================================
+  // INITIALIZATION STATE
+  // ============================================
+
+  get initializingMessage() {
+    return this.page.getByText('Initializing Promptliano…', { exact: true })
   }
 
-  get cancelProjectButton() {
-    return this.page.locator('button:has-text("Cancel")')
+  get initSubMessage() {
+    return this.page.getByText('Preparing workspace and checking for existing projects', { exact: true })
   }
 
-  // Project card actions
-  getProjectCard(projectName: string) {
-    return this.page.locator(
-      `[data-testid="project-card"]:has-text("${projectName}"), .project-card:has-text("${projectName}")`
-    )
+  // ============================================
+  // DIALOGS & MODALS
+  // ============================================
+
+  get createProjectDialog() {
+    return this.page.getByRole('dialog', { name: /create project/i })
   }
 
-  getProjectCardMenu(projectName: string) {
-    return this.getProjectCard(projectName).locator('[data-testid="project-menu"], button[aria-label*="menu"]')
+  get confirmDeleteDialog() {
+    return this.page.getByRole('dialog', { name: /confirm delete/i })
   }
 
-  get projectMenuEdit() {
-    return this.page.locator('[data-testid="edit-project"], text="Edit"')
-  }
+  // ============================================
+  // NAVIGATION METHODS
+  // ============================================
 
-  get projectMenuDelete() {
-    return this.page.locator('[data-testid="delete-project"], text="Delete"')
-  }
-
-  get projectMenuSettings() {
-    return this.page.locator('[data-testid="project-settings"], text="Settings"')
-  }
-
-  // Search and filters
-  get searchInput() {
-    return this.page.locator('[data-testid="project-search"], input[placeholder*="search" i]')
-  }
-
-  get sortSelect() {
-    return this.page.locator('[data-testid="sort-projects"], select')
-  }
-
-  get filterButton() {
-    return this.page.locator('[data-testid="filter-projects"], button:has-text("Filter")')
-  }
-
-  /**
-   * Navigate to projects page
-   */
-  async goto() {
-    await super.goto('/projects')
-  }
-
-  /**
-   * Create a new project
-   */
-  async createProject(projectData: { name: string; path?: string; description?: string }) {
-    await this.createProjectButton.click()
-    await expect(this.projectDialog).toBeVisible()
-
-    // Fill project details
-    await this.projectNameInput.fill(projectData.name)
-
-    if (projectData.path) {
-      await this.projectPathInput.fill(projectData.path)
+  async goto(projectId?: number) {
+    if (projectId) {
+      await this.page.goto(`/projects?projectId=${projectId}`)
     } else {
-      // Use directory selector if path not provided
-      if (await this.selectDirectoryButton.isVisible()) {
-        await this.selectDirectoryButton.click()
-        // In a real implementation, this would handle the directory picker
-        // For testing, we might need to mock or use a default path
-      }
+      await this.page.goto('/projects')
     }
+    await this.waitForLoad()
+  }
 
-    if (projectData.description) {
-      await this.projectDescriptionInput.fill(projectData.description)
+  async gotoWithTab(tab: 'context' | 'flow' | 'git' | 'manage', projectId?: number) {
+    const url = projectId 
+      ? `/projects?projectId=${projectId}&activeView=${tab}`
+      : `/projects?activeView=${tab}`
+    await this.page.goto(url)
+    await this.waitForLoad()
+  }
+
+  async waitForLoad() {
+    // Wait for either initialization or main content
+    await Promise.race([
+      this.initializingMessage.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+      this.page.locator('main').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+    ])
+  }
+
+  // ============================================
+  // TAB SWITCHING METHODS
+  // ============================================
+
+  async switchToContextTab() {
+    await this.contextTab.click()
+    await expect(this.userInputTextarea.or(this.fileTree)).toBeVisible({ timeout: 5000 })
+  }
+
+  async switchToFlowTab() {
+    await this.flowTab.click()
+    await expect(this.flowViewSelector.or(this.queuesList).or(this.ticketsList)).toBeVisible({ timeout: 5000 })
+  }
+
+  async switchToGitTab() {
+    await this.gitTab.click()
+    await expect(this.gitStatusSection.or(this.gitChangedFiles)).toBeVisible({ timeout: 5000 })
+  }
+
+  async switchToManageTab() {
+    await this.manageTab.click()
+    await expect(this.projectSettingsForm.or(this.projectNameInput)).toBeVisible({ timeout: 5000 })
+  }
+
+  // ============================================
+  // CONTEXT TAB METHODS
+  // ============================================
+
+  async enterUserInput(text: string) {
+    await this.userInputTextarea.fill(text)
+  }
+
+  async searchFiles(query: string) {
+    await this.fileSearchInput.fill(query)
+    await this.page.waitForTimeout(500) // Debounce
+  }
+
+  async selectFile(fileName: string) {
+    await this.fileTree.getByText(fileName).click()
+  }
+
+  async searchPrompts(query: string) {
+    await this.promptSearchInput.fill(query)
+    await this.page.waitForTimeout(500) // Debounce
+  }
+
+  async selectPrompt(promptName: string) {
+    await this.promptList.getByText(promptName).click()
+  }
+
+  async copyContext() {
+    await this.copyAllButton.click()
+    // Wait for toast or success indicator
+    await this.page.waitForTimeout(1000)
+  }
+
+  // ============================================
+  // FLOW TAB METHODS
+  // ============================================
+
+  async selectFlowView(view: 'queues' | 'tickets' | 'kanban') {
+    await this.flowViewSelector.click()
+    await this.page.getByRole('option', { name: view }).click()
+  }
+
+  async createTicket(title: string, description?: string) {
+    await this.createTicketButton.click()
+    await this.page.getByLabel(/title/i).fill(title)
+    if (description) {
+      await this.page.getByLabel(/description/i).fill(description)
     }
-
-    // Submit the form
-    await this.submitProjectButton.click()
-
-    // Wait for project creation to complete
-    await this.waitForAPIResponse(/\/api\/projects/, 'POST')
-    await this.waitForLoadingComplete()
-
-    // Verify project was created
-    await expect(this.getProjectCard(projectData.name)).toBeVisible({ timeout: 10000 })
+    await this.page.getByRole('button', { name: /create/i }).click()
   }
 
-  /**
-   * Edit an existing project
-   */
-  async editProject(
-    currentName: string,
-    updates: {
-      name?: string
-      description?: string
+  async createQueue(name: string, description?: string) {
+    await this.createQueueButton.click()
+    await this.page.getByLabel(/name/i).fill(name)
+    if (description) {
+      await this.page.getByLabel(/description/i).fill(description)
     }
-  ) {
-    await this.openProjectMenu(currentName)
-    await this.projectMenuEdit.click()
+    await this.page.getByRole('button', { name: /create/i }).click()
+  }
 
-    await expect(this.projectDialog).toBeVisible()
+  // ============================================
+  // GIT TAB METHODS
+  // ============================================
 
-    if (updates.name) {
-      await this.projectNameInput.fill(updates.name)
+  async stageFile(fileName: string) {
+    const fileRow = this.gitChangedFiles.getByText(fileName).locator('..')
+    await fileRow.getByRole('button', { name: /stage/i }).click()
+  }
+
+  async commitChanges(message: string) {
+    await this.page.getByPlaceholder(/commit message/i).fill(message)
+    await this.gitCommitButton.click()
+  }
+
+  async switchBranch(branchName: string) {
+    await this.gitBranchSelector.click()
+    await this.page.getByRole('option', { name: branchName }).click()
+  }
+
+  // ============================================
+  // MANAGE TAB METHODS
+  // ============================================
+
+  async updateProjectName(newName: string) {
+    await this.projectNameInput.clear()
+    await this.projectNameInput.fill(newName)
+    await this.saveSettingsButton.click()
+  }
+
+  async updateProjectPath(newPath: string) {
+    await this.projectPathInput.clear()
+    await this.projectPathInput.fill(newPath)
+    await this.saveSettingsButton.click()
+  }
+
+  async deleteProject() {
+    await this.deleteProjectButton.click()
+    // Wait for confirmation dialog
+    await expect(this.confirmDeleteDialog).toBeVisible()
+    await this.page.getByRole('button', { name: /confirm/i }).click()
+  }
+
+  // ============================================
+  // ASSERTION HELPERS
+  // ============================================
+
+  async expectInitializationState() {
+    await expect(this.initializingMessage).toBeVisible()
+    await expect(this.initSubMessage).toBeVisible()
+  }
+
+  async expectProjectLoaded(projectName?: string) {
+    if (projectName) {
+      await expect(this.projectSwitcher).toContainText(projectName)
     }
-
-    if (updates.description) {
-      await this.projectDescriptionInput.fill(updates.description)
-    }
-
-    await this.submitProjectButton.click()
-    await this.waitForAPIResponse(/\/api\/projects/, 'PUT')
-    await this.waitForLoadingComplete()
+    await expect(this.page.locator('main')).toBeVisible()
   }
 
-  /**
-   * Delete a project
-   */
-  async deleteProject(projectName: string) {
-    await this.openProjectMenu(projectName)
-    await this.projectMenuDelete.click()
-
-    // Handle confirmation dialog
-    await this.handleConfirmationDialog('accept')
-
-    // Wait for deletion API call
-    await this.waitForAPIResponse(/\/api\/projects/, 'DELETE')
-    await this.waitForLoadingComplete()
-
-    // Verify project was deleted
-    await expect(this.getProjectCard(projectName)).not.toBeVisible()
+  async expectTabActive(tab: 'context' | 'flow' | 'git' | 'manage') {
+    const tabElement = tab === 'context' ? this.contextTab :
+                      tab === 'flow' ? this.flowTab :
+                      tab === 'git' ? this.gitTab :
+                      this.manageTab
+    
+    await expect(tabElement).toHaveAttribute('data-state', 'active')
   }
 
-  /**
-   * Open a project (navigate to project view)
-   */
-  async openProject(projectName: string) {
-    await this.getProjectCard(projectName).click()
-    await this.waitForLoadingComplete()
-
-    // Should navigate to project detail/dashboard
-    await expect(this.page).toHaveURL(new RegExp('/projects/\\d+'))
+  async expectFileSelected(fileName: string) {
+    await expect(this.selectedFilesList.getByText(fileName)).toBeVisible()
   }
 
-  /**
-   * Open project menu
-   */
-  async openProjectMenu(projectName: string) {
-    const projectCard = this.getProjectCard(projectName)
-    await expect(projectCard).toBeVisible()
-
-    // Hover to reveal menu button
-    await projectCard.hover()
-
-    const menuButton = this.getProjectCardMenu(projectName)
-    await menuButton.click()
-
-    // Wait for menu to appear
-    await expect(this.projectMenuEdit).toBeVisible()
-  }
-
-  /**
-   * Search for projects
-   */
-  async searchProjects(query: string) {
-    await this.searchInput.fill(query)
-    await this.page.keyboard.press('Enter')
-    await this.waitForLoadingComplete()
-  }
-
-  /**
-   * Get all visible project names
-   */
-  async getVisibleProjectNames(): Promise<string[]> {
-    const cards = this.projectCards
-    const count = await cards.count()
-    const names: string[] = []
-
-    for (let i = 0; i < count; i++) {
-      const name = await cards.nth(i).locator('[data-testid="project-name"], .project-name').textContent()
-      if (name) names.push(name.trim())
-    }
-
-    return names
-  }
-
-  /**
-   * Check if project exists in the list
-   */
-  async projectExists(projectName: string): Promise<boolean> {
-    return await this.getProjectCard(projectName).isVisible()
-  }
-
-  /**
-   * Get project card info
-   */
-  async getProjectInfo(projectName: string) {
-    const card = this.getProjectCard(projectName)
-    await expect(card).toBeVisible()
-
-    const name = await card.locator('[data-testid="project-name"], .project-name').textContent()
-    const path = await card.locator('[data-testid="project-path"], .project-path').textContent()
-    const description = await card.locator('[data-testid="project-description"], .project-description').textContent()
-    const lastModified = await card.locator('[data-testid="project-modified"], .project-modified').textContent()
-
-    return {
-      name: name?.trim() || '',
-      path: path?.trim() || '',
-      description: description?.trim() || '',
-      lastModified: lastModified?.trim() || ''
-    }
-  }
-
-  /**
-   * Wait for projects to load
-   */
-  async waitForProjectsLoaded() {
-    // Wait for either projects to appear or empty state
-    await expect(this.projectCards.first().or(this.emptyState)).toBeVisible({ timeout: 10000 })
-  }
-
-  /**
-   * Sort projects
-   */
-  async sortProjects(sortBy: 'name' | 'date' | 'size') {
-    await this.sortSelect.selectOption(sortBy)
-    await this.waitForLoadingComplete()
-  }
-
-  /**
-   * Check if in empty state
-   */
-  async isEmptyState(): Promise<boolean> {
-    return await this.emptyState.isVisible()
-  }
-
-  /**
-   * Get project count
-   */
-  async getProjectCount(): Promise<number> {
-    if (await this.isEmptyState()) {
-      return 0
-    }
-    return await this.projectCards.count()
+  async expectPromptSelected(promptName: string) {
+    await expect(this.selectedPromptsList.getByText(promptName)).toBeVisible()
   }
 }

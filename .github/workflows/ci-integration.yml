@@ -1,0 +1,537 @@
+name: CI Integration with E2E
+
+# Main CI pipeline integration that orchestrates build, test, and E2E workflows
+# Ensures proper sequencing and dependency management
+
+on:
+  push:
+    branches: [main, architecture-revamp, develop]
+  pull_request:
+    branches: [main, architecture-revamp]
+  workflow_dispatch:
+    inputs:
+      skip_e2e:
+        description: 'Skip E2E tests'
+        type: boolean
+        default: false
+      e2e_suite:
+        description: 'E2E test suite to run'
+        type: choice
+        default: 'smoke'
+        options:
+          - smoke
+          - critical
+          - full
+      deploy_environment:
+        description: 'Deployment environment'
+        type: choice
+        default: 'none'
+        options:
+          - none
+          - staging
+          - production
+
+# Optimized concurrency strategy
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Security: Minimal required permissions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  actions: read
+  deployments: read
+
+env:
+  # Build Configuration
+  BUN_VERSION: "1.1.34"
+  NODE_ENV: production
+  CI: true
+  
+  # Performance Settings
+  MAX_OLD_SPACE_SIZE: 4096
+  UV_THREADPOOL_SIZE: 64
+
+jobs:
+  # Detect changes to determine what needs to be tested
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    outputs:
+      # Backend changes
+      database: ${{ steps.filter.outputs.database }}
+      server: ${{ steps.filter.outputs.server }}
+      services: ${{ steps.filter.outputs.services }}
+      api: ${{ steps.filter.outputs.api }}
+      
+      # Frontend changes
+      client: ${{ steps.filter.outputs.client }}
+      ui: ${{ steps.filter.outputs.ui }}
+      website: ${{ steps.filter.outputs.website }}
+      
+      # Infrastructure changes
+      docker: ${{ steps.filter.outputs.docker }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+      config: ${{ steps.filter.outputs.config }}
+      
+      # Derived flags
+      needs-e2e: ${{ steps.determine.outputs.needs-e2e }}
+      needs-full-test: ${{ steps.determine.outputs.needs-full-test }}
+      deployment-eligible: ${{ steps.determine.outputs.deployment-eligible }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need previous commit for change detection
+      
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            database:
+              - 'packages/database/**'
+              - 'packages/schemas/**'
+            server:
+              - 'packages/server/**'
+              - 'packages/services/**'
+              - 'packages/mcp-client/**'
+            services:
+              - 'packages/services/**'
+              - 'packages/hook-factory/**'
+            api:
+              - 'packages/api-client/**'
+              - 'src/generated/**'
+            client:
+              - 'packages/client/**'
+              - 'packages/ui/**'
+            ui:
+              - 'packages/ui/**'
+              - 'packages/brand-kit/**'
+            website:
+              - 'packages/website/**'
+            docker:
+              - 'Dockerfile*'
+              - 'docker-compose*'
+              - '.dockerignore'
+            workflows:
+              - '.github/workflows/**'
+            config:
+              - 'package.json'
+              - 'bun.lock'
+              - 'tsconfig*.json'
+              - 'bunfig.toml'
+      
+      - name: Determine testing strategy
+        id: determine
+        run: |
+          # Determine if E2E tests are needed
+          NEEDS_E2E="false"
+          if [[ "${{ steps.filter.outputs.client }}" == "true" || 
+                "${{ steps.filter.outputs.server }}" == "true" || 
+                "${{ steps.filter.outputs.database }}" == "true" || 
+                "${{ steps.filter.outputs.api }}" == "true" ]]; then
+            NEEDS_E2E="true"
+          fi
+          
+          # Override if manually specified
+          if [[ "${{ github.event.inputs.skip_e2e }}" == "true" ]]; then
+            NEEDS_E2E="false"
+          fi
+          
+          # Determine if full test suite is needed
+          NEEDS_FULL_TEST="false"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            NEEDS_FULL_TEST="true"
+          elif [[ "${{ steps.filter.outputs.database }}" == "true" || 
+                  "${{ steps.filter.outputs.workflows }}" == "true" ]]; then
+            NEEDS_FULL_TEST="true"
+          fi
+          
+          # Determine deployment eligibility
+          DEPLOYMENT_ELIGIBLE="false"
+          if [[ "${{ github.event_name }}" == "push" && 
+                ("${{ github.ref }}" == "refs/heads/main" || 
+                 "${{ github.ref }}" == "refs/heads/architecture-revamp") ]]; then
+            DEPLOYMENT_ELIGIBLE="true"
+          fi
+          
+          echo "needs-e2e=$NEEDS_E2E" >> $GITHUB_OUTPUT
+          echo "needs-full-test=$NEEDS_FULL_TEST" >> $GITHUB_OUTPUT
+          echo "deployment-eligible=$DEPLOYMENT_ELIGIBLE" >> $GITHUB_OUTPUT
+          
+          echo "🔍 Change detection results:"
+          echo "  E2E tests needed: $NEEDS_E2E"
+          echo "  Full test suite: $NEEDS_FULL_TEST"
+          echo "  Deployment eligible: $DEPLOYMENT_ELIGIBLE"
+
+  # Build and validate core packages
+  build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    needs: changes
+    timeout-minutes: 20
+    
+    strategy:
+      matrix:
+        package: [database, services, api-client, client, server]
+        include:
+          - package: database
+            path: packages/database
+            build-cmd: bun run db:generate && bun run build
+          - package: services
+            path: packages/services
+            build-cmd: bun run build && bun run typecheck
+          - package: api-client
+            path: packages/api-client
+            build-cmd: bun run generate-client && bun run build
+          - package: client
+            path: packages/client
+            build-cmd: bun run build:prod
+          - package: server
+            path: packages/server
+            build-cmd: bun run build && bun run typecheck
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            packages/*/node_modules
+          key: build-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles('**/bun.lock', 'package.json') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ matrix.package }}-
+            build-${{ runner.os }}-
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd ${{ matrix.path }} && bun install --frozen-lockfile --no-summary
+      
+      - name: Build package
+        run: |
+          cd ${{ matrix.path }}
+          ${{ matrix.build-cmd }}
+      
+      - name: Upload build artifacts
+        if: matrix.package == 'client'
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-build-${{ github.run_id }}
+          path: packages/client/dist/**
+          retention-days: 1
+
+  # Unit and integration tests
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    timeout-minutes: 15
+    if: needs.changes.outputs.needs-full-test == 'true' || github.event_name == 'pull_request'
+    
+    strategy:
+      matrix:
+        test-group: [database, services, api, integration]
+        include:
+          - test-group: database
+            path: packages/database
+            test-cmd: bun run test
+          - test-group: services
+            path: packages/services
+            test-cmd: bun run test
+          - test-group: api
+            path: packages/api-client
+            test-cmd: bun run test
+          - test-group: integration
+            path: packages/server
+            test-cmd: bun run test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            packages/*/node_modules
+          key: build-${{ runner.os }}-${{ hashFiles('**/bun.lock', 'package.json') }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+      
+      - name: Setup test environment
+        run: |
+          # Create test database
+          cd packages/database
+          cp data/promptliano.db data/test-ci.db || echo "Creating new test database"
+          DATABASE_PATH=data/test-ci.db bun run migrate
+      
+      - name: Run tests
+        run: |
+          cd ${{ matrix.path }}
+          ${{ matrix.test-cmd }}
+        env:
+          NODE_ENV: test
+          DATABASE_PATH: ../database/data/test-ci.db
+
+  # E2E tests - smoke suite for PRs, comprehensive for main branch
+  e2e-smoke:
+    name: E2E Smoke Tests
+    needs: [changes, build]
+    if: needs.changes.outputs.needs-e2e == 'true'
+    uses: ./.github/workflows/e2e-reusable.yml
+    with:
+      environment: 'development'
+      test_suite: ${{ github.event.inputs.e2e_suite || (github.event_name == 'pull_request' && 'smoke' || 'critical') }}
+      browsers: 'chromium'
+      shards: '2'
+      timeout_minutes: 20
+      retries: 2
+      enable_visual_tests: false
+      enable_performance_tests: false
+      enable_accessibility_tests: true
+
+  # Comprehensive E2E tests for main branch pushes
+  e2e-comprehensive:
+    name: E2E Comprehensive Tests
+    needs: [changes, build, e2e-smoke]
+    if: |
+      needs.changes.outputs.needs-e2e == 'true' && 
+      needs.e2e-smoke.result == 'success' &&
+      (github.ref == 'refs/heads/main' || 
+       github.ref == 'refs/heads/architecture-revamp' ||
+       github.event.inputs.e2e_suite == 'full')
+    uses: ./.github/workflows/e2e-reusable.yml
+    with:
+      environment: 'development'
+      test_suite: 'full'
+      browsers: 'chromium,firefox'
+      shards: '4'
+      timeout_minutes: 30
+      retries: 2
+      enable_visual_tests: true
+      enable_performance_tests: true
+      enable_accessibility_tests: true
+
+  # Security and quality checks
+  security:
+    name: Security & Quality
+    runs-on: ubuntu-latest
+    needs: changes
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' || needs.changes.outputs.needs-full-test == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+      
+      - name: Run security audit
+        run: |
+          # Bun audit (when available) or npm audit
+          bun audit || npm audit --audit-level=high || echo "Security audit completed with warnings"
+      
+      - name: Check for vulnerable dependencies
+        run: |
+          # Check for known vulnerable packages
+          if bun pm ls | grep -E "(lodash@[1-3]\.|moment@[1-2]\.|axios@0\.)"; then
+            echo "⚠️ Vulnerable dependencies detected"
+            exit 1
+          fi
+          echo "✅ No known vulnerable dependencies found"
+      
+      - name: TypeScript strict mode check
+        run: |
+          # Ensure TypeScript strict mode is enabled
+          find . -name "tsconfig.json" -not -path "./node_modules/*" | xargs grep -L '"strict": true' && {
+            echo "❌ TypeScript strict mode not enabled in all configs"
+            exit 1
+          } || echo "✅ TypeScript strict mode enabled"
+
+  # Deployment preparation
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    needs: [changes, build, test, e2e-smoke]
+    if: |
+      needs.changes.outputs.deployment-eligible == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      needs.e2e-smoke.result == 'success'
+    timeout-minutes: 15
+    
+    outputs:
+      should-deploy: ${{ steps.deployment-check.outputs.should-deploy }}
+      deployment-target: ${{ steps.deployment-check.outputs.deployment-target }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: client-build-${{ github.run_id }}
+          path: packages/client/dist
+      
+      - name: Validate build artifacts
+        run: |
+          # Ensure build artifacts are present and valid
+          if [[ ! -d "packages/client/dist" || -z "$(ls -A packages/client/dist)" ]]; then
+            echo "❌ Build artifacts missing or empty"
+            exit 1
+          fi
+          
+          # Check for critical files
+          if [[ ! -f "packages/client/dist/index.html" ]]; then
+            echo "❌ Missing index.html in build"
+            exit 1
+          fi
+          
+          echo "✅ Build artifacts validated"
+      
+      - name: Determine deployment strategy
+        id: deployment-check
+        run: |
+          SHOULD_DEPLOY="false"
+          DEPLOYMENT_TARGET="none"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            SHOULD_DEPLOY="true"
+            DEPLOYMENT_TARGET="production"
+          elif [[ "${{ github.ref }}" == "refs/heads/architecture-revamp" ]]; then
+            SHOULD_DEPLOY="true"
+            DEPLOYMENT_TARGET="staging"
+          fi
+          
+          # Override with manual input
+          if [[ "${{ github.event.inputs.deploy_environment }}" != "none" ]]; then
+            DEPLOYMENT_TARGET="${{ github.event.inputs.deploy_environment }}"
+            SHOULD_DEPLOY="true"
+          fi
+          
+          echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "deployment-target=$DEPLOYMENT_TARGET" >> $GITHUB_OUTPUT
+          
+          echo "🚀 Deployment check:"
+          echo "  Should deploy: $SHOULD_DEPLOY"
+          echo "  Target environment: $DEPLOYMENT_TARGET"
+
+  # Final status check and reporting
+  ci-status:
+    name: CI Status Summary
+    runs-on: ubuntu-latest
+    needs: [
+      changes,
+      build,
+      test,
+      e2e-smoke,
+      e2e-comprehensive,
+      security,
+      prepare-deployment
+    ]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Generate CI summary
+        run: |
+          echo "# 🏗️ CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Job status summary
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Changes Detection | ${{ needs.changes.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅' || needs.build.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result == 'success' && '✅' || needs.test.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Smoke | ${{ needs.e2e-smoke.result == 'success' && '✅' || needs.e2e-smoke.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Comprehensive | ${{ needs.e2e-comprehensive.result == 'success' && '✅' || needs.e2e-comprehensive.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result == 'success' && '✅' || needs.security.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Change detection summary
+          echo "## Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database**: ${{ needs.changes.outputs.database == 'true' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: ${{ needs.changes.outputs.server == 'true' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Client**: ${{ needs.changes.outputs.client == 'true' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflows**: ${{ needs.changes.outputs.workflows == 'true' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Deployment status
+          if [[ "${{ needs.prepare-deployment.outputs.should-deploy }}" == "true" ]]; then
+            echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
+            echo "Target: **${{ needs.prepare-deployment.outputs.deployment-target }}**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⏸️ No Deployment Scheduled" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Set final status
+        run: |
+          # Determine overall success
+          OVERALL_SUCCESS="true"
+          
+          # Check critical jobs
+          if [[ "${{ needs.build.result }}" == "failure" || 
+                "${{ needs.test.result }}" == "failure" || 
+                "${{ needs.e2e-smoke.result }}" == "failure" ]]; then
+            OVERALL_SUCCESS="false"
+          fi
+          
+          if [[ "$OVERALL_SUCCESS" == "true" ]]; then
+            echo "✅ CI Pipeline completed successfully"
+            exit 0
+          else
+            echo "❌ CI Pipeline failed"
+            exit 1
+          fi

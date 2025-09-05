@@ -208,6 +208,11 @@ export function KanbanCard({
             </div>
 
             <div className='flex items-center gap-2 flex-wrap'>
+              {actualId && (
+                <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+                  {type === 'ticket' ? 'T#' : 'TS#'}{actualId}
+                </Badge>
+              )}
               {queueName && (
                 <Badge
                   variant='outline'
@@ -327,8 +332,13 @@ export function KanbanCard({
                   {estimatedHours && <p>Est: {estimatedHours}h</p>}
                 </div>
               )}
-              {queueName && (
-                <div className='flex items-center gap-1 mt-0.5'>
+              <div className='flex items-center gap-1 mt-0.5'>
+                {actualId && (
+                  <Badge variant='outline' className='font-mono text-[10px] px-1 py-0'>
+                    TS#{actualId}
+                  </Badge>
+                )}
+                {queueName && (
                   <Badge variant='outline' className='text-[10px] px-1 py-0 gap-0.5 h-4'>
                     <Inbox className='h-2.5 w-2.5' />
                     {queueName}
@@ -336,8 +346,8 @@ export function KanbanCard({
                       <span className='opacity-75'>#{queuePosition + 1}</span>
                     )}
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             {estimatedHours && (
               <div className='flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded'>

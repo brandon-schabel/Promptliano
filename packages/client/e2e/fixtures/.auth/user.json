@@ -2,11 +2,19 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:1420",
+      "origin": "http://localhost:51420",
       "localStorage": [
         {
           "name": "projectTabs",
           "value": "{}"
+        },
+        {
+          "name": "sidebar_state",
+          "value": "false"
+        },
+        {
+          "name": "appSettings",
+          "value": "{\"promptlianoServerUrl\":\"http://localhost:53147\",\"theme\":\"system\"}"
         },
         {
           "name": "defaultTabMigrated",

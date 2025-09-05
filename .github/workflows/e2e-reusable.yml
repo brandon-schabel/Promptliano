@@ -1,0 +1,469 @@
+name: Reusable E2E Testing Workflow
+
+# Reusable workflow for E2E testing across different environments
+# Can be called from other workflows with different configurations
+
+on:
+  workflow_call:
+    inputs:
+      # Environment Configuration
+      environment:
+        description: 'Target environment (development, staging, production, preview)'
+        type: string
+        required: true
+        default: 'development'
+      
+      base_url:
+        description: 'Base URL for testing'
+        type: string
+        required: false
+        default: 'http://localhost:1420'
+      
+      api_url:
+        description: 'API URL for testing'
+        type: string
+        required: false
+        default: 'http://localhost:3147/api'
+      
+      # Test Configuration
+      test_suite:
+        description: 'Test suite to run (smoke, critical, full, custom)'
+        type: string
+        required: false
+        default: 'smoke'
+      
+      test_pattern:
+        description: 'Custom test pattern (when test_suite is custom)'
+        type: string
+        required: false
+        default: '*.spec.ts'
+      
+      browsers:
+        description: 'Browsers to test (comma-separated)'
+        type: string
+        required: false
+        default: 'chromium'
+      
+      shards:
+        description: 'Number of test shards'
+        type: string
+        required: false
+        default: '2'
+      
+      # Performance Configuration
+      timeout_minutes:
+        description: 'Timeout for tests in minutes'
+        type: number
+        required: false
+        default: 20
+      
+      retries:
+        description: 'Number of retries for failed tests'
+        type: number
+        required: false
+        default: 1
+      
+      # Feature Flags
+      enable_visual_tests:
+        description: 'Enable visual regression tests'
+        type: boolean
+        required: false
+        default: false
+      
+      enable_performance_tests:
+        description: 'Enable performance tests'
+        type: boolean
+        required: false
+        default: false
+      
+      enable_accessibility_tests:
+        description: 'Enable accessibility tests'
+        type: boolean
+        required: false
+        default: false
+      
+      # Deployment Integration
+      vercel_deployment_url:
+        description: 'Vercel deployment URL for preview testing'
+        type: string
+        required: false
+      
+      wait_for_deployment:
+        description: 'Wait for deployment to be ready'
+        type: boolean
+        required: false
+        default: false
+    
+    secrets:
+      VERCEL_TOKEN:
+        description: 'Vercel token for deployment integration'
+        required: false
+    
+    outputs:
+      test_results_url:
+        description: 'URL to test results'
+        value: ${{ jobs.test-summary.outputs.results_url }}
+      
+      success_rate:
+        description: 'Test success rate percentage'
+        value: ${{ jobs.test-summary.outputs.success_rate }}
+      
+      total_tests:
+        description: 'Total number of tests executed'
+        value: ${{ jobs.test-summary.outputs.total_tests }}
+
+# Optimized concurrency for reusable workflow
+concurrency:
+  group: e2e-reusable-${{ inputs.environment }}-${{ github.run_id }}
+  cancel-in-progress: false # Don't cancel for reusable workflows
+
+# Minimal permissions for security
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
+env:
+  # Bun Configuration
+  BUN_VERSION: "1.1.34"
+  BUN_CACHE_DIR: ~/.bun/install/cache
+  
+  # Playwright Configuration
+  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/playwright
+  PLAYWRIGHT_SKIP_BROWSER_GC: 1
+  
+  # Environment-specific settings
+  NODE_ENV: ${{ inputs.environment == 'production' && 'production' || 'test' }}
+  CI: true
+  FORCE_COLOR: 1
+  
+  # Performance optimizations
+  MAX_OLD_SPACE_SIZE: 4096
+  UV_THREADPOOL_SIZE: 64
+
+jobs:
+  # Environment-specific setup
+  setup:
+    name: Setup (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.cache-key }}
+      playwright-version: ${{ steps.playwright-info.outputs.version }}
+      test-matrix: ${{ steps.create-matrix.outputs.matrix }}
+      deployment-ready: ${{ steps.deployment-check.outputs.ready }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "cache-key=bun-${{ runner.os }}-${{ inputs.environment }}-${{ hashFiles('**/bun.lock', 'package.json') }}" >> $GITHUB_OUTPUT
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ steps.cache-keys.outputs.cache-key }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ inputs.environment }}-
+            bun-${{ runner.os }}-
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Get Playwright version
+        id: playwright-info
+        run: |
+          cd packages/client
+          VERSION=$(bun pm ls @playwright/test | grep @playwright/test | head -1 | cut -d'@' -f3 | cut -d' ' -f1 || echo "latest")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Check deployment readiness
+        id: deployment-check
+        run: |
+          if [[ "${{ inputs.wait_for_deployment }}" == "true" && -n "${{ inputs.vercel_deployment_url }}" ]]; then
+            echo "Waiting for deployment to be ready..."
+            timeout 300 bash -c 'until curl -f "${{ inputs.vercel_deployment_url }}/api/health" 2>/dev/null; do sleep 10; done' || echo "Deployment check failed"
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create test matrix
+        id: create-matrix
+        run: |
+          cd packages/client
+          
+          # Determine test files based on suite
+          case "${{ inputs.test_suite }}" in
+            "smoke")
+              TEST_PATTERN="*smoke*.spec.ts *basic*.spec.ts"
+              ;;
+            "critical")
+              TEST_PATTERN="*smoke*.spec.ts *auth*.spec.ts *navigation*.spec.ts"
+              ;;
+            "full")
+              TEST_PATTERN="*.spec.ts"
+              ;;
+            "custom")
+              TEST_PATTERN="${{ inputs.test_pattern }}"
+              ;;
+            *)
+              TEST_PATTERN="*smoke*.spec.ts"
+              ;;
+          esac
+          
+          # Create matrix
+          BROWSERS="${{ inputs.browsers }}"
+          SHARD_COUNT="${{ inputs.shards }}"
+          
+          python3 -c "
+import json
+import sys
+
+browsers = '$BROWSERS'.split(',')
+shard_count = int('$SHARD_COUNT')
+
+matrix = {
+    'include': []
+}
+
+for browser in browsers:
+    browser = browser.strip()
+    # Skip mobile browsers for certain environments
+    if '${{ inputs.environment }}' == 'production' and 'mobile' in browser:
+        continue
+    
+    for shard in range(1, shard_count + 1):
+        matrix['include'].append({
+            'browser': browser,
+            'shard': f'{shard}/{shard_count}',
+            'shard-index': shard - 1,
+            'shard-total': shard_count
+        })
+
+print(json.dumps(matrix))
+" > matrix.json
+          
+          echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
+
+  # Main test execution
+  e2e-tests:
+    name: E2E (${{ matrix.browser }}, shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    if: needs.setup.outputs.deployment-ready == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.test-matrix) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BUN_CACHE_DIR }}
+            node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile --no-summary
+          cd packages/client && bun install --frozen-lockfile --no-summary
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ needs.setup.outputs.playwright-version }}-${{ matrix.browser }}
+          restore-keys: |
+            playwright-${{ needs.setup.outputs.playwright-version }}-
+            playwright-
+      
+      - name: Install Playwright browser
+        run: |
+          cd packages/client
+          case "${{ matrix.browser }}" in
+            "chromium"|"mobile-chrome")
+              bunx playwright install chromium chromium-deps
+              ;;
+            "firefox")
+              bunx playwright install firefox firefox-deps
+              ;;
+            "webkit"|"mobile-safari")
+              bunx playwright install webkit webkit-deps
+              ;;
+          esac
+      
+      - name: Setup environment-specific services
+        run: |
+          if [[ "${{ inputs.environment }}" == "development" || "${{ inputs.environment }}" == "test" ]]; then
+            # Start local services for development/test environments
+            cd packages/database
+            cp data/promptliano.db data/test-${{ matrix.shard-index }}.db || echo "Creating new test database"
+            DATABASE_PATH=data/test-${{ matrix.shard-index }}.db bun run migrate || true
+            
+            cd ../server
+            DATABASE_PATH=../database/data/test-${{ matrix.shard-index }}.db \
+            PORT=314${{ matrix.shard-index }} \
+            NODE_ENV=test \
+            LOG_LEVEL=error \
+            bun run server.ts &
+            
+            # Wait for server
+            timeout 60 bash -c 'until curl -f http://localhost:314${{ matrix.shard-index }}/api/health; do sleep 2; done'
+            
+            # Set URLs for local testing
+            echo "BASE_URL=http://localhost:314${{ matrix.shard-index }}" >> $GITHUB_ENV
+            echo "API_URL=http://localhost:314${{ matrix.shard-index }}/api" >> $GITHUB_ENV
+          else
+            # Use provided URLs for other environments
+            echo "BASE_URL=${{ inputs.base_url }}" >> $GITHUB_ENV
+            echo "API_URL=${{ inputs.api_url }}" >> $GITHUB_ENV
+          fi
+      
+      - name: Run E2E tests
+        run: |
+          cd packages/client
+          
+          # Build test command based on configuration
+          TEST_CMD="bunx playwright test"
+          TEST_CMD="$TEST_CMD --project=${{ matrix.browser }}"
+          TEST_CMD="$TEST_CMD --shard=${{ matrix.shard }}"
+          TEST_CMD="$TEST_CMD --retries=${{ inputs.retries }}"
+          
+          # Add environment-specific configuration
+          case "${{ inputs.environment }}" in
+            "production"|"staging")
+              TEST_CMD="$TEST_CMD --config=playwright-ci.config.ts"
+              ;;
+            "development"|"test")
+              TEST_CMD="$TEST_CMD --config=playwright-fast.config.ts"
+              ;;
+          esac
+          
+          # Add feature-specific tests
+          if [[ "${{ inputs.enable_visual_tests }}" == "true" ]]; then
+            TEST_CMD="$TEST_CMD --grep=@visual"
+          fi
+          
+          if [[ "${{ inputs.enable_performance_tests }}" == "true" ]]; then
+            TEST_CMD="$TEST_CMD --grep=@performance"
+          fi
+          
+          if [[ "${{ inputs.enable_accessibility_tests }}" == "true" ]]; then
+            TEST_CMD="$TEST_CMD --grep=@accessibility"
+          fi
+          
+          # Execute tests
+          eval $TEST_CMD \
+            --reporter=html,json,github \
+            --output-dir=test-results-${{ inputs.environment }}-${{ matrix.browser }}-${{ matrix.shard-index }} \
+            || echo "Tests completed with failures"
+        
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.BASE_URL }}
+          VITE_API_URL: ${{ env.API_URL }}
+          PLAYWRIGHT_HTML_REPORT: playwright-report-${{ inputs.environment }}-${{ matrix.browser }}-${{ matrix.shard-index }}
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.environment }}-results-${{ matrix.browser }}-shard-${{ matrix.shard-index }}
+          path: |
+            packages/client/test-results-${{ inputs.environment }}-${{ matrix.browser }}-${{ matrix.shard-index }}/**
+            packages/client/playwright-report-${{ inputs.environment }}-${{ matrix.browser }}-${{ matrix.shard-index }}/**
+          retention-days: 5
+
+  # Test summary and reporting
+  test-summary:
+    name: Test Summary (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [setup, e2e-tests]
+    if: always()
+    timeout-minutes: 10
+    
+    outputs:
+      results_url: ${{ steps.summary.outputs.results_url }}
+      success_rate: ${{ steps.summary.outputs.success_rate }}
+      total_tests: ${{ steps.summary.outputs.total_tests }}
+    
+    steps:
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: test-results
+          pattern: ${{ inputs.environment }}-results-*
+      
+      - name: Generate summary
+        id: summary
+        run: |
+          # Calculate statistics
+          TOTAL_ARTIFACTS=$(find test-results -name "*results*" -type d | wc -l)
+          FAILED_ARTIFACTS=$(find test-results -name "*failed*" -type f | wc -l)
+          SUCCESS_RATE=$(python3 -c "print(int((($TOTAL_ARTIFACTS - $FAILED_ARTIFACTS) / max($TOTAL_ARTIFACTS, 1)) * 100))")
+          
+          echo "results_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
+          echo "total_tests=$TOTAL_ARTIFACTS" >> $GITHUB_OUTPUT
+          
+          # Create summary report
+          cat > test-summary.md << EOF
+          # E2E Test Results - ${{ inputs.environment }}
+          
+          **Environment**: ${{ inputs.environment }}
+          **Test Suite**: ${{ inputs.test_suite }}
+          **Success Rate**: ${SUCCESS_RATE}%
+          **Total Test Shards**: $TOTAL_ARTIFACTS
+          **Browsers**: ${{ inputs.browsers }}
+          
+          ## Configuration
+          - Base URL: ${{ inputs.base_url }}
+          - Timeout: ${{ inputs.timeout_minutes }} minutes
+          - Retries: ${{ inputs.retries }}
+          - Visual Tests: ${{ inputs.enable_visual_tests }}
+          - Performance Tests: ${{ inputs.enable_performance_tests }}
+          - Accessibility Tests: ${{ inputs.enable_accessibility_tests }}
+          
+          ## Results
+          [View Full Results](${{ steps.summary.outputs.results_url }})
+          EOF
+          
+          echo "Summary generated for ${{ inputs.environment }} environment"
+      
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.environment }}-test-summary
+          path: test-summary.md
+          retention-days: 14

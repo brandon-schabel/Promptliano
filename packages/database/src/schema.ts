@@ -28,6 +28,7 @@ export interface GitCommitAuthor {
   date?: string
 }
 
+// Claude Code Types
 export interface TokenUsage {
   input_tokens?: number
   cache_creation_input_tokens?: number
@@ -1137,7 +1138,6 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages)
 export const insertPromptSchema = createInsertSchema(prompts)
 export const insertQueueSchema = createInsertSchema(queues)
 export const insertQueueItemSchema = createInsertSchema(queueItems)
-
 export const insertProviderKeySchema = createInsertSchema(providerKeys)
 export const insertFileSchema = createInsertSchema(files)
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles)

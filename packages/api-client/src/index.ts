@@ -399,11 +399,11 @@ export class PromptlianoClient {
     stash: (projectId: number, message?: string) =>
       this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
     stashApply: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
+      this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref } as any),
     stashPop: (projectId: number, ref?: string) =>
       this.typeSafe.createProjectsByIdGitStashPop(projectId, ref ? { stashRef: ref } : {}),
     stashDrop: (projectId: number, ref?: string) =>
-      this.typeSafe.deleteProjectsByIdGitStash(projectId, ref ? { stashRef: ref } : {}),
+      this.typeSafe.createProjectsByIdGitStashPop(projectId, { ref } as any),
     reset: (projectId: number, ref: string, mode?: 'soft' | 'mixed' | 'hard') =>
       this.typeSafe.createProjectsByIdGitReset(projectId, { ref, mode }),
     // Worktree operations

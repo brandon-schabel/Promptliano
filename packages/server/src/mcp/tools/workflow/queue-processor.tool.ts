@@ -15,7 +15,10 @@ import {
   completeQueueItem,
   failQueueItem,
   updateTicket,
-  updateTask
+  updateTask,
+  flowService,
+  taskService,
+  getTicketById
 } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
 
@@ -24,6 +27,7 @@ export enum QueueProcessorAction {
   GET_NEXT_TASK = 'get_next_task',
   UPDATE_STATUS = 'update_status',
   COMPLETE_TASK = 'complete_task',
+  COMPLETE_TICKET_WITH_TASKS = 'complete_ticket_with_tasks',
   FAIL_TASK = 'fail_task',
   CHECK_QUEUE_STATUS = 'check_queue_status'
 }
@@ -38,7 +42,7 @@ export const QueueProcessorSchema = z.object({
 export const queueProcessorTool: MCPToolDefinition = {
   name: 'queue_processor',
   description:
-    'Process tasks from the queue system. Actions: get_next_task (pull next task to work on), update_status (update task progress), complete_task (mark as done), fail_task (mark as failed), check_queue_status (check if queue has work)',
+    'Process tasks from the queue system. Actions: get_next_task (pull next task to work on), update_status (update task progress), complete_task (mark as done), complete_ticket_with_tasks (complete ticket and all tasks), fail_task (mark as failed), check_queue_status (check if queue has work)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -54,7 +58,7 @@ export const queueProcessorTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get_next_task: { agentId: "promptliano-ui-architect" }. For update_status: { itemType: "ticket" | "task", itemId: 123, status: "in_progress", ticketId: 456 (required for tasks) }. For complete_task: { itemType: "ticket" | "task", itemId: 123, ticketId: 456 (required for tasks), completionNotes: "optional notes" }. For fail_task: { itemType: "ticket" | "task", itemId: 123, errorMessage: "Error details", ticketId: 456 (required for tasks) }'
+          'Action-specific data. For get_next_task: { agentId: "promptliano-ui-architect" }. For update_status: { itemType: "ticket" | "task", itemId: 123, status: "in_progress", ticketId: 456 (required for tasks) }. For complete_task: { itemType: "ticket" | "task", itemId: 123, ticketId: 456 (required for tasks), completionNotes: "optional notes" }. For complete_ticket_with_tasks: { ticketId: 123, completionNotes: "optional notes" }. For fail_task: { itemType: "ticket" | "task", itemId: 123, errorMessage: "Error details", ticketId: 456 (required for tasks) }'
       }
     },
     required: ['action']
@@ -180,21 +184,98 @@ ${ticket.suggestedAgentIds?.length > 0 ? `Suggested Agents: ${ticket.suggestedAg
             const completionNotes = data?.completionNotes as string | undefined
 
             try {
-              await completeQueueItem(itemId, { success: true, metadata: { completionNotes } })
-
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `Successfully completed ${itemType} #${itemId}${completionNotes ? `. Notes: ${completionNotes}` : ''}`
+              if (itemType === 'ticket') {
+                // When completing a ticket, also complete all its tasks
+                // First, get all tasks for this ticket
+                const tasks = await taskService.getTasksByTicket(itemId)
+                
+                // Complete each task that's in the queue
+                for (const task of tasks) {
+                  if (task.queueId !== null && task.queueStatus !== 'completed') {
+                    await completeQueueItem(task.id, { success: true, metadata: { completionNotes: 'Completed with parent ticket' } })
+                    await updateTask(task.id, { done: true, status: 'completed' })
                   }
-                ]
+                }
+                
+                // Now complete the ticket itself
+                await completeQueueItem(itemId, { success: true, metadata: { completionNotes } })
+                await updateTicket(itemId, { status: 'closed' as any })
+                
+                // Dequeue the ticket and all tasks to clean up queue state
+                await flowService.dequeueTicketWithTasks(itemId)
+                
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Successfully completed ticket #${itemId} and ${tasks.length} associated tasks${completionNotes ? `. Notes: ${completionNotes}` : ''}`
+                    }
+                  ]
+                }
+              } else {
+                // For individual tasks, just complete the task
+                await completeQueueItem(itemId, { success: true, metadata: { completionNotes } })
+                await updateTask(itemId, { done: true, status: 'completed' })
+                
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Successfully completed task #${itemId}${completionNotes ? `. Notes: ${completionNotes}` : ''}`
+                    }
+                  ]
+                }
               }
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error)
               throw createMCPError(MCPErrorCode.SERVICE_ERROR, `Failed to complete ${itemType}: ${errorMessage}`, {
                 itemType,
                 itemId
+              })
+            }
+          }
+
+          case QueueProcessorAction.COMPLETE_TICKET_WITH_TASKS: {
+            // Complete a ticket and all its associated tasks
+            const ticketId = validateDataField<number>(data, 'ticketId', 'number', '123')
+            const completionNotes = data?.completionNotes as string | undefined
+
+            try {
+              // Get all tasks for this ticket
+              const tasks = await taskService.getTasksByTicket(ticketId)
+              let completedTaskCount = 0
+              
+              // Complete each task that's in the queue
+              for (const task of tasks) {
+                if (task.queueId !== null && task.queueStatus !== 'completed') {
+                  await completeQueueItem(task.id, { success: true, metadata: { completionNotes: 'Completed with parent ticket' } })
+                  await updateTask(task.id, { done: true, status: 'completed' })
+                  completedTaskCount++
+                }
+              }
+              
+              // Complete the ticket itself if it's in a queue
+              await updateTicket(ticketId, { status: 'closed' as any })
+              const ticket = await getTicketById(ticketId)
+              if (ticket.queueId !== null) {
+                await completeQueueItem(ticketId, { success: true, metadata: { completionNotes } })
+              }
+              
+              // Dequeue the ticket and all tasks to ensure clean queue state
+              await flowService.dequeueTicketWithTasks(ticketId)
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Successfully completed ticket #${ticketId} and ${completedTaskCount} associated tasks${completionNotes ? `. Notes: ${completionNotes}` : ''}`
+                  }
+                ]
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              throw createMCPError(MCPErrorCode.SERVICE_ERROR, `Failed to complete ticket with tasks: ${errorMessage}`, {
+                ticketId
               })
             }
           }

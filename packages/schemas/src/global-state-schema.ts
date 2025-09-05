@@ -558,7 +558,6 @@ export const createSafeGlobalState = (): GlobalState => ({
       ticketQueueFilter: 'all' as const,
       promptsPanelCollapsed: true,
       selectedFilesCollapsed: false,
-
       assetsEnabled: false,
       autoIncludeClaudeMd: false,
       instructionFileSettings: {

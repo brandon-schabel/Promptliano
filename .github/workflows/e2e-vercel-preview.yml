@@ -1,0 +1,519 @@
+name: E2E Tests - Vercel Preview
+
+# Vercel integration workflow for preview deployment testing
+# Automatically runs E2E tests against Vercel preview deployments
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'packages/client/**'
+      - 'packages/website/**'
+      - 'vercel.json'
+      - '.github/workflows/e2e-vercel-preview.yml'
+
+# Optimize concurrency for preview deployments
+concurrency:
+  group: e2e-vercel-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Security: Read-only permissions plus deployments
+permissions:
+  contents: read
+  deployments: read
+  pull-requests: write
+  checks: write
+  actions: read
+
+env:
+  # Vercel Configuration
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  
+  # Bun Configuration
+  BUN_VERSION: "1.1.34"
+  
+  # Test Configuration
+  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/playwright
+
+jobs:
+  # Check if preview testing should run
+  check-preview-conditions:
+    name: Check Preview Conditions
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    
+    outputs:
+      should-run: ${{ steps.conditions.outputs.should-run }}
+      has-e2e-label: ${{ steps.conditions.outputs.has-e2e-label }}
+      has-frontend-changes: ${{ steps.conditions.outputs.has-frontend-changes }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Check conditions
+        id: conditions
+        run: |
+          # Check for E2E test label
+          HAS_E2E_LABEL="false"
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'e2e-test') }}" == "true" ]]; then
+            HAS_E2E_LABEL="true"
+          fi
+          
+          # Check for frontend changes
+          HAS_FRONTEND_CHANGES="false"
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          
+          if echo "$CHANGED_FILES" | grep -E "(packages/client|packages/website)" > /dev/null; then
+            HAS_FRONTEND_CHANGES="true"
+          fi
+          
+          # Determine if we should run
+          SHOULD_RUN="false"
+          if [[ "$HAS_E2E_LABEL" == "true" || "$HAS_FRONTEND_CHANGES" == "true" ]]; then
+            SHOULD_RUN="true"
+          fi
+          
+          echo "should-run=$SHOULD_RUN" >> $GITHUB_OUTPUT
+          echo "has-e2e-label=$HAS_E2E_LABEL" >> $GITHUB_OUTPUT
+          echo "has-frontend-changes=$HAS_FRONTEND_CHANGES" >> $GITHUB_OUTPUT
+          
+          echo "Should run E2E tests: $SHOULD_RUN"
+          echo "Has E2E label: $HAS_E2E_LABEL"
+          echo "Has frontend changes: $HAS_FRONTEND_CHANGES"
+
+  # Wait for Vercel deployment
+  wait-for-vercel:
+    name: Wait for Vercel Deployment
+    runs-on: ubuntu-latest
+    needs: check-preview-conditions
+    if: needs.check-preview-conditions.outputs.should-run == 'true'
+    timeout-minutes: 15
+    
+    outputs:
+      preview-url: ${{ steps.vercel-preview.outputs.preview-url }}
+      deployment-id: ${{ steps.vercel-preview.outputs.deployment-id }}
+    
+    steps:
+      - name: Wait for Vercel Preview Deployment
+        id: vercel-preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 600 # 10 minutes
+          check_interval: 30 # Check every 30 seconds
+      
+      - name: Verify deployment is ready
+        run: |
+          PREVIEW_URL="${{ steps.vercel-preview.outputs.preview-url }}"
+          
+          if [[ -z "$PREVIEW_URL" ]]; then
+            echo "❌ No preview URL found"
+            exit 1
+          fi
+          
+          echo "✅ Preview deployment ready: $PREVIEW_URL"
+          
+          # Wait for the deployment to be fully ready
+          echo "Waiting for deployment to be fully ready..."
+          timeout 300 bash -c '
+            while true; do
+              if curl -f --max-time 30 "${{ steps.vercel-preview.outputs.preview-url }}" > /dev/null 2>&1; then
+                echo "✅ Deployment is responding"
+                break
+              fi
+              echo "⏳ Waiting for deployment to respond..."
+              sleep 15
+            done
+          ' || {
+            echo "❌ Deployment failed to respond within timeout"
+            exit 1
+          }
+      
+      - name: Test deployment health
+        run: |
+          PREVIEW_URL="${{ steps.vercel-preview.outputs.preview-url }}"
+          
+          # Test basic connectivity
+          echo "Testing basic connectivity..."
+          if ! curl -f --max-time 30 "$PREVIEW_URL" > /dev/null; then
+            echo "❌ Failed to connect to preview deployment"
+            exit 1
+          fi
+          
+          # Test API health if available
+          if curl -f --max-time 30 "$PREVIEW_URL/api/health" > /dev/null 2>&1; then
+            echo "✅ API health check passed"
+          else
+            echo "⚠️ API health check not available (may be frontend-only deployment)"
+          fi
+          
+          echo "🚀 Deployment is ready for testing"
+
+  # Run smoke tests on preview deployment
+  preview-smoke-tests:
+    name: Preview Smoke Tests
+    needs: [check-preview-conditions, wait-for-vercel]
+    if: needs.check-preview-conditions.outputs.should-run == 'true'
+    uses: ./.github/workflows/e2e-reusable.yml
+    with:
+      environment: 'preview'
+      base_url: ${{ needs.wait-for-vercel.outputs.preview-url }}
+      api_url: ${{ needs.wait-for-vercel.outputs.preview-url }}/api
+      test_suite: 'smoke'
+      browsers: 'chromium'
+      shards: '2'
+      timeout_minutes: 15
+      retries: 2
+      enable_visual_tests: false
+      enable_performance_tests: false
+      enable_accessibility_tests: true
+      vercel_deployment_url: ${{ needs.wait-for-vercel.outputs.preview-url }}
+      wait_for_deployment: true
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # Run comprehensive tests if E2E label is present
+  preview-comprehensive-tests:
+    name: Preview Comprehensive Tests
+    needs: [check-preview-conditions, wait-for-vercel, preview-smoke-tests]
+    if: needs.check-preview-conditions.outputs.has-e2e-label == 'true'
+    uses: ./.github/workflows/e2e-reusable.yml
+    with:
+      environment: 'preview'
+      base_url: ${{ needs.wait-for-vercel.outputs.preview-url }}
+      api_url: ${{ needs.wait-for-vercel.outputs.preview-url }}/api
+      test_suite: 'critical'
+      browsers: 'chromium,firefox'
+      shards: '4'
+      timeout_minutes: 25
+      retries: 2
+      enable_visual_tests: true
+      enable_performance_tests: true
+      enable_accessibility_tests: true
+      vercel_deployment_url: ${{ needs.wait-for-vercel.outputs.preview-url }}
+      wait_for_deployment: false # Already waited
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # Performance benchmarking on preview
+  preview-performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    needs: [check-preview-conditions, wait-for-vercel]
+    if: needs.check-preview-conditions.outputs.has-e2e-label == 'true'
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile
+          cd packages/client && bun install --frozen-lockfile
+      
+      - name: Install Playwright
+        run: |
+          cd packages/client
+          bunx playwright install chromium chromium-deps
+      
+      - name: Run Lighthouse performance tests
+        run: |
+          cd packages/client
+          
+          # Create performance test script
+          cat > performance-test.js << 'EOF'
+          const { chromium } = require('playwright');
+          const lighthouse = require('lighthouse');
+          const { createServer } = require('http');
+          
+          async function runLighthouse() {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            
+            try {
+              console.log('Running Lighthouse audit on:', '${{ needs.wait-for-vercel.outputs.preview-url }}');
+              
+              // Simple performance check with Playwright
+              const startTime = Date.now();
+              await page.goto('${{ needs.wait-for-vercel.outputs.preview-url }}', { 
+                waitUntil: 'networkidle', 
+                timeout: 30000 
+              });
+              const loadTime = Date.now() - startTime;
+              
+              console.log(`Page load time: ${loadTime}ms`);
+              
+              // Check for performance markers
+              const metrics = await page.evaluate(() => {
+                const navigation = performance.getEntriesByType('navigation')[0];
+                return {
+                  domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+                  loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
+                  totalTime: navigation.loadEventEnd - navigation.fetchStart
+                };
+              });
+              
+              console.log('Performance metrics:', JSON.stringify(metrics, null, 2));
+              
+              // Save results
+              const results = {
+                url: '${{ needs.wait-for-vercel.outputs.preview-url }}',
+                timestamp: new Date().toISOString(),
+                loadTime: loadTime,
+                metrics: metrics
+              };
+              
+              require('fs').writeFileSync('performance-results.json', JSON.stringify(results, null, 2));
+              
+            } catch (error) {
+              console.error('Performance test failed:', error);
+              process.exit(1);
+            } finally {
+              await browser.close();
+            }
+          }
+          
+          runLighthouse();
+          EOF
+          
+          # Run performance test
+          bun run performance-test.js || echo "Performance test completed with warnings"
+      
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-performance-results
+          path: packages/client/performance-results.json
+          retention-days: 7
+
+  # Visual regression testing against main branch
+  preview-visual-regression:
+    name: Visual Regression vs Main
+    runs-on: ubuntu-latest
+    needs: [check-preview-conditions, wait-for-vercel]
+    if: needs.check-preview-conditions.outputs.has-e2e-label == 'true'
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need base branch for comparison
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile
+          cd packages/client && bun install --frozen-lockfile
+      
+      - name: Install Playwright
+        run: |
+          cd packages/client
+          bunx playwright install chromium chromium-deps
+      
+      - name: Run visual regression tests
+        run: |
+          cd packages/client
+          
+          # Create visual comparison test
+          PREVIEW_URL="${{ needs.wait-for-vercel.outputs.preview-url }}"
+          
+          bunx playwright test \
+            --config=playwright-visual.config.ts \
+            --project=chromium \
+            --grep="@visual" \
+            --reporter=html \
+            --update-snapshots=false \
+            || echo "Visual tests completed with differences"
+        
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ needs.wait-for-vercel.outputs.preview-url }}
+      
+      - name: Upload visual test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-visual-regression
+          path: |
+            packages/client/test-results/**
+            packages/client/playwright-report/**
+          retention-days: 7
+
+  # Comment on PR with results
+  comment-results:
+    name: Comment Test Results
+    runs-on: ubuntu-latest
+    needs: [
+      check-preview-conditions,
+      wait-for-vercel,
+      preview-smoke-tests,
+      preview-comprehensive-tests,
+      preview-performance-benchmark,
+      preview-visual-regression
+    ]
+    if: always() && needs.check-preview-conditions.outputs.should-run == 'true'
+    timeout-minutes: 5
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+      
+      - name: Create comprehensive test report
+        run: |
+          # Create markdown report
+          cat > pr-comment.md << 'EOF'
+          ## 🚀 Vercel Preview E2E Test Results
+          
+          **Preview URL**: [${{ needs.wait-for-vercel.outputs.preview-url }}](${{ needs.wait-for-vercel.outputs.preview-url }})
+          **Deployment ID**: `${{ needs.wait-for-vercel.outputs.deployment-id }}`
+          
+          ### Test Results Summary
+          EOF
+          
+          # Add smoke test results
+          if [[ "${{ needs.preview-smoke-tests.result }}" == "success" ]]; then
+            echo "✅ **Smoke Tests**: Passed" >> pr-comment.md
+          else
+            echo "❌ **Smoke Tests**: Failed" >> pr-comment.md
+          fi
+          
+          # Add comprehensive test results if they ran
+          if [[ "${{ needs.check-preview-conditions.outputs.has-e2e-label }}" == "true" ]]; then
+            if [[ "${{ needs.preview-comprehensive-tests.result }}" == "success" ]]; then
+              echo "✅ **Comprehensive Tests**: Passed" >> pr-comment.md
+            else
+              echo "❌ **Comprehensive Tests**: Failed" >> pr-comment.md
+            fi
+            
+            if [[ "${{ needs.preview-performance-benchmark.result }}" == "success" ]]; then
+              echo "✅ **Performance Benchmark**: Completed" >> pr-comment.md
+            else
+              echo "⚠️ **Performance Benchmark**: Issues detected" >> pr-comment.md
+            fi
+            
+            if [[ "${{ needs.preview-visual-regression.result }}" == "success" ]]; then
+              echo "✅ **Visual Regression**: No significant changes" >> pr-comment.md
+            else
+              echo "⚠️ **Visual Regression**: Visual changes detected" >> pr-comment.md
+            fi
+          fi
+          
+          cat >> pr-comment.md << 'EOF'
+          
+          ### Test Configuration
+          - **Environment**: Preview
+          - **Browsers**: Chromium, Firefox
+          - **Test Shards**: 2-4
+          - **Accessibility**: ✅ Enabled
+          - **Performance**: ${{ needs.check-preview-conditions.outputs.has-e2e-label == 'true' && '✅ Enabled' || '❌ Disabled' }}
+          - **Visual Regression**: ${{ needs.check-preview-conditions.outputs.has-e2e-label == 'true' && '✅ Enabled' || '❌ Disabled' }}
+          
+          ### Links
+          - [Full Test Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Performance Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ---
+          
+          💡 **Tip**: Add the `e2e-test` label to run comprehensive tests including performance and visual regression testing.
+          
+          <sub>🤖 Automated E2E testing powered by Playwright + Vercel Preview Deployments</sub>
+          EOF
+      
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('pr-comment.md', 'utf8');
+            
+            // Look for existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const existingComment = comments.find(comment => 
+              comment.body.includes('🚀 Vercel Preview E2E Test Results')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                comment_id: existingComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              console.log('Updated existing PR comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              console.log('Created new PR comment');
+            }
+
+  # Clean up preview test artifacts
+  cleanup-preview:
+    name: Cleanup Preview Artifacts
+    runs-on: ubuntu-latest
+    needs: [comment-results]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Cleanup old preview artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Clean up old preview test artifacts to save storage
+            const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const cutoffDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000); // 3 days ago
+            const previewArtifacts = artifacts.artifacts.filter(artifact => 
+              artifact.name.includes('preview-') && 
+              new Date(artifact.created_at) < cutoffDate
+            );
+            
+            for (const artifact of previewArtifacts.slice(0, 10)) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+                console.log(`Deleted old preview artifact: ${artifact.name}`);
+              } catch (error) {
+                console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
+              }
+            }

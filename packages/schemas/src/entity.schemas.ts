@@ -163,7 +163,6 @@ export const PromptSchema = z.object({
 }).openapi('Prompt')
 
 
-
 // =============================================================================
 // CREATE SCHEMAS - Only for missing entities
 // =============================================================================
@@ -422,7 +421,6 @@ export type QueueItem = z.infer<typeof QueueItemSchema>
 export type Ticket = z.infer<typeof TicketSchema>
 export type TicketTask = z.infer<typeof TicketTaskSchema>
 export type Prompt = z.infer<typeof PromptSchema>
-
 export type ProviderKey = z.infer<typeof ProviderKeySchema>
 
 export type CreateActiveTab = z.infer<typeof CreateActiveTabSchema>

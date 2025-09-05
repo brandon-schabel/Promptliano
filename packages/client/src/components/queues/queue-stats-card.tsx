@@ -45,6 +45,9 @@ export function QueueStatsCard({
         <div className='flex items-start justify-between'>
           <div className='flex items-center gap-2'>
             <CardTitle className='text-lg'>{queue.name}</CardTitle>
+            <Badge variant='outline' className='font-mono text-xs px-1 py-0'>
+              Q#{queue.id}
+            </Badge>
             <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Paused'}</Badge>
           </div>
           <div className='flex items-center gap-1'>

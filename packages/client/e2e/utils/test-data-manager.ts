@@ -327,10 +327,23 @@ export class TestDataManager {
    * Cleanup MCP connections
    */
   private async cleanupMCPConnections(): Promise<void> {
+    // Skip localStorage cleanup if page is not in a valid state
+    try {
+      const url = this.page.url()
+      if (url === 'about:blank' || !url.startsWith('http')) {
+        console.log('Skipping MCP cleanup - page not loaded')
+        return
+      }
+    } catch {
+      return
+    }
+
     for (const connectionId of this.cleanupRegistry.mcpConnections) {
       try {
         await this.page.evaluate((id) => {
-          window.localStorage.setItem('cleanup-mcp-connection', id)
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('cleanup-mcp-connection', id)
+          }
         }, connectionId)
       } catch (error) {
         console.warn(`Failed to cleanup MCP connection ${connectionId}:`, error)
@@ -342,10 +355,23 @@ export class TestDataManager {
    * Cleanup API sessions
    */
   private async cleanupAPISessions(): Promise<void> {
+    // Skip localStorage cleanup if page is not in a valid state
+    try {
+      const url = this.page.url()
+      if (url === 'about:blank' || !url.startsWith('http')) {
+        console.log('Skipping API session cleanup - page not loaded')
+        return
+      }
+    } catch {
+      return
+    }
+
     for (const sessionId of this.cleanupRegistry.apiSessions) {
       try {
         await this.page.evaluate((id) => {
-          window.localStorage.setItem('cleanup-api-session', id)
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('cleanup-api-session', id)
+          }
         }, sessionId)
       } catch (error) {
         console.warn(`Failed to cleanup API session ${sessionId}:`, error)

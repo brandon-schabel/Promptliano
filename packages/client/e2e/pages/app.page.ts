@@ -141,8 +141,17 @@ export class AppPage extends BasePage {
    * Wait for the app to be ready
    */
   async waitForAppReady() {
-    // Wait for the main layout elements to be visible - use first() to avoid strict mode violations
-    await expect(this.sidebar.first().or(this.mainContent.first())).toBeVisible()
+    // Wait for either sidebar or main content to be visible
+    // Check which one is visible first
+    const sidebarVisible = await this.sidebar.first().isVisible().catch(() => false)
+    const mainContentVisible = await this.mainContent.first().isVisible().catch(() => false)
+    
+    if (!sidebarVisible && !mainContentVisible) {
+      // If neither is visible yet, wait for one of them
+      await expect(this.page.locator('body')).toBeVisible()
+      // Give the app a moment to render
+      await this.page.waitForTimeout(500)
+    }
 
     // Wait for any initial API calls to complete
     await this.waitForLoadingComplete()

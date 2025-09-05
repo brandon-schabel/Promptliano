@@ -931,7 +931,18 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
             // Use state machine to validate and apply transition
             try {
-              const updatedTicket = QueueStateMachine.transition(ticket, 'completed')
+              // Allow fast-complete from queued by implicitly starting first
+              let current = ticket
+              if ((current.queueStatus as any) === 'queued') {
+                current = QueueStateMachine.transition(current, 'in_progress')
+                await ticketRepo.update(itemId, {
+                  queueStatus: current.queueStatus,
+                  queueStartedAt: current.queueStartedAt,
+                  updatedAt: Date.now()
+                })
+              }
+
+              const updatedTicket = QueueStateMachine.transition(current, 'completed')
               await ticketRepo.update(itemId, {
                 queueStatus: updatedTicket.queueStatus,
                 queueCompletedAt: updatedTicket.queueCompletedAt,
@@ -948,7 +959,18 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
 
             // Use state machine to validate and apply transition
             try {
-              const updatedTask = QueueStateMachine.transition(task, 'completed')
+              // Allow fast-complete from queued by implicitly starting first
+              let current = task
+              if ((current.queueStatus as any) === 'queued') {
+                current = QueueStateMachine.transition(current, 'in_progress')
+                await ticketRepo.updateTask(itemId, {
+                  queueStatus: current.queueStatus,
+                  queueStartedAt: current.queueStartedAt,
+                  updatedAt: Date.now()
+                })
+              }
+
+              const updatedTask = QueueStateMachine.transition(current, 'completed')
               await ticketRepo.updateTask(itemId, {
                 queueStatus: updatedTask.queueStatus,
                 queueCompletedAt: updatedTask.queueCompletedAt,
