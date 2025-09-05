@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
-import { createPromptlianoClient, PromptlianoError } from '@promptliano/api-client'
-import type { PromptlianoClient } from '@promptliano/api-client'
+import { createPromptlianoClient, PromptlianoError } from '../index'
+import type { PromptlianoClient } from '../index'
 import { type Prompt } from '@promptliano/schemas'
 import { TEST_API_URL } from './test-config'
 

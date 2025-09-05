@@ -1,4 +1,4 @@
-import type { PromptlianoClient } from '@promptliano/api-client'
+import type { PromptlianoClient } from '../../index'
 import type { TestEnvironment } from '../test-environment'
 
 /**

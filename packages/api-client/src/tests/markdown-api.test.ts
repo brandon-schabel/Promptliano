@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
-import { PromptlianoClient } from '../../api-client'
-import type { ApiConfig } from '@promptliano/api-client'
+import { PromptlianoClient } from '../index'
+import type { ApiConfig } from '../index'
 import { createTestEnvironment, withTestData } from './test-environment'
 import {
   TestDataManager,

@@ -1,6 +1,6 @@
 import { expect } from 'bun:test'
-import type { PromptlianoClient } from '@promptliano/api-client'
-import { createPromptlianoClient } from '@promptliano/api-client'
+import type { PromptlianoClient } from '../../index'
+import { createPromptlianoClient } from '../../index'
 import type { TestEnvironment } from '../test-environment'
 
 /**
@@ -793,7 +793,7 @@ export async function withTestData<T>(
 /**
  * Creates a Promptliano client (re-export for convenience)
  */
-export { createPromptlianoClient } from '@promptliano/api-client'
+export { createPromptlianoClient } from '../../index'
 
 /**
  * Common test patterns

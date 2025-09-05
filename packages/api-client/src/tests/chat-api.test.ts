@@ -1,7 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { z } from 'zod'
-import { createPromptlianoClient, PromptlianoError } from '@promptliano/api-client'
-import type { PromptlianoClient } from '@promptliano/api-client'
+import { createPromptlianoClient, PromptlianoError } from '../index'
+import type { PromptlianoClient } from '../index'
+import { createSimpleTestEnvironment } from './test-environment-simple'
+import type { SimpleTestEnvironment } from './test-environment-simple'
+import { TestDataManager, assertions, factories } from './utils/test-helpers-enhanced'
 
 import {
   ChatSchema,
@@ -12,22 +15,31 @@ import {
   ForkChatFromMessageBodySchema,
   MessageRoleEnum
 } from '@promptliano/schemas'
-import { TEST_API_URL } from './test-config'
-
-const BASE_URL = TEST_API_URL
 
 describe('Chat API Tests', () => {
+  let testEnv: SimpleTestEnvironment
   let client: PromptlianoClient
+  let dataManager: TestDataManager
   let testChats: Chat[] = []
   let testMessages: ChatMessage[] = []
 
-  beforeAll(() => {
+  beforeAll(async () => {
     console.log('Starting Chat API Tests...')
-    client = createPromptlianoClient({ baseUrl: BASE_URL })
+    
+    // Create simple test environment with proper database initialization
+    testEnv = await createSimpleTestEnvironment()
+    
+    client = createPromptlianoClient({ baseUrl: testEnv.baseUrl })
+    dataManager = new TestDataManager(client)
   })
 
   afterAll(async () => {
     console.log('Cleaning up chat test data...')
+    
+    // Clean up using data manager
+    await dataManager.cleanup()
+    
+    // Clean up any remaining test chats
     for (const chat of testChats) {
       try {
         await client.chats.deleteChat(chat.id)
@@ -39,13 +51,16 @@ describe('Chat API Tests', () => {
         }
       }
     }
+    
+    // Clean up test environment
+    await testEnv.cleanup()
   })
 
   test('POST /api/chats - Create chats', async () => {
     const chatDataInputs = [
-      { title: 'Test Chat 1' },
-      { title: 'Test Chat 2', copyExistingChatId: undefined },
-      { title: 'Test Chat 3' }
+      { title: 'Test Chat 1', projectId: 1 },
+      { title: 'Test Chat 2', projectId: 1, copyExistingChatId: undefined },
+      { title: 'Test Chat 3', projectId: 1 }
     ]
 
     for (const data of chatDataInputs) {
@@ -56,8 +71,8 @@ describe('Chat API Tests', () => {
       expect(ChatSchema.safeParse(result.data).success).toBe(true)
       expect(result.data.id).toBeTypeOf('number')
       expect(result.data.title).toBe(data.title)
-      expect(result.data.created).toBeTypeOf('number')
-      expect(result.data.updated).toBeTypeOf('number')
+      expect(result.data.createdAt).toBeTypeOf('number')
+      expect(result.data.updatedAt).toBeTypeOf('number')
       testChats.push(result.data)
     }
     expect(testChats.length).toBe(chatDataInputs.length)
@@ -92,7 +107,7 @@ describe('Chat API Tests', () => {
     expect(result.success).toBe(true)
     expect(result.data.id).toBe(chatToUpdate.id)
     expect(result.data.title).toBe(newTitle)
-    expect(result.data.updated).toBeGreaterThanOrEqual(chatToUpdate.updated)
+    expect(result.data.updatedAt).toBeGreaterThanOrEqual(chatToUpdate.updatedAt)
 
     // Update our local copy with the returned data
     const chatIndex = testChats.findIndex((c) => c.id === chatToUpdate.id)
@@ -115,7 +130,7 @@ describe('Chat API Tests', () => {
       expect(result.success).toBe(true)
       expect(result.data.id).toBe(updatedChat.id)
       expect(result.data.title).toBe(updatedChat.title)
-      expect(result.data.updated).toBe(updatedChat.updated)
+      expect(result.data.updatedAt).toBe(updatedChat.updatedAt)
     } catch (error) {
       // If we get a 404, log the error and check if the chat still exists in the list
       if (error instanceof PromptlianoError && error.statusCode === 404) {
@@ -147,6 +162,14 @@ describe('Chat API Tests', () => {
       console.warn('Skipping POST /api/ai/chat test as no chats exist.')
       return
     }
+    
+    // Check if we're in CI or if AI tests should be skipped
+    const skipAITests = process.env.SKIP_AI_TESTS === 'true' || testEnv.isCI
+    if (skipAITests) {
+      console.warn('Skipping AI streaming test in CI or when SKIP_AI_TESTS is set')
+      return
+    }
+    
     const targetChat = testChats[0]!
     const tempId = Date.now()
     const userMessageContent = 'Hello AI, this is a test message from client test!'
@@ -166,17 +189,25 @@ describe('Chat API Tests', () => {
       // Consume the stream
       const reader = stream.getReader()
       let receivedText = ''
+      let timeout = setTimeout(() => {
+        reader.cancel()
+      }, 5000) // 5 second timeout for streaming
+      
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         receivedText += new TextDecoder().decode(value)
       }
+      clearTimeout(timeout)
+      
       console.log('Streamed AI response:', receivedText)
       expect(receivedText.length).toBeGreaterThan(0)
     } catch (error) {
       if (
         error instanceof PromptlianoError &&
-        (error.statusCode === 503 || error.message.includes('Failed to get model interface'))
+        (error.statusCode === 503 || 
+         error.message.includes('Failed to get model interface') ||
+         error.message.includes('ECONNREFUSED'))
       ) {
         console.warn('AI Service unavailable, skipping full stream content verification.')
         return

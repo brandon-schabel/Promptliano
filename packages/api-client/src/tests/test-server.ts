@@ -1,11 +1,10 @@
 import { serve } from 'bun'
 import type { Server } from 'bun'
-import { app } from '@promptliano/server/src/app'
 import { join } from 'path'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { DatabaseManager } from '@promptliano/storage'
-import { runMigrations } from '@promptliano/storage/src/migrations/run-migrations'
+import { createTestDatabase } from '@promptliano/database/src/test-utils/test-db'
+import type { TestDatabase } from '@promptliano/database/src/test-utils/test-db'
 
 export interface TestServerConfig {
   port?: number
@@ -31,6 +30,7 @@ export interface TestServerInstance {
   port: number
   baseUrl: string
   databasePath: string
+  testDb?: TestDatabase
   cleanup: () => Promise<void>
   /** Health check function */
   healthCheck: () => Promise<boolean>
@@ -60,18 +60,35 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     enableResourceMonitoring = false
   } = config
 
-  let tempDir: string
+  let tempDir: string = ''
   let databasePath: string
   let isMemoryDB = false
+  let testDb: TestDatabase | undefined
 
   // Handle database path configuration with memory database support
   if (config.databasePath === ':memory:' || config.databasePath?.includes(':memory:')) {
     isMemoryDB = true
+    // Create test database using the database package utilities
+    testDb = await createTestDatabase({ 
+      useMemory: true, 
+      verbose: config.logLevel !== 'silent',
+      seedData: false
+    })
     databasePath = ':memory:'
-    tempDir = '' // No temp dir needed for memory DB
   } else {
     tempDir = mkdtempSync(join(tmpdir(), 'promptliano-test-'))
     databasePath = config.databasePath || join(tempDir, 'test.db')
+    // Create test database using the database package utilities
+    testDb = await createTestDatabase({ 
+      useMemory: false, 
+      verbose: config.logLevel !== 'silent',
+      testId: tempDir.split('-').pop(),
+      seedData: false
+    })
+    // Update databasePath to use the actual file path from testDb
+    if (testDb.filePath) {
+      databasePath = testDb.filePath
+    }
   }
 
   // Store original environment for restoration
@@ -89,16 +106,18 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     process.env.RATE_LIMIT_ENABLED = config.enableRateLimit ? 'true' : 'false'
     process.env.LOG_LEVEL = config.logLevel || 'silent'
 
-    // Reset database instance for test isolation
-    DatabaseManager.resetInstance()
-
-    // Initialize database with timeout protection
-    await Promise.race([
-      runMigrations(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Database initialization timeout after ${dbInitTimeout}ms`)), dbInitTimeout)
-      )
-    ])
+    // Database is already initialized by createTestDatabase
+    // IMPORTANT: Set DATABASE_PATH environment variable for the server to use our test database
+    // The database package checks DATABASE_PATH first before PROMPTLIANO_DB_PATH
+    if (testDb) {
+      // Force the server to use our test database by setting the environment variable
+      // that the database package checks first
+      process.env.DATABASE_PATH = testDb.filePath || ':memory:'
+      process.env.PROMPTLIANO_DB_PATH = testDb.filePath || ':memory:'
+      
+      // For in-memory databases, we need to ensure the server uses the same instance
+      // This is handled by setting NODE_ENV=test which makes the database package use :memory:
+    }
 
     // Start server with startup timeout protection
     const port = config.port || 0
@@ -107,7 +126,16 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
     try {
       server = serve({
         port,
-        fetch: app.fetch.bind(app),
+        fetch: async (request) => {
+          // Import the app dynamically to avoid import issues
+          try {
+            const serverModule = await import('@promptliano/server/src/app')
+            return serverModule.app.fetch(request)
+          } catch (error) {
+            console.error('Failed to import server app:', error)
+            return new Response('Server initialization error', { status: 500 })
+          }
+        },
         development: false,
         // Enhanced error handling for CI
         error(error) {
@@ -164,8 +192,10 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
         // Stop the server
         server.stop(true)
 
-        // Reset database instance
-        DatabaseManager.resetInstance()
+        // Close test database
+        if (testDb) {
+          testDb.close()
+        }
 
         // Restore environment variables
         Object.assign(process.env, originalEnv)
@@ -214,6 +244,7 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
       port: actualPort,
       baseUrl,
       databasePath,
+      testDb,
       cleanup,
       healthCheck,
       isReady: true,
@@ -298,14 +329,11 @@ async function waitForServer(baseUrl: string, timeoutMs = 5000): Promise<void> {
 /**
  * Resets the test database to a clean state with enhanced error handling
  */
-export async function resetTestDatabase(databasePath: string, timeoutMs = 5000): Promise<void> {
+export async function resetTestDatabase(testDb: TestDatabase, timeoutMs = 5000): Promise<void> {
   try {
-    // Reset database instance to clear cached state
-    DatabaseManager.resetInstance()
-
-    // Re-run migrations with timeout protection
+    // Use the test database's reset method with timeout protection
     await Promise.race([
-      runMigrations(),
+      testDb.reset(),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Database reset timeout after ${timeoutMs}ms`)), timeoutMs)
       )
@@ -319,23 +347,23 @@ export async function resetTestDatabase(databasePath: string, timeoutMs = 5000):
 /**
  * Validates database connection and schema
  */
-export async function validateTestDatabase(databasePath: string): Promise<boolean> {
+export async function validateTestDatabase(testDb: TestDatabase): Promise<boolean> {
   try {
-    // Test basic database operations
-    const db = DatabaseManager.getInstance()
-
+    // Get database statistics to check if tables exist
+    const stats = testDb.getStats()
+    
     // Check if critical tables exist
-    const tables = ['projects', 'tickets', 'tasks', 'queues']
-    for (const table of tables) {
-      try {
-        await db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).all()
-      } catch (error) {
-        console.warn(`Table ${table} not accessible:`, error)
+    const requiredTables = ['projects', 'tickets', 'ticket_tasks', 'queues']
+    const existingTables = stats.tables
+    
+    for (const table of requiredTables) {
+      if (!existingTables.includes(table)) {
+        console.warn(`Required table '${table}' not found in database`)
         return false
       }
     }
 
-    return true
+    return stats.isActive
   } catch (error) {
     console.error('Database validation failed:', error)
     return false

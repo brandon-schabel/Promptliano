@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
-import { createPromptlianoClient, PromptlianoError } from '@promptliano/api-client'
-import type { PromptlianoClient } from '@promptliano/api-client'
+import { createPromptlianoClient, PromptlianoError } from '../index'
+import type { PromptlianoClient } from '../index'
 import { createTestEnvironment, checkLMStudioAvailability, type TestEnvironment } from './test-environment'
 
 describe('AI Endpoints Integration Tests', () => {

@@ -1,6 +1,6 @@
 import { describe, test, beforeAll, afterAll, expect } from 'bun:test'
 import { createTestEnvironment, type TestEnvironment } from './test-environment'
-import { createPromptlianoClient, type PromptlianoClient } from '@promptliano/api-client'
+import { createPromptlianoClient, type PromptlianoClient } from '../index'
 import { TestDataManager, assertions } from './utils/test-helpers'
 import {
   LoadTestRunner,

@@ -1516,6 +1516,11 @@ export const modelConfigs = sqliteTable(
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     userId: integer('user_id'), // Optional: for user-specific configs
     description: text('description'),
+    // UI metadata for preset display
+    presetCategory: text('preset_category', { enum: ['low', 'medium', 'high', 'planning', 'custom'] }), // Category for UI grouping
+    uiIcon: text('ui_icon'), // Icon name for UI display (e.g., 'Zap', 'Gauge', 'Rocket', 'Brain')
+    uiColor: text('ui_color'), // Color class for UI (e.g., 'text-green-600', 'text-blue-600')
+    uiOrder: integer('ui_order').default(0), // Display order in UI
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull()
   },

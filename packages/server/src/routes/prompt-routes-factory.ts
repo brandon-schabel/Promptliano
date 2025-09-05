@@ -21,7 +21,9 @@ import {
   IDParamsSchema,
   MarkdownExportResponseSchema,
   BatchExportRequestSchema,
-  BulkImportResponseSchema
+  BulkImportResponseSchema,
+  ProjectAndPromptIdParamsSchema,
+  OperationSuccessResponseSchema
 } from '@promptliano/schemas'
 import {
   suggestPrompts,
@@ -29,7 +31,9 @@ import {
   exportPromptsToMarkdown,
   promptToMarkdown,
   validateMarkdownContent,
-  listPromptsByProject
+  listPromptsByProject,
+  addPromptToProject,
+  removePromptFromProject
 } from '@promptliano/services'
 import { withErrorContext, ErrorFactory } from '@promptliano/shared'
 import { successResponse, operationSuccessResponse } from '../utils/route-helpers'
@@ -472,6 +476,72 @@ promptCustomRoutes.openapi(validateMarkdownRoute, async (c) => {
       })
     },
     { entity: 'Prompt', action: 'validateMarkdown' }
+  )
+})
+
+// Connect prompt to project
+const connectPromptToProjectRoute = createRoute({
+  method: 'post',
+  path: '/api/prompts/{promptId}/projects/{projectId}',
+  tags: ['Prompts', 'Projects'],
+  summary: 'Connect a prompt to a project',
+  description: 'Associate a prompt with a project by updating its projectId',
+  request: {
+    params: ProjectAndPromptIdParamsSchema
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: OperationSuccessResponseSchema
+        }
+      },
+      description: 'Prompt successfully connected to project'
+    }
+  }
+})
+
+promptCustomRoutes.openapi(connectPromptToProjectRoute, async (c) => {
+  return withErrorContext(
+    async () => {
+      const { promptId, projectId } = c.req.valid('param')
+      await addPromptToProject(promptId, projectId)
+      return c.json(operationSuccessResponse('Prompt successfully connected to project'), 200)
+    },
+    { entity: 'Prompt', action: 'connectToProject' }
+  )
+})
+
+// Disconnect prompt from project
+const disconnectPromptFromProjectRoute = createRoute({
+  method: 'delete',
+  path: '/api/prompts/{promptId}/projects/{projectId}',
+  tags: ['Prompts', 'Projects'],
+  summary: 'Disconnect a prompt from a project',
+  description: 'Remove the association between a prompt and a project by clearing its projectId',
+  request: {
+    params: ProjectAndPromptIdParamsSchema
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: OperationSuccessResponseSchema
+        }
+      },
+      description: 'Prompt successfully disconnected from project'
+    }
+  }
+})
+
+promptCustomRoutes.openapi(disconnectPromptFromProjectRoute, async (c) => {
+  return withErrorContext(
+    async () => {
+      const { promptId } = c.req.valid('param')
+      await removePromptFromProject(promptId)
+      return c.json(operationSuccessResponse('Prompt successfully disconnected from project'), 200)
+    },
+    { entity: 'Prompt', action: 'disconnectFromProject' }
   )
 })
 
