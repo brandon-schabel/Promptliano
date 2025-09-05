@@ -328,9 +328,11 @@ export function useGetProjectPrompts(projectId: number) {
   })
 }
 
-// TODO: These methods don't exist in the current API client
-// Need to either add them to the server API or remove these hooks
-/*
+/**
+ * Prompt-Project Association Hooks
+ * These connect and disconnect prompts from projects
+ */
+
 export function useAddPromptToProject() {
   const client = useApiClient()
   const queryClient = useQueryClient()
@@ -338,7 +340,7 @@ export function useAddPromptToProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.addPromptToProject(projectId, promptId)
+      return client.prompts.addPromptToProject(promptId, projectId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list
@@ -351,9 +353,7 @@ export function useAddPromptToProject() {
     }
   })
 }
-*/
 
-/*
 export function useRemovePromptFromProject() {
   const client = useApiClient()
   const queryClient = useQueryClient()
@@ -361,7 +361,7 @@ export function useRemovePromptFromProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.removePromptFromProject(projectId, promptId)
+      return client.prompts.removePromptFromProject(promptId, projectId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list
@@ -374,7 +374,6 @@ export function useRemovePromptFromProject() {
     }
   })
 }
-*/
 
 /*
 export function useOptimizeUserInput() {

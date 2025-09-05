@@ -356,7 +356,24 @@ export class PromptlianoClient {
     suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
-    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file)
+    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
+    // Connect/disconnect prompts to projects
+    addPromptToProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to connect prompt to project (${res.status})`)
+      return res.json()
+    },
+    removePromptFromProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to disconnect prompt from project (${res.status})`)
+      return res.json()
+    }
   }
 
   public readonly git = {
