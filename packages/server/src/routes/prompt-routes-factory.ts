@@ -29,6 +29,7 @@ import {
   suggestPrompts,
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
+  createZipFromExportResult,
   promptToMarkdown,
   validateMarkdownContent,
   listPromptsByProject,
@@ -322,6 +323,19 @@ promptCustomRoutes.openapi(exportBatchPromptsRoute, async (c) => {
       )
 
       const result = await exportPromptsToMarkdown(prompts, options)
+      
+      // Handle multi-file format by returning ZIP binary response
+      if (result.format === 'multi-file') {
+        const { filename, buffer } = await createZipFromExportResult(result)
+        
+        // Set headers for file download
+        c.header('Content-Type', 'application/zip')
+        c.header('Content-Disposition', `attachment; filename="${filename}"`)
+        
+        return c.body(buffer)
+      }
+      
+      // For single-file format, return JSON as before
       return c.json(successResponse(result))
     },
     { entity: 'Prompt', action: 'batchExport' }
@@ -386,36 +400,105 @@ promptCustomRoutes.openapi(importPromptsRoute, async (c): Promise<any> => {
         throw new Error('No files provided')
       }
 
-      // Validate and process files
+      // Validate and process files with defensive handling
       const { MAX_FILE_SIZE, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } = MARKDOWN_UPLOAD_CONFIG
 
-      for (const entry of fileEntries) {
-        if (entry instanceof File) {
-          // Validate file
-          const fileName = entry.name.toLowerCase()
-          const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext))
+      for (let i = 0; i < fileEntries.length; i++) {
+        const entry = fileEntries[i]
+        
+        // Skip null/undefined entries
+        if (!entry || typeof entry !== 'object') {
+          continue
+        }
+
+        // Extract file properties with defensive checks
+        let fileName: string = ''
+        let fileContent: string = ''
+        let fileSize: number = 0
+        let fileType: string = ''
+
+        try {
+          // Try multiple ways to get the filename
+          if ((entry as any).name) {
+            fileName = (entry as any).name
+          } else if ((entry as any).fileName) {
+            fileName = (entry as any).fileName
+          } else {
+            // Fallback to generic filename
+            fileName = `imported_file_${i + 1}.md`
+          }
+
+          // Get file content
+          if (typeof (entry as any).text === 'function') {
+            fileContent = await (entry as any).text()
+          } else if (entry instanceof Blob) {
+            fileContent = await entry.text()
+          } else {
+            console.warn(`Skipping entry ${i}: Cannot read content from object`, typeof entry)
+            continue
+          }
+
+          // Get file size
+          if ((entry as any).size !== undefined) {
+            fileSize = (entry as any).size
+          } else {
+            fileSize = fileContent.length
+          }
+
+          // Get file type if available
+          if ((entry as any).type) {
+            fileType = (entry as any).type
+          }
+
+          // Skip empty files
+          if (!fileContent || fileContent.trim().length === 0) {
+            console.warn(`Skipping file ${fileName}: File is empty`)
+            continue
+          }
+
+          // Validate file extension
+          const fileNameLower = fileName.toLowerCase()
+          const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => fileNameLower.endsWith(ext))
 
           if (!hasValidExtension) {
-            throw new Error(`Invalid file type: ${entry.name}. Only .md and .markdown files are allowed`)
+            throw new Error(`Invalid file type: ${fileName}. Only .md and .markdown files are allowed`)
           }
 
-          if (entry.type && entry.type !== '' && !ALLOWED_MIME_TYPES.includes(entry.type as any)) {
-            throw new Error(`Invalid MIME type for ${entry.name}: ${entry.type}`)
+          // Validate MIME type if provided
+          if (fileType && fileType !== '' && !ALLOWED_MIME_TYPES.includes(fileType as any)) {
+            throw new Error(`Invalid MIME type for ${fileName}: ${fileType}`)
           }
 
-          if (entry.size > MAX_FILE_SIZE) {
-            const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
+          // Validate file size
+          if (fileSize > MAX_FILE_SIZE) {
+            const error = new Error(`File ${fileName} exceeds maximum size of 10MB`)
               ; (error as any).statusCode = 413
               ; (error as any).code = 'FILE_TOO_LARGE'
             throw error
           }
 
-          const content = await entry.text()
+          // Add to files array
           files.push({
-            name: entry.name,
-            content,
-            size: entry.size
+            name: fileName,
+            content: fileContent,
+            size: fileSize
           })
+
+        } catch (error) {
+          // Handle file processing errors gracefully
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          console.error(`Error processing file ${fileName || 'unknown'}:`, errorMessage)
+          
+          // Re-throw specific validation errors
+          if (error instanceof Error && 
+              (errorMessage.includes('Invalid file type') || 
+               errorMessage.includes('Invalid MIME type') || 
+               errorMessage.includes('exceeds maximum size'))) {
+            throw error
+          }
+          
+          // For other errors, skip the file and continue
+          continue
         }
       }
 

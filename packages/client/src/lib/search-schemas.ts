@@ -72,6 +72,7 @@ export const projectsSearchSchema = tabSearchSchema.merge(projectIdSearchSchema)
 })
 
 export const chatSearchSchema = z.object({
+  chatId: z.coerce.number().optional().catch(undefined),
   prefill: z.boolean().catch(false).optional(),
   projectId: z.coerce.number().optional().catch(undefined)
 })

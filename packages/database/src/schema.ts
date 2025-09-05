@@ -273,7 +273,6 @@ export const prompts = sqliteTable(
   {
     id: integer('id').primaryKey(),
     projectId: integer('project_id')
-      .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     content: text('content').notNull(),
@@ -1499,8 +1498,8 @@ export const modelConfigs = sqliteTable(
   'model_configs',
   {
     id: integer('id').primaryKey(),
-    name: text('name').notNull(), // e.g., 'low', 'medium', 'high', 'custom_1'
-    displayName: text('display_name'), // User-friendly name
+    name: text('name').notNull(), // e.g., 'low-intelligence', 'medium-intelligence', 'high-intelligence', 'custom_1'
+    displayName: text('display_name'), // User-friendly name like "Low - Fast Local"
     provider: text('provider').notNull(), // 'openai', 'anthropic', etc.
     model: text('model').notNull(), // Specific model identifier
     temperature: real('temperature').default(0.7),

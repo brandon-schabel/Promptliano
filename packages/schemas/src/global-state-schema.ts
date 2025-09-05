@@ -416,7 +416,11 @@ export const appSettingsSchema = z
       .boolean()
       .optional()
       .default(true)
-      .openapi({ description: 'Whether to automatically name new chats based on their initial content.' })
+      .openapi({ description: 'Whether to automatically name new chats based on their initial content.' }),
+    selectedPreset: z
+      .enum(['low', 'medium', 'high', 'planning'])
+      .optional()
+      .openapi({ description: 'Currently selected model intelligence preset for chat configuration.', example: 'medium' })
   })
   .openapi('AppSettings', {
     description: 'Global application settings, including theme, AI provider configuration, and default chat parameters.'

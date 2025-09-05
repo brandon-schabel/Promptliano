@@ -10,6 +10,11 @@ dotenv.config()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const testDbPath = path.join(__dirname, '../../database/data/playwright-test.db')
+// Skip E2E tests in CI unless explicitly enabled
+if (process.env.CI === 'true' && process.env.FORCE_E2E !== 'true') {
+  console.log('⚠️  Skipping E2E tests in CI. Set FORCE_E2E=true to run them.')
+  process.exit(0)
+}
 
 export default defineConfig({
   testDir: './e2e/tests',

@@ -763,8 +763,14 @@ function invalidateQueries(
   } else if (strategy === 'detail' && entityId) {
     queryClient.invalidateQueries({ queryKey: queryKeys.detail(entityId) })
   } else if (Array.isArray(strategy)) {
-    strategy.forEach((key) => {
-      queryClient.invalidateQueries({ queryKey: key as any })
+    strategy.forEach((strategyType) => {
+      if (strategyType === 'all') {
+        queryClient.invalidateQueries({ queryKey: queryKeys.all })
+      } else if (strategyType === 'lists') {
+        queryClient.invalidateQueries({ queryKey: queryKeys.lists() })
+      } else if (strategyType === 'detail' && entityId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.detail(entityId) })
+      }
     })
   }
 }

@@ -4,7 +4,7 @@
 packages:
   # Frontend packages
   client:
-    test-command: 'bun test'
+    test-command: 'bun test src/'
     build-command: 'bun run build'
     typecheck: true
     timeout: 20

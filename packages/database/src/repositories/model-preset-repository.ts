@@ -113,8 +113,11 @@ export const modelPresetRepository = {
       .limit(1)
 
     if (results.length === 0) return null
-    const result = results[0]
-    return { ...(result.preset as ModelPreset), config: result.config as ModelConfig }
+    const result = results[0]!
+    return { 
+      ...(result.preset as ModelPreset), 
+      config: result.config as ModelConfig 
+    }
   },
 
   /**

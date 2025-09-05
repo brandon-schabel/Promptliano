@@ -1,8 +1,8 @@
 import { createRoute, z, OpenAPIHono } from '@hono/zod-openapi'
-import { createStandardResponses, successResponse, withErrorHandling } from '../utils/route-helpers'
+import { createStandardResponses, createStandardResponsesWithStatus, successResponse } from '../utils/route-helpers'
+import { ApiError } from '@promptliano/shared'
 import { 
-  createModelConfigService,
-  type ModelConfigService 
+  createModelConfigService
 } from '@promptliano/services'
 import {
   selectModelConfigSchema,
@@ -106,13 +106,10 @@ const getAllConfigsRoute = createRoute({
   responses: createStandardResponses(ModelConfigListResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getAllConfigsRoute,
-  withErrorHandling(async (c) => {
-    const configs = await modelConfigService.getAllConfigs()
-    return c.json(successResponse(configs))
-  })
-)
+modelConfigRoutes.openapi(getAllConfigsRoute, async (c) => {
+  const configs = await modelConfigService.getAllConfigs()
+  return c.json(successResponse(configs))
+})
 
 // Get configurations by provider
 const getConfigsByProviderRoute = createRoute({
@@ -128,14 +125,11 @@ const getConfigsByProviderRoute = createRoute({
   responses: createStandardResponses(ModelConfigListResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getConfigsByProviderRoute,
-  withErrorHandling(async (c) => {
-    const { provider } = c.req.valid('param')
-    const configs = await modelConfigService.getConfigsByProvider(provider)
-    return c.json(successResponse(configs))
-  })
-)
+modelConfigRoutes.openapi(getConfigsByProviderRoute, async (c) => {
+  const { provider } = c.req.valid('param')
+  const configs = await modelConfigService.getConfigsByProvider(provider)
+  return c.json(successResponse(configs))
+})
 
 // Get default configuration for a provider
 const getDefaultConfigRoute = createRoute({
@@ -151,17 +145,14 @@ const getDefaultConfigRoute = createRoute({
   responses: createStandardResponses(ModelConfigResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getDefaultConfigRoute,
-  withErrorHandling(async (c) => {
-    const { provider } = c.req.valid('param')
-    const config = await modelConfigService.getDefaultConfig(provider)
-    if (!config) {
-      return c.json({ success: false, error: 'No default configuration found' }, 404)
-    }
-    return c.json(successResponse(config))
-  })
-)
+modelConfigRoutes.openapi(getDefaultConfigRoute, async (c) => {
+  const { provider } = c.req.valid('param')
+  const config = await modelConfigService.getDefaultConfig(provider)
+  if (!config) {
+    throw new ApiError(404, 'No default configuration found', 'CONFIG_NOT_FOUND')
+  }
+  return c.json(successResponse(config))
+})
 
 // Get configuration by name
 const getConfigByNameRoute = createRoute({
@@ -177,17 +168,14 @@ const getConfigByNameRoute = createRoute({
   responses: createStandardResponses(ModelConfigResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getConfigByNameRoute,
-  withErrorHandling(async (c) => {
-    const { name } = c.req.valid('param')
-    const config = await modelConfigService.getConfigByName(name)
-    if (!config) {
-      return c.json({ success: false, error: 'Configuration not found' }, 404)
-    }
-    return c.json(successResponse(config))
-  })
-)
+modelConfigRoutes.openapi(getConfigByNameRoute, async (c) => {
+  const { name } = c.req.valid('param')
+  const config = await modelConfigService.getConfigByName(name)
+  if (!config) {
+    throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
+  }
+  return c.json(successResponse(config))
+})
 
 // Get configuration by ID
 const getConfigByIdRoute = createRoute({
@@ -201,17 +189,14 @@ const getConfigByIdRoute = createRoute({
   responses: createStandardResponses(ModelConfigResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getConfigByIdRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const config = await modelConfigService.getConfigById(id)
-    if (!config) {
-      return c.json({ success: false, error: 'Configuration not found' }, 404)
-    }
-    return c.json(successResponse(config))
-  })
-)
+modelConfigRoutes.openapi(getConfigByIdRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const config = await modelConfigService.getConfigById(id)
+  if (!config) {
+    throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
+  }
+  return c.json(successResponse(config))
+})
 
 // Create configuration
 const createConfigRoute = createRoute({
@@ -225,20 +210,18 @@ const createConfigRoute = createRoute({
         'application/json': {
           schema: CreateModelConfigSchema
         }
-      }
+      },
+      required: true
     }
   },
-  responses: createStandardResponses(ModelConfigResponseSchema)
+  responses: createStandardResponsesWithStatus(ModelConfigResponseSchema, 201, 'Created')
 })
 
-modelConfigRoutes.openapi(
-  createConfigRoute,
-  withErrorHandling(async (c) => {
-    const data = c.req.valid('json')
-    const config = await modelConfigService.createConfig(data as CreateModelConfig)
-    return c.json(successResponse(config), 201)
-  })
-)
+modelConfigRoutes.openapi(createConfigRoute, (async (c: any) => {
+  const data = c.req.valid('json')
+  const config = await modelConfigService.createConfig(data as CreateModelConfig)
+  return c.json(successResponse(config), 201)
+}) as any)
 
 // Update configuration
 const updateConfigRoute = createRoute({
@@ -259,15 +242,12 @@ const updateConfigRoute = createRoute({
   responses: createStandardResponses(ModelConfigResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  updateConfigRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const data = c.req.valid('json')
-    const config = await modelConfigService.updateConfig(id, data as UpdateModelConfig)
-    return c.json(successResponse(config))
-  })
-)
+modelConfigRoutes.openapi(updateConfigRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+  const config = await modelConfigService.updateConfig(id, data as UpdateModelConfig)
+  return c.json(successResponse(config))
+})
 
 // Delete configuration
 const deleteConfigRoute = createRoute({
@@ -289,15 +269,12 @@ const deleteConfigRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  deleteConfigRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const { hard } = c.req.valid('query')
-    const deleted = await modelConfigService.deleteConfig(id, hard)
-    return c.json(successResponse({ deleted }))
-  })
-)
+modelConfigRoutes.openapi(deleteConfigRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const { hard } = c.req.valid('query')
+  const deleted = await modelConfigService.deleteConfig(id, hard)
+  return c.json(successResponse({ deleted }))
+})
 
 // Set default configuration
 const setDefaultConfigRoute = createRoute({
@@ -316,18 +293,15 @@ const setDefaultConfigRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  setDefaultConfigRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const config = await modelConfigService.getConfigById(id)
-    if (!config) {
-      return c.json({ success: false, error: 'Configuration not found' }, 404)
-    }
-    const updated = await modelConfigService.setDefaultConfig(id, config.provider)
-    return c.json(successResponse({ updated }))
-  })
-)
+modelConfigRoutes.openapi(setDefaultConfigRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const config = await modelConfigService.getConfigById(id)
+  if (!config) {
+    throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
+  }
+  const updated = await modelConfigService.setDefaultConfig(id, config.provider)
+  return c.json(successResponse({ updated }))
+})
 
 // ==================== Model Preset Routes ====================
 
@@ -345,13 +319,10 @@ const getAllPresetsRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  getAllPresetsRoute,
-  withErrorHandling(async (c) => {
-    const presets = await modelConfigService.getAllPresets()
-    return c.json(successResponse(presets))
-  })
-)
+modelConfigRoutes.openapi(getAllPresetsRoute, async (c) => {
+  const presets = await modelConfigService.getAllPresets()
+  return c.json(successResponse(presets))
+})
 
 // Get presets by category
 const getPresetsByCategoryRoute = createRoute({
@@ -367,14 +338,11 @@ const getPresetsByCategoryRoute = createRoute({
   responses: createStandardResponses(ModelPresetListResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getPresetsByCategoryRoute,
-  withErrorHandling(async (c) => {
-    const { category } = c.req.valid('param')
-    const presets = await modelConfigService.getPresetsByCategory(category)
-    return c.json(successResponse(presets))
-  })
-)
+modelConfigRoutes.openapi(getPresetsByCategoryRoute, async (c) => {
+  const { category } = c.req.valid('param')
+  const presets = await modelConfigService.getPresetsByCategory(category)
+  return c.json(successResponse(presets))
+})
 
 // Get most used presets
 const getMostUsedPresetsRoute = createRoute({
@@ -390,14 +358,11 @@ const getMostUsedPresetsRoute = createRoute({
   responses: createStandardResponses(ModelPresetListResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getMostUsedPresetsRoute,
-  withErrorHandling(async (c) => {
-    const { limit } = c.req.valid('query')
-    const presets = await modelConfigService.getMostUsedPresets(limit)
-    return c.json(successResponse(presets))
-  })
-)
+modelConfigRoutes.openapi(getMostUsedPresetsRoute, async (c) => {
+  const { limit } = c.req.valid('query')
+  const presets = await modelConfigService.getMostUsedPresets(limit)
+  return c.json(successResponse(presets))
+})
 
 // Get recently used presets
 const getRecentlyUsedPresetsRoute = createRoute({
@@ -413,14 +378,11 @@ const getRecentlyUsedPresetsRoute = createRoute({
   responses: createStandardResponses(ModelPresetListResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getRecentlyUsedPresetsRoute,
-  withErrorHandling(async (c) => {
-    const { limit } = c.req.valid('query')
-    const presets = await modelConfigService.getRecentlyUsedPresets(limit)
-    return c.json(successResponse(presets))
-  })
-)
+modelConfigRoutes.openapi(getRecentlyUsedPresetsRoute, async (c) => {
+  const { limit } = c.req.valid('query')
+  const presets = await modelConfigService.getRecentlyUsedPresets(limit)
+  return c.json(successResponse(presets))
+})
 
 // Get preset with configuration
 const getPresetWithConfigRoute = createRoute({
@@ -434,17 +396,14 @@ const getPresetWithConfigRoute = createRoute({
   responses: createStandardResponses(ModelPresetWithConfigResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  getPresetWithConfigRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const preset = await modelConfigService.getPresetWithConfig(id)
-    if (!preset) {
-      return c.json({ success: false, error: 'Preset not found' }, 404)
-    }
-    return c.json(successResponse(preset))
-  })
-)
+modelConfigRoutes.openapi(getPresetWithConfigRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const preset = await modelConfigService.getPresetWithConfig(id)
+  if (!preset) {
+    throw new ApiError(404, 'Preset not found', 'PRESET_NOT_FOUND')
+  }
+  return c.json(successResponse(preset))
+})
 
 // Create preset
 const createPresetRoute = createRoute({
@@ -458,20 +417,18 @@ const createPresetRoute = createRoute({
         'application/json': {
           schema: CreateModelPresetSchema
         }
-      }
+      },
+      required: true
     }
   },
-  responses: createStandardResponses(ModelPresetResponseSchema)
+  responses: createStandardResponsesWithStatus(ModelPresetResponseSchema, 201, 'Created')
 })
 
-modelConfigRoutes.openapi(
-  createPresetRoute,
-  withErrorHandling(async (c) => {
-    const data = c.req.valid('json')
-    const preset = await modelConfigService.createPreset(data as CreateModelPreset)
-    return c.json(successResponse(preset), 201)
-  })
-)
+modelConfigRoutes.openapi(createPresetRoute, (async (c: any) => {
+  const data = c.req.valid('json')
+  const preset = await modelConfigService.createPreset(data as CreateModelPreset)
+  return c.json(successResponse(preset), 201)
+}) as any)
 
 // Update preset
 const updatePresetRoute = createRoute({
@@ -486,21 +443,19 @@ const updatePresetRoute = createRoute({
         'application/json': {
           schema: UpdateModelPresetSchema
         }
-      }
+      },
+      required: true
     }
   },
   responses: createStandardResponses(ModelPresetResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  updatePresetRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const data = c.req.valid('json')
-    const preset = await modelConfigService.updatePreset(id, data as UpdateModelPreset)
-    return c.json(successResponse(preset))
-  })
-)
+modelConfigRoutes.openapi(updatePresetRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const data = c.req.valid('json')
+  const preset = await modelConfigService.updatePreset(id, data as UpdateModelPreset)
+  return c.json(successResponse(preset))
+})
 
 // Delete preset
 const deletePresetRoute = createRoute({
@@ -522,15 +477,12 @@ const deletePresetRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  deletePresetRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const { hard } = c.req.valid('query')
-    const deleted = await modelConfigService.deletePreset(id, hard)
-    return c.json(successResponse({ deleted }))
-  })
-)
+modelConfigRoutes.openapi(deletePresetRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const { hard } = c.req.valid('query')
+  const deleted = await modelConfigService.deletePreset(id, hard)
+  return c.json(successResponse({ deleted }))
+})
 
 // Use preset (increment usage count)
 const usePresetRoute = createRoute({
@@ -549,14 +501,11 @@ const usePresetRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  usePresetRoute,
-  withErrorHandling(async (c) => {
-    const { id } = c.req.valid('param')
-    const updated = await modelConfigService.usePreset(id)
-    return c.json(successResponse({ updated }))
-  })
-)
+modelConfigRoutes.openapi(usePresetRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const updated = await modelConfigService.usePreset(id)
+  return c.json(successResponse({ updated }))
+})
 
 // ==================== System Operations ====================
 
@@ -574,13 +523,10 @@ const initSystemDefaultsRoute = createRoute({
   }))
 })
 
-modelConfigRoutes.openapi(
-  initSystemDefaultsRoute,
-  withErrorHandling(async (c) => {
-    await modelConfigService.initializeSystemDefaults()
-    return c.json(successResponse({ message: 'System defaults initialized successfully' }))
-  })
-)
+modelConfigRoutes.openapi(initSystemDefaultsRoute, async (c) => {
+  await modelConfigService.initializeSystemDefaults()
+  return c.json(successResponse({ message: 'System defaults initialized successfully' }))
+})
 
 // Export configurations
 const exportConfigurationsRoute = createRoute({
@@ -591,13 +537,10 @@ const exportConfigurationsRoute = createRoute({
   responses: createStandardResponses(ExportDataResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  exportConfigurationsRoute,
-  withErrorHandling(async (c) => {
-    const data = await modelConfigService.exportConfigurations()
-    return c.json(successResponse(data))
-  })
-)
+modelConfigRoutes.openapi(exportConfigurationsRoute, async (c) => {
+  const data = await modelConfigService.exportConfigurations()
+  return c.json(successResponse(data))
+})
 
 // Import configurations
 const importConfigurationsRoute = createRoute({
@@ -614,17 +557,15 @@ const importConfigurationsRoute = createRoute({
             presets: z.array(CreateModelPresetSchema).optional()
           })
         }
-      }
+      },
+      required: true
     }
   },
   responses: createStandardResponses(ImportResultResponseSchema)
 })
 
-modelConfigRoutes.openapi(
-  importConfigurationsRoute,
-  withErrorHandling(async (c) => {
-    const data = c.req.valid('json')
-    const result = await modelConfigService.importConfigurations(data as any)
-    return c.json(successResponse(result))
-  })
-)
+modelConfigRoutes.openapi(importConfigurationsRoute, async (c) => {
+  const data = c.req.valid('json')
+  const result = await modelConfigService.importConfigurations(data as any)
+  return c.json(successResponse(result))
+})

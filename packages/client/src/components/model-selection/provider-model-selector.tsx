@@ -133,10 +133,10 @@ export function ProviderModelSelector({
     }
   }, [modelsData, filterModels])
 
-  // Auto-select first model when provider changes or current model is invalid
+  // Auto-select first model only when no current model is set
+  // Avoid overriding an explicitly provided model (e.g., from a preset)
   useEffect(() => {
-    const isCurrentModelValid = comboboxOptions.some((model: ComboboxOption) => model.value === currentModel)
-    if ((!currentModel || !isCurrentModelValid) && comboboxOptions.length > 0) {
+    if ((!currentModel || currentModel === '') && comboboxOptions.length > 0) {
       onModelChange(comboboxOptions[0].value)
     }
   }, [comboboxOptions, currentModel, onModelChange])

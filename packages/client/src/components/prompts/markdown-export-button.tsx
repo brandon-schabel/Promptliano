@@ -21,7 +21,7 @@ import {
 } from '@promptliano/ui'
 import { Download, FileDown, Archive } from 'lucide-react'
 import { toast } from 'sonner'
-import { useExportPromptAsMarkdown } from '@/hooks/api-hooks'
+import { useExportPromptAsMarkdown, useExportPromptsBatch } from '@/hooks/api-hooks'
 import type { BatchExportRequest } from '@promptliano/schemas'
 
 interface ExportOptions extends Partial<BatchExportRequest> {
@@ -251,8 +251,7 @@ export function MarkdownExportMenuItem({
 }: MarkdownExportProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const exportSingle = useExportPromptAsMarkdown()
-  // Using single export for now - batch export not yet implemented
-  const exportMultiple = useExportPromptAsMarkdown()
+  const exportBatch = useExportPromptsBatch()
   const exportProject = useExportPromptAsMarkdown()
 
   const handleExport = async (options?: ExportOptions) => {
@@ -261,17 +260,21 @@ export function MarkdownExportMenuItem({
         // Single prompt export - direct download
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName}.md` : undefined
+          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
         })
       } else if (promptIds) {
-        // Multiple prompts export - export each individually
-        // TODO: Implement proper batch export API
-        for (const promptId of promptIds) {
-          await exportMultiple.mutateAsync({
-            promptId,
-            filename: `prompt-${promptId}.md`
-          })
-        }
+        // Multiple prompts export - use batch export API
+        await exportBatch.mutateAsync({
+          promptIds,
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? (options?.format === 'multi-file' ? false : true),
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
+        })
       } else if (projectId) {
         // Project prompts export - not implemented yet
         // TODO: Implement proper project export API
@@ -317,7 +320,7 @@ export function MarkdownExportMenuItem({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onExport={handleExport}
-          isExporting={exportSingle.isPending || exportMultiple.isPending || exportProject.isPending}
+          isExporting={exportSingle.isPending || exportBatch.isPending || exportProject.isPending}
           itemCount={itemCount || 0}
         />
       )}
@@ -342,11 +345,10 @@ export function MarkdownExportButton({
 }: MarkdownExportProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const exportSingle = useExportPromptAsMarkdown()
-  // Using single export for now - batch export not yet implemented
-  const exportMultiple = useExportPromptAsMarkdown()
+  const exportBatch = useExportPromptsBatch()
   const exportProject = useExportPromptAsMarkdown()
 
-  const isExporting = exportSingle.isPending || exportMultiple.isPending || exportProject.isPending
+  const isExporting = exportSingle.isPending || exportBatch.isPending || exportProject.isPending
 
   const handleExport = async (options?: ExportOptions) => {
     try {
@@ -354,17 +356,21 @@ export function MarkdownExportButton({
         // Single prompt export - direct download
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName}.md` : undefined
+          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
         })
       } else if (promptIds) {
-        // Multiple prompts export - export each individually
-        // TODO: Implement proper batch export API
-        for (const promptId of promptIds) {
-          await exportMultiple.mutateAsync({
-            promptId,
-            filename: `prompt-${promptId}.md`
-          })
-        }
+        // Multiple prompts export - use batch export API
+        await exportBatch.mutateAsync({
+          promptIds,
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? (options?.format === 'multi-file' ? false : true),
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
+        })
       } else if (projectId) {
         // Project prompts export - not implemented yet
         // TODO: Implement proper project export API
@@ -453,42 +459,36 @@ export function MarkdownExportDialog({
   onOpenChange: (open: boolean) => void
 } & MarkdownExportProps) {
   const exportSingle = useExportPromptAsMarkdown()
-  // Using single export for now - batch export not yet implemented
-  const exportMultiple = useExportPromptAsMarkdown()
+  const exportBatch = useExportPromptsBatch()
   const exportProject = useExportPromptAsMarkdown()
 
-  const isExporting = exportSingle.isPending || exportMultiple.isPending || exportProject.isPending
+  const isExporting = exportSingle.isPending || exportBatch.isPending || exportProject.isPending
 
   const handleExport = async (options: ExportOptions) => {
     try {
       if (promptId) {
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName}.md` : undefined
+          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
         })
       } else if (promptIds) {
-        // Multiple prompts export - use the first promptId for now
-        // TODO: Implement proper batch export API
-        const firstPromptId = promptIds[0]
-        if (firstPromptId) {
-          await exportMultiple.mutateAsync({
-            promptId: firstPromptId,
-            options: {
-              format: options?.format || 'single-file',
-              includeFrontmatter: options?.includeFrontmatter ?? true,
-              includeCreatedDate: options?.includeCreatedDate ?? true,
-              includeUpdatedDate: options?.includeUpdatedDate ?? true,
-              includeTags: options?.includeTags ?? true,
-              sanitizeContent: options?.sanitizeContent ?? true,
-              sortBy: options?.sortBy || 'name',
-              sortOrder: options?.sortOrder || 'asc'
-            }
-          })
-        }
+        // Multiple prompts export - use batch export API
+        await exportBatch.mutateAsync({
+          promptIds,
+          format: options?.format || 'single-file',
+          includeFrontmatter: options?.includeFrontmatter ?? (options?.format === 'multi-file' ? false : true),
+          includeCreatedDate: options?.includeCreatedDate ?? true,
+          includeUpdatedDate: options?.includeUpdatedDate ?? true,
+          includeTags: options?.includeTags ?? true,
+          sanitizeContent: true,
+          sortBy: options?.sortBy || 'name',
+          sortOrder: options?.sortOrder || 'asc'
+        })
       } else if (projectId) {
-        // Project export - need specific promptId
+        // Project export - not implemented yet
         // TODO: Implement proper project export API
-        console.warn('Project export not yet properly implemented - need specific promptId')
+        toast.error('Project export is not yet implemented. Please export individual prompts.')
+        return
       }
 
       onOpenChange(false)
