@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
- * Generated at: 2025-09-04T18:21:21.808Z
+ * Generated at: 2025-09-06T07:28:47.270Z
  * Generated from: 174 API endpoints
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten

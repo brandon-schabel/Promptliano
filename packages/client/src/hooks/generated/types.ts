@@ -9,6 +9,9 @@ import type { UseQueryOptions, UseMutationOptions, UseInfiniteQueryOptions, Quer
 // Import ApiError from shared package to avoid conflicts
 import type { ApiError } from '@promptliano/shared'
 
+// Helper type for drizzle-zod schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
 // ============================================================================
 // Re-export all entity types from schemas
 // ============================================================================
@@ -60,7 +63,7 @@ import type {
 } from '@promptliano/database'
 
 // Re-export as proper TypeScript types
-export type Project = typeof ProjectSchema._type
+export type Project = InferSchema<typeof ProjectSchema>
 export type CreateProjectBody = CreateProject
 export type UpdateProjectBody = UpdateProject
 
@@ -73,16 +76,16 @@ export type UpdateTicketBody = SchemasUpdateTicketBody
 export type CreateTaskBody = SchemasCreateTaskBody
 export type UpdateTaskBody = SchemasUpdateTaskBody
 
-export type Chat = typeof ChatSchema._type
+export type Chat = InferSchema<typeof ChatSchema>
 export type CreateChatBody = CreateChat
 export type UpdateChatBody = UpdateChat
 
-export type ChatMessage = typeof ChatMessageSchema._type
+export type ChatMessage = InferSchema<typeof ChatMessageSchema>
 
 // Prompt types already exported above from schemas package
 export { CreatePromptBody, UpdatePromptBody }
 
-export type TaskQueue = typeof QueueSchema._type & {
+export type TaskQueue = InferSchema<typeof QueueSchema> & {
   status?: 'active' | 'paused' | 'completed'
   isActive?: boolean
 }

@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROVIDERKEY
- * Generated at: 2025-08-30T20:39:29.818Z
+ * Generated at: 2025-09-06T07:22:36.774Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas

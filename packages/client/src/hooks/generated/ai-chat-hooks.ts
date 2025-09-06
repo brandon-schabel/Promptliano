@@ -25,9 +25,12 @@ import { createCrudHooks } from '@promptliano/hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import type { ChatSchema, ChatMessageSchema, CreateChat, UpdateChat } from '@promptliano/database'
 
+// Helper type for drizzle-zod schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
 // Extract proper TypeScript types from schemas
-type Chat = typeof ChatSchema._type
-type ChatMessage = typeof ChatMessageSchema._type
+type Chat = InferSchema<typeof ChatSchema>
+type ChatMessage = InferSchema<typeof ChatMessageSchema>
 type CreateChatBody = CreateChat
 type UpdateChatBody = UpdateChat
 

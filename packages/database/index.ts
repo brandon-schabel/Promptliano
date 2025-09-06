@@ -190,7 +190,7 @@ export type UpdateQueue = InferSchema<typeof UpdateQueueSchema>
 
 // File schemas (backward compatibility)
 export const FileSchema = selectFileSchema
-export const CreateFileSchema = insertFileSchema.omit({ createdAt: true, updatedAt: true })
+export const CreateFileSchema = insertFileSchema // Files table doesn't have createdAt/updatedAt fields to omit
 export const UpdateFileSchema = CreateFileSchema.partial()
 export type CreateFile = InferSchema<typeof CreateFileSchema>
 export type UpdateFile = InferSchema<typeof UpdateFileSchema>

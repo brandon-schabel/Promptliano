@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE INDEX
- * Generated at: 2025-08-30T20:39:29.819Z
+ * Generated at: 2025-09-06T07:22:36.775Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * 📊 Consolidates 12 entity route modules
@@ -88,5 +88,5 @@ export const routeStats = {
   totalEntities: 12,
   totalRoutes: 73,
   codeReduction: '~40%',
-  generatedAt: '2025-08-30T20:39:29.819Z'
+  generatedAt: '2025-09-06T07:22:36.775Z'
 } as const

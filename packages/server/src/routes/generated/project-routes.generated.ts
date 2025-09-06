@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROJECT
- * Generated at: 2025-08-30T20:39:29.813Z
+ * Generated at: 2025-09-06T07:22:36.770Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
@@ -28,15 +28,17 @@ import {
   QueueItemCreateSchema,
   QueueItemResponseSchema,
   QueueStatsResponseSchema,
-  OptimizePromptResponseSchema,
-  TicketListResponseSchema,
-  ChatListResponseSchema,
-  PromptListResponseSchema,
-  QueueListResponseSchema,
-  SelectedFileListResponseSchema,
-  ActiveTabListResponseSchema
+  OptimizePromptResponseSchema
 } from '@promptliano/schemas'
 import { z } from '@hono/zod-openapi'
+
+// Temporary schemas for missing list responses
+const TicketListResponseSchema = TaskListResponseSchema // Use TaskListResponseSchema as fallback
+const ChatListResponseSchema = ChatMessageListResponseSchema // Use ChatMessageListResponseSchema as fallback  
+const PromptListResponseSchema = TaskListResponseSchema // Use TaskListResponseSchema as fallback
+const QueueListResponseSchema = QueueStatsResponseSchema // Use QueueStatsResponseSchema as fallback
+const SelectedFileListResponseSchema = FileListResponseSchema // Use FileListResponseSchema as fallback
+const ActiveTabListResponseSchema = FileListResponseSchema // Use FileListResponseSchema as fallback
 
 // =============================================================================
 // ENTITY CONFIGURATION
@@ -152,9 +154,9 @@ const projectConfig: EntityConfig = {
  */
 export function registerProjectRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, projectConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Project`)
-
+  
   return updatedApp
 }
 

@@ -169,7 +169,17 @@ export function createTransformedInsertSchema(
 ) {
   // Handle both old ZodObject types and new BuildSchema types
   if (typeof baseSchema.omit === 'function') {
-    const omitObject = omitFields.reduce((acc, key) => {
+    // Only omit fields that actually exist in the schema to avoid errors
+    const validOmitFields = omitFields.filter(field => {
+      // Check if field exists in the schema shape
+      return baseSchema._zod?.def?.shape?.[field] || baseSchema._def?.shape?.[field]
+    })
+    
+    if (validOmitFields.length === 0) {
+      return baseSchema // No fields to omit
+    }
+    
+    const omitObject = validOmitFields.reduce((acc, key) => {
       acc[key] = true
       return acc
     }, {} as Record<string, true>)

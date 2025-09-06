@@ -20,36 +20,36 @@ import {
 // Response schemas
 const ModelConfigResponseSchema = z.object({
   success: z.literal(true),
-  data: selectModelConfigSchema
+  data: selectModelConfigSchema as any as any
 }).openapi('ModelConfigResponse')
 
 const ModelConfigListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(selectModelConfigSchema)
+  data: z.array(selectModelConfigSchema as any)
 }).openapi('ModelConfigListResponse')
 
 const ModelPresetResponseSchema = z.object({
   success: z.literal(true),
-  data: selectModelPresetSchema
+  data: selectModelPresetSchema as any
 }).openapi('ModelPresetResponse')
 
 const ModelPresetListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(selectModelPresetSchema)
+  data: z.array(selectModelPresetSchema as any)
 }).openapi('ModelPresetListResponse')
 
 const ModelPresetWithConfigResponseSchema = z.object({
   success: z.literal(true),
-  data: selectModelPresetSchema.extend({
-    config: selectModelConfigSchema
+  data: (selectModelPresetSchema as any).extend({
+    config: selectModelConfigSchema as any
   })
 }).openapi('ModelPresetWithConfigResponse')
 
 const ExportDataResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
-    configs: z.array(selectModelConfigSchema),
-    presets: z.array(selectModelPresetSchema)
+    configs: z.array(selectModelConfigSchema as any),
+    presets: z.array(selectModelPresetSchema as any)
   })
 }).openapi('ExportDataResponse')
 
@@ -208,7 +208,7 @@ const createConfigRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: CreateModelConfigSchema
+          schema: CreateModelConfigSchema as any
         }
       },
       required: true
@@ -234,7 +234,7 @@ const updateConfigRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: UpdateModelConfigSchema
+          schema: UpdateModelConfigSchema as any
         }
       }
     }
@@ -313,8 +313,8 @@ const getAllPresetsRoute = createRoute({
   summary: 'Get all model presets with configurations',
   responses: createStandardResponses(z.object({
     success: z.literal(true),
-    data: z.array(selectModelPresetSchema.extend({
-      config: selectModelConfigSchema
+    data: z.array((selectModelPresetSchema as any).extend({
+      config: selectModelConfigSchema as any
     }))
   }))
 })
@@ -415,7 +415,7 @@ const createPresetRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: CreateModelPresetSchema
+          schema: CreateModelPresetSchema as any
         }
       },
       required: true
@@ -441,7 +441,7 @@ const updatePresetRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: UpdateModelPresetSchema
+          schema: UpdateModelPresetSchema as any
         }
       },
       required: true
@@ -554,7 +554,7 @@ const importConfigurationsRoute = createRoute({
         'application/json': {
           schema: z.object({
             configs: z.array(CreateModelConfigSchema).optional(),
-            presets: z.array(CreateModelPresetSchema).optional()
+            presets: z.array(CreateModelPresetSchema as any).optional()
           })
         }
       },

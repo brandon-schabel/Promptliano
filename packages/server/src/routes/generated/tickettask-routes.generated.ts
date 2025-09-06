@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR TICKETTASK
- * Generated at: 2025-08-30T20:39:29.817Z
+ * Generated at: 2025-09-06T07:22:36.772Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas

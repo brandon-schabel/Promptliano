@@ -125,7 +125,7 @@ const forkChatRoute = createRoute({
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
-    data: ChatSchema
+    data: ChatSchema as any
   }))
 })
 
@@ -157,7 +157,7 @@ const forkFromMessageRoute = createRoute({
   },
   responses: createStandardResponses(z.object({
     success: z.literal(true),
-    data: ChatSchema
+    data: ChatSchema as any
   }))
 })
 

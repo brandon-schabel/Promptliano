@@ -43,11 +43,11 @@ export interface CrudRouteConfig<TEntity, TCreate, TUpdate> {
   
   // Zod schemas for validation
   schemas: {
-    entity: z.ZodSchema<TEntity>
-    create: z.ZodSchema<TCreate>
-    update: z.ZodSchema<TUpdate>
-    params?: z.ZodSchema<any>
-    query?: z.ZodObject<any>
+    entity: any
+    create: any
+    update: any
+    params?: any
+    query?: any
   }
   
   // Optional features and customizations

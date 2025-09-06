@@ -10,6 +10,10 @@ import type {
   OptimisticConfig,
   InvalidationStrategy
 } from '@promptliano/hook-factory'
+
+// Helper type for drizzle-zod schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
 import { useApiClient } from '../api/use-api-client'
 import {
   PROJECT_ENHANCED_KEYS,
@@ -57,7 +61,7 @@ import {
 } from '@promptliano/schemas'
 
 // Extract proper TypeScript types from schemas
-type Project = typeof ProjectSchema._type
+type Project = InferSchema<typeof ProjectSchema>
 type CreateProjectBody = CreateProject
 type UpdateProjectBody = UpdateProject
 // Use the properly typed imports from schemas package (imported above)
@@ -67,13 +71,13 @@ type UpdateTicketBody = SchemasUpdateTicketBody
 // type TicketTask = typeof TaskSchema._type // This causes type inference issues - use import instead
 type CreateTaskBody = SchemasCreateTaskBody
 type UpdateTaskBody = SchemasUpdateTaskBody
-type Chat = typeof ChatSchema._type
+type Chat = InferSchema<typeof ChatSchema>
 type CreateChatBody = CreateChat
 type UpdateChatBody = UpdateChat
 // type Prompt = typeof PromptSchema._type // This causes type inference issues - use import instead
 type CreatePromptBody = SchemasCreatePromptBody
 type UpdatePromptBody = SchemasUpdatePromptBody
-type TaskQueue = typeof QueueSchema._type
+type TaskQueue = InferSchema<typeof QueueSchema>
 type CreateQueueBody = CreateQueue
 type UpdateQueueBody = UpdateQueue
 // Import the proper ProviderKey type that handles JSON fields correctly
