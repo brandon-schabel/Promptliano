@@ -90,7 +90,7 @@ export const assetsSearchSchema = z.object({
 
 // Settings page search schema
 export const settingsTabSchema = z
-  .enum(['general', 'server', 'local-providers', 'global-mcp'])
+  .enum(['general', 'server', 'local-providers', 'global-mcp', 'dev'])
   .catch('general')
   .optional()
 

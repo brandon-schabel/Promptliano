@@ -7,7 +7,7 @@ import { app } from './src/app'
 import { listProjects, createLogger } from '@promptliano/services'
 import { getServerConfig } from '@promptliano/config'
 import { watchersManager, createCleanupService } from '@promptliano/services'
-import { runMigrations, initializeModelConfigs } from '@promptliano/database'
+import { runMigrations, initializeModelConfigs, getDatabasePath } from '@promptliano/database'
 
 interface WebSocketData {
   clientId: string
@@ -47,6 +47,9 @@ export async function instantiateServer({
     // Initialize model presets
     await initializeModelConfigs()
     logger.info('Model presets initialized')
+    // Log database location for visibility
+    const dbPath = getDatabasePath()
+    logger.info(`Database location: ${dbPath === ':memory:' ? 'in-memory' : dbPath}`)
   } catch (error) {
     logger.error('Database migration failed during server startup', error)
   }
@@ -135,6 +138,13 @@ export async function instantiateServer({
   logger.info(`Server running at http://${serverConfig.host}:${server.port}`)
   logger.info(`Server swagger at http://${serverConfig.host}:${server.port}/swagger`)
   logger.info(`Server docs at http://${serverConfig.host}:${server.port}/doc`)
+  // Helpful developer links
+  const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT) || 6274
+  const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT) || 6277
+  const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT) || 4983
+  logger.info(`MCP Inspector UI (if running): http://localhost:${inspectorClientPort}`)
+  logger.info(`MCP Inspector Proxy (if running): http://localhost:${inspectorServerPort}`)
+  logger.info(`Drizzle Studio (if running): http://localhost:${drizzlePort}`)
 
   // Flush stdout to ensure output is visible
   if (process.stdout.isTTY) {

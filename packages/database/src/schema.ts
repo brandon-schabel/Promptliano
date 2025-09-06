@@ -6,8 +6,8 @@
 
 import { sqliteTable, integer, text, index, real } from 'drizzle-orm/sqlite-core'
 import { relations, sql } from 'drizzle-orm'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import { z } from 'zod'
+import { createInsertSchema, createSelectSchema } from './schema-factory'
+import { z } from '@hono/zod-openapi'
 
 // =============================================================================
 // TYPE DEFINITIONS (from @promptliano/schemas)
@@ -1575,6 +1575,8 @@ export const insertModelConfigSchema = createInsertSchema(modelConfigs)
 export const insertModelPresetSchema = createInsertSchema(modelPresets)
 export const selectModelConfigSchema = createSelectSchema(modelConfigs)
 export const selectModelPresetSchema = createSelectSchema(modelPresets)
+
+// NOTE: OpenAPI naming will be handled in the route definitions where schemas are used
 
 // =============================================================================
 // UTILITY TYPES FOR MIGRATIONS

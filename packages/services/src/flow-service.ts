@@ -374,8 +374,18 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             throw ErrorFactory.notFound('Queue', queueId)
           }
 
-          // Enqueue the ticket
+          // Enqueue the ticket (updates ticket's queue fields)
           const ticket = await ticketRepo.addToQueue(ticketId, queueId, priority)
+
+          // Also create a queueItems record for MCP queue processor compatibility
+          await queueRepo.addItem({
+            queueId,
+            itemType: 'ticket',
+            itemId: ticketId,
+            priority,
+            status: 'queued',
+            agentId: null
+          })
 
           logger.info('Enqueued ticket', { ticketId, queueId, priority })
           return transformTicket(ticket)
@@ -402,6 +412,16 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             queueStatus: 'queued',
             queuePriority: priority,
             queuedAt: Date.now()
+          })
+
+          // Also create a queueItems record for MCP queue processor compatibility
+          await queueRepo.addItem({
+            queueId,
+            itemType: 'task',
+            itemId: taskId,
+            priority,
+            status: 'queued',
+            agentId: null
           })
 
           logger.info('Enqueued task', { taskId, queueId, priority })

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 import { ProjectFileSchema } from './project.schemas'
 
 // Grouping strategies for files

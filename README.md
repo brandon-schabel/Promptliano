@@ -86,6 +86,69 @@ bun run dev
 
 The development UI will be available at [http://localhost:1420](http://localhost:1420)
 
+### Port Configuration (Dev)
+
+- Server API: `SERVER_PORT` or `PORT` (default: 3147)
+- Client UI (Vite): `CLIENT_DEV_PORT` (default: 1420)
+- Drizzle Studio: `DRIZZLE_STUDIO_PORT` (default: 4983)
+- MCP Inspector UI: `MCP_INSPECTOR_CLIENT_PORT` (default: 6274)
+- MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)
+   - Alternatively, set Inspector's native vars: `CLIENT_PORT` / `SERVER_PORT`.
+     The dev script maps `MCP_INSPECTOR_*` to these for the Inspector process.
+
+Example:
+
+```bash
+SERVER_PORT=4000 CLIENT_DEV_PORT=3001 DRIZZLE_STUDIO_PORT=4999 \
+MCP_INSPECTOR_CLIENT_PORT=8080 MCP_INSPECTOR_SERVER_PORT=9000 \
+bun run dev
+```
+
+Note: The dev script auto‑frees these ports before starting.
+
+### MCP Inspector Config (Promptliano)
+
+Recommended: use STDIO transport (matches our MCP services).
+
+Option A — macOS/Linux (uses helper script):
+- Transport: `stdio`
+- Command: `sh`
+- Args: `["packages/server/mcp-start.sh"]`
+
+Option B — Windows:
+- Transport: `stdio`
+- Command: `cmd.exe`
+- Args: `["/c", "packages\\server\\mcp-start.bat"]`
+
+Option C — Cross‑platform (no shell scripts):
+- Transport: `stdio`
+- Command: `bun`
+- Args: `["run", "-C", "packages/server", "mcp"]`
+
+Optional env:
+- `PROMPTLIANO_PROJECT_ID`: scope tools/resources to a specific project ID
+
+Example `mcp.json` (macOS/Linux script):
+
+```json
+{
+  "mcpServers": {
+    "promptliano": {
+      "type": "stdio",
+      "command": "sh",
+      "args": ["packages/server/mcp-start.sh"],
+      "env": {
+        "PROMPTLIANO_PROJECT_ID": "1"
+      }
+    }
+  }
+}
+```
+
+Note: `bun run dev` auto-generates `.mcp-inspector.config.json` in the repo root and launches the Inspector with it preconfigured to Promptliano (stdio). You can edit that file or use one of the options above.
+
+Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
+
 ## Running Binaries
 
 ### Running on Linux

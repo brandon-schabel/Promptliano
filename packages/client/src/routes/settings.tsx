@@ -16,7 +16,7 @@ import { Theme } from '@promptliano/schemas'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MCPGlobalConfigEditor } from '@/components/settings/mcp-global-config-editor'
 import { ServerConfiguration } from '@/components/settings/server-configuration'
-import { ArrowRight, Cloud } from 'lucide-react'
+import { ArrowRight, Cloud, Database, FileJson, Terminal, Zap, Router, Bug } from 'lucide-react'
 
 type ThemeOption = {
   label: string
@@ -44,7 +44,15 @@ export function SettingsPage() {
     codeThemeDark,
     codeThemeLight,
     theme,
-    enableChatAutoNaming = true
+    enableChatAutoNaming = true,
+    devToolsEnabled = {
+      tanstackQuery: false,
+      tanstackRouter: false,
+      reactScan: false,
+      drizzleStudio: false,
+      swaggerUI: false,
+      mcpInspector: false
+    }
   } = settings
   const isDarkMode = theme === 'dark'
 
@@ -66,6 +74,15 @@ export function SettingsPage() {
     })
   }
 
+  const handleDevToolToggle = (tool: keyof typeof devToolsEnabled, enabled: boolean) => {
+    updateSettings({
+      devToolsEnabled: {
+        ...devToolsEnabled,
+        [tool]: enabled
+      }
+    })
+  }
+
   return (
     <div className='container mx-auto p-6 space-y-6'>
       <div>
@@ -84,10 +101,11 @@ export function SettingsPage() {
         }}
         className='w-full'
       >
-        <TabsList className='grid w-full grid-cols-2'>
+        <TabsList className='grid w-full grid-cols-4'>
           <TabsTrigger value='general'>General</TabsTrigger>
           <TabsTrigger value='server'>Server</TabsTrigger>
           <TabsTrigger value='global-mcp'>Global MCP</TabsTrigger>
+          <TabsTrigger value='dev'>Dev</TabsTrigger>
         </TabsList>
 
         <TabsContent value='general' className='space-y-6'>
@@ -254,6 +272,141 @@ export function SettingsPage() {
 
         <TabsContent value='global-mcp' className='space-y-6'>
           <MCPGlobalConfigEditor />
+        </TabsContent>
+
+        <TabsContent value='dev' className='space-y-6'>
+          <Card>
+            <CardHeader>
+              <CardTitle>Development Tools</CardTitle>
+              <CardDescription>Enable or disable various development tools and debugging interfaces</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                {/* TanStack DevTools */}
+                <div className='space-y-4'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-orange-100 dark:bg-orange-900 rounded-lg'>
+                        <Zap className='h-5 w-5 text-orange-600 dark:text-orange-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>TanStack Query DevTools</Label>
+                        <p className='text-sm text-muted-foreground'>Debug React Query cache and network requests</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.tanstackQuery}
+                      onCheckedChange={(checked) => handleDevToolToggle('tanstackQuery', checked)}
+                    />
+                  </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-blue-100 dark:bg-blue-900 rounded-lg'>
+                        <Router className='h-5 w-5 text-blue-600 dark:text-blue-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>TanStack Router DevTools</Label>
+                        <p className='text-sm text-muted-foreground'>Debug routing, search params, and navigation</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.tanstackRouter}
+                      onCheckedChange={(checked) => handleDevToolToggle('tanstackRouter', checked)}
+                    />
+                  </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-green-100 dark:bg-green-900 rounded-lg'>
+                        <Bug className='h-5 w-5 text-green-600 dark:text-green-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>React Scan</Label>
+                        <p className='text-sm text-muted-foreground'>Visualize React component performance and re-renders</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.reactScan}
+                      onCheckedChange={(checked) => handleDevToolToggle('reactScan', checked)}
+                    />
+                  </div>
+                </div>
+
+                {/* External Tools */}
+                <div className='space-y-4'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-purple-100 dark:bg-purple-900 rounded-lg'>
+                        <Database className='h-5 w-5 text-purple-600 dark:text-purple-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>Drizzle Studio</Label>
+                        <p className='text-sm text-muted-foreground'>Cloud-hosted database management interface</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.drizzleStudio}
+                      onCheckedChange={(checked) => handleDevToolToggle('drizzleStudio', checked)}
+                    />
+                  </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg'>
+                        <FileJson className='h-5 w-5 text-indigo-600 dark:text-indigo-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>Swagger UI</Label>
+                        <p className='text-sm text-muted-foreground'>API documentation and testing interface</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.swaggerUI}
+                      onCheckedChange={(checked) => handleDevToolToggle('swaggerUI', checked)}
+                    />
+                  </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-cyan-100 dark:bg-cyan-900 rounded-lg'>
+                        <Terminal className='h-5 w-5 text-cyan-600 dark:text-cyan-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>MCP Inspector</Label>
+                        <p className='text-sm text-muted-foreground'>Model Context Protocol debugging interface</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.mcpInspector}
+                      onCheckedChange={(checked) => handleDevToolToggle('mcpInspector', checked)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Development Tool Information</CardTitle>
+              <CardDescription>Information about the development tools and how to use them</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4 text-sm text-muted-foreground'>
+              <div>
+                <p className='font-medium text-foreground mb-2'>TanStack DevTools:</p>
+                <p>When enabled, debugging tools will appear at the bottom of the screen. Use them to inspect query cache, routing state, and component performance.</p>
+              </div>
+              <div>
+                <p className='font-medium text-foreground mb-2'>External Tools:</p>
+                <p>When enabled, navigation items will appear in the sidebar to access database management, API documentation, and protocol debugging interfaces.</p>
+              </div>
+              <div>
+                <p className='font-medium text-foreground mb-2'>Note:</p>
+                <p>Development tools are disabled by default and only intended for development environments. Some tools require external services to be running.</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

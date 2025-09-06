@@ -281,11 +281,60 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             return null
           }
 
-          // Get highest priority queued item
-          const items = await repo.getItems(queueId)
-          const queuedItems = items
+          // Get highest priority queued item from queueItems table
+          let items = await repo.getItems(queueId)
+          let queuedItems = items
             .filter((item) => item.status === 'queued')
             .sort((a, b) => a.priority - b.priority || a.createdAt - b.createdAt)
+
+          // If no items in queueItems table, check for items in tickets/tasks with queue fields
+          // and synchronize them to queueItems table
+          if (queuedItems.length === 0) {
+            const { createFlowService } = await import('./flow-service')
+            const flowService = createFlowService()
+            const queueItems = await flowService.getQueueItems(queueId)
+
+            // Create missing queueItems records for tickets and tasks
+            for (const ticket of queueItems.tickets) {
+              if (ticket.queueStatus === 'queued') {
+                try {
+                  await repo.addItem({
+                    queueId,
+                    itemType: 'ticket',
+                    itemId: ticket.id,
+                    priority: ticket.queuePriority || 5,
+                    status: 'queued',
+                    agentId: null
+                  })
+                } catch (error) {
+                  logger.error('Error syncing ticket to queueItems', { ticketId: ticket.id, error })
+                }
+              }
+            }
+
+            for (const task of queueItems.tasks) {
+              if (task.queueStatus === 'queued') {
+                try {
+                  await repo.addItem({
+                    queueId,
+                    itemType: 'task',
+                    itemId: task.id,
+                    priority: task.queuePriority || 5,
+                    status: 'queued',
+                    agentId: null
+                  })
+                } catch (error) {
+                  logger.error('Error syncing task to queueItems', { taskId: task.id, error })
+                }
+              }
+            }
+
+            // Refresh the items list after synchronization
+            items = await repo.getItems(queueId)
+            queuedItems = items
+              .filter((item) => item.status === 'queued')
+              .sort((a, b) => a.priority - b.priority || a.createdAt - b.createdAt)
+          }
 
           if (queuedItems.length === 0) {
             return null

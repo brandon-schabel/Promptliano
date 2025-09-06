@@ -104,11 +104,16 @@ export const jsonToObjectSchema = () =>
 /**
  * Extend a base schema with JSON field transformations
  */
-export function withJsonTransforms<T extends z.ZodRawShape>(
-  baseSchema: z.ZodObject<T>,
-  transforms: Partial<Record<keyof T, z.ZodSchema>>
+export function withJsonTransforms(
+  baseSchema: any,
+  transforms: Record<string, any>
 ) {
-  return baseSchema.extend(transforms as any)
+  // Handle both old ZodObject types and new BuildSchema types
+  if (typeof baseSchema.extend === 'function') {
+    return baseSchema.extend(transforms)
+  }
+  // Fallback for schemas without extend method
+  return baseSchema
 }
 
 /**
@@ -148,12 +153,9 @@ export type InferTransformed<T extends z.ZodSchema> = z.infer<T>
 /**
  * Create a transformed select schema from a base Drizzle select schema
  */
-export function createTransformedSelectSchema<
-  T extends z.ZodRawShape,
-  Transforms extends Partial<Record<keyof T, z.ZodSchema>>
->(
-  baseSchema: z.ZodObject<T>,
-  transforms: Transforms
+export function createTransformedSelectSchema(
+  baseSchema: any,
+  transforms: Record<string, any>
 ) {
   return withJsonTransforms(baseSchema, transforms)
 }
@@ -161,16 +163,22 @@ export function createTransformedSelectSchema<
 /**
  * Create insert/update schemas with proper array handling
  */
-export function createTransformedInsertSchema<T extends z.ZodRawShape>(
-  baseSchema: z.ZodObject<T>,
-  omitFields: (keyof T)[] = ['id', 'createdAt', 'updatedAt']
+export function createTransformedInsertSchema(
+  baseSchema: any,
+  omitFields: string[] = ['id', 'createdAt', 'updatedAt']
 ) {
-  const omitObject = omitFields.reduce((acc, key) => {
-    acc[key] = true
-    return acc
-  }, {} as Record<keyof T, true>)
+  // Handle both old ZodObject types and new BuildSchema types
+  if (typeof baseSchema.omit === 'function') {
+    const omitObject = omitFields.reduce((acc, key) => {
+      acc[key] = true
+      return acc
+    }, {} as Record<string, true>)
+    
+    return baseSchema.omit(omitObject)
+  }
   
-  return baseSchema.omit(omitObject as any)
+  // Fallback for schemas without omit method
+  return baseSchema
 }
 
 /**

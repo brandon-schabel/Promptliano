@@ -3,7 +3,7 @@
  * These schemas handle provider health checks and testing functionality
  */
 
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 // Provider status enum
 export const ProviderStatusEnum = z.enum(['active', 'inactive', 'error', 'testing', 'degraded'])
