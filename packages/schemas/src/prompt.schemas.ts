@@ -15,7 +15,7 @@ import type { Prompt as DatabasePrompt } from '@promptliano/database'
 export const PromptSchema = z
   .object({
     id: z.number(),
-    projectId: z.number(),
+    projectId: z.number().nullable(),
     title: z.string(),
     content: z.string(),
     description: z.string().nullable(),

@@ -159,6 +159,8 @@ export {
 // Other services (unchanged)
 export * from './src/project-statistics-service'
 export * from './src/provider-key-service'
+export * from './src/model-config-service'
+export * from './src/intelligence-model-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
 
@@ -218,8 +220,10 @@ export {
   startMCPServer as startMCPServerLegacy,
   stopMCPServer as stopMCPServerLegacy
 } from './src/mcp-service'
-export * from './src/git-service'
 export * from './src/active-tab-service'
+
+// Git services - Re-export all git functionality
+export * from './src/git-services'
 // Do not export agent-logger - it contains Bun imports and should only be used server-side
 // export * from './src/agents/agent-logger'
 
@@ -273,6 +277,7 @@ export * from './src/utils/error-handlers'
 export * from './src/utils/bulk-operations'
 export * from './src/core/base-service'
 export * from './src/utils/logger'
+export * from './src/utils/model-usage-logger'
 
 // server side utils
 export * from './src/utils/project-summary-service'

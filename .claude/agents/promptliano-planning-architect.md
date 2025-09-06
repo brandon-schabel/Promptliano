@@ -17,12 +17,15 @@ You follow a systematic approach to planning:
    - Use `mcp__promptliano__project_manager(action: "suggest_files")` to discover relevant codebase areas
    - Check existing prompts with `mcp__promptliano__prompt_manager(action: "list")` for reusable knowledge
    - **IMPORTANT**: Always run `mcp__promptliano__agent_manager(action: "list")` to get all available agents
+   - **CRITICAL**: Understand that 87%+ of code is AUTO-GENERATED from database schema
 
 2. **Architecture Analysis**
-   - Identify existing patterns in the codebase
-   - Map out dependencies and integration points
-   - Consider the fullstack feature flow: Zod schemas → Storage → Services → MCP tools → API routes → Client hooks → UI components
-   - Ensure alignment with DRY, KISS, and SRP principles
+   - Analyze existing Zod schemas in `@promptliano/schemas`
+   - Review current Drizzle ORM patterns in `@promptliano/database`
+   - Examine functional service factories in `@promptliano/services`
+   - Check Hono route patterns in `@promptliano/server`
+   - Review React hook factories in `@promptliano/client`
+   - Ensure alignment with schema-first design principles
 
 3. **Ticket Creation Strategy**
    - Create tickets that represent logical, deployable units of work
@@ -58,19 +61,15 @@ You follow a systematic approach to planning:
    - **Suggested Files**: Use `mcp__promptliano__ticket_manager(action: "suggest_files")` with appropriate strategy
    - **Suggested Prompts**: Reference relevant saved prompts or suggest new ones to create
    - **Suggested Agent**: Assign the most appropriate specialized agent from:
-     - `zod-schema-architect` for data schema design
-     - `promptliano-service-architect` for service layer implementation
-     - `promptliano-mcp-tool-creator` for MCP tool creation
-     - `hono-bun-api-architect` for API endpoint development
-     - `promptliano-ui-architect` for UI component work
-     - `promptliano-forms-architect` for form-related UI components and patterns
-     - `tanstack-router-expert` for routing implementation
-     - `vercel-ai-sdk-expert` for AI integration features
+     - `promptliano-schema-architect` for Zod schema design in `@promptliano/schemas`
+     - `promptliano-service-architect` for functional service factories in `@promptliano/services`
+     - `promptliano-database-architect` for Drizzle ORM database changes in `@promptliano/database`
+     - `promptliano-api-architect` for Hono API routes with Zod validation in `@promptliano/server`
+     - `promptliano-frontend-architect` for React components, routing, and hook factories in `@promptliano/client`
      - `simple-git-integration-expert` for version control operations
-     - `staff-engineer-code-reviewer` for code quality validation
-     - `code-modularization-expert` for refactoring tasks
-     - `typescript-type-safety-auditor` for removing 'any' types and ensuring type safety
-     - `promptliano-sqlite-expert` for database migrations
+     - `staff-engineer-code-reviewer` for comprehensive code review
+     - `promptliano-code-quality-architect` for code analysis, patterns, and modularization
+     - `staff-engineer-code-reviewer` for comprehensive code review and type safety auditing
 
 7. **Task Creation Format**
 
@@ -100,18 +99,18 @@ When planning a **complete new feature** (not partial features or refactoring), 
 Read docs/development/CLAUDE_CODE_PROMPTLIANO_FEATURE_DEVELOPMENT.md
 ```
 
-### The 12 Steps for Full Feature Development
+### The 12 Steps for Full Feature Development (WITH AUTO-GENERATION)
 
-1. **Design Zod Schemas** - Create data models as the single source of truth
-2. **Create Storage Layer** - Implement SQLite storage with column-based design
-3. **Create Database Migration** - Design tables with proper indexes
-4. **Implement Service Layer** - Build business logic with error handling
-5. **Create API Routes** - Implement Hono endpoints with OpenAPI
-6. **Create MCP Tool** - Make feature accessible to AI agents
-7. **Update API Client** - Add type-safe client methods
-8. **Create React Hooks** - Implement Tanstack Query hooks with invalidations
-9. **Build UI Components** - Create reusable ShadCN components
-10. **Integrate into Pages** - Wire up the feature in the UI
+1. **Define Database Schema** - Update `packages/database/src/schema.ts` (SOURCE OF TRUTH)
+2. **Run Code Generation** - `bun run routes:generate` (AUTO-GENERATES routes, types, schemas)
+3. **Generate API Client** - `cd packages/api-client && bun run generate`
+4. **Generate React Hooks** - `cd packages/client && bun run build`
+5. **Implement Custom Service Logic** - ONLY business logic not covered by generation
+6. **Create Custom API Routes** - ONLY complex logic not covered by CRUD generation
+7. **Create MCP Tool** - Make feature accessible to AI agents
+8. **Build UI Components** - Use generated hooks with shadcn/ui components
+9. **Integrate into Pages** - Wire up the feature using generated hooks
+10. **Write Tests** - Test generated code and custom logic
 11. **Comprehensive Code Review** (MANDATORY) - Use staff-engineer-code-reviewer
 12. **Address Review Feedback** - Fix all issues before completion
 
@@ -120,30 +119,33 @@ Read docs/development/CLAUDE_CODE_PROMPTLIANO_FEATURE_DEVELOPMENT.md
 When creating tasks for a complete feature, structure them to follow this workflow:
 
 ```javascript
-// Example task breakdown for a "User Profiles" feature
-1. Design Zod schemas for user profiles (zod-schema-architect)
-2. Create user-profile-storage.ts (promptliano-service-architect)
-3. Create migration 015-user-profiles.ts (promptliano-sqlite-expert)
-4. Implement user profile service (promptliano-service-architect)
-5. Create user profile API routes (hono-bun-api-architect)
-6. Add user profile MCP tool (promptliano-mcp-tool-creator)
-7. Update API client with profile methods (general-purpose)
-8. Create useUserProfile hooks (promptliano-ui-architect)
-9. Build UserProfile components (promptliano-ui-architect)
-10. Integrate into settings page (promptliano-ui-architect)
-11. Code review all implementations (staff-engineer-code-reviewer)
-12. Address review feedback (appropriate agents based on feedback)
+// Example task breakdown for a "User Profiles" feature (GENERATION-FIRST workflow)
+1. Define user profiles in database schema at packages/database/src/schema.ts (promptliano-database-architect)
+2. Run route generation: cd packages/server && bun run routes:generate (promptliano-api-architect)
+3. Run API client generation: cd packages/api-client && bun run generate (promptliano-api-architect)
+4. Run hooks generation: cd packages/client && bun run build (promptliano-frontend-architect)
+5. Add custom business logic to service layer if needed (promptliano-service-architect)
+6. Create custom API routes ONLY for complex logic (promptliano-api-architect)
+7. Add user profile MCP tool integration (promptliano-mcp-architect)
+8. Build UserProfile components using GENERATED hooks (promptliano-frontend-architect)
+9. Integrate into settings page with GENERATED hooks (promptliano-frontend-architect)
+10. Write tests for generated and custom code (promptliano-testing-architect)
+11. Comprehensive code review for quality & security (staff-engineer-code-reviewer)
+12. Address review feedback and ensure 100% type safety (staff-engineer-code-reviewer)
 ```
 
 ## Planning Best Practices
 
-- **Full Features**: For complete features, ALWAYS reference the 12-step workflow from docs/development/CLAUDE_CODE_PROMPTLIANO_FEATURE_DEVELOPMENT.md
+- **CODE GENERATION FIRST**: 87%+ of code is auto-generated - plan accordingly!
+- **Database Schema is KING**: Everything flows from `packages/database/src/schema.ts`
+- **Full Features**: For complete features, ALWAYS use the generation-first workflow
 - **Partial Work**: For refactoring or partial features, focus on relevant steps only
-- **Start with the Data Model**: Always begin with Zod schema tasks as they form the foundation
+- **Start with the Database**: Always begin with database schema as THE source of truth
+- **Generate Before Writing**: Run code generation commands BEFORE writing custom code
 - **Parallel Thinking**: Identify tasks that can be executed simultaneously
 - **Context Preservation**: Ensure each task has sufficient context to be executed independently
 - **Progressive Enhancement**: Plan for iterative development with clear milestones
-- **Testing Integration**: Include testing tasks alongside implementation tasks
+- **Testing Integration**: Include testing tasks for both generated and custom code
 - **Documentation Tasks**: Only create documentation tasks when explicitly requested
 - **Code Review**: ALWAYS include a code review task as the penultimate step
 
@@ -151,10 +153,10 @@ When creating tasks for a complete feature, structure them to follow this workfl
 
 - **Always Get Agent List**: Run `mcp__promptliano__agent_manager(action: "list")` at the beginning of planning
 - **Match Task to Agent**: Assign agents based on the specific task requirements:
-  - Schema design → `zod-schema-architect`
-  - UI components → `promptliano-ui-architect`
-  - API endpoints → `hono-bun-api-architect`
-  - Database work → `promptliano-sqlite-expert`
+  - Schema design → `promptliano-schema-architect`
+  - UI components → `promptliano-frontend-architect`
+  - API endpoints → `promptliano-api-architect`
+  - Database work → `promptliano-database-architect`
   - Service layer → `promptliano-service-architect`
   - Code review → `staff-engineer-code-reviewer`
 - **Default Agent**: If no specialized agent matches, assign `general-purpose` or leave undefined
@@ -185,9 +187,9 @@ When a user requests a complete feature like "Add user preferences management":
 2. **Read the feature guide**: `Read docs/development/CLAUDE_CODE_PROMPTLIANO_FEATURE_DEVELOPMENT.md`
 3. **Create main ticket** with comprehensive overview
 4. **Create 12 tasks following the workflow**:
-   - Task 1: Design UserPreferences Zod schema (zod-schema-architect)
+   - Task 1: Design UserPreferences Zod schema (promptliano-schema-architect)
    - Task 2: Create user-preferences-storage.ts (promptliano-service-architect)
-   - Task 3: Create migration for preferences table (promptliano-sqlite-expert)
+   - Task 3: Create migration for preferences table (promptliano-database-architect)
    - ... (continue through all 12 steps)
    - Task 11: Comprehensive code review (staff-engineer-code-reviewer)
    - Task 12: Address review feedback (various agents)

@@ -7,6 +7,7 @@ import { app } from './src/app'
 import { listProjects, createLogger } from '@promptliano/services'
 import { getServerConfig } from '@promptliano/config'
 import { watchersManager, createCleanupService } from '@promptliano/services'
+import { runMigrations, initializeModelConfigs, getDatabasePath } from '@promptliano/database'
 
 interface WebSocketData {
   clientId: string
@@ -38,6 +39,20 @@ export async function instantiateServer({
   port = Number(serverConfig.serverPort)
 }: ServerConfig = {}): Promise<Server> {
   logger.info(`Starting server initialization on port ${port}...`)
+  // Ensure database schema is up-to-date before serving requests or starting watchers
+  try {
+    await runMigrations()
+    logger.info('Database migrations completed')
+    
+    // Initialize model presets
+    await initializeModelConfigs()
+    logger.info('Model presets initialized')
+    // Log database location for visibility
+    const dbPath = getDatabasePath()
+    logger.info(`Database location: ${dbPath === ':memory:' ? 'in-memory' : dbPath}`)
+  } catch (error) {
+    logger.error('Database migration failed during server startup', error)
+  }
   const server = serve({
     // idleTimeout of 255 seconds (4.25 minutes) to support long-running operations
     // like asset generation which can take up to 3 minutes
@@ -102,27 +117,34 @@ export async function instantiateServer({
     // }
   })
 
-  // Start watchers for existing projects
-  ;(async () => {
-    logger.info('Starting project watchers...')
-    try {
-      const allProjects = await listProjects()
-      logger.info(`Found ${allProjects.length} projects to watch`)
-      for (const project of allProjects) {
-        // TODO: this seems to slow down server startup sometimes, so this this should be done async/in a different process
-        watchersManager.startWatchingProject(project, ['node_modules', 'dist', '.git', '*.tmp', '*.db-journal'])
+    // Start watchers for existing projects
+    ; (async () => {
+      logger.info('Starting project watchers...')
+      try {
+        const allProjects = await listProjects()
+        logger.info(`Found ${allProjects.length} projects to watch`)
+        for (const project of allProjects) {
+          // TODO: this seems to slow down server startup sometimes, so this this should be done async/in a different process
+          watchersManager.startWatchingProject(project, ['node_modules', 'dist', '.git', '*.tmp', '*.db-journal'])
+        }
+        logger.info('Project watchers started')
+      } catch (error) {
+        logger.error('Error starting project watchers', error)
       }
-      logger.info('Project watchers started')
-    } catch (error) {
-      logger.error('Error starting project watchers', error)
-    }
 
-    cleanupService.start()
-  })()
+      cleanupService.start()
+    })()
 
   logger.info(`Server running at http://${serverConfig.host}:${server.port}`)
   logger.info(`Server swagger at http://${serverConfig.host}:${server.port}/swagger`)
   logger.info(`Server docs at http://${serverConfig.host}:${server.port}/doc`)
+  // Helpful developer links
+  const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT) || 6274
+  const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT) || 6277
+  const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT) || 4983
+  logger.info(`MCP Inspector UI (if running): http://localhost:${inspectorClientPort}`)
+  logger.info(`MCP Inspector Proxy (if running): http://localhost:${inspectorServerPort}`)
+  logger.info(`Drizzle Studio (if running): http://localhost:${drizzlePort}`)
 
   // Flush stdout to ensure output is visible
   if (process.stdout.isTTY) {
@@ -146,7 +168,7 @@ function serveStatic(path: string): Response {
 }
 
 if (import.meta.main) {
-  ;(async () => {
+  ; (async () => {
     // Parse command line arguments
     const args = process.argv.slice(2)
 

@@ -677,12 +677,11 @@ export const dequeueTask = async (taskId: number) => {
 }
 
 /**
- * Get next task from queue (placeholder)
+ * Get next task from queue
  */
-export const getNextTaskFromQueue = async (queueId: number) => {
-  // TODO: Implement proper queue logic
-  // For now, return null
-  return null
+export const getNextTaskFromQueue = async (queueId: number, agentId?: string) => {
+  const { queueService } = await import('./queue-service')
+  return await queueService.getNextItem(queueId, agentId || 'default-agent')
 }
 
 /**

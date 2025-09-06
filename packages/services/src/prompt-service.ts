@@ -365,8 +365,8 @@ export const addPromptToProject = async (promptId: number, projectId: number) =>
 }
 
 export const removePromptFromProject = async (promptId: number) => {
-  // Remove prompt from project by setting projectId to undefined
-  const prompt = await promptRepository.update(promptId, { projectId: undefined })
+  // Remove prompt from project by setting projectId to null
+  const prompt = await promptRepository.update(promptId, { projectId: null })
   return prompt
 }
 

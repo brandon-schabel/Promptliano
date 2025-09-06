@@ -47,12 +47,12 @@ When working in this package, these agents MUST be used:
    - Ensure proper schema validation and type safety
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on configuration organization and reusability
 
 3. **Package-Specific Agents**
-   - Use `zod-schema-architect` for validation schema design
+   - Use `promptliano-schema-architect` for validation schema design
    - Use `configuration-expert` for configuration patterns
    - Use `environment-expert` for environment variable handling
    - Use `typescript-expert` for advanced type patterns

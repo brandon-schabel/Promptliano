@@ -3,7 +3,7 @@
  * These schemas handle provider health checks and testing functionality
  */
 
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 // Provider status enum
 export const ProviderStatusEnum = z.enum(['active', 'inactive', 'error', 'testing', 'degraded'])
@@ -81,11 +81,6 @@ export const CreateProviderKeyInputSchema = z.object({
   keyName: z.string().optional(),
   name: z.string().optional(),
   key: z.string().optional(),
-  encryptedValue: z.string().optional(),
-  encrypted: z.boolean().optional().default(true),
-  iv: z.string().optional(),
-  tag: z.string().optional(),
-  salt: z.string().optional(),
   baseUrl: z.string().optional(),
   customHeaders: z.record(z.string()).optional(),
   isDefault: z.boolean().optional().default(false),

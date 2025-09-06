@@ -14,7 +14,7 @@ import {
   useDeletePrompt,
   usePrompts
 } from '@/hooks/generated'
-import { useExportPromptAsMarkdown } from '@/hooks/api-hooks'
+import { useExportPromptAsMarkdown, useExportPromptsBatch } from '@/hooks/api-hooks'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import {
@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@promptliano/ui'
-import { ArrowDownAZ, ArrowUpDown, Copy, Pencil, Upload, Download, MoreVertical, Trash } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpDown, Copy, Pencil, Upload, Download, MoreVertical, Trash, ChevronDown, Archive, FileText } from 'lucide-react'
 import { Badge } from '@promptliano/ui'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { ExpandableTextarea } from '@/components/expandable-textarea'
@@ -54,8 +54,7 @@ export function PromptsPage() {
   const createPromptMutation = useCreatePrompt()
   const updatePromptMutation = useUpdatePrompt()
   const exportPromptMutation = useExportPromptAsMarkdown()
-  // TODO: Re-implement bulk export when the hook is available
-  // const exportPromptsMutation = useExportPromptsAsMarkdown()
+  const exportPromptsBatchMutation = useExportPromptsBatch()
 
   // Filter and sort prompts
   const filteredAndSortedPrompts = useMemo(() => {
@@ -82,8 +81,70 @@ export function PromptsPage() {
 
   // Handle bulk export
   const handleBulkExport = async () => {
-    // TODO: Re-implement when bulk export hook is available
-    toast.error('Bulk export not yet implemented')
+    // Determine which prompts to export
+    const promptsToExport = selectedPrompts.size > 0 
+      ? Array.from(selectedPrompts)
+      : filteredAndSortedPrompts?.map(p => p.id) || []
+
+    if (promptsToExport.length === 0) {
+      toast.error('No prompts available for export')
+      return
+    }
+
+    try {
+      await exportPromptsBatchMutation.mutateAsync({
+        promptIds: promptsToExport,
+        format: 'multi-file', // Default to multi-file (ZIP)
+        includeFrontmatter: false, // No frontmatter in ZIP files
+        includeCreatedDate: true,
+        includeUpdatedDate: true,
+        includeTags: true,
+        sanitizeContent: true,
+        sortBy: 'name',
+        sortOrder: 'asc'
+      })
+      
+      // Clear selection after successful export
+      setSelectedPrompts(new Set())
+      setExportMode(false)
+    } catch (error) {
+      // Error is already handled by the hook
+      console.error('Export failed:', error)
+    }
+  }
+
+  // Handle single-file export
+  const handleSingleFileExport = async () => {
+    // Determine which prompts to export
+    const promptsToExport = selectedPrompts.size > 0 
+      ? Array.from(selectedPrompts)
+      : filteredAndSortedPrompts?.map(p => p.id) || []
+
+    if (promptsToExport.length === 0) {
+      toast.error('No prompts available for export')
+      return
+    }
+
+    try {
+      await exportPromptsBatchMutation.mutateAsync({
+        promptIds: promptsToExport,
+        format: 'single-file', // Export as single combined markdown file
+        includeFrontmatter: true,
+        includeCreatedDate: true,
+        includeUpdatedDate: true,
+        includeTags: true,
+        sanitizeContent: true,
+        sortBy: 'name',
+        sortOrder: 'asc'
+      })
+      
+      // Clear selection after successful export
+      setSelectedPrompts(new Set())
+      setExportMode(false)
+    } catch (error) {
+      // Error is already handled by the hook
+      console.error('Export failed:', error)
+    }
   }
 
   // Handle import success
@@ -112,19 +173,33 @@ export function PromptsPage() {
             <Upload className='h-4 w-4 mr-2' />
             Import
           </Button>
-          <Button
-            variant='outline'
-            onClick={handleBulkExport}
-            disabled={false}
-            title={
-              selectedPrompts.size > 0
-                ? `Export ${selectedPrompts.size} selected prompt${selectedPrompts.size > 1 ? 's' : ''}`
-                : 'Export all prompts'
-            }
-          >
-            <Download className='h-4 w-4 mr-2' />
-            Export {selectedPrompts.size > 0 ? `(${selectedPrompts.size})` : 'All'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                disabled={false}
+                title={
+                  selectedPrompts.size > 0
+                    ? `Export ${selectedPrompts.size} selected prompt${selectedPrompts.size > 1 ? 's' : ''}`
+                    : 'Export all prompts'
+                }
+              >
+                <Download className='h-4 w-4 mr-2' />
+                Export {selectedPrompts.size > 0 ? `(${selectedPrompts.size})` : 'All'}
+                <ChevronDown className='h-4 w-4 ml-2' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleBulkExport}>
+                <Archive className='h-4 w-4 mr-2' />
+                Export as ZIP (individual files)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSingleFileExport}>
+                <FileText className='h-4 w-4 mr-2' />
+                Export as single markdown file
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => setIsCreateDialogOpen(true)}>Create New Prompt</Button>
         </div>
       </div>
@@ -216,7 +291,11 @@ export function PromptsPage() {
                   onExport={async () => {
                     try {
                       await exportPromptMutation.mutateAsync({
-                        promptId: prompt.id
+                        promptId: prompt.id,
+                        filename: `${prompt.title
+                          .toLowerCase()
+                          .replace(/[^a-z0-9\s-]/g, '')
+                          .replace(/\s+/g, '-')}.md`
                       })
                       toast.success(`Exported "${prompt.title}"`)
                     } catch (error) {

@@ -34,6 +34,7 @@ import { ZodError } from 'zod'
 import matter from 'gray-matter'
 import yaml from 'js-yaml'
 import DOMPurify from 'isomorphic-dompurify'
+import JSZip from 'jszip'
 import { createPromptService, type PromptService } from './prompt-service'
 
 // Service dependencies interface for dependency injection
@@ -81,10 +82,10 @@ export function createMarkdownPromptService(deps: MarkdownPromptServiceDeps = {}
     /**
      * Parses markdown content with frontmatter to structured prompt data
      */
-    parseMarkdownToPrompt: async (content: string): Promise<ParsedMarkdownPrompt> => {
+    parseMarkdownToPrompt: async (content: string, filename?: string): Promise<ParsedMarkdownPrompt> => {
       return withErrorContext(
         async () => {
-          return parseMarkdownContent(content)
+          return parseMarkdownContent(content, filename)
         },
         { entity: 'MarkdownPrompt', action: 'parse' }
       )
@@ -158,8 +159,11 @@ export function createMarkdownPromptService(deps: MarkdownPromptServiceDeps = {}
 
 /**
  * Internal function: Parses markdown content with frontmatter to structured prompt data
+ * Supports both frontmatter and plain markdown files
+ * @param content - The markdown content to parse
+ * @param filename - Optional filename to use as fallback name when frontmatter is missing
  */
-async function parseMarkdownContent(content: string): Promise<ParsedMarkdownPrompt> {
+async function parseMarkdownContent(content: string, filename?: string): Promise<ParsedMarkdownPrompt> {
   if (!content || content.trim().length === 0) {
     throw ErrorFactory.invalidInput('content', 'non-empty markdown content', 'empty string')
   }
@@ -178,16 +182,30 @@ async function parseMarkdownContent(content: string): Promise<ParsedMarkdownProm
   // Extract and validate frontmatter
   const frontmatterData = parsed.data || {}
 
-  // Ensure required name field exists
-  if (!frontmatterData.name || typeof frontmatterData.name !== 'string' || frontmatterData.name.trim().length === 0) {
-    throw ErrorFactory.missingRequired('name', 'markdown frontmatter')
+  // Determine name: frontmatter.name > filename > 'Untitled Prompt'
+  let promptName: string
+  if (frontmatterData.name && typeof frontmatterData.name === 'string' && frontmatterData.name.trim().length > 0) {
+    promptName = frontmatterData.name.trim()
+  } else if (filename) {
+    // Extract filename without extension and clean it up
+    promptName = filename
+      .replace(/\.(md|markdown)$/i, '')
+      .replace(/[-_]/g, ' ')
+      .replace(/\s+/g, ' ')  // Normalize multiple spaces
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim()
+    if (promptName.length === 0) {
+      promptName = 'Untitled Prompt'
+    }
+  } else {
+    promptName = 'Untitled Prompt'
   }
 
   // Parse and validate dates if provided
   let frontmatter: MarkdownFrontmatter
   try {
     frontmatter = MarkdownFrontmatterSchema.parse({
-      name: frontmatterData.name.trim(),
+      name: promptName,
       created: frontmatterData.created
         ? frontmatterData.created instanceof Date
           ? frontmatterData.created.toISOString()
@@ -307,34 +325,41 @@ async function validateMarkdown(content: string): Promise<ValidationResult> {
     let parsed: matter.GrayMatterFile<string>
     try {
       parsed = matter(content)
-      validation.hasValidFrontmatter = true
+      // Check if frontmatter exists (gray-matter will have empty data object if no frontmatter)
+      validation.hasValidFrontmatter = Object.keys(parsed.data || {}).length > 0
     } catch (error) {
       validation.errors.push(`Invalid frontmatter YAML: ${error instanceof Error ? error.message : String(error)}`)
       validation.hasValidFrontmatter = false
       return { isValid: false, validation }
     }
 
-    // Check required fields
+    // Check required fields - now optional since we can use filename
     const frontmatterData = parsed.data || {}
-    if (frontmatterData.name && typeof frontmatterData.name === 'string' && frontmatterData.name.trim().length > 0) {
+    if (validation.hasValidFrontmatter) {
+      // If frontmatter exists, validate it but name is not required
       validation.hasRequiredFields = true
+      if (frontmatterData.name && typeof frontmatterData.name !== 'string') {
+        validation.warnings.push('Frontmatter name should be a string')
+      }
     } else {
-      validation.errors.push('Missing required field: name')
-      validation.hasRequiredFields = false
+      // No frontmatter is fine - we'll use filename
+      validation.hasRequiredFields = true
     }
 
-    // Validate frontmatter structure
-    try {
-      MarkdownFrontmatterSchema.parse({
-        name: frontmatterData.name || '',
-        created: frontmatterData.created || undefined,
-        updated: frontmatterData.updated || undefined,
-        tags: frontmatterData.tags || []
-      })
-    } catch (error) {
-      if (error instanceof ZodError) {
-        for (const issue of error.errors) {
-          validation.warnings.push(`Frontmatter validation: ${issue.path.join('.')}: ${issue.message}`)
+    // Validate frontmatter structure if it exists
+    if (validation.hasValidFrontmatter) {
+      try {
+        MarkdownFrontmatterSchema.parse({
+          name: frontmatterData.name || 'Untitled Prompt',
+          created: frontmatterData.created || undefined,
+          updated: frontmatterData.updated || undefined,
+          tags: frontmatterData.tags || []
+        })
+      } catch (error) {
+        if (error instanceof ZodError) {
+          for (const issue of error.errors) {
+            validation.warnings.push(`Frontmatter validation: ${issue.path.join('.')}: ${issue.message}`)
+          }
         }
       }
     }
@@ -353,8 +378,8 @@ async function validateMarkdown(content: string): Promise<ValidationResult> {
       )
     }
 
-    // Estimate number of prompts (for now, assume 1 prompt per file)
-    validation.estimatedPrompts = validation.hasRequiredFields && validation.contentLength > 0 ? 1 : 0
+    // Estimate number of prompts (for now, assume 1 prompt per file if content exists)
+    validation.estimatedPrompts = validation.contentLength > 0 ? 1 : 0
 
     // Check for potential issues
     if (frontmatterData.created && isNaN(Date.parse(frontmatterData.created))) {
@@ -490,7 +515,7 @@ async function performBulkImport(
       }
 
       // Parse the markdown
-      const parsedPrompt = await parseMarkdownContent(file.content)
+      const parsedPrompt = await parseMarkdownContent(file.content, file.name)
       fileResult.promptsProcessed = 1
       totalPrompts += 1
 
@@ -532,16 +557,12 @@ async function performBulkImport(
           promptsImported++
           fileResult.promptsImported++
         } else {
-          // Create new prompt - projectId is required
-          if (!projectId) {
-            throw ErrorFactory.missingRequired('projectId', 'prompt creation')
-          }
-
+          // Create new prompt - projectId is optional
           const newPrompt = await promptService.create(
             addTimestamps({
               title: parsedPrompt.frontmatter.name,
               content: parsedPrompt.content,
-              projectId
+              projectId: projectId || undefined // Use undefined if no projectId provided
             })
           )
 
@@ -833,3 +854,20 @@ export const {
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown
 } = markdownPromptService
+
+// Helper function to create ZIP file from export result
+export async function createZipFromExportResult(result: MarkdownExportResult): Promise<{ filename: string; buffer: Uint8Array }> {
+  if (result.format !== 'multi-file' || !result.files) {
+    throw new Error('createZipFromExportResult only works with multi-file format')
+  }
+
+  const zip = new JSZip()
+  result.files.forEach((file) => {
+    zip.file(file.fileName, file.content)
+  })
+
+  const buffer = await zip.generateAsync({ type: 'uint8array' })
+  const filename = `prompts-export-${new Date().toISOString().slice(0, 10)}.zip`
+  
+  return { filename, buffer }
+}

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 // Define summary depth levels
 export const SummaryDepthEnum = z.enum(['minimal', 'standard', 'detailed'])

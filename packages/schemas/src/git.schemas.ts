@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 import { createSuccessResponseSchema, createOperationResponseSchema } from './factories'
 
 export const gitFileStatusTypeSchema = z.enum([

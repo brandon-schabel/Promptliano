@@ -60,7 +60,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
   // Base CRUD operations using the service factory
   const baseService = createCrudService<Project, CreateProjectBody, UpdateProjectBody>({
     entityName: 'Project',
-    repository: repository as any, // TODO: Fix repository type mismatch
+    repository,
     // Skip schema validation - repository handles it
     logger
   })

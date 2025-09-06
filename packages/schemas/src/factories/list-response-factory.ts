@@ -67,7 +67,7 @@ export function createGroupedListResponseSchema<T extends z.ZodTypeAny>(
 }
 
 /**
- * Creates a tree/hierarchical response
+ * Creates a tree/hierarchical response (simplified flat structure for OpenAPI compatibility)
  */
 export function createTreeResponseSchema<T extends z.ZodTypeAny>(
   nodeSchema: T,
@@ -75,16 +75,26 @@ export function createTreeResponseSchema<T extends z.ZodTypeAny>(
 ) {
   const schemaName = name || nodeSchema._def.description || 'Node'
   
-  // Create recursive tree node schema
-  const TreeNode: z.ZodSchema<any> = z.lazy(() =>
-    z.object({
-      ...(nodeSchema as any).shape,
-      children: z.array(TreeNode).optional()
-    })
-  )
+  // Create a simplified flat tree node schema that OpenAPI can handle
+  const TreeNode = z.object({
+    node: nodeSchema,
+    parentId: z.number().optional().describe('Parent node ID for hierarchical relationship'),
+    level: z.number().int().min(0).describe('Depth level in the tree (0 = root)'),
+    hasChildren: z.boolean().describe('Whether this node has children'),
+    childrenCount: z.number().int().min(0).optional().describe('Number of direct children')
+  }).openapi(`${schemaName}TreeNode`, {
+    description: `Flattened tree node for ${schemaName} - use parentId to reconstruct hierarchy`,
+    example: {
+      node: { id: 1, name: 'Example Node' },
+      parentId: null,
+      level: 0,
+      hasChildren: true,
+      childrenCount: 2
+    }
+  })
   
   return createListResponseSchema(TreeNode, {
-    description: 'Hierarchical tree structure',
+    description: 'Flattened hierarchical structure - reconstruct tree using parentId and level',
     name: `${schemaName}Tree`
   })
 }

@@ -3,8 +3,9 @@ import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/er
 import { createFileRelevanceService, type RelevanceScoreResult } from './file-relevance-service'
 import { CompactFileFormatter } from '../utils/compact-file-formatter'
 import { generateStructuredData } from '../gen-ai-services'
-import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG } from '@promptliano/config'
+import { modelConfigService } from '../model-config-service'
 import type { ModelOptionsWithProvider } from '@promptliano/config'
+import { nullToUndefined } from '../utils/file-utils'
 import { z } from 'zod'
 import { getProjectFiles } from '../project-service'
 import { createFileService, createFileCache, type FileServiceConfig } from './file-service-factory'
@@ -222,9 +223,22 @@ Select the ${maxResults} most relevant file IDs from the above list.`
           fileIds: z.array(z.string()).max(maxResults)
         })
 
-        const modelConfig: ModelOptionsWithProvider = config.aiModel === 'high' 
-          ? HIGH_MODEL_CONFIG 
-          : MEDIUM_MODEL_CONFIG
+        // Get dynamic preset config based on AI model setting
+        const presetConfig = await modelConfigService.getPresetConfig(
+          config.aiModel === 'high' ? 'high' : 'medium'
+        )
+        
+        // Convert ModelConfig (with null values) to ModelOptionsWithProvider (with undefined values)
+        const modelConfig: ModelOptionsWithProvider = {
+          provider: presetConfig.provider as ModelOptionsWithProvider['provider'],
+          model: presetConfig.model,
+          frequencyPenalty: nullToUndefined(presetConfig.frequencyPenalty),
+          presencePenalty: nullToUndefined(presetConfig.presencePenalty),
+          maxTokens: nullToUndefined(presetConfig.maxTokens),
+          temperature: nullToUndefined(presetConfig.temperature),
+          topP: nullToUndefined(presetConfig.topP),
+          topK: nullToUndefined(presetConfig.topK)
+        }
 
         const result = await generateStructuredData({
           prompt: userPrompt,

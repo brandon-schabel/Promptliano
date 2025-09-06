@@ -52,22 +52,6 @@
         },
         {
           "method": "get",
-          "path": "/{id}/claudecommands",
-          "summary": "Get ClaudeCommand for Project",
-          "description": "Retrieve all ClaudeCommand associated with this Project",
-          "handlerName": "getClaudeCommands",
-          "responseSchema": "ClaudeCommandListResponseSchema"
-        },
-        {
-          "method": "get",
-          "path": "/{id}/claudehooks",
-          "summary": "Get ClaudeHook for Project",
-          "description": "Retrieve all ClaudeHook associated with this Project",
-          "handlerName": "getClaudeHooks",
-          "responseSchema": "ClaudeHookListResponseSchema"
-        },
-        {
-          "method": "get",
           "path": "/{id}/files",
           "summary": "Get File for Project",
           "description": "Retrieve all File associated with this Project",
@@ -238,45 +222,6 @@
       "customRoutes": []
     },
     {
-      "name": "ClaudeAgent",
-      "plural": "claudeagents",
-      "tableName": "claude_agents",
-      "schemaPath": "@promptliano/schemas",
-      "servicePath": "@promptliano/services",
-      "options": {
-        "includeSoftDelete": true,
-        "enableSearch": true,
-        "enableBatch": false
-      },
-      "customRoutes": []
-    },
-    {
-      "name": "ClaudeCommand",
-      "plural": "claudecommands",
-      "tableName": "claude_commands",
-      "schemaPath": "@promptliano/schemas",
-      "servicePath": "@promptliano/services",
-      "options": {
-        "includeSoftDelete": true,
-        "enableSearch": false,
-        "enableBatch": false
-      },
-      "customRoutes": []
-    },
-    {
-      "name": "ClaudeHook",
-      "plural": "claudehooks",
-      "tableName": "claude_hooks",
-      "schemaPath": "@promptliano/schemas",
-      "servicePath": "@promptliano/services",
-      "options": {
-        "includeSoftDelete": true,
-        "enableSearch": false,
-        "enableBatch": false
-      },
-      "customRoutes": []
-    },
-    {
       "name": "ProviderKey",
       "plural": "providerkeies",
       "tableName": "provider_keys",
@@ -334,7 +279,11 @@
     "generateDocs": true,
     "formatCode": true,
     "watch": {
-      "watchPaths": ["packages/database/src/**/*.ts", "packages/services/src/**/*.ts", "packages/schemas/src/**/*.ts"],
+      "watchPaths": [
+        "packages/database/src/**/*.ts",
+        "packages/services/src/**/*.ts",
+        "packages/schemas/src/**/*.ts"
+      ],
       "debounceMs": 1000
     }
   }

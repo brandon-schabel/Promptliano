@@ -476,10 +476,13 @@ export function useGlobalMCPManager() {
     status: status?.data,
     isLoading: configLoading || installationsLoading || statusLoading,
 
-    // Mutations
+    // Mutations (both callback and promise forms)
     updateConfig: updateConfig.mutate,
+    updateConfigAsync: updateConfig.mutateAsync,
     install: install.mutate,
+    installAsync: install.mutateAsync,
     uninstall: uninstall.mutate,
+    uninstallAsync: uninstall.mutateAsync,
 
     // Mutation states
     isUpdating: updateConfig.isPending,

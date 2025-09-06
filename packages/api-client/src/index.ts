@@ -64,6 +64,150 @@ export class PromptlianoClient {
     return this.typeSafe
   }
 
+  // Model Configuration endpoints
+  public readonly modelConfigs = {
+    list: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to list model configs (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    get: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    getById: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    create: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to create model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    update: async (id: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to update model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    delete: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to delete model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    getDefaultForProvider: async (provider: string) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/default/${provider}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get default model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    listPresets: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-presets`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to list model presets (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    getModelPresets: async (configId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model presets (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    createPreset: async (configId: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to create preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    updatePreset: async (configId: number, presetId: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to update preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    deletePreset: async (configId: number, presetId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to delete preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    applyPreset: async (configId: number, presetId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to apply preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    exportConfigs: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/export`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to export configs (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    importConfigs: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to import configs (${res.status})`)
+      const result = await res.json()
+      return result.data
+    }
+  }
+
   // BACKWARD-COMPATIBLE service namespaces (core methods only)
   public readonly projects = {
     listProjects: () => this.typeSafe.getProjects(),
@@ -212,7 +356,24 @@ export class PromptlianoClient {
     suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
-    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file)
+    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
+    // Connect/disconnect prompts to projects
+    addPromptToProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to connect prompt to project (${res.status})`)
+      return res.json()
+    },
+    removePromptFromProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to disconnect prompt from project (${res.status})`)
+      return res.json()
+    }
   }
 
   public readonly git = {

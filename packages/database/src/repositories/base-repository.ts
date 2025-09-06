@@ -59,7 +59,7 @@ export class BaseRepository<
   constructor(
     protected readonly table: TTable,
     protected readonly dbInstance: DrizzleDb = db,
-    protected readonly schema?: z.ZodSchema<TEntity>,
+    protected readonly schema?: any,
     protected readonly entityName?: string
   ) {
     this.errorHandler = createErrorHandler(entityName || (table as any)?.['_']?.['name'] || 'entity')
@@ -490,7 +490,7 @@ export function createBaseRepository<
   TTable extends SQLiteTable,
   TEntity extends BaseEntity = InferSelectModel<TTable> & BaseEntity,
   TInsert extends Record<string, any> = InferInsertModel<TTable>
->(table: TTable, dbInstance?: DrizzleDb, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
+>(table: TTable, dbInstance?: DrizzleDb, schema?: any, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
   // Ensure we have a valid database instance
   const validDbInstance = dbInstance || db
 

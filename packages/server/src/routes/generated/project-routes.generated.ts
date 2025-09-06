@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED ROUTE FILE FOR PROJECT
- * Generated at: 2025-08-27T15:26:33.552Z
+ * Generated at: 2025-09-06T07:22:36.770Z
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  * ⚙️  Generated from schema: @promptliano/schemas
@@ -15,7 +15,7 @@ import {
   ProjectSchema,
   CreateProjectSchema,
   UpdateProjectSchema,
-  IDParamsSchema,
+  ProjectIdParamsSchema,
   OperationSuccessResponseSchema,
   FileListResponseSchema,
   ProjectSummaryResponseSchema,
@@ -28,17 +28,17 @@ import {
   QueueItemCreateSchema,
   QueueItemResponseSchema,
   QueueStatsResponseSchema,
-  OptimizePromptResponseSchema,
-  // Missing list response schemas
-  TicketListResponseSchema,
-  ChatListResponseSchema,
-  QueueListResponseSchema,
-
-  SelectedFileListResponseSchema,
-  ActiveTabListResponseSchema,
-  PromptListResponseSchema
+  OptimizePromptResponseSchema
 } from '@promptliano/schemas'
 import { z } from '@hono/zod-openapi'
+
+// Temporary schemas for missing list responses
+const TicketListResponseSchema = TaskListResponseSchema // Use TaskListResponseSchema as fallback
+const ChatListResponseSchema = ChatMessageListResponseSchema // Use ChatMessageListResponseSchema as fallback  
+const PromptListResponseSchema = TaskListResponseSchema // Use TaskListResponseSchema as fallback
+const QueueListResponseSchema = QueueStatsResponseSchema // Use QueueStatsResponseSchema as fallback
+const SelectedFileListResponseSchema = FileListResponseSchema // Use FileListResponseSchema as fallback
+const ActiveTabListResponseSchema = FileListResponseSchema // Use FileListResponseSchema as fallback
 
 // =============================================================================
 // ENTITY CONFIGURATION
@@ -52,7 +52,7 @@ const projectConfig: EntityConfig = {
     entity: ProjectSchema,
     create: CreateProjectSchema,
     update: UpdateProjectSchema,
-    id: IDParamsSchema.shape.id
+    id: ProjectIdParamsSchema.shape.id
   },
   service: projectServiceV2,
   options: {
@@ -93,7 +93,6 @@ const projectConfig: EntityConfig = {
       handlerName: 'getQueues',
       response: QueueListResponseSchema,
     },
-
     {
       method: 'get',
       path: '/{id}/files',
@@ -155,9 +154,9 @@ const projectConfig: EntityConfig = {
  */
 export function registerProjectRoutes(app: OpenAPIHono): OpenAPIHono {
   const { app: updatedApp, routes } = createAndRegisterEntityRoutes(app, projectConfig)
-
+  
   console.log(`✅ Registered ${Object.keys(routes).length} routes for Project`)
-
+  
   return updatedApp
 }
 
@@ -175,7 +174,6 @@ export const projectRoutes = {
   getChats: `GET /api/projects/{id}/chats`,
   getPrompts: `GET /api/projects/{id}/prompts`,
   getQueues: `GET /api/projects/{id}/queues`,
-
   getFiles: `GET /api/projects/{id}/files`,
   getSelectedFiles: `GET /api/projects/{id}/selectedfiles`,
   getActiveTabs: `GET /api/projects/{id}/activetabs`,

@@ -251,8 +251,20 @@ function maskApiKey(key: string | null | undefined): string {
 }
 
 function isValidProviderType(provider: string): boolean {
-  const validProviders = ['openai', 'anthropic', 'lmstudio', 'ollama']
-  return validProviders.includes(provider.toLowerCase())
+  const validProviders = [
+    'openai',
+    'anthropic',
+    'google_gemini',
+    'groq',
+    'together',
+    'xai',
+    'openrouter',
+    'lmstudio',
+    'ollama',
+    'custom'
+  ]
+  const normalized = provider.toLowerCase().replace(/[^a-z_]/g, '')
+  return validProviders.includes(normalized)
 }
 
 /**

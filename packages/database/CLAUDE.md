@@ -228,10 +228,8 @@ describe('TicketRepository', () => {
 
 **Mandatory agents for database work:**
 
-- `drizzle-migration-architect` - Schema migrations
-- `promptliano-sqlite-expert` - SQLite optimizations
-- `typescript-type-safety-auditor` - Type validation
-- `staff-engineer-code-reviewer` - Review all changes
+- `promptliano-database-architect` - Schema design, migrations, and SQLite optimizations
+- `staff-engineer-code-reviewer` - Type validation and code review
 
 ## Key Metrics
 

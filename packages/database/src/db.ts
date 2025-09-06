@@ -63,15 +63,22 @@ const packageRoot = resolve(__dirname, '..') // packages/database
 const repoRoot = resolve(packageRoot, '..', '..') // monorepo root
 const drizzleDir = join(packageRoot, 'drizzle')
 
+// Expose database path resolution so server can log it on startup
+export function getDatabasePath(): string {
+  return process.env.NODE_ENV === 'test'
+    ? ':memory:'
+    : (
+        process.env.DATABASE_PATH ||
+        (process.env.PROMPTLIANO_DATA_DIR
+          ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db')
+          : join(repoRoot, 'data', 'promptliano.db'))
+      )
+}
+
 // Performance-optimized SQLite configuration
 const createDatabase = () => {
   // Use in-memory database for tests to avoid file system issues
-  const dbPath = process.env.NODE_ENV === 'test'
-    ? ':memory:'
-    : (
-        process.env.DATABASE_PATH
-          || (process.env.PROMPTLIANO_DATA_DIR ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db') : join(repoRoot, 'data', 'promptliano.db'))
-      )
+  const dbPath = getDatabasePath()
   // Ensure the directory for the DB file exists when not using in-memory
   if (dbPath !== ':memory:') {
     try {

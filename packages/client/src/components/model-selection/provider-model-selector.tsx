@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { useGetModels, useGetProviders } from '@/hooks/generated'
+import { useServerConnection } from '@/hooks/use-server-connection'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import {
   isValidProviderKey,
@@ -32,6 +33,7 @@ export interface ProviderModelSelectorProps {
   modelClassName?: string
   filterProviders?: APIProviders[]
   filterModels?: (model: ValidatedModelData) => boolean
+  showProviderSelect?: boolean // Optional prop to show/hide provider select
 }
 
 export function ProviderModelSelector({
@@ -61,6 +63,7 @@ export function ProviderModelSelector({
   }
 
   const { data: modelsData, isLoading: isLoadingModels } = useGetModels(provider, urlOptions)
+  const { isConnected } = useServerConnection()
 
   // Prepare provider options from API response
   const availableProviders = useMemo(() => {
@@ -130,10 +133,10 @@ export function ProviderModelSelector({
     }
   }, [modelsData, filterModels])
 
-  // Auto-select first model when provider changes or current model is invalid
+  // Auto-select first model only when no current model is set
+  // Avoid overriding an explicitly provided model (e.g., from a preset)
   useEffect(() => {
-    const isCurrentModelValid = comboboxOptions.some((model: ComboboxOption) => model.value === currentModel)
-    if ((!currentModel || !isCurrentModelValid) && comboboxOptions.length > 0) {
+    if ((!currentModel || currentModel === '') && comboboxOptions.length > 0) {
       onModelChange(comboboxOptions[0].value)
     }
   }, [comboboxOptions, currentModel, onModelChange])
@@ -179,11 +182,19 @@ export function ProviderModelSelector({
         options={comboboxOptions}
         value={currentModel}
         onValueChange={handleModelChange}
-        placeholder={isLoadingModels ? 'Loading...' : comboboxOptions.length === 0 ? 'No models' : 'Select model'}
+        placeholder={
+          isLoadingModels
+            ? 'Loading...'
+            : !isConnected
+              ? 'Connect server to load models'
+              : comboboxOptions.length === 0
+                ? 'No models (add API key?)'
+                : 'Select model'
+        }
         searchPlaceholder='Search models...'
         className={modelComboboxClassName}
         popoverClassName='w-[300px]'
-        disabled={disabled || isLoadingModels || comboboxOptions.length === 0}
+        disabled={disabled || !isConnected || isLoadingModels || comboboxOptions.length === 0}
       />
     </div>
   )
