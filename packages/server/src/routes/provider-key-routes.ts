@@ -10,8 +10,8 @@ import {
   createListResponseSchema
 } from '../utils/route-helpers'
 import { type ProviderKey } from '@promptliano/database'
-// Use API-friendly schemas (allow plain `key`, `name`, optional fields)
-import { ProviderKeySchema, CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/schemas'
+// Use API-friendly request schemas; define route response schema locally to match service output
+import { CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/schemas'
 import {
   ProviderKeyIdParamsSchema,
   TestProviderRequestSchema,
@@ -23,9 +23,33 @@ import { providerKeyService, validateCustomProvider } from '@promptliano/service
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { updateProviderSettings } from '@promptliano/services'
 
+// Public API schema that matches providerKeyService outputs
+const ProviderKeyPublicSchema = z
+  .object({
+    id: z.number().int().positive(),
+    provider: z.string(),
+    keyName: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    key: z.string().nullable().optional(),
+    secretRef: z.string().nullable().optional(),
+    baseUrl: z.string().nullable().optional(),
+    customHeaders: z.record(z.string(), z.string()).nullable().optional(),
+    isDefault: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+    environment: z.string().optional(),
+    description: z.string().nullable().optional(),
+    expiresAt: z.number().nullable().optional(),
+    lastUsed: z.number().nullable().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    storageMethod: z.enum(['direct', 'env']).nullable().optional(),
+    displayValue: z.string().nullable().optional()
+  })
+  .openapi('ProviderKeyPublic')
+
 // Create response schemas using helper functions
-const ProviderKeyResponseSchema = createSuccessResponseSchema(ProviderKeySchema, 'ProviderKeyResponse')
-const ProviderKeyListResponseSchema = createListResponseSchema(ProviderKeySchema, 'ProviderKeyListResponse')
+const ProviderKeyResponseSchema = createSuccessResponseSchema(ProviderKeyPublicSchema, 'ProviderKeyResponse')
+const ProviderKeyListResponseSchema = createListResponseSchema(ProviderKeyPublicSchema, 'ProviderKeyListResponse')
 
 // Provider testing response schemas
 const TestProviderApiResponseSchema = createSuccessResponseSchema(
@@ -66,8 +90,10 @@ const BatchTestProviderApiResponseSchema = createSuccessResponseSchema(
 
 const ProviderHealthStatusListResponseSchema = createListResponseSchema(
   z.object({
-    status: z.enum(['healthy', 'degraded', 'down', 'unknown']),
+    status: z.enum(['healthy', 'degraded', 'down', 'unhealthy', 'unknown']),
     latency: z.number().optional(),
+    averageResponseTime: z.number().optional(),
+    modelCount: z.number().optional(),
     lastChecked: z.number(),
     error: z.string().optional()
   }),
@@ -376,10 +402,10 @@ providerKeyRoutes
     const key = await providerKeyService.getById(id)
 
     if (!key) {
-      return c.json({ error: 'Provider key not found' }, 404)
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
     }
 
-    return c.json({ data: key }, 200)
+    return c.json(successResponse(key), 200)
   })
   .openapi(updateProviderKeyByIdBasicRoute, async (c) => {
     const { id } = c.req.valid('param')
@@ -387,20 +413,20 @@ providerKeyRoutes
     const key = await providerKeyService.update(id, data)
 
     if (!key) {
-      return c.json({ error: 'Provider key not found' }, 404)
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
     }
 
-    return c.json({ data: key }, 200)
+    return c.json(successResponse(key), 200)
   })
   .openapi(deleteProviderKeyByIdBasicRoute, async (c) => {
     const { id } = c.req.valid('param')
     const success = await providerKeyService.delete(id)
 
     if (!success) {
-      return c.json({ error: 'Provider key not found' }, 404)
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
     }
 
-    return c.json({ success: true, message: 'Provider key deleted successfully' }, 200)
+    return c.json(operationSuccessResponse('Provider key deleted successfully'), 200)
   })
 
 export type ProviderKeyRouteTypes = typeof providerKeyRoutes

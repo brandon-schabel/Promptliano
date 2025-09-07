@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { getZodDescription } from '../utils/zod-meta'
 
 /**
  * Creates a schema for SSE streaming responses
@@ -12,7 +13,7 @@ export function createStreamingResponseSchema<T extends z.ZodTypeAny>(
     name?: string
   }
 ) {
-  const schemaName = options?.name || dataSchema._def.description || 'Data'
+  const schemaName = options?.name || getZodDescription(dataSchema) || 'Data'
   
   const eventTypes = ['data', 'error', 'complete'] as string[]
   
@@ -69,7 +70,7 @@ export function createWebSocketMessageSchema<T extends z.ZodTypeAny>(
   dataSchema: T,
   name?: string
 ) {
-  const schemaName = name || dataSchema._def.description || 'Data'
+  const schemaName = name || getZodDescription(dataSchema) || 'Data'
   
   return z.object({
     type: z.enum(['message', 'error', 'ping', 'pong', 'close', 'open']),
@@ -88,7 +89,7 @@ export function createChunkedResponseSchema<T extends z.ZodTypeAny>(
   chunkSchema: T,
   name?: string
 ) {
-  const schemaName = name || chunkSchema._def.description || 'Chunk'
+  const schemaName = name || getZodDescription(chunkSchema) || 'Chunk'
   
   return z.object({
     chunkId: z.string(),
@@ -107,7 +108,7 @@ export function createServerSentEventSchema<T extends z.ZodTypeAny>(
   dataSchema: T,
   name?: string
 ) {
-  const schemaName = name || dataSchema._def.description || 'Event'
+  const schemaName = name || getZodDescription(dataSchema) || 'Event'
   
   return z.object({
     id: z.string().optional(),
@@ -176,7 +177,7 @@ export function createRealtimeUpdateSchema<T extends z.ZodTypeAny>(
   dataSchema: T,
   name?: string
 ) {
-  const schemaName = name || dataSchema._def.description || 'Update'
+  const schemaName = name || getZodDescription(dataSchema) || 'Update'
   
   return z.object({
     type: z.enum(['create', 'update', 'delete', 'patch']),
@@ -195,7 +196,7 @@ export function createStreamingBatchResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Batch'
+  const schemaName = name || getZodDescription(itemSchema) || 'Batch'
   
   return z.object({
     event: z.enum(['batch', 'complete', 'error']),

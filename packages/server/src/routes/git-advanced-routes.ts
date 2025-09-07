@@ -54,7 +54,7 @@ const getRemotesRoute = createRoute({
 gitAdvancedRoutes.openapi(getRemotesRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const remotes = await getRemotes(projectId)
-  return c.json(successResponse(remotes))
+  return c.json(successResponse(remotes), 200)
 })
 
 // Push route
@@ -84,7 +84,10 @@ gitAdvancedRoutes.openapi(pushRoute, async (c) => {
 
   await push(projectId, remote || 'origin', branch, { force, setUpstream })
 
-  return c.json(operationSuccessResponse(`Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
+  return c.json(
+    operationSuccessResponse(`Successfully pushed to ${remote || 'origin'}${branch ? `/${branch}` : ''}`),
+    200
+  )
 })
 
 // Fetch route
@@ -117,7 +120,7 @@ gitAdvancedRoutes.openapi(fetchRoute, async (c) => {
 
   await fetch(projectId, remote || 'origin', { prune })
 
-  return c.json(operationSuccessResponse(`Successfully fetched from ${remote || 'origin'}`))
+  return c.json(operationSuccessResponse(`Successfully fetched from ${remote || 'origin'}`), 200)
 })
 
 // Pull route
@@ -149,7 +152,10 @@ gitAdvancedRoutes.openapi(pullRoute, async (c) => {
 
   await pull(projectId, remote || 'origin', branch, { rebase })
 
-  return c.json(operationSuccessResponse(`Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`))
+  return c.json(
+    operationSuccessResponse(`Successfully pulled from ${remote || 'origin'}${branch ? `/${branch}` : ''}`),
+    200
+  )
 })
 
 // ============================================
@@ -171,7 +177,7 @@ const getTagsRoute = createRoute({
 gitAdvancedRoutes.openapi(getTagsRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const tags = await getTags(projectId)
-  return c.json(successResponse(tags))
+  return c.json(successResponse(tags), 200)
 })
 
 // Create tag route
@@ -203,7 +209,7 @@ gitAdvancedRoutes.openapi(createTagRoute, async (c) => {
 
   await createTag(projectId, name, { message, ref })
 
-  return c.json(operationSuccessResponse(`Tag '${name}' created successfully`))
+  return c.json(operationSuccessResponse(`Tag '${name}' created successfully`), 200)
 })
 
 // ============================================
@@ -237,7 +243,10 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
 
   await stash(projectId, message)
 
-  return c.json(operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`))
+  return c.json(
+    operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`),
+    200
+  )
 })
 
 // Get stash list route
@@ -255,7 +264,7 @@ const getStashListRoute = createRoute({
 gitAdvancedRoutes.openapi(getStashListRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const stashes = await stashList(projectId)
-  return c.json(successResponse(stashes))
+  return c.json(successResponse(stashes), 200)
 })
 
 // Apply stash route
@@ -285,7 +294,7 @@ gitAdvancedRoutes.openapi(applyStashRoute, async (c) => {
 
   await stashApply(projectId, ref || 'stash@{0}')
 
-  return c.json(operationSuccessResponse(`Applied stash: ${ref || 'stash@{0}'}`))
+  return c.json(operationSuccessResponse(`Applied stash: ${ref || 'stash@{0}'}`), 200)
 })
 
 // ============================================
@@ -319,5 +328,5 @@ gitAdvancedRoutes.openapi(resetRoute, async (c) => {
 
   await reset(projectId, ref, mode || 'mixed')
 
-  return c.json(operationSuccessResponse(`Reset to ${ref} (${mode || 'mixed'} mode)`))
+  return c.json(operationSuccessResponse(`Reset to ${ref} (${mode || 'mixed'} mode)`), 200)
 })

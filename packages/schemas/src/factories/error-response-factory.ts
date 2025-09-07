@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { getZodDescription } from '../utils/zod-meta'
 
 /**
  * Creates a standard error response schema
@@ -100,7 +101,7 @@ export function createBatchErrorResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(false),
@@ -124,7 +125,7 @@ export function createPartialFailureResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(false),

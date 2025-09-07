@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { getZodDescription, getZodExample } from '../utils/zod-meta'
 
 /**
  * Creates a list response schema for arrays of items
@@ -13,7 +14,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(
     name?: string
   }
 ) {
-  const schemaName = options?.name || itemSchema._def.description || 'Item'
+  const schemaName = options?.name || getZodDescription(itemSchema) || 'Item'
   
   const baseSchema: Record<string, z.ZodTypeAny> = {
     success: z.literal(true),
@@ -41,7 +42,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(
     description: options?.description || `List of ${schemaName}s`,
     example: {
       success: true,
-      data: [itemSchema._def.example || {}],
+      data: [getZodExample(itemSchema) || {}],
       ...(options?.includeCount && { count: 10 }),
       ...(options?.includeFilters && { appliedFilters: {} })
     }
@@ -56,7 +57,7 @@ export function createGroupedListResponseSchema<T extends z.ZodTypeAny>(
   groupKey: string,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -73,7 +74,7 @@ export function createTreeResponseSchema<T extends z.ZodTypeAny>(
   nodeSchema: T,
   name?: string
 ) {
-  const schemaName = name || nodeSchema._def.description || 'Node'
+  const schemaName = name || getZodDescription(nodeSchema) || 'Node'
   
   // Create a simplified flat tree node schema that OpenAPI can handle
   const TreeNode = z.object({
@@ -107,7 +108,7 @@ export function createCategorizedListResponseSchema<T extends z.ZodTypeAny>(
   categorySchema: z.ZodTypeAny,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -127,7 +128,7 @@ export function createFilteredListResponseSchema<T extends z.ZodTypeAny>(
   filterSchema: z.ZodTypeAny,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -147,7 +148,7 @@ export function createListWithStatsResponseSchema<T extends z.ZodTypeAny>(
   statsSchema: z.ZodTypeAny,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),

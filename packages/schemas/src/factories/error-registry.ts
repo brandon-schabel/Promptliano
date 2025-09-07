@@ -1,5 +1,6 @@
 import { createErrorResponseSchema, standardErrorResponses } from './error-response-factory'
 import { z } from '@hono/zod-openapi'
+import { getZodOpenApi } from '../utils/zod-meta'
 
 // Domain-specific errors
 export const domainErrorResponses = {
@@ -102,7 +103,7 @@ export function getErrorResponses(...errorCodes: Array<keyof typeof allErrorResp
             schema: error
           }
         },
-        description: (error._def.openapi as any)?.description || 'Error response'
+        description: getZodOpenApi(error)?.description || 'Error response'
       }
     }
   })

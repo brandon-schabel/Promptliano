@@ -385,7 +385,8 @@ export const mcpInstallationRoutes = new OpenAPIHono()
         successResponse({
           tools,
           platform
-        })
+        }),
+        200
       )
     } catch (error) {
       throw new ApiError(500, `Failed to detect tools: ${error}`)
@@ -412,7 +413,8 @@ export const mcpInstallationRoutes = new OpenAPIHono()
         successResponse({
           projectConfig,
           connectionStatus
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -455,7 +457,8 @@ export const mcpInstallationRoutes = new OpenAPIHono()
           configPath: result.configPath,
           backedUp: result.backedUp,
           backupPath: result.backupPath
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -489,7 +492,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
         data: {
           message: result.message
         }
-      })
+      }, 200)
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to uninstall MCP: ${error}`)
@@ -514,7 +517,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
           ...globalStatus,
           projectStatuses
         }
-      })
+      }, 200)
     } catch (error) {
       throw new ApiError(500, `Failed to get global status: ${error}`)
     }
@@ -541,7 +544,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
         data: {
           projectConfig
         }
-      })
+      }, 200)
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to update project config: ${error}`)
@@ -608,7 +611,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
             failed
           }
         }
-      })
+      }, 200)
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to batch install MCP: ${error}`)
@@ -647,7 +650,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
           backedUp: result.backedUp || false,
           backupPath: result.backupPath
         }
-      })
+      }, 200)
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(500, `Failed to install project MCP config: ${error}`)

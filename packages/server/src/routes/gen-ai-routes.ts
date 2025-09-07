@@ -328,7 +328,7 @@ export const genAiRoutes = new OpenAPIHono()
       // Combine both lists
       const allProviders = [...predefinedProviders, ...formattedCustomProviders]
 
-      return c.json(successResponse(allProviders))
+      return c.json(successResponse(allProviders), 200)
     } catch (error) {
       console.error('Failed to fetch providers:', error)
       throw new ApiError(500, 'Failed to fetch providers', 'PROVIDERS_FETCH_ERROR')
@@ -367,7 +367,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage: body.systemMessage
     })
 
-    return c.json(successResponse({ text: generatedText }))
+    return c.json(successResponse({ text: generatedText }), 200)
   })
   .openapi(generateStructuredRoute, async (c) => {
     const body = c.req.valid('json')
@@ -395,7 +395,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage: finalSystemPrompt
     })
 
-    return c.json(successResponse({ output: result.object }))
+    return c.json(successResponse({ output: result.object }), 200)
   })
   .openapi(getModelsRoute, async (c) => {
     const { provider } = c.req.valid('query')
@@ -418,13 +418,13 @@ export const genAiRoutes = new OpenAPIHono()
             const modelData = models.map((model) => ({
               id: model.id,
               name: model.name,
-              provider
+              provider: provider || 'openai'
             }))
 
-            return c.json(successResponse(modelData))
+            return c.json(successResponse(modelData), 200)
           } catch (error) {
             console.error(`Failed to fetch models for custom provider ${keyId}:`, error)
-            return c.json(successResponse([]))
+            return c.json(successResponse([]), 200)
           }
         }
       }
@@ -502,7 +502,7 @@ export const genAiRoutes = new OpenAPIHono()
     if (requiredKeyProp && !providerKeysConfig[requiredKeyProp]) {
       // No configured key for this provider; return empty list so UI can handle without error
       console.warn(`[GenAI Models] Missing API key for provider '${provider}'. Returning empty model list.`)
-      return c.json(successResponse([]))
+      return c.json(successResponse([]), 200)
     }
 
     const modelFetcherService = new ModelFetcherService(providerKeysConfig)
@@ -526,10 +526,10 @@ export const genAiRoutes = new OpenAPIHono()
     const modelData = models.map((model) => ({
       id: model.id,
       name: model.name,
-      provider
+      provider: provider || 'openai'
     }))
 
-    return c.json(successResponse(modelData))
+    return c.json(successResponse(modelData), 200)
   })
   // Debug route to inspect provider key resolution without exposing secrets
   .openapi(
@@ -622,7 +622,8 @@ export const genAiRoutes = new OpenAPIHono()
           providerKeysConfig: redactedConfig,
           envFallback,
           keys: keysMeta
-        })
+        }),
+        200
       )
     }
   )
@@ -639,7 +640,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage
     })
 
-    return c.json(successResponse({ text: generatedText }))
+    return c.json(successResponse({ text: generatedText }), 200)
   })
   .openapi(updateProviderSettingsRoute, async (c) => {
     const body = c.req.valid('json')
@@ -652,5 +653,12 @@ export const genAiRoutes = new OpenAPIHono()
       console.log('[GenAI Routes] Provider settings updated:', body)
     }
 
-    return c.json(successResponse(updatedSettings))
+    return c.json(
+      {
+        success: true as const,
+        message: 'Provider settings updated',
+        data: updatedSettings
+      },
+      200
+    )
   })

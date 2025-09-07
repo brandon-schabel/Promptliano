@@ -8,15 +8,12 @@ import {
   RefreshQuerySchema,
   ProjectResponseSchema,
   ProjectListResponseSchema,
-  FileListResponseSchema,
-  ProjectFileWithoutContentListResponseSchema,
-  FileResponseSchema,
   ProjectResponseMultiStatusSchema,
   ProjectSummaryResponseSchema,
-  ProjectFileSchema,
   SummaryOptionsSchema,
   BatchSummaryOptionsSchema
 } from '@promptliano/schemas'
+import { selectFileSchema as DbFileSchema } from '@promptliano/database'
 
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { successResponse, operationSuccessResponse } from '../utils/route-helpers'
@@ -72,20 +69,16 @@ const BulkUpdateFilesBodySchema = z.object({
   )
 })
 
-const BulkFilesResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(ProjectFileSchema)
-})
+const DbFileResponseSchema = z.object({ success: z.literal(true), data: (DbFileSchema as any) })
+const DbFileListResponseSchema = z.object({ success: z.literal(true), data: z.array(DbFileSchema as any) })
+const BulkFilesResponseSchema = DbFileListResponseSchema
 
 const SuggestFilesBodySchema = z.object({
   prompt: z.string().min(1).describe('The prompt to analyze for file suggestions'),
   limit: z.number().int().positive().optional().default(10).describe('Maximum number of files to suggest')
 })
 
-const SuggestFilesResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(ProjectFileSchema)
-})
+const SuggestFilesResponseSchema = DbFileListResponseSchema
 
 // Revert to version schema
 const RevertToVersionBodySchema = z.object({
@@ -267,7 +260,7 @@ const getProjectFilesRoute = createRoute({
       offset: z.coerce.number().int().nonnegative().optional().default(0).describe('Number of files to skip')
     })
   },
-  responses: createStandardResponses(FileListResponseSchema)
+  responses: createStandardResponses(DbFileListResponseSchema)
 })
 
 const getProjectFilesMetadataRoute = createRoute({
@@ -282,7 +275,9 @@ const getProjectFilesMetadataRoute = createRoute({
       offset: z.coerce.number().int().nonnegative().optional().default(0).describe('Number of files to skip')
     })
   },
-  responses: createStandardResponses(ProjectFileWithoutContentListResponseSchema)
+  responses: createStandardResponses(
+    z.object({ success: z.literal(true), data: z.array((DbFileSchema as any).omit({ content: true })) })
+  )
 })
 
 const updateFileContentRoute = createRoute({
@@ -294,7 +289,7 @@ const updateFileContentRoute = createRoute({
     params: FileIdParamsSchema,
     body: { content: { 'application/json': { schema: UpdateFileContentBodySchema } } }
   },
-  responses: createStandardResponses(FileResponseSchema)
+  responses: createStandardResponses(DbFileResponseSchema)
 })
 
 const bulkUpdateFilesRoute = createRoute({
@@ -318,7 +313,7 @@ const refreshProjectRoute = createRoute({
     params: IDParamsSchema,
     query: RefreshQuerySchema
   },
-  responses: createStandardResponses(FileListResponseSchema)
+  responses: createStandardResponses(DbFileListResponseSchema)
 })
 
 const getProjectSummaryRoute = createRoute({
@@ -985,7 +980,7 @@ export const projectRoutes = new OpenAPIHono()
           data: z.object({
             included: z.number(),
             skipped: z.number(),
-            updatedFiles: z.array(ProjectFileSchema),
+            updatedFiles: z.array(DbFileSchema as any),
             skippedReasons: z
               .object({
                 empty: z.number(),
@@ -1201,9 +1196,27 @@ export const projectRoutes = new OpenAPIHono()
     try {
       const stats = await fileSummarizationTracker.getSummarizationStats(projectId)
 
+      const normalized = {
+        projectId: stats.projectId,
+        totalFiles: stats.totalFiles,
+        summarizedFiles: stats.summarizedFiles,
+        unsummarizedFiles: stats.unsummarizedFiles,
+        staleFiles: stats.staleFiles,
+        failedFiles: stats.failedFiles,
+        averageTokensPerFile: stats.averageTokensPerFile,
+        lastBatchRun: stats.lastBatchRun,
+        filesByStatus: {
+          pending: (stats.filesByStatus as any).pending ?? 0,
+          in_progress: (stats.filesByStatus as any).in_progress ?? 0,
+          completed: (stats.filesByStatus as any).completed ?? 0,
+          failed: (stats.filesByStatus as any).failed ?? 0,
+          skipped: (stats.filesByStatus as any).skipped ?? 0
+        }
+      }
+
       const payload = {
         success: true as const,
-        data: stats
+        data: normalized
       }
 
       return c.json(payload, 200)

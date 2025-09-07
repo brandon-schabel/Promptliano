@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi'
+import { getZodDescription, getZodExample } from '../utils/zod-meta'
 
 /**
  * Creates a paginated response schema with metadata
@@ -12,7 +13,7 @@ export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(
     name?: string
   }
 ) {
-  const schemaName = options?.name || itemSchema._def.description || 'Item'
+  const schemaName = options?.name || getZodDescription(itemSchema) || 'Item'
   
   const paginationSchema: Record<string, z.ZodTypeAny> = {
     page: z.number().int().min(1).describe('Current page number'),
@@ -46,7 +47,7 @@ export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(
     description: options?.description || `Paginated list of ${schemaName}s`,
     example: {
       success: true,
-      data: [itemSchema._def.example || {}],
+      data: [getZodExample(itemSchema) || {}],
       pagination: {
         page: 1,
         pageSize: 10,
@@ -70,7 +71,7 @@ export function createInfiniteScrollResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -88,7 +89,7 @@ export function createOffsetPaginationResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -107,7 +108,7 @@ export function createKeysetPaginationResponseSchema<T extends z.ZodTypeAny>(
   keyField: string,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -128,7 +129,7 @@ export function createRelayPaginationResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   const EdgeSchema = z.object({
     node: itemSchema,
@@ -157,7 +158,7 @@ export function createTimeBasedPaginationResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),
@@ -179,7 +180,7 @@ export function createHybridPaginationResponseSchema<T extends z.ZodTypeAny>(
   itemSchema: T,
   name?: string
 ) {
-  const schemaName = name || itemSchema._def.description || 'Item'
+  const schemaName = name || getZodDescription(itemSchema) || 'Item'
   
   return z.object({
     success: z.literal(true),

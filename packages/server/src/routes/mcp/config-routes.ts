@@ -166,24 +166,24 @@ export const mcpConfigRoutes = new OpenAPIHono()
   .openapi(listMCPServerConfigsRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const configs = await listMCPServerConfigs(projectId)
-    return c.json(successResponse(configs.map(transformMcpServerConfig)))
+    return c.json(successResponse(configs.map(transformMcpServerConfig)), 200)
   })
   .openapi(getMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
     const config = await getMCPServerConfigById(serverId)
-    return c.json(successResponse(transformMcpServerConfig(config)))
+    return c.json(successResponse(transformMcpServerConfig(config)), 200)
   })
   .openapi(updateMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
     const body = c.req.valid('json')
     const transformedBody = transformUpdateRequestBody(body)
     const config = await updateMCPServerConfig(serverId, transformedBody)
-    return c.json(successResponse(transformMcpServerConfig(config)))
+    return c.json(successResponse(transformMcpServerConfig(config)), 200)
   })
   .openapi(deleteMCPServerConfigRoute, async (c) => {
     const { serverId } = c.req.valid('param')
     await deleteMCPServerConfig(serverId)
-    return c.json(operationSuccessResponse('MCP server configuration deleted successfully'))
+    return c.json(operationSuccessResponse('MCP server configuration deleted successfully'), 200)
   })
 
 export type MCPConfigRouteTypes = typeof mcpConfigRoutes

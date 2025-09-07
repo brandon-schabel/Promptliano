@@ -108,7 +108,7 @@ const getAllConfigsRoute = createRoute({
 
 modelConfigRoutes.openapi(getAllConfigsRoute, async (c) => {
   const configs = await modelConfigService.getAllConfigs()
-  return c.json(successResponse(configs))
+  return c.json(successResponse(configs), 200)
 })
 
 // Get configurations by provider
@@ -128,7 +128,7 @@ const getConfigsByProviderRoute = createRoute({
 modelConfigRoutes.openapi(getConfigsByProviderRoute, async (c) => {
   const { provider } = c.req.valid('param')
   const configs = await modelConfigService.getConfigsByProvider(provider)
-  return c.json(successResponse(configs))
+  return c.json(successResponse(configs), 200)
 })
 
 // Get default configuration for a provider
@@ -151,7 +151,7 @@ modelConfigRoutes.openapi(getDefaultConfigRoute, async (c) => {
   if (!config) {
     throw new ApiError(404, 'No default configuration found', 'CONFIG_NOT_FOUND')
   }
-  return c.json(successResponse(config))
+  return c.json(successResponse(config), 200)
 })
 
 // Get configuration by name
@@ -174,7 +174,7 @@ modelConfigRoutes.openapi(getConfigByNameRoute, async (c) => {
   if (!config) {
     throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
   }
-  return c.json(successResponse(config))
+  return c.json(successResponse(config), 200)
 })
 
 // Get configuration by ID
@@ -195,7 +195,7 @@ modelConfigRoutes.openapi(getConfigByIdRoute, async (c) => {
   if (!config) {
     throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
   }
-  return c.json(successResponse(config))
+  return c.json(successResponse(config), 200)
 })
 
 // Create configuration
@@ -246,7 +246,7 @@ modelConfigRoutes.openapi(updateConfigRoute, async (c) => {
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const config = await modelConfigService.updateConfig(id, data as UpdateModelConfig)
-  return c.json(successResponse(config))
+  return c.json(successResponse(config), 200)
 })
 
 // Delete configuration
@@ -273,7 +273,7 @@ modelConfigRoutes.openapi(deleteConfigRoute, async (c) => {
   const { id } = c.req.valid('param')
   const { hard } = c.req.valid('query')
   const deleted = await modelConfigService.deleteConfig(id, hard)
-  return c.json(successResponse({ deleted }))
+  return c.json(successResponse({ deleted }), 200)
 })
 
 // Set default configuration
@@ -300,7 +300,7 @@ modelConfigRoutes.openapi(setDefaultConfigRoute, async (c) => {
     throw new ApiError(404, 'Configuration not found', 'CONFIG_NOT_FOUND')
   }
   const updated = await modelConfigService.setDefaultConfig(id, config.provider)
-  return c.json(successResponse({ updated }))
+  return c.json(successResponse({ updated }), 200)
 })
 
 // ==================== Model Preset Routes ====================
@@ -321,7 +321,7 @@ const getAllPresetsRoute = createRoute({
 
 modelConfigRoutes.openapi(getAllPresetsRoute, async (c) => {
   const presets = await modelConfigService.getAllPresets()
-  return c.json(successResponse(presets))
+  return c.json(successResponse(presets), 200)
 })
 
 // Get presets by category
@@ -341,7 +341,7 @@ const getPresetsByCategoryRoute = createRoute({
 modelConfigRoutes.openapi(getPresetsByCategoryRoute, async (c) => {
   const { category } = c.req.valid('param')
   const presets = await modelConfigService.getPresetsByCategory(category)
-  return c.json(successResponse(presets))
+  return c.json(successResponse(presets), 200)
 })
 
 // Get most used presets
@@ -361,7 +361,7 @@ const getMostUsedPresetsRoute = createRoute({
 modelConfigRoutes.openapi(getMostUsedPresetsRoute, async (c) => {
   const { limit } = c.req.valid('query')
   const presets = await modelConfigService.getMostUsedPresets(limit)
-  return c.json(successResponse(presets))
+  return c.json(successResponse(presets), 200)
 })
 
 // Get recently used presets
@@ -381,7 +381,7 @@ const getRecentlyUsedPresetsRoute = createRoute({
 modelConfigRoutes.openapi(getRecentlyUsedPresetsRoute, async (c) => {
   const { limit } = c.req.valid('query')
   const presets = await modelConfigService.getRecentlyUsedPresets(limit)
-  return c.json(successResponse(presets))
+  return c.json(successResponse(presets), 200)
 })
 
 // Get preset with configuration
@@ -402,7 +402,7 @@ modelConfigRoutes.openapi(getPresetWithConfigRoute, async (c) => {
   if (!preset) {
     throw new ApiError(404, 'Preset not found', 'PRESET_NOT_FOUND')
   }
-  return c.json(successResponse(preset))
+  return c.json(successResponse(preset), 200)
 })
 
 // Create preset
@@ -454,7 +454,7 @@ modelConfigRoutes.openapi(updatePresetRoute, async (c) => {
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const preset = await modelConfigService.updatePreset(id, data as UpdateModelPreset)
-  return c.json(successResponse(preset))
+  return c.json(successResponse(preset), 200)
 })
 
 // Delete preset
@@ -481,7 +481,7 @@ modelConfigRoutes.openapi(deletePresetRoute, async (c) => {
   const { id } = c.req.valid('param')
   const { hard } = c.req.valid('query')
   const deleted = await modelConfigService.deletePreset(id, hard)
-  return c.json(successResponse({ deleted }))
+  return c.json(successResponse({ deleted }), 200)
 })
 
 // Use preset (increment usage count)
@@ -504,7 +504,7 @@ const usePresetRoute = createRoute({
 modelConfigRoutes.openapi(usePresetRoute, async (c) => {
   const { id } = c.req.valid('param')
   const updated = await modelConfigService.usePreset(id)
-  return c.json(successResponse({ updated }))
+  return c.json(successResponse({ updated }), 200)
 })
 
 // ==================== System Operations ====================
@@ -525,7 +525,7 @@ const initSystemDefaultsRoute = createRoute({
 
 modelConfigRoutes.openapi(initSystemDefaultsRoute, async (c) => {
   await modelConfigService.initializeSystemDefaults()
-  return c.json(successResponse({ message: 'System defaults initialized successfully' }))
+  return c.json(successResponse({ message: 'System defaults initialized successfully' }), 200)
 })
 
 // Export configurations
@@ -539,7 +539,7 @@ const exportConfigurationsRoute = createRoute({
 
 modelConfigRoutes.openapi(exportConfigurationsRoute, async (c) => {
   const data = await modelConfigService.exportConfigurations()
-  return c.json(successResponse(data))
+  return c.json(successResponse(data), 200)
 })
 
 // Import configurations
@@ -567,5 +567,5 @@ const importConfigurationsRoute = createRoute({
 modelConfigRoutes.openapi(importConfigurationsRoute, async (c) => {
   const data = c.req.valid('json')
   const result = await modelConfigService.importConfigurations(data as any)
-  return c.json(successResponse(result))
+  return c.json(successResponse(result), 200)
 })

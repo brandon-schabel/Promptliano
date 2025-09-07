@@ -145,13 +145,13 @@ Example `mcp.json` (macOS/Linux script):
 }
 ```
 
-Note: `bun run dev` can auto-generate `.mcp-inspector.config.json` and optionally start the Inspector preconfigured to Promptliano (stdio). Autostart is disabled by default to avoid popping a browser tab. To enable:
+Note: `bun run dev` auto-generates `.mcp-inspector.config.json` and starts the Inspector preconfigured to Promptliano (stdio). It runs headless and does not open a browser tab. To disable Inspector autostart:
 
 ```bash
-MCP_INSPECTOR_AUTOSTART=true bun run dev
+MCP_INSPECTOR_AUTOSTART=false bun run dev
 ```
 
-You can also run it manually anytime with `bun run mcp:inspector`.
+The server-only script (`bun run dev:server`) also starts the Inspector headlessly. You can run it manually anytime with `bun run mcp:inspector`.
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
 

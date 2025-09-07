@@ -1,14 +1,19 @@
 import { z } from 'zod'
 
-// Zod v4: AnyZodObject is not exported; use ZodObject with broad generics
+// Extract top-level defaults from a Zod object schema.
+// - Only returns defaults defined via `.default(...)` on each field.
+// - Does not attempt to synthesize nested defaults unless the field itself has a default.
+// - Supports Zod v3 (where defaultValue is a function) and Zod v4 (getter returning the value).
 export function getSchemaDefaults<Schema extends z.ZodObject<any, any>>(schema: Schema) {
-  // Access internal defs via any to avoid tight coupling to Zod's private types
-  const shape: Record<string, any> = (schema as any).shape
+  const shape: Record<string, unknown> = (schema as any).shape
+
   return Object.fromEntries(
-    Object.entries(shape).map(([key, value]: [string, any]) => {
-      if (value instanceof z.ZodDefault) {
-        // defaultValue() exists at runtime; cast def to any
-        return [key, (value as any)._def.defaultValue()]
+    Object.entries(shape).map(([key, fieldSchema]) => {
+      if (fieldSchema instanceof z.ZodDefault) {
+        const def = (fieldSchema as any)._def
+        const dv = def?.defaultValue
+        const value = typeof dv === 'function' ? dv() : dv
+        return [key, value]
       }
       return [key, undefined]
     })

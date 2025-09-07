@@ -82,7 +82,8 @@ export const browseDirectoryRoutes = new OpenAPIHono().openapi(browseDirectoryRo
         currentPath: targetPath,
         parentPath,
         entries: directoryEntries
-      })
+      }),
+      200
     )
   } catch (error: any) {
     if (error instanceof ApiError) {

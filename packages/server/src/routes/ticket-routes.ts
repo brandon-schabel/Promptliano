@@ -31,7 +31,7 @@ import {
 } from '@promptliano/services'
 
 // Error factory and context handling from shared package
-import { ErrorFactory, withErrorContext } from '@promptliano/shared'
+import { ApiError, ErrorFactory, withErrorContext } from '@promptliano/shared'
 // Import database schemas as source of truth
 import {
   selectTicketSchema as TicketSchema,
@@ -802,7 +802,7 @@ ticketRoutes
     const ticket = await getTicketById(id)
 
     if (!ticket) {
-      return c.json({ error: 'Ticket not found' }, 404)
+      throw new ApiError(404, 'Ticket not found', 'TICKET_NOT_FOUND')
     }
 
     return c.json(successResponse(ticket), 200)
@@ -813,7 +813,7 @@ ticketRoutes
     const ticket = await updateTicket(id, data)
 
     if (!ticket) {
-      return c.json({ error: 'Ticket not found' }, 404)
+      throw new ApiError(404, 'Ticket not found', 'TICKET_NOT_FOUND')
     }
 
     return c.json(successResponse(ticket), 200)
@@ -823,7 +823,7 @@ ticketRoutes
     const success = await deleteTicket(id)
 
     if (!success) {
-      return c.json({ error: 'Ticket not found' }, 404)
+      throw new ApiError(404, 'Ticket not found', 'TICKET_NOT_FOUND')
     }
 
     return c.json(operationSuccessResponse('Ticket deleted successfully'), 200)

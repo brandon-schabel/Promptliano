@@ -69,7 +69,7 @@ mcpProjectConfigApp.openapi(getConfigLocationsRoute, async (c) => {
 
   try {
     const locations = await mcpProjectConfigService.getConfigLocations(projectId)
-    return c.json(successResponse({ locations }))
+    return c.json(successResponse({ locations }), 200)
   } catch (error) {
     console.error('Failed to get config locations:', error)
     if (error instanceof ApiError) {
@@ -94,7 +94,7 @@ mcpProjectConfigApp.openapi(getMergedConfigRoute, async (c) => {
 
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
-    return c.json(successResponse({ config }))
+    return c.json(successResponse({ config }), 200)
   } catch (error) {
     console.error('Failed to get merged config:', error)
     if (error instanceof ApiError) {
@@ -120,7 +120,7 @@ mcpProjectConfigApp.openapi(getExpandedConfigRoute, async (c) => {
   try {
     const config = await mcpProjectConfigService.getMergedConfig(projectId)
     const expandedConfig = await mcpProjectConfigService.expandVariables(config, projectId)
-    return c.json(successResponse({ config: expandedConfig }))
+    return c.json(successResponse({ config: expandedConfig }), 200)
   } catch (error) {
     console.error('Failed to get expanded config:', error)
     if (error instanceof ApiError) {
@@ -155,7 +155,7 @@ mcpProjectConfigApp.openapi(saveProjectConfigRoute, async (c) => {
 
   try {
     await mcpProjectConfigService.saveProjectConfig(projectId, config)
-    return c.json(operationSuccessResponse('Config saved successfully'))
+    return c.json(operationSuccessResponse('Config saved successfully'), 200)
   } catch (error) {
     console.error('Failed to save config:', error)
     if (error instanceof ApiError) {
@@ -219,13 +219,15 @@ mcpProjectConfigApp
           successResponse({
             config: result.config,
             source: result.source
-          })
+          }),
+          200
         )
       } else {
         return c.json(
           successResponse({
             config: null
-          })
+          }),
+          200
         )
       }
     } catch (error) {
@@ -248,7 +250,7 @@ mcpProjectConfigApp
 
     try {
       await mcpProjectConfigService.saveProjectConfigToLocation(projectId, config, location)
-      return c.json(operationSuccessResponse('Config saved to location successfully'))
+      return c.json(operationSuccessResponse('Config saved to location successfully'), 200)
     } catch (error) {
       console.error('Failed to save config to location:', error)
       if (error instanceof ApiError) {
@@ -263,7 +265,7 @@ mcpProjectConfigApp
 
     try {
       const config = await mcpProjectConfigService.getDefaultConfigForLocation(projectId, location)
-      return c.json(successResponse({ config }))
+      return c.json(successResponse({ config }), 200)
     } catch (error) {
       console.error('Failed to get default config:', error)
       if (error instanceof ApiError) {

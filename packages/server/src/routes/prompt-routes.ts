@@ -350,44 +350,66 @@ export const promptRoutes = new OpenAPIHono()
     const createdPrompt = await createPrompt(promptData)
     return c.json(successResponse(createdPrompt), 201)
   }) as any)
-  .openapi(listAllPromptsRoute, async (c) => {
-    return c.json(successResponse(await listAllPrompts()))
-  })
-  .openapi(listProjectPromptsRoute, async (c) => {
+  .openapi(listAllPromptsRoute, (async (c: any) => {
+    return c.json(successResponse(await listAllPrompts()), 200)
+  }) as any)
+  .openapi(listProjectPromptsRoute, (async (c: any) => {
     const { id: projectId } = (c.req as any).valid('param')
     const projectPrompts = await listPromptsByProject(projectId)
-    return c.json(successResponse(projectPrompts))
-  })
-  .openapi(suggestPromptsRoute, async (c) => {
+    return c.json(successResponse(projectPrompts), 200)
+  }) as any)
+  .openapi(suggestPromptsRoute, (async (c: any) => {
     const { id: projectId } = (c.req as any).valid('param')
-    const { userInput, limit } = c.req.valid('json')
-    const suggestedPrompts = await suggestPrompts(projectId, userInput)
-    return c.json(successResponse({ prompts: suggestedPrompts }))
-  })
+    const { userInput, limit } = (c.req as any).valid('json')
+    const suggestions = await suggestPrompts(projectId, userInput)
+    // suggestions may be array of strings like "Prompt ID: {id}"; map to Prompt[] if possible
+    let prompts: any[] = []
+    try {
+      const ids = (suggestions as any[]).map((s) => {
+        if (typeof s === 'number') return s
+        if (typeof s === 'string') {
+          const m = s.match(/(\d+)/)
+          return m ? Number(m[1]) : undefined
+        }
+        return undefined
+      }).filter((v) => typeof v === 'number') as number[]
+      if (ids.length > 0) {
+        const { getPromptsByIds } = await import('@promptliano/services')
+        prompts = await getPromptsByIds(ids)
+      }
+    } catch {
+      // ignore mapping errors and fall back below
+    }
+    if (!prompts || prompts.length === 0) {
+      // Fallback: return empty list to satisfy schema
+      prompts = []
+    }
+    return c.json(successResponse({ prompts }), 200)
+  }) as any)
 
-  .openapi(addPromptToProjectRoute, async (c) => {
-    const { promptId, id: projectId } = c.req.valid('param')
+  .openapi(addPromptToProjectRoute, (async (c: any) => {
+    const { promptId, id: projectId } = (c.req as any).valid('param')
     await addPromptToProject(promptId, projectId)
-    return c.json(operationSuccessResponse('Prompt linked to project.'))
-  })
-  .openapi(removePromptFromProjectRoute, async (c) => {
-    const { promptId, id: projectId } = c.req.valid('param')
+    return c.json(operationSuccessResponse('Prompt linked to project.'), 200)
+  }) as any)
+  .openapi(removePromptFromProjectRoute, (async (c: any) => {
+    const { promptId, id: projectId } = (c.req as any).valid('param')
     await removePromptFromProject(promptId)
-    return c.json(operationSuccessResponse('Prompt unlinked from project.'))
-  })
-  .openapi(getPromptByIdRoute, async (c) => {
-    const { id: promptId } = c.req.valid('param')
+    return c.json(operationSuccessResponse('Prompt unlinked from project.'), 200)
+  }) as any)
+  .openapi(getPromptByIdRoute, (async (c: any) => {
+    const { id: promptId } = (c.req as any).valid('param')
     const prompt = await getPromptById(promptId)
-    return c.json(successResponse(prompt))
-  })
-  .openapi(updatePromptRoute, async (c) => {
-    const { id: promptId } = c.req.valid('param')
+    return c.json(successResponse(prompt), 200)
+  }) as any)
+  .openapi(updatePromptRoute, (async (c: any) => {
+    const { id: promptId } = (c.req as any).valid('param')
     const body = (c.req as any).valid('json')
     const updatedPrompt = await updatePrompt(promptId, body)
-    return c.json(successResponse(updatedPrompt))
-  })
-  .openapi(deletePromptRoute, async (c) => {
-    const { id: promptId } = c.req.valid('param')
+    return c.json(successResponse(updatedPrompt), 200)
+  }) as any)
+  .openapi(deletePromptRoute, (async (c: any) => {
+    const { id: promptId } = (c.req as any).valid('param')
     if (!deletePrompt) {
       throw new Error('Delete prompt function not available')
     }
@@ -395,8 +417,8 @@ export const promptRoutes = new OpenAPIHono()
     if (!deleted) {
       throw new Error('Failed to delete prompt')
     }
-    return c.json(operationSuccessResponse('Prompt deleted successfully.'))
-  })
+    return c.json(operationSuccessResponse('Prompt deleted successfully.'), 200)
+  }) as any)
 
   // Markdown Import/Export Handlers
   .openapi(importPromptsRoute, (async (c: Context) => {
@@ -456,7 +478,7 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
 
   .openapi(exportPromptRoute, async (c) => {
-    const { id: promptId } = c.req.valid('param')
+    const { id: promptId } = (c.req as any).valid('param')
     const prompt = await getPromptById(promptId)
     // Ensure tags are properly typed for the promptToMarkdown function
     const promptForMarkdown = {
@@ -476,7 +498,7 @@ export const promptRoutes = new OpenAPIHono()
     return c.body(markdownContent)
   })
 
-  .openapi(exportBatchPromptsRoute, async (c) => {
+  .openapi(exportBatchPromptsRoute, (async (c: any) => {
     const body = (c.req as any).valid('json')
     const { promptIds, ...options } = body
 
@@ -493,7 +515,7 @@ export const promptRoutes = new OpenAPIHono()
 
     const result = await exportPromptsToMarkdown(prompts, options)
     return c.json(successResponse(result))
-  })
+  }) as any)
 
   .openapi(importProjectPromptsRoute, (async (c: Context) => {
     const { id: projectId } = (c.req as any).valid('param')
@@ -553,7 +575,7 @@ export const promptRoutes = new OpenAPIHono()
 
   .openapi(exportAllProjectPromptsRoute, async (c) => {
     const { id: projectId } = (c.req as any).valid('param')
-    const { format, sortBy, sortOrder } = c.req.valid('query')
+    const { format, sortBy, sortOrder } = (c.req as any).valid('query')
 
     const projectPrompts = await listPromptsByProject(projectId)
 
@@ -579,7 +601,7 @@ export const promptRoutes = new OpenAPIHono()
           }
         }
       }
-      return c.json(successResponse(result))
+      return c.json(successResponse(result), 200)
     }
 
     const result = await exportPromptsToMarkdown(projectPrompts, {
@@ -588,11 +610,11 @@ export const promptRoutes = new OpenAPIHono()
       sortOrder
     })
 
-    return c.json(successResponse(result))
+    return c.json(successResponse(result), 200)
   })
 
-  .openapi(validateMarkdownRoute, async (c) => {
-    const { content } = c.req.valid('json')
+  .openapi(validateMarkdownRoute, (async (c: any) => {
+    const { content } = (c.req as any).valid('json')
     const validationResult = await validateMarkdownContent(content)
 
     return c.json(
@@ -602,7 +624,7 @@ export const promptRoutes = new OpenAPIHono()
       },
       200
     )
-  })
+  }) as any)
 
 // Manual routes - basic CRUD operations
 const getPromptByIdBasicRoute = createRoute({
@@ -670,36 +692,36 @@ const deletePromptByIdBasicRoute = createRoute({
 })
 
 promptRoutes
-  .openapi(getPromptByIdBasicRoute, async (c) => {
-    const { id } = c.req.valid('param')
+  .openapi(getPromptByIdBasicRoute, (async (c: any) => {
+    const { id } = (c.req as any).valid('param')
     const prompt = await getPromptById(id)
 
     if (!prompt) {
-      return c.json({ error: 'Prompt not found' }, 404)
+      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
     }
 
-    return c.json({ data: prompt }, 200)
-  })
-  .openapi(updatePromptByIdBasicRoute, async (c) => {
-    const { id } = c.req.valid('param')
-    const data = c.req.valid('json')
+    return c.json(successResponse(prompt), 200)
+  }) as any)
+  .openapi(updatePromptByIdBasicRoute, (async (c: any) => {
+    const { id } = (c.req as any).valid('param')
+    const data = (c.req as any).valid('json')
     const prompt = await updatePrompt(id, data)
 
     if (!prompt) {
-      return c.json({ error: 'Prompt not found' }, 404)
+      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
     }
 
-    return c.json({ data: prompt }, 200)
-  })
-  .openapi(deletePromptByIdBasicRoute, async (c) => {
-    const { id } = c.req.valid('param')
+    return c.json(successResponse(prompt), 200)
+  }) as any)
+  .openapi(deletePromptByIdBasicRoute, (async (c: any) => {
+    const { id } = (c.req as any).valid('param')
     const success = await deletePrompt(id)
 
     if (!success) {
-      return c.json({ error: 'Prompt not found' }, 404)
+      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
     }
 
-    return c.json({ success: true, message: 'Prompt deleted successfully' }, 200)
-  })
+    return c.json(operationSuccessResponse('Prompt deleted successfully'), 200)
+  }) as any)
 
 export type PromptRouteTypes = typeof promptRoutes
