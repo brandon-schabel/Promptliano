@@ -4,12 +4,11 @@
  * Maps entity types to their API client methods and configurations
  */
 
-import type {
-  CrudApiClient,
-  CrudHookConfig,
-  OptimisticConfig,
-  InvalidationStrategy
-} from '@promptliano/hook-factory'
+import type { CrudApiClient, CrudHookConfig, OptimisticConfig, InvalidationStrategy } from '@promptliano/hook-factory'
+
+// Helper type for drizzle-zod schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
 import { useApiClient } from '../api/use-api-client'
 import {
   PROJECT_ENHANCED_KEYS,
@@ -57,7 +56,7 @@ import {
 } from '@promptliano/schemas'
 
 // Extract proper TypeScript types from schemas
-type Project = typeof ProjectSchema._type
+type Project = InferSchema<typeof ProjectSchema>
 type CreateProjectBody = CreateProject
 type UpdateProjectBody = UpdateProject
 // Use the properly typed imports from schemas package (imported above)
@@ -67,13 +66,13 @@ type UpdateTicketBody = SchemasUpdateTicketBody
 // type TicketTask = typeof TaskSchema._type // This causes type inference issues - use import instead
 type CreateTaskBody = SchemasCreateTaskBody
 type UpdateTaskBody = SchemasUpdateTaskBody
-type Chat = typeof ChatSchema._type
+type Chat = InferSchema<typeof ChatSchema>
 type CreateChatBody = CreateChat
 type UpdateChatBody = UpdateChat
 // type Prompt = typeof PromptSchema._type // This causes type inference issues - use import instead
 type CreatePromptBody = SchemasCreatePromptBody
 type UpdatePromptBody = SchemasUpdatePromptBody
-type TaskQueue = typeof QueueSchema._type
+type TaskQueue = InferSchema<typeof QueueSchema>
 type CreateQueueBody = CreateQueue
 type UpdateQueueBody = UpdateQueue
 // Import the proper ProviderKey type that handles JSON fields correctly
@@ -179,7 +178,8 @@ export const projectApiClient: CrudApiClient<Project, CreateProjectBody, UpdateP
   list: (client: any) => client.projects.listProjects().then((r: any) => r?.data || r),
   getById: (client: any, id: number) => client.projects.getProject(id).then((r: any) => r?.data || r),
   create: (client: any, data: CreateProjectBody) => client.projects.createProject(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdateProjectBody) => client.projects.updateProject(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdateProjectBody) =>
+    client.projects.updateProject(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.projects.deleteProject(id).then(() => undefined)
 }
 
@@ -196,7 +196,8 @@ export const ticketApiClient: CrudApiClient<
     client.tickets.listTickets(params?.projectId, params?.status).then((r: any) => r?.data || r),
   getById: (client: any, id: number) => client.tickets.getTicket(id).then((r: any) => r?.data || r),
   create: (client: any, data: CreateTicketBody) => client.tickets.createTicket(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdateTicketBody) => client.tickets.updateTicket(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdateTicketBody) =>
+    client.tickets.updateTicket(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.tickets.deleteTicket(id).then(() => undefined)
 }
 
@@ -235,7 +236,8 @@ export const chatApiClient: CrudApiClient<Chat, CreateChatBody, UpdateChatBody> 
   list: (client: any) => client.chats.listChats().then((r: any) => r?.data || r),
   getById: (client: any, id: number) => client.chats.getChat(id).then((r: any) => r?.data || r),
   create: (client: any, data: CreateChatBody) => client.chats.createChat(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdateChatBody) => client.chats.updateChat(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdateChatBody) =>
+    client.chats.updateChat(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.chats.deleteChat(id).then(() => undefined)
 }
 
@@ -251,7 +253,8 @@ export const promptApiClient: CrudApiClient<Prompt, CreatePromptBody, UpdateProm
   },
   getById: (client: any, id: number) => client.prompts.getPrompt(id).then((r: any) => r?.data || r),
   create: (client: any, data: CreatePromptBody) => client.prompts.createPrompt(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdatePromptBody) => client.prompts.updatePrompt(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdatePromptBody) =>
+    client.prompts.updatePrompt(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.prompts.deletePrompt(id).then(() => undefined)
 }
 
@@ -270,7 +273,8 @@ export const queueApiClient: CrudApiClient<TaskQueue, CreateQueueBody, UpdateQue
     // Queues need projectId for creation, will be handled in wrapper
     throw new Error('Queue create requires projectId context')
   },
-  update: (client: any, id: number, data: UpdateQueueBody) => client.queues.updateQueue(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdateQueueBody) =>
+    client.queues.updateQueue(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.queues.deleteQueue(id).then(() => undefined)
 }
 
@@ -281,7 +285,8 @@ export const keyApiClient: CrudApiClient<ProviderKey, CreateProviderKeyBody, Upd
   list: (client: any) => client.keys.listKeys().then((r: any) => r?.data || r),
   getById: (client: any, id: number) => client.keys.getKey(id).then((r: any) => r?.data || r),
   create: (client: any, data: CreateProviderKeyBody) => client.keys.createKey(data).then((r: any) => r?.data || r),
-  update: (client: any, id: number, data: UpdateProviderKeyBody) => client.keys.updateKey(id, data).then((r: any) => r?.data || r),
+  update: (client: any, id: number, data: UpdateProviderKeyBody) =>
+    client.keys.updateKey(id, data).then((r: any) => r?.data || r),
   delete: (client: any, id: number) => client.keys.deleteKey(id).then(() => undefined)
 }
 
@@ -393,8 +398,8 @@ export const chatInvalidationStrategy: InvalidationStrategy = {
 }
 
 export const promptInvalidationStrategy: InvalidationStrategy = {
-  onCreate: 'all',  // Changed from 'lists' to 'all' to invalidate project-specific queries too
-  onUpdate: 'all',   // Changed to ensure all prompt queries refresh
+  onCreate: 'all', // Changed from 'lists' to 'all' to invalidate project-specific queries too
+  onUpdate: 'all', // Changed to ensure all prompt queries refresh
   onDelete: 'all',
   cascadeInvalidate: true
 }

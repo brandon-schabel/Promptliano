@@ -103,7 +103,12 @@ const getMCPSessionRoute = createRoute({
       sessionId: z.string()
     })
   },
-  responses: createStandardResponses(MCPSessionSchema)
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: MCPSessionSchema
+    })
+  )
 })
 
 // Close MCP session
@@ -141,7 +146,12 @@ const refreshMCPSessionRoute = createRoute({
       sessionId: z.string()
     })
   },
-  responses: createStandardResponses(MCPSessionSchema)
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: MCPSessionSchema
+    })
+  )
 })
 
 // Get session history
@@ -234,7 +244,7 @@ export const mcpSessionRoutes = new OpenAPIHono()
     const { status, serverId } = c.req.valid('query')
     // TODO: Implement listMCPSessions
     const sessions: any[] = []
-    return c.json(successResponse(sessions))
+    return c.json(successResponse(sessions), 200)
   })
   .openapi(getMCPSessionRoute, async (c) => {
     const { sessionId } = c.req.valid('param')
@@ -246,14 +256,14 @@ export const mcpSessionRoutes = new OpenAPIHono()
       startedAt: new Date().toISOString(),
       lastActivity: new Date().toISOString()
     }
-    return c.json(successResponse(session))
+    return c.json(successResponse(session), 200)
   })
   .openapi(closeMCPSessionRoute, async (c) => {
     const { sessionId } = c.req.valid('param')
     const body = c.req.valid('json') || {}
     // TODO: Implement closeMCPSession
     // await closeMCPSession(sessionId, body.reason, body.force)
-    return c.json(operationSuccessResponse('Session closed successfully'))
+    return c.json(operationSuccessResponse('Session closed successfully'), 200)
   })
   .openapi(refreshMCPSessionRoute, async (c) => {
     const { sessionId } = c.req.valid('param')
@@ -265,7 +275,7 @@ export const mcpSessionRoutes = new OpenAPIHono()
       startedAt: new Date().toISOString(),
       lastActivity: new Date().toISOString()
     }
-    return c.json(successResponse(session))
+    return c.json(successResponse(session), 200)
   })
   .openapi(getSessionHistoryRoute, async (c) => {
     const { sessionId } = c.req.valid('param')
@@ -277,7 +287,7 @@ export const mcpSessionRoutes = new OpenAPIHono()
       total: 0,
       hasMore: false
     }
-    return c.json(successResponse(history))
+    return c.json(successResponse(history), 200)
   })
   .openapi(cleanupIdleSessionsRoute, async (c) => {
     const body = c.req.valid('json') || {}
@@ -288,7 +298,7 @@ export const mcpSessionRoutes = new OpenAPIHono()
       sessionIds: [],
       dryRun: body.dryRun || false
     }
-    return c.json(successResponse(result))
+    return c.json(successResponse(result), 200)
   })
 
 export type MCPSessionRouteTypes = typeof mcpSessionRoutes

@@ -1,12 +1,12 @@
 /**
  * Service Factory Base Infrastructure
- * 
+ *
  * Provides base factory patterns for creating functional services with:
  * - ErrorFactory integration
  * - Dependency injection support
  * - Standardized error handling
  * - Logger integration
- * 
+ *
  * This replaces class-based services with functional factory pattern for:
  * - 25% code reduction
  * - Better testability
@@ -34,13 +34,13 @@ export function createServiceFactory<TDeps extends BaseServiceDependencies, TSer
   serviceImplementation: (deps: Required<TDeps>) => TService
 ): TService {
   const { entityName, dependencies = {} as TDeps } = config
-  
+
   // Ensure logger exists
   const deps = {
     logger: createServiceLogger(entityName),
     ...dependencies
   } as Required<TDeps>
-  
+
   return serviceImplementation(deps)
 }
 
@@ -63,40 +63,36 @@ export interface GitServiceConfig extends ServiceConfig<GitServiceDependencies> 
  */
 export function createGitErrorHandler(serviceName: string) {
   const baseHandler = createErrorHandler(`Git${serviceName}`)
-  
+
   return {
     ...baseHandler,
-    
+
     /**
      * Handle common git operation errors
      */
     handleGitError(error: unknown, operation: string): never {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      
+
       if (errorMessage.includes('not a git repository')) {
         throw ErrorFactory.invalidState('Project', 'non-git directory', operation)
       }
-      
+
       if (errorMessage.includes('git: command not found') || errorMessage.includes('git not found')) {
         throw ErrorFactory.serviceUnavailable('Git')
       }
-      
+
       if (errorMessage.includes('permission denied') || errorMessage.includes('access denied')) {
         throw ErrorFactory.forbidden('git repository', operation)
       }
-      
+
       if (errorMessage.includes('missing path')) {
         throw ErrorFactory.invalidState('Project', 'missing path', 'git operations')
       }
-      
+
       // Generic git operation failure
-      throw ErrorFactory.operationFailed(
-        `git ${operation}`,
-        errorMessage,
-        { service: serviceName }
-      )
+      throw ErrorFactory.operationFailed(`git ${operation}`, errorMessage, { service: serviceName })
     },
-    
+
     /**
      * Wrap git operations with error handling
      */
@@ -129,7 +125,7 @@ export function createGitServiceFactory<TService>(
   }) => TService
 ): TService {
   const { serviceName, dependencies = {} } = config
-  
+
   const deps = {
     logger: dependencies.logger || createServiceLogger(`Git${serviceName}`),
     projectService: dependencies.projectService || {
@@ -142,7 +138,7 @@ export function createGitServiceFactory<TService>(
     },
     errorHandler: createGitErrorHandler(serviceName)
   }
-  
+
   return serviceImplementation(deps)
 }
 
@@ -169,25 +165,21 @@ export function createGitUtils(
     async getGitInstance(projectId: number) {
       return errorHandler.withGitErrorHandling(async () => {
         const project = await projectService.getById(projectId)
-        
+
         if (!project.path) {
-          throw ErrorFactory.invalidState(
-            'Project', 
-            'missing path', 
-            'git operations'
-          )
+          throw ErrorFactory.invalidState('Project', 'missing path', 'git operations')
         }
-        
+
         const path = await import('path')
         const { simpleGit } = await import('simple-git')
-        
+
         const projectPath = path.resolve(project.path)
         const git = simpleGit(projectPath)
-        
+
         return { git, projectPath }
       }, 'get git instance')
     },
-    
+
     toRelativePaths(projectPath: string, filePaths: string[]): string[] {
       const path = require('path')
       return filePaths.map((filePath) => {
@@ -197,7 +189,7 @@ export function createGitUtils(
         return filePath
       })
     },
-    
+
     async checkIsRepo(git: any): Promise<boolean> {
       try {
         return await git.checkIsRepo()

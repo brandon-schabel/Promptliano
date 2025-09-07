@@ -48,17 +48,15 @@ When working in this package, these agents MUST be used:
    - Ensure SEO best practices, performance optimizations, and accessibility
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on component reusability and performance
 
 3. **Package-Specific Agents**
-   - Use `promptliano-ui-architect` for React component development
-   - Use `tanstack-router-expert` for routing implementation
+   - Use `promptliano-frontend-architect` for React components, routing, and @promptliano/ui
    - Use `framer-motion-expert` for animations and interactions
    - Use `seo-optimization-expert` for search engine optimization
    - Use `performance-expert` for Core Web Vitals optimization
-   - Use `promptliano-ui-architect` for using @promptliano/ui components
 
 ### Proactive Usage
 

@@ -77,7 +77,7 @@ export function ProjectSettingsTab() {
       } else {
         progressData = event as SyncProgressEvent
       }
-      
+
       syncProgressRef.current?.updateProgress(progressData)
     })
       .then(() => {

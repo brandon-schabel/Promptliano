@@ -70,7 +70,7 @@ export const queueProcessorTool: MCPToolDefinition = {
             const validQueueId = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const agentId = data?.agentId as string | undefined
 
-            const response = await getNextTaskFromQueue(validQueueId)
+            const response = await getNextTaskFromQueue(validQueueId, agentId)
 
             if (!response) {
               return {

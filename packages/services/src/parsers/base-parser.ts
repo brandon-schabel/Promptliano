@@ -37,7 +37,7 @@ export abstract class BaseParser<TFrontmatter = any> {
       const result = this.options.validateSchema.safeParse(data)
       if (!result.success) {
         throw new ParseError(`Frontmatter validation failed: ${result.error.message}`, undefined, {
-          validationErrors: result.error.errors
+          validationErrors: result.error.issues
         })
       }
       return result.data

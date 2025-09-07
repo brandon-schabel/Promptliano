@@ -6,7 +6,8 @@ export const MarkdownFrontmatterSchema = z
   .object({
     name: z.string().min(1).openapi({
       example: 'My Awesome Prompt',
-      description: 'The prompt name from frontmatter'
+      description:
+        'The prompt name from frontmatter. If no frontmatter exists, the filename (without extension, cleaned up) will be used as the name.'
     }),
     created: z.string().datetime().optional().openapi({
       example: '2024-01-01T00:00:00Z',
@@ -359,10 +360,10 @@ export const MarkdownExportResponseSchema = z
 export const MarkdownContentValidationSchema = z
   .object({
     hasValidFrontmatter: z.boolean().openapi({
-      description: 'Whether the content has valid YAML frontmatter'
+      description: 'Whether the content has valid YAML frontmatter (optional for prompts)'
     }),
     hasRequiredFields: z.boolean().openapi({
-      description: 'Whether all required frontmatter fields are present'
+      description: 'Whether content can be processed (frontmatter is optional for prompts)'
     }),
     contentLength: z.number().int().min(0).openapi({
       description: 'Length of the content after frontmatter'

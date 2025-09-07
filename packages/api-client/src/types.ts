@@ -12,8 +12,13 @@ export type {
 
 // Use schema types for entities
 import type { ChatSchema, ChatMessageSchema } from '@promptliano/database'
-export type Chat = typeof ChatSchema._type
-export type ChatMessage = typeof ChatMessageSchema._type
+import { z } from 'zod'
+
+// Helper type for schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
+export type Chat = InferSchema<typeof ChatSchema>
+export type ChatMessage = InferSchema<typeof ChatMessageSchema>
 
 // Note: AiChatStreamRequest moved to API types
 
@@ -25,8 +30,8 @@ export type {
 
 // Use schema types for entities
 import type { ProjectSchema, FileSchema } from '@promptliano/database'
-export type Project = typeof ProjectSchema._type
-export type File = typeof FileSchema._type
+export type Project = InferSchema<typeof ProjectSchema>
+export type File = InferSchema<typeof FileSchema>
 
 // Note: ProjectStatistics available via API types
 
@@ -34,7 +39,7 @@ export type { CreatePrompt as CreatePromptBody, UpdatePrompt as UpdatePromptBody
 
 // Use schema type for entity
 import type { PromptSchema } from '@promptliano/database'
-export type Prompt = typeof PromptSchema._type
+export type Prompt = InferSchema<typeof PromptSchema>
 
 // Note: OptimizePromptRequest available via API types
 
@@ -45,7 +50,7 @@ export type {
 
 // Use schema type for entity
 import type { ProviderKeySchema } from '@promptliano/database'
-export type ProviderKey = typeof ProviderKeySchema._type
+export type ProviderKey = InferSchema<typeof ProviderKeySchema>
 
 // Define missing types here to satisfy type checker
 export type MCPGlobalConfig = {
@@ -240,6 +245,5 @@ export type GitDiffRequest = {
   commitHash2?: string
   staged?: boolean
 }
-
 
 // Other hook types available via API types

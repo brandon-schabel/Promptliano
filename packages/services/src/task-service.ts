@@ -4,7 +4,14 @@
  * Provides consistent TaskStatus type handling and business rules
  */
 
-import { taskRepository, TaskSchema, validateJsonField, type InsertTicketTask, type TaskStatus, type TicketTask } from '@promptliano/database'
+import {
+  taskRepository,
+  TaskSchema,
+  validateJsonField,
+  type InsertTicketTask,
+  type TaskStatus,
+  type TicketTask
+} from '@promptliano/database'
 import ErrorFactory from '@promptliano/shared/src/error/error-factory'
 
 // Export types for external use
@@ -677,12 +684,11 @@ export const dequeueTask = async (taskId: number) => {
 }
 
 /**
- * Get next task from queue (placeholder)
+ * Get next task from queue
  */
-export const getNextTaskFromQueue = async (queueId: number) => {
-  // TODO: Implement proper queue logic
-  // For now, return null
-  return null
+export const getNextTaskFromQueue = async (queueId: number, agentId?: string) => {
+  const { queueService } = await import('./queue-service')
+  return await queueService.getNextItem(queueId, agentId || 'default-agent')
 }
 
 /**

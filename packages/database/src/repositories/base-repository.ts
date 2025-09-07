@@ -59,7 +59,7 @@ export class BaseRepository<
   constructor(
     protected readonly table: TTable,
     protected readonly dbInstance: DrizzleDb = db,
-    protected readonly schema?: z.ZodSchema<TEntity>,
+    protected readonly schema?: any,
     protected readonly entityName?: string
   ) {
     this.errorHandler = createErrorHandler(entityName || (table as any)?.['_']?.['name'] || 'entity')
@@ -130,11 +130,16 @@ export class BaseRepository<
         if (ErrorFactory.updateFailed) {
           throw ErrorFactory.updateFailed(this.entityName || 'Entity', id, 'No rows affected')
         }
-        throw new ApiError(500, `Failed to update ${this.entityName || 'Entity'} with ID ${id}: No rows affected`, 'UPDATE_FAILED', {
-          entity: this.entityName || 'Entity',
-          id,
-          reason: 'No rows affected'
-        })
+        throw new ApiError(
+          500,
+          `Failed to update ${this.entityName || 'Entity'} with ID ${id}: No rows affected`,
+          'UPDATE_FAILED',
+          {
+            entity: this.entityName || 'Entity',
+            id,
+            reason: 'No rows affected'
+          }
+        )
       }
 
       return this.validateEntity(updated)
@@ -490,7 +495,7 @@ export function createBaseRepository<
   TTable extends SQLiteTable,
   TEntity extends BaseEntity = InferSelectModel<TTable> & BaseEntity,
   TInsert extends Record<string, any> = InferInsertModel<TTable>
->(table: TTable, dbInstance?: DrizzleDb, schema?: z.ZodSchema<TEntity>, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
+>(table: TTable, dbInstance?: DrizzleDb, schema?: any, entityName?: string): BaseRepository<TEntity, TInsert, TTable> {
   // Ensure we have a valid database instance
   const validDbInstance = dbInstance || db
 
@@ -499,8 +504,8 @@ export function createBaseRepository<
     const instanceType = validDbInstance ? typeof validDbInstance : 'null/undefined'
     throw new Error(
       `Invalid database instance provided to repository. ` +
-      `Expected Drizzle database instance with .select method, got ${instanceType}. ` +
-      `This often happens when tests don't use createTestDatabase() properly.`
+        `Expected Drizzle database instance with .select method, got ${instanceType}. ` +
+        `This often happens when tests don't use createTestDatabase() properly.`
     )
   }
 

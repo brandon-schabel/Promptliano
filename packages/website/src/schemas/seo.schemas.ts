@@ -51,7 +51,7 @@ export const SeoMetadataSchema = z.object({
       image: z.string().url().optional()
     })
     .optional(),
-  jsonLd: z.record(z.any()).optional()
+  jsonLd: z.record(z.string(), z.any()).optional()
 })
 
 /**

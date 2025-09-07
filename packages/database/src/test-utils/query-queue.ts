@@ -1,10 +1,10 @@
 /**
  * Query Serialization Layer for Test Isolation
- * 
+ *
  * Solves the "Missing parameter '1'" errors by ensuring that all database
  * queries execute sequentially rather than concurrently, preventing SQLite
  * prepared statement corruption in Bun's test environment.
- * 
+ *
  * This is a workaround for Bun 1.2.0's concurrent SQLite access issues
  * with Drizzle ORM parameter binding.
  */
@@ -63,7 +63,7 @@ class QueryQueue {
     })
 
     // Continue the queue even if this operation fails
-    this.queue = result.catch(() => { })
+    this.queue = result.catch(() => {})
 
     return result
   }
@@ -118,7 +118,7 @@ function createProxiedQueryBuilder<T>(originalBuilder: T, queue: QueryQueue, ope
  */
 export function createSerializedDrizzleClient(
   sqlite: Database,
-  options: { verbose?: boolean, schema?: any } = {}
+  options: { verbose?: boolean; schema?: any } = {}
 ): ReturnType<typeof drizzle> {
   const { verbose = false, schema } = options
   const queue = QueryQueue.getInstance(verbose)
@@ -185,11 +185,7 @@ export const queryUtils = {
   /**
    * Execute a query with retry logic for flaky operations
    */
-  async executeWithRetry<T>(
-    queryFn: () => Promise<T>,
-    maxRetries = 3,
-    operation = 'retry-query'
-  ): Promise<T> {
+  async executeWithRetry<T>(queryFn: () => Promise<T>, maxRetries = 3, operation = 'retry-query'): Promise<T> {
     const queue = QueryQueue.getInstance()
 
     return queue.execute(async () => {
@@ -208,7 +204,7 @@ export const queryUtils = {
 
           // Wait briefly before retry
           if (attempt < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, attempt * 10))
+            await new Promise((resolve) => setTimeout(resolve, attempt * 10))
           }
         }
       }

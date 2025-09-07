@@ -160,9 +160,10 @@ export function ProjectNavigationMenu({
   }
 
   const navigateToSettings = (tab: string) => {
+    // Cast search to any to satisfy the router's inferred union type for tab
     navigate({
       to: '/settings',
-      search: { tab }
+      search: { tab } as any
     })
   }
 
@@ -200,7 +201,6 @@ export function ProjectNavigationMenu({
         <TabButton view='flow' icon={Workflow} label='Flow' />
         <TabButton view='manage' icon={Sliders} label='Manage' />
         {assetsEnabled && <TabButton view='assets' icon={FolderOpen} label='Assets' />}
-        
       </div>
     )
   }

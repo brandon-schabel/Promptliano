@@ -162,7 +162,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   )
   .openapi(
     addWorktreeRoute,
-    createRouteHandler<{ id: number }, void, typeof AddWorktreeBodySchema._type>(
+    createRouteHandler<{ id: number }, void, z.infer<typeof AddWorktreeBodySchema>>(
       async ({ params, body }): Promise<any> => {
         await addWorktree(params!.id, {
           path: body!.path,
@@ -177,7 +177,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   )
   .openapi(
     removeWorktreeRoute,
-    createRouteHandler<{ id: number }, void, typeof RemoveWorktreeBodySchema._type>(
+    createRouteHandler<{ id: number }, void, z.infer<typeof RemoveWorktreeBodySchema>>(
       async ({ params, body }): Promise<any> => {
         await removeWorktree(params!.id, body!.path, body!.force || false)
         return operationSuccessResponse('Worktree removed successfully')
@@ -186,7 +186,7 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   )
   .openapi(
     lockWorktreeRoute,
-    createRouteHandler<{ id: number }, void, typeof LockWorktreeBodySchema._type>(
+    createRouteHandler<{ id: number }, void, z.infer<typeof LockWorktreeBodySchema>>(
       async ({ params, body }): Promise<any> => {
         await lockWorktree(params!.id, body!.path, body!.reason)
         return operationSuccessResponse('Worktree locked successfully')
@@ -195,12 +195,10 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   )
   .openapi(
     unlockWorktreeRoute,
-    createRouteHandler<{ id: number }, void, { worktreePath: string }>(
-      async ({ params, body }): Promise<any> => {
-        await unlockWorktree(params!.id, body!.worktreePath)
-        return operationSuccessResponse('Worktree unlocked successfully')
-      }
-    ) as any
+    createRouteHandler<{ id: number }, void, { worktreePath: string }>(async ({ params, body }): Promise<any> => {
+      await unlockWorktree(params!.id, body!.worktreePath)
+      return operationSuccessResponse('Worktree unlocked successfully')
+    }) as any
   )
   .openapi(
     pruneWorktreesRoute,

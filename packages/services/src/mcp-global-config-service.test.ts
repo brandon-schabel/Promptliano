@@ -14,7 +14,7 @@ import {
   type MCPGlobalConfigService,
   type GlobalMCPConfig,
   type GlobalInstallationRecord,
-  type GlobalMCPState,
+  type GlobalMCPState
 } from './mcp-global-config-service'
 
 // Set test environment
@@ -51,12 +51,12 @@ const mockState: GlobalMCPState = {
 
 // Mock file system operations
 const mockFs = {
-  mkdir: mock(async () => { }),
+  mkdir: mock(async () => {}),
   readFile: mock(),
-  writeFile: mock(async () => { }),
-  copyFile: mock(async () => { }),
-  access: mock(async () => { }),
-  stat: mock(),
+  writeFile: mock(async () => {}),
+  copyFile: mock(async () => {}),
+  access: mock(async () => {}),
+  stat: mock()
 }
 
 // Mock path and os modules
@@ -70,10 +70,10 @@ mock.module('fs', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: mock(() => { }),
-  warn: mock(() => { }),
-  error: mock(() => { }),
-  debug: mock(() => { })
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {})
 }
 
 mock.module('./utils/logger', () => ({
@@ -85,7 +85,7 @@ const mockMCPFileOps = {
   writeJsonFile: mock(async () => ({ backupPath: undefined })),
   readJsonFile: mock(),
   fileExists: mock(async () => false),
-  makeExecutable: mock(async () => { })
+  makeExecutable: mock(async () => {})
 }
 
 mock.module('./utils/mcp-service-helpers', () => ({
@@ -122,9 +122,9 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
     configPath = path.join(tempDir, 'global-mcp-config.json')
 
     // Reset all mocks
-    Object.values(mockFs).forEach(mock => mock.mockReset())
-    Object.values(mockLogger).forEach(mock => mock.mockClear())
-    Object.values(mockMCPFileOps).forEach(mock => mock.mockReset())
+    Object.values(mockFs).forEach((mock) => mock.mockReset())
+    Object.values(mockLogger).forEach((mock) => mock.mockClear())
+    Object.values(mockMCPFileOps).forEach((mock) => mock.mockReset())
 
     // Setup default mock behaviors
     mockFs.mkdir.mockResolvedValue(undefined)
@@ -189,10 +189,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
 
       await nestedService.initialize()
 
-      expect(mockFs.mkdir).toHaveBeenCalledWith(
-        path.dirname(nestedPath),
-        { recursive: true }
-      )
+      expect(mockFs.mkdir).toHaveBeenCalledWith(path.dirname(nestedPath), { recursive: true })
 
       await nestedService.cleanup()
     })
@@ -305,16 +302,14 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
 
       await service.addGlobalInstallation(replacementInstallation)
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Replacing existing installation for claude-desktop'
-      )
+      expect(mockLogger.info).toHaveBeenCalledWith('Replacing existing installation for claude-desktop')
       expect(mockMCPFileOps.writeJsonFile).toHaveBeenCalled()
     })
 
     test('should validate installation data on add', async () => {
       const invalidInstallation = {
         // Missing required fields
-        configPath: '/test/path',
+        configPath: '/test/path'
       }
 
       await expect(service.addGlobalInstallation(invalidInstallation as any)).rejects.toThrow()
@@ -330,9 +325,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
     test('should handle removal of non-existent installation', async () => {
       await service.removeGlobalInstallation('vscode')
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'No global installation found for tool: vscode'
-      )
+      expect(mockLogger.warn).toHaveBeenCalledWith('No global installation found for tool: vscode')
     })
 
     test('should check if installation exists', async () => {
@@ -413,9 +406,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
   describe('Error Handling', () => {
     test('should handle file system errors gracefully', async () => {
       // First call fails with permission denied, second call succeeds for default state creation
-      mockFs.readFile
-        .mockRejectedValueOnce(new Error('Permission denied'))
-        .mockResolvedValueOnce('{}') // For writing default state
+      mockFs.readFile.mockRejectedValueOnce(new Error('Permission denied')).mockResolvedValueOnce('{}') // For writing default state
 
       mockFs.writeFile.mockResolvedValueOnce(undefined) // Allow writing default state
 
@@ -503,9 +494,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
       const updates = { debugMode: true }
       await service.updateGlobalConfig(updates)
 
-      expect(configChangedHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ debugMode: true })
-      )
+      expect(configChangedHandler).toHaveBeenCalledWith(expect.objectContaining({ debugMode: true }))
     })
 
     test('should emit events on installation changes', async () => {
@@ -584,7 +573,9 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
     test('should handle cleanup errors gracefully', async () => {
       // Mock file watcher cleanup that throws
       const mockWatcher = {
-        close: mock(() => { throw new Error('Cleanup failed') })
+        close: mock(() => {
+          throw new Error('Cleanup failed')
+        })
       }
 
       // This is hard to test without exposing internal state
@@ -605,7 +596,7 @@ describe('MCP Global Config Service - Functional Factory Pattern', () => {
           testProjectId: 1,
           testDb: { db: {} }
         })),
-        cleanupTest: mock(async () => { })
+        cleanupTest: mock(async () => {})
       }
 
       testContext = await testEnv.setupTest()

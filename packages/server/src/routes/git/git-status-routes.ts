@@ -29,7 +29,7 @@ import {
 const GitStatusResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitStatusResultSchema
+    data: GitStatusResultSchema.openapi('GitStatusResult')
   })
   .openapi('GitStatusResponse')
 
@@ -63,7 +63,7 @@ const stageFilesRoute = createRoute({
   request: {
     params: IDParamsSchema,
     body: {
-      content: { 'application/json': { schema: StageFilesBodySchema } },
+      content: { 'application/json': { schema: StageFilesBodySchema.openapi('StageFilesRequest') } },
       required: true
     }
   },
@@ -80,7 +80,7 @@ const unstageFilesRoute = createRoute({
   request: {
     params: IDParamsSchema,
     body: {
-      content: { 'application/json': { schema: UnstageFilesBodySchema } },
+      content: { 'application/json': { schema: UnstageFilesBodySchema.openapi('UnstageFilesRequest') } },
       required: true
     }
   },

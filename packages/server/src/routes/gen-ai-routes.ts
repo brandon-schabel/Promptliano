@@ -24,10 +24,7 @@ import {
   handleChatMessage
 } from '@promptliano/services' // Import the service instance
 import { type APIProviders, type ProviderKey } from '@promptliano/database'
-import {
-  type ProviderKeysConfig,
-  ModelFetcherService
-} from '@promptliano/services'
+import { type ProviderKeysConfig, ModelFetcherService } from '@promptliano/services'
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
 import { stream } from 'hono/streaming'
 
@@ -124,9 +121,7 @@ const postAiChatSdkRoute = createRoute({
     200: {
       content: {
         'text/event-stream': {
-          schema: z
-            .string()
-            .openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
+          schema: z.string().openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
         }
       },
       description: 'Successfully initiated AI response stream.'
@@ -265,9 +260,7 @@ export const genAiRoutes = new OpenAPIHono()
         {
           success: false,
           error: {
-            message: !Number.isFinite(chatId)
-              ? 'Missing or invalid chat id'
-              : 'Missing user message',
+            message: !Number.isFinite(chatId) ? 'Missing or invalid chat id' : 'Missing user message',
             code: 'INVALID_CHAT_REQUEST'
           }
         },
@@ -298,7 +291,7 @@ export const genAiRoutes = new OpenAPIHono()
     return c.body(readableStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      Connection: 'keep-alive'
     })
   })
   .openapi(getProvidersRoute, async (c) => {
@@ -328,7 +321,7 @@ export const genAiRoutes = new OpenAPIHono()
       // Combine both lists
       const allProviders = [...predefinedProviders, ...formattedCustomProviders]
 
-      return c.json(successResponse(allProviders))
+      return c.json(successResponse(allProviders), 200)
     } catch (error) {
       console.error('Failed to fetch providers:', error)
       throw new ApiError(500, 'Failed to fetch providers', 'PROVIDERS_FETCH_ERROR')
@@ -353,7 +346,7 @@ export const genAiRoutes = new OpenAPIHono()
     return c.body(aiSDKStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      Connection: 'keep-alive'
     })
   })
   .openapi(generateTextRoute, async (c) => {
@@ -367,7 +360,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage: body.systemMessage
     })
 
-    return c.json(successResponse({ text: generatedText }))
+    return c.json(successResponse({ text: generatedText }), 200)
   })
   .openapi(generateStructuredRoute, async (c) => {
     const body = c.req.valid('json')
@@ -395,7 +388,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage: finalSystemPrompt
     })
 
-    return c.json(successResponse({ output: result.object }))
+    return c.json(successResponse({ output: result.object }), 200)
   })
   .openapi(getModelsRoute, async (c) => {
     const { provider } = c.req.valid('query')
@@ -418,13 +411,13 @@ export const genAiRoutes = new OpenAPIHono()
             const modelData = models.map((model) => ({
               id: model.id,
               name: model.name,
-              provider
+              provider: provider || 'openai'
             }))
 
-            return c.json(successResponse(modelData))
+            return c.json(successResponse(modelData), 200)
           } catch (error) {
             console.error(`Failed to fetch models for custom provider ${keyId}:`, error)
-            return c.json(successResponse([]))
+            return c.json(successResponse([]), 200)
           }
         }
       }
@@ -457,12 +450,23 @@ export const genAiRoutes = new OpenAPIHono()
       const rawProviderId = String(key.provider || '')
       const normalized = rawProviderId.toLowerCase().replace(/[^a-z]/g, '')
       const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
-      // Only set known providers and only if we have a decrypted key string
-      if (configProp && typeof key.key === 'string' && key.key.length > 0) {
-        // Prefer the first (most recent due to sorting) or an explicit default
-        if (!providerKeysConfig[configProp] || key.isDefault) {
-          providerKeysConfig[configProp] = key.key as any
+      if (!configProp) continue
+
+      // Prefer explicit plaintext key if present
+      let resolvedKey: string | undefined
+      if (typeof key.key === 'string' && key.key.length > 0) {
+        resolvedKey = key.key
+      } else if (typeof (key as any).secretRef === 'string' && (key as any).secretRef) {
+        // Fall back to environment variable via secretRef name (e.g., OPENROUTER_API_KEY)
+        const envVar = (key as any).secretRef as string
+        const envVal = (process.env as Record<string, string | undefined>)[envVar]
+        if (typeof envVal === 'string' && envVal.length > 0) {
+          resolvedKey = envVal
         }
+      }
+
+      if (resolvedKey && (!providerKeysConfig[configProp] || key.isDefault)) {
+        providerKeysConfig[configProp] = resolvedKey as any
       }
     }
 
@@ -490,7 +494,8 @@ export const genAiRoutes = new OpenAPIHono()
     const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
     if (requiredKeyProp && !providerKeysConfig[requiredKeyProp]) {
       // No configured key for this provider; return empty list so UI can handle without error
-      return c.json(successResponse([]))
+      console.warn(`[GenAI Models] Missing API key for provider '${provider}'. Returning empty model list.`)
+      return c.json(successResponse([]), 200)
     }
 
     const modelFetcherService = new ModelFetcherService(providerKeysConfig)
@@ -514,10 +519,10 @@ export const genAiRoutes = new OpenAPIHono()
     const modelData = models.map((model) => ({
       id: model.id,
       name: model.name,
-      provider
+      provider: provider || 'openai'
     }))
 
-    return c.json(successResponse(modelData))
+    return c.json(successResponse(modelData), 200)
   })
   // Debug route to inspect provider key resolution without exposing secrets
   .openapi(
@@ -562,12 +567,23 @@ export const genAiRoutes = new OpenAPIHono()
 
       const providerKeysConfig: ProviderKeysConfig = {}
       for (const key of keys) {
-        const normalized = String(key.provider || '').toLowerCase().replace(/[^a-z]/g, '')
+        const normalized = String(key.provider || '')
+          .toLowerCase()
+          .replace(/[^a-z]/g, '')
         const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
-        if (configProp && typeof key.key === 'string' && key.key.length > 0) {
-          if (!providerKeysConfig[configProp] || key.isDefault) {
-            providerKeysConfig[configProp] = key.key as any
+        if (!configProp) continue
+        let resolvedKey: string | undefined
+        if (typeof key.key === 'string' && key.key.length > 0) {
+          resolvedKey = key.key
+        } else if (typeof (key as any).secretRef === 'string' && (key as any).secretRef) {
+          const envVar = (key as any).secretRef as string
+          const envVal = (process.env as Record<string, string | undefined>)[envVar]
+          if (typeof envVal === 'string' && envVal.length > 0) {
+            resolvedKey = envVal
           }
+        }
+        if (resolvedKey && (!providerKeysConfig[configProp] || key.isDefault)) {
+          providerKeysConfig[configProp] = resolvedKey as any
         }
       }
 
@@ -589,7 +605,9 @@ export const genAiRoutes = new OpenAPIHono()
       const keysMeta = keys.map((k) => ({
         id: k.id,
         provider: k.provider,
-        normalized: String(k.provider || '').toLowerCase().replace(/[^a-z]/g, ''),
+        normalized: String(k.provider || '')
+          .toLowerCase()
+          .replace(/[^a-z]/g, ''),
         isDefault: k.isDefault,
         decrypted: typeof k.key === 'string' && k.key.length > 0,
         createdAt: k.createdAt,
@@ -601,7 +619,8 @@ export const genAiRoutes = new OpenAPIHono()
           providerKeysConfig: redactedConfig,
           envFallback,
           keys: keysMeta
-        })
+        }),
+        200
       )
     }
   )
@@ -618,7 +637,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage
     })
 
-    return c.json(successResponse({ text: generatedText }))
+    return c.json(successResponse({ text: generatedText }), 200)
   })
   .openapi(updateProviderSettingsRoute, async (c) => {
     const body = c.req.valid('json')
@@ -631,5 +650,12 @@ export const genAiRoutes = new OpenAPIHono()
       console.log('[GenAI Routes] Provider settings updated:', body)
     }
 
-    return c.json(successResponse(updatedSettings))
+    return c.json(
+      {
+        success: true as const,
+        message: 'Provider settings updated',
+        data: updatedSettings
+      },
+      200
+    )
   })

@@ -44,10 +44,7 @@ import {
   QUEUE_ENHANCED_KEYS,
   invalidateWithRelationships
 } from './query-keys'
-import {
-  CreateProviderKey,
-  UpdateProviderKey
-} from '@promptliano/database'
+import { CreateProviderKey, UpdateProviderKey } from '@promptliano/database'
 
 // Import proper API body schemas from schemas package
 import type {
@@ -73,7 +70,6 @@ import type {
   UpdateQueueBody,
   TaskQueue
 } from './types'
-
 
 // Use schemas package types for better type constraints
 type TicketTask = Ticket // For now, use Ticket as TicketTask equivalent
@@ -110,7 +106,12 @@ const projectHooks = createCrudHooks<Project, CreateProjectBody, UpdateProjectBo
 /**
  * Ticket Hooks - Complete CRUD + Task Management + AI Suggestions
  */
-const ticketHooks = createCrudHooks<Ticket, SchemasCreateTicketBody, SchemasUpdateTicketBody, { projectId: number; status?: string }>({
+const ticketHooks = createCrudHooks<
+  Ticket,
+  SchemasCreateTicketBody,
+  SchemasUpdateTicketBody,
+  { projectId: number; status?: string }
+>({
   ...TICKET_CONFIG,
   messages: ENTITY_MESSAGES.ticket
 })
@@ -539,7 +540,7 @@ export function useCreateQueue(projectId: number) {
       if (!client) throw new Error('API client not initialized')
       // Use Flow endpoint for queue creation
       const cleanData = {
-        ...(data as any), 
+        ...(data as any),
         projectId,
         description: (data as any).description === null ? undefined : (data as any).description
       }

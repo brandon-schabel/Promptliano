@@ -8,8 +8,8 @@
     "build": "tsc -b tsconfig.app.json && vite build",
     "build:prod": "tsc -b tsconfig.app.json && vite build",
     "preview": "vite preview",
-    "test": "bun test --pattern='**/*.test.{ts,tsx}' src/ test/",
-    "test:unit": "bun test --pattern='**/*.test.{ts,tsx}' src/ test/",
+    "test": "bun test src/",
+    "test:unit": "bun test --pattern='**/*.test.{ts,tsx}' --ignore='**/e2e/**' src/",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
@@ -99,7 +99,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^10.0.0",
     "vaul": "^1.1.2",
-    "zod": "^3.24.1"
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",

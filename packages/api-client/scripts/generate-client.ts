@@ -84,7 +84,9 @@ function pathToMethodName(path: string, method: string): string {
   const toCamel = (str: string) =>
     str
       .split('-')
-      .map((word, index) => (index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+      .map((word, index) =>
+        index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
       .join('')
 
   // Remove /api prefix and clean up the path
@@ -274,7 +276,13 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
   let clientMethods = '  // ===== GENERATED API METHODS =====\n\n'
   const usedMethodNames = new Set<string>()
 
-  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, ' ').split(' ').filter(Boolean).map((w, i) => i === 0 ? w.toLowerCase() : (w[0]?.toUpperCase() ?? '') + w.slice(1).toLowerCase()).join('')
+  const sanitize = (s: string) =>
+    s
+      .replace(/[^a-zA-Z0-9]/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((w, i) => (i === 0 ? w.toLowerCase() : (w[0]?.toUpperCase() ?? '') + w.slice(1).toLowerCase()))
+      .join('')
 
   const ensureUniqueName = (base: string, op: OperationInfo): string => {
     let name = base

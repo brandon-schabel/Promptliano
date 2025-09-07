@@ -92,7 +92,7 @@ const testToolExecutionRoute = createRoute({
           schema: z.object({
             serverId: z.string().optional(),
             toolName: z.string(),
-            arguments: z.record(z.any()).optional().default({}),
+            arguments: z.record(z.string(), z.any()).optional().default({}),
             validateOnly: z.boolean().optional().default(false)
           })
         }
@@ -239,7 +239,8 @@ export const mcpTestRoutes = new OpenAPIHono()
             connected: true,
             responseTime,
             serverInfo: response.headers.get('Server')
-          })
+          }),
+          200
         )
       } else {
         return c.json(
@@ -247,7 +248,8 @@ export const mcpTestRoutes = new OpenAPIHono()
             connected: false,
             responseTime,
             error: `HTTP ${response.status}: ${response.statusText}`
-          })
+          }),
+          200
         )
       }
     } catch (error) {
@@ -257,7 +259,8 @@ export const mcpTestRoutes = new OpenAPIHono()
           connected: false,
           responseTime,
           error: error instanceof Error ? error.message : 'Unknown error'
-        })
+        }),
+        200
       )
     }
   })
@@ -268,7 +271,7 @@ export const mcpTestRoutes = new OpenAPIHono()
       initialized: false,
       error: 'Not implemented'
     }
-    return c.json(successResponse(result))
+    return c.json(successResponse(result), 200)
   })
   .openapi(testToolExecutionRoute, async (c) => {
     const body = c.req.valid('json')
@@ -283,7 +286,8 @@ export const mcpTestRoutes = new OpenAPIHono()
             executed: false,
             executionTime: Date.now() - startTime,
             validationErrors: validationResult.errors
-          })
+          }),
+          200
         )
       }
 
@@ -300,7 +304,8 @@ export const mcpTestRoutes = new OpenAPIHono()
           executed: true,
           result,
           executionTime: Date.now() - startTime
-        })
+        }),
+        200
       )
     } catch (error) {
       return c.json(
@@ -308,7 +313,8 @@ export const mcpTestRoutes = new OpenAPIHono()
           executed: false,
           executionTime: Date.now() - startTime,
           error: error instanceof Error ? error.message : 'Execution failed'
-        })
+        }),
+        200
       )
     }
   })
@@ -321,7 +327,7 @@ export const mcpTestRoutes = new OpenAPIHono()
       errors: [],
       warnings: []
     }
-    return c.json(successResponse(validationResult))
+    return c.json(successResponse(validationResult), 200)
   })
   .openapi(debugMCPCommunicationRoute, async (c) => {
     const body = c.req.valid('json')
@@ -340,7 +346,7 @@ export const mcpTestRoutes = new OpenAPIHono()
         protocol: 'mcp'
       }
     }
-    return c.json(successResponse(debugResult))
+    return c.json(successResponse(debugResult), 200)
   })
 
 export type MCPTestRouteTypes = typeof mcpTestRoutes

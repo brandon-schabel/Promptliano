@@ -9,7 +9,7 @@ import {
   gitCommitSchema as GitCommitSchema,
   gitLogResponseSchema as GitCommitLogSchema,
   gitLogEnhancedResponseSchema as GitCommitLogEnhancedSchema,
-  gitDiffSchema as GitDiffSchema,
+  gitDiffResponseSchema as GitDiffResponseSchema,
   IDParamsSchema,
   gitCommitDetailResponseSchema as GitCommitDetailSchema
 } from '@promptliano/schemas'
@@ -44,33 +44,23 @@ import {
 } from '../../utils/route-helpers'
 
 // Response schemas
-const CommitLogResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.array(GitCommitSchema)
-  })
-  .openapi('CommitLogResponse')
+const CommitLogResponseSchema = GitCommitLogSchema
 
 const CommitLogEnhancedResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitCommitLogEnhancedSchema
+    data: GitCommitLogEnhancedSchema.openapi('GitCommitLogEnhanced')
   })
   .openapi('CommitLogEnhancedResponse')
 
 const CommitDetailResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitCommitDetailSchema
+    data: GitCommitDetailSchema.openapi('GitCommitDetail')
   })
   .openapi('CommitDetailResponse')
 
-const DiffResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: GitDiffSchema
-  })
-  .openapi('DiffResponse')
+const DiffResponseSchema = GitDiffResponseSchema
 
 // Use canonical ProjectIdParamsSchema with {id}
 
@@ -163,7 +153,7 @@ export const gitCommitRoutes = new OpenAPIHono()
     const body = c.req.valid('json')
     await commitChanges(projectId, body.message)
     clearGitStatusCache(projectId)
-    return c.json(operationSuccessResponse('Commit created successfully'))
+    return c.json(operationSuccessResponse('Commit created successfully'), 200)
   })
   .openapi(getCommitLogRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
@@ -176,7 +166,7 @@ export const gitCommitRoutes = new OpenAPIHono()
       branch
     })
 
-    return c.json(successResponse(commits))
+    return c.json(successResponse(commits), 200)
   })
   .openapi(getCommitLogEnhancedRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
@@ -195,18 +185,28 @@ export const gitCommitRoutes = new OpenAPIHono()
       branch
     })
 
-    return c.json(successResponse(result))
+    return c.json(successResponse(result), 200)
   })
   .openapi(getCommitDetailRoute, async (c) => {
     const { id: projectId, commitHash } = c.req.valid('param')
     const detail = await getCommitDetail(projectId, commitHash)
-    return c.json(successResponse(detail))
+    return c.json(successResponse(detail), 200)
   })
   .openapi(getFileDiffRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const { filePath, cached = false } = c.req.valid('query')
     const diff = await getFileDiff(projectId, filePath, { staged: cached })
-    return c.json(successResponse(diff))
+    return c.json(
+      {
+        success: true,
+        data: {
+          filePath,
+          diff,
+          staged: cached
+        }
+      },
+      200
+    )
   })
 
 export type GitCommitRouteTypes = typeof gitCommitRoutes

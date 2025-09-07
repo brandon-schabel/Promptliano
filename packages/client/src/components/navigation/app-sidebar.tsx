@@ -19,10 +19,18 @@ import {
   FolderTreeIcon,
   Bot,
   Sparkles,
-  Cloud
+  Cloud,
+  Database,
+  FileJson,
+  Terminal
 } from 'lucide-react'
 import { HelpDialog } from '@/components/navigation/help-dialog'
-import { useActiveProjectTab, useSelectSetting, useUpdateActiveProjectTab } from '@/hooks/use-kv-local-storage'
+import {
+  useActiveProjectTab,
+  useSelectSetting,
+  useUpdateActiveProjectTab,
+  useAppSettings
+} from '@/hooks/use-kv-local-storage'
 import { Logo } from '@promptliano/ui'
 import {
   Sidebar,
@@ -39,7 +47,7 @@ import {
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { ServerStatusIndicator } from '@/components/navigation/server-status-indicator'
 
-const navigationSections = [
+const baseNavigationSections = [
   {
     title: 'Core',
     items: [
@@ -100,8 +108,67 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { data: projectData, isLoading: projectsLoading } = useProjects()
   const { mutate: deleteProject } = useDeleteProject()
   const { recentProjects, addRecentProject } = useRecentProjects()
+  const [settings] = useAppSettings()
+  const devToolsEnabled = settings?.devToolsEnabled || {
+    tanstackQuery: false,
+    tanstackRouter: false,
+    reactScan: false,
+    drizzleStudio: false,
+    swaggerUI: false,
+    mcpInspector: false
+  }
 
   const globalTheme = theme || 'dark'
+
+  // Create dynamic navigation sections based on dev tools enabled
+  const navigationSections = React.useMemo(() => {
+    const sections = [...baseNavigationSections]
+
+    // Add dev tools section if any dev tools are enabled
+    const enabledDevTools = []
+
+    if (devToolsEnabled.drizzleStudio) {
+      enabledDevTools.push({
+        id: 'dev-drizzle',
+        title: 'Drizzle Studio',
+        href: '/dev-drizzle',
+        icon: Database,
+        routeIds: ['/dev-drizzle'],
+        testId: 'sidebar-nav-dev-drizzle'
+      })
+    }
+
+    if (devToolsEnabled.swaggerUI) {
+      enabledDevTools.push({
+        id: 'dev-swagger',
+        title: 'Swagger UI',
+        href: '/dev-swagger',
+        icon: FileJson,
+        routeIds: ['/dev-swagger'],
+        testId: 'sidebar-nav-dev-swagger'
+      })
+    }
+
+    if (devToolsEnabled.mcpInspector) {
+      enabledDevTools.push({
+        id: 'dev-mcp',
+        title: 'MCP Inspector',
+        href: '/dev-mcp',
+        icon: Terminal,
+        routeIds: ['/dev-mcp'],
+        testId: 'sidebar-nav-dev-mcp'
+      })
+    }
+
+    if (enabledDevTools.length > 0) {
+      sections.push({
+        title: 'Dev Tools',
+        items: enabledDevTools
+      })
+    }
+
+    return sections
+  }, [devToolsEnabled])
 
   useEffect(() => {
     if (globalTheme === 'dark') {

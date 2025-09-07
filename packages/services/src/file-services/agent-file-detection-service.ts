@@ -13,7 +13,8 @@ export const DetectedAgentFileSchema = z.object({
   exists: z.boolean(),
   writable: z.boolean(),
   content: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  // Zod v4: z.record requires key and value schemas
+  metadata: z.record(z.string(), z.any()).optional()
 })
 
 export type DetectedAgentFile = z.infer<typeof DetectedAgentFileSchema>
@@ -51,10 +52,7 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
       type: 'claude',
       name: 'Claude',
       patterns: {
-        global: [
-          path.join(os.homedir(), '.claude', 'CLAUDE.md'), 
-          path.join(os.homedir(), 'CLAUDE.md')
-        ],
+        global: [path.join(os.homedir(), '.claude', 'CLAUDE.md'), path.join(os.homedir(), 'CLAUDE.md')],
         project: ['CLAUDE.md', '.claude/CLAUDE.md']
       }
     },
@@ -90,12 +88,7 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
       type: 'codebase',
       name: 'Codebase Instructions',
       patterns: {
-        project: [
-          'codebase-instructions.md', 
-          '.ai/instructions.md', 
-          'AI_INSTRUCTIONS.md', 
-          'docs/ai-instructions.md'
-        ]
+        project: ['codebase-instructions.md', '.ai/instructions.md', 'AI_INSTRUCTIONS.md', 'docs/ai-instructions.md']
       }
     },
     {
@@ -135,17 +128,19 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
         const detectedFiles: DetectedAgentFile[] = []
 
         // Use streaming processor for better performance with many patterns
-        const allPatterns = patterns.flatMap(pattern => [
-          ...(pattern.patterns.global || []).map(globalPath => ({
+        const allPatterns = patterns.flatMap((pattern) => [
+          ...(pattern.patterns.global || []).map((globalPath) => ({
             pattern,
             filePath: globalPath,
             scope: 'global' as const
           })),
-          ...(projectPath ? pattern.patterns.project.map(projectPattern => ({
-            pattern,
-            filePath: path.join(projectPath, projectPattern),
-            scope: 'project' as const
-          })) : [])
+          ...(projectPath
+            ? pattern.patterns.project.map((projectPattern) => ({
+                pattern,
+                filePath: path.join(projectPath, projectPattern),
+                scope: 'project' as const
+              }))
+            : [])
         ])
 
         const processor = service.createStreamProcessor(
@@ -176,8 +171,8 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
 
         const detectedFiles: DetectedAgentFile[] = []
 
-        const projectPatterns = patterns.flatMap(pattern =>
-          pattern.patterns.project.map(projectPattern => ({
+        const projectPatterns = patterns.flatMap((pattern) =>
+          pattern.patterns.project.map((projectPattern) => ({
             pattern,
             filePath: path.join(projectPath, projectPattern),
             scope: 'project' as const
@@ -213,9 +208,9 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
         const detectedFiles: DetectedAgentFile[] = []
 
         const globalPatterns = patterns
-          .filter(pattern => pattern.patterns.global)
-          .flatMap(pattern =>
-            pattern.patterns.global!.map(globalPath => ({
+          .filter((pattern) => pattern.patterns.global)
+          .flatMap((pattern) =>
+            pattern.patterns.global!.map((globalPath) => ({
               pattern,
               filePath: globalPath,
               scope: 'global' as const
@@ -302,75 +297,77 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
   }
 
   async function createAgentFile(
-    filePath: string, 
+    filePath: string,
     initialContent: string = ''
   ): Promise<{ success: boolean; message: string }> {
-    return service.withErrorContext(
-      async () => {
-        const dir = path.dirname(filePath)
+    return service
+      .withErrorContext(
+        async () => {
+          const dir = path.dirname(filePath)
 
-        // Ensure directory exists
-        try {
-          await fileSystem.mkdir(dir, { recursive: true })
-        } catch (error) {
-          throw ErrorFactory.fileSystemError(
-            'create directory',
-            dir,
-            error instanceof Error ? error.message : 'Unknown error'
-          )
-        }
+          // Ensure directory exists
+          try {
+            await fileSystem.mkdir(dir, { recursive: true })
+          } catch (error) {
+            throw ErrorFactory.fileSystemError(
+              'create directory',
+              dir,
+              error instanceof Error ? error.message : 'Unknown error'
+            )
+          }
 
-        // Check if file already exists
-        try {
-          await fileSystem.access(filePath)
-          throw ErrorFactory.duplicate('Agent file', 'path', filePath)
-        } catch (error) {
-          // If it's not our duplicate error, file doesn't exist - good to create
-          if (error instanceof Error && (error as any).code === 'DUPLICATE_ENTITY') throw error
-        }
+          // Check if file already exists
+          try {
+            await fileSystem.access(filePath)
+            throw ErrorFactory.duplicate('Agent file', 'path', filePath)
+          } catch (error) {
+            // If it's not our duplicate error, file doesn't exist - good to create
+            if (error instanceof Error && (error as any).code === 'DUPLICATE_ENTITY') throw error
+          }
 
-        // Create the file
-        try {
-          await fileSystem.writeFile(filePath, initialContent, 'utf-8')
-        } catch (error) {
-          throw ErrorFactory.fileSystemError(
-            'create file',
-            filePath,
-            error instanceof Error ? error.message : 'Unknown error'
-          )
-        }
+          // Create the file
+          try {
+            await fileSystem.writeFile(filePath, initialContent, 'utf-8')
+          } catch (error) {
+            throw ErrorFactory.fileSystemError(
+              'create file',
+              filePath,
+              error instanceof Error ? error.message : 'Unknown error'
+            )
+          }
 
-        // Clear cache
-        cache.invalidate()
+          // Clear cache
+          cache.invalidate()
 
-        return {
-          success: true,
-          message: 'Successfully created agent file'
-        }
-      },
-      { action: 'create-agent-file', id: filePath }
-    ).catch(error => ({
-      success: false,
-      message: `Failed to create agent file: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }))
+          return {
+            success: true,
+            message: 'Successfully created agent file'
+          }
+        },
+        { action: 'create-agent-file', id: filePath }
+      )
+      .catch((error) => ({
+        success: false,
+        message: `Failed to create agent file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }))
   }
 
   function getSuggestedFiles(
     projectPath: string,
     existingFiles: DetectedAgentFile[]
   ): (AgentFilePattern & { suggestedPath: string })[] {
-    const existingTypes = new Set(existingFiles.map(f => f.type))
+    const existingTypes = new Set(existingFiles.map((f) => f.type))
 
     return patterns
-      .filter(pattern => !existingTypes.has(pattern.type))
-      .map(pattern => ({
+      .filter((pattern) => !existingTypes.has(pattern.type))
+      .map((pattern) => ({
         ...pattern,
         suggestedPath: path.join(projectPath, pattern.patterns.project[0] || '')
       }))
   }
 
   function getFileTypeInfo(type: string): AgentFilePattern | undefined {
-    return patterns.find(p => p.type === type)
+    return patterns.find((p) => p.type === type)
   }
 
   // Batch operations for multiple projects
@@ -381,16 +378,14 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
       async () => {
         const results = new Map<string, DetectedAgentFile[]>()
 
-        const processor = service.createParallelProcessor(
-          async (batch: Array<{ id: string; path: string }>) => {
-            return Promise.allSettled(
-              batch.map(async project => {
-                const files = await detectProjectFiles(project.path)
-                return { projectId: project.id, files }
-              })
-            )
-          }
-        )
+        const processor = service.createParallelProcessor(async (batch: Array<{ id: string; path: string }>) => {
+          return Promise.allSettled(
+            batch.map(async (project) => {
+              const files = await detectProjectFiles(project.path)
+              return { projectId: project.id, files }
+            })
+          )
+        })
 
         const batchResult = await processor.processBatch(projects)
 
@@ -407,7 +402,7 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
   }
 
   // File monitoring capabilities
-  async function *monitorAgentFiles(
+  async function* monitorAgentFiles(
     projectPath: string,
     pollInterval: number = 5000
   ): AsyncIterator<{
@@ -420,7 +415,7 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
     let lastSnapshot = await detectProjectFiles(projectPath)
 
     while (true) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval))
+      await new Promise((resolve) => setTimeout(resolve, pollInterval))
 
       try {
         // Clear cache to force fresh detection
@@ -434,21 +429,18 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
 
         // Find added/modified files
         for (const currentFile of currentSnapshot) {
-          const lastFile = lastSnapshot.find(f => f.path === currentFile.path)
-          
+          const lastFile = lastSnapshot.find((f) => f.path === currentFile.path)
+
           if (!lastFile) {
             changes.push({ type: 'added', file: currentFile })
-          } else if (
-            lastFile.exists !== currentFile.exists ||
-            lastFile.content !== currentFile.content
-          ) {
+          } else if (lastFile.exists !== currentFile.exists || lastFile.content !== currentFile.content) {
             changes.push({ type: 'modified', file: currentFile })
           }
         }
 
         // Find removed files
         for (const lastFile of lastSnapshot) {
-          const currentFile = currentSnapshot.find(f => f.path === lastFile.path)
+          const currentFile = currentSnapshot.find((f) => f.path === lastFile.path)
           if (!currentFile) {
             changes.push({ type: 'removed', file: lastFile })
           }

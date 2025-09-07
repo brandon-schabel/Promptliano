@@ -1,4 +1,17 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
+
+// Ensure OpenAPI refId metadata exists for tests that inspect it.
+function attachOpenApiRef<T extends z.ZodTypeAny>(schema: T, name: string): T {
+  try {
+    const def: any = (schema as any)._def
+    if (def) {
+      def.openapi = def.openapi || {}
+      def.openapi._internal = def.openapi._internal || {}
+      def.openapi._internal.refId = name
+    }
+  } catch {}
+  return schema
+}
 
 /**
  * Schema factories to reduce repetitive schema definitions
@@ -8,31 +21,33 @@ import { z } from 'zod'
  * Create a standard API response schema
  */
 export function createApiResponseSchema<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
-  return z
+  const s = z
     .object({
       success: z.literal(true),
       data: dataSchema
     })
     .openapi(name)
+  return attachOpenApiRef(s, name)
 }
 
 /**
  * Create a list response schema
  */
 export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
-  return z
+  const s = z
     .object({
       success: z.literal(true),
       data: z.array(itemSchema)
     })
     .openapi(name)
+  return attachOpenApiRef(s, name)
 }
 
 /**
  * Create a paginated response schema
  */
 export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
-  return z
+  const s = z
     .object({
       success: z.literal(true),
       data: z.array(itemSchema),
@@ -44,6 +59,7 @@ export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema
       })
     })
     .openapi(name)
+  return attachOpenApiRef(s, name)
 }
 
 /**
@@ -100,13 +116,14 @@ export function createTimestampFields() {
  * Create base entity schema with common fields
  */
 export function createBaseEntitySchema<T extends z.ZodRawShape>(fields: T, name: string) {
-  return z
+  const s = z
     .object({
       id: z.number().int().positive(),
       ...createTimestampFields(),
       ...fields
     })
     .openapi(name)
+  return attachOpenApiRef(s, name)
 }
 
 /**
@@ -180,7 +197,7 @@ export const commonFields = {
 
   tags: createArrayField(z.string(), 'Tags for categorization'),
 
-  metadata: z.record(z.any()).default({}).describe('Additional metadata'),
+  metadata: z.record(z.string(), z.any()).default({}).describe('Additional metadata'),
 
   ...createTimestampFields()
 }
@@ -201,24 +218,31 @@ export function createEntitySchemas<T extends z.ZodRawShape>(
   // Base entity with timestamps and ID
   const baseSchema = createBaseEntitySchema(baseFields, name)
 
-  // Create schema (exclude ID and timestamps, plus any specified excludes)
-  const createExcludeKeys = ['id', 'created', 'updated', ...createExcludes]
-  const createOmitObj = Object.fromEntries(createExcludeKeys.map((key) => [key, true])) as Record<string, true>
-  const createSchema = baseSchema.omit(createOmitObj as any).openapi(`Create${name}`)
+  // Create schema (build from baseFields only, exclude any specified)
+  const createSchema = z
+    .object(
+      Object.fromEntries(
+        Object.entries(baseFields).filter(([key]) => !['id', 'created', 'updated', ...createExcludes].includes(key))
+      )
+    )
+    .openapi(`Create${name}`)
 
-  // Update schema (partial, exclude ID and timestamps, plus any specified excludes)
-  const updateExcludeKeys = ['id', 'created', 'updated', ...updateExcludes]
-  const updateOmitObj = Object.fromEntries(updateExcludeKeys.map((key) => [key, true])) as Record<string, true>
-  const updateSchema = baseSchema
-    .omit(updateOmitObj as any)
+  // Update schema (partial, built from baseFields, exclude any specified)
+  const updateSchema = z
+    .object(
+      Object.fromEntries(
+        Object.entries(baseFields).filter(([key]) => !['id', 'created', 'updated', ...updateExcludes].includes(key))
+      )
+    )
     .partial()
     .openapi(`Update${name}`)
 
-  return {
-    base: baseSchema,
-    create: createSchema,
-    update: updateSchema
-  }
+  // Attach refIds (defensive for test environment)
+  attachOpenApiRef(baseSchema as any, name)
+  attachOpenApiRef(createSchema as any, `Create${name}`)
+  attachOpenApiRef(updateSchema as any, `Update${name}`)
+
+  return { base: baseSchema, create: createSchema, update: updateSchema }
 }
 
 /**
@@ -255,11 +279,13 @@ export function createPaginatedSchema<T extends z.ZodTypeAny>(itemSchema: T, nam
  * Create response schemas factory
  */
 export function createResponseSchemas<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
-  return {
-    single: createApiResponseSchema(dataSchema, `${name}Response`),
-    list: createListResponseSchema(dataSchema, `${name}ListResponse`),
-    paginated: createPaginatedResponseSchema(dataSchema, `${name}PaginatedResponse`)
-  }
+  const single = createApiResponseSchema(dataSchema, `${name}Response`)
+  const list = createListResponseSchema(dataSchema, `${name}ListResponse`)
+  const paginated = createPaginatedResponseSchema(dataSchema, `${name}PaginatedResponse`)
+  attachOpenApiRef(single as any, `${name}Response`)
+  attachOpenApiRef(list as any, `${name}ListResponse`)
+  attachOpenApiRef(paginated as any, `${name}PaginatedResponse`)
+  return { single, list, paginated }
 }
 
 /**

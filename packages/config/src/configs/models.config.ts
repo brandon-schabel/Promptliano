@@ -8,7 +8,7 @@ export const LOW_MODEL_CONFIG: ModelOptionsWithProvider = {
   topP: 0,
   topK: 0,
   provider: 'lmstudio',
-  model: 'gpt-oss:20b' // Using GPT-OSS-20B model
+  model: 'unsloth-qwen3-coder-30b-a3b-instruct-qx4-mlx' // Using GPT-OSS-20B model
 }
 
 export const MEDIUM_MODEL_CONFIG: ModelOptionsWithProvider = {

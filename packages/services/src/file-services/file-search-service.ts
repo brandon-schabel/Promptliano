@@ -49,12 +49,12 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
   const service = createFileService('FileSearchService', deps.config)
   const db = deps.database || rawDb
   const fileFilter = createFileFilter()
-  
+
   // Cache configuration
   const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
   const MAX_CACHE_SIZE = 1000
   const cache = deps.cache || createFileCache({ ttl: CACHE_TTL, maxSize: MAX_CACHE_SIZE })
-  
+
   // Prepared statements (initialized lazily)
   let statements: {
     searchCache: Statement
@@ -279,7 +279,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
         })
       }
     }
-    
+
     return results.sort((a, b) => b.score - a.score)
   }
 
@@ -413,9 +413,10 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
           }
         }
         if (result.tf_idf_vector) {
-          const vectorStr = result.tf_idf_vector instanceof Uint8Array
-            ? new TextDecoder().decode(result.tf_idf_vector)
-            : result.tf_idf_vector
+          const vectorStr =
+            result.tf_idf_vector instanceof Uint8Array
+              ? new TextDecoder().decode(result.tf_idf_vector)
+              : result.tf_idf_vector
           const vector = JSON.parse(vectorStr)
           if (typeof vector === 'object' && vector !== null) {
             semanticScore = calculateSemanticScore(queryTokens, vector)
@@ -450,7 +451,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
       const stats = await deps.fileIndexingService.getIndexingStats(projectId)
       const coveragePercentage = files.length > 0 ? (stats.indexedFiles / files.length) * 100 : 0
 
-      const needsIndexing = 
+      const needsIndexing =
         stats.indexedFiles === 0 ||
         coveragePercentage < 80 ||
         !stats.lastIndexed ||
@@ -497,14 +498,14 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
       cache.set(cacheKey, results)
       return results
     }
-    
+
     return null
   }
 
   function cacheResults(
-    cacheKey: string, 
-    projectId: number, 
-    query: string, 
+    cacheKey: string,
+    projectId: number,
+    query: string,
     results: SearchResult[],
     statements: any
   ): void {
@@ -689,11 +690,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
         if (text[i - 1] === query[j - 1]) {
           matrix[i]![j] = matrix[i - 1]![j - 1]!
         } else {
-          matrix[i]![j] = Math.min(
-            matrix[i - 1]![j - 1]! + 1,
-            matrix[i]![j - 1]! + 1,
-            matrix[i - 1]![j]! + 1
-          )
+          matrix[i]![j] = Math.min(matrix[i - 1]![j - 1]! + 1, matrix[i]![j - 1]! + 1, matrix[i - 1]![j]! + 1)
         }
       }
     }
@@ -741,7 +738,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
     const lowerContent = content.toLowerCase()
     const lowerQuery = query.toLowerCase()
     let index = 0
-    
+
     while ((index = lowerContent.indexOf(lowerQuery, index)) !== -1) {
       const linesBefore = content.substring(0, index).split('\n')
       const line = linesBefore.length
@@ -827,7 +824,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
     const recommendations: string[] = []
 
     // Get index stats
-    const indexStats = deps.fileIndexingService 
+    const indexStats = deps.fileIndexingService
       ? await deps.fileIndexingService.getIndexingStats(projectId)
       : { indexedFiles: 0 }
 
@@ -873,12 +870,12 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
     sampleMetadataRows: any[]
   }> {
     const ftsCount = (db.prepare('SELECT COUNT(*) as count FROM file_search_fts').get() as any)?.count || 0
-    const projectFTSCount = (
-      db.prepare('SELECT COUNT(*) as count FROM file_search_fts WHERE project_id = ?').get(projectId) as any
-    )?.count || 0
-    const metadataCount = (
-      db.prepare('SELECT COUNT(*) as count FROM file_search_metadata WHERE project_id = ?').get(projectId) as any
-    )?.count || 0
+    const projectFTSCount =
+      (db.prepare('SELECT COUNT(*) as count FROM file_search_fts WHERE project_id = ?').get(projectId) as any)?.count ||
+      0
+    const metadataCount =
+      (db.prepare('SELECT COUNT(*) as count FROM file_search_metadata WHERE project_id = ?').get(projectId) as any)
+        ?.count || 0
 
     const sampleFTSRows = db
       .prepare('SELECT file_id, project_id, path, name FROM file_search_fts WHERE project_id = ? LIMIT 5')
@@ -924,8 +921,4 @@ export type FileSearchService = ReturnType<typeof createFileSearchService>
 export const fileSearchService = createFileSearchService()
 
 // Export individual functions for tree-shaking
-export const {
-  search,
-  searchByTicket,
-  searchByKeywords,
-} = fileSearchService
+export const { search, searchByTicket, searchByKeywords } = fileSearchService

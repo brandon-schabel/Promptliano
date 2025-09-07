@@ -9,12 +9,12 @@ import { createTestDatabase, type TestDatabase } from '../test-utils/test-db'
 
 describe('Drizzle Repository Migration Tests', () => {
   let testDb: TestDatabase
-  
+
   beforeEach(async () => {
     // Create a fresh test database for each test
     testDb = await createTestDatabase()
   })
-  
+
   afterAll(async () => {
     if (testDb) {
       testDb.close()

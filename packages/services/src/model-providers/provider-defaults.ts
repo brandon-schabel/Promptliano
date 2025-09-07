@@ -1,5 +1,5 @@
-// export const OLLAMA_BASE_URL = 'http://localhost:11434'
-export const OLLAMA_BASE_URL = 'http://0.0.0.0:11434'
+// Default to IPv4 loopback to avoid IPv6 (::1) resolution issues on some systems
+export const OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 export const LMSTUDIO_BASE_URL = 'http://localhost:1234/v1'
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1'

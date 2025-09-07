@@ -49,7 +49,7 @@ When working in this package, these agents MUST be used:
    - Ensure proper error handling and type safety
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on pure functions and composability
 

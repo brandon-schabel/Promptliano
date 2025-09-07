@@ -34,7 +34,8 @@ const customProviderFormSchema = z.object({
   baseUrl: z.string().url('Must be a valid URL'),
   secretRef: z.string().min(1, 'Secret reference is required'),
   apiKey: z.string().optional(), // optional literal for validation only
-  customHeaders: z.record(z.string()).optional()
+  // Zod v4 requires explicit key and value schemas for record
+  customHeaders: z.record(z.string(), z.string()).optional()
 })
 
 type CustomProviderFormValues = z.infer<typeof customProviderFormSchema>

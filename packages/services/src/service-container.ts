@@ -14,9 +14,7 @@
 import { createServiceLogger } from './core/base-service'
 import { createProjectService, type ProjectServiceDeps } from './project-service'
 import { createTicketService, type TicketServiceDeps } from './ticket-service'
-// import { createPromptService, type PromptServiceDeps } from './prompt-service' // TODO: Migrate prompt service
 // import { createFileService, type FileServiceDeps } from './file-service-v2' // Temporarily disabled until file repository is implemented
-// import { createChatService, type ChatServiceDeps } from './chat-service' // TODO: Migrate chat service
 import { createQueueService, type QueueServiceDeps } from './queue-service'
 
 // Re-export repositories for convenience
@@ -37,8 +35,6 @@ export interface ServiceContainerConfig {
     ticket?: typeof ticketRepository
     task?: typeof taskRepository
     queue?: typeof queueRepository
-    // prompt?: typeof promptRepository
-    // chat?: typeof chatRepository
   }
 
   // Logger configuration
@@ -67,9 +63,7 @@ export interface ServiceContainer {
   // Core services
   project: ReturnType<typeof createProjectService>
   ticket: ReturnType<typeof createTicketService>
-  // prompt: ReturnType<typeof createPromptService> // TODO: Migrate prompt service
   // file: ReturnType<typeof createFileService> // Temporarily disabled
-  // chat: ReturnType<typeof createChatService> // TODO: Migrate chat service
   queue: ReturnType<typeof createQueueService>
 
   // Domain compositions
@@ -98,8 +92,6 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
     ticket: repositories.ticket || ticketRepository,
     task: repositories.task || taskRepository,
     queue: repositories.queue || queueRepository
-    // prompt: repositories.prompt || promptRepository,
-    // chat: repositories.chat || chatRepository
   }
 
   // Performance monitoring wrapper
@@ -145,14 +137,6 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
   //   projectService
   // } as FileServiceDeps)
 
-  // TODO: Migrate prompt service
-  // const promptService = createPromptService({
-  //   repository: repos.prompt,
-  //   logger: createServiceLogger('PromptService'),
-  //   aiService: external.aiService,
-  //   projectService
-  // } as PromptServiceDeps)
-
   const ticketService = createTicketService({
     ticketRepository: repos.ticket,
     taskRepository: repos.task,
@@ -161,14 +145,6 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
     // fileService, // Temporarily disabled
     aiService: external.aiService
   } as TicketServiceDeps)
-
-  // TODO: Migrate chat service
-  // const chatService = createChatService({
-  //   repository: repos.chat,
-  //   logger: createServiceLogger('ChatService'),
-  //   aiService: external.aiService,
-  //   projectService
-  // } as ChatServiceDeps)
 
   const queueService = createQueueService({
     queueRepository: repos.queue,

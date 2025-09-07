@@ -17,7 +17,9 @@ export const mcpToolExecutions = sqliteTable(
     startedAt: integer('started_at', { mode: 'timestamp' }).notNull(),
     completedAt: integer('completed_at', { mode: 'timestamp' }),
     durationMs: integer('duration_ms'),
-    status: text('status', { enum: ['running', 'success', 'error', 'timeout'] }).notNull().default('running'),
+    status: text('status', { enum: ['running', 'success', 'error', 'timeout'] })
+      .notNull()
+      .default('running'),
     errorMessage: text('error_message'),
     errorCode: text('error_code'),
     inputParams: text('input_params'), // JSON string

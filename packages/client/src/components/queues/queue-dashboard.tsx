@@ -208,7 +208,9 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
           {queue.description && <p className='text-muted-foreground'>{queue.description}</p>}
           <div className='flex items-center gap-2 mt-2'>
             <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Paused'}</Badge>
-            <Badge variant='outline'>Max Parallel: {(queue as any).maxParallelItems || (queue as any).maxConcurrency || 1}</Badge>
+            <Badge variant='outline'>
+              Max Parallel: {(queue as any).maxParallelItems || (queue as any).maxConcurrency || 1}
+            </Badge>
             {stats.currentAgents.length > 0 && (
               <Badge variant='outline' className='flex items-center gap-1'>
                 <Users className='h-3 w-3' />

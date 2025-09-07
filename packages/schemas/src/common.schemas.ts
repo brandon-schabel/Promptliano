@@ -7,7 +7,7 @@ export const ApiErrorResponseSchema = z
     error: z.object({
       message: z.string().openapi({ example: 'An error occurred' }),
       code: z.string().optional().openapi({ example: 'ERROR_CODE' }),
-      details: z.record(z.any()).optional()
+      details: z.record(z.string(), z.any()).optional()
     })
   })
   .openapi('ApiErrorResponse')

@@ -41,11 +41,7 @@ class DebouncedSync {
   private timers = new Map<number, NodeJS.Timeout>()
   private logger = createLogger('DebouncedSync')
 
-  scheduleSync(
-    projectId: number,
-    syncFn: () => Promise<void>,
-    delay: number = 500
-  ): void {
+  scheduleSync(projectId: number, syncFn: () => Promise<void>, delay: number = 500): void {
     // Cancel existing timer for this project
     const existingTimer = this.timers.get(projectId)
     if (existingTimer) {
@@ -146,7 +142,7 @@ function shouldIgnoreSyncTrigger(filePath: string): boolean {
     /\.git\//
   ]
 
-  return ignoredPatterns.some(pattern => pattern.test(filePath))
+  return ignoredPatterns.some((pattern) => pattern.test(filePath))
 }
 
 // Global instances
@@ -765,7 +761,13 @@ export async function syncProject(
 
         // Process files with progress tracking
         logger.info(`[SYNC] Processing ${projectFilesOnDisk.length} files...`)
-        const results = await syncFileSet(project, absoluteProjectPath, projectFilesOnDisk, ignoreFilter, progressTracker)
+        const results = await syncFileSet(
+          project,
+          absoluteProjectPath,
+          projectFilesOnDisk,
+          ignoreFilter,
+          progressTracker
+        )
 
         // Finalize
         progressTracker?.setPhase('finalizing', 'Finalizing sync...')
@@ -792,7 +794,15 @@ export async function syncProject(
             return false
           }
           // Retry on file system errors, database errors, and network errors
-          const retryableErrors = ['EBUSY', 'ENOENT', 'EACCES', 'SQLITE_BUSY', 'SQLITE_LOCKED', 'ETIMEDOUT', 'ECONNRESET']
+          const retryableErrors = [
+            'EBUSY',
+            'ENOENT',
+            'EACCES',
+            'SQLITE_BUSY',
+            'SQLITE_LOCKED',
+            'ETIMEDOUT',
+            'ECONNRESET'
+          ]
           const shouldRetry = retryableErrors.some((code) => error.code === code || error.message?.includes(code))
 
           if (shouldRetry) {
@@ -893,47 +903,53 @@ export function createFileChangePlugin() {
     const projectId = currentProject.id
     const project = currentProject // Capture for closure
 
-    debouncedSync.scheduleSync(projectId, async () => {
-      try {
-        pluginLogger.debug(`Executing debounced sync for file change: ${changedFilePath}`)
-        // Re-sync the entire project to update DB based on the change
-        // For performance on very large projects, a more targeted sync might be considered,
-        // but full sync ensures consistency.
-        await syncProject(project) // Uses the syncProject defined in this file
+    debouncedSync.scheduleSync(
+      projectId,
+      async () => {
+        try {
+          pluginLogger.debug(`Executing debounced sync for file change: ${changedFilePath}`)
+          // Re-sync the entire project to update DB based on the change
+          // For performance on very large projects, a more targeted sync might be considered,
+          // but full sync ensures consistency.
+          await syncProject(project) // Uses the syncProject defined in this file
 
-        // After sync, the DB should reflect the file's current state (or its absence if deleted)
-        const allFiles = await getProjectFiles(project.id) // From project-service
-        if (!allFiles) {
-          pluginLogger.warn(`No files found for project ${project.id} after sync.`)
-          return
+          // After sync, the DB should reflect the file's current state (or its absence if deleted)
+          const allFiles = await getProjectFiles(project.id) // From project-service
+          if (!allFiles) {
+            pluginLogger.warn(`No files found for project ${project.id} after sync.`)
+            return
+          }
+
+          const absoluteProjectPath = resolvePath(project.path)
+          const relativeChangedPath = normalizePathForDbUtil(relative(absoluteProjectPath, changedFilePath))
+
+          const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
+
+          if (event === 'deleted') {
+            pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
+            // Potentially trigger other cleanup actions for deleted files if necessary.
+            return
+          }
+
+          if (!updatedFile) {
+            // This might happen if the file was immediately deleted after a create/modify event,
+            // or if syncProject determined it shouldn't be tracked.
+            pluginLogger.verbose(
+              `File ${relativeChangedPath} not found in project records after sync. Event was ${event}.`
+            )
+            return
+          }
+
+          // Re-summarize the (created or modified) file
+          pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
+          await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
+          pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
+        } catch (err) {
+          pluginLogger.error('Error in debounced file change sync', err)
         }
-
-        const absoluteProjectPath = resolvePath(project.path)
-        const relativeChangedPath = normalizePathForDbUtil(relative(absoluteProjectPath, changedFilePath))
-
-        const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
-
-        if (event === 'deleted') {
-          pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
-          // Potentially trigger other cleanup actions for deleted files if necessary.
-          return
-        }
-
-        if (!updatedFile) {
-          // This might happen if the file was immediately deleted after a create/modify event,
-          // or if syncProject determined it shouldn't be tracked.
-          pluginLogger.verbose(`File ${relativeChangedPath} not found in project records after sync. Event was ${event}.`)
-          return
-        }
-
-        // Re-summarize the (created or modified) file
-        pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
-        await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
-        pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
-      } catch (err) {
-        pluginLogger.error('Error in debounced file change sync', err)
-      }
-    }, 500) // 500ms debounce delay - can be made configurable
+      },
+      500
+    ) // 500ms debounce delay - can be made configurable
   }
 
   async function start(project: Project, ignorePatterns: string[] = []): Promise<void> {

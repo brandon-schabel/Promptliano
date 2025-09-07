@@ -3,7 +3,12 @@ import { ApiError } from '@promptliano/shared'
 import { rawDb } from '@promptliano/database'
 import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import type { Database, Statement } from 'bun:sqlite'
-import { createFileService, createFileFilter, createProgressTracker, type FileServiceConfig } from './file-service-factory'
+import {
+  createFileService,
+  createFileFilter,
+  createProgressTracker,
+  type FileServiceConfig
+} from './file-service-factory'
 
 export interface IndexingStats {
   totalFiles: number
@@ -33,9 +38,39 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
 
   // Stop words to filter out
   const STOP_WORDS = new Set([
-    'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are', 'was', 'were',
-    'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-    'could', 'should', 'may', 'might', 'must', 'shall', 'to', 'of', 'in', 'for', 'with'
+    'the',
+    'is',
+    'at',
+    'which',
+    'on',
+    'and',
+    'a',
+    'an',
+    'as',
+    'are',
+    'was',
+    'were',
+    'been',
+    'be',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'shall',
+    'to',
+    'of',
+    'in',
+    'for',
+    'with'
   ])
 
   // Prepared statements (initialized lazily)
@@ -216,7 +251,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
             statements.updateFTS.run(
               processedContent,
               file.summary || '',
-              keywords.map(k => k.keyword).join(' '),
+              keywords.map((k) => k.keyword).join(' '),
               String(file.id)
             )
           } else {
@@ -228,7 +263,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
               getFileExtension(file.path),
               processedContent,
               file.summary || '',
-              keywords.map(k => k.keyword).join(' ')
+              keywords.map((k) => k.keyword).join(' ')
             )
           }
 
@@ -252,13 +287,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
 
           // Insert keywords
           for (const kw of keywords) {
-            statements.insertKeyword.run(
-              String(file.id), 
-              kw.keyword, 
-              kw.frequency, 
-              kw.tfScore, 
-              kw.idfScore || 0
-            )
+            statements.insertKeyword.run(String(file.id), kw.keyword, kw.frequency, kw.tfScore, kw.idfScore || 0)
           }
 
           // Insert trigrams
@@ -282,7 +311,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
         // Process in batches for better performance
         for (let i = 0; i < files.length; i += batchSize) {
           const batch = files.slice(i, i + batchSize)
-          
+
           for (const file of batch) {
             try {
               // Skip files that don't need indexing
@@ -314,7 +343,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
           }
 
           // Allow other operations to run
-          await new Promise(resolve => setTimeout(resolve, 0))
+          await new Promise((resolve) => setTimeout(resolve, 0))
         }
 
         return { indexed, skipped, failed }
@@ -323,8 +352,8 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
     )
   }
 
-  async function *indexFilesWithProgress(
-    files: ProjectFile[], 
+  async function* indexFilesWithProgress(
+    files: ProjectFile[],
     forceReindex = false
   ): AsyncIterator<{
     processed: number
@@ -341,7 +370,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
 
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize)
-      
+
       for (const file of batch) {
         try {
           // Skip files that don't need indexing
@@ -398,7 +427,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
       }
 
       // Allow other operations to run
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 0))
     }
   }
 
@@ -540,7 +569,7 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
     for (const kw of keywords) {
       vector[kw.keyword] = kw.tfScore
     }
-    
+
     return vector
   }
 
@@ -563,13 +592,37 @@ export function createFileIndexingService(deps: FileIndexingServiceDeps = {}) {
     if (!extension) return 'unknown'
 
     const languageMap: Record<string, string> = {
-      ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript',
-      py: 'python', java: 'java', cpp: 'cpp', c: 'c', cs: 'csharp',
-      go: 'go', rs: 'rust', php: 'php', rb: 'ruby', swift: 'swift',
-      kt: 'kotlin', scala: 'scala', r: 'r', sql: 'sql', sh: 'shell',
-      bash: 'shell', ps1: 'powershell', lua: 'lua', dart: 'dart',
-      julia: 'julia', ml: 'ocaml', hs: 'haskell', ex: 'elixir',
-      clj: 'clojure', elm: 'elm', vue: 'vue', svelte: 'svelte'
+      ts: 'typescript',
+      tsx: 'typescript',
+      js: 'javascript',
+      jsx: 'javascript',
+      py: 'python',
+      java: 'java',
+      cpp: 'cpp',
+      c: 'c',
+      cs: 'csharp',
+      go: 'go',
+      rs: 'rust',
+      php: 'php',
+      rb: 'ruby',
+      swift: 'swift',
+      kt: 'kotlin',
+      scala: 'scala',
+      r: 'r',
+      sql: 'sql',
+      sh: 'shell',
+      bash: 'shell',
+      ps1: 'powershell',
+      lua: 'lua',
+      dart: 'dart',
+      julia: 'julia',
+      ml: 'ocaml',
+      hs: 'haskell',
+      ex: 'elixir',
+      clj: 'clojure',
+      elm: 'elm',
+      vue: 'vue',
+      svelte: 'svelte'
     }
 
     return languageMap[extension.toLowerCase()] || 'text'

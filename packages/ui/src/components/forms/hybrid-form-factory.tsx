@@ -28,7 +28,9 @@ interface ComplexityAnalysis {
   recommendations: string[]
 }
 
-function analyzeFormComplexity<T extends z.ZodType>(config: HybridFormConfig<T>): ComplexityAnalysis {
+function analyzeFormComplexity<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>(
+  config: HybridFormConfig<TFieldValues, TSchema>
+): ComplexityAnalysis {
   const reasons: string[] = []
   let score = 0
   const recommendations: string[] = []
@@ -122,9 +124,10 @@ function analyzeFormComplexity<T extends z.ZodType>(config: HybridFormConfig<T>)
 // HYBRID FORM TYPES
 // =============================================
 
-export interface HybridFormConfig<T extends z.ZodType> extends Omit<FormConfig<T>, 'fields'> {
+export interface HybridFormConfig<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>
+  extends Omit<FormConfig<TFieldValues, TSchema>, 'fields'> {
   /** Form submission handler */
-  onSubmit: (data: z.infer<T>) => void | Promise<void>
+  onSubmit: (data: TFieldValues) => void | Promise<void>
 
   /** Optional cancel handler */
   onCancel?: () => void
@@ -158,7 +161,7 @@ export interface HybridFormConfig<T extends z.ZodType> extends Omit<FormConfig<T
   migrationMode?: boolean
 
   /** TanStack-specific configuration */
-  tanstackConfig?: Partial<TanStackFormFactoryConfig<z.infer<T>>>
+  tanstackConfig?: Partial<TanStackFormFactoryConfig<TFieldValues>>
 
   /** Additional children */
   children?: React.ReactNode
@@ -320,7 +323,9 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
 // HYBRID FORM FACTORY COMPONENT
 // =============================================
 
-export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<T>) {
+export function HybridFormFactory<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>(
+  config: HybridFormConfig<TFieldValues, TSchema>
+) {
   const {
     forceImplementation,
     features,
@@ -368,8 +373,8 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
             <span className='text-sm font-medium'>🚀 TanStack Form</span>
             <span className='text-xs bg-green-100 dark:bg-green-900 px-2 py-1 rounded'>Enhanced Implementation</span>
           </div>
-          <TanStackFormFactory
-            schema={baseConfig.schema}
+          <TanStackFormFactory<TFieldValues>
+            schema={baseConfig.schema as z.ZodSchema<TFieldValues>}
             fields={convertFieldsToTanStack(baseConfig.fields)}
             onSubmit={baseConfig.onSubmit}
             defaultValues={baseConfig.defaultValues}
@@ -390,8 +395,8 @@ export function HybridFormFactory<T extends z.ZodType>(config: HybridFormConfig<
             Using TanStack Form (complexity score: {complexity.score})
           </div>
         )}
-        <TanStackFormFactory
-          schema={baseConfig.schema}
+        <TanStackFormFactory<TFieldValues>
+          schema={baseConfig.schema as z.ZodSchema<TFieldValues>}
           fields={convertFieldsToTanStack(baseConfig.fields)}
           onSubmit={baseConfig.onSubmit}
           defaultValues={baseConfig.defaultValues}
@@ -426,7 +431,10 @@ export interface MigrationGuide {
   effort: 'low' | 'medium' | 'high'
 }
 
-export function generateMigrationGuide<T extends z.ZodType>(config: HybridFormConfig<T>): MigrationGuide {
+export function generateMigrationGuide<
+  TFieldValues extends Record<string, any>,
+  TSchema extends z.ZodType<TFieldValues>
+>(config: HybridFormConfig<TFieldValues, TSchema>): MigrationGuide {
   const complexity = analyzeFormComplexity(config)
 
   if (complexity.score <= 2) {

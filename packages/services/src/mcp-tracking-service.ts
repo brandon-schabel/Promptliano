@@ -28,7 +28,6 @@ export interface MCPTrackingServiceDeps {
   errorPatternsRepository?: typeof mcpErrorPatternsRepository
 }
 
-
 /**
  * Create MCP Tracking Service with functional factory pattern
  * Handles MCP tool execution tracking, analytics, and error pattern detection
@@ -237,24 +236,17 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
         )
 
         // Calculate overview metrics
-        const totalExecutions = topTools.reduce(
-          (sum: number, tool: MCPToolSummary) => sum + tool.totalExecutions,
-          0
-        )
+        const totalExecutions = topTools.reduce((sum: number, tool: MCPToolSummary) => sum + tool.totalExecutions, 0)
         const uniqueTools = topTools.length
         const overallSuccessRate =
           totalExecutions > 0
-            ? topTools.reduce(
-                (sum: number, tool: MCPToolSummary) =>
-                  sum + tool.totalExecutions * tool.successRate,
-                0
-              ) / totalExecutions
+            ? topTools.reduce((sum: number, tool: MCPToolSummary) => sum + tool.totalExecutions * tool.successRate, 0) /
+              totalExecutions
             : 0
         const avgExecutionTime =
           totalExecutions > 0
             ? topTools.reduce(
-                (sum: number, tool: MCPToolSummary) =>
-                  sum + tool.totalExecutions * tool.avgDurationMs,
+                (sum: number, tool: MCPToolSummary) => sum + tool.totalExecutions * tool.avgDurationMs,
                 0
               ) / totalExecutions
             : 0
@@ -265,21 +257,23 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
           overallSuccessRate,
           avgExecutionTime,
           topTools,
-          recentErrors: recentErrors.filter(error => error.status !== 'running').map(error => ({
-            id: error.id,
-            toolName: error.toolName,
-            startedAt: error.startedAt instanceof Date ? error.startedAt.getTime() : error.startedAt,
-            status: error.status as 'success' | 'error' | 'timeout',
-            errorMessage: error.errorMessage,
-            errorType: (error as any).errorType || 'unknown',
-            duration: error.durationMs,
-            projectId: error.projectId,
-            userId: error.userId,
-            sessionId: error.sessionId,
-            inputParams: error.inputParams,
-            outputResult: (error as any).output,
-            outputSize: error.outputSize
-          })),
+          recentErrors: recentErrors
+            .filter((error) => error.status !== 'running')
+            .map((error) => ({
+              id: error.id,
+              toolName: error.toolName,
+              startedAt: error.startedAt instanceof Date ? error.startedAt.getTime() : error.startedAt,
+              status: error.status as 'success' | 'error' | 'timeout',
+              errorMessage: error.errorMessage,
+              errorType: (error as any).errorType || 'unknown',
+              duration: error.durationMs,
+              projectId: error.projectId,
+              userId: error.userId,
+              sessionId: error.sessionId,
+              inputParams: error.inputParams,
+              outputResult: (error as any).output,
+              outputSize: error.outputSize
+            })),
           executionTrend: executionTrendData.map((item) => ({
             timestamp: item.timestamp instanceof Date ? item.timestamp.getTime() : item.timestamp,
             count: item.totalCount,
@@ -320,9 +314,9 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
           startDate ? new Date(startDate) : undefined,
           endDate ? new Date(endDate) : undefined
         )
-        
+
         // Convert to expected MCPExecutionTimeline format
-        return timelineData.map(item => ({
+        return timelineData.map((item) => ({
           timestamp: item.timestamp.getTime(),
           toolCounts: item.toolCounts,
           totalCount: item.totalCount,
@@ -385,7 +379,7 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
     return withErrorContext(
       async () => {
         const patterns = await errorPatternsRepo.getTopPatterns(projectId, limit)
-        return patterns.map(pattern => ({
+        return patterns.map((pattern) => ({
           pattern: { message: pattern.errorPattern, type: pattern.errorType },
           count: pattern.occurrenceCount,
           lastSeen: pattern.lastOccurredAt instanceof Date ? pattern.lastOccurredAt.getTime() : pattern.lastOccurredAt

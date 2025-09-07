@@ -4,7 +4,7 @@ import type { RouterContext } from '../main'
 // Removed: import { AppNavbar } from '@/components/navigation/app-navbar';
 import { AppSidebar } from '@/components/navigation/app-sidebar' // Added
 import { SidebarProvider, SidebarTrigger } from '@promptliano/ui' // Added
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import {
   CommandDialog,
@@ -22,14 +22,26 @@ import { ComponentErrorBoundary } from '@/components/error-boundary/component-er
 import { useProjects } from '@/hooks/generated'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useNavigate } from '@tanstack/react-router'
-import {
-  useGetActiveProjectTabId,
-} from '@/hooks/use-kv-local-storage'
+import { useGetActiveProjectTabId, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MenuIcon } from 'lucide-react' // For a custom trigger example
 import { Button } from '@promptliano/ui'
 import { useMigrateDefaultTab } from '@/hooks/use-migrate-default-tab'
 import { useMigrateTabViews } from '@/hooks/use-migrate-tab-views'
 import { useSyncProviderSettings } from '@/hooks/use-sync-provider-settings'
+import { useReactScan } from '@/hooks/use-react-scan'
+
+// Dynamic imports for DevTools - only load when enabled
+const ReactQueryDevtools = React.lazy(() =>
+  import('@tanstack/react-query-devtools').then((module) => ({
+    default: module.ReactQueryDevtools
+  }))
+)
+
+const TanStackRouterDevtools = React.lazy(() =>
+  import('@tanstack/router-devtools').then((module) => ({
+    default: module.TanStackRouterDevtools
+  }))
+)
 
 function GlobalCommandPalette() {
   const [open, setOpen] = useState(false)
@@ -167,6 +179,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
   const [activeProjectTabId] = useGetActiveProjectTabId()
   const navigate = useNavigate()
+  const [settings] = useAppSettings()
+
+  // Get dev tools enabled settings
+  const devToolsEnabled = settings?.devToolsEnabled || {
+    tanstackQuery: false,
+    tanstackRouter: false,
+    reactScan: false,
+    drizzleStudio: false,
+    swaggerUI: false,
+    mcpInspector: false
+  }
+
+  // Use React Scan hook for dynamic loading
+  useReactScan(devToolsEnabled.reactScan)
 
   // Migrate legacy defaultTab to numeric ID system
   useMigrateDefaultTab()
@@ -213,7 +239,16 @@ function RootComponent() {
             <GlobalCommandPalette />
           </ComponentErrorBoundary>
           <ComponentErrorBoundary componentName='Development Tools'>
-            {/* <ReactQueryDevtools /> */}
+            {devToolsEnabled.tanstackQuery && (
+              <Suspense fallback={null}>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </Suspense>
+            )}
+            {devToolsEnabled.tanstackRouter && (
+              <Suspense fallback={null}>
+                <TanStackRouterDevtools position='bottom-right' />
+              </Suspense>
+            )}
           </ComponentErrorBoundary>
         </div>
       </SidebarProvider>

@@ -1,6 +1,6 @@
 /**
  * Realtime Hooks Factory - WebSocket and polling patterns for live data
- * 
+ *
  * This factory creates hooks for:
  * - WebSocket subscriptions with auto-reconnection
  * - Polling with configurable intervals
@@ -9,12 +9,7 @@
  * - Message queuing for offline support
  */
 
-import {
-  useQuery,
-  useQueryClient,
-  type UseQueryOptions,
-  type UseQueryResult
-} from '@tanstack/react-query'
+import { useQuery, useQueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { useApiClient } from '../api/use-api-client'
@@ -39,7 +34,7 @@ export interface WebSocketConfig {
    * WebSocket URL (defaults to auto-detect from window.location)
    */
   url?: string
-  
+
   /**
    * Reconnection options
    */
@@ -49,7 +44,7 @@ export interface WebSocketConfig {
     delay?: number
     backoff?: number
   }
-  
+
   /**
    * Heartbeat/ping configuration
    */
@@ -58,7 +53,7 @@ export interface WebSocketConfig {
     interval?: number
     timeout?: number
   }
-  
+
   /**
    * Message queue for offline support
    */
@@ -77,17 +72,17 @@ export interface PollingConfig {
    * Polling interval in milliseconds
    */
   interval?: number
-  
+
   /**
    * Continue polling in background
    */
   backgroundRefetch?: boolean
-  
+
   /**
    * Stop polling on error
    */
   stopOnError?: boolean
-  
+
   /**
    * Dynamic interval based on activity
    */
@@ -106,27 +101,27 @@ export interface RealtimeConfig<TEntity> {
    * Display name for the entity
    */
   entityName: string
-  
+
   /**
    * API client path
    */
   clientPath: string
-  
+
   /**
    * Custom query keys
    */
   queryKeys?: QueryKeyFactory
-  
+
   /**
    * WebSocket configuration
    */
   websocket?: WebSocketConfig
-  
+
   /**
    * Polling configuration
    */
   polling?: PollingConfig
-  
+
   /**
    * Event handlers
    */
@@ -167,7 +162,7 @@ export interface RealtimeHooks<TEntity> {
     reconnect: () => void
     disconnect: () => void
   }
-  
+
   // Polling hook
   usePolling: (
     fetcher: () => Promise<TEntity[]>,
@@ -178,7 +173,7 @@ export interface RealtimeHooks<TEntity> {
     stopPolling: () => void
     setInterval: (interval: number) => void
   }
-  
+
   // Event subscription
   useEventSubscription: <TEvent = any>(
     eventName: string,
@@ -188,16 +183,14 @@ export interface RealtimeHooks<TEntity> {
     subscribe: () => void
     unsubscribe: () => void
   }
-  
+
   // Presence tracking
-  usePresence: (
-    roomId: string
-  ) => {
+  usePresence: (roomId: string) => {
     users: Array<{ id: string; name: string; status: string }>
     updateStatus: (status: string) => void
     isTracking: boolean
   }
-  
+
   // Live query with automatic updates
   useLiveQuery: (
     params?: any,
@@ -206,7 +199,7 @@ export interface RealtimeHooks<TEntity> {
     isLive: boolean
     lastUpdate: Date | null
   }
-  
+
   // Optimistic streaming
   useOptimisticStream: () => {
     messages: TEntity[]
@@ -222,13 +215,7 @@ export interface RealtimeHooks<TEntity> {
 export function createRealtimeHooks<TEntity extends { id: number | string }>(
   config: RealtimeConfig<TEntity>
 ): RealtimeHooks<TEntity> {
-  const {
-    entityName,
-    clientPath,
-    websocket = {},
-    polling = {},
-    events = {}
-  } = config
+  const { entityName, clientPath, websocket = {}, polling = {}, events = {} } = config
 
   // Create query keys
   const KEYS = config.queryKeys || createQueryKeys(clientPath)
@@ -236,10 +223,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
   /**
    * WebSocket subscription hook
    */
-  const useWebSocketSubscription = (
-    channel: string,
-    options?: UseQueryOptions<TEntity[]>
-  ) => {
+  const useWebSocketSubscription = (channel: string, options?: UseQueryOptions<TEntity[]>) => {
     const [data, setData] = useState<TEntity[]>([])
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED)
     const [error, setError] = useState<Error | null>(null)
@@ -291,38 +275,36 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
         ws.onmessage = (event) => {
           try {
             const message: RealtimeMessage<TEntity> = JSON.parse(event.data)
-            
+
             switch (message.type) {
               case 'create':
-                setData(prev => [...prev, message.data as TEntity])
+                setData((prev) => [...prev, message.data as TEntity])
                 queryClient.invalidateQueries({ queryKey: KEYS.lists() })
                 break
-              
+
               case 'update':
-                setData(prev => prev.map(item => 
-                  item.id === message.id ? { ...item, ...message.data } : item
-                ))
+                setData((prev) => prev.map((item) => (item.id === message.id ? { ...item, ...message.data } : item)))
                 queryClient.invalidateQueries({ queryKey: KEYS.detail(message.id!) })
                 break
-              
+
               case 'delete':
-                setData(prev => prev.filter(item => item.id !== message.id))
+                setData((prev) => prev.filter((item) => item.id !== message.id))
                 queryClient.invalidateQueries({ queryKey: KEYS.lists() })
                 break
-              
+
               case 'sync':
                 setData(message.data as unknown as TEntity[])
                 break
-              
+
               case 'heartbeat':
                 // Heartbeat acknowledged
                 break
-              
+
               case 'error':
                 setError(new Error(message.error || 'Unknown error'))
                 break
             }
-            
+
             events.onMessage?.(message.data as TEntity)
           } catch (err) {
             console.error('Failed to parse WebSocket message:', err)
@@ -339,7 +321,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
         ws.onclose = () => {
           setConnectionState(ConnectionState.DISCONNECTED)
           events.onDisconnect?.()
-          
+
           // Clear heartbeat
           if (heartbeatIntervalRef.current) {
             clearInterval(heartbeatIntervalRef.current)
@@ -350,9 +332,10 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
             const maxAttempts = websocket.reconnect?.maxAttempts || 5
             if (reconnectAttemptsRef.current < maxAttempts) {
               setConnectionState(ConnectionState.RECONNECTING)
-              const delay = (websocket.reconnect?.delay || 1000) * 
+              const delay =
+                (websocket.reconnect?.delay || 1000) *
                 Math.pow(websocket.reconnect?.backoff || 2, reconnectAttemptsRef.current)
-              
+
               reconnectTimeoutRef.current = setTimeout(() => {
                 reconnectAttemptsRef.current++
                 connect()
@@ -367,17 +350,20 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
     }, [wsUrl, channel, queryClient, events, websocket, KEYS])
 
     // Send message through WebSocket
-    const send = useCallback((message: any) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify(message))
-      } else if (websocket.queue?.enabled !== false) {
-        // Queue message if offline
-        messageQueueRef.current.push(message)
-        if (websocket.queue?.maxSize && messageQueueRef.current.length > websocket.queue.maxSize) {
-          messageQueueRef.current.shift() // Remove oldest
+    const send = useCallback(
+      (message: any) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify(message))
+        } else if (websocket.queue?.enabled !== false) {
+          // Queue message if offline
+          messageQueueRef.current.push(message)
+          if (websocket.queue?.maxSize && messageQueueRef.current.length > websocket.queue.maxSize) {
+            messageQueueRef.current.shift() // Remove oldest
+          }
         }
-      }
-    }, [websocket.queue])
+      },
+      [websocket.queue]
+    )
 
     // Manual reconnect
     const reconnect = useCallback(() => {
@@ -421,10 +407,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
   /**
    * Polling hook with dynamic intervals
    */
-  const usePolling = (
-    fetcher: () => Promise<TEntity[]>,
-    options?: PollingConfig & UseQueryOptions<TEntity[]>
-  ) => {
+  const usePolling = (fetcher: () => Promise<TEntity[]>, options?: PollingConfig & UseQueryOptions<TEntity[]>) => {
     const [isPolling, setIsPolling] = useState(true)
     const [currentInterval, setCurrentInterval] = useState(options?.interval || 5000)
     const client = useApiClient()
@@ -475,10 +458,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
   /**
    * Event subscription hook
    */
-  const useEventSubscription = <TEvent = any>(
-    eventName: string,
-    handler: (event: TEvent) => void
-  ) => {
+  const useEventSubscription = <TEvent = any>(eventName: string, handler: (event: TEvent) => void) => {
     const [isSubscribed, setIsSubscribed] = useState(false)
     const eventSourceRef = useRef<EventSource | null>(null)
 
@@ -545,12 +525,15 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
       }
     }, [isConnected, roomId, send])
 
-    const updateStatus = useCallback((status: string) => {
-      send({ type: 'status', status })
-    }, [send])
+    const updateStatus = useCallback(
+      (status: string) => {
+        send({ type: 'status', status })
+      },
+      [send]
+    )
 
     return {
-      users: data as any || [],
+      users: (data as any) || [],
       updateStatus,
       isTracking
     }
@@ -559,13 +542,10 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
   /**
    * Live query with automatic updates
    */
-  const useLiveQuery = (
-    params?: any,
-    options?: UseQueryOptions<TEntity[]>
-  ) => {
+  const useLiveQuery = (params?: any, options?: UseQueryOptions<TEntity[]>) => {
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
     const client = useApiClient()
-    
+
     // Regular query
     const query = useQuery({
       queryKey: [...KEYS.all, 'live', params],
@@ -573,7 +553,7 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
         if (!api?.list) throw new Error(`API client missing list method for ${clientPath}`)
-        
+
         const response = await api.list(params)
         setLastUpdate(new Date())
         return response.data || response
@@ -583,23 +563,23 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
 
     // Subscribe to updates
     const { data: updates } = useWebSocketSubscription(`${entityName}/updates`)
-    
+
     // Merge updates with query data
     const mergedData = useMemo(() => {
       if (!query.data) return []
       if (!updates || updates.length === 0) return query.data
-      
+
       // Merge updates into query data
       const merged = [...query.data]
       updates.forEach((update: any) => {
-        const index = merged.findIndex(item => item.id === update.id)
+        const index = merged.findIndex((item) => item.id === update.id)
         if (index >= 0) {
           merged[index] = { ...merged[index], ...update }
         } else {
           merged.push(update)
         }
       })
-      
+
       return merged
     }, [query.data, updates])
 
@@ -623,28 +603,26 @@ export function createRealtimeHooks<TEntity extends { id: number | string }>(
 
     const addOptimistic = useCallback((message: Partial<TEntity>) => {
       const tempId = `temp-${Date.now()}-${Math.random()}`
-      const optimisticMessage = ({
+      const optimisticMessage = {
         ...message,
         id: tempId,
         pending: true,
         createdAt: new Date().toISOString()
-      } as unknown as TEntity)
+      } as unknown as TEntity
 
-      setMessages(prev => [...prev, optimisticMessage])
+      setMessages((prev) => [...prev, optimisticMessage])
       tempIdMapRef.current.set(tempId, optimisticMessage)
-      
+
       return tempId
     }, [])
 
     const confirmMessage = useCallback((tempId: string, realMessage: TEntity) => {
-      setMessages(prev => prev.map(msg => 
-        (msg.id === tempId) ? realMessage : msg
-      ))
+      setMessages((prev) => prev.map((msg) => (msg.id === tempId ? realMessage : msg)))
       tempIdMapRef.current.delete(tempId)
     }, [])
 
     const removeOptimistic = useCallback((tempId: string) => {
-      setMessages(prev => prev.filter(msg => msg.id !== tempId))
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId))
       tempIdMapRef.current.delete(tempId)
     }, [])
 

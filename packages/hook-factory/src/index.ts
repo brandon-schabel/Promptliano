@@ -1,6 +1,6 @@
 /**
  * Hook Factory System
- * 
+ *
  * Main export point for the hook factory system.
  * Separate package to avoid circular dependencies.
  */

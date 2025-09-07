@@ -80,7 +80,11 @@ export interface ComplexServiceDeps {
 }
 
 export function createComplexService(deps: ComplexServiceDeps = {}) {
-  const { repository = complexRepository, otherService = createOtherService(), externalApi = createExternalApiClient() } = deps
+  const {
+    repository = complexRepository,
+    otherService = createOtherService(),
+    externalApi = createExternalApiClient()
+  } = deps
 
   return {
     async performComplexOperation(id: number): Promise<ComplexEntity> {
@@ -117,7 +121,9 @@ export function createComplexService(deps: ComplexServiceDeps = {}) {
 import { projectRepository, type Project } from '@promptliano/database'
 export function createProjectService() {
   return {
-    async getProject(id: number) { return await projectRepository.getById(id) }
+    async getProject(id: number) {
+      return await projectRepository.getById(id)
+    }
   }
 }
 
@@ -225,27 +231,27 @@ import * as schema from '@promptliano/database'
 import { TestDataFactory } from './test-utils/test-data-factories'
 
 describe('Service Name (Isolated Database)', () => {
-    let testDb: any
-    let service: ReturnType<typeof createServiceUnderTest>
+  let testDb: any
+  let service: ReturnType<typeof createServiceUnderTest>
 
-    beforeEach(async () => {
-        testDb = createTestDatabase({
-            testId: `service-name-${Date.now()}-${Math.random()}`,
-            verbose: false,
-            seedData: false,
-            useMemory: true,
-            busyTimeout: 30000
-        })
-
-        const drizzleDb = drizzle(testDb.rawDb, { schema })
-        service = createServiceUnderTest({ drizzleDb })
+  beforeEach(async () => {
+    testDb = createTestDatabase({
+      testId: `service-name-${Date.now()}-${Math.random()}`,
+      verbose: false,
+      seedData: false,
+      useMemory: true,
+      busyTimeout: 30000
     })
 
-    afterEach(async () => {
-        if (testDb) {
-            testDb.close()
-        }
-    })
+    const drizzleDb = drizzle(testDb.rawDb, { schema })
+    service = createServiceUnderTest({ drizzleDb })
+  })
+
+  afterEach(async () => {
+    if (testDb) {
+      testDb.close()
+    }
+  })
 })
 ```
 
@@ -313,7 +319,7 @@ app.post(
 
 export { app as exampleRoutes }
 
-```
+````
 
 ## Performance Best Practices
 
@@ -332,7 +338,7 @@ async getProjectWithTickets(id: number) {
   const tickets = await ticketRepository.getByProjectId(id)
   return { ...project, tickets }
 }
-```
+````
 
 ### Batch Operations
 

@@ -43,8 +43,8 @@ const mcpErrorPatternsRelations = relations(mcpSchema.mcpErrorPatterns, ({ one }
 }))
 
 // Combine all schema exports with proper typing including MCP relations
-const schema: Record<string, any> = { 
-  ...mainSchema, 
+const schema: Record<string, any> = {
+  ...mainSchema,
   ...mcpSchema,
   // Add MCP relations to the schema
   mcpToolExecutionsRelations,
@@ -63,15 +63,20 @@ const packageRoot = resolve(__dirname, '..') // packages/database
 const repoRoot = resolve(packageRoot, '..', '..') // monorepo root
 const drizzleDir = join(packageRoot, 'drizzle')
 
+// Expose database path resolution so server can log it on startup
+export function getDatabasePath(): string {
+  return process.env.NODE_ENV === 'test'
+    ? ':memory:'
+    : process.env.DATABASE_PATH ||
+        (process.env.PROMPTLIANO_DATA_DIR
+          ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db')
+          : join(repoRoot, 'data', 'promptliano.db'))
+}
+
 // Performance-optimized SQLite configuration
 const createDatabase = () => {
   // Use in-memory database for tests to avoid file system issues
-  const dbPath = process.env.NODE_ENV === 'test'
-    ? ':memory:'
-    : (
-        process.env.DATABASE_PATH
-          || (process.env.PROMPTLIANO_DATA_DIR ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db') : join(repoRoot, 'data', 'promptliano.db'))
-      )
+  const dbPath = getDatabasePath()
   // Ensure the directory for the DB file exists when not using in-memory
   if (dbPath !== ':memory:') {
     try {
@@ -107,9 +112,8 @@ const sqlite = createDatabase()
 // Auto-run migrations and create tables
 try {
   // If no core tables, bootstrap from earliest migration
-  const hasProjectsTable = sqlite
-    .query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
-    .all().length > 0
+  const hasProjectsTable =
+    sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all().length > 0
 
   if (!hasProjectsTable) {
     if (process.env.NODE_ENV === 'test') {

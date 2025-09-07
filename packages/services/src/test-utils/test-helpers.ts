@@ -1,10 +1,10 @@
 /**
  * Test Helpers - Enhanced for Test Isolation
- * 
+ *
  * Provides comprehensive test helper functions with proper database isolation.
  * Each helper function now uses its own isolated database to prevent
  * "Missing parameter '1'" errors caused by concurrent access.
- * 
+ *
  * BREAKING CHANGE: No longer uses global database - each operation is isolated
  */
 
@@ -307,19 +307,27 @@ export async function enqueueTicket(ticketId: number, queueId: number, priority:
 /**
  * Enqueue a task to a queue
  */
-export async function enqueueTask(ticketId: number, taskId: number, queueId: number, priority: number): Promise<TicketTask> {
+export async function enqueueTask(
+  ticketId: number,
+  taskId: number,
+  queueId: number,
+  priority: number
+): Promise<TicketTask> {
   return await flowService.enqueueTask(taskId, queueId, priority)
 }
 
 /**
  * Enqueue an item to a queue (generic)
  */
-export async function enqueueItem(queueId: number, item: {
-  type: 'ticket' | 'task'
-  referenceId: number
-  title?: string
-  priority: number
-}): Promise<any> {
+export async function enqueueItem(
+  queueId: number,
+  item: {
+    type: 'ticket' | 'task'
+    referenceId: number
+    title?: string
+    priority: number
+  }
+): Promise<any> {
   if (item.type === 'ticket') {
     return await flowService.enqueueTicket(item.referenceId, queueId, item.priority)
   } else if (item.type === 'task') {
@@ -345,7 +353,10 @@ export async function dequeueTicket(ticketId: number): Promise<Ticket> {
 /**
  * Get next task from queue (simulates getting and starting to process an item)
  */
-export async function getNextTaskFromQueue(queueId: number, agentId: string): Promise<{
+export async function getNextTaskFromQueue(
+  queueId: number,
+  agentId: string
+): Promise<{
   type: 'ticket' | 'task' | 'none'
   item?: any
   message?: string
@@ -368,18 +379,22 @@ export async function getNextTaskFromQueue(queueId: number, agentId: string): Pr
 
     // Find the highest priority item that's not already in progress
     const allItems = [
-      ...tickets.filter(t => t.queueStatus === 'queued').map(t => ({
-        type: 'ticket' as const,
-        item: t,
-        priority: t.queuePriority || 5,
-        queuedAt: t.queuedAt || 0
-      })),
-      ...tasks.filter(t => t.queueStatus === 'queued').map(t => ({
-        type: 'task' as const,
-        item: t,
-        priority: t.queuePriority || 5,
-        queuedAt: t.queuedAt || 0
-      }))
+      ...tickets
+        .filter((t) => t.queueStatus === 'queued')
+        .map((t) => ({
+          type: 'ticket' as const,
+          item: t,
+          priority: t.queuePriority || 5,
+          queuedAt: t.queuedAt || 0
+        })),
+      ...tasks
+        .filter((t) => t.queueStatus === 'queued')
+        .map((t) => ({
+          type: 'task' as const,
+          item: t,
+          priority: t.queuePriority || 5,
+          queuedAt: t.queuedAt || 0
+        }))
     ]
 
     if (allItems.length === 0) {
@@ -404,7 +419,7 @@ export async function getNextTaskFromQueue(queueId: number, agentId: string): Pr
       const ticket = await flowService.getTicketById(nextItem.item.id)
       return { type: 'ticket', item: ticket }
     } else {
-      // For task, we need to get it through the ticket's tasks  
+      // For task, we need to get it through the ticket's tasks
       const taskRepo = createBaseRepository(ticketTasks, db.db)
       const task = await taskRepo.getById(nextItem.item.id)
       return { type: 'task', item: task }
@@ -451,10 +466,10 @@ export async function completeQueueItem(itemId: number, result: { success: boole
 }
 
 /**
- * Fail a queue item  
+ * Fail a queue item
  */
 export async function failQueueItem(itemId: number, result: { success: boolean; error: string }): Promise<void> {
-  // Handle legacy signature for backward compatibility 
+  // Handle legacy signature for backward compatibility
   await flowService.failProcessingItem('ticket', itemId, result.error)
 }
 
@@ -493,18 +508,18 @@ export async function getQueueStats(queueId: number): Promise<{
   const { tickets, tasks } = await flowService.getQueueItems(queueId)
 
   const ticketStats = {
-    queued: tickets.filter(t => t.queueStatus === 'queued').length,
-    inProgress: tickets.filter(t => t.queueStatus === 'in_progress').length,
-    completed: tickets.filter(t => t.queueStatus === 'completed').length,
-    failed: tickets.filter(t => t.queueStatus === 'failed').length,
+    queued: tickets.filter((t) => t.queueStatus === 'queued').length,
+    inProgress: tickets.filter((t) => t.queueStatus === 'in_progress').length,
+    completed: tickets.filter((t) => t.queueStatus === 'completed').length,
+    failed: tickets.filter((t) => t.queueStatus === 'failed').length,
     total: tickets.length
   }
 
   const taskStats = {
-    queued: tasks.filter(t => t.queueStatus === 'queued').length,
-    inProgress: tasks.filter(t => t.queueStatus === 'in_progress').length,
-    completed: tasks.filter(t => t.queueStatus === 'completed').length,
-    failed: tasks.filter(t => t.queueStatus === 'failed').length,
+    queued: tasks.filter((t) => t.queueStatus === 'queued').length,
+    inProgress: tasks.filter((t) => t.queueStatus === 'in_progress').length,
+    completed: tasks.filter((t) => t.queueStatus === 'completed').length,
+    failed: tasks.filter((t) => t.queueStatus === 'failed').length,
     total: tasks.length
   }
 
@@ -529,11 +544,14 @@ export async function getQueueItems(queueId: number): Promise<any[]> {
 /**
  * Batch enqueue items
  */
-export async function batchEnqueueItems(queueId: number, items: Array<{ ticketId?: number, taskId?: number, priority: number }>): Promise<{
+export async function batchEnqueueItems(
+  queueId: number,
+  items: Array<{ ticketId?: number; taskId?: number; priority: number }>
+): Promise<{
   ticket?: Ticket
   tasks: TicketTask[]
 }> {
-  const results: { ticket?: Ticket, tasks: TicketTask[] } = { tasks: [] }
+  const results: { ticket?: Ticket; tasks: TicketTask[] } = { tasks: [] }
 
   for (const item of items) {
     if (item.ticketId) {
@@ -559,7 +577,11 @@ export async function batchEnqueueItems(queueId: number, items: Array<{ ticketId
 /**
  * Enqueue ticket with all its tasks
  */
-export async function enqueueTicketWithAllTasks(queueId: number, ticketId: number, basePriority: number = 5): Promise<{
+export async function enqueueTicketWithAllTasks(
+  queueId: number,
+  ticketId: number,
+  basePriority: number = 5
+): Promise<{
   ticket: Ticket
   tasks: TicketTask[]
 }> {
@@ -590,7 +612,11 @@ export async function enqueueTicketWithAllTasks(queueId: number, ticketId: numbe
 /**
  * Move item to queue (for testing queue transfers)
  */
-export async function moveItemToQueue(type: 'ticket' | 'task', itemId: number, targetQueueId: number | null): Promise<void> {
+export async function moveItemToQueue(
+  type: 'ticket' | 'task',
+  itemId: number,
+  targetQueueId: number | null
+): Promise<void> {
   const db = getSharedTestDb()
 
   if (type === 'ticket') {

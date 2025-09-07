@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 // APIProviders type from database - not imported to avoid client build issues
 import { idSchemaSpec, idArraySchemaSpec } from './schema-utils'
 import { DEFAULT_MODEL_EXAMPLES } from './model-defaults'
@@ -416,10 +416,73 @@ export const appSettingsSchema = z
       .boolean()
       .optional()
       .default(true)
-      .openapi({ description: 'Whether to automatically name new chats based on their initial content.' })
+      .openapi({ description: 'Whether to automatically name new chats based on their initial content.' }),
+    selectedPreset: z
+      .enum(['low', 'medium', 'high', 'planning'])
+      .optional()
+      .openapi({
+        description: 'Currently selected model intelligence preset for chat configuration.',
+        example: 'medium'
+      }),
+    devToolsEnabled: z
+      .object({
+        tanstackQuery: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({ description: 'Whether TanStack Query DevTools are enabled in the UI.', example: false }),
+        tanstackRouter: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({ description: 'Whether TanStack Router DevTools are enabled in the UI.', example: false }),
+        reactScan: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({
+            description: 'Whether React Scan DevTools are enabled for performance visualization.',
+            example: false
+          }),
+        drizzleStudio: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({
+            description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
+            example: false
+          }),
+        swaggerUI: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({
+            description: 'Whether Swagger UI API documentation is accessible via navigation.',
+            example: false
+          }),
+        mcpInspector: z
+          .boolean()
+          .optional()
+          .default(false)
+          .openapi({
+            description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
+            example: false
+          })
+      })
+      .optional()
+      .default({
+        tanstackQuery: false,
+        tanstackRouter: false,
+        reactScan: false,
+        drizzleStudio: false,
+        swaggerUI: false,
+        mcpInspector: false
+      })
+      .openapi({ description: 'Configuration for enabling/disabling various development tools in the application UI.' })
   })
   .openapi('AppSettings', {
-    description: 'Global application settings, including theme, AI provider configuration, and default chat parameters.'
+    description:
+      'Global application settings, including theme, AI provider configuration, default chat parameters, and development tool configuration.'
   })
 
 // Base schemas for partial updates (Project only) - Not directly used in GlobalState, but good practice
@@ -531,7 +594,15 @@ export const createSafeGlobalState = (): GlobalState => ({
     topP: defaultModelConfigs.topP ?? 1,
     frequencyPenalty: defaultModelConfigs.frequencyPenalty ?? 0,
     presencePenalty: defaultModelConfigs.presencePenalty ?? 0,
-    enableChatAutoNaming: true
+    enableChatAutoNaming: true,
+    devToolsEnabled: {
+      tanstackQuery: false,
+      tanstackRouter: false,
+      reactScan: false,
+      drizzleStudio: false,
+      swaggerUI: false,
+      mcpInspector: false
+    }
   },
   projectTabs: {
     defaultTab: {

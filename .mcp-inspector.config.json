@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "default-server": {
+      "type": "stdio",
+      "command": "sh",
+      "args": ["packages/server/mcp-start.sh"]
+    }
+  }
+}

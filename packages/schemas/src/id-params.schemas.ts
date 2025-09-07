@@ -60,41 +60,6 @@ export const FileIdParamsSchema = z
   })
   .openapi('FileIdParams')
 
-// Claude Agent ID Parameters
-export const ClaudeAgentIdParamsSchema = z
-  .object({
-    id: z.string().openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeAgentIdParams')
-
-// Agent ID Parameters (backward compatibility alias)
-export const AgentIdParamsSchema = z
-  .object({
-    id: z.string().openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('AgentIdParams')
-
-// Command Name Parameters
-export const CommandNameParamsSchema = z
-  .object({
-    commandName: z.string().openapi({ param: { name: 'commandName', in: 'path' } })
-  })
-  .openapi('CommandNameParams')
-
-// Claude Command ID Parameters
-export const ClaudeCommandIdParamsSchema = z
-  .object({
-    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeCommandIdParams')
-
-// Claude Hook ID Parameters
-export const ClaudeHookIdParamsSchema = z
-  .object({
-    id: entityIdCoercibleSchema.openapi({ param: { name: 'id', in: 'path' } })
-  })
-  .openapi('ClaudeHookIdParams')
-
 // Provider Key ID Parameters
 export const ProviderKeyIdParamsSchema = z
   .object({
@@ -132,11 +97,12 @@ export type QueueIdParams = z.infer<typeof QueueIdParamsSchema>
 export type QueueItemIdParams = z.infer<typeof QueueItemIdParamsSchema>
 export type TicketTaskIdParams = z.infer<typeof TicketTaskIdParamsSchema>
 export type FileIdParams = z.infer<typeof FileIdParamsSchema>
-export type ClaudeAgentIdParams = z.infer<typeof ClaudeAgentIdParamsSchema> // { id: string }
-export type AgentIdParams = z.infer<typeof AgentIdParamsSchema> // { id: string }
-export type CommandNameParams = z.infer<typeof CommandNameParamsSchema>
-export type ClaudeCommandIdParams = z.infer<typeof ClaudeCommandIdParamsSchema>
-export type ClaudeHookIdParams = z.infer<typeof ClaudeHookIdParamsSchema>
+// TODO: Define these schemas when needed
+// export type ClaudeAgentIdParams = z.infer<typeof ClaudeAgentIdParamsSchema> // { id: string }
+// export type AgentIdParams = z.infer<typeof AgentIdParamsSchema> // { id: string }
+// export type CommandNameParams = z.infer<typeof CommandNameParamsSchema>
+// export type ClaudeCommandIdParams = z.infer<typeof ClaudeCommandIdParamsSchema>
+// export type ClaudeHookIdParams = z.infer<typeof ClaudeHookIdParamsSchema>
 export type ProviderKeyIdParams = z.infer<typeof ProviderKeyIdParamsSchema>
 export type ActiveTabIdParams = z.infer<typeof ActiveTabIdParamsSchema>
 export type SelectedFileIdParams = z.infer<typeof SelectedFileIdParamsSchema>

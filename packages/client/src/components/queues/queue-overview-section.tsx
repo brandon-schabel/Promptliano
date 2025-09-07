@@ -38,7 +38,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
         <CardContent>
           <div className='flex items-center justify-between'>
             <p className='text-sm text-muted-foreground'>No queues created yet</p>
-            <Link to='/projects' search={{ projectId, activeView: 'queues' }}>
+            <Link to='/projects' search={{ projectId, activeView: 'flow', flowView: 'queues' }}>
               <Button variant='outline' size='sm'>
                 <ListPlus className='mr-2 h-4 w-4' />
                 Create Queue
@@ -54,7 +54,10 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
   const totalQueued = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.pending || 0), 0)
   const totalInProgress = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.processing || 0), 0)
   const totalCompleted = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.completed || 0), 0)
-  const totalItems = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.total || q.stats?.totalItems || 0), 0)
+  const totalItems = queuesWithStats.reduce(
+    (sum: number, q: any) => sum + (q.stats?.total || q.stats?.totalItems || 0),
+    0
+  )
   const totalTickets = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.uniqueTickets || 0), 0)
   const totalTasks = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.taskCount || 0), 0)
   const activeQueues = queuesWithStats.filter((q: any) => q.status === 'active')
@@ -66,7 +69,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
       <CardHeader className='pb-3'>
         <div className='flex items-center justify-between'>
           <CardTitle className='text-lg'>Task Queues</CardTitle>
-          <Link to='/projects' search={{ projectId, activeView: 'queues' }}>
+          <Link to='/projects' search={{ projectId, activeView: 'flow', flowView: 'queues' }}>
             <Button variant='ghost' size='sm'>
               View All
               <ArrowRight className='ml-2 h-4 w-4' />

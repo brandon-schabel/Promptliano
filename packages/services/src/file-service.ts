@@ -419,14 +419,16 @@ export function createFileService(deps: FileServiceDeps = {}) {
             }))
 
             // Create files individually since repository doesn't have createMany
-            const results = await Promise.allSettled(filesData.map(async (fileData, index) => {
-              try {
-                return await repository.create(fileData)
-              } catch (error) {
-                logger.error(`Failed to create file ${index} (${fileData.path}):`, error)
-                throw error
-              }
-            }))
+            const results = await Promise.allSettled(
+              filesData.map(async (fileData, index) => {
+                try {
+                  return await repository.create(fileData)
+                } catch (error) {
+                  logger.error(`Failed to create file ${index} (${fileData.path}):`, error)
+                  throw error
+                }
+              })
+            )
 
             const successful = results
               .filter((r): r is PromiseFulfilledResult<ProjectFile> => r.status === 'fulfilled')
@@ -435,8 +437,10 @@ export function createFileService(deps: FileServiceDeps = {}) {
             const failed = results.filter((r) => r.status === 'rejected')
 
             if (failed.length > 0) {
-              logger.error(`Batch creation failed for ${failed.length}/${filesData.length} files:`,
-                failed.map((r, i) => ({ index: i, reason: (r as PromiseRejectedResult).reason })))
+              logger.error(
+                `Batch creation failed for ${failed.length}/${filesData.length} files:`,
+                failed.map((r, i) => ({ index: i, reason: (r as PromiseRejectedResult).reason }))
+              )
             }
 
             logger.info(`Batch created ${successful.length}/${filesData.length} files (${failed.length} failed)`)

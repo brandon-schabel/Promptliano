@@ -10,7 +10,13 @@
  * - 75% code reduction from original service
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
+import {
+  createCrudService,
+  extendService,
+  withErrorContext,
+  createServiceLogger,
+  safeErrorFactory
+} from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository, validateJsonField } from '@promptliano/database'
 import {
@@ -38,7 +44,7 @@ import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
 import { suggestFiles as aiSuggestFiles } from './file-services/file-suggestion-strategy-service'
 import { getProjectSummaryWithOptions, getCompactProjectSummary } from './utils/project-summary-service'
-import { HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG, PLANNING_MODEL_CONFIG } from '@promptliano/config'
+import { modelConfigService } from './model-config-service'
 
 // Use transformed types for service returns
 type Ticket = z.infer<typeof TicketSchema>
@@ -181,7 +187,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+          if (isNaN(numericId) || numericId <= 0)
+            throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
 
           const ticket = await baseService.getById(ticketId)
           const tasks = await taskRepo.getByTicket(numericId)
@@ -259,7 +266,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+          if (isNaN(numericId) || numericId <= 0)
+            throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
 
           const ticket = await baseService.getById(ticketId)
 
@@ -308,12 +316,14 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
     /**
      * Get tickets with task count and completion status
      */
-    async getByProjectWithStats(projectId: number): Promise<(Ticket & {
-      taskCount: number
-      completedTaskCount: number
-      progress: number
-      lastActivity: number
-    })[]> {
+    async getByProjectWithStats(projectId: number): Promise<
+      (Ticket & {
+        taskCount: number
+        completedTaskCount: number
+        progress: number
+        lastActivity: number
+      })[]
+    > {
       return withErrorContext(
         async () => {
           const rawTickets = await repo.getByProject(projectId)
@@ -645,7 +655,15 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     // Ask the model for structured task suggestions with provider/model fallbacks
     let suggestions: z.infer<typeof TaskSuggestionListSchema>['tasks'] = []
     const promptCombined = promptParts.join('\n')
-    const modelFallbacks = [PLANNING_MODEL_CONFIG, HIGH_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, LOW_MODEL_CONFIG]
+
+    // Get dynamic model configs with fallback order
+    const modelFallbacks = await Promise.all([
+      modelConfigService.getPresetConfig('planning'),
+      modelConfigService.getPresetConfig('high'),
+      modelConfigService.getPresetConfig('medium'),
+      modelConfigService.getPresetConfig('low')
+    ])
+
     let lastError: any = null
     for (const modelOptions of modelFallbacks) {
       try {
@@ -678,9 +696,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     }
 
     // Filter duplicates against existing tasks and normalize
-    const filtered = suggestions
-      .filter((s) => s && s.title && !existingTitles.has(s.title.toLowerCase()))
-      .slice(0, 10)
+    const filtered = suggestions.filter((s) => s && s.title && !existingTitles.has(s.title.toLowerCase())).slice(0, 10)
 
     if (filtered.length === 0) return []
 
@@ -753,7 +769,7 @@ export const getTasksForTickets = async (ticketIds: number[]) => {
 }
 
 export const listTicketsWithTasks = async (projectId: number) => {
-  // Get tickets with their tasks  
+  // Get tickets with their tasks
   const tickets = await getTicketsByProject(projectId)
   const result = []
   for (const ticket of tickets) {

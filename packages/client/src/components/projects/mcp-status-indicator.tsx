@@ -48,9 +48,9 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
 
   // MCP installation detection returns tools array with installation status
   const tools = data?.data?.tools || []
-  const claudeDesktop = tools.find(t => t.tool === 'claude-desktop')
-  const claudeCode = tools.find(t => t.tool === 'claude-code')
-  
+  const claudeDesktop = tools.find((t) => t.tool === 'claude-desktop')
+  const claudeCode = tools.find((t) => t.tool === 'claude-code')
+
   const isInstalled = claudeDesktop?.installed || claudeCode?.installed || false
   const hasConfig = claudeDesktop?.configExists || claudeCode?.configExists || false
 
@@ -69,12 +69,8 @@ export function MCPStatusIndicator({ projectId }: MCPStatusIndicatorProps) {
         <TooltipContent>
           <div className='space-y-1'>
             <p className='font-semibold'>MCP Status: {isInstalled && hasConfig ? 'Configured' : 'Not Configured'}</p>
-            {claudeDesktop?.installed && (
-              <p className='text-xs text-muted-foreground'>Claude Desktop: Installed</p>
-            )}
-            {claudeCode?.installed && (
-              <p className='text-xs text-muted-foreground'>Claude Code: Installed</p>
-            )}
+            {claudeDesktop?.installed && <p className='text-xs text-muted-foreground'>Claude Desktop: Installed</p>}
+            {claudeCode?.installed && <p className='text-xs text-muted-foreground'>Claude Code: Installed</p>}
             {(!isInstalled || !hasConfig) && (
               <p className='text-xs text-muted-foreground'>Install MCP tools to enable integration</p>
             )}

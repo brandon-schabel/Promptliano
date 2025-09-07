@@ -137,12 +137,12 @@ export const gitBranchRoutes = new OpenAPIHono()
   .openapi(getBranchesRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const branches = await getBranches(projectId)
-    return c.json(successResponse(branches))
+    return c.json(successResponse(branches), 200)
   })
   .openapi(getBranchesEnhancedRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
     const result = await getBranchesEnhanced(projectId)
-    return c.json(successResponse(result))
+    return c.json(successResponse(result), 200)
   })
   .openapi(createBranchRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
@@ -155,13 +155,13 @@ export const gitBranchRoutes = new OpenAPIHono()
     const body = c.req.valid('json')
     await switchBranch(projectId, body.name)
     clearGitStatusCache(projectId)
-    return c.json(operationSuccessResponse('Branch switched successfully'))
+    return c.json(operationSuccessResponse('Branch switched successfully'), 200)
   })
   .openapi(deleteBranchRoute, async (c) => {
     const { id: projectId, branchName } = c.req.valid('param')
     const { force = false } = c.req.valid('query') || {}
     await deleteBranch(projectId, branchName, force)
-    return c.json(operationSuccessResponse('Branch deleted successfully'))
+    return c.json(operationSuccessResponse('Branch deleted successfully'), 200)
   })
 
 export type GitBranchRouteTypes = typeof gitBranchRoutes

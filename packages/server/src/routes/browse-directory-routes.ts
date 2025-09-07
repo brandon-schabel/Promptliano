@@ -1,5 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
-import { z } from 'zod'
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { readdir, stat } from 'node:fs/promises'
 import { join, dirname, basename, resolve } from 'node:path'
 import { homedir } from 'node:os'
@@ -83,7 +82,8 @@ export const browseDirectoryRoutes = new OpenAPIHono().openapi(browseDirectoryRo
         currentPath: targetPath,
         parentPath,
         entries: directoryEntries
-      })
+      }),
+      200
     )
   } catch (error: any) {
     if (error instanceof ApiError) {

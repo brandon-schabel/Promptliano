@@ -147,10 +147,10 @@ const mockProjectService = {
 
 // Mock Logger
 const mockLogger = {
-  info: mock(() => { }),
-  warn: mock(() => { }),
-  error: mock(() => { }),
-  debug: mock(() => { })
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {})
 }
 
 // Mock the entire MCP service module to avoid import issues
@@ -660,7 +660,7 @@ describe('MCP Service - Repository-Based Operations', () => {
           testProjectId: 1,
           testDb: { db: {} }
         })),
-        cleanupTest: mock(async () => { })
+        cleanupTest: mock(async () => {})
       }
 
       testContext = await testEnv.setupTest()

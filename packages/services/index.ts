@@ -159,6 +159,8 @@ export {
 // Other services (unchanged)
 export * from './src/project-statistics-service'
 export * from './src/provider-key-service'
+export * from './src/model-config-service'
+export * from './src/intelligence-model-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
 
@@ -169,7 +171,7 @@ export * from './src/project-domain-service'
 export { cleanupQueueData, resetQueue, moveFailedToDeadLetter, getQueueHealth } from './src/queue-cleanup-service'
 export type { CleanupResult as QueueCleanupResult } from './src/queue-cleanup-service'
 export {
-  // Queue Timeout Service  
+  // Queue Timeout Service
   createQueueTimeoutService,
   getQueueTimeoutService,
   queueTimeoutService,
@@ -218,8 +220,10 @@ export {
   startMCPServer as startMCPServerLegacy,
   stopMCPServer as stopMCPServerLegacy
 } from './src/mcp-service'
-export * from './src/git-service'
 export * from './src/active-tab-service'
+
+// Git services - Re-export all git functionality
+export * from './src/git-services'
 // Do not export agent-logger - it contains Bun imports and should only be used server-side
 // export * from './src/agents/agent-logger'
 
@@ -273,6 +277,7 @@ export * from './src/utils/error-handlers'
 export * from './src/utils/bulk-operations'
 export * from './src/core/base-service'
 export * from './src/utils/logger'
+export * from './src/utils/model-usage-logger'
 
 // server side utils
 export * from './src/utils/project-summary-service'
@@ -312,10 +317,7 @@ export {
 export * from './src/agent-instruction-service'
 export * from './src/agent-file-detection-service'
 // Explicit re-export to avoid VSCodeSettings ambiguity with parsers
-export {
-  createMCPInstallationService,
-  mcpInstallationService
-} from './src/mcp-installation-service'
+export { createMCPInstallationService, mcpInstallationService } from './src/mcp-installation-service'
 export type {
   MCPConfig,
   MCPTool,
@@ -338,10 +340,7 @@ export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
 
 // Re-export types from schemas for backward compatibility
-export type {
-  CreateProjectBody,
-  UpdateProjectBody
-} from '@promptliano/schemas'
+export type { CreateProjectBody, UpdateProjectBody } from '@promptliano/schemas'
 
 // Re-export hook-related types from schemas for backward compatibility
 // Note: API request/response types should be imported from response.schemas or database schemas
@@ -381,21 +380,21 @@ export { ticketService as ticketServiceV2 } from './src/ticket-service'
 export { promptService as promptServiceV2 } from './src/prompt-service'
 
 export { providerKeyService as providerkeyServiceV2 } from './src/provider-key-service'
-// QueueItem operations are part of queue service
-export const queueitemServiceV2 = {
-  list: async () => [],
-  getById: async (id: number | string) => ({ id: Number(id) }),
-  create: async (data: any) => ({ id: Date.now(), ...data }),
-  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
-  delete: async (id: number | string) => true
-}
-// SelectedFile operations need stub implementation
-export const selectedfileServiceV2 = {
-  list: async () => [],
-  getById: async (id: number | string) => ({ id: Number(id) }),
-  create: async (data: any) => ({ id: Date.now(), ...data }),
-  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
-  delete: async (id: number | string) => true
-}
+
+// QueueItem operations - proper service implementation
+export { queueItemService as queueitemServiceV2 } from './src/queue-item-service'
+
+// SelectedFile operations - proper service implementation
+export { selectedFileService as selectedfileServiceV2 } from './src/selected-file-service'
 export { taskService as tickettaskServiceV2 } from './src/task-service'
 export { projectService as projectServiceV2 } from './src/project-service'
+
+// Additional exports for factory routes (using correct names)
+export { activeTabService } from './src/active-tab-service'
+export { chatService as chatMessageService } from './src/chat-service'
+// fileService already exported above (lines 111-117)
+// queueService already exported above (lines 49-79)
+// Re-export with different aliases for backward compatibility
+export { queueItemService } from './src/queue-item-service'
+export { selectedFileService } from './src/selected-file-service'
+export { taskService as ticketTaskService } from './src/task-service'

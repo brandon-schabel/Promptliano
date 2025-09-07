@@ -49,15 +49,15 @@ When working in this package, these agents MUST be used:
    - Ensure API security, error handling, and performance optimizations
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on service layer abstraction and middleware composition
 
 3. **Package-Specific Agents**
-   - Use `hono-bun-api-architect` for API endpoint development
-   - Use `promptliano-mcp-tool-creator` for MCP tool implementation
-   - Use `zod-schema-architect` for request/response validation schemas
-   - Use `promptliano-sqlite-expert` for database optimization
+   - Use `promptliano-api-architect` for API endpoint development
+   - Use `promptliano-mcp-architect` for MCP tool implementation
+   - Use `promptliano-schema-architect` for request/response validation schemas
+   - Use `promptliano-database-architect` for database optimization
 
 ### Proactive Usage
 

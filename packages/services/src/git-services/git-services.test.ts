@@ -147,7 +147,7 @@ describe('Modular Git Services', () => {
           testProjectId: 1,
           testDb: { db: {} }
         }),
-        cleanupTest: async () => { }
+        cleanupTest: async () => {}
       }
 
       testContext = await testEnv.setupTest()
@@ -212,9 +212,7 @@ describe('Modular Git Services', () => {
           { path: 'tests/app.test.ts', status: 'added' },
           { path: 'README.md', status: 'deleted' }
         ],
-        remotes: [
-          { name: 'origin', url: 'https://github.com/user/repo.git' }
-        ]
+        remotes: [{ name: 'origin', url: 'https://github.com/user/repo.git' }]
       }
 
       expect(gitData.projectId).toBe(testContext.testProjectId)

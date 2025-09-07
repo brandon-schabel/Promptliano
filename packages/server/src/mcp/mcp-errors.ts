@@ -189,14 +189,14 @@ export class MCPError extends ApiError {
     this.suggestion = suggestion
     this.context = context
 
-      // Add structured details to parent class
-      ; (this as any).details = {
-        code,
-        message,
-        suggestion,
-        context,
-        timestamp: Date.now()
-      } as MCPErrorDetails
+    // Add structured details to parent class
+    ;(this as any).details = {
+      code,
+      message,
+      suggestion,
+      context,
+      timestamp: Date.now()
+    } as MCPErrorDetails
   }
   /**
    * Determine appropriate HTTP status code based on error type
@@ -425,7 +425,6 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
       console.error('Failed to list prompts for error message:', listError)
     }
   }
-
 
   // Special handling for FILE_NOT_FOUND to suggest similar files
   if (error.mcpCode === MCPErrorCode.FILE_NOT_FOUND && error.context?.tool === 'project_manager') {

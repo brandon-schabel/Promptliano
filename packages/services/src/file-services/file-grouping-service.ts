@@ -1,10 +1,4 @@
-import type {
-  File,
-  FileGroup,
-  FileRelationship,
-  FileRelationshipType,
-  GroupingStrategy
-} from '@promptliano/database'
+import type { File, FileGroup, FileRelationship, FileRelationshipType, GroupingStrategy } from '@promptliano/database'
 import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createFileService, createFileFilter, type FileServiceConfig } from './file-service-factory'
 
@@ -64,7 +58,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
         const edges: FileRelationship[] = []
 
         // Build nodes map
-        files.forEach(file => nodes.set(file.id, file))
+        files.forEach((file) => nodes.set(file.id, file))
 
         // Detect import/export relationships
         for (const file of files) {
@@ -72,7 +66,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
             for (const imp of file.imports) {
               // Find files that match the import source
               const targetFile = files.find(
-                f => f.path.endsWith(imp.source) || f.path.includes(imp.source.replace(/\.\//g, ''))
+                (f) => f.path.endsWith(imp.source) || f.path.includes(imp.source.replace(/\.\//g, ''))
               )
 
               if (targetFile) {
@@ -120,7 +114,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 
             // Skip if already have a stronger relationship
             const existingRelation = edges.find(
-              e =>
+              (e) =>
                 (e.sourceFileId === file1.id && e.targetFileId === file2.id) ||
                 (e.sourceFileId === file2.id && e.targetFileId === file1.id)
             )
@@ -185,9 +179,9 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
   }
 
   async function groupByImports(
-    files: File[], 
-    maxGroupSize: number, 
-    minStrength: number, 
+    files: File[],
+    maxGroupSize: number,
+    minStrength: number,
     projectId: number
   ): Promise<FileGroup[]> {
     const graph = await detectFileRelationships(files)
@@ -195,7 +189,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
     const assigned = new Set<string>()
 
     // Find strongly connected components via imports
-    const importEdges = graph.edges.filter(e => e.type === 'imports' && e.strength >= minStrength)
+    const importEdges = graph.edges.filter((e) => e.type === 'imports' && e.strength >= minStrength)
 
     for (const file of files) {
       if (assigned.has(file.id)) continue
@@ -218,9 +212,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
         if (processed.has(currentId)) continue
         processed.add(currentId)
 
-        const relatedEdges = importEdges.filter(
-          e => e.sourceFileId === currentId || e.targetFileId === currentId
-        )
+        const relatedEdges = importEdges.filter((e) => e.sourceFileId === currentId || e.targetFileId === currentId)
 
         for (const edge of relatedEdges) {
           const otherId = edge.sourceFileId === currentId ? edge.targetFileId : edge.sourceFileId
@@ -275,7 +267,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
             `dir-group-${++groupIndex}`,
             `${dir || 'Root'} (${groupFiles.length} files)`,
             'directory',
-            groupFiles.map(f => f.id),
+            groupFiles.map((f) => f.id),
             avgPriority,
             projectId,
             [],
@@ -290,9 +282,9 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
   }
 
   async function groupBySemantic(
-    files: File[], 
-    maxGroupSize: number, 
-    minStrength: number, 
+    files: File[],
+    maxGroupSize: number,
+    minStrength: number,
     projectId: number
   ): Promise<FileGroup[]> {
     const graph = await detectFileRelationships(files)
@@ -300,7 +292,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
     const assigned = new Set<string>()
 
     // Filter semantic edges
-    const semanticEdges = graph.edges.filter(e => e.type === 'semantic' && e.strength >= minStrength)
+    const semanticEdges = graph.edges.filter((e) => e.type === 'semantic' && e.strength >= minStrength)
 
     // Sort files by importance to start with high-priority files
     const sortedFiles = [...files].sort((a, b) => getFileImportance(b).score - getFileImportance(a).score)
@@ -322,7 +314,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 
       // Find semantically similar files
       const similarities = semanticEdges
-        .filter(e => e.sourceFileId === file.id || e.targetFileId === file.id)
+        .filter((e) => e.sourceFileId === file.id || e.targetFileId === file.id)
         .sort((a, b) => b.strength - a.strength)
 
       for (const edge of similarities) {
@@ -400,7 +392,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 
       // Get all relationships for this file
       const fileEdges = graph.edges
-        .filter(e => (e.sourceFileId === file.id || e.targetFileId === file.id) && e.strength >= minStrength)
+        .filter((e) => (e.sourceFileId === file.id || e.targetFileId === file.id) && e.strength >= minStrength)
         .sort((a, b) => {
           // Prioritize by relationship type: imports > sibling > semantic
           const typeOrder = { imports: 3, exports: 2, sibling: 1, semantic: 0 }
@@ -427,11 +419,11 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
     }
 
     // Group remaining files by directory
-    const remainingFiles = files.filter(f => !assigned.has(f.id))
+    const remainingFiles = files.filter((f) => !assigned.has(f.id))
     if (remainingFiles.length > 0) {
       const dirGroups = groupByDirectory(remainingFiles, maxGroupSize, projectId)
       groups.push(
-        ...dirGroups.map(g => ({
+        ...dirGroups.map((g) => ({
           ...g,
           id: g.id.replace('dir-', 'mixed-dir-'),
           strategy: 'mixed' as GroupingStrategy
@@ -443,13 +435,11 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
   }
 
   function optimizeGroupsForTokenLimit(groups: FileGroup[], files: File[], tokenLimit: number): FileGroup[] {
-    const fileMap = new Map(files.map(f => [f.id, f]))
+    const fileMap = new Map(files.map((f) => [f.id, f]))
     const optimizedGroups: FileGroup[] = []
 
     for (const group of groups) {
-      const groupFiles = group.fileIds
-        .map(id => fileMap.get(id))
-        .filter((f): f is File => f !== undefined)
+      const groupFiles = group.fileIds.map((id) => fileMap.get(id)).filter((f): f is File => f !== undefined)
 
       // Estimate tokens for group
       const estimatedTokens = estimateGroupTokens(groupFiles)
@@ -486,10 +476,20 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 
   function calculateTextRelevance(text1: string, text2: string): number {
     // Simple text similarity based on common words
-    const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2))
-    const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2))
+    const words1 = new Set(
+      text1
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 2)
+    )
+    const words2 = new Set(
+      text2
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 2)
+    )
 
-    const intersection = new Set([...words1].filter(w => words2.has(w)))
+    const intersection = new Set([...words1].filter((w) => words2.has(w)))
     const union = new Set([...words1, ...words2])
 
     return union.size > 0 ? intersection.size / union.size : 0
@@ -582,7 +582,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
           ...group,
           id: `${group.id}-chunk-${++chunkIndex}`,
           name: `${group.name} (part ${chunkIndex})`,
-          fileIds: currentChunk.map(f => f.id),
+          fileIds: currentChunk.map((f) => f.id),
           estimatedTokens: currentTokens
         })
 
@@ -600,7 +600,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
         ...group,
         id: `${group.id}-chunk-${++chunkIndex}`,
         name: `${group.name} (part ${chunkIndex})`,
-        fileIds: currentChunk.map(f => f.id),
+        fileIds: currentChunk.map((f) => f.id),
         estimatedTokens: currentTokens
       })
     }
@@ -609,7 +609,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
   }
 
   function mergeSmallGroups(groups: FileGroup[], files: File[], tokenLimit: number): FileGroup[] {
-    const fileMap = new Map(files.map(f => [f.id, f]))
+    const fileMap = new Map(files.map((f) => [f.id, f]))
     const merged: FileGroup[] = []
     let i = 0
 
@@ -698,12 +698,8 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 // Export types
 export type FileGroupingService = ReturnType<typeof createFileGroupingService>
 
-// Export singleton for backward compatibility  
+// Export singleton for backward compatibility
 export const fileGroupingService = createFileGroupingService()
 
 // Export individual functions for tree-shaking
-export const {
-  detectFileRelationships,
-  groupFilesByStrategy,
-  optimizeGroupsForTokenLimit
-} = fileGroupingService
+export const { detectFileRelationships, groupFilesByStrategy, optimizeGroupsForTokenLimit } = fileGroupingService

@@ -54,17 +54,17 @@ When working in this package, these agents MUST be used:
    - Ensure proper TypeScript types and prop interfaces
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on component composition and separation of concerns
 
 3. **Package-Specific Agents**
-   - Use `promptliano-ui-architect` for shadcn/ui patterns and best practices
+   - Use `promptliano-frontend-architect` for shadcn/ui patterns and best practices
    - Use `react-component-architect` for component architecture
    - Use `accessibility-expert` for WCAG compliance
    - Use `css-tailwind-expert` for styling patterns
    - Use `storybook-expert` if implementing component documentation
-   - Use `promptliano-ui-architect` for Promptliano-specific patterns
+   - Use `promptliano-frontend-architect` for Promptliano-specific patterns
 
 ### Proactive Usage
 

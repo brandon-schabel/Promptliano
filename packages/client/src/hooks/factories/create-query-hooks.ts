@@ -1,6 +1,6 @@
 /**
  * Query Hooks Factory - Advanced query patterns beyond basic CRUD
- * 
+ *
  * This factory creates specialized query hooks for:
  * - Infinite scrolling with pagination
  * - Search with debouncing
@@ -53,17 +53,17 @@ export interface QueryHookConfig<TEntity> {
    * Display name for the entity
    */
   entityName: string
-  
+
   /**
    * Path to the API client methods
    */
   clientPath: string
-  
+
   /**
    * Custom query keys
    */
   queryKeys?: QueryKeyFactory
-  
+
   /**
    * Hook options
    */
@@ -72,22 +72,22 @@ export interface QueryHookConfig<TEntity> {
      * Stale time in milliseconds
      */
     staleTime?: number
-    
+
     /**
      * Default page size for pagination
      */
     pageSize?: number
-    
+
     /**
      * Debounce delay for search in milliseconds
      */
     searchDebounceMs?: number
-    
+
     /**
      * Minimum search query length
      */
     minSearchLength?: number
-    
+
     /**
      * Enable cursor-based pagination
      */
@@ -140,24 +140,24 @@ export interface QueryHooks<TEntity> {
     params?: PaginationParams | CursorPaginationParams,
     options?: UseInfiniteQueryOptions<PaginatedResponse<TEntity>>
   ) => UseInfiniteQueryResult<InfiniteData<PaginatedResponse<TEntity>>, Error>
-  
+
   // Search with debouncing
   useSearch: (
     searchTerm: string,
     options?: UseQueryOptions<TEntity[]>
   ) => UseQueryResult<TEntity[], Error> & { debouncedSearch: string }
-  
+
   // Aggregation queries
   useCount: (params?: any, options?: UseQueryOptions<number>) => UseQueryResult<number, Error>
   useStats: (params?: any, options?: UseQueryOptions<any>) => UseQueryResult<any, Error>
-  
+
   // Related data queries
   useRelated: <TRelated = any>(
     id: number | string,
     relation: string,
     options?: UseQueryOptions<TRelated>
   ) => UseQueryResult<TRelated, Error>
-  
+
   // Prefetch utilities
   usePrefetch: () => {
     prefetchList: (params?: any) => Promise<void>
@@ -165,13 +165,10 @@ export interface QueryHooks<TEntity> {
     prefetchRelated: (id: number | string, relation: string) => Promise<void>
     prefetchMany: (ids: (number | string)[]) => Promise<void>
   }
-  
+
   // Batch queries
-  useMany: (
-    ids: (number | string)[],
-    options?: UseQueryOptions<TEntity[]>
-  ) => UseQueryResult<TEntity[], Error>
-  
+  useMany: (ids: (number | string)[], options?: UseQueryOptions<TEntity[]>) => UseQueryResult<TEntity[], Error>
+
   // Query by field
   useByField: <K extends keyof TEntity>(
     field: K,
@@ -186,18 +183,14 @@ export interface QueryHooks<TEntity> {
 export function createQueryHooks<TEntity extends { id: number | string }>(
   config: QueryHookConfig<TEntity>
 ): QueryHooks<TEntity> {
-  const {
-    entityName,
-    clientPath,
-    options = {}
-  } = config
+  const { entityName, clientPath, options = {} } = config
 
   // Create query keys
   const KEYS = config.queryKeys || createQueryKeys(clientPath)
-  
+
   // Determine stale time
   const staleTime = options.staleTime || getStaleTimeForDomain(clientPath)
-  
+
   // Default options
   const pageSize = options.pageSize || 20
   const searchDebounceMs = options.searchDebounceMs || 300
@@ -211,13 +204,13 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
     queryOptions?: UseInfiniteQueryOptions<PaginatedResponse<TEntity>>
   ) => {
     const client = useApiClient()
-    
+
     return useInfiniteQuery({
       queryKey: KEYS.infinite(params),
       queryFn: async ({ pageParam }: { pageParam: any }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         // Determine pagination type
         if (options.useCursor) {
           // Cursor-based pagination
@@ -226,11 +219,11 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
             cursor: pageParam as string | undefined,
             limit: (params as CursorPaginationParams)?.limit || pageSize
           }
-          
+
           if (!api?.listWithCursor) {
             throw new Error(`API client missing listWithCursor method for ${clientPath}`)
           }
-          
+
           const response = await api.listWithCursor(cursorParams)
           return response.data || response
         } else {
@@ -240,7 +233,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
             page: pageParam as number,
             pageSize: (params as PaginationParams)?.pageSize || pageSize
           }
-          
+
           if (!api?.listPaginated) {
             // Fallback to regular list if paginated method doesn't exist
             if (!api?.list) {
@@ -255,7 +248,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
               hasMore: false // Can't determine without total count
             }
           }
-          
+
           const response = await api.listPaginated(pageParams)
           return response.data || response
         }
@@ -267,7 +260,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
         } else {
           // Page-based
           if (lastPage.hasMore) {
-            return ((lastPage.page || 0) + 1)
+            return (lastPage.page || 0) + 1
           }
           if (lastPage.totalPages && lastPage.page) {
             return lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined
@@ -294,23 +287,20 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
   /**
    * Search hook with debouncing
    */
-  const useSearch = (
-    searchTerm: string,
-    queryOptions?: UseQueryOptions<TEntity[]>
-  ) => {
+  const useSearch = (searchTerm: string, queryOptions?: UseQueryOptions<TEntity[]>) => {
     const client = useApiClient()
     const debouncedSearch = useDebounce(searchTerm, searchDebounceMs)
-    
+
     const query = useQuery({
       queryKey: KEYS.search(debouncedSearch),
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (!api?.search) {
           throw new Error(`API client missing search method for ${clientPath}`)
         }
-        
+
         const response = await api.search(debouncedSearch)
         return response.data || response
       },
@@ -330,13 +320,13 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
    */
   const useCount = (params?: any, queryOptions?: UseQueryOptions<number>) => {
     const client = useApiClient()
-    
+
     return useQuery({
       queryKey: [...KEYS.count(), params],
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (!api?.count) {
           // Fallback to list and count locally
           if (!api?.list) {
@@ -346,7 +336,7 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           const data = response.data || response
           return Array.isArray(data) ? data.length : 0
         }
-        
+
         const response = await api.count(params)
         return response.data || response || 0
       },
@@ -360,17 +350,17 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
    */
   const useStats = (params?: any, queryOptions?: UseQueryOptions<any>) => {
     const client = useApiClient()
-    
+
     return useQuery({
       queryKey: [...KEYS.stats(), params],
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (!api?.stats) {
           throw new Error(`API client missing stats method for ${clientPath}`)
         }
-        
+
         const response = await api.stats(params)
         return response.data || response
       },
@@ -388,25 +378,25 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
     queryOptions?: UseQueryOptions<TRelated>
   ) => {
     const client = useApiClient()
-    
+
     return useQuery({
       queryKey: KEYS.related(id, relation),
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         // Try specific relation method first
         const relationMethod = `get${relation.charAt(0).toUpperCase()}${relation.slice(1)}`
         if (api?.[relationMethod]) {
           const response = await api[relationMethod](id)
           return response.data || response
         }
-        
+
         // Fallback to generic getRelated
         if (!api?.getRelated) {
           throw new Error(`API client missing ${relationMethod} or getRelated method for ${clientPath}`)
         }
-        
+
         const response = await api.getRelated(id, relation)
         return response.data || response
       },
@@ -419,31 +409,28 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
   /**
    * Batch query hook - fetch multiple entities by IDs
    */
-  const useMany = (
-    ids: (number | string)[],
-    queryOptions?: UseQueryOptions<TEntity[]>
-  ) => {
+  const useMany = (ids: (number | string)[], queryOptions?: UseQueryOptions<TEntity[]>) => {
     const client = useApiClient()
-    
+
     return useQuery({
       queryKey: [...KEYS.all, 'many', ids],
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.getMany) {
           const response = await api.getMany(ids)
           return response.data || response
         }
-        
+
         // Fallback to fetching individually
         if (!api?.get) {
           throw new Error(`API client missing getMany/get method for ${clientPath}`)
         }
-        
-        const promises = ids.map(id => api.get(id))
+
+        const promises = ids.map((id) => api.get(id))
         const responses = await Promise.all(promises)
-        return responses.map(r => r.data || r)
+        return responses.map((r) => r.data || r)
       },
       enabled: ids.length > 0 && !!client,
       staleTime,
@@ -460,25 +447,25 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
     queryOptions?: UseQueryOptions<TEntity[]>
   ) => {
     const client = useApiClient()
-    
+
     return useQuery({
       queryKey: KEYS.byField(String(field), value),
       queryFn: async () => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         // Try specific getByField method
         const byFieldMethod = `getBy${String(field).charAt(0).toUpperCase()}${String(field).slice(1)}`
         if (api?.[byFieldMethod]) {
           const response = await api[byFieldMethod](value)
           return response.data || response
         }
-        
+
         // Fallback to list with filter
         if (!api?.list) {
           throw new Error(`API client missing ${byFieldMethod} or list method for ${clientPath}`)
         }
-        
+
         const response = await api.list({ [field]: value })
         return response.data || response
       },
@@ -494,13 +481,13 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
   const usePrefetch = () => {
     const queryClient = useQueryClient()
     const client = useApiClient()
-    
+
     return {
       prefetchList: async (params?: any) => {
         if (!client) return
         const api = (client as any)[clientPath]
         if (!api?.list) return
-        
+
         return queryClient.prefetchQuery({
           queryKey: KEYS.list(params),
           queryFn: async () => {
@@ -510,12 +497,12 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           staleTime
         })
       },
-      
+
       prefetchDetail: async (id: number | string) => {
         if (!client) return
         const api = (client as any)[clientPath]
         if (!api?.get) return
-        
+
         return queryClient.prefetchQuery({
           queryKey: KEYS.detail(id),
           queryFn: async () => {
@@ -525,14 +512,14 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           staleTime
         })
       },
-      
+
       prefetchRelated: async (id: number | string, relation: string) => {
         if (!client) return
         const api = (client as any)[clientPath]
         const relationMethod = `get${relation.charAt(0).toUpperCase()}${relation.slice(1)}`
-        
+
         if (!api?.[relationMethod] && !api?.getRelated) return
-        
+
         return queryClient.prefetchQuery({
           queryKey: KEYS.related(id, relation),
           queryFn: async () => {
@@ -546,11 +533,11 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           staleTime
         })
       },
-      
+
       prefetchMany: async (ids: (number | string)[]) => {
         if (!client || ids.length === 0) return
         const api = (client as any)[clientPath]
-        
+
         if (api?.getMany) {
           await queryClient.prefetchQuery({
             queryKey: [...KEYS.all, 'many', ids],
@@ -562,11 +549,11 @@ export function createQueryHooks<TEntity extends { id: number | string }>(
           })
           return
         }
-        
+
         // Prefetch individually
         if (api?.get) {
           await Promise.all(
-            ids.map(id => 
+            ids.map((id) =>
               queryClient.prefetchQuery({
                 queryKey: KEYS.detail(id),
                 queryFn: async () => {

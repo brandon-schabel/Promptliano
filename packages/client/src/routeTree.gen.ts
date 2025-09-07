@@ -15,6 +15,9 @@ import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProjectSummarizationRouteImport } from './routes/project-summarization'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as DevSwaggerRouteImport } from './routes/dev-swagger'
+import { Route as DevMcpRouteImport } from './routes/dev-mcp'
+import { Route as DevDrizzleRouteImport } from './routes/dev-drizzle'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,58 +26,76 @@ import { Route as QueueDashboardQueueIdRouteImport } from './routes/queue-dashbo
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const PromptsRoute = PromptsRouteImport.update({
   id: '/prompts',
   path: '/prompts',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const ProjectSummarizationRoute = ProjectSummarizationRouteImport.update({
   id: '/project-summarization',
   path: '/project-summarization',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
+} as any)
+const DevSwaggerRoute = DevSwaggerRouteImport.update({
+  id: '/dev-swagger',
+  path: '/dev-swagger',
+  getParentRoute: () => rootRouteImport
+} as any)
+const DevMcpRoute = DevMcpRouteImport.update({
+  id: '/dev-mcp',
+  path: '/dev-mcp',
+  getParentRoute: () => rootRouteImport
+} as any)
+const DevDrizzleRoute = DevDrizzleRouteImport.update({
+  id: '/dev-drizzle',
+  path: '/dev-drizzle',
+  getParentRoute: () => rootRouteImport
 } as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const AssetsRoute = AssetsRouteImport.update({
   id: '/assets',
   path: '/assets',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const QueueDashboardQueueIdRoute = QueueDashboardQueueIdRouteImport.update({
   id: '/queue-dashboard/$queueId',
   path: '/queue-dashboard/$queueId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/dev-drizzle': typeof DevDrizzleRoute
+  '/dev-mcp': typeof DevMcpRoute
+  '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
@@ -87,6 +108,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/dev-drizzle': typeof DevDrizzleRoute
+  '/dev-mcp': typeof DevMcpRoute
+  '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
@@ -100,6 +124,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/dev-drizzle': typeof DevDrizzleRoute
+  '/dev-mcp': typeof DevMcpRoute
+  '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
@@ -114,6 +141,9 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/chat'
+    | '/dev-drizzle'
+    | '/dev-mcp'
+    | '/dev-swagger'
     | '/health'
     | '/project-summarization'
     | '/projects'
@@ -126,6 +156,9 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/chat'
+    | '/dev-drizzle'
+    | '/dev-mcp'
+    | '/dev-swagger'
     | '/health'
     | '/project-summarization'
     | '/projects'
@@ -138,6 +171,9 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/chat'
+    | '/dev-drizzle'
+    | '/dev-mcp'
+    | '/dev-swagger'
     | '/health'
     | '/project-summarization'
     | '/projects'
@@ -151,6 +187,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssetsRoute: typeof AssetsRoute
   ChatRoute: typeof ChatRoute
+  DevDrizzleRoute: typeof DevDrizzleRoute
+  DevMcpRoute: typeof DevMcpRoute
+  DevSwaggerRoute: typeof DevSwaggerRoute
   HealthRoute: typeof HealthRoute
   ProjectSummarizationRoute: typeof ProjectSummarizationRoute
   ProjectsRoute: typeof ProjectsRoute
@@ -204,6 +243,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev-swagger': {
+      id: '/dev-swagger'
+      path: '/dev-swagger'
+      fullPath: '/dev-swagger'
+      preLoaderRoute: typeof DevSwaggerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev-mcp': {
+      id: '/dev-mcp'
+      path: '/dev-mcp'
+      fullPath: '/dev-mcp'
+      preLoaderRoute: typeof DevMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev-drizzle': {
+      id: '/dev-drizzle'
+      path: '/dev-drizzle'
+      fullPath: '/dev-drizzle'
+      preLoaderRoute: typeof DevDrizzleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -239,14 +299,15 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssetsRoute: AssetsRoute,
   ChatRoute: ChatRoute,
+  DevDrizzleRoute: DevDrizzleRoute,
+  DevMcpRoute: DevMcpRoute,
+  DevSwaggerRoute: DevSwaggerRoute,
   HealthRoute: HealthRoute,
   ProjectSummarizationRoute: ProjectSummarizationRoute,
   ProjectsRoute: ProjectsRoute,
   PromptsRoute: PromptsRoute,
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
-  QueueDashboardQueueIdRoute: QueueDashboardQueueIdRoute,
+  QueueDashboardQueueIdRoute: QueueDashboardQueueIdRoute
 }
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()

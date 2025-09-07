@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react'
+import { z } from 'zod'
 import { cn } from '../../utils'
 import {
   DialogBase,
@@ -75,7 +76,7 @@ export interface CrudModalConfig<T = any> extends BaseModalConfig {
 }
 
 export interface FormModalConfig extends BaseModalConfig {
-  formConfig: FormConfig<any>
+  formConfig: FormConfig<any, z.ZodType<any>>
   onSubmit: (data: any) => void | Promise<void>
   submitLabel?: string
   cancelLabel?: string
@@ -215,7 +216,7 @@ export function createCrudModal<T extends { id?: number }>(config: CrudModalConf
       onClose,
       initialData
     }: {
-      formConfig: FormConfig<any>
+      formConfig: FormConfig<any, z.ZodType<any>>
       isOpen: boolean
       onClose: () => void
       initialData?: Partial<T>
@@ -272,7 +273,7 @@ export function createCrudModal<T extends { id?: number }>(config: CrudModalConf
       onClose,
       item
     }: {
-      formConfig: FormConfig<any>
+      formConfig: FormConfig<any, z.ZodType<any>>
       isOpen: boolean
       onClose: () => void
       item?: T

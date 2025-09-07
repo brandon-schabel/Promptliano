@@ -26,7 +26,7 @@ const DetectedAgentFileResponseSchema = z.object({
   writable: z.boolean(),
   hasInstructions: z.boolean().optional(),
   instructionVersion: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 })
 
 const AgentFilesDetectionResponseSchema = z.object({
@@ -239,7 +239,8 @@ export const agentFilesRoutes = new OpenAPIHono()
           projectFiles: enhancedProjectFiles,
           globalFiles: enhancedGlobalFiles,
           suggestedFiles
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -273,7 +274,8 @@ export const agentFilesRoutes = new OpenAPIHono()
           message: result.message,
           backedUp: result.backedUp,
           filePath
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -299,7 +301,8 @@ export const agentFilesRoutes = new OpenAPIHono()
       return c.json(
         successResponse({
           message: result.message
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -330,7 +333,8 @@ export const agentFilesRoutes = new OpenAPIHono()
         successResponse({
           currentVersion,
           files: fileStatuses
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -380,7 +384,8 @@ export const agentFilesRoutes = new OpenAPIHono()
         successResponse({
           message: 'Successfully created agent file with instructions',
           filePath
-        })
+        }),
+        200
       )
     } catch (error) {
       if (error instanceof ApiError) throw error

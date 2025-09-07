@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Download,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from 'lucide-react'
 import {
   useGetMCPAnalyticsOverview,
@@ -31,6 +32,7 @@ import {
   useGetMCPErrorPatterns,
   useGlobalMCPManager
 } from '@/hooks/generated'
+import { useApiClient } from '@/hooks/api/use-api-client'
 import type { MCPAnalyticsRequest, MCPExecutionQuery, MCPToolSummary, MCPToolExecution } from '@promptliano/schemas'
 
 // Type for tool statistics data structure
@@ -88,6 +90,8 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
   const [timeRange, setTimeRange] = useState<'hour' | 'day' | 'week' | 'month'>('day')
   const [selectedTool, setSelectedTool] = useState<string | undefined>()
   const [showInstallDialog, setShowInstallDialog] = useState(false)
+  const [isProjectInstalling, setIsProjectInstalling] = useState(false)
+  const client = useApiClient()
 
   const analyticsRequest: MCPAnalyticsRequest = {
     projectId,
@@ -115,7 +119,7 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
     status: globalStatus,
     toolStatuses,
     isLoading: isGlobalLoading,
-    install: installGlobal,
+    installAsync: installGlobalAsync,
     isInstalling
   } = useGlobalMCPManager()
 
@@ -131,9 +135,9 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
         return
       }
 
-      // Install for each tool
+      // Install for each tool using promise form to await correctly
       for (const tool of uninstalledTools) {
-        await installGlobal({ tool: tool.tool })
+        await installGlobalAsync({ tool: tool.tool })
         toast.success(`Installed Promptliano MCP for ${tool.name}`)
       }
 
@@ -142,6 +146,29 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
       toast.error('Failed to install universal MCP configuration', {
         description: error instanceof Error ? error.message : 'Unknown error'
       })
+    }
+  }
+
+  // Handle project-level MCP installation (.mcp.json scaffold)
+  const handleInstallProjectMCP = async () => {
+    if (!client) {
+      toast.error('API client not initialized')
+      return
+    }
+    setIsProjectInstalling(true)
+    try {
+      const res = await client.typeSafeClient.createProjectsByIdMcpInstallProjectConfig(projectId, {})
+      const msg = (res as any)?.data?.message || 'Project MCP configuration installed'
+      const configPath = (res as any)?.data?.configPath
+      toast.success(msg, {
+        description: configPath ? `Created at ${configPath}` : undefined
+      })
+    } catch (error) {
+      toast.error('Failed to install project MCP configuration', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setIsProjectInstalling(false)
     }
   }
 
@@ -238,6 +265,32 @@ export function MCPAnalyticsTabView({ projectId }: MCPAnalyticsTabViewProps) {
                 )}
               </div>
             )}
+
+            {/* Project-level MCP installation (scaffold .mcp.json) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size='sm' variant='outline' onClick={handleInstallProjectMCP} disabled={isProjectInstalling}>
+                  {isProjectInstalling ? (
+                    <>
+                      <Loader2 className='h-4 w-4 mr-1 animate-spin' />
+                      Installing Project MCP
+                    </>
+                  ) : (
+                    <>
+                      <Download className='h-4 w-4 mr-1' />
+                      Install Project MCP
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='bottom' className='max-w-xs'>
+                <p className='font-medium mb-1'>Create .mcp.json</p>
+                <p className='text-sm'>
+                  Generates a project-level MCP config at the repository root and wires it to the Promptliano stdio
+                  server.
+                </p>
+              </TooltipContent>
+            </Tooltip>
 
             <Select value={timeRange} onValueChange={(value: 'hour' | 'day' | 'week' | 'month') => setTimeRange(value)}>
               <SelectTrigger className='w-[140px]'>

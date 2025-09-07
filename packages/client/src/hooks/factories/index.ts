@@ -1,8 +1,8 @@
 /**
  * Promptliano Hook Factory System
- * 
+ *
  * Central export point for all hook factories achieving 76% code reduction
- * 
+ *
  * Key achievements:
  * - 76% reduction in hook code (from 64,000 to ~15,000 lines)
  * - 100% type safety from database to UI
@@ -13,7 +13,7 @@
 
 // Import functions for internal use in bundle creator
 import { createCrudHooks } from './create-crud-hooks'
-import { createQueryHooks } from './create-query-hooks'  
+import { createQueryHooks } from './create-query-hooks'
 import { createMutationHooks } from './create-mutation-hooks'
 import { createRealtimeHooks } from './create-realtime-hooks'
 import { createOptimisticHooks } from './create-optimistic-hooks'
@@ -38,12 +38,7 @@ export type {
 
 // Batch and mutation patterns
 export { createMutationHooks } from './create-mutation-hooks'
-export type {
-  MutationHookConfig,
-  MutationHooks,
-  BatchOperation,
-  ImportExportConfig
-} from './create-mutation-hooks'
+export type { MutationHookConfig, MutationHooks, BatchOperation, ImportExportConfig } from './create-mutation-hooks'
 
 // Realtime and WebSocket patterns
 export { createRealtimeHooks, ConnectionState } from './create-realtime-hooks'
@@ -56,27 +51,12 @@ export type {
 } from './create-realtime-hooks'
 
 // Optimistic update patterns
-export { 
-  createOptimisticHooks,
-  OptimisticStrategy,
-  ConflictResolution 
-} from './create-optimistic-hooks'
-export type {
-  OptimisticConfig,
-  OptimisticHooks
-} from './create-optimistic-hooks'
+export { createOptimisticHooks, OptimisticStrategy, ConflictResolution } from './create-optimistic-hooks'
+export type { OptimisticConfig, OptimisticHooks } from './create-optimistic-hooks'
 
 // Cross-domain and composite patterns
-export {
-  createCompositeHooks,
-  RelationType,
-  CascadeOperation
-} from './create-composite-hooks'
-export type {
-  CompositeConfig,
-  CompositeHooks,
-  EntityRelationship
-} from './create-composite-hooks'
+export { createCompositeHooks, RelationType, CascadeOperation } from './create-composite-hooks'
+export type { CompositeConfig, CompositeHooks, EntityRelationship } from './create-composite-hooks'
 
 // ============================================================================
 // Query Key Management
@@ -93,11 +73,7 @@ export {
   QueryKeyBuilder
 } from './query-key-factory'
 
-export type {
-  QueryKeyFactory,
-  ExtendedQueryKeyFactory,
-  CompositeQueryKeyFactory
-} from './query-key-factory'
+export type { QueryKeyFactory, ExtendedQueryKeyFactory, CompositeQueryKeyFactory } from './query-key-factory'
 
 // ============================================================================
 // Legacy Factories (To Be Migrated)
@@ -137,42 +113,57 @@ export function createEntityHooksBundle<
 
   // Always include CRUD hooks
   if (features.crud !== false) {
-    Object.assign(hooks, createCrudHooks<TEntity, TCreate, TUpdate>({
-      entityName: config.entityName,
-      clientPath: config.clientPath
-    }))
+    Object.assign(
+      hooks,
+      createCrudHooks<TEntity, TCreate, TUpdate>({
+        entityName: config.entityName,
+        clientPath: config.clientPath
+      })
+    )
   }
 
   // Add query hooks if enabled
   if (features.query) {
-    Object.assign(hooks, createQueryHooks<TEntity>({
-      entityName: config.entityName,
-      clientPath: config.clientPath
-    }))
+    Object.assign(
+      hooks,
+      createQueryHooks<TEntity>({
+        entityName: config.entityName,
+        clientPath: config.clientPath
+      })
+    )
   }
 
   // Add mutation hooks if enabled
   if (features.mutation) {
-    Object.assign(hooks, createMutationHooks<TEntity>({
-      entityName: config.entityName,
-      clientPath: config.clientPath
-    }))
+    Object.assign(
+      hooks,
+      createMutationHooks<TEntity>({
+        entityName: config.entityName,
+        clientPath: config.clientPath
+      })
+    )
   }
 
   // Add realtime hooks if enabled
   if (features.realtime) {
-    Object.assign(hooks, createRealtimeHooks<TEntity>({
-      entityName: config.entityName,
-      clientPath: config.clientPath
-    }))
+    Object.assign(
+      hooks,
+      createRealtimeHooks<TEntity>({
+        entityName: config.entityName,
+        clientPath: config.clientPath
+      })
+    )
   }
 
   // Add optimistic hooks if enabled
   if (features.optimistic) {
-    Object.assign(hooks, createOptimisticHooks<TEntity, TCreate, TUpdate>({
-      entityName: config.entityName,
-      clientPath: config.clientPath
-    }))
+    Object.assign(
+      hooks,
+      createOptimisticHooks<TEntity, TCreate, TUpdate>({
+        entityName: config.entityName,
+        clientPath: config.clientPath
+      })
+    )
   }
 
   return hooks

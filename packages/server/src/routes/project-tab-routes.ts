@@ -34,7 +34,7 @@ const projectTabNameGenerateRoute = createRoute({
       success: z.literal(true),
       data: z.object({
         name: z.string(),
-        status: z.literal('success'),
+        status: z.enum(['success', 'fallback']),
         generatedAt: z.string()
       })
     })
@@ -63,7 +63,8 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
         name: tabGenerationResult.name,
         status: tabGenerationResult.status,
         generatedAt: tabGenerationResult.generatedAt.toISOString()
-      })
+      }),
+      200
     )
   } catch (error) {
     console.error('Failed to generate tab name:', error)

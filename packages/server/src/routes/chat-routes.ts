@@ -177,6 +177,7 @@ const deleteChatRoute = createRoute({
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
 })
+
 export const chatRoutes = new OpenAPIHono()
   .openapi(getAllChatsRoute, async (c) => {
     return await withErrorContext(
@@ -195,12 +196,12 @@ export const chatRoutes = new OpenAPIHono()
   })
   .openapi(createChatRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
-    
+
     const chat = await chatService.createChat(body.title, {
       copyExisting: body.copyExisting,
       currentChatId: body.currentChatId
     })
-    
+
     return c.json(successResponse(chat), 201)
   })
   .openapi(getChatMessagesRoute, async (c) => {
@@ -299,6 +300,261 @@ export const chatRoutes = new OpenAPIHono()
         message: 'Chat deleted successfully'
       } satisfies z.infer<typeof OperationSuccessResponseSchema>,
       200
+    )
+  })
+
+// Manual routes - basic CRUD operations
+const getChatByIdRoute = createRoute({
+  method: 'get',
+  path: '/api/chats/{id}',
+  tags: ['Chats'],
+  summary: 'Get a chat by ID',
+  request: {
+    params: z.object({
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
+    })
+  },
+  responses: createStandardResponses(ChatResponseSchema)
+})
+
+const updateChatByIdRoute = createRoute({
+  method: 'put',
+  path: '/api/chats/{id}',
+  tags: ['Chats'],
+  summary: 'Update a chat by ID',
+  request: {
+    params: z.object({
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateChatBodySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(ChatResponseSchema)
+})
+
+const deleteChatByIdRoute = createRoute({
+  method: 'delete',
+  path: '/api/chats/{id}',
+  tags: ['Chats'],
+  summary: 'Delete a chat by ID',
+  request: {
+    params: z.object({
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
+    })
+  },
+  responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+chatRoutes
+  .openapi(getAllChatsRoute, async (c) => {
+    return await withErrorContext(
+      async () => {
+        const userChats = await chatService.getAllChats()
+        return c.json(
+          {
+            success: true,
+            data: userChats
+          } satisfies z.infer<typeof ChatListResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'list' }
+    )
+  })
+  .openapi(createChatRoute, async (c): Promise<any> => {
+    const body = c.req.valid('json')
+
+    const chat = await chatService.createChat(body.title, {
+      copyExisting: body.copyExisting,
+      currentChatId: body.currentChatId
+    })
+
+    return c.json(successResponse(chat), 201)
+  })
+  .openapi(getChatMessagesRoute, async (c) => {
+    const { chatId } = c.req.valid('param')
+    const messages = await chatService.getChatMessages(chatId)
+    return c.json(
+      {
+        success: true,
+
+        data: messages.map((msg) => ({
+          ...msg,
+          role: msg.role as z.infer<typeof MessageRoleEnum>
+        }))
+      } satisfies z.infer<typeof MessageListResponseSchema>,
+      200
+    )
+  })
+  .openapi(postAiChatSdkRoute, async (c) => {
+    const { chatId, userMessage, options, systemMessage, tempId, enableChatAutoNaming } = c.req.valid('json')
+
+    const provider = options?.provider as APIProviders
+    const model = options?.model as string
+
+    console.log(`[Hono AI Chat] /ai/chat request: ChatID=${chatId}, Provider=${provider}, Model=${model}`)
+
+    return await withErrorContext(
+      async () => {
+        const unifiedOptions = { ...options, model }
+
+        c.header('Content-Type', 'text/event-stream; charset=utf-8')
+        c.header('Cache-Control', 'no-cache')
+        c.header('Connection', 'keep-alive')
+
+        const readableStream = await handleChatMessage({
+          chatId,
+          userMessage,
+          options: unifiedOptions,
+          systemMessage,
+          tempId,
+          enableChatAutoNaming
+        })
+
+        return stream(c, async (streamInstance) => {
+          await streamInstance.pipe(readableStream.toDataStream())
+        })
+      },
+      {
+        entity: 'Chat',
+        action: 'ai_stream',
+        correlationId: String(chatId),
+        metadata: { provider, model, tempId }
+      }
+    )
+  })
+  .openapi(forkChatRoute, async (c): Promise<any> => {
+    const { chatId } = c.req.valid('param')
+    const { excludedMessageIds } = c.req.valid('json')
+    const newChat = await chatService.forkChat(chatId, excludedMessageIds)
+    return c.json(successResponse(newChat), 201)
+  })
+  .openapi(forkChatFromMessageRoute, async (c): Promise<any> => {
+    const { chatId, messageId } = c.req.valid('param')
+    const { excludedMessageIds } = c.req.valid('json')
+    const newChat = await chatService.forkChatFromMessage(chatId, messageId, excludedMessageIds)
+    return c.json(successResponse(newChat), 201)
+  })
+  .openapi(deleteMessageRoute, async (c) => {
+    const { messageId, chatId } = c.req.valid('param')
+    await chatService.deleteMessage(chatId, messageId)
+    return c.json(
+      {
+        success: true,
+        message: 'Message deleted successfully'
+      } satisfies z.infer<typeof OperationSuccessResponseSchema>,
+      200
+    )
+  })
+  .openapi(updateChatRoute, async (c) => {
+    const { chatId } = c.req.valid('param')
+    const { title } = c.req.valid('json')
+    const updatedChat = await chatService.updateChat(chatId, title)
+    return c.json(
+      {
+        success: true,
+        data: updatedChat
+      } satisfies z.infer<typeof ChatResponseSchema>,
+      200
+    )
+  })
+  .openapi(deleteChatRoute, async (c) => {
+    const { chatId } = c.req.valid('param')
+    await chatService.deleteChat(chatId)
+    return c.json(
+      {
+        success: true,
+        message: 'Chat deleted successfully'
+      } satisfies z.infer<typeof OperationSuccessResponseSchema>,
+      200
+    )
+  })
+  // Manual routes - basic CRUD operations
+  .openapi(getChatByIdRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    return await withErrorContext(
+      async () => {
+        const chat = await chatService.getById(id)
+        if (!chat) {
+          throw ErrorFactory.notFound('Chat', id)
+        }
+        return c.json(
+          {
+            success: true,
+            data: chat
+          } satisfies z.infer<typeof ChatResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'get', correlationId: String(id) }
+    )
+  })
+  .openapi(updateChatByIdRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const body = c.req.valid('json')
+    return await withErrorContext(
+      async () => {
+        const updatedChat = await chatService.updateChat(id, typeof body === 'string' ? body : body.title)
+        return c.json(
+          {
+            success: true,
+            data: updatedChat
+          } satisfies z.infer<typeof ChatResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'update', correlationId: String(id) }
+    )
+  })
+  .openapi(deleteChatByIdRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    return await withErrorContext(
+      async () => {
+        await chatService.deleteChat(id)
+        return c.json(
+          {
+            success: true,
+            message: 'Chat deleted successfully'
+          } satisfies z.infer<typeof OperationSuccessResponseSchema>,
+          200
+        )
+      },
+      { entity: 'Chat', action: 'delete', correlationId: String(id) }
     )
   })
 

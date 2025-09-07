@@ -140,8 +140,13 @@ function ApiReferencePage() {
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Notes:</p>
                 <ul className='list-disc list-inside text-sm text-muted-foreground mb-6'>
-                  <li>Supports filters: <code>fileTypes</code>, <code>excludePatterns</code>, <code>maxFilesPerDir</code></li>
-                  <li>Returns <code>{`{ tree, meta }`}</code> with <code>meta.totalFiles</code> and <code>meta.returnedFiles</code></li>
+                  <li>
+                    Supports filters: <code>fileTypes</code>, <code>excludePatterns</code>, <code>maxFilesPerDir</code>
+                  </li>
+                  <li>
+                    Returns <code>{`{ tree, meta }`}</code> with <code>meta.totalFiles</code> and{' '}
+                    <code>meta.returnedFiles</code>
+                  </li>
                 </ul>
               </div>
 
@@ -164,8 +169,13 @@ function ApiReferencePage() {
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Tips:</p>
                 <ul className='list-disc list-inside text-sm text-muted-foreground'>
-                  <li>Available search types: <code>exact</code>, <code>fuzzy</code>, <code>regex</code>, <code>semantic</code></li>
-                  <li>Supports <code>caseSensitive</code>, <code>contextLines</code>, <code>scoringMethod</code></li>
+                  <li>
+                    Available search types: <code>exact</code>, <code>fuzzy</code>, <code>regex</code>,{' '}
+                    <code>semantic</code>
+                  </li>
+                  <li>
+                    Supports <code>caseSensitive</code>, <code>contextLines</code>, <code>scoringMethod</code>
+                  </li>
                 </ul>
               </div>
 
@@ -635,7 +645,8 @@ function ApiReferencePage() {
             </ul>
 
             <div className='mt-4 text-sm text-muted-foreground'>
-              Tip: Always fetch a valid project ID first via <code>project_manager(list)</code> and reuse that <code>projectId</code>.
+              Tip: Always fetch a valid project ID first via <code>project_manager(list)</code> and reuse that{' '}
+              <code>projectId</code>.
             </div>
           </GlassCard>
         </div>

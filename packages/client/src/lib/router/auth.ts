@@ -43,7 +43,13 @@ export function getAuthState(): AuthState {
  * beforeLoad function to check authentication
  * Redirects to login if not authenticated
  */
-export async function requireAuth({ location, context }: { location: ParsedLocation; context: Record<string, unknown> }) {
+export async function requireAuth({
+  location,
+  context
+}: {
+  location: ParsedLocation
+  context: Record<string, unknown>
+}) {
   const auth = getAuthState()
 
   if (!auth.isAuthenticated) {
@@ -61,7 +67,13 @@ export async function requireAuth({ location, context }: { location: ParsedLocat
 /**
  * beforeLoad function for admin-only routes
  */
-export async function requireAdmin({ location, context }: { location: ParsedLocation; context: Record<string, unknown> }) {
+export async function requireAdmin({
+  location,
+  context
+}: {
+  location: ParsedLocation
+  context: Record<string, unknown>
+}) {
   const auth = getAuthState()
 
   if (!auth.isAuthenticated) {

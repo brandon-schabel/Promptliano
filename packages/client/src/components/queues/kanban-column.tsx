@@ -52,7 +52,7 @@ export function KanbanColumn({
   // Calculate estimated time (simplified since stats structure changed)
   const estimatedTime =
     stats?.inProgressItems || stats?.queuedItems
-      ? Math.round(((stats?.inProgressItems || 0) + (stats?.queuedItems || 0)) * 5 / 60)
+      ? Math.round((((stats?.inProgressItems || 0) + (stats?.queuedItems || 0)) * 5) / 60)
       : null
 
   return (
@@ -66,7 +66,14 @@ export function KanbanColumn({
       {/* Column Header */}
       <div className='p-3 border-b bg-muted/20'>
         <div className='flex items-center justify-between mb-2'>
-          <h3 className='font-semibold text-base'>{title}</h3>
+          <div className='flex items-center gap-2'>
+            <h3 className='font-semibold text-base'>{title}</h3>
+            {!isUnqueued && queue?.queue?.id != null && (
+              <Badge variant='outline' className='text-[10px] h-5 px-2'>
+                ID: {queue.queue.id}
+              </Badge>
+            )}
+          </div>
           {!isUnqueued && queue && (
             <div className='flex items-center gap-1'>
               {isActive ? (
@@ -105,7 +112,8 @@ export function KanbanColumn({
                 </Badge>
                 <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                   <span>{stats?.queuedItems || 0} pending</span>
-                  {stats?.inProgressItems || 0 > 0 && <span className='text-primary'>{stats?.inProgressItems || 0} processing</span>}
+                  {stats?.inProgressItems ||
+                    (0 > 0 && <span className='text-primary'>{stats?.inProgressItems || 0} processing</span>)}
                 </div>
               </>
             )

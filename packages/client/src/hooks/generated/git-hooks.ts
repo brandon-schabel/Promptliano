@@ -189,7 +189,7 @@ export function useFileDiff(
       const diffData = response?.data || response
       // Ensure diff property is available for backward compatibility
       if (diffData && typeof diffData === 'object' && 'content' in diffData && !('diff' in diffData)) {
-        ; (diffData as any).diff = diffData.content
+        ;(diffData as any).diff = diffData.content
       }
       return diffData
     },

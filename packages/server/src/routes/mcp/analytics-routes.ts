@@ -383,17 +383,19 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
   .openapi(getMCPAnalyticsRoute, async (c) => {
     const query = c.req.valid('query')
     // TODO: Implement full analytics
+    const startISO = query.startDate ? new Date(query.startDate).toISOString() : new Date().toISOString()
+    const endISO = query.endDate ? new Date(query.endDate).toISOString() : new Date().toISOString()
     const analytics = {
       period: {
-        start: query.startDate || new Date().toISOString(),
-        end: query.endDate || new Date().toISOString()
+        start: startISO,
+        end: endISO
       },
       servers: [],
       tools: [],
       totalRequests: 0,
       totalErrors: 0
     }
-    return c.json(successResponse(analytics))
+    return c.json(successResponse(analytics), 200)
   })
   .openapi(getMCPServerStatsRoute, async (c) => {
     const { serverId } = c.req.valid('param')
@@ -407,7 +409,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
       avgResponseTime: 0,
       lastActivity: new Date().toISOString()
     }
-    return c.json(successResponse(stats))
+    return c.json(successResponse(stats), 200)
   })
   .openapi(getToolUsageStatsRoute, async (c) => {
     const { period, limit } = c.req.valid('query')
@@ -418,7 +420,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
       totalExecutions: 0,
       totalErrors: 0
     }
-    return c.json(successResponse(stats))
+    return c.json(successResponse(stats), 200)
   })
   .openapi(getResourceAccessStatsRoute, async (c) => {
     const { period } = c.req.valid('query')
@@ -428,7 +430,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
       topResources: [],
       totalAccesses: 0
     }
-    return c.json(successResponse(stats))
+    return c.json(successResponse(stats), 200)
   })
   .openapi(generateUsageReportRoute, async (c) => {
     const body = c.req.valid('json')
@@ -443,7 +445,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
       format: body.format || 'json',
       content: {}
     }
-    return c.json(successResponse(report))
+    return c.json(successResponse(report), 200)
   })
   .openapi(getSessionStatsRoute, async (c) => {
     // TODO: Implement session stats
@@ -454,7 +456,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
       peakConcurrentSessions: 0,
       sessionsByServer: {}
     }
-    return c.json(successResponse(stats))
+    return c.json(successResponse(stats), 200)
   })
   .openapi(getPerformanceMetricsRoute, async (c) => {
     const { metricType, aggregation } = c.req.valid('query')
@@ -468,7 +470,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
         changePercent: 0
       }
     }
-    return c.json(successResponse(metrics))
+    return c.json(successResponse(metrics), 200)
   })
   // Add new project-specific routes
   .openapi(getProjectMCPOverviewRoute, async (c) => {
@@ -477,7 +479,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     try {
       const overview = await getMCPAnalyticsOverview(projectId)
-      return c.json(successResponse(overview))
+      return c.json(successResponse(overview), 200)
     } catch (error) {
       throw error
     }
@@ -493,7 +495,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
         toolNames: query.toolNames?.split(',')
       }
       const statistics = await getMCPToolStatistics(request)
-      return c.json(successResponse(statistics))
+      return c.json(successResponse(statistics), 200)
     } catch (error) {
       throw error
     }
@@ -504,7 +506,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     try {
       const timeline = await getMCPExecutionTimeline(projectId, query.period || 'day')
-      return c.json(successResponse(timeline))
+      return c.json(successResponse(timeline), 200)
     } catch (error) {
       throw error
     }
@@ -515,7 +517,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     try {
       const errorPatterns = await getTopErrorPatterns(projectId, 10)
-      return c.json(successResponse(errorPatterns))
+      return c.json(successResponse(errorPatterns), 200)
     } catch (error) {
       throw error
     }
@@ -537,7 +539,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
         sortOrder: query.sortOrder || 'desc'
       }
       const result = await getMCPToolExecutions(executionQuery)
-      return c.json(successResponse(result))
+      return c.json(successResponse(result), 200)
     } catch (error) {
       throw error
     }

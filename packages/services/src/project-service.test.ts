@@ -68,11 +68,11 @@ describe('Project Service (Isolated Database)', () => {
         return project
       }),
       getById: mock(async (id: number) => {
-        return projectsStore.find(p => p.id === id) || null
+        return projectsStore.find((p) => p.id === id) || null
       }),
       getAll: mock(async () => [...projectsStore]),
       update: mock(async (id: number, data: any) => {
-        const index = projectsStore.findIndex(p => p.id === id)
+        const index = projectsStore.findIndex((p) => p.id === id)
         if (index === -1) throw new Error(`Project with ID ${id} not found`)
         const updated = {
           ...projectsStore[index],
@@ -83,16 +83,16 @@ describe('Project Service (Isolated Database)', () => {
         return updated
       }),
       delete: mock(async (id: number) => {
-        const index = projectsStore.findIndex(p => p.id === id)
+        const index = projectsStore.findIndex((p) => p.id === id)
         if (index === -1) throw new Error(`Project with ID ${id} not found`)
         projectsStore.splice(index, 1)
         return true
       }),
       getByPath: mock(async (path: string) => {
-        return projectsStore.find(p => p.path === path) || null
+        return projectsStore.find((p) => p.path === path) || null
       }),
       getWithAllRelations: mock(async (id: number) => {
-        const project = projectsStore.find(p => p.id === id)
+        const project = projectsStore.find((p) => p.id === id)
         if (!project) return null
         return {
           ...project,
@@ -226,27 +226,33 @@ describe('Project Service (Isolated Database)', () => {
       let all = await projectService.list()
       expect(all.length).toBe(0)
 
-      const p1 = await projectService.create(TestDataFactory.project({
-        name: 'Project1',
-        path: '/project1'
-      }))
+      const p1 = await projectService.create(
+        TestDataFactory.project({
+          name: 'Project1',
+          path: '/project1'
+        })
+      )
       await new Promise((resolve) => setTimeout(resolve, 10)) // Ensure timestamp difference
-      const p2 = await projectService.create(TestDataFactory.project({
-        name: 'Project2',
-        path: '/project2'
-      }))
+      const p2 = await projectService.create(
+        TestDataFactory.project({
+          name: 'Project2',
+          path: '/project2'
+        })
+      )
 
       all = await projectService.list()
       expect(all.length).toBe(2)
-      expect(all.some(p => p.id === p1.id)).toBe(true)
-      expect(all.some(p => p.id === p2.id)).toBe(true)
+      expect(all.some((p) => p.id === p1.id)).toBe(true)
+      expect(all.some((p) => p.id === p2.id)).toBe(true)
     })
 
     test('should update project', async () => {
-      const created = await projectService.create(TestDataFactory.project({
-        name: 'Before',
-        path: '/old'
-      }))
+      const created = await projectService.create(
+        TestDataFactory.project({
+          name: 'Before',
+          path: '/old'
+        })
+      )
 
       const updates: UpdateProjectBody = { name: 'After', description: 'New Desc' }
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -262,14 +268,18 @@ describe('Project Service (Isolated Database)', () => {
 
     test('should throw when updating non-existent project', async () => {
       const nonExistentId = 999999999999
-      await expect(projectService.update(nonExistentId, { name: 'X' })).rejects.toThrow('Project with ID 999999999999 not found')
+      await expect(projectService.update(nonExistentId, { name: 'X' })).rejects.toThrow(
+        'Project with ID 999999999999 not found'
+      )
     })
 
     test('should delete project', async () => {
-      const project = await projectService.create(TestDataFactory.project({
-        name: 'DelMe',
-        path: '/del/me'
-      }))
+      const project = await projectService.create(
+        TestDataFactory.project({
+          name: 'DelMe',
+          path: '/del/me'
+        })
+      )
 
       const success = await projectService.delete(project.id)
       expect(success).toBe(true)
@@ -286,10 +296,12 @@ describe('Project Service (Isolated Database)', () => {
     let projectId: number
 
     beforeEach(async () => {
-      const proj = await projectService.create(TestDataFactory.project({
-        name: 'FileTestProj',
-        path: '/file/test'
-      }))
+      const proj = await projectService.create(
+        TestDataFactory.project({
+          name: 'FileTestProj',
+          path: '/file/test'
+        })
+      )
       projectId = proj.id
     })
 
@@ -300,7 +312,9 @@ describe('Project Service (Isolated Database)', () => {
 
     test('should handle non-existent project for file operations', async () => {
       const nonExistentProjectId = 999999999999
-      await expect(projectService.getProjectFiles(nonExistentProjectId)).rejects.toThrow('Project with ID 999999999999 not found')
+      await expect(projectService.getProjectFiles(nonExistentProjectId)).rejects.toThrow(
+        'Project with ID 999999999999 not found'
+      )
     })
   })
 
@@ -308,10 +322,12 @@ describe('Project Service (Isolated Database)', () => {
     let projectId: number
 
     beforeEach(async () => {
-      const proj = await projectService.create(TestDataFactory.project({
-        name: 'SummarizeProj',
-        path: '/summarize/test'
-      }))
+      const proj = await projectService.create(
+        TestDataFactory.project({
+          name: 'SummarizeProj',
+          path: '/summarize/test'
+        })
+      )
       projectId = proj.id
 
       // Reset mock return for generateStructuredData for each test if specific return values are needed

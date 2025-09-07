@@ -375,11 +375,16 @@ export class ErrorFactory {
         if (ErrorFactory.notFound) {
           return ErrorFactory.notFound(entityName, id, context)
         }
-        return new ApiError(404, `${entityName} with ID ${id} not found`, `${entityName.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`, {
-          entity: entityName,
-          id,
-          ...context
-        })
+        return new ApiError(
+          404,
+          `${entityName} with ID ${id} not found`,
+          `${entityName.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`,
+          {
+            entity: entityName,
+            id,
+            ...context
+          }
+        )
       },
       alreadyExists: (field: string, value: string | number, context?: ErrorContext) => {
         if (ErrorFactory.alreadyExists) {
@@ -406,23 +411,33 @@ export class ErrorFactory {
         if (ErrorFactory.updateFailed) {
           return ErrorFactory.updateFailed(entityName, id, reason, context)
         }
-        return new ApiError(500, `Failed to update ${entityName} with ID ${id}${reason ? `: ${reason}` : ''}`, 'UPDATE_FAILED', {
-          entity: entityName,
-          id,
-          reason,
-          ...context
-        })
+        return new ApiError(
+          500,
+          `Failed to update ${entityName} with ID ${id}${reason ? `: ${reason}` : ''}`,
+          'UPDATE_FAILED',
+          {
+            entity: entityName,
+            id,
+            reason,
+            ...context
+          }
+        )
       },
       deleteFailed: (id: number | string, reason?: string, context?: ErrorContext) => {
         if (ErrorFactory.deleteFailed) {
           return ErrorFactory.deleteFailed(entityName, id, reason, context)
         }
-        return new ApiError(500, `Failed to delete ${entityName} with ID ${id}${reason ? `: ${reason}` : ''}`, 'DELETE_FAILED', {
-          entity: entityName,
-          id,
-          reason,
-          ...context
-        })
+        return new ApiError(
+          500,
+          `Failed to delete ${entityName} with ID ${id}${reason ? `: ${reason}` : ''}`,
+          'DELETE_FAILED',
+          {
+            entity: entityName,
+            id,
+            reason,
+            ...context
+          }
+        )
       },
       validationFailed: (errors: any, context?: ErrorContext) => {
         if (ErrorFactory.validationFailed) {
@@ -434,11 +449,16 @@ export class ErrorFactory {
         if (ErrorFactory.invalidState) {
           return ErrorFactory.invalidState(entityName, currentState, attemptedAction)
         }
-        return new ApiError(400, `Cannot ${attemptedAction} ${entityName} in current state: ${currentState}`, 'INVALID_STATE', {
-          entity: entityName,
-          currentState,
-          attemptedAction
-        })
+        return new ApiError(
+          400,
+          `Cannot ${attemptedAction} ${entityName} in current state: ${currentState}`,
+          'INVALID_STATE',
+          {
+            entity: entityName,
+            currentState,
+            attemptedAction
+          }
+        )
       }
     }
   }
@@ -456,10 +476,15 @@ export function assertExists<T>(value: T | null | undefined, entity: string, id:
     if (ErrorFactory.notFound) {
       throw ErrorFactory.notFound(entity, id)
     }
-    throw new ApiError(404, `${entity} with ID ${id} not found`, `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`, {
-      entity,
-      id
-    })
+    throw new ApiError(
+      404,
+      `${entity} with ID ${id} not found`,
+      `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`,
+      {
+        entity,
+        id
+      }
+    )
   }
 }
 
@@ -574,10 +599,15 @@ export async function withErrorContext<T>(operation: () => Promise<T>, context: 
       wrappedError = ErrorFactory.wrap(error, `${context.entity || 'Unknown'}.${context.action || 'operation'}`)
     } else {
       const message = error instanceof Error ? error.message : String(error)
-      wrappedError = new ApiError(500, `${context.entity || 'Unknown'}.${context.action || 'operation'}: ${message}`, 'INTERNAL_ERROR', {
-        originalError: error,
-        ...context
-      })
+      wrappedError = new ApiError(
+        500,
+        `${context.entity || 'Unknown'}.${context.action || 'operation'}: ${message}`,
+        'INTERNAL_ERROR',
+        {
+          originalError: error,
+          ...context
+        }
+      )
     }
 
     // Add full context to the wrapped error

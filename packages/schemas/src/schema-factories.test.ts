@@ -877,7 +877,7 @@ describe('schema-factories', () => {
         role: z.enum(['user', 'admin']),
         isActive: z.boolean().default(true),
         tags: z.array(z.string()).default([]),
-        metadata: z.record(z.any()).default({})
+        metadata: z.record(z.string(), z.any()).default({})
       }
 
       const schemas = createCrudSchemas('User', baseFields, {
@@ -1022,7 +1022,7 @@ describe('schema-factories', () => {
         addresses: createArrayField(addressSchema, 'User addresses'),
         primaryAddress: createNullableField(addressSchema, 'Primary address'),
         status: createEnumField(['active', 'suspended', 'deleted'] as const, 'active'),
-        preferences: z.record(z.union([z.string(), z.number(), z.boolean()])).default({})
+        preferences: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({})
       }
 
       const schemas = createEntitySchemas('User', baseFields)

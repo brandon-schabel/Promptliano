@@ -7,14 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Checkbox } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Info, FileText } from 'lucide-react'
-import {
-  useProjectFiles
-} from '@/hooks/generated'
-import {
-  useGetProjectSummary,
-  useRemoveSummariesFromFiles,
-  useSummarizeProjectFiles
-} from '@/hooks/api-hooks'
+import { useProjectFiles } from '@/hooks/generated'
+import { useGetProjectSummary, useRemoveSummariesFromFiles, useSummarizeProjectFiles } from '@/hooks/api-hooks'
 import { buildCombinedFileSummariesXml } from '@promptliano/shared'
 
 import { FileViewerDialog } from '@/components/navigation/file-viewer-dialog'

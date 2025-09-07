@@ -108,11 +108,7 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
 
                       return (
                         <div key={q.id ?? index} className='relative'>
-                          <RadioGroupItem
-                            value={q.id?.toString?.()}
-                            id={`queue-${q.id}`}
-                            className='peer sr-only'
-                          />
+                          <RadioGroupItem value={q.id?.toString?.()} id={`queue-${q.id}`} className='peer sr-only' />
                           <Label htmlFor={`queue-${q.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
@@ -129,9 +125,7 @@ export function AddToQueueDialog({ isOpen, onClose, ticketId, projectId, ticketT
                                       <span className='font-medium'>{q.name}</span>
                                     </div>
                                     {q.description && (
-                                      <p className='text-xs text-muted-foreground mb-2 line-clamp-1'>
-                                        {q.description}
-                                      </p>
+                                      <p className='text-xs text-muted-foreground mb-2 line-clamp-1'>{q.description}</p>
                                     )}
                                     <div className='flex items-center gap-3 text-xs'>
                                       <Badge variant='secondary' className='text-xs'>

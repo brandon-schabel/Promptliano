@@ -70,7 +70,7 @@ export const tanstackValidation = {
 
   oneOf: <T extends readonly [string, ...string[]]>(values: T, message?: string) =>
     z.enum(values, {
-      errorMap: () => ({ message: message || `Must be one of: ${values.join(', ')}` })
+      message: message || `Must be one of: ${values.join(', ')}`
     }),
 
   // Date range validation
@@ -189,14 +189,22 @@ export const tanstackDynamicValidation = {
         const result = schema.safeParse(data)
         if (!result.success) {
           result.error.issues.forEach((issue) => {
-            ctx.addIssue(issue)
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: issue.message,
+              path: issue.path
+            })
           })
         }
       } else if (fallback) {
         const result = fallback.safeParse(data)
         if (!result.success) {
           result.error.issues.forEach((issue) => {
-            ctx.addIssue(issue)
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: issue.message,
+              path: issue.path
+            })
           })
         }
       }

@@ -50,11 +50,7 @@ test.describe('Cloud Provider Configuration', () => {
         route.fulfill({
           status: 200,
           body: JSON.stringify({
-            data: [
-              { id: 'claude-3-opus-20240229' },
-              { id: 'claude-4-sonnet' },
-              { id: 'claude-3-haiku-20240307' }
-            ]
+            data: [{ id: 'claude-3-opus-20240229' }, { id: 'claude-4-sonnet' }, { id: 'claude-3-haiku-20240307' }]
           })
         })
       }

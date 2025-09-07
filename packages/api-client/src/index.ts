@@ -64,6 +64,150 @@ export class PromptlianoClient {
     return this.typeSafe
   }
 
+  // Model Configuration endpoints
+  public readonly modelConfigs = {
+    list: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to list model configs (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    get: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    getById: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    create: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to create model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    update: async (id: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to update model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    delete: async (id: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to delete model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    getDefaultForProvider: async (provider: string) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/default/${provider}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get default model config (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    listPresets: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-presets`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to list model presets (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    getModelPresets: async (configId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get model presets (${res.status})`)
+      const result = await res.json()
+      return result.data || []
+    },
+    createPreset: async (configId: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to create preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    updatePreset: async (configId: number, presetId: number, data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to update preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    deletePreset: async (configId: number, presetId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to delete preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    applyPreset: async (configId: number, presetId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/${configId}/presets/${presetId}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to apply preset (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    exportConfigs: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/export`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to export configs (${res.status})`)
+      const result = await res.json()
+      return result.data
+    },
+    importConfigs: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/model-configs/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to import configs (${res.status})`)
+      const result = await res.json()
+      return result.data
+    }
+  }
+
   // BACKWARD-COMPATIBLE service namespaces (core methods only)
   public readonly projects = {
     listProjects: () => this.typeSafe.getProjects(),
@@ -187,10 +331,8 @@ export class PromptlianoClient {
     // Task management
     getTasks: (ticketId: number) => this.typeSafe.listTicketsByTicketIdTasks(ticketId),
     createTask: (ticketId: number, data: any) => this.typeSafe.createTicketsByTicketIdTasks(ticketId, data),
-    updateTask: (ticketId: number, taskId: number, data: any) =>
-      this.typeSafe.updateTickettask(taskId, data),
-    deleteTask: (ticketId: number, taskId: number) =>
-      this.typeSafe.deleteTickettask(taskId),
+    updateTask: (ticketId: number, taskId: number, data: any) => this.typeSafe.updateTickettask(taskId, data),
+    deleteTask: (ticketId: number, taskId: number) => this.typeSafe.deleteTickettask(taskId),
     reorderTasks: (ticketId: number, data: any) => this.typeSafe.createFlowReorder(data),
     // Pass empty body to avoid JSON parse errors when server expects optional JSON with Content-Type set
     autoGenerateTasks: (ticketId: number) =>
@@ -212,7 +354,24 @@ export class PromptlianoClient {
     suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
-    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file)
+    validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
+    // Connect/disconnect prompts to projects
+    addPromptToProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to connect prompt to project (${res.status})`)
+      return res.json()
+    },
+    removePromptFromProject: async (promptId: number, projectId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to disconnect prompt from project (${res.status})`)
+      return res.json()
+    }
   }
 
   public readonly git = {
@@ -252,10 +411,8 @@ export class PromptlianoClient {
       this.typeSafe.createProjectsByIdGitFetch(projectId, { remote, prune }),
     createTag: (projectId: number, name: string, options?: { message?: string; ref?: string }) =>
       this.typeSafe.createProjectsByIdGitTags(projectId, { name, ...options }),
-    stash: (projectId: number, message?: string) =>
-      this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
-    stashApply: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
+    stash: (projectId: number, message?: string) => this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
+    stashApply: (projectId: number, ref?: string) => this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
     stashPop: (projectId: number, ref?: string) =>
       this.typeSafe.createProjectsByIdGitStashPop(projectId, ref ? { stashRef: ref } : {}),
     stashDrop: (projectId: number, ref?: string) =>
@@ -307,9 +464,7 @@ export class PromptlianoClient {
     generateStructured: (data: any) => this.typeSafe.createGenAiStructured(data),
     streamText: (data: any) => this.typeSafe.createGenAiStream(data),
     getProviders: () =>
-      this.typeSafe
-        .getProviders()
-        .then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r)),
+      this.typeSafe.getProviders().then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r)),
     getModels: (provider?: string, options?: { ollamaUrl?: string; lmstudioUrl?: string }) => {
       const query: Record<string, any> = {}
       if (provider) query.provider = provider
@@ -458,14 +613,10 @@ export class PromptlianoClient {
 
   // MCP Analytics methods
   public readonly mcpAnalytics = {
-    getExecutions: (projectId: number, query?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsExecutions(projectId),
-    getOverview: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsOverview(projectId),
-    getStatistics: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsStatistics(projectId),
-    getTimeline: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsTimeline(projectId),
+    getExecutions: (projectId: number, query?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsExecutions(projectId),
+    getOverview: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsOverview(projectId),
+    getStatistics: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsStatistics(projectId),
+    getTimeline: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsTimeline(projectId),
     getErrorPatterns: (projectId: number, request?: any) =>
       this.typeSafe.getProjectsByIdMcpAnalyticsErrorPatterns(projectId)
   }
@@ -563,13 +714,11 @@ export class PromptlianoClient {
     browseDirectory: (data: any) => this.typeSafe.createBrowseDirector(data)
   }
 
-
   // Add missing direct file access method
   listProjectsByProjectIdFiles = (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId)
 
   // Add missing flow reorder method
   createFlowReorder = (data: any) => this.typeSafe.createFlowReorder(data)
-
 }
 
 /**

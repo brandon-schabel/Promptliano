@@ -10,10 +10,10 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { createLogger } from './utils/logger'
 import { withErrorContext, withRetry } from './utils/service-helpers'
-import { 
-  MCPErrorFactory, 
-  MCPFileOps, 
-  MCPRetryConfig, 
+import {
+  MCPErrorFactory,
+  MCPFileOps,
+  MCPRetryConfig,
   MCPValidation,
   MCPPlatformPaths,
   createProgressTracker,
@@ -36,12 +36,14 @@ export type MCPTool = z.infer<typeof MCPToolSchema>
 const MCPServerSchema = z.object({
   command: z.string(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional()
+  // Zod v4: provide key and value types
+  env: z.record(z.string(), z.string()).optional()
 })
 
 export const MCPConfigSchema = z
   .object({
-    mcpServers: z.record(MCPServerSchema).optional()
+    // Zod v4: record requires key schema
+    mcpServers: z.record(z.string(), MCPServerSchema).optional()
   })
   .refine((data) => data.mcpServers, "Config must have 'mcpServers' field")
 
@@ -51,10 +53,11 @@ export type MCPConfig = z.infer<typeof MCPConfigSchema>
 export const VSCodeSettingsSchema = z.object({
   'mcp.servers': z
     .record(
+      z.string(),
       z.object({
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()
@@ -75,11 +78,12 @@ export const ContinueConfigSchema = z.object({
     .optional(),
   mcpConfigs: z
     .record(
+      z.string(),
       z.object({
         transport: z.string(),
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()
@@ -92,6 +96,7 @@ export const ClaudeCodeConfigSchema = z.object({
   defaultMcpServers: z.array(z.string()).optional(),
   projectBindings: z
     .record(
+      z.string(),
       z.object({
         projectId: z.string(),
         autoConnect: z.boolean().optional()
@@ -100,10 +105,11 @@ export const ClaudeCodeConfigSchema = z.object({
     .optional(),
   mcpServers: z
     .record(
+      z.string(),
       z.object({
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()
@@ -202,7 +208,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     return withErrorContext(
       async () => {
         let promptlianoPath = process.cwd()
-        
+
         // Try to find the root by looking for package.json with workspaces
         let currentPath = promptlianoPath
         let foundRoot = false
@@ -328,7 +334,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
   const checkHasPromptliano = async (tool: MCPTool, configPath: string): Promise<boolean> => {
     return withErrorContext(
       async () => {
-        if (!await MCPFileOps.fileExists(configPath)) {
+        if (!(await MCPFileOps.fileExists(configPath))) {
           return false
         }
 
@@ -346,18 +352,16 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
           case 'vscode':
           case 'cursor':
           case 'windsurf':
-            return config['mcp.servers'] && 
-              Object.keys(config['mcp.servers']).some((k) => k.includes('promptliano'))
+            return config['mcp.servers'] && Object.keys(config['mcp.servers']).some((k) => k.includes('promptliano'))
 
           case 'continue':
-            return config.mcpConfigs && 
-              Object.keys(config.mcpConfigs).some((k) => k.includes('promptliano'))
+            return config.mcpConfigs && Object.keys(config.mcpConfigs).some((k) => k.includes('promptliano'))
 
           case 'claude-code':
-            return (config.mcpServers && 
-              Object.keys(config.mcpServers).some((k) => k.includes('promptliano'))) ||
-              (config.defaultMcpServers && 
-              config.defaultMcpServers.some((s: any) => s.includes('promptliano')))
+            return (
+              (config.mcpServers && Object.keys(config.mcpServers).some((k) => k.includes('promptliano'))) ||
+              (config.defaultMcpServers && config.defaultMcpServers.some((s: any) => s.includes('promptliano')))
+            )
 
           default:
             return false
@@ -377,8 +381,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     configPath?: string
   ): Promise<MCPToolInfo> => {
     const configExists = configPath ? await MCPFileOps.fileExists(configPath) : false
-    const hasPromptliano = configExists && configPath ? 
-      await checkHasPromptliano(tool, configPath) : false
+    const hasPromptliano = configExists && configPath ? await checkHasPromptliano(tool, configPath) : false
 
     return {
       tool,
@@ -441,7 +444,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
             }
           }
 
-          logger.debug(`Detected ${tools.length} tools, ${tools.filter(t => t.installed).length} installed`)
+          logger.debug(`Detected ${tools.length} tools, ${tools.filter((t) => t.installed).length} installed`)
           return tools
         },
         { entity: 'MCPInstallation', action: 'detectTools' }
@@ -459,27 +462,26 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     try {
       return await withErrorContext(
         async () => {
-        // Validate inputs
-        if (enableValidation) {
-          MCPValidation.validateTool(tool)
-          MCPValidation.validatePlatform('MCP installation')
-        }
+          // Validate inputs
+          if (enableValidation) {
+            MCPValidation.validateTool(tool)
+            MCPValidation.validatePlatform('MCP installation')
+          }
 
-        // Set up progress tracking
-        const steps = [
-          'Validating tool and platform',
-          'Getting configuration path',
-          'Reading existing configuration',
-          'Generating Promptliano configuration', 
-          'Writing updated configuration',
-          'Making scripts executable',
-          'Validating installation'
-        ]
+          // Set up progress tracking
+          const steps = [
+            'Validating tool and platform',
+            'Getting configuration path',
+            'Reading existing configuration',
+            'Generating Promptliano configuration',
+            'Writing updated configuration',
+            'Making scripts executable',
+            'Validating installation'
+          ]
 
-        const progress = createProgressTracker(steps, onProgress)
+          const progress = createProgressTracker(steps, onProgress)
 
-        return withRetry(
-          async () => {
+          return withRetry(async () => {
             progress.startStep('Validating tool and platform')
 
             // Get config path for the tool
@@ -511,14 +513,17 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
             const existingConfig = await MCPFileOps.readJsonFile<any>(configPath, tool)
             if (existingConfig) {
               config = existingConfig
-              
+
               // Create backup
               const backupResult = await MCPFileOps.writeJsonFile(`${configPath}.backup-${Date.now()}`, config)
               backupPath = backupResult.backupPath
               backedUp = true
             }
 
-            progress.completeStep('Reading existing configuration', backedUp ? 'Backed up existing config' : 'No existing config')
+            progress.completeStep(
+              'Reading existing configuration',
+              backedUp ? 'Backed up existing config' : 'No existing config'
+            )
             progress.startStep('Generating Promptliano configuration')
 
             // Get Promptliano path
@@ -529,20 +534,46 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
 
             if (tool === 'claude-desktop') {
               installationResult = await installClaudeDesktop(
-                config, configPath, serverName, promptlianoPath, projectId, debug, progress
+                config,
+                configPath,
+                serverName,
+                promptlianoPath,
+                projectId,
+                debug,
+                progress
               )
             } else if (['vscode', 'cursor', 'windsurf'].includes(tool)) {
               installationResult = await installVSCodeStyle(
-                tool as 'vscode' | 'cursor' | 'windsurf', config, configPath, serverName, 
-                promptlianoPath, projectId, projectPath, debug, progress
+                tool as 'vscode' | 'cursor' | 'windsurf',
+                config,
+                configPath,
+                serverName,
+                promptlianoPath,
+                projectId,
+                projectPath,
+                debug,
+                progress
               )
             } else if (tool === 'continue') {
               installationResult = await installContinue(
-                config, configPath, serverName, promptlianoPath, projectId, debug, progress
+                config,
+                configPath,
+                serverName,
+                promptlianoPath,
+                projectId,
+                debug,
+                progress
               )
             } else if (tool === 'claude-code') {
               installationResult = await installClaudeCode(
-                config, configPath, serverName, promptlianoPath, projectId, projectPath, debug, progress
+                config,
+                configPath,
+                serverName,
+                promptlianoPath,
+                projectId,
+                projectPath,
+                debug,
+                progress
               )
             } else {
               throw MCPErrorFactory.platformNotSupported(tool, 'installation')
@@ -554,21 +585,20 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
               backupPath,
               progress: progress.getProgress()
             }
-          },
-          MCPRetryConfig.installation
-        )
-      },
-      { entity: 'MCPInstallation', action: 'install', tool, projectId }
-    )
+          }, MCPRetryConfig.installation)
+        },
+        { entity: 'MCPInstallation', action: 'install', tool, projectId }
+      )
     } catch (error) {
       // Only convert operational errors to failure results
       // Let validation/configuration errors throw (they should be 400 Bad Request)
-      if (error instanceof Error && (
-        error.message.includes('Permission denied') ||
-        error.message.includes('EBUSY') ||
-        error.message.includes('ENOENT') ||
-        error.message.includes('file operation')
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('Permission denied') ||
+          error.message.includes('EBUSY') ||
+          error.message.includes('ENOENT') ||
+          error.message.includes('file operation'))
+      ) {
         // Convert operational errors to failure results
         logger?.error('MCP installation failed', { error, tool, projectId })
         return {
@@ -577,7 +607,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
           progress: undefined
         }
       }
-      
+
       // Re-throw validation and configuration errors
       throw error
     }
@@ -595,13 +625,14 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     debug?: boolean,
     progress?: ReturnType<typeof createProgressTracker>
   ): Promise<MCPInstallationResult> => {
-    const scriptPath = platform === 'win32'
-      ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
-      : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+    const scriptPath =
+      platform === 'win32'
+        ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+        : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
 
     const mcpConfig = migrateConfigFormat(config)
     const servers = getServersFromConfig(mcpConfig)
-    
+
     servers[serverName] = {
       command: scriptPath,
       env: {
@@ -631,7 +662,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
 
     // Validate installation
     const validation = await validateInstallation(configPath, serverName, scriptPath)
-    
+
     if (!validation.valid) {
       progress?.error('Validating installation', new Error(validation.error || 'Unknown validation error'))
       return {
@@ -669,9 +700,10 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
       config['mcp.servers'] = {}
     }
 
-    const scriptPath = platform === 'win32'
-      ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
-      : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+    const scriptPath =
+      platform === 'win32'
+        ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+        : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
 
     config['mcp.servers'][serverName] = {
       command: scriptPath,
@@ -736,9 +768,10 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     if (!config.models) config.models = []
     if (!config.mcpConfigs) config.mcpConfigs = {}
 
-    const scriptPath = platform === 'win32'
-      ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
-      : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+    const scriptPath =
+      platform === 'win32'
+        ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+        : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
 
     config.mcpConfigs[serverName] = {
       transport: 'stdio',
@@ -802,9 +835,10 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     if (!config.projectBindings) config.projectBindings = {}
     if (!config.mcpServers) config.mcpServers = {}
 
-    const scriptPath = platform === 'win32'
-      ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
-      : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+    const scriptPath =
+      platform === 'win32'
+        ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+        : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
 
     config.mcpServers[serverName] = {
       command: scriptPath,
@@ -860,7 +894,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     return withErrorContext(
       async () => {
         // Check if config file exists and is readable
-        if (!await MCPFileOps.fileExists(configPath)) {
+        if (!(await MCPFileOps.fileExists(configPath))) {
           return { valid: false, error: 'Config file does not exist' }
         }
 
@@ -871,16 +905,15 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
         }
 
         // Check if server configuration exists (basic check)
-        const hasServer = config.mcpServers?.[serverName] || 
-                         config['mcp.servers']?.[serverName] ||
-                         config.mcpConfigs?.[serverName]
-        
+        const hasServer =
+          config.mcpServers?.[serverName] || config['mcp.servers']?.[serverName] || config.mcpConfigs?.[serverName]
+
         if (!hasServer) {
           return { valid: false, error: 'Server configuration not found' }
         }
 
         // Check if script exists (if provided) - be more lenient in tests
-        if (scriptPath && process.env.NODE_ENV !== 'test' && !await MCPFileOps.fileExists(scriptPath)) {
+        if (scriptPath && process.env.NODE_ENV !== 'test' && !(await MCPFileOps.fileExists(scriptPath))) {
           return { valid: false, error: 'MCP script not found' }
         }
 
@@ -908,7 +941,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
 
         const serverName = `promptliano-${projectName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
         const config = await MCPFileOps.readJsonFile<any>(configPath, tool)
-        
+
         if (!config) {
           return {
             success: false,
@@ -921,7 +954,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
         if (tool === 'claude-desktop') {
           const mcpConfig = migrateConfigFormat(config)
           const servers = getServersFromConfig(mcpConfig)
-          
+
           if (serverName in servers) {
             delete servers[serverName]
             const updatedConfig = setServersInConfig(mcpConfig, servers)
@@ -931,19 +964,19 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
         } else if (['vscode', 'cursor', 'windsurf'].includes(tool)) {
           if (config['mcp.servers'] && config['mcp.servers'][serverName]) {
             delete config['mcp.servers'][serverName]
-            
+
             // Remove empty mcp.servers if no servers left
             if (Object.keys(config['mcp.servers']).length === 0) {
               delete config['mcp.servers']
             }
-            
+
             await MCPFileOps.writeJsonFile(configPath, config, { configType: tool })
             removed = true
           }
         } else if (tool === 'continue') {
           if (config.mcpConfigs && config.mcpConfigs[serverName]) {
             delete config.mcpConfigs[serverName]
-            
+
             // Remove from models
             if (config.models && Array.isArray(config.models)) {
               for (const model of config.models) {
@@ -952,19 +985,19 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
                 }
               }
             }
-            
+
             await MCPFileOps.writeJsonFile(configPath, config, { configType: 'Continue' })
             removed = true
           }
         } else if (tool === 'claude-code') {
           if (config.mcpServers && config.mcpServers[serverName]) {
             delete config.mcpServers[serverName]
-            
+
             // Remove from default servers
             if (config.defaultMcpServers) {
               config.defaultMcpServers = config.defaultMcpServers.filter((s: string) => s !== serverName)
             }
-            
+
             await MCPFileOps.writeJsonFile(configPath, config, { configType: 'ClaudeCode' })
             removed = true
           }
@@ -972,9 +1005,9 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
 
         return {
           success: removed,
-          message: removed ? 
-            `Successfully removed Promptliano MCP configuration from ${tool}` :
-            'Promptliano MCP configuration not found'
+          message: removed
+            ? `Successfully removed Promptliano MCP configuration from ${tool}`
+            : 'Promptliano MCP configuration not found'
         }
       },
       { entity: 'MCPInstallation', action: 'uninstall', tool }
@@ -992,7 +1025,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
     return withErrorContext(
       async () => {
         const configPath = path.join(projectPath, '.mcp.json')
-        
+
         // Check if config already exists
         let existingConfig: any = {}
         let backedUp = false
@@ -1001,7 +1034,7 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
         const existing = await MCPFileOps.readJsonFile<any>(configPath, 'Project')
         if (existing) {
           existingConfig = existing
-          
+
           // Create backup
           const backupResult = await MCPFileOps.writeJsonFile(`${configPath}.backup-${Date.now()}`, existing)
           backupPath = backupResult.backupPath
@@ -1010,9 +1043,10 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
 
         // Get the Promptliano installation path
         const promptlianoPath = await getPromptlianoPath()
-        const scriptPath = platform === 'win32'
-          ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
-          : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
+        const scriptPath =
+          platform === 'win32'
+            ? path.join(promptlianoPath, 'packages/server/mcp-start.bat')
+            : path.join(promptlianoPath, 'packages/server/mcp-start.sh')
 
         // Get existing servers if any
         const existingServers = existingConfig.mcpServers || existingConfig.servers || {}
@@ -1058,7 +1092,11 @@ export function createMCPInstallationService(deps?: MCPInstallationDependencies)
   /**
    * Install global MCP (basic implementation)
    */
-  const installGlobalMCP = async (tool: MCPTool, serverUrl?: string, debug?: boolean): Promise<MCPInstallationResult> => {
+  const installGlobalMCP = async (
+    tool: MCPTool,
+    serverUrl?: string,
+    debug?: boolean
+  ): Promise<MCPInstallationResult> => {
     return withErrorContext(
       async () => {
         // For now, return a not implemented message

@@ -11,10 +11,10 @@ import { EventEmitter } from 'events'
 import { getProjectById } from './project-service'
 import { toPosixPath, toOSPath, joinPosix, ErrorFactory } from '@promptliano/shared'
 import { withErrorContext, withRetry } from './utils/service-helpers'
-import { 
-  MCPErrorFactory, 
-  MCPFileOps, 
-  MCPRetryConfig, 
+import {
+  MCPErrorFactory,
+  MCPFileOps,
+  MCPRetryConfig,
   withMCPCache,
   MCPCacheConfig,
   createMCPFileWatcher,
@@ -29,7 +29,8 @@ export const MCPServerConfigSchema = z.object({
   type: z.enum(['stdio', 'http']).default('stdio'),
   command: z.string(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional(),
+  // Zod v4: explicit key/value for record
+  env: z.record(z.string(), z.string()).optional(),
   timeout: z.number().optional()
 })
 
@@ -42,17 +43,20 @@ export const MCPInputConfigSchema = z.object({
 })
 
 // Support both old 'servers' format and new 'mcpServers' format
-export const ProjectMCPConfigSchema = z.object({
-  mcpServers: z.record(MCPServerConfigSchema).optional(),
-  inputs: z.array(MCPInputConfigSchema).optional(),
-  extends: z.union([z.string(), z.array(z.string())]).optional()
-}).transform((data) => {
-  // Always ensure mcpServers exists, even if empty
-  return {
-    ...data,
-    mcpServers: data.mcpServers || {}
-  }
-})
+export const ProjectMCPConfigSchema = z
+  .object({
+    // Zod v4: record requires key schema
+    mcpServers: z.record(z.string(), MCPServerConfigSchema).optional(),
+    inputs: z.array(MCPInputConfigSchema).optional(),
+    extends: z.union([z.string(), z.array(z.string())]).optional()
+  })
+  .transform((data) => {
+    // Always ensure mcpServers exists, even if empty
+    return {
+      ...data,
+      mcpServers: data.mcpServers || {}
+    }
+  })
 
 export type MCPServerConfig = z.infer<typeof MCPServerConfigSchema>
 export type MCPInputConfig = z.infer<typeof MCPInputConfigSchema>
@@ -99,7 +103,10 @@ export interface MCPProjectConfigService {
   getEditorType(locationPath: string): string
   getDefaultConfigForLocation(projectId: number, locationPath: string): Promise<ProjectMCPConfig>
   getProjectConfig(projectId: number): Promise<{ config: ProjectMCPConfig | null; source?: string }>
-  updateProjectConfig(projectId: number, config: ProjectMCPConfig): Promise<{ config: ProjectMCPConfig; source: string }>
+  updateProjectConfig(
+    projectId: number,
+    config: ProjectMCPConfig
+  ): Promise<{ config: ProjectMCPConfig; source: string }>
   deleteProjectConfig(projectId: number): Promise<void>
   cleanup(): Promise<void>
   // EventEmitter-like interface for compatibility
@@ -131,10 +138,58 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
   const eventEmitter = new EventEmitter()
 
   /**
+   * Normalize raw config to the canonical shape expected by ProjectMCPConfigSchema
+   * - Accepts legacy `servers` key as alias for `mcpServers`
+   * - Accepts shorthand string values for servers and expands to full objects
+   * - Coerces env values to strings
+   */
+  const normalizeProjectMCPConfig = (raw: any): any => {
+    if (!raw || typeof raw !== 'object') return raw
+
+    const cloned = { ...raw }
+
+    // Support legacy key
+    if (!cloned.mcpServers && cloned.servers && typeof cloned.servers === 'object') {
+      cloned.mcpServers = cloned.servers
+    }
+
+    if (cloned.mcpServers && typeof cloned.mcpServers === 'object') {
+      const normalizedServers: Record<string, any> = {}
+      for (const [name, value] of Object.entries(cloned.mcpServers)) {
+        let server: any = value
+
+        // Shorthand: string => command
+        if (typeof server === 'string') {
+          server = { type: 'stdio', command: server }
+        }
+
+        // Default type
+        if (!server.type) server.type = 'stdio'
+
+        // Ensure env values are strings
+        if (server.env && typeof server.env === 'object') {
+          const env: Record<string, string> = {}
+          for (const [k, v] of Object.entries(server.env)) {
+            env[k] = typeof v === 'string' ? v : String(v)
+          }
+          server.env = env
+        }
+
+        normalizedServers[name] = server
+      }
+
+      cloned.mcpServers = normalizedServers
+    }
+
+    return cloned
+  }
+
+  /**
    * Get the servers from config, handling both formats
    */
   const getServersFromConfig = (config: ProjectMCPConfig): Record<string, MCPServerConfig> => {
-    return config.mcpServers || {}
+    // If undefined, fallback to empty typed record
+    return (config.mcpServers as Record<string, MCPServerConfig> | undefined) || ({} as Record<string, MCPServerConfig>)
   }
 
   /**
@@ -178,7 +233,11 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'getConfigLocations', id: projectId }
       )
     },
-    { ttl: safeCacheConfig.ttl, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `locations-${projectId}` }
+    {
+      ttl: safeCacheConfig.ttl,
+      maxEntries: safeCacheConfig.maxEntries,
+      keyGenerator: (projectId) => `locations-${projectId}`
+    }
   )
 
   /**
@@ -193,57 +252,54 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
           return configCache.get(projectId)!
         }
 
-        return withRetry(
-          async () => {
-            const project = await projectService.getById(projectId)
+        return withRetry(async () => {
+          const project = await projectService.getById(projectId)
 
-            if (!project) {
-              throw ErrorFactory.notFound('Project', projectId)
-            }
+          if (!project) {
+            throw ErrorFactory.notFound('Project', projectId)
+          }
 
-            const projectPath = project.path
+          const projectPath = project.path
 
-            if (!projectPath) {
-              throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
-            }
+          if (!projectPath) {
+            throw ErrorFactory.missingRequired('path', `Project ${projectId}`)
+          }
 
-            const locations = await getConfigLocations(projectId)
+          const locations = await getConfigLocations(projectId)
 
-            // Find the first existing config file (highest priority)
-            const existingConfig = locations.sort((a, b) => b.priority - a.priority).find((loc) => loc.exists)
+          // Find the first existing config file (highest priority)
+          const existingConfig = locations.sort((a, b) => b.priority - a.priority).find((loc) => loc.exists)
 
-            if (!existingConfig) {
-              logger.debug(`No MCP config found for project ${projectId}`)
-              return null
-            }
+          if (!existingConfig) {
+            logger.debug(`No MCP config found for project ${projectId}`)
+            return null
+          }
 
-            const config = await MCPFileOps.readJsonFile<ProjectMCPConfig>(existingConfig.path, 'ProjectMCP')
-            if (!config) {
-              return null
-            }
+          const config = await MCPFileOps.readJsonFile<ProjectMCPConfig>(existingConfig.path, 'ProjectMCP')
+          if (!config) {
+            return null
+          }
 
-            // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
+          // Validate config
+          const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
 
-            const resolved: ResolvedMCPConfig = {
-              config: validatedConfig,
-              source: existingConfig.path,
-              projectPath
-            }
+          const resolved: ResolvedMCPConfig = {
+            config: validatedConfig,
+            source: existingConfig.path,
+            projectPath
+          }
 
-            // Cache the result
-            configCache.set(projectId, resolved)
+          // Cache the result
+          configCache.set(projectId, resolved)
 
-            // Set up file watcher if enabled
-            if (enableWatching) {
-              watchConfigFile(projectId, existingConfig.path)
-            }
+          // Set up file watcher if enabled
+          if (enableWatching) {
+            watchConfigFile(projectId, existingConfig.path)
+          }
 
-            logger.info(`Loaded MCP config for project ${projectId} from ${existingConfig.path}`)
-            return resolved
-          },
-          MCPRetryConfig.configLoad
-        )
+          logger.info(`Loaded MCP config for project ${projectId} from ${existingConfig.path}`)
+          return resolved
+        }, MCPRetryConfig.configLoad)
       },
       { entity: 'MCPProjectConfig', action: 'load', id: projectId }
     )
@@ -258,18 +314,15 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         async () => {
           const userConfigPath = path.join(os.homedir(), '.promptliano', 'mcp-config.json')
 
-          return withRetry(
-            async () => {
-              const config = await MCPFileOps.readJsonFile<ProjectMCPConfig>(userConfigPath, 'UserMCP')
-              if (config) {
-                const validatedConfig = ProjectMCPConfigSchema.parse(config)
-                logger.debug('Loaded user MCP configuration')
-                return validatedConfig
-              }
-              return null
-            },
-            MCPRetryConfig.configLoad
-          )
+          return withRetry(async () => {
+            const config = await MCPFileOps.readJsonFile<ProjectMCPConfig>(userConfigPath, 'UserMCP')
+            if (config) {
+              const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
+              logger.debug('Loaded user MCP configuration')
+              return validatedConfig
+            }
+            return null
+          }, MCPRetryConfig.configLoad)
         },
         { entity: 'MCPProjectConfig', action: 'getUserConfig' }
       )
@@ -352,7 +405,11 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'merge', id: projectId }
       )
     },
-    { ttl: safeCacheConfig.ttl, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `merged-${projectId}` }
+    {
+      ttl: safeCacheConfig.ttl,
+      maxEntries: safeCacheConfig.maxEntries,
+      keyGenerator: (projectId) => `merged-${projectId}`
+    }
   )
 
   /**
@@ -431,7 +488,11 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         { entity: 'MCPProjectConfig', action: 'expand', id: projectId }
       )
     },
-    { ttl: safeCacheConfig.ttl / 2, maxEntries: safeCacheConfig.maxEntries, keyGenerator: (projectId) => `expanded-${projectId}` }
+    {
+      ttl: safeCacheConfig.ttl / 2,
+      maxEntries: safeCacheConfig.maxEntries,
+      keyGenerator: (projectId) => `expanded-${projectId}`
+    }
   )
 
   /**
@@ -440,34 +501,31 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
   const saveProjectConfig = async (projectId: number, config: ProjectMCPConfig): Promise<void> => {
     return withErrorContext(
       async () => {
-        return withRetry(
-          async () => {
-            // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
-            
-            const project = await projectService.getById(projectId)
-            if (!project) {
-              throw ErrorFactory.notFound('Project', projectId)
-            }
-            
-            const configPath = path.join(project.path, '.mcp.json')
+        return withRetry(async () => {
+          // Normalize then validate config
+          const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
 
-            // Save with backup
-            await MCPFileOps.writeJsonFile(configPath, validatedConfig, {
-              createBackup: true,
-              configType: 'ProjectMCP'
-            })
+          const project = await projectService.getById(projectId)
+          if (!project) {
+            throw ErrorFactory.notFound('Project', projectId)
+          }
 
-            // Clear cache
-            configCache.delete(projectId)
+          const configPath = path.join(project.path, '.mcp.json')
 
-            // Emit change event
-            eventEmitter.emit('configChanged', projectId, validatedConfig)
+          // Save with backup
+          await MCPFileOps.writeJsonFile(configPath, validatedConfig, {
+            createBackup: true,
+            configType: 'ProjectMCP'
+          })
 
-            logger.info(`Saved MCP config for project ${projectId}`)
-          },
-          MCPRetryConfig.fileOperation
-        )
+          // Clear cache
+          configCache.delete(projectId)
+
+          // Emit change event
+          eventEmitter.emit('configChanged', projectId, validatedConfig)
+
+          logger.info(`Saved MCP config for project ${projectId}`)
+        }, MCPRetryConfig.fileOperation)
       },
       { entity: 'MCPProjectConfig', action: 'save', id: projectId }
     )
@@ -477,46 +535,43 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
    * Save project configuration to a specific location
    */
   const saveProjectConfigToLocation = async (
-    projectId: number, 
-    config: ProjectMCPConfig, 
+    projectId: number,
+    config: ProjectMCPConfig,
     locationPath: string
   ): Promise<void> => {
     return withErrorContext(
       async () => {
-        return withRetry(
-          async () => {
-            // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
-            
-            const project = await projectService.getById(projectId)
-            if (!project) {
-              throw ErrorFactory.notFound('Project', projectId)
-            }
+        return withRetry(async () => {
+          // Normalize then validate config
+          const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
 
-            // Validate that the location is one of the allowed paths
-            const allowedPaths = configFileNames.map((name) => path.join(project.path, name))
-            const fullPath = path.isAbsolute(locationPath) ? locationPath : path.join(project.path, locationPath)
+          const project = await projectService.getById(projectId)
+          if (!project) {
+            throw ErrorFactory.notFound('Project', projectId)
+          }
 
-            if (!allowedPaths.includes(fullPath)) {
-              throw ErrorFactory.invalidInput('config location', `one of: ${configFileNames.join(', ')}`, locationPath)
-            }
+          // Validate that the location is one of the allowed paths
+          const allowedPaths = configFileNames.map((name) => path.join(project.path, name))
+          const fullPath = path.isAbsolute(locationPath) ? locationPath : path.join(project.path, locationPath)
 
-            // Save with backup
-            await MCPFileOps.writeJsonFile(fullPath, validatedConfig, {
-              createBackup: true,
-              configType: 'ProjectMCP'
-            })
+          if (!allowedPaths.includes(fullPath)) {
+            throw ErrorFactory.invalidInput('config location', `one of: ${configFileNames.join(', ')}`, locationPath)
+          }
 
-            // Clear cache
-            configCache.delete(projectId)
+          // Save with backup
+          await MCPFileOps.writeJsonFile(fullPath, validatedConfig, {
+            createBackup: true,
+            configType: 'ProjectMCP'
+          })
 
-            // Emit change event
-            eventEmitter.emit('configChanged', projectId, validatedConfig)
+          // Clear cache
+          configCache.delete(projectId)
 
-            logger.info(`Saved MCP config for project ${projectId} to ${fullPath}`)
-          },
-          MCPRetryConfig.fileOperation
-        )
+          // Emit change event
+          eventEmitter.emit('configChanged', projectId, validatedConfig)
+
+          logger.info(`Saved MCP config for project ${projectId} to ${fullPath}`)
+        }, MCPRetryConfig.fileOperation)
       },
       { entity: 'MCPProjectConfig', action: 'saveToLocation', id: projectId }
     )
@@ -558,17 +613,20 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
   /**
    * Update project configuration (wrapper around saveProjectConfig for route compatibility)
    */
-  const updateProjectConfig = async (projectId: number, config: ProjectMCPConfig): Promise<{ config: ProjectMCPConfig; source: string }> => {
+  const updateProjectConfig = async (
+    projectId: number,
+    config: ProjectMCPConfig
+  ): Promise<{ config: ProjectMCPConfig; source: string }> => {
     return withErrorContext(
       async () => {
         await saveProjectConfig(projectId, config)
-        
+
         // Return the updated config with its source path
         const project = await projectService.getById(projectId)
         if (!project) {
           throw ErrorFactory.notFound('Project', projectId)
         }
-        
+
         const source = path.join(project.path, '.mcp.json')
         return { config, source }
       },
@@ -586,10 +644,10 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         if (!project) {
           throw ErrorFactory.notFound('Project', projectId)
         }
-        
+
         // Delete the primary config file
         const configPath = path.join(project.path, '.mcp.json')
-        
+
         try {
           await fs.unlink(configPath)
           logger.info(`Deleted MCP config for project ${projectId}`)
@@ -601,10 +659,10 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
             throw error
           }
         }
-        
+
         // Clear cache
         configCache.delete(projectId)
-        
+
         // Emit change event
         eventEmitter.emit('configDeleted', projectId)
       },
@@ -622,12 +680,12 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
         if (!project) {
           throw ErrorFactory.notFound('Project', projectId)
         }
-        
+
         const editorType = getEditorType(locationPath)
 
         // Get the Promptliano installation path with better detection
         let promptlianoPath = process.cwd()
-        
+
         // Try to find the root by looking for package.json with workspaces
         let currentPath = promptlianoPath
         let foundRoot = false
@@ -754,7 +812,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
     return withErrorContext(
       async () => {
         logger.info('Cleaning up MCP Project Config Service')
-        
+
         // Close all file watchers
         for (const cleanup of fileWatchers.values()) {
           try {
@@ -767,10 +825,10 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
 
         // Clear cache
         configCache.clear()
-        
+
         // Remove all event listeners
         eventEmitter.removeAllListeners()
-        
+
         logger.info('MCP Project Config Service cleanup complete')
       },
       { entity: 'MCPProjectConfig', action: 'cleanup' }
@@ -796,7 +854,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
     // EventEmitter compatibility
     on: eventEmitter.on.bind(eventEmitter),
     emit: eventEmitter.emit.bind(eventEmitter),
-    removeAllListeners: eventEmitter.removeAllListeners.bind(eventEmitter),
+    removeAllListeners: eventEmitter.removeAllListeners.bind(eventEmitter)
   }
 }
 

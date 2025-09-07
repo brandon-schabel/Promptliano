@@ -72,6 +72,7 @@ export const projectsSearchSchema = tabSearchSchema.merge(projectIdSearchSchema)
 })
 
 export const chatSearchSchema = z.object({
+  chatId: z.coerce.number().optional().catch(undefined),
   prefill: z.boolean().catch(false).optional(),
   projectId: z.coerce.number().optional().catch(undefined)
 })
@@ -89,7 +90,7 @@ export const assetsSearchSchema = z.object({
 
 // Settings page search schema
 export const settingsTabSchema = z
-  .enum(['general', 'server', 'local-providers', 'global-mcp'])
+  .enum(['general', 'server', 'local-providers', 'global-mcp', 'dev'])
   .catch('general')
   .optional()
 

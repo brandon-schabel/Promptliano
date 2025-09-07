@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 export const hookEventTypeSchema = z.enum([
   'PreToolUse',
@@ -13,22 +13,26 @@ export const hookEventTypeSchema = z.enum([
 
 export type HookEventType = z.infer<typeof hookEventTypeSchema>
 
-export const hookConfigSchema = z.object({
-  command: z.string(),
-  timeout: z.number().optional(),
-  description: z.string().optional(),
-  enabled: z.boolean().optional().default(true)
-})
+export const hookConfigSchema = z
+  .object({
+    command: z.string(),
+    timeout: z.number().optional(),
+    description: z.string().optional(),
+    enabled: z.boolean().optional().default(true)
+  })
+  .openapi('HookConfig')
 
 export type HookConfig = z.infer<typeof hookConfigSchema>
 
-export const hookListItemSchema = z.object({
-  event: z.string(),
-  matcher: z.string(),
-  command: z.string(),
-  timeout: z.number().optional(),
-  description: z.string().optional()
-})
+export const hookListItemSchema = z
+  .object({
+    event: z.string(),
+    matcher: z.string(),
+    command: z.string(),
+    timeout: z.number().optional(),
+    description: z.string().optional()
+  })
+  .openapi('HookListItem')
 
 export type HookListItem = z.infer<typeof hookListItemSchema>
 
@@ -37,54 +41,66 @@ export const hookConfigurationLevelSchema = z.enum(['global', 'project', 'user']
 export type HookConfigurationLevel = z.infer<typeof hookConfigurationLevelSchema>
 
 // Hook Configuration Body Schemas (for hook management, not API)
-export const createHookConfigBodySchema = z.object({
-  command: z.string().min(1),
-  timeout: z.number().positive().optional(),
-  description: z.string().optional(),
-  enabled: z.boolean().optional().default(true)
-})
+export const createHookConfigBodySchema = z
+  .object({
+    command: z.string().min(1),
+    timeout: z.number().positive().optional(),
+    description: z.string().optional(),
+    enabled: z.boolean().optional().default(true)
+  })
+  .openapi('CreateHookConfigBody')
 export type CreateHookConfigBody = z.infer<typeof createHookConfigBodySchema>
 
-export const updateHookConfigBodySchema = z.object({
-  command: z.string().min(1).optional(),
-  timeout: z.number().positive().optional(),
-  description: z.string().optional(),
-  enabled: z.boolean().optional()
-})
+export const updateHookConfigBodySchema = z
+  .object({
+    command: z.string().min(1).optional(),
+    timeout: z.number().positive().optional(),
+    description: z.string().optional(),
+    enabled: z.boolean().optional()
+  })
+  .openapi('UpdateHookConfigBody')
 export type UpdateHookConfigBody = z.infer<typeof updateHookConfigBodySchema>
 
 // Application-level hook operation schemas (not API request/response)
-export const hookGenerationSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().min(1),
-  event: hookEventTypeSchema,
-  script: z.string().min(1),
-  isActive: z.boolean().optional().default(true)
-})
+export const hookGenerationSchema = z
+  .object({
+    name: z.string().min(1),
+    description: z.string().min(1),
+    event: hookEventTypeSchema,
+    script: z.string().min(1),
+    isActive: z.boolean().optional().default(true)
+  })
+  .openapi('HookGeneration')
 export type HookGeneration = z.infer<typeof hookGenerationSchema>
 
-export const hookTestSchema = z.object({
-  hookId: z.number(),
-  testData: z.record(z.any()).optional()
-})
+export const hookTestSchema = z
+  .object({
+    hookId: z.number(),
+    testData: z.record(z.string(), z.any()).optional()
+  })
+  .openapi('HookTest')
 export type HookTest = z.infer<typeof hookTestSchema>
 
-export const createHookBodySchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  hookType: z.enum(['pre', 'post', 'error']),
-  triggerEvent: z.string().min(1),
-  script: z.string().min(1),
-  isActive: z.boolean().optional().default(true)
-})
+export const createHookBodySchema = z
+  .object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    hookType: z.enum(['pre', 'post', 'error']),
+    triggerEvent: z.string().min(1),
+    script: z.string().min(1),
+    isActive: z.boolean().optional().default(true)
+  })
+  .openapi('CreateHookBody')
 export type CreateHookBody = z.infer<typeof createHookBodySchema>
 
-export const updateHookBodySchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  hookType: z.enum(['pre', 'post', 'error']).optional(),
-  triggerEvent: z.string().min(1).optional(),
-  script: z.string().min(1).optional(),
-  isActive: z.boolean().optional()
-})
+export const updateHookBodySchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    description: z.string().optional(),
+    hookType: z.enum(['pre', 'post', 'error']).optional(),
+    triggerEvent: z.string().min(1).optional(),
+    script: z.string().min(1).optional(),
+    isActive: z.boolean().optional()
+  })
+  .openapi('UpdateHookBody')
 export type UpdateHookBody = z.infer<typeof updateHookBodySchema>

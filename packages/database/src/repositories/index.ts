@@ -12,9 +12,10 @@ export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
 export * from './file-repository'
 
-
 // Configuration and state repositories
 export * from './provider-key-repository'
+export * from './model-config-repository'
+export * from './model-preset-repository'
 export * from './app-state-repository' // Exports selectedFileRepository, activeTabRepository
 export * from './mcp-server-repository'
 export * from './mcp-execution-repository' // Exports MCP tracking repositories

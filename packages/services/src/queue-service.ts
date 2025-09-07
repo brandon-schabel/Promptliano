@@ -10,7 +10,13 @@
  * - 70% code reduction from original service
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
+import {
+  createCrudService,
+  extendService,
+  withErrorContext,
+  createServiceLogger,
+  safeErrorFactory
+} from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { queueRepository } from '@promptliano/database'
 import {
@@ -105,12 +111,12 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const queue = await baseService.getById(queueId)
-          
+
           // Use flow service to get actual queue items (tickets and tasks)
           const { createFlowService } = await import('./flow-service')
           const flowService = createFlowService()
           const queueItems = await flowService.getQueueItems(queueId)
-          
+
           // Convert to queue item format for compatibility
           const items = [
             ...queueItems.tickets.map((ticket) => ({
@@ -119,7 +125,8 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
               itemType: 'ticket' as const,
               itemId: ticket.id,
               priority: ticket.queuePriority || 0,
-              status: ticket.queueStatus || 'queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled',
+              status:
+                ticket.queueStatus || ('queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'),
               agentId: ticket.queueAgentId,
               createdAt: ticket.createdAt,
               updatedAt: ticket.updatedAt,
@@ -135,7 +142,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
               itemType: 'task' as const,
               itemId: task.id,
               priority: task.queuePriority || 0,
-              status: task.queueStatus || 'queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled',
+              status: task.queueStatus || ('queued' as 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled'),
               agentId: task.queueAgentId,
               createdAt: task.createdAt,
               updatedAt: task.updatedAt,
@@ -242,7 +249,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           if (item.referenceId && (item.type === 'ticket' || item.type === 'task')) {
             const { createFlowService } = await import('./flow-service')
             const flowService = createFlowService()
-            
+
             if (item.type === 'ticket') {
               await flowService.enqueueTicket(item.referenceId, queueId, item.priority || 5)
             } else if (item.type === 'task') {
@@ -281,11 +288,60 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
             return null
           }
 
-          // Get highest priority queued item
-          const items = await repo.getItems(queueId)
-          const queuedItems = items
+          // Get highest priority queued item from queueItems table
+          let items = await repo.getItems(queueId)
+          let queuedItems = items
             .filter((item) => item.status === 'queued')
             .sort((a, b) => a.priority - b.priority || a.createdAt - b.createdAt)
+
+          // If no items in queueItems table, check for items in tickets/tasks with queue fields
+          // and synchronize them to queueItems table
+          if (queuedItems.length === 0) {
+            const { createFlowService } = await import('./flow-service')
+            const flowService = createFlowService()
+            const queueItems = await flowService.getQueueItems(queueId)
+
+            // Create missing queueItems records for tickets and tasks
+            for (const ticket of queueItems.tickets) {
+              if (ticket.queueStatus === 'queued') {
+                try {
+                  await repo.addItem({
+                    queueId,
+                    itemType: 'ticket',
+                    itemId: ticket.id,
+                    priority: ticket.queuePriority || 5,
+                    status: 'queued',
+                    agentId: null
+                  })
+                } catch (error) {
+                  logger.error('Error syncing ticket to queueItems', { ticketId: ticket.id, error })
+                }
+              }
+            }
+
+            for (const task of queueItems.tasks) {
+              if (task.queueStatus === 'queued') {
+                try {
+                  await repo.addItem({
+                    queueId,
+                    itemType: 'task',
+                    itemId: task.id,
+                    priority: task.queuePriority || 5,
+                    status: 'queued',
+                    agentId: null
+                  })
+                } catch (error) {
+                  logger.error('Error syncing task to queueItems', { taskId: task.id, error })
+                }
+              }
+            }
+
+            // Refresh the items list after synchronization
+            items = await repo.getItems(queueId)
+            queuedItems = items
+              .filter((item) => item.status === 'queued')
+              .sort((a, b) => a.priority - b.priority || a.createdAt - b.createdAt)
+          }
 
           if (queuedItems.length === 0) {
             return null
@@ -357,7 +413,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           if (item.itemId && (item.itemType === 'ticket' || item.itemType === 'task')) {
             const { createFlowService } = await import('./flow-service')
             const flowService = createFlowService()
-            
+
             if (result.success) {
               await flowService.completeProcessingItem(item.itemType, item.itemId)
             } else {
@@ -580,9 +636,9 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           // Import the flow service here to avoid circular dependencies
           const { createFlowService } = await import('./flow-service')
           const flowService = createFlowService()
-          
+
           // Skip the queue item cleanup since we use flow service directly
-          
+
           // Use the flow service's moveItem method which has the real implementation
           await flowService.moveItem(itemType, itemId, targetQueueId, 0, false)
 
@@ -724,11 +780,15 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           // Import the flow service here to avoid circular dependencies
           const { createFlowService } = await import('./flow-service')
           const flowService = createFlowService()
-          
+
           // Use the flow service's getUnqueuedItems method which has the real implementation
           const result = await flowService.getUnqueuedItems(projectId)
 
-          logger.info('Getting unqueued items', { projectId, ticketCount: result.tickets.length, taskCount: result.tasks.length })
+          logger.info('Getting unqueued items', {
+            projectId,
+            ticketCount: result.tickets.length,
+            taskCount: result.tasks.length
+          })
 
           return result
         },
@@ -802,7 +862,7 @@ export const testQueueHelpers = {
 export {
   createQueue as createTestQueue2,
   getQueueById as getById,
-  updateQueue as updateTicket, 
+  updateQueue as updateTicket,
   getQueueWithStats as getQueueStats2
 }
 

@@ -2,9 +2,11 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { createPromptlianoClient, PromptlianoError } from '@promptliano/api-client'
 import type { PromptlianoClient } from '@promptliano/api-client'
 import { type Prompt } from '@promptliano/schemas'
-import { TEST_API_URL } from './test-config'
+import type { TestEnvironment } from './test-environment'
+import { createTestEnvironment } from './test-environment'
 
-const BASE_URL = TEST_API_URL
+let BASE_URL: string
+let testEnv: TestEnvironment
 
 describe('Prompt API Tests', () => {
   let client: PromptlianoClient
@@ -19,6 +21,8 @@ describe('Prompt API Tests', () => {
       throw new Error('Tests must run in NODE_ENV=test environment')
     }
 
+    testEnv = await createTestEnvironment()
+    BASE_URL = testEnv.baseUrl
     client = createPromptlianoClient({ baseUrl: BASE_URL })
 
     // Verify client is properly initialized
@@ -72,6 +76,7 @@ describe('Prompt API Tests', () => {
         }
       }
     }
+    await testEnv.cleanup()
   })
 
   test('POST /api/prompts - Create prompts', async () => {

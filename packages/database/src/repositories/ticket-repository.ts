@@ -507,7 +507,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
       throw new Error(`Task ${taskId} not found`)
     }
 
-    const updatedTask = await baseTaskRepository.update(taskId, { 
+    const updatedTask = await baseTaskRepository.update(taskId, {
       done: !task.done,
       status: !task.done ? 'completed' : 'pending'
     } as any)
@@ -535,7 +535,7 @@ export const taskRepository = extendRepository(baseTaskRepository, {
       pendingTasks: Number(stats?.pendingTasks || 0),
       totalEstimatedHours: Number(stats?.totalEstimatedHours || 0),
       totalActualHours: Number(stats?.totalActualHours || 0),
-      completionPercentage: stats?.totalTasks 
+      completionPercentage: stats?.totalTasks
         ? Math.round((Number(stats.completedTasks || 0) / Number(stats.totalTasks)) * 100)
         : 0
     }

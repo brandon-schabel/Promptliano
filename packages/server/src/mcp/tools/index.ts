@@ -9,7 +9,6 @@ import { projectManagerTool, promptManagerTool, markdownPromptManagerTool } from
 import { ticketManagerTool, taskManagerTool, queueManagerTool, queueProcessorTool } from './workflow'
 import { gitManagerTool } from './git'
 
-
 // Import types
 import type { MCPToolDefinition } from '../tools-registry'
 

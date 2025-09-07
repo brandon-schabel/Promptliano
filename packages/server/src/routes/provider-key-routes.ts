@@ -10,8 +10,8 @@ import {
   createListResponseSchema
 } from '../utils/route-helpers'
 import { type ProviderKey } from '@promptliano/database'
-// Use API-friendly schemas (allow plain `key`, `name`, optional fields)
-import { ProviderKeySchema, CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/schemas'
+// Use API-friendly request schemas; define route response schema locally to match service output
+import { CreateProviderKeySchema, UpdateProviderKeySchema } from '@promptliano/schemas'
 import {
   ProviderKeyIdParamsSchema,
   TestProviderRequestSchema,
@@ -23,9 +23,33 @@ import { providerKeyService, validateCustomProvider } from '@promptliano/service
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { updateProviderSettings } from '@promptliano/services'
 
+// Public API schema that matches providerKeyService outputs
+const ProviderKeyPublicSchema = z
+  .object({
+    id: z.number().int().positive(),
+    provider: z.string(),
+    keyName: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    key: z.string().nullable().optional(),
+    secretRef: z.string().nullable().optional(),
+    baseUrl: z.string().nullable().optional(),
+    customHeaders: z.record(z.string(), z.string()).nullable().optional(),
+    isDefault: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+    environment: z.string().optional(),
+    description: z.string().nullable().optional(),
+    expiresAt: z.number().nullable().optional(),
+    lastUsed: z.number().nullable().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    storageMethod: z.enum(['direct', 'env']).nullable().optional(),
+    displayValue: z.string().nullable().optional()
+  })
+  .openapi('ProviderKeyPublic')
+
 // Create response schemas using helper functions
-const ProviderKeyResponseSchema = createSuccessResponseSchema(ProviderKeySchema, 'ProviderKeyResponse')
-const ProviderKeyListResponseSchema = createListResponseSchema(ProviderKeySchema, 'ProviderKeyListResponse')
+const ProviderKeyResponseSchema = createSuccessResponseSchema(ProviderKeyPublicSchema, 'ProviderKeyResponse')
+const ProviderKeyListResponseSchema = createListResponseSchema(ProviderKeyPublicSchema, 'ProviderKeyListResponse')
 
 // Provider testing response schemas
 const TestProviderApiResponseSchema = createSuccessResponseSchema(
@@ -66,8 +90,10 @@ const BatchTestProviderApiResponseSchema = createSuccessResponseSchema(
 
 const ProviderHealthStatusListResponseSchema = createListResponseSchema(
   z.object({
-    status: z.enum(['healthy', 'degraded', 'down', 'unknown']),
+    status: z.enum(['healthy', 'degraded', 'down', 'unhealthy', 'unknown']),
     latency: z.number().optional(),
+    averageResponseTime: z.number().optional(),
+    modelCount: z.number().optional(),
     lastChecked: z.number(),
     error: z.string().optional()
   }),
@@ -171,11 +197,10 @@ const providerHealthRoute = createRoute({
   description: 'Retrieve health status information for all configured AI providers',
   request: {
     query: z.object({
-      refresh: z
-        .string()
+      // Coerce typical query string values to boolean
+      refresh: z.coerce
+        .boolean()
         .optional()
-        .transform((val) => val === 'true')
-        .pipe(z.boolean().optional())
         .openapi({
           param: {
             name: 'refresh',
@@ -213,11 +238,28 @@ const updateProviderSettingsRoute = createRoute({
 export const providerKeyRoutes = new OpenAPIHono()
   .openapi(createProviderKeyRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
+
+    // Validate that only one storage method is used
+    if (body.key && body.secretRef) {
+      throw new ApiError(
+        400,
+        'Cannot provide both key and secretRef. Choose one storage method.',
+        'INVALID_STORAGE_METHOD'
+      )
+    }
+
+    if (!body.key && !body.secretRef) {
+      throw new ApiError(
+        400,
+        'Must provide either key (direct storage) or secretRef (environment variable).',
+        'MISSING_CREDENTIALS'
+      )
+    }
+
     const createKeyInput = {
       ...body,
-      encrypted: false,
-      isActive: true,
-      environment: 'production',
+      isActive: body.isActive ?? true,
+      environment: body.environment ?? 'production',
       isDefault: body.isDefault ?? false
     }
     const newKey = await providerKeyService.createKey(createKeyInput)
@@ -322,5 +364,79 @@ providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
     )
   }
 })
+
+// Manual routes - basic CRUD operations
+const getProviderKeyByIdBasicRoute = createRoute({
+  method: 'get',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Get a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema
+  },
+  responses: createStandardResponses(ProviderKeyResponseSchema)
+})
+
+const updateProviderKeyByIdBasicRoute = createRoute({
+  method: 'put',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Update a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateProviderKeySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(ProviderKeyResponseSchema)
+})
+
+const deleteProviderKeyByIdBasicRoute = createRoute({
+  method: 'delete',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Delete a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema
+  },
+  responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+providerKeyRoutes
+  .openapi(getProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const key = await providerKeyService.getById(id)
+
+    if (!key) {
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
+    }
+
+    return c.json(successResponse(key), 200)
+  })
+  .openapi(updateProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const data = c.req.valid('json')
+    const key = await providerKeyService.update(id, data)
+
+    if (!key) {
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
+    }
+
+    return c.json(successResponse(key), 200)
+  })
+  .openapi(deleteProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const success = await providerKeyService.delete(id)
+
+    if (!success) {
+      throw new ApiError(404, 'Provider key not found', 'PROVIDER_KEY_NOT_FOUND')
+    }
+
+    return c.json(operationSuccessResponse('Provider key deleted successfully'), 200)
+  })
 
 export type ProviderKeyRouteTypes = typeof providerKeyRoutes

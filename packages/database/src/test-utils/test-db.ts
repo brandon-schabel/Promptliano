@@ -1,15 +1,15 @@
 /**
  * Test Database Factory - Enhanced for Test Isolation
- * 
+ *
  * Creates isolated SQLite databases for testing with proper schema initialization
  * and query serialization to prevent "Missing parameter '1'" errors.
- * 
+ *
  * Key improvements:
  * - File-based databases with WAL mode for better concurrency
  * - Query serialization to prevent parameter binding corruption
  * - Proper cleanup with file deletion
  * - Enhanced error handling and retry logic
- * 
+ *
  * Benefits:
  * - Eliminates "Missing parameter '1'" errors
  * - True test isolation per database instance
@@ -216,7 +216,7 @@ export async function createTestDatabase(config: TestDbConfig = {}): Promise<Tes
       }
 
       return {
-        tables: tables.map(t => t.name),
+        tables: tables.map((t) => t.name),
         totalRecords,
         filePath,
         isActive: true
@@ -258,8 +258,12 @@ async function runMigrations(db: ReturnType<typeof drizzle>, rawDb: Database, ve
 
     if (verbose) {
       // Check what tables were created
-      const tables = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]
-      console.log(`[TEST DB] Migration complete. Created ${tables.length} tables: ${tables.map(t => t.name).join(', ')}`)
+      const tables = rawDb
+        .query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        .all() as { name: string }[]
+      console.log(
+        `[TEST DB] Migration complete. Created ${tables.length} tables: ${tables.map((t) => t.name).join(', ')}`
+      )
     }
   } catch (error) {
     console.error('[TEST DB] Migration failed:', error)
@@ -282,7 +286,7 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       updated_at INTEGER NOT NULL
     )`,
 
-    // Tickets table  
+    // Tickets table
     `CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY,
       project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -555,8 +559,10 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
   // Debug: Check if tables exist before creation
   if (verbose) {
     try {
-      const existingTables = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]
-      console.log(`[TEST DB] Tables before creation: ${existingTables.map(t => t.name).join(', ')}`)
+      const existingTables = rawDb
+        .query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        .all() as { name: string }[]
+      console.log(`[TEST DB] Tables before creation: ${existingTables.map((t) => t.name).join(', ')}`)
     } catch (error) {
       console.warn('[TEST DB] Failed to check existing tables:', error)
     }
@@ -586,10 +592,10 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
     const tables = rawDb
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
       .all() as { name: string }[]
-    console.log(`[TEST DB] Created ${tables.length} tables: ${tables.map(t => t.name).join(', ')}`)
+    console.log(`[TEST DB] Created ${tables.length} tables: ${tables.map((t) => t.name).join(', ')}`)
 
     // Check if projects table specifically exists
-    const projectsExists = tables.some(t => t.name === 'projects')
+    const projectsExists = tables.some((t) => t.name === 'projects')
     console.log(`[TEST DB] Projects table exists: ${projectsExists}`)
   }
 }
@@ -626,8 +632,6 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
       createdAt: now,
       updatedAt: now
     })
-
-
 
     if (verbose) {
       console.log('[TEST DB] Test data seeded successfully')

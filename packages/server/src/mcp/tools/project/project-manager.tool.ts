@@ -48,7 +48,8 @@ export const projectManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for all actions except "list" and "create"). Tip: Use project_manager(list) to get a valid ID.'
+        description:
+          'The project ID (required for all actions except "list" and "create"). Tip: Use project_manager(list) to get a valid ID.'
       },
       data: {
         type: 'object',

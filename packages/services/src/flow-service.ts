@@ -13,7 +13,16 @@
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
 import { nullToUndefined, convertNullsToUndefined } from './utils/file-utils'
 import { ErrorFactory } from '@promptliano/shared'
-import { ticketRepository, taskRepository, queueRepository, tickets, ticketTasks, TicketSchema, TaskSchema, validateJsonField } from '@promptliano/database'
+import {
+  ticketRepository,
+  taskRepository,
+  queueRepository,
+  tickets,
+  ticketTasks,
+  TicketSchema,
+  TaskSchema,
+  validateJsonField
+} from '@promptliano/database'
 import { eq, and, isNull } from 'drizzle-orm'
 import type { Queue as TaskQueue, InsertTicket, InsertTicketTask } from '@promptliano/database'
 
@@ -51,7 +60,7 @@ interface UpdateTicketBody extends Partial<CreateTicketBody> {}
 interface UpdateTaskBody extends Partial<CreateTaskBody> {}
 import { z } from 'zod'
 
-// Use transformed types for service returns  
+// Use transformed types for service returns
 type Ticket = z.infer<typeof TicketSchema>
 type TicketTask = z.infer<typeof TaskSchema>
 
@@ -70,7 +79,7 @@ function transformTicket(rawTicket: any): Ticket {
   return {
     ...rawTicket,
     suggestedFileIds: validateJsonField.stringArray(rawTicket.suggestedFileIds),
-    suggestedAgentIds: validateJsonField.stringArray(rawTicket.suggestedAgentIds), 
+    suggestedAgentIds: validateJsonField.stringArray(rawTicket.suggestedAgentIds),
     suggestedPromptIds: validateJsonField.numberArray(rawTicket.suggestedPromptIds)
   } as Ticket
 }
@@ -374,8 +383,18 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             throw ErrorFactory.notFound('Queue', queueId)
           }
 
-          // Enqueue the ticket
+          // Enqueue the ticket (updates ticket's queue fields)
           const ticket = await ticketRepo.addToQueue(ticketId, queueId, priority)
+
+          // Also create a queueItems record for MCP queue processor compatibility
+          await queueRepo.addItem({
+            queueId,
+            itemType: 'ticket',
+            itemId: ticketId,
+            priority,
+            status: 'queued',
+            agentId: null
+          })
 
           logger.info('Enqueued ticket', { ticketId, queueId, priority })
           return transformTicket(ticket)
@@ -402,6 +421,16 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
             queueStatus: 'queued',
             queuePriority: priority,
             queuedAt: Date.now()
+          })
+
+          // Also create a queueItems record for MCP queue processor compatibility
+          await queueRepo.addItem({
+            queueId,
+            itemType: 'task',
+            itemId: taskId,
+            priority,
+            status: 'queued',
+            agentId: null
           })
 
           logger.info('Enqueued task', { taskId, queueId, priority })
@@ -562,7 +591,9 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
               failedItems: items.filter((i) => i.status === 'failed').length,
               cancelledItems: items.filter((i) => i.status === 'cancelled').length,
               averageProcessingTime: null,
-              currentAgents: Array.from(new Set(items.filter(i => i.status === 'in_progress' && i.agentId).map(i => i.agentId)))
+              currentAgents: Array.from(
+                new Set(items.filter((i) => i.status === 'in_progress' && i.agentId).map((i) => i.agentId))
+              )
             }
             results.push({ queue: q, stats })
           }
@@ -573,7 +604,10 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     },
 
     /** Update queue (Flow) */
-    async updateQueue(queueId: number, data: Partial<{ name: string; description?: string; maxParallelItems?: number; isActive?: boolean }>) {
+    async updateQueue(
+      queueId: number,
+      data: Partial<{ name: string; description?: string; maxParallelItems?: number; isActive?: boolean }>
+    ) {
       return withErrorContext(
         async () => {
           const existing = await queueRepo.getById(queueId)
@@ -841,9 +875,9 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
         async () => {
           const ticketList = await ticketRepo.findWhere(eq(tickets.queueId, queueId))
           const taskList = await taskRepo.findWhere(eq(ticketTasks.queueId, queueId))
-          return { 
-            tickets: ticketList.map(transformTicket), 
-            tasks: taskList.map(transformTask) 
+          return {
+            tickets: ticketList.map(transformTicket),
+            tasks: taskList.map(transformTask)
           }
         },
         { entity: 'Queue', action: 'getItems', id: queueId }
@@ -1020,15 +1054,18 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
       const results = await Promise.all(
         tickets.map(async (ticket) => ({
           ticket: transformTicket(ticket),
-          tasks: (await ticketRepo.getTasksByTicket(ticket.id)).map(task => transformTask(task))
+          tasks: (await ticketRepo.getTasksByTicket(ticket.id)).map((task) => transformTask(task))
         }))
       )
 
       // Transform to TicketWithTasks format
-      return results.map(({ ticket, tasks }) => ({
-        ...ticket,
-        tasks
-      } as TicketWithTasks))
+      return results.map(
+        ({ ticket, tasks }) =>
+          ({
+            ...ticket,
+            tasks
+          }) as TicketWithTasks
+      )
     },
 
     /**
@@ -1089,7 +1126,11 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
   }
 
   // Now override methods that need service references with proper implementations
-  service.enqueueTicketWithTasks = async function(ticketId: number, queueId: number, priority: number = 0): Promise<void> {
+  service.enqueueTicketWithTasks = async function (
+    ticketId: number,
+    queueId: number,
+    priority: number = 0
+  ): Promise<void> {
     return withErrorContext(
       async () => {
         // Enqueue the ticket using service method
@@ -1107,13 +1148,13 @@ export function createFlowService(deps: FlowServiceDeps = {}) {
     )
   }
 
-  service.dequeueTicketWithTasks = async function(ticketId: number): Promise<Ticket> {
+  service.dequeueTicketWithTasks = async function (ticketId: number): Promise<Ticket> {
     // dequeueTicket now handles tasks automatically
     return await service.dequeueTicket(ticketId)
   }
 
   // Fix moveItem method to use service references
-  service.moveItem = async function(
+  service.moveItem = async function (
     itemType: 'ticket' | 'task',
     itemId: number,
     targetQueueId: number | null,

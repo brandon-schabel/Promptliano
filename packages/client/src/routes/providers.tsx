@@ -44,7 +44,9 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
-  ScrollArea
+  ScrollArea,
+  RadioGroup,
+  RadioGroupItem
 } from '@promptliano/ui'
 import {
   Activity,
@@ -111,22 +113,40 @@ import { LocalProviderSection } from '@/components/providers/local-provider-sect
 import { ProviderCard } from '@/components/providers/provider-card'
 import { ProviderTestDialog } from '@/components/providers/provider-test-dialog'
 import { CustomProviderDialog } from '@/components/providers/custom-provider-dialog'
+import { ModelPresetConfigurator } from '@/components/providers/model-preset-configurator'
 import { useLocalModelStatus } from '@/hooks/use-local-model-status'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 // Encryption UI removed; provider keys use secretRef only
 
 // Form schema for adding/editing provider
-const providerFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  provider: z.string().min(1, 'Provider is required'),
-  secretRef: z.string().min(1, 'Secret reference is required'),
-  isDefault: z.boolean().default(false)
-})
+const providerFormSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    provider: z.string().min(1, 'Provider is required'),
+    storageMethod: z.enum(['direct', 'env']).default('direct'),
+    key: z.string().optional(),
+    secretRef: z.string().optional(),
+    isDefault: z.boolean().default(false)
+  })
+  .refine(
+    (data) => {
+      // Validate that either key or secretRef is provided based on storage method
+      if (data.storageMethod === 'direct') {
+        return data.key && data.key.length > 0
+      } else {
+        return data.secretRef && data.secretRef.length > 0
+      }
+    },
+    {
+      message: 'API key or environment variable is required',
+      path: ['key'] // Show error on key field
+    }
+  )
 
 type ProviderFormValues = z.infer<typeof providerFormSchema>
 
 function ProvidersPage() {
-  const [activeTab, setActiveTab] = useState<'all' | 'api' | 'local'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'api' | 'local' | 'presets'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isCustomProviderDialogOpen, setIsCustomProviderDialogOpen] = useState(false)
@@ -134,6 +154,7 @@ function ProvidersPage() {
   const [deletingProvider, setDeletingProvider] = useState<ProviderKey | null>(null)
   const [testingProvider, setTestingProvider] = useState<ProviderKey | null>(null)
   const [testingProviders, setTestingProviders] = useState<Set<number>>(new Set())
+  const [storageMethod, setStorageMethod] = useState<'direct' | 'env'>('direct')
   // Encryption key configuration removed
 
   // API Hooks
@@ -316,12 +337,22 @@ function ProvidersPage() {
         // await updateMutation.mutateAsync({ keyId: editingProvider.id, ...values })
         console.log('Provider update not implemented yet')
       } else {
-        await createMutation.mutateAsync({
+        // Prepare the data based on storage method
+        const createData: any = {
           provider: values.provider,
           keyName: values.name,
-          secretRef: values.secretRef,
+          name: values.name,
           isDefault: values.isDefault
-        })
+        }
+
+        // Add either key or secretRef based on storage method
+        if (values.storageMethod === 'direct') {
+          createData.key = values.key
+        } else {
+          createData.secretRef = values.secretRef
+        }
+
+        await createMutation.mutateAsync(createData)
       }
       setIsAddDialogOpen(false)
       setEditingProvider(null)
@@ -432,7 +463,7 @@ function ProvidersPage() {
                 {/* Search and Tabs */}
                 <div className='flex items-center justify-between gap-4'>
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className='w-auto'>
-                    <TabsList className='grid grid-cols-3 w-[400px]'>
+                    <TabsList className='grid grid-cols-4 w-[550px]'>
                       <TabsTrigger value='all' className='gap-2'>
                         <Sparkles className='h-4 w-4' />
                         All Providers
@@ -444,6 +475,10 @@ function ProvidersPage() {
                       <TabsTrigger value='local' className='gap-2'>
                         <Monitor className='h-4 w-4' />
                         Local Providers
+                      </TabsTrigger>
+                      <TabsTrigger value='presets' className='gap-2'>
+                        <Settings className='h-4 w-4' />
+                        Model Presets
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -528,6 +563,12 @@ function ProvidersPage() {
                   )}
 
                   {activeTab === 'api' && renderApiProviders(filteredProviders)}
+
+                  {activeTab === 'presets' && (
+                    <div className='pb-6'>
+                      <ModelPresetConfigurator />
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </div>
@@ -586,7 +627,7 @@ function ProvidersPage() {
                               field.onChange(value)
                             }
                           }}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -616,20 +657,75 @@ function ProvidersPage() {
                     )}
                   />
 
+                  {/* Storage Method Selection */}
                   <FormField
                     control={form.control}
-                    name='secretRef'
+                    name='storageMethod'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Secret Reference</FormLabel>
+                        <FormLabel>Storage Method</FormLabel>
                         <FormControl>
-                          <Input placeholder='OPENAI_API_KEY' {...field} />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className='flex flex-row space-x-4'
+                          >
+                            <div className='flex items-center space-x-2'>
+                              <RadioGroupItem value='direct' id='direct' />
+                              <Label htmlFor='direct' className='font-normal cursor-pointer'>
+                                Direct API Key
+                              </Label>
+                            </div>
+                            <div className='flex items-center space-x-2'>
+                              <RadioGroupItem value='env' id='env' />
+                              <Label htmlFor='env' className='font-normal cursor-pointer'>
+                                Environment Variable
+                              </Label>
+                            </div>
+                          </RadioGroup>
                         </FormControl>
-                        <FormDescription>Name of the environment secret that contains the API key</FormDescription>
+                        <FormDescription>
+                          Choose how to store the API key - directly or via environment variable
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Conditional Fields based on Storage Method */}
+                  {form.watch('storageMethod') === 'direct' ? (
+                    <FormField
+                      control={form.control}
+                      name='key'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API Key</FormLabel>
+                          <FormControl>
+                            <Input type='password' placeholder='sk-...' {...field} />
+                          </FormControl>
+                          <FormDescription>The actual API key will be stored securely in the database</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name='secretRef'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Environment Variable Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder='OPENAI_API_KEY' {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Name of the environment variable containing the API key (without $ prefix)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -647,26 +743,34 @@ function ProvidersPage() {
                     )}
                   />
 
-                  {form.watch('provider') && (
-                    <Alert>
-                      <AlertCircle className='h-4 w-4' />
-                      <AlertTitle>Provider Information</AlertTitle>
-                      <AlertDescription>
-                        {PROVIDERS.find((p) => p.id === form.watch('provider'))?.description}
-                        {PROVIDERS.find((p) => p.id === form.watch('provider'))?.link && (
-                          <a
-                            href={PROVIDERS.find((p) => p.id === form.watch('provider'))?.link}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='flex items-center gap-1 text-primary hover:underline mt-2'
-                          >
-                            {PROVIDERS.find((p) => p.id === form.watch('provider'))?.linkTitle}
-                            <ExternalLink className='h-3 w-3' />
-                          </a>
-                        )}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {(() => {
+                    const selectedProviderId = form.watch('provider')
+                    if (!selectedProviderId) return null
+
+                    const provider = PROVIDERS.find((p) => p.id === selectedProviderId)
+                    if (!provider) return null
+
+                    return (
+                      <Alert>
+                        <AlertCircle className='h-4 w-4' />
+                        <AlertTitle>Provider Information</AlertTitle>
+                        <AlertDescription>
+                          {provider.description}
+                          {provider.link && (
+                            <a
+                              href={provider.link}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='flex items-center gap-1 text-primary hover:underline mt-2'
+                            >
+                              {provider.linkTitle}
+                              <ExternalLink className='h-3 w-3' />
+                            </a>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )
+                  })()}
 
                   <DialogFooter>
                     <Button type='button' variant='outline' onClick={() => setIsAddDialogOpen(false)}>

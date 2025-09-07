@@ -50,16 +50,61 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
   let relevanceConfig = { ...DEFAULT_RELEVANCE_CONFIG, ...deps.config?.relevance }
 
   const stopWords = new Set([
-    'the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are', 'was', 'were',
-    'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-    'could', 'should', 'may', 'might', 'must', 'shall', 'to', 'of', 'in', 'for',
-    'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
-    'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once'
+    'the',
+    'is',
+    'at',
+    'which',
+    'on',
+    'and',
+    'a',
+    'an',
+    'as',
+    'are',
+    'was',
+    'were',
+    'been',
+    'be',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'shall',
+    'to',
+    'of',
+    'in',
+    'for',
+    'with',
+    'by',
+    'from',
+    'up',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once'
   ])
 
   async function scoreFilesForTicket(
-    ticket: Ticket, 
-    projectId: number, 
+    ticket: Ticket,
+    projectId: number,
     userContext?: string
   ): Promise<RelevanceScoreResult[]> {
     const text = `${ticket.title} ${ticket.overview} ${userContext || ''}`
@@ -67,8 +112,8 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
   }
 
   async function scoreFilesForTask(
-    task: TicketTask, 
-    ticket: Ticket, 
+    task: TicketTask,
+    ticket: Ticket,
     projectId: number
   ): Promise<RelevanceScoreResult[]> {
     const text = `${task.content} ${task.description} ${ticket.title}`
@@ -91,15 +136,13 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
 
         // Use streaming processor for large file sets
         if (files.length > 1000) {
-          const processor = service.createStreamProcessor(
-            async (file: ProjectFile) => {
-              // Skip files that should be ignored
-              if (shouldSkipFile(file)) return null
-              
-              const score = calculateFileRelevance(file, keywords, files)
-              return score.totalScore >= relevanceConfig.minScore ? score : null
-            }
-          )
+          const processor = service.createStreamProcessor(async (file: ProjectFile) => {
+            // Skip files that should be ignored
+            if (shouldSkipFile(file)) return null
+
+            const score = calculateFileRelevance(file, keywords, files)
+            return score.totalScore >= relevanceConfig.minScore ? score : null
+          })
 
           for await (const result of processor.processStream(files)) {
             if ('item' in result && result.item) {
@@ -119,9 +162,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
         }
 
         // Sort by total score descending and limit results
-        const results = scores
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, relevanceConfig.maxFiles)
+        const results = scores.sort((a, b) => b.totalScore - a.totalScore).slice(0, relevanceConfig.maxFiles)
 
         // Cache results
         cache.set(cacheKey, results)
@@ -132,8 +173,8 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
   }
 
   function calculateFileRelevance(
-    file: ProjectFile, 
-    keywords: string[], 
+    file: ProjectFile,
+    keywords: string[],
     allFiles: ProjectFile[]
   ): RelevanceScoreResult {
     const keywordScore = calculateKeywordScore(file, keywords)
@@ -225,7 +266,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
     let score = 0
     for (const keyword of keywords) {
       const associations = typeAssociations[keyword.toLowerCase()]
-      if (associations && associations.some(a => file.path.endsWith(a))) {
+      if (associations && associations.some((a) => file.path.endsWith(a))) {
         score += 1
       }
     }
@@ -255,7 +296,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
     let importCount = 0
     for (const otherFile of allFiles) {
       if (otherFile.id === file.id) continue
-      if (otherFile.imports?.some(imp => imp.source.includes(file.name))) {
+      if (otherFile.imports?.some((imp) => imp.source.includes(file.name))) {
         importCount++
       }
     }
@@ -285,7 +326,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
-      .filter(word => word.length > 0)
+      .filter((word) => word.length > 0)
   }
 
   function shouldSkipFile(file: ProjectFile): boolean {
@@ -305,7 +346,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
     let hash = 0
     for (let i = 0; i < text.length; i++) {
       const char = text.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
+      hash = (hash << 5) - hash + char
       hash = hash & hash // Convert to 32-bit integer
     }
     return hash.toString()
@@ -329,7 +370,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
 
     const indexedQueries = queries.map((query, index) => ({ ...query, index }))
     const batchResult = await processor.processBatch(indexedQueries)
-    
+
     const results = new Map<string, RelevanceScoreResult[]>()
     for (const { index, results: scores } of batchResult.successful) {
       const query = queries[index]
@@ -368,9 +409,4 @@ export type FileRelevanceService = ReturnType<typeof createFileRelevanceService>
 export const fileRelevanceService = createFileRelevanceService()
 
 // Export individual functions for tree-shaking
-export const {
-  scoreFilesForTicket,
-  scoreFilesForTask,
-  scoreFilesForText,
-  updateConfig
-} = fileRelevanceService
+export const { scoreFilesForTicket, scoreFilesForTask, scoreFilesForText, updateConfig } = fileRelevanceService

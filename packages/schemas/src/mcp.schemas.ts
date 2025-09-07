@@ -28,7 +28,7 @@ export const MCPServerConfigSchema = z
         example: ['--root', '/path/to/project']
       }),
     env: z
-      .record(z.string())
+      .record(z.string(), z.string())
       .default({})
       .openapi({
         description: 'Environment variables for the server',
@@ -105,7 +105,7 @@ export const MCPToolSchema = z
       description: 'Parameters required by the tool'
     }),
     inputSchema: z
-      .record(z.any())
+      .record(z.string(), z.any())
       .optional()
       .openapi({
         description: 'JSON Schema for tool input validation',
@@ -162,7 +162,7 @@ export const MCPToolExecutionRequestSchema = z
       description: 'ID of the MCP server to execute the tool on'
     }),
     parameters: z
-      .record(z.any())
+      .record(z.string(), z.any())
       .default({})
       .openapi({
         description: 'Parameters to pass to the tool',

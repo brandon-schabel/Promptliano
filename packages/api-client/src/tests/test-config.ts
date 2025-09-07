@@ -1,5 +1,5 @@
 // Legacy test configuration (for backward compatibility)
-export const TEST_API_URL = 'http://localhost:3147'
+export const TEST_API_URL = process.env.TEST_API_URL || 'http://localhost:3147'
 
 // Test database configuration
 export const TEST_DB_PATH = process.env.TEST_DB_PATH || '/tmp/promptliano-test.db'

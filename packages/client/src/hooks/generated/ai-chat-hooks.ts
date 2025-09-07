@@ -25,9 +25,12 @@ import { createCrudHooks } from '@promptliano/hook-factory'
 import { useApiClient } from '../api/use-api-client'
 import type { ChatSchema, ChatMessageSchema, CreateChat, UpdateChat } from '@promptliano/database'
 
+// Helper type for drizzle-zod schema inference
+type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any
+
 // Extract proper TypeScript types from schemas
-type Chat = typeof ChatSchema._type
-type ChatMessage = typeof ChatMessageSchema._type
+type Chat = InferSchema<typeof ChatSchema>
+type ChatMessage = InferSchema<typeof ChatMessageSchema>
 type CreateChatBody = CreateChat
 type UpdateChatBody = UpdateChat
 
@@ -76,7 +79,16 @@ export type AiSdkOptions = {
   presencePenalty?: number
 }
 
-export type APIProviders = 'anthropic' | 'openai' | 'openrouter' | 'ollama' | 'lmstudio' | 'google_gemini' | 'groq' | 'together' | 'xai'
+export type APIProviders =
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'ollama'
+  | 'lmstudio'
+  | 'google_gemini'
+  | 'groq'
+  | 'together'
+  | 'xai'
 
 // ============================================================================
 // Query Keys
@@ -145,7 +157,8 @@ export function useGetMessages(chatId: number) {
       }
       return Promise.resolve([]) // Fallback for missing method
     },
-    enabled: !!client && !!chatId,
+    // Only enable when we have a valid positive chatId
+    enabled: !!client && Number.isFinite(chatId) && chatId > 0,
     staleTime: 30 * 1000 // 30 seconds for messages
   })
 }

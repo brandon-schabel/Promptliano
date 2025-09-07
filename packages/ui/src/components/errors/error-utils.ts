@@ -16,14 +16,20 @@ export function parseAIError(error: any, provider?: string): ParsedError {
 
   // Handle error objects
   const errorMessage = error?.message || error?.error?.message || 'An unexpected error occurred'
-  const errorCode = error?.code || error?.error?.code
+  const errorCode = error?.code || error?.status || error?.statusCode || error?.error?.code
   const details = error?.details || error?.error?.details || error?.stack
 
   // Check for specific error patterns
-  if (errorMessage.includes('API key') || errorMessage.includes('api key') || errorCode === 'MISSING_API_KEY') {
+  if (
+    errorMessage.includes('API key') ||
+    errorMessage.toLowerCase().includes('unauthorized') ||
+    errorMessage.includes('No auth credentials found') ||
+    errorCode === 'MISSING_API_KEY' ||
+    errorCode === 401
+  ) {
     return {
       type: 'MISSING_API_KEY',
-      message: 'Please configure your API key in settings',
+      message: 'Missing or invalid API key. Configure it in Providers.',
       provider,
       retryable: false
     }

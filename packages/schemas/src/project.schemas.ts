@@ -77,7 +77,7 @@ export const ProjectFileSchema = z
     isRelevant: z.boolean().nullable().default(null), // From database schema
     relevanceScore: z.number().nullable().default(null), // From database schema
     created: unixTSSchemaSpec, // API field names for consistency
-    updated: unixTSSchemaSpec  // API field names for consistency
+    updated: unixTSSchemaSpec // API field names for consistency
   })
   .openapi('ProjectFile')
 

@@ -48,7 +48,7 @@ When working in this package, these agents MUST be used:
    - Ensure proper WCAG compliance and theme support
 
 2. **When Refactoring**
-   - Use `code-modularization-expert` for simplifying and modularizing code
+   - Use `promptliano-code-quality-architect` for simplifying and modularizing code
    - Automatically triggered if reviewer suggests modularization
    - Focus on token organization and utility functions
 

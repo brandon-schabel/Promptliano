@@ -369,7 +369,7 @@ export class TestDataManager {
     deleteFunction: () => Promise<void>
   }> = []
 
-  constructor(private client: PromptlianoClient) { }
+  constructor(private client: PromptlianoClient) {}
 
   /**
    * Tracks an entity for cleanup
@@ -401,7 +401,6 @@ export class TestDataManager {
       }
     })
   }
-
 
   /**
    * Creates and tracks a chat

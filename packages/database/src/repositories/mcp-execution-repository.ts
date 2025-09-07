@@ -9,7 +9,7 @@ import {
   type CreateMCPToolExecution,
   type MCPToolStatistic,
   type MCPExecutionChain,
-  type MCPErrorPattern,
+  type MCPErrorPattern
 } from '../schema/mcp-executions'
 import type { MCPToolSummary } from '@promptliano/schemas'
 import { createBaseRepository } from './base-repository'
@@ -21,11 +21,7 @@ import { createBaseRepository } from './base-repository'
 export const mcpExecutionRepository = {
   // Basic CRUD methods
   async getById(id: number): Promise<MCPToolExecution | null> {
-    const [result] = await db
-      .select()
-      .from(mcpToolExecutions)
-      .where(eq(mcpToolExecutions.id, id))
-      .limit(1)
+    const [result] = await db.select().from(mcpToolExecutions).where(eq(mcpToolExecutions.id, id)).limit(1)
     return result || null
   },
 
@@ -59,11 +55,7 @@ export const mcpExecutionRepository = {
     errorCode?: string
   ): Promise<MCPToolExecution | null> {
     const completedAt = new Date()
-    const [execution] = await db
-      .select()
-      .from(mcpToolExecutions)
-      .where(eq(mcpToolExecutions.id, id))
-      .limit(1)
+    const [execution] = await db.select().from(mcpToolExecutions).where(eq(mcpToolExecutions.id, id)).limit(1)
 
     if (!execution) return null
 
@@ -133,15 +125,17 @@ export const mcpExecutionRepository = {
       .select({ count: sql<number>`count(*)` })
       .from(mcpToolExecutions)
       .where(whereClause)
-    
+
     const count = countResult[0]?.count || 0
 
     // Get paginated results - build query in a single chain
     const sortColumn =
-      params.sortBy === 'duration' ? mcpToolExecutions.durationMs : 
-      params.sortBy === 'toolName' ? mcpToolExecutions.toolName :
-      mcpToolExecutions.startedAt
-    
+      params.sortBy === 'duration'
+        ? mcpToolExecutions.durationMs
+        : params.sortBy === 'toolName'
+          ? mcpToolExecutions.toolName
+          : mcpToolExecutions.startedAt
+
     const executions = await db
       .select()
       .from(mcpToolExecutions)
@@ -156,11 +150,7 @@ export const mcpExecutionRepository = {
   /**
    * Get execution by project and time range
    */
-  async getByProjectAndTimeRange(
-    projectId: number,
-    startDate: Date,
-    endDate: Date
-  ): Promise<MCPToolExecution[]> {
+  async getByProjectAndTimeRange(projectId: number, startDate: Date, endDate: Date): Promise<MCPToolExecution[]> {
     return await db
       .select()
       .from(mcpToolExecutions)
@@ -179,7 +169,6 @@ export const mcpExecutionRepository = {
  * MCP Tool Statistics Repository
  */
 export const mcpStatisticsRepository = {
-
   /**
    * Upsert statistics for a tool and period
    */
@@ -211,7 +200,7 @@ export const mcpStatisticsRepository = {
       .limit(1)
 
     const current = existing[0]
-    
+
     if (current) {
       // Update existing record
       const newExecutionCount = current.executionCount + data.executionCount
@@ -306,14 +295,16 @@ export const mcpStatisticsRepository = {
     period: 'hour' | 'day' | 'week' | 'month' = 'day',
     startDate?: Date,
     endDate?: Date
-  ): Promise<{
-    timestamp: Date;
-    toolCounts: Record<string, number>;
-    totalCount: number;
-    avgDuration: number;
-    successCount: number;
-    errorCount: number;
-  }[]> {
+  ): Promise<
+    {
+      timestamp: Date
+      toolCounts: Record<string, number>
+      totalCount: number
+      avgDuration: number
+      successCount: number
+      errorCount: number
+    }[]
+  > {
     const conditions = [eq(mcpToolStatistics.periodType, period)]
 
     if (projectId !== undefined) {
@@ -341,19 +332,22 @@ export const mcpStatisticsRepository = {
       .orderBy(asc(mcpToolStatistics.periodStart))
 
     // Group by timestamp and aggregate tool counts
-    const grouped = new Map<string, {
-      timestamp: Date;
-      toolCounts: Record<string, number>;
-      totalCount: number;
-      avgDuration: number;
-      successCount: number;
-      errorCount: number;
-    }>()
+    const grouped = new Map<
+      string,
+      {
+        timestamp: Date
+        toolCounts: Record<string, number>
+        totalCount: number
+        avgDuration: number
+        successCount: number
+        errorCount: number
+      }
+    >()
 
     for (const row of result) {
       const key = row.timestamp.toISOString()
       const existing = grouped.get(key)
-      
+
       if (existing) {
         existing.toolCounts[row.toolName] = (existing.toolCounts[row.toolName] || 0) + row.executions
         existing.totalCount += row.executions
@@ -381,7 +375,6 @@ export const mcpStatisticsRepository = {
  * MCP Execution Chains Repository
  */
 export const mcpChainsRepository = {
-
   async createChain(chainId: string, executionId: number, parentExecutionId?: number, position = 0): Promise<void> {
     await db.insert(mcpExecutionChains).values({
       chainId,
@@ -405,8 +398,12 @@ export const mcpChainsRepository = {
  * MCP Error Patterns Repository
  */
 export const mcpErrorPatternsRepository = {
-
-  async recordPattern(projectId: number | null, toolName: string, errorType: string, errorPattern: string): Promise<void> {
+  async recordPattern(
+    projectId: number | null,
+    toolName: string,
+    errorType: string,
+    errorPattern: string
+  ): Promise<void> {
     // Try to find existing pattern
     const existing = await db
       .select()

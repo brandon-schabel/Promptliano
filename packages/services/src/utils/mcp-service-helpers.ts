@@ -11,32 +11,30 @@ const logger = createLogger('MCPServiceHelpers')
 export const MCPErrorFactory = {
   configNotFound: (configType: string, path?: string) =>
     ErrorFactory.notFound(`${configType} config`, path || 'unknown'),
-    
+
   configInvalid: (configType: string, path: string, error: Error) =>
     ErrorFactory.validationFailed(error, {
       context: `${configType} configuration`,
-      path,
+      path
     }),
-    
+
   installationFailed: (tool: string, reason: string) =>
     ErrorFactory.operationFailed(`install MCP for ${tool}: ${reason}`),
-    
-  toolNotInstalled: (tool: string) =>
-    ErrorFactory.notFound(`${tool} installation`, tool),
-    
-  scriptNotExecutable: (scriptPath: string) =>
-    ErrorFactory.operationFailed(`make script executable: ${scriptPath}`),
-    
+
+  toolNotInstalled: (tool: string) => ErrorFactory.notFound(`${tool} installation`, tool),
+
+  scriptNotExecutable: (scriptPath: string) => ErrorFactory.operationFailed(`make script executable: ${scriptPath}`),
+
   platformNotSupported: (platform: string, operation: string) =>
     ErrorFactory.invalidInput('platform', 'darwin, win32, or linux', platform, {
-      context: operation,
+      context: operation
     }),
-    
+
   fileWatcherFailed: (path: string, error: Error) =>
     ErrorFactory.operationFailed(`watch file ${path}: ${error.message}`),
-    
+
   cacheLimitExceeded: (limit: number, current: number) =>
-    ErrorFactory.operationFailed(`cache limit exceeded: ${current} > ${limit}`),
+    ErrorFactory.operationFailed(`cache limit exceeded: ${current} > ${limit}`)
 }
 
 /**
@@ -76,7 +74,7 @@ export const MCPFileOps = {
     options: { createBackup?: boolean; configType?: string } = {}
   ): Promise<{ backupPath?: string }> {
     const { createBackup = false, configType = 'config' } = options
-    
+
     return withErrorContext(
       async () => {
         let backupPath: string | undefined
@@ -132,7 +130,7 @@ export const MCPFileOps = {
       },
       { entity: 'script', action: 'makeExecutable', path: scriptPath }
     )
-  },
+  }
 }
 
 /**
@@ -165,7 +163,7 @@ export function createProgressTracker(
       step,
       progress: completedSteps,
       total: steps.length,
-      message,
+      message
     }
     onProgress?.(progress)
   }
@@ -176,7 +174,7 @@ export function createProgressTracker(
       step,
       progress: completedSteps,
       total: steps.length,
-      message,
+      message
     }
     onProgress?.(progress)
   }
@@ -186,7 +184,7 @@ export function createProgressTracker(
       step,
       progress: completedSteps,
       total: steps.length,
-      message: `Error: ${error.message}`,
+      message: `Error: ${error.message}`
     }
     onProgress?.(progress)
   }
@@ -194,7 +192,7 @@ export function createProgressTracker(
   const getProgress = (): InstallationProgress => ({
     step: steps[currentStepIndex] || 'unknown',
     progress: completedSteps,
-    total: steps.length,
+    total: steps.length
   })
 
   return { startStep, completeStep, error, getProgress }
@@ -211,9 +209,9 @@ export const MCPRetryConfig = {
     shouldRetry: (error: any) => {
       const code = (error as NodeJS.ErrnoException)?.code
       return code === 'EBUSY' || code === 'ENOENT' || code === 'EMFILE'
-    },
+    }
   },
-  
+
   installation: {
     maxAttempts: 2,
     delay: 1000,
@@ -221,15 +219,15 @@ export const MCPRetryConfig = {
     shouldRetry: (error: any) => {
       // Retry on transient errors, but not on validation errors
       return !error?.message?.includes('validation') && !error?.message?.includes('invalid')
-    },
+    }
   },
-  
+
   configLoad: {
     maxAttempts: 3,
     delay: 200,
     backoff: 1.5,
-    shouldRetry: () => true,
-  },
+    shouldRetry: () => true
+  }
 }
 
 /**
@@ -238,18 +236,18 @@ export const MCPRetryConfig = {
 export const MCPCacheConfig = {
   config: {
     ttl: 30000, // 30 seconds
-    maxEntries: 50,
+    maxEntries: 50
   },
-  
+
   metadata: {
     ttl: 60000, // 1 minute
-    maxEntries: 100,
+    maxEntries: 100
   },
-  
+
   installation: {
     ttl: 300000, // 5 minutes
-    maxEntries: 20,
-  },
+    maxEntries: 20
+  }
 }
 
 /**
@@ -263,8 +261,12 @@ export function withMCPCache<TArgs extends any[], TResult>(
     keyGenerator?: (...args: TArgs) => string
   } = {}
 ) {
-  const { ttl = MCPCacheConfig.config.ttl, maxEntries = MCPCacheConfig.config.maxEntries, keyGenerator = (...args) => JSON.stringify(args) } = options
-  
+  const {
+    ttl = MCPCacheConfig.config.ttl,
+    maxEntries = MCPCacheConfig.config.maxEntries,
+    keyGenerator = (...args) => JSON.stringify(args)
+  } = options
+
   const cache = new Map<string, { value: TResult; expires: number }>()
 
   return async (...args: TArgs): Promise<TResult> => {
@@ -294,7 +296,7 @@ export function withMCPCache<TArgs extends any[], TResult>(
         const entriesToRemove = cache.size - maxEntries + 1
         const entries = Array.from(cache.entries())
         entries.sort((a, b) => a[1].expires - b[1].expires)
-        
+
         for (let i = 0; i < entriesToRemove; i++) {
           const entryToRemove = entries[i]
           if (entryToRemove) {
@@ -306,7 +308,7 @@ export function withMCPCache<TArgs extends any[], TResult>(
 
     cache.set(key, {
       value,
-      expires: Date.now() + ttl,
+      expires: Date.now() + ttl
     })
 
     return value
@@ -350,7 +352,7 @@ export const MCPValidation = {
     if (!validTools.includes(tool)) {
       throw ErrorFactory.invalidInput('tool', validTools.join(', '), tool)
     }
-  },
+  }
 }
 
 /**
@@ -365,20 +367,20 @@ export function createMCPFileWatcher(
   } = {}
 ): () => void {
   const { debounceMs = 300, configType = 'config' } = options
-  
+
   let watcher: any = null
   let debounceTimer: NodeJS.Timeout | null = null
 
   try {
     const fs = require('fs')
-    
+
     watcher = fs.watch(filePath, (eventType: string) => {
       if (eventType === 'change') {
         // Debounce rapid changes
         if (debounceTimer) {
           clearTimeout(debounceTimer)
         }
-        
+
         debounceTimer = setTimeout(() => {
           try {
             onChange()
@@ -388,16 +390,13 @@ export function createMCPFileWatcher(
         }, debounceMs)
       }
     })
-    
+
     watcher.on('error', (error: Error) => {
       logger.error(`File watcher error for ${filePath}:`, error)
       throw MCPErrorFactory.fileWatcherFailed(filePath, error)
     })
   } catch (error) {
-    throw MCPErrorFactory.fileWatcherFailed(
-      filePath,
-      error instanceof Error ? error : new Error(String(error))
-    )
+    throw MCPErrorFactory.fileWatcherFailed(filePath, error instanceof Error ? error : new Error(String(error)))
   }
 
   return () => {
@@ -405,7 +404,7 @@ export function createMCPFileWatcher(
       clearTimeout(debounceTimer)
       debounceTimer = null
     }
-    
+
     if (watcher) {
       try {
         watcher.close()
@@ -420,14 +419,11 @@ export function createMCPFileWatcher(
 /**
  * Environment variable expansion for MCP configs
  */
-export function expandMCPVariables(
-  value: string,
-  variables: Record<string, string>
-): string {
+export function expandMCPVariables(value: string, variables: Record<string, string>): string {
   return value.replace(/\$\{([^}]+)\}/g, (match, varName) => {
     const [name, defaultValue] = varName.split(':-')
     const envValue = variables[name]
-    
+
     if (envValue !== undefined) {
       return envValue
     } else if (defaultValue !== undefined) {
@@ -447,7 +443,7 @@ export const MCPPlatformPaths = {
     const platform = process.platform
     const home = require('os').homedir()
     const path = require('path')
-    
+
     switch (tool) {
       case 'claude-desktop':
         switch (platform) {
@@ -460,7 +456,7 @@ export const MCPPlatformPaths = {
           default:
             return null
         }
-        
+
       case 'vscode':
         switch (platform) {
           case 'darwin':
@@ -472,7 +468,7 @@ export const MCPPlatformPaths = {
           default:
             return null
         }
-        
+
       case 'cursor':
         switch (platform) {
           case 'darwin':
@@ -484,7 +480,7 @@ export const MCPPlatformPaths = {
           default:
             return null
         }
-        
+
       case 'windsurf':
         switch (platform) {
           case 'darwin':
@@ -496,18 +492,18 @@ export const MCPPlatformPaths = {
           default:
             return null
         }
-        
+
       case 'continue':
         return path.join(home, '.continue')
-        
+
       case 'claude-code':
         return home // Claude Code uses ~/.claude.json
-        
+
       default:
         return null
     }
   },
-  
+
   getConfigFileName(tool: string): string {
     switch (tool) {
       case 'claude-desktop':
@@ -524,18 +520,18 @@ export const MCPPlatformPaths = {
         throw ErrorFactory.invalidInput('tool', 'valid MCP tool name', tool)
     }
   },
-  
+
   getFullConfigPath(tool: string): string | null {
     const configDir = this.getConfigDir(tool)
     if (!configDir) return null
-    
+
     const fileName = this.getConfigFileName(tool)
     const path = require('path')
-    
+
     if (tool === 'claude-code') {
       return path.join(configDir, fileName)
     } else {
       return path.join(configDir, fileName)
     }
-  },
+  }
 }

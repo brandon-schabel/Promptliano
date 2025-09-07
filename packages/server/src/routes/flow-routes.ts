@@ -24,35 +24,39 @@ const app = new OpenAPIHono()
 
 // === Flow Data Schemas ===
 
-const FlowItemSchema = z.object({
-  id: z.string(),
-  type: z.enum(['ticket', 'task']),
-  title: z.string(),
-  description: z.string().optional(),
-  ticket: TicketSchema.optional(),
-  task: TicketTaskSchema.optional(),
-  queueId: z.number().nullable().optional(),
-  queuePosition: z.number().nullable().optional(),
-  queueStatus: z.string().nullable().optional(),
-  queuePriority: z.number().optional(),
-  created: z.number(),
-  updated: z.number()
-})
+const FlowItemSchema = z
+  .object({
+    id: z.string(),
+    type: z.enum(['ticket', 'task']),
+    title: z.string(),
+    description: z.string().optional(),
+    ticket: TicketSchema.openapi('Ticket').optional(),
+    task: TicketTaskSchema.openapi('TicketTask').optional(),
+    queueId: z.number().nullable().optional(),
+    queuePosition: z.number().nullable().optional(),
+    queueStatus: z.string().nullable().optional(),
+    queuePriority: z.number().optional(),
+    created: z.number(),
+    updated: z.number()
+  })
+  .openapi('FlowItem')
 
-const FlowDataSchema = z.object({
-  unqueued: z.object({
-    tickets: z.array(TicketSchema),
-    tasks: z.array(TicketTaskSchema)
-  }),
-  queues: z.record(
-    z.string(),
-    z.object({
-      queue: QueueSchema,
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
-    })
-  )
-})
+const FlowDataSchema = z
+  .object({
+    unqueued: z.object({
+      tickets: z.array(TicketSchema.openapi('Ticket')),
+      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+    }),
+    queues: z.record(
+      z.string(),
+      z.object({
+        queue: QueueSchema.openapi('Queue'),
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+    )
+  })
+  .openapi('FlowData')
 
 // === Flow Data Endpoints ===
 
@@ -73,7 +77,33 @@ const getFlowDataRoute = createRoute({
 app.openapi(getFlowDataRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const flowData = await flowService.getFlowData(projectId)
-  return c.json(flowData)
+
+  // Transform queues to match schema expectations (string keys + QueueSchema fields)
+  const transformedQueues = Object.fromEntries(
+    Object.entries(flowData.queues).map(([key, value]) => {
+      const q: any = value.queue
+      const queue = {
+        id: q.id,
+        name: q.name,
+        description: q.description ?? null,
+        isActive: q.isActive ?? true,
+        maxConcurrency: q.maxParallelItems ?? 1,
+        retryConfig: null,
+        metadata: null,
+        createdAt: q.createdAt,
+        updatedAt: q.updatedAt
+      }
+      return [String(key), { queue, tickets: value.tickets, tasks: value.tasks }]
+    })
+  )
+
+  return c.json(
+    {
+      unqueued: flowData.unqueued,
+      queues: transformedQueues
+    },
+    200
+  )
 })
 
 // Get flow items as a flat list
@@ -85,7 +115,7 @@ const getFlowItemsRoute = createRoute({
       id: z.coerce.number()
     })
   },
-  responses: createStandardResponses(z.array(FlowItemSchema)),
+  responses: createStandardResponses(z.array(FlowItemSchema).openapi('FlowItemsList')),
   tags: ['Flow'],
   summary: 'Get all flow items as a flat list'
 })
@@ -93,7 +123,7 @@ const getFlowItemsRoute = createRoute({
 app.openapi(getFlowItemsRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const items = await flowService.getFlowItems(projectId)
-  return c.json(items)
+  return c.json(items, 200)
 })
 
 // Get unqueued items
@@ -106,10 +136,12 @@ const getUnqueuedItemsRoute = createRoute({
     })
   },
   responses: createStandardResponses(
-    z.object({
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
-    })
+    z
+      .object({
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+      .openapi('UnqueuedItems')
   ),
   tags: ['Flow'],
   summary: 'Get all unqueued tickets and tasks'
@@ -118,7 +150,7 @@ const getUnqueuedItemsRoute = createRoute({
 app.openapi(getUnqueuedItemsRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const items = await flowService.getUnqueuedItems(projectId)
-  return c.json(items)
+  return c.json(items, 200)
 })
 
 // === Queue Management (Flow-centric) ===
@@ -154,7 +186,7 @@ const createQueueRoute = createRoute({
 app.openapi(createQueueRoute, async (c) => {
   const body = c.req.valid('json')
   const queue = await flowService.createQueue(body)
-  return c.json(successResponse(queue))
+  return c.json(successResponse(queue), 200)
 })
 
 // List queues for project via Flow
@@ -170,7 +202,7 @@ const listQueuesRoute = createRoute({
 app.openapi(listQueuesRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const queues = await flowService.listQueues(projectId)
-  return c.json(successResponse(queues))
+  return c.json(queues, 200)
 })
 
 // Queues with stats via Flow
@@ -186,7 +218,7 @@ const queuesWithStatsRoute = createRoute({
 app.openapi(queuesWithStatsRoute, async (c) => {
   const { id: projectId } = c.req.valid('param')
   const data = await flowService.getQueuesWithStats(projectId)
-  return c.json(successResponse(data))
+  return c.json(data, 200)
 })
 
 // Queue items for a specific queue (Flow)
@@ -198,10 +230,12 @@ const getQueueItemsRoute = createRoute({
     query: z.object({ status: z.string().optional() })
   },
   responses: createStandardResponses(
-    z.object({
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
-    })
+    z
+      .object({
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+      .openapi('QueueItems')
   ),
   tags: ['Flow'],
   summary: 'Get items in a queue (Flow)'
@@ -211,12 +245,15 @@ app.openapi(getQueueItemsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { status } = c.req.valid('query')
   const items = await flowService.getQueueItems(queueId)
-  if (!status) return c.json(items)
+  if (!status) return c.json(items, 200)
   const normalize = (s: any) => (s ? String(s).toLowerCase() : s)
-  return c.json({
-    tickets: items.tickets.filter((t: any) => normalize(t.queueStatus) === normalize(status)),
-    tasks: items.tasks.filter((t: any) => normalize(t.queueStatus) === normalize(status))
-  })
+  return c.json(
+    {
+      tickets: items.tickets.filter((t: any) => normalize(t.queueStatus) === normalize(status)),
+      tasks: items.tasks.filter((t: any) => normalize(t.queueStatus) === normalize(status))
+    },
+    200
+  )
 })
 
 // Queue stats for a specific queue (Flow)
@@ -251,9 +288,11 @@ app.openapi(getQueueStatsRoute, async (c) => {
     inProgressItems: toPairs.filter((i) => i.status === 'in_progress').length,
     completedItems: toPairs.filter((i) => i.status === 'completed').length,
     failedItems: toPairs.filter((i) => i.status === 'failed').length,
-    currentAgents: Array.from(new Set(toPairs.filter(i => i.status === 'in_progress' && i.agentId).map(i => i.agentId)))
+    currentAgents: Array.from(
+      new Set(toPairs.filter((i) => i.status === 'in_progress' && i.agentId).map((i) => String(i.agentId)))
+    )
   }
-  return c.json(successResponse(stats))
+  return c.json(stats, 200)
 })
 
 // Update queue (Flow)
@@ -284,7 +323,7 @@ app.openapi(updateQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const body = c.req.valid('json')
   const updated = await flowService.updateQueue(queueId, body)
-  return c.json(successResponse(updated))
+  return c.json(updated, 200)
 })
 
 // Delete queue (Flow)
@@ -300,7 +339,7 @@ const deleteQueueRoute = createRoute({
 app.openapi(deleteQueueRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const success = await flowService.deleteQueue(queueId)
-  return c.json(successResponse({ deleted: !!success }))
+  return c.json({ deleted: !!success }, 200)
 })
 
 // === Queue Operations ===
@@ -325,7 +364,7 @@ const enqueueTicketRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(TicketSchema),
+  responses: createStandardResponses(TicketSchema.openapi('Ticket')),
   tags: ['Flow'],
   summary: 'Enqueue a ticket to a queue'
 })
@@ -337,10 +376,10 @@ app.openapi(enqueueTicketRoute, async (c) => {
   if (includeTasks) {
     await flowService.enqueueTicketWithTasks(ticketId, queueId, priority)
     const ticket = await flowService.getTicketById(ticketId)
-    return c.json(ticket)
+    return c.json(ticket, 200)
   } else {
     const ticket = await flowService.enqueueTicket(ticketId, queueId, priority)
-    return c.json(ticket)
+    return c.json(ticket, 200)
   }
 })
 
@@ -363,7 +402,7 @@ const enqueueTaskRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(TicketTaskSchema),
+  responses: createStandardResponses(TicketTaskSchema.openapi('TicketTask')),
   tags: ['Flow'],
   summary: 'Enqueue a task to a queue'
 })
@@ -373,7 +412,7 @@ app.openapi(enqueueTaskRoute, async (c) => {
   const { queueId, priority } = c.req.valid('json')
 
   const task = await flowService.enqueueTask(taskId, queueId, priority)
-  return c.json(task)
+  return c.json(task, 200)
 })
 
 // Dequeue a ticket
@@ -391,7 +430,7 @@ const dequeueTicketRoute = createRoute({
         .transform((val) => val === 'true')
     })
   },
-  responses: createStandardResponses(TicketSchema),
+  responses: createStandardResponses(TicketSchema.openapi('Ticket')),
   tags: ['Flow'],
   summary: 'Remove a ticket from its queue'
 })
@@ -402,10 +441,10 @@ app.openapi(dequeueTicketRoute, async (c) => {
 
   if (includeTasks) {
     const ticket = await flowService.dequeueTicketWithTasks(ticketId)
-    return c.json(ticket)
+    return c.json(ticket, 200)
   } else {
     const ticket = await flowService.dequeueTicket(ticketId)
-    return c.json(ticket)
+    return c.json(ticket, 200)
   }
 })
 
@@ -418,7 +457,7 @@ const dequeueTaskRoute = createRoute({
       taskId: z.coerce.number()
     })
   },
-  responses: createStandardResponses(TicketTaskSchema),
+  responses: createStandardResponses(TicketTaskSchema.openapi('TicketTask')),
   tags: ['Flow'],
   summary: 'Remove a task from its queue'
 })
@@ -426,7 +465,7 @@ const dequeueTaskRoute = createRoute({
 app.openapi(dequeueTaskRoute, async (c) => {
   const { taskId } = c.req.valid('param')
   const task = await flowService.dequeueTask(taskId)
-  return c.json(task)
+  return c.json(task, 200)
 })
 
 // Move an item between queues or to unqueued
@@ -456,7 +495,7 @@ const moveItemRoute = createRoute({
 app.openapi(moveItemRoute, async (c) => {
   const { itemType, itemId, targetQueueId, priority, includeTasks } = c.req.valid('json')
   const item = await flowService.moveItem(itemType, itemId, targetQueueId, priority, includeTasks)
-  return c.json(item)
+  return c.json(item, 200)
 })
 
 // Reorder items within a queue
@@ -489,7 +528,7 @@ const reorderRoute = createRoute({
 app.openapi(reorderRoute, async (c) => {
   const { queueId, items } = c.req.valid('json')
   await flowService.reorderWithinQueue(queueId, items)
-  return c.json({ success: true })
+  return c.json({ success: true }, 200)
 })
 
 // === Processing Operations ===
@@ -519,7 +558,7 @@ const startProcessingRoute = createRoute({
 app.openapi(startProcessingRoute, async (c) => {
   const { itemType, itemId, agentId } = c.req.valid('json')
   await flowService.startProcessingItem(itemType, itemId, agentId)
-  return c.json({ success: true })
+  return c.json({ success: true }, 200)
 })
 
 // Complete processing an item
@@ -547,7 +586,7 @@ const completeProcessingRoute = createRoute({
 app.openapi(completeProcessingRoute, async (c) => {
   const { itemType, itemId, processingTime } = c.req.valid('json')
   await flowService.completeProcessingItem(itemType, itemId, processingTime)
-  return c.json({ success: true })
+  return c.json({ success: true }, 200)
 })
 
 // Fail processing an item
@@ -575,7 +614,7 @@ const failProcessingRoute = createRoute({
 app.openapi(failProcessingRoute, async (c) => {
   const { itemType, itemId, errorMessage } = c.req.valid('json')
   await flowService.failProcessingItem(itemType, itemId, errorMessage)
-  return c.json({ success: true })
+  return c.json({ success: true }, 200)
 })
 
 // === Batch Operations ===
@@ -625,7 +664,7 @@ app.openapi(bulkMoveRoute, async (c) => {
     }
   }
 
-  return c.json({ success: true, movedCount })
+  return c.json({ success: true, movedCount }, 200)
 })
 
 // Export the app

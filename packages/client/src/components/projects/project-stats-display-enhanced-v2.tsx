@@ -28,7 +28,7 @@ const formatNumber = (num: number) => {
 
 export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEnhancedProps) {
   const { data: statisticsData, isLoading, error } = useGetProjectStatistics(projectId)
-  
+
   // Type-safe access to statistics data
   const statistics = statisticsData as ProjectStatistics | undefined
 
@@ -184,7 +184,8 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
           </div>
 
           <div className='flex flex-wrap gap-2 pt-2'>
-            {hasTicketStats && statistics.ticketStats.ticketsByPriority &&
+            {hasTicketStats &&
+              statistics.ticketStats.ticketsByPriority &&
               Object.entries(statistics.ticketStats.ticketsByPriority).map(([priority, count]) => (
                 <Badge key={priority} variant={priority === 'high' ? 'destructive' : 'secondary'}>
                   {priority}: {count}
