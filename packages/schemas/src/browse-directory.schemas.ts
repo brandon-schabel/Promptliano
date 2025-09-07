@@ -7,14 +7,14 @@ export const DirectoryEntrySchema = z.object({
   path: z.string(),
   isDirectory: z.boolean(),
   isHidden: z.boolean()
-})
+}).openapi('DirectoryEntry')
 
 export type DirectoryEntry = z.infer<typeof DirectoryEntrySchema>
 
 // Browse directory request schema
 export const BrowseDirectoryRequestSchema = z.object({
   path: z.string().optional().describe('The directory path to browse. If not provided, defaults to home directory')
-})
+}).openapi('BrowseDirectoryRequest')
 
 export type BrowseDirectoryRequest = z.infer<typeof BrowseDirectoryRequestSchema>
 
@@ -23,7 +23,7 @@ const BrowseDirectoryDataSchema = z.object({
   currentPath: z.string(),
   parentPath: z.string().nullable(),
   entries: z.array(DirectoryEntrySchema)
-}).describe('BrowseDirectoryData')
+}).describe('BrowseDirectoryData').openapi('BrowseDirectoryData')
 
 // Browse directory response schema
 export const BrowseDirectoryResponseSchema = createSuccessResponseSchema(BrowseDirectoryDataSchema, { 

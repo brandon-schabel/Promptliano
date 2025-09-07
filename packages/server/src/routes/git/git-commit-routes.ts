@@ -47,28 +47,28 @@ import {
 const CommitLogResponseSchema = z
   .object({
     success: z.literal(true),
-    data: z.array(GitCommitSchema)
+    data: z.array(GitCommitSchema.openapi('GitCommit'))
   })
   .openapi('CommitLogResponse')
 
 const CommitLogEnhancedResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitCommitLogEnhancedSchema
+    data: GitCommitLogEnhancedSchema.openapi('GitCommitLogEnhanced')
   })
   .openapi('CommitLogEnhancedResponse')
 
 const CommitDetailResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitCommitDetailSchema
+    data: GitCommitDetailSchema.openapi('GitCommitDetail')
   })
   .openapi('CommitDetailResponse')
 
 const DiffResponseSchema = z
   .object({
     success: z.literal(true),
-    data: GitDiffSchema
+    data: GitDiffSchema.openapi('GitDiff')
   })
   .openapi('DiffResponse')
 

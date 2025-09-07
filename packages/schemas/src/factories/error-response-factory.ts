@@ -19,7 +19,7 @@ export function createErrorResponseSchema(
   }
   
   if (options?.includeDetails) {
-    errorSchema['details'] = z.record(z.any()).optional().describe('Additional error details')
+    errorSchema['details'] = z.record(z.string(), z.any()).optional().describe('Additional error details')
   }
   
   if (options?.includeStack) {
@@ -60,7 +60,7 @@ export function createValidationErrorResponseSchema(name?: string) {
     error: z.object({
       code: z.literal('VALIDATION_ERROR'),
       message: z.string().default('Validation failed'),
-      fieldErrors: z.record(z.array(z.string())).describe('Field-specific errors')
+      fieldErrors: z.record(z.string(), z.array(z.string())).describe('Field-specific errors')
     })
   }).openapi(name || 'ValidationErrorResponse', {
     example: {

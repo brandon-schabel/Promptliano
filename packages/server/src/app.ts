@@ -1,20 +1,16 @@
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { ApiError, ErrorFactory } from '@promptliano/shared'
-// Import generated routes
-import { registerAllGeneratedRoutes } from './routes/generated/index.generated'
-// Factory-migrated routes (Phase 4 & 5)
-import { chatRoutes } from './routes/chat-routes-factory'
-import { promptRoutes } from './routes/prompt-routes-factory'
-import { ticketRoutes } from './routes/ticket-routes-factory'
-import { providerKeyRoutes } from './routes/provider-key-routes-factory'
-// Legacy provider key routes (supports /api/keys and /api/providers/health)
-import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
-import { activeTabRoutes } from './routes/active-tab-routes-factory'
+// Import consolidated routes
+import { projectRoutes } from './routes/project-routes'
+import { ticketRoutes } from './routes/ticket-routes'
+import { chatRoutes } from './routes/chat-routes'
+import { promptRoutes } from './routes/prompt-routes'
+import { queueRoutes } from './routes/queue-routes'
+import { providerKeyRoutes as consolidatedProviderKeyRoutes } from './routes/provider-key-routes'
 
 // Manual routes (complex operations)
 import { genAiRoutes } from './routes/gen-ai-routes'
-import { projectRoutes } from './routes/project-routes-factory'
 import { flowRoutes } from './routes/flow-routes'
 import { browseDirectoryRoutes } from './routes/browse-directory-routes'
 import { mcpRoutes } from './routes/mcp'
@@ -23,9 +19,13 @@ import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
-import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
+// import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
+// Legacy provider key routes (supports /api/keys and /api/providers/health)
+import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
 import { modelConfigRoutes } from './routes/model-config-routes'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
+import { ZodError } from 'zod'
+import { fromError as zodFromError } from 'zod-validation-error'
 import type { Context } from 'hono'
 import packageJson from '../package.json'
 import { getServerConfig, getRateLimitConfig } from '@promptliano/config'
@@ -220,21 +220,115 @@ app.use('/api/projects/*/mcp*', async (c, next) => {
 
 app.get('/api/health', (c) => c.json({ success: true }))
 
-// Register generated routes (CRUD operations for all entities)
-registerAllGeneratedRoutes(app)
+// OpenAPI schema debug endpoint to find undefined/mis-imported schemas fast
+app.get('/api/_openapi-debug', async (c) => {
+  try {
+    const Schemas = await import('@promptliano/schemas')
+    const toCheck: Record<string, any> = {
+      // Entity-level (generated routes)
+      ProjectSchema: (Schemas as any).ProjectSchema,
+      CreateProjectSchema: (Schemas as any).CreateProjectSchema,
+      UpdateProjectSchema: (Schemas as any).UpdateProjectSchema,
+      ProjectIdParamsSchema: (Schemas as any).ProjectIdParamsSchema,
 
-// Register factory-migrated routes (standardized CRUD + custom operations)
-app.route('/', chatRoutes)         // Factory: CRUD + fork operations  
-app.route('/', promptRoutes)       // Factory: CRUD + file operations
-app.route('/', ticketRoutes)       // Factory: CRUD + task operations
-// Removed queueRoutes to enforce Flow-only queue API
-app.route('/', providerKeyRoutes)  // Factory: CRUD + validation
-// Register legacy provider key routes for backward compatibility with clients
-// expecting /api/keys and /api/providers/health endpoints
+      TicketSchema: (Schemas as any).TicketSchema,
+      CreateTicketSchema: (Schemas as any).CreateTicketSchema,
+      UpdateTicketSchema: (Schemas as any).UpdateTicketSchema,
+      TicketIdParamsSchema: (Schemas as any).TicketIdParamsSchema,
+
+      TicketTaskSchema: (Schemas as any).TicketTaskSchema,
+      CreateTicketTaskSchema: (Schemas as any).CreateTicketTaskSchema,
+      UpdateTicketTaskSchema: (Schemas as any).UpdateTicketTaskSchema,
+
+      ChatSchema: (Schemas as any).ChatSchema,
+      CreateChatSchema: (Schemas as any).CreateChatSchema,
+      UpdateChatSchema: (Schemas as any).UpdateChatSchema,
+      ChatIdParamsSchema: (Schemas as any).ChatIdParamsSchema,
+
+      ChatMessageSchema: (Schemas as any).ChatMessageSchema,
+      CreateChatMessageSchema: (Schemas as any).CreateChatMessageSchema,
+      UpdateChatMessageSchema: (Schemas as any).UpdateChatMessageSchema,
+      ChatMessageIdParamsSchema: (Schemas as any).ChatMessageIdParamsSchema,
+
+      PromptSchema: (Schemas as any).PromptSchema,
+      CreatePromptSchema: (Schemas as any).CreatePromptSchema,
+      UpdatePromptSchema: (Schemas as any).UpdatePromptSchema,
+
+      QueueSchema: (Schemas as any).QueueSchema,
+      CreateQueueSchema: (Schemas as any).CreateQueueSchema,
+      UpdateQueueSchema: (Schemas as any).UpdateQueueSchema,
+      QueueIdParamsSchema: (Schemas as any).QueueIdParamsSchema,
+
+      QueueItemSchema: (Schemas as any).QueueItemSchema,
+      CreateQueueItemSchema: (Schemas as any).CreateQueueItemSchema,
+      UpdateQueueItemSchema: (Schemas as any).UpdateQueueItemSchema,
+      QueueItemIdParamsSchema: (Schemas as any).QueueItemIdParamsSchema,
+
+      FileSchema: (Schemas as any).FileSchema,
+      CreateFileSchema: (Schemas as any).CreateFileSchema,
+      UpdateFileSchema: (Schemas as any).UpdateFileSchema,
+      FileIdParamsSchema: (Schemas as any).FileIdParamsSchema,
+
+      ProviderKeySchema: (Schemas as any).ProviderKeySchema,
+      CreateProviderKeySchema: (Schemas as any).CreateProviderKeySchema,
+      UpdateProviderKeySchema: (Schemas as any).UpdateProviderKeySchema,
+
+      ActiveTabSchema: (Schemas as any).ActiveTabSchema,
+      CreateActiveTabSchema: (Schemas as any).CreateActiveTabSchema,
+      UpdateActiveTabSchema: (Schemas as any).UpdateActiveTabSchema,
+      ActiveTabIdParamsSchema: (Schemas as any).ActiveTabIdParamsSchema,
+
+      SelectedFileSchema: (Schemas as any).SelectedFileSchema,
+      CreateSelectedFileSchema: (Schemas as any).CreateSelectedFileSchema,
+      UpdateSelectedFileSchema: (Schemas as any).UpdateSelectedFileSchema,
+      SelectedFileIdParamsSchema: (Schemas as any).SelectedFileIdParamsSchema,
+
+      // Custom response schemas commonly used by generated routes
+      FileListResponseSchema: (Schemas as any).FileListResponseSchema,
+      ProjectSummaryResponseSchema: (Schemas as any).ProjectSummaryResponseSchema,
+      SuggestFilesBodySchema: (Schemas as any).SuggestFilesBodySchema,
+      SuggestFilesResponseSchema: (Schemas as any).SuggestFilesResponseSchema,
+      TaskListResponseSchema: (Schemas as any).TaskListResponseSchema,
+      ChatMessageResponseSchema: (Schemas as any).ChatMessageResponseSchema,
+      ChatMessageListResponseSchema: (Schemas as any).ChatMessageListResponseSchema,
+      QueueItemCreateSchema: (Schemas as any).QueueItemCreateSchema,
+      QueueItemResponseSchema: (Schemas as any).QueueItemResponseSchema,
+      QueueStatsResponseSchema: (Schemas as any).QueueStatsResponseSchema,
+      OptimizePromptResponseSchema: (Schemas as any).OptimizePromptResponseSchema,
+    }
+
+    const report = Object.fromEntries(
+      Object.entries(toCheck).map(([k, v]) => [
+        k,
+        {
+          defined: v !== undefined && v !== null,
+          type: typeof v,
+          has_def: !!(v && (v as any).def),
+          has__def: !!(v && (v as any)._def),
+          has_openapi: !!(v && (v as any).openapi),
+        },
+      ])
+    )
+
+    return c.json({ success: true, data: report })
+  } catch (e: any) {
+    return c.json({ success: false, error: e?.message || String(e) }, 500)
+  }
+})
+
+// Register manual CRUD routes
+app.route('/', projectRoutes)
+app.route('/', ticketRoutes)
+app.route('/', chatRoutes)
+app.route('/', promptRoutes)
+app.route('/', queueRoutes)
+app.route('/', consolidatedProviderKeyRoutes)
+
+// Register legacy provider key routes for backward compatibility
 app.route('/', providerKeyLegacyRoutes)
-app.route('/', activeTabRoutes)           // Factory: Get/Set/Clear operations (/api/active-tab)
-app.route('/', projectRoutes)      // Factory: CRUD + sync, files, summary operations
-app.route('/', mcpConfigRoutes)    // Factory: Global + project MCP config
+
+// Register MCP config routes
+// app.route('/', mcpConfigRoutes)
 app.route('/', modelConfigRoutes)  // Model configuration and presets
 
 // KEEP: Complex operations that don't conflict
@@ -279,14 +373,141 @@ app.onError((err, c) => {
   return c.json(responseBody, apiError.status as 400 | 401 | 403 | 404 | 409 | 422 | 500)
 })
 
-// server swagger ui at /swagger
+// Serve Swagger UI at /swagger and robust OpenAPI JSON at /doc
 app.get('/swagger', swaggerUI({ url: '/doc' }))
 
-app.doc('/doc', {
-  openapi: '3.1.1',
-  info: {
-    description: 'Promptliano OpenAPI Server Spec',
-    version: packageJson.version,
-    title: packageJson.name
+app.get('/doc', async (c) => {
+  const isDevelopment = process.env.NODE_ENV !== 'production'
+
+  // Helper: format Zod issues consistently
+  const formatZodIssues = (err: unknown) => {
+    try {
+      const zerr = err instanceof ZodError ? err : null
+      if (!zerr) return undefined
+      return zerr.issues.map((issue) => ({
+        path: issue.path.join('.') || 'root',
+        message: issue.message,
+        code: (issue as any).code,
+        received: isDevelopment ? (issue as any).received : undefined
+      }))
+    } catch {
+      return undefined
+    }
+  }
+
+  // Helper: heuristics to provide actionable hints
+  const diagnose = (e: any) => {
+    const msg = String(e?.message || e)
+    const hints: string[] = []
+    if (/"def" in schema|schema is not an Object/i.test(msg)) {
+      hints.push(
+        'A route likely passed a non-OpenAPI Zod schema. Ensure routes import z from @hono/zod-openapi, not zod.'
+      )
+    }
+    if (/Missing parameter data/i.test(msg)) {
+      hints.push(
+        'For transformed/refined query params, set openapi.param { name, in: "query" } on the field.'
+      )
+    }
+    return hints.length ? hints : undefined
+  }
+
+  // Build docs in isolation and skip failing groups with diagnostics
+  const finalApp = new OpenAPIHono()
+  const buildLog: Record<string, { ok: boolean; error?: string; stack?: string; zodIssues?: any; hints?: string[] }> = {}
+
+  function tryRegister(label: string, registerTo: (app: OpenAPIHono) => void) {
+    // Probe registration in isolation
+    const probe = new OpenAPIHono()
+    try {
+      registerTo(probe)
+      probe.getOpenAPI31Document({ openapi: '3.1.1', info: { title: 'probe', version: '0' } })
+      buildLog[label] = { ok: true }
+      // Only add to the final app if probe succeeded
+      registerTo(finalApp)
+    } catch (e: any) {
+      const zodIssues = formatZodIssues(e)
+      const hints = diagnose(e)
+      const stack = isDevelopment ? (e?.stack || undefined) : undefined
+      console.error('[OpenAPI Doc] Group error', {
+        group: label,
+        message: e?.message || String(e),
+        path: c.req.path,
+        method: c.req.method,
+        timestamp: new Date().toISOString(),
+        zodIssues,
+        hints
+      })
+      buildLog[label] = {
+        ok: false,
+        error: e?.message || String(e),
+        stack,
+        zodIssues,
+        hints
+      }
+    }
+  }
+
+  // Register manual routes for OpenAPI documentation
+  tryRegister('Projects', (a) => a.route('/', projectRoutes))
+  tryRegister('Tickets', (a) => a.route('/', ticketRoutes))
+  tryRegister('Chats', (a) => a.route('/', chatRoutes))
+  tryRegister('Prompts', (a) => a.route('/', promptRoutes))
+  tryRegister('Queues', (a) => a.route('/', queueRoutes))
+  tryRegister('ProviderKeys', (a) => a.route('/', consolidatedProviderKeyRoutes))
+  tryRegister('providerKeyLegacyRoutes', (a) => a.route('/', providerKeyLegacyRoutes))
+  tryRegister('genAiRoutes', (a) => a.route('/', genAiRoutes))
+  tryRegister('flowRoutes', (a) => a.route('/', flowRoutes))
+  tryRegister('browseDirectoryRoutes', (a) => a.route('/', browseDirectoryRoutes))
+  tryRegister('mcpRoutes', (a) => a.route('/', mcpRoutes))
+  tryRegister('gitRoutes', (a) => a.route('/', gitRoutes))
+  tryRegister('gitAdvancedRoutes', (a) => a.route('/', gitAdvancedRoutes))
+  tryRegister('projectTabRoutes', (a) => a.route('/', projectTabRoutes))
+  tryRegister('agentFilesRoutes', (a) => a.route('/', agentFilesRoutes))
+  tryRegister('mcpInstallationRoutes', (a) => a.route('/', mcpInstallationRoutes))
+  // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
+  tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
+
+
+  try {
+    const doc = finalApp.getOpenAPI31Document({
+      openapi: '3.1.1',
+      info: {
+        description: 'Promptliano OpenAPI Server Spec',
+        version: packageJson.version,
+        title: packageJson.name
+      }
+    })
+    // Attach diagnostics under an extension field
+    ;(doc as any)['x-doc-build'] = buildLog
+    return c.json(doc)
+  } catch (err: any) {
+    const message = typeof err?.message === 'string' ? err.message : String(err)
+    const zodIssues = formatZodIssues(err)
+    const zodReadable = err instanceof ZodError ? zodFromError(err).toString() : undefined
+    const hints = diagnose(err)
+
+    const payload: any = {
+      openapi: '3.1.1',
+      info: {
+        description: 'Promptliano OpenAPI Server Spec (generation error)',
+        version: packageJson.version,
+        title: packageJson.name
+      },
+      paths: {},
+      error: {
+        message,
+        code: 'OPENAPI_GENERATION_FAILED',
+        ...(isDevelopment && { stack: err?.stack })
+      },
+      'x-doc-build': buildLog,
+      ...(zodIssues && { zodIssues }),
+      ...(zodReadable && { zod: zodReadable }),
+      ...(hints && { hints })
+    }
+
+    return c.json(payload, 500)
   }
 })
+
+// Manual routes are registered directly above, no async registration needed

@@ -29,30 +29,30 @@ const FlowItemSchema = z.object({
   type: z.enum(['ticket', 'task']),
   title: z.string(),
   description: z.string().optional(),
-  ticket: TicketSchema.optional(),
-  task: TicketTaskSchema.optional(),
+  ticket: TicketSchema.openapi('Ticket').optional(),
+  task: TicketTaskSchema.openapi('TicketTask').optional(),
   queueId: z.number().nullable().optional(),
   queuePosition: z.number().nullable().optional(),
   queueStatus: z.string().nullable().optional(),
   queuePriority: z.number().optional(),
   created: z.number(),
   updated: z.number()
-})
+}).openapi('FlowItem')
 
 const FlowDataSchema = z.object({
   unqueued: z.object({
-    tickets: z.array(TicketSchema),
-    tasks: z.array(TicketTaskSchema)
+    tickets: z.array(TicketSchema.openapi('Ticket')),
+    tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
   }),
   queues: z.record(
     z.string(),
     z.object({
-      queue: QueueSchema,
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
+      queue: QueueSchema.openapi('Queue'),
+      tickets: z.array(TicketSchema.openapi('Ticket')),
+      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
     })
   )
-})
+}).openapi('FlowData')
 
 // === Flow Data Endpoints ===
 
@@ -85,7 +85,7 @@ const getFlowItemsRoute = createRoute({
       id: z.coerce.number()
     })
   },
-  responses: createStandardResponses(z.array(FlowItemSchema)),
+  responses: createStandardResponses(z.array(FlowItemSchema).openapi('FlowItemsList')),
   tags: ['Flow'],
   summary: 'Get all flow items as a flat list'
 })
@@ -107,9 +107,9 @@ const getUnqueuedItemsRoute = createRoute({
   },
   responses: createStandardResponses(
     z.object({
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
-    })
+      tickets: z.array(TicketSchema.openapi('Ticket')),
+      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+    }).openapi('UnqueuedItems')
   ),
   tags: ['Flow'],
   summary: 'Get all unqueued tickets and tasks'
@@ -199,9 +199,9 @@ const getQueueItemsRoute = createRoute({
   },
   responses: createStandardResponses(
     z.object({
-      tickets: z.array(TicketSchema),
-      tasks: z.array(TicketTaskSchema)
-    })
+      tickets: z.array(TicketSchema.openapi('Ticket')),
+      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+    }).openapi('QueueItems')
   ),
   tags: ['Flow'],
   summary: 'Get items in a queue (Flow)'
@@ -325,7 +325,7 @@ const enqueueTicketRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(TicketSchema),
+  responses: createStandardResponses(TicketSchema.openapi('Ticket')),
   tags: ['Flow'],
   summary: 'Enqueue a ticket to a queue'
 })
@@ -363,7 +363,7 @@ const enqueueTaskRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(TicketTaskSchema),
+  responses: createStandardResponses(TicketTaskSchema.openapi('TicketTask')),
   tags: ['Flow'],
   summary: 'Enqueue a task to a queue'
 })
@@ -391,7 +391,7 @@ const dequeueTicketRoute = createRoute({
         .transform((val) => val === 'true')
     })
   },
-  responses: createStandardResponses(TicketSchema),
+  responses: createStandardResponses(TicketSchema.openapi('Ticket')),
   tags: ['Flow'],
   summary: 'Remove a ticket from its queue'
 })
@@ -418,7 +418,7 @@ const dequeueTaskRoute = createRoute({
       taskId: z.coerce.number()
     })
   },
-  responses: createStandardResponses(TicketTaskSchema),
+  responses: createStandardResponses(TicketTaskSchema.openapi('TicketTask')),
   tags: ['Flow'],
   summary: 'Remove a task from its queue'
 })

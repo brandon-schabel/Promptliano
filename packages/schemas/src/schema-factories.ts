@@ -180,7 +180,7 @@ export const commonFields = {
 
   tags: createArrayField(z.string(), 'Tags for categorization'),
 
-  metadata: z.record(z.any()).default({}).describe('Additional metadata'),
+  metadata: z.record(z.string(), z.any()).default({}).describe('Additional metadata'),
 
   ...createTimestampFields()
 }

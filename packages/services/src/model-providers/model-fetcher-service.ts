@@ -191,6 +191,29 @@ export interface ModelFetcherDeps {
   cacheTimeout?: number // Cache timeout in ms (default: 5 minutes)
 }
 
+// Normalize local base URLs to avoid IPv6 (::1) and 0.0.0.0 connection issues
+function normalizeLocalBaseUrl(input: string): string {
+  try {
+    const u = new URL(input)
+    const localHosts = new Set(['0.0.0.0', 'localhost', '::1', '[::1]'])
+    if (localHosts.has(u.hostname)) {
+      u.hostname = '127.0.0.1'
+    }
+    // Build a clean base URL without trailing slash
+    let base = `${u.protocol}//${u.host}${u.pathname}`
+    base = base.replace(/\/$/, '')
+    return base
+  } catch {
+    // Best-effort fallback if URL parsing fails
+    return input
+      .replace('0.0.0.0', '127.0.0.1')
+      .replace('localhost', '127.0.0.1')
+      .replace('[::1]', '127.0.0.1')
+      .replace('::1', '127.0.0.1')
+      .replace(/\/$/, '')
+  }
+}
+
 /**
  * Create Model Fetcher Service with functional factory pattern
  */
@@ -498,11 +521,12 @@ export function createModelFetcherService(
     listOllamaModels: async ({ baseUrl }: { baseUrl: string } = { baseUrl: OLLAMA_BASE_URL }): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
-          const cacheKey = `ollama-models-${baseUrl}`
+          const normalizedBase = normalizeLocalBaseUrl(baseUrl)
+          const cacheKey = `ollama-models-${normalizedBase}`
           const cached = getCached(cacheKey)
           if (cached) return cached
 
-          const response = await fetch(`${baseUrl}/api/tags`)
+          const response = await fetch(`${normalizedBase}/api/tags`)
           if (!response.ok) {
             const errorText = await response.text()
             throw new Error(`Ollama API error: ${response.statusText} - ${errorText}`)
@@ -519,7 +543,7 @@ export function createModelFetcherService(
           }))
 
           setCached(cacheKey, models)
-          logger.info('Fetched Ollama models', { count: models.length, baseUrl })
+          logger.info('Fetched Ollama models', { count: models.length, baseUrl: normalizedBase })
           return models
         },
         { entity: 'OllamaModels', action: 'list' }
@@ -532,12 +556,13 @@ export function createModelFetcherService(
     listLMStudioModels: async ({ baseUrl }: { baseUrl: string } = { baseUrl: LMSTUDIO_BASE_URL }): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
-          const cacheKey = `lmstudio-models-${baseUrl}`
+          const normalizedBase0 = normalizeLocalBaseUrl(baseUrl)
+          const cacheKey = `lmstudio-models-${normalizedBase0}`
           const cached = getCached(cacheKey)
           if (cached) return cached
 
           // Ensure baseUrl has /v1 for OpenAI compatibility
-          let normalizedUrl = baseUrl
+          let normalizedUrl = normalizedBase0
           if (!normalizedUrl.endsWith('/v1')) {
             normalizedUrl = normalizedUrl.replace(/\/$/, '') + '/v1'
           }

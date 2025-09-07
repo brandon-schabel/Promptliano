@@ -27,7 +27,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(
   
   // Add optional filters that were applied
   if (options?.includeFilters) {
-    baseSchema['appliedFilters'] = z.record(z.any()).optional().describe('Filters applied to the list')
+    baseSchema['appliedFilters'] = z.record(z.string(), z.any()).optional().describe('Filters applied to the list')
   }
   
   // Add any additional fields
@@ -60,7 +60,7 @@ export function createGroupedListResponseSchema<T extends z.ZodTypeAny>(
   
   return z.object({
     success: z.literal(true),
-    data: z.record(z.array(itemSchema)),
+    data: z.record(z.string(), z.array(itemSchema)),
     groupedBy: z.literal(groupKey),
     groupCount: z.number().int().min(0)
   }).openapi(`${schemaName}GroupedListResponse`)
@@ -114,7 +114,7 @@ export function createCategorizedListResponseSchema<T extends z.ZodTypeAny>(
     data: z.object({
       categories: z.array(categorySchema),
       items: z.array(itemSchema),
-      itemsByCategory: z.record(z.array(z.number())).describe('Map of category ID to item indices')
+      itemsByCategory: z.record(z.string(), z.array(z.number())).describe('Map of category ID to item indices')
     })
   }).openapi(`${schemaName}CategorizedListResponse`)
 }
@@ -135,7 +135,7 @@ export function createFilteredListResponseSchema<T extends z.ZodTypeAny>(
     filters: filterSchema.describe('Active filters'),
     totalCount: z.number().int().min(0).describe('Total items before filtering'),
     filteredCount: z.number().int().min(0).describe('Items after filtering'),
-    availableFilters: z.record(z.array(z.string())).optional().describe('Available filter options')
+    availableFilters: z.record(z.string(), z.array(z.string())).optional().describe('Available filter options')
   }).openapi(`${schemaName}FilteredListResponse`)
 }
 

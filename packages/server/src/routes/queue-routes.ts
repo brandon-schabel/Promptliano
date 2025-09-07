@@ -765,5 +765,113 @@ queueRoutesApp.openapi(getQueueTimelineRoute, async (c) => {
   return c.json(successResponse(timeline))
 })
 
+// Manual routes - basic CRUD operations
+const getQueueByIdBasicRoute = createRoute({
+  method: 'get',
+  path: '/api/queues/{id}',
+  tags: ['Queues'],
+  summary: 'Get a queue by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
+})
+
+const updateQueueByIdBasicRoute = createRoute({
+  method: 'put',
+  path: '/api/queues/{id}',
+  tags: ['Queues'],
+  summary: 'Update a queue by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateQueueBodySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: TaskQueueSchema
+    })
+  )
+})
+
+const deleteQueueByIdBasicRoute = createRoute({
+  method: 'delete',
+  path: '/api/queues/{id}',
+  tags: ['Queues'],
+  summary: 'Delete a queue by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({ deleted: z.boolean() })
+    })
+  )
+})
+
+queueRoutesApp
+  .openapi(getQueueByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const queue = await getQueueById(id)
+
+    if (!queue) {
+      return c.json({ error: 'Queue not found' }, 404)
+    }
+
+    return c.json(successResponse(queue), 200)
+  })
+  .openapi(updateQueueByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const data = c.req.valid('json')
+    const queue = await updateQueue(id, data)
+
+    if (!queue) {
+      return c.json({ error: 'Queue not found' }, 404)
+    }
+
+    return c.json(successResponse(queue), 200)
+  })
+  .openapi(deleteQueueByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const deleted = await deleteQueue(id)
+    return c.json(successResponse({ deleted }), 200)
+  })
+
 export const queueRoutes = queueRoutesApp
 export type QueueRouteTypes = typeof queueRoutes

@@ -12,17 +12,21 @@ import {
   ForkChatFromMessageBodySchema,
   MessageRoleEnum
 } from '@promptliano/schemas'
-import { TEST_API_URL } from './test-config'
+import type { TestEnvironment } from './test-environment'
+import { createTestEnvironment } from './test-environment'
 
-const BASE_URL = TEST_API_URL
+let BASE_URL: string
+let testEnv: TestEnvironment
 
 describe('Chat API Tests', () => {
   let client: PromptlianoClient
   let testChats: Chat[] = []
   let testMessages: ChatMessage[] = []
 
-  beforeAll(() => {
+  beforeAll(async () => {
     console.log('Starting Chat API Tests...')
+    testEnv = await createTestEnvironment()
+    BASE_URL = testEnv.baseUrl
     client = createPromptlianoClient({ baseUrl: BASE_URL })
   })
 
@@ -39,6 +43,7 @@ describe('Chat API Tests', () => {
         }
       }
     }
+    await testEnv.cleanup()
   })
 
   test('POST /api/chats - Create chats', async () => {

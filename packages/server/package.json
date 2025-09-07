@@ -7,8 +7,7 @@
     "start": "bun server.ts",
     "test": "bun test src/",
     "typecheck": "tsc --noEmit",
-    "mcp": "bun mcp-server.ts",
-    "routes:generate": "bun src/codegen/cli.ts generate"
+    "mcp": "bun mcp-server.ts"
   },
   "type": "module",
   "dependencies": {

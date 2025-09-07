@@ -1,11 +1,10 @@
 import { serve } from 'bun'
 import type { Server } from 'bun'
 import { app } from '@promptliano/server/src/app'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { DatabaseManager } from '@promptliano/storage'
-import { runMigrations } from '@promptliano/storage/src/migrations/run-migrations'
+import { runMigrations, rawDb, dbUtils } from '@promptliano/database'
 
 export interface TestServerConfig {
   port?: number
@@ -78,6 +77,8 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
   const originalEnv = {
     NODE_ENV: process.env.NODE_ENV,
     PROMPTLIANO_DB_PATH: process.env.PROMPTLIANO_DB_PATH,
+    DATABASE_PATH: process.env.DATABASE_PATH,
+    PROMPTLIANO_DATA_DIR: process.env.PROMPTLIANO_DATA_DIR,
     RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED,
     LOG_LEVEL: process.env.LOG_LEVEL
   }
@@ -85,12 +86,19 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
   try {
     // Set test environment variables
     process.env.NODE_ENV = 'test'
-    process.env.PROMPTLIANO_DB_PATH = databasePath
+    // Prefer new @promptliano/database env variables
+    // Memory DB is selected automatically when NODE_ENV==='test'
+    if (!isMemoryDB) {
+      process.env.DATABASE_PATH = databasePath
+      // Also set legacy var for any remaining consumers
+      process.env.PROMPTLIANO_DB_PATH = databasePath
+      try {
+        // Set PROMPTLIANO_DATA_DIR to the directory containing the DB file for compatibility
+        process.env.PROMPTLIANO_DATA_DIR = dirname(databasePath)
+      } catch {}
+    }
     process.env.RATE_LIMIT_ENABLED = config.enableRateLimit ? 'true' : 'false'
     process.env.LOG_LEVEL = config.logLevel || 'silent'
-
-    // Reset database instance for test isolation
-    DatabaseManager.resetInstance()
 
     // Initialize database with timeout protection
     await Promise.race([
@@ -164,8 +172,10 @@ export async function createTestServer(config: TestServerConfig = {}): Promise<T
         // Stop the server
         server.stop(true)
 
-        // Reset database instance
-        DatabaseManager.resetInstance()
+        // Close DB connection (no-op for memory DB)
+        try {
+          dbUtils.close()
+        } catch {}
 
         // Restore environment variables
         Object.assign(process.env, originalEnv)
@@ -300,9 +310,6 @@ async function waitForServer(baseUrl: string, timeoutMs = 5000): Promise<void> {
  */
 export async function resetTestDatabase(databasePath: string, timeoutMs = 5000): Promise<void> {
   try {
-    // Reset database instance to clear cached state
-    DatabaseManager.resetInstance()
-
     // Re-run migrations with timeout protection
     await Promise.race([
       runMigrations(),
@@ -321,14 +328,11 @@ export async function resetTestDatabase(databasePath: string, timeoutMs = 5000):
  */
 export async function validateTestDatabase(databasePath: string): Promise<boolean> {
   try {
-    // Test basic database operations
-    const db = DatabaseManager.getInstance()
-
-    // Check if critical tables exist
-    const tables = ['projects', 'tickets', 'tasks', 'queues']
+    // Check if critical tables exist using rawDb
+    const tables = ['projects', 'tickets', 'ticket_tasks', 'queues']
     for (const table of tables) {
       try {
-        await db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).all()
+        rawDb.query(`SELECT 1 FROM ${table} LIMIT 1`).all()
       } catch (error) {
         console.warn(`Table ${table} not accessible:`, error)
         return false

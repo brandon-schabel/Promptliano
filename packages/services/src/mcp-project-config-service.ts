@@ -131,6 +131,53 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
   const eventEmitter = new EventEmitter()
 
   /**
+   * Normalize raw config to the canonical shape expected by ProjectMCPConfigSchema
+   * - Accepts legacy `servers` key as alias for `mcpServers`
+   * - Accepts shorthand string values for servers and expands to full objects
+   * - Coerces env values to strings
+   */
+  const normalizeProjectMCPConfig = (raw: any): any => {
+    if (!raw || typeof raw !== 'object') return raw
+
+    const cloned = { ...raw }
+
+    // Support legacy key
+    if (!cloned.mcpServers && cloned.servers && typeof cloned.servers === 'object') {
+      cloned.mcpServers = cloned.servers
+    }
+
+    if (cloned.mcpServers && typeof cloned.mcpServers === 'object') {
+      const normalizedServers: Record<string, any> = {}
+      for (const [name, value] of Object.entries(cloned.mcpServers)) {
+        let server: any = value
+
+        // Shorthand: string => command
+        if (typeof server === 'string') {
+          server = { type: 'stdio', command: server }
+        }
+
+        // Default type
+        if (!server.type) server.type = 'stdio'
+
+        // Ensure env values are strings
+        if (server.env && typeof server.env === 'object') {
+          const env: Record<string, string> = {}
+          for (const [k, v] of Object.entries(server.env)) {
+            env[k] = typeof v === 'string' ? v : String(v)
+          }
+          server.env = env
+        }
+
+        normalizedServers[name] = server
+      }
+
+      cloned.mcpServers = normalizedServers
+    }
+
+    return cloned
+  }
+
+  /**
    * Get the servers from config, handling both formats
    */
   const getServersFromConfig = (config: ProjectMCPConfig): Record<string, MCPServerConfig> => {
@@ -223,7 +270,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
             }
 
             // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
+            const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
 
             const resolved: ResolvedMCPConfig = {
               config: validatedConfig,
@@ -262,7 +309,7 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
             async () => {
               const config = await MCPFileOps.readJsonFile<ProjectMCPConfig>(userConfigPath, 'UserMCP')
               if (config) {
-                const validatedConfig = ProjectMCPConfigSchema.parse(config)
+                const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
                 logger.debug('Loaded user MCP configuration')
                 return validatedConfig
               }
@@ -442,8 +489,8 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
       async () => {
         return withRetry(
           async () => {
-            // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
+            // Normalize then validate config
+            const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
             
             const project = await projectService.getById(projectId)
             if (!project) {
@@ -485,8 +532,8 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
       async () => {
         return withRetry(
           async () => {
-            // Validate config
-            const validatedConfig = ProjectMCPConfigSchema.parse(config)
+            // Normalize then validate config
+            const validatedConfig = ProjectMCPConfigSchema.parse(normalizeProjectMCPConfig(config))
             
             const project = await projectService.getById(projectId)
             if (!project) {

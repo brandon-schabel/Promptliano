@@ -8,16 +8,16 @@
  * and eliminates ZodLazy prototype mismatch issues.
  */
 
-import { createInsertSchema as drizzleCreateInsertSchema, createSelectSchema as drizzleCreateSelectSchema } from 'drizzle-zod'
+import { createSchemaFactory } from 'drizzle-zod'
 import { z } from '@hono/zod-openapi'
 
 /**
- * Re-export schema creation functions with @hono/zod-openapi support
- * Using direct imports for better compatibility with drizzle-zod v0.8.3
+ * Use drizzle-zod's factory with @hono/zod-openapi's Zod instance.
+ * This ensures all generated schemas carry OpenAPI metadata and avoid ZodLazy mismatches.
  */
-export const createInsertSchema = drizzleCreateInsertSchema
-export const createSelectSchema = drizzleCreateSelectSchema
-export const createUpdateSchema = drizzleCreateInsertSchema // Update is typically the same as insert for most cases
+export const { createInsertSchema, createSelectSchema, createUpdateSchema } = createSchemaFactory({
+  zodInstance: z
+})
 
 /**
  * Helper type for table transformations with OpenAPI metadata support

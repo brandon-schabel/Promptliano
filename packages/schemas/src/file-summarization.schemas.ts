@@ -15,8 +15,8 @@ export const FileRelationshipSchema = z.object({
   targetFileId: z.string(), // Changed to string to match database File.id type
   type: FileRelationshipTypeEnum,
   strength: z.number().min(0).max(1).describe('Relationship strength (0-1)'),
-  metadata: z.record(z.any()).optional()
-})
+  metadata: z.record(z.string(), z.any()).optional()
+}).openapi('FileRelationship')
 export type FileRelationship = z.infer<typeof FileRelationshipSchema>
 
 // File group schema
@@ -35,7 +35,7 @@ export const FileGroupSchema = z.object({
       semanticCategory: z.string().optional()
     })
     .optional()
-})
+}).openapi('FileGroup')
 export type FileGroup = z.infer<typeof FileGroupSchema>
 
 // Summary status for individual files
@@ -49,7 +49,7 @@ export const FileSummaryStatusSchema = z.object({
   lastAttempt: z.number().optional(),
   errorMessage: z.string().optional(),
   retryCount: z.number().default(0)
-})
+}).openapi('FileSummaryStatus')
 export type FileSummaryStatus = z.infer<typeof FileSummaryStatusSchema>
 
 // Batch summary options
@@ -63,7 +63,7 @@ export const BatchSummaryOptionsSchema = z.object({
   staleThresholdDays: z.number().min(1).max(365).default(30),
   retryFailedFiles: z.boolean().default(false),
   maxRetries: z.number().min(0).max(5).default(2)
-})
+}).openapi('BatchSummaryOptions')
 export type BatchSummaryOptions = z.infer<typeof BatchSummaryOptionsSchema>
 
 // Progress tracking schema
@@ -82,7 +82,7 @@ export const SummaryProgressSchema = z.object({
   currentGroup: z.string().optional(),
   estimatedTokensUsed: z.number().default(0),
   errors: z.array(z.string()).optional()
-})
+}).openapi('SummaryProgress')
 export type SummaryProgress = z.infer<typeof SummaryProgressSchema>
 
 // Enhanced summary with relationships
@@ -100,7 +100,7 @@ export const EnhancedFileSummarySchema = z.object({
     .optional(),
   groupContext: z.string().optional(),
   generatedAt: z.number()
-})
+}).openapi('EnhancedFileSummary')
 export type EnhancedFileSummary = z.infer<typeof EnhancedFileSummarySchema>
 
 // Group summary schema
@@ -113,7 +113,7 @@ export const GroupSummarySchema = z.object({
   keyInsights: z.array(z.string()).optional(),
   tokensUsed: z.number(),
   generatedAt: z.number()
-})
+}).openapi('GroupSummary')
 export type GroupSummary = z.infer<typeof GroupSummarySchema>
 
 // Batch result schema
@@ -135,7 +135,7 @@ export const BatchSummaryResultSchema = z.object({
       })
     )
     .optional()
-})
+}).openapi('BatchSummaryResult')
 export type BatchSummaryResult = z.infer<typeof BatchSummaryResultSchema>
 
 // File summarization statistics
@@ -148,6 +148,6 @@ export const FileSummarizationStatsSchema = z.object({
   failedFiles: z.number(),
   averageTokensPerFile: z.number(),
   lastBatchRun: z.number().optional(),
-  filesByStatus: z.record(SummaryStatusEnum, z.number())
-})
+  filesByStatus: z.record(z.string(), z.number())
+}).openapi('FileSummarizationStats')
 export type FileSummarizationStats = z.infer<typeof FileSummarizationStatsSchema>

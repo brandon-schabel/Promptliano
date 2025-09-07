@@ -332,4 +332,78 @@ providerKeyRoutes.openapi(validateCustomProviderRoute, async (c) => {
   }
 })
 
+// Manual routes - basic CRUD operations
+const getProviderKeyByIdBasicRoute = createRoute({
+  method: 'get',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Get a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema
+  },
+  responses: createStandardResponses(ProviderKeyResponseSchema)
+})
+
+const updateProviderKeyByIdBasicRoute = createRoute({
+  method: 'put',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Update a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateProviderKeySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(ProviderKeyResponseSchema)
+})
+
+const deleteProviderKeyByIdBasicRoute = createRoute({
+  method: 'delete',
+  path: '/api/keys/{id}',
+  tags: ['Provider Keys'],
+  summary: 'Delete a provider key by ID (basic)',
+  request: {
+    params: ProviderKeyIdParamsSchema
+  },
+  responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+providerKeyRoutes
+  .openapi(getProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const key = await providerKeyService.getById(id)
+
+    if (!key) {
+      return c.json({ error: 'Provider key not found' }, 404)
+    }
+
+    return c.json({ data: key }, 200)
+  })
+  .openapi(updateProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const data = c.req.valid('json')
+    const key = await providerKeyService.update(id, data)
+
+    if (!key) {
+      return c.json({ error: 'Provider key not found' }, 404)
+    }
+
+    return c.json({ data: key }, 200)
+  })
+  .openapi(deleteProviderKeyByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const success = await providerKeyService.delete(id)
+
+    if (!success) {
+      return c.json({ error: 'Provider key not found' }, 404)
+    }
+
+    return c.json({ success: true, message: 'Provider key deleted successfully' }, 200)
+  })
+
 export type ProviderKeyRouteTypes = typeof providerKeyRoutes

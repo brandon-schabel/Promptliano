@@ -28,7 +28,7 @@ export const SummaryOptionsSchema = z.object({
   groupAware: z.boolean().default(false).describe('Enable group-aware summarization'),
   includeRelationships: z.boolean().default(true).describe('Include file relationships in summaries'),
   contextWindow: z.number().min(1).max(10).default(3).describe('Number of related files to include in context')
-})
+}).openapi('SummaryOptions')
 
 export type SummaryOptions = z.infer<typeof SummaryOptionsSchema>
 
@@ -39,7 +39,7 @@ export const SummaryVersionSchema = z.object({
   model: z.string().describe('Model used to generate the summary'),
   options: SummaryOptionsSchema.describe('Options used for generation'),
   tokenCount: z.number().optional().describe('Number of tokens in the summary')
-})
+}).openapi('SummaryVersion')
 
 export type SummaryVersion = z.infer<typeof SummaryVersionSchema>
 
@@ -53,7 +53,7 @@ export const SummaryMetricsSchema = z.object({
   filesProcessed: z.number().describe('Number of files processed'),
   cacheHit: z.boolean().describe('Whether cache was used'),
   truncated: z.boolean().describe('Whether content was truncated')
-})
+}).openapi('SummaryMetrics')
 
 export type SummaryMetrics = z.infer<typeof SummaryMetricsSchema>
 
@@ -63,7 +63,7 @@ export const EnhancedProjectSummaryResponseSchema = z.object({
   summary: z.string().describe('The generated summary'),
   version: SummaryVersionSchema.describe('Version information'),
   metrics: SummaryMetricsSchema.optional().describe('Generation metrics if requested')
-})
+}).openapi('EnhancedProjectSummaryResponse')
 
 export type EnhancedProjectSummaryResponse = z.infer<typeof EnhancedProjectSummaryResponseSchema>
 
@@ -79,6 +79,6 @@ export const FileImportanceSchema = z.object({
     size: z.number().describe('Score based on file size'),
     recency: z.number().describe('Score based on recent modifications')
   })
-})
+}).openapi('FileImportance')
 
 export type FileImportance = z.infer<typeof FileImportanceSchema>

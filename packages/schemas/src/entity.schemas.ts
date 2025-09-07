@@ -12,7 +12,7 @@ export const ActiveTabSchema = z.object({
   id: z.number().int().positive(),
   tabId: z.number().int().min(0),
   clientId: z.string().nullable(),
-  tabMetadata: z.record(z.any()).nullable(),
+  tabMetadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number()
 }).openapi('ActiveTab')
@@ -35,7 +35,7 @@ export const FileSchema = z.object({
   size: z.number().nullable(),
   lastModified: z.number().nullable(),
   permissions: z.string().nullable(),
-  metadata: z.record(z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number()
 }).openapi('File')
@@ -47,8 +47,8 @@ export const QueueSchema = z.object({
   description: z.string().nullable(),
   isActive: z.boolean().default(true),
   maxConcurrency: z.number().int().positive().default(1),
-  retryConfig: z.record(z.any()).nullable(),
-  metadata: z.record(z.any()).nullable(),
+  retryConfig: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number()
 }).openapi('Queue')
@@ -60,7 +60,7 @@ export const SelectedFileSchema = z.object({
   projectId: z.number().int().positive().nullable(),
   selectionType: z.enum(['manual', 'auto', 'suggested']),
   relevanceScore: z.number().nullable(),
-  metadata: z.record(z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number()
 }).openapi('SelectedFile')
@@ -71,7 +71,7 @@ export const ChatMessageSchema = z.object({
   chatId: z.number().int().positive(),
   role: z.enum(['user', 'assistant', 'system']),
   content: z.string(),
-  metadata: z.record(z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number()
 }).openapi('ChatMessage')
@@ -171,7 +171,7 @@ export const PromptSchema = z.object({
 export const CreateActiveTabSchema = z.object({
   tabId: z.number().int().min(0),
   clientId: z.string().optional(),
-  tabMetadata: z.record(z.any()).optional()
+  tabMetadata: z.record(z.string(), z.any()).optional()
 }).openapi('CreateActiveTab')
 
 export const CreateChatSchema = z.object({
@@ -186,7 +186,7 @@ export const CreateFileSchema = z.object({
   size: z.number().optional(),
   lastModified: z.number().optional(),
   permissions: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('CreateFile')
 
 export const CreateQueueSchema = z.object({
@@ -194,8 +194,8 @@ export const CreateQueueSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   maxConcurrency: z.number().int().positive().default(1),
-  retryConfig: z.record(z.any()).optional(),
-  metadata: z.record(z.any()).optional()
+  retryConfig: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('CreateQueue')
 
 export const CreateSelectedFileSchema = z.object({
@@ -203,7 +203,7 @@ export const CreateSelectedFileSchema = z.object({
   projectId: z.number().int().positive().optional(),
   selectionType: z.enum(['manual', 'auto', 'suggested']).default('manual'),
   relevanceScore: z.number().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('CreateSelectedFile')
 
 // Chat Message Create/Update schemas - missing from generated routes
@@ -211,13 +211,13 @@ export const CreateChatMessageSchema = z.object({
   chatId: z.number().int().positive(),
   role: z.enum(['user', 'assistant', 'system']),
   content: z.string().min(1),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('CreateChatMessage')
 
 export const UpdateChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system']).optional(),
   content: z.string().min(1).optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('UpdateChatMessage')
 
 // Provider Key schemas (for entity routes) - compatibility with ProviderModelSchema
@@ -233,7 +233,7 @@ export const ProviderKeySchema = z.object({
   tag: z.string().nullable(),
   salt: z.string().nullable(),
   baseUrl: z.string().nullable(),
-  customHeaders: z.record(z.string()).nullable(),
+  customHeaders: z.record(z.string(), z.string()).nullable(),
   isDefault: z.boolean(),
   isActive: z.boolean(),
   environment: z.string(),
@@ -251,7 +251,7 @@ export const CreateProviderKeySchema = z.object({
   secretRef: z.string().optional(),
   key: z.string().optional(),
   baseUrl: z.string().optional(),
-  customHeaders: z.record(z.string()).optional(),
+  customHeaders: z.record(z.string(), z.string()).optional(),
   isDefault: z.boolean().default(false),
   isActive: z.boolean().default(true),
   environment: z.string().default('production'),
@@ -266,7 +266,7 @@ export const UpdateProviderKeySchema = z.object({
   secretRef: z.string().optional(),
   key: z.string().optional(),
   baseUrl: z.string().optional(),
-  customHeaders: z.record(z.string()).optional(),
+  customHeaders: z.record(z.string(), z.string()).optional(),
   isDefault: z.boolean().optional(),
   isActive: z.boolean().optional(),
   environment: z.string().optional(),
@@ -376,7 +376,7 @@ export const UpdateProjectSchema = z.object({
 export const UpdateActiveTabSchema = z.object({
   tabId: z.number().int().min(0).optional(),
   clientId: z.string().optional(),
-  tabMetadata: z.record(z.any()).optional()
+  tabMetadata: z.record(z.string(), z.any()).optional()
 }).openapi('UpdateActiveTab')
 
 export const UpdateChatSchema = z.object({
@@ -390,7 +390,7 @@ export const UpdateFileSchema = z.object({
   size: z.number().optional(),
   lastModified: z.number().optional(),
   permissions: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('UpdateFile')
 
 export const UpdateQueueSchema = z.object({
@@ -398,14 +398,14 @@ export const UpdateQueueSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional(),
   maxConcurrency: z.number().int().positive().optional(),
-  retryConfig: z.record(z.any()).optional(),
-  metadata: z.record(z.any()).optional()
+  retryConfig: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('UpdateQueue')
 
 export const UpdateSelectedFileSchema = z.object({
   selectionType: z.enum(['manual', 'auto', 'suggested']).optional(),
   relevanceScore: z.number().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 }).openapi('UpdateSelectedFile')
 
 // =============================================================================

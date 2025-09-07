@@ -731,6 +731,104 @@ export const ticketRoutes = new OpenAPIHono()
     return c.json(payload, 200)
   })
 
+// Manual routes - basic CRUD operations
+const getTicketByIdBasicRoute = createRoute({
+  method: 'get',
+  path: '/api/tickets/{id}',
+  tags: ['Tickets'],
+  summary: 'Get a ticket by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(TicketResponseSchema)
+})
+
+const updateTicketByIdBasicRoute = createRoute({
+  method: 'put',
+  path: '/api/tickets/{id}',
+  tags: ['Tickets'],
+  summary: 'Update a ticket by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateTicketBodySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(TicketResponseSchema)
+})
+
+const deleteTicketByIdBasicRoute = createRoute({
+  method: 'delete',
+  path: '/api/tickets/{id}',
+  tags: ['Tickets'],
+  summary: 'Delete a ticket by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+ticketRoutes
+  .openapi(getTicketByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const ticket = await getTicketById(id)
+
+    if (!ticket) {
+      return c.json({ error: 'Ticket not found' }, 404)
+    }
+
+    return c.json(successResponse(ticket), 200)
+  })
+  .openapi(updateTicketByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const data = c.req.valid('json')
+    const ticket = await updateTicket(id, data)
+
+    if (!ticket) {
+      return c.json({ error: 'Ticket not found' }, 404)
+    }
+
+    return c.json(successResponse(ticket), 200)
+  })
+  .openapi(deleteTicketByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const success = await deleteTicket(id)
+
+    if (!success) {
+      return c.json({ error: 'Ticket not found' }, 404)
+    }
+
+    return c.json(operationSuccessResponse('Ticket deleted successfully'), 200)
+  })
+
 export type TicketRouteTypes = typeof ticketRoutes
 // Local params schema matching path placeholder {projectId}
 const ProjectIdParamsProjectIdSchema = z

@@ -32,7 +32,7 @@ export const mcpToolExecutionSchema = z.object({
   inputParams: z.string().nullable().optional(), // JSON string
   outputSize: z.number().nullable().optional(),
   metadata: z.string().nullable().optional() // JSON string
-})
+}).openapi('MCPToolExecution')
 
 export type MCPToolExecution = z.infer<typeof mcpToolExecutionSchema>
 
@@ -87,7 +87,7 @@ export const mcpToolStatisticsSchema = z.object({
   maxDurationMs: z.number().nullable().optional(),
   totalOutputSize: z.number().default(0),
   metadata: z.string().nullable().optional() // JSON string
-})
+}).openapi('MCPToolStatistics')
 
 export type MCPToolStatistics = z.infer<typeof mcpToolStatisticsSchema>
 
@@ -101,7 +101,7 @@ export const mcpToolChainSchema = z.object({
   parentExecutionId: z.number().nullable().optional(),
   position: z.number(),
   createdAt: unixTSSchemaSpec
-})
+}).openapi('MCPToolChain')
 
 export type MCPToolChain = z.infer<typeof mcpToolChainSchema>
 
@@ -117,7 +117,7 @@ export const mcpToolPatternSchema = z.object({
   firstSeen: unixTSSchemaSpec,
   lastSeen: unixTSSchemaSpec,
   metadata: z.string().nullable().optional() // JSON string
-})
+}).openapi('MCPToolPattern')
 
 export type MCPToolPattern = z.infer<typeof mcpToolPatternSchema>
 
@@ -138,7 +138,7 @@ export const mcpExecutionQuerySchema = z.object({
   offset: z.number().min(0).default(0),
   sortBy: z.enum(['startedAt', 'duration', 'toolName']).default('startedAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc')
-})
+}).openapi('MCPExecutionQuery')
 
 export type MCPExecutionQuery = z.infer<typeof mcpExecutionQuerySchema>
 
@@ -164,19 +164,19 @@ export const mcpExecutionQueryRequestSchema = z.object({
   sessionId: z.string().optional(),
   limit: z
     .string()
-    .transform((val) => parseInt(val, 10))
-    .pipe(z.number().min(1).max(1000))
     .optional()
-    .default('100'),
+    .default('100')
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().min(1).max(1000)),
   offset: z
     .string()
-    .transform((val) => parseInt(val, 10))
-    .pipe(z.number().min(0))
     .optional()
-    .default('0'),
+    .default('0')
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().min(0)),
   sortBy: z.enum(['startedAt', 'duration', 'toolName']).optional().default('startedAt'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc')
-})
+}).openapi('MCPExecutionQueryRequest')
 
 /**
  * Schema for analytics aggregation request
@@ -188,7 +188,7 @@ export const mcpAnalyticsRequestSchema = z.object({
   startDate: unixTSSchemaSpec.optional(),
   endDate: unixTSSchemaSpec.optional(),
   groupBy: z.array(z.enum(['tool', 'project', 'status', 'day', 'hour'])).optional()
-})
+}).openapi('MCPAnalyticsRequest')
 
 export type MCPAnalyticsRequest = z.infer<typeof mcpAnalyticsRequestSchema>
 
@@ -208,7 +208,7 @@ export const mcpToolSummarySchema = z.object({
   maxDurationMs: z.number().nullable(),
   totalOutputSize: z.number(),
   lastExecutedAt: unixTSSchemaSpec.nullable()
-})
+}).openapi('MCPToolSummary')
 
 export type MCPToolSummary = z.infer<typeof mcpToolSummarySchema>
 
@@ -229,7 +229,7 @@ export const mcpAnalyticsOverviewSchema = z.object({
       avgDuration: z.number()
     })
   )
-})
+}).openapi('MCPAnalyticsOverview')
 
 export type MCPAnalyticsOverview = z.infer<typeof mcpAnalyticsOverviewSchema>
 
@@ -243,7 +243,7 @@ export const mcpExecutionTimelineSchema = z.object({
   avgDuration: z.number(),
   successCount: z.number(),
   errorCount: z.number()
-})
+}).openapi('MCPExecutionTimeline')
 
 export type MCPExecutionTimeline = z.infer<typeof mcpExecutionTimelineSchema>
 
@@ -255,7 +255,7 @@ export const mcpExecutionListResponseSchema = z.object({
   total: z.number(),
   page: z.number(),
   pageSize: z.number()
-})
+}).openapi('MCPExecutionListResponse')
 
 export type MCPExecutionListResponse = z.infer<typeof mcpExecutionListResponseSchema>
 

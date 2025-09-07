@@ -22,7 +22,7 @@ export const ParserConfigSchema = z
       description: 'Parser class name to use'
     }),
     options: z
-      .record(z.any())
+      .record(z.string(), z.any())
       .optional()
       .openapi({
         example: { renderHtml: true },

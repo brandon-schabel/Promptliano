@@ -27,9 +27,9 @@ import {
 import { createStandardResponses, createStandardResponsesWithStatus, createListResponseSchema, successResponse, operationSuccessResponse } from '../utils/route-helpers'
 
 // Define reusable response schemas using factory functions
-const RemotesResponseSchema = createListResponseSchema(gitRemoteSchema, 'RemotesResponse')
-const TagsResponseSchema = createListResponseSchema(gitTagSchema, 'TagsResponse')
-const StashListResponseSchema = createListResponseSchema(gitStashSchema, 'StashListResponse')
+const RemotesResponseSchema = createListResponseSchema(gitRemoteSchema.openapi('GitRemote'), 'RemotesResponse')
+const TagsResponseSchema = createListResponseSchema(gitTagSchema.openapi('GitTag'), 'TagsResponse')
+const StashListResponseSchema = createListResponseSchema(gitStashSchema.openapi('GitStash'), 'StashListResponse')
 
 export const gitAdvancedRoutes = new OpenAPIHono()
 
@@ -68,12 +68,12 @@ const pushRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: gitPushRequestSchema
+          schema: gitPushRequestSchema.openapi('GitPushRequest')
         }
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Push changes to a remote repository'
 })
@@ -106,7 +106,7 @@ const fetchRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Fetch updates from a remote repository'
 })
@@ -138,7 +138,7 @@ const pullRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Pull changes from a remote repository'
 })
@@ -192,7 +192,7 @@ const createTagRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Create a new tag in the git repository'
 })
@@ -226,7 +226,7 @@ const stashRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Stash current changes'
 })
@@ -274,7 +274,7 @@ const applyStashRoute = createRoute({
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Apply a stash without removing it from the stash list'
 })
@@ -303,12 +303,12 @@ const resetRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: gitResetRequestSchema
+          schema: gitResetRequestSchema.openapi('GitResetRequest')
         }
       }
     }
   },
-  responses: createStandardResponses(gitOperationResponseSchema),
+  responses: createStandardResponses(gitOperationResponseSchema.openapi('GitOperationResponse')),
   tags: ['Git'],
   description: 'Reset current HEAD to a specified state'
 })

@@ -20,36 +20,36 @@ import {
 // Response schemas
 const ModelConfigResponseSchema = z.object({
   success: z.literal(true),
-  data: selectModelConfigSchema as any as any
+  data: (selectModelConfigSchema as any).openapi('ModelConfig')
 }).openapi('ModelConfigResponse')
 
 const ModelConfigListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(selectModelConfigSchema as any)
+  data: z.array((selectModelConfigSchema as any).openapi('ModelConfig'))
 }).openapi('ModelConfigListResponse')
 
 const ModelPresetResponseSchema = z.object({
   success: z.literal(true),
-  data: selectModelPresetSchema as any
+  data: (selectModelPresetSchema as any).openapi('ModelPreset')
 }).openapi('ModelPresetResponse')
 
 const ModelPresetListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(selectModelPresetSchema as any)
+  data: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
 }).openapi('ModelPresetListResponse')
 
 const ModelPresetWithConfigResponseSchema = z.object({
   success: z.literal(true),
   data: (selectModelPresetSchema as any).extend({
-    config: selectModelConfigSchema as any
-  })
+    config: (selectModelConfigSchema as any).openapi('ModelConfig')
+  }).openapi('ModelPresetWithConfig')
 }).openapi('ModelPresetWithConfigResponse')
 
 const ExportDataResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
-    configs: z.array(selectModelConfigSchema as any),
-    presets: z.array(selectModelPresetSchema as any)
+    configs: z.array((selectModelConfigSchema as any).openapi('ModelConfig')),
+    presets: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
   })
 }).openapi('ExportDataResponse')
 
@@ -62,23 +62,23 @@ const ImportResultResponseSchema = z.object({
 }).openapi('ImportResultResponse')
 
 // Request schemas
-const CreateModelConfigSchema = insertModelConfigSchema.omit({
+const CreateModelConfigSchema = (insertModelConfigSchema as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true
-})
+}).openapi('CreateModelConfig')
 
-const UpdateModelConfigSchema = CreateModelConfigSchema.partial()
+const UpdateModelConfigSchema = CreateModelConfigSchema.partial().openapi('UpdateModelConfig')
 
-const CreateModelPresetSchema = insertModelPresetSchema.omit({
+const CreateModelPresetSchema = (insertModelPresetSchema as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   usageCount: true,
   lastUsedAt: true
-})
+}).openapi('CreateModelPreset')
 
-const UpdateModelPresetSchema = CreateModelPresetSchema.partial()
+const UpdateModelPresetSchema = CreateModelPresetSchema.partial().openapi('UpdateModelPreset')
 
 // Path parameter schemas
 const ConfigIdParamsSchema = z.object({
@@ -208,7 +208,7 @@ const createConfigRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: CreateModelConfigSchema as any
+          schema: CreateModelConfigSchema
         }
       },
       required: true
@@ -234,7 +234,7 @@ const updateConfigRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: UpdateModelConfigSchema as any
+          schema: UpdateModelConfigSchema
         }
       }
     }
@@ -314,9 +314,9 @@ const getAllPresetsRoute = createRoute({
   responses: createStandardResponses(z.object({
     success: z.literal(true),
     data: z.array((selectModelPresetSchema as any).extend({
-      config: selectModelConfigSchema as any
-    }))
-  }))
+      config: (selectModelConfigSchema as any).openapi('ModelConfig')
+    }).openapi('ModelPresetWithConfig'))
+  }).openapi('ModelPresetsWithConfigResponse'))
 })
 
 modelConfigRoutes.openapi(getAllPresetsRoute, async (c) => {
@@ -415,7 +415,7 @@ const createPresetRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: CreateModelPresetSchema as any
+          schema: CreateModelPresetSchema
         }
       },
       required: true
@@ -441,7 +441,7 @@ const updatePresetRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: UpdateModelPresetSchema as any
+          schema: UpdateModelPresetSchema
         }
       },
       required: true

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun run generate && tsc",
     "generate": "bun scripts/generate-client.ts",
-    "test": "bun src/tests/run-functional-tests.ts",
+    "test": "bun test --timeout 60000 --bail",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

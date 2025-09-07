@@ -604,4 +604,102 @@ export const promptRoutes = new OpenAPIHono()
     )
   })
 
+// Manual routes - basic CRUD operations
+const getPromptByIdBasicRoute = createRoute({
+  method: 'get',
+  path: '/api/prompts/{id}',
+  tags: ['Prompts'],
+  summary: 'Get a prompt by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(PromptResponseSchema)
+})
+
+const updatePromptByIdBasicRoute = createRoute({
+  method: 'put',
+  path: '/api/prompts/{id}',
+  tags: ['Prompts'],
+  summary: 'Update a prompt by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdatePromptBodySchema
+        }
+      }
+    }
+  },
+  responses: createStandardResponses(PromptResponseSchema)
+})
+
+const deletePromptByIdBasicRoute = createRoute({
+  method: 'delete',
+  path: '/api/prompts/{id}',
+  tags: ['Prompts'],
+  summary: 'Delete a prompt by ID (basic)',
+  request: {
+    params: z.object({
+      id: z.string().regex(/^\d+$/).transform(Number).openapi({
+        param: {
+          name: 'id',
+          in: 'path'
+        },
+        example: '1'
+      })
+    })
+  },
+  responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+promptRoutes
+  .openapi(getPromptByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const prompt = await promptService.getById(id)
+
+    if (!prompt) {
+      return c.json({ error: 'Prompt not found' }, 404)
+    }
+
+    return c.json({ data: prompt }, 200)
+  })
+  .openapi(updatePromptByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const data = c.req.valid('json')
+    const prompt = await promptService.update(id, data)
+
+    if (!prompt) {
+      return c.json({ error: 'Prompt not found' }, 404)
+    }
+
+    return c.json({ data: prompt }, 200)
+  })
+  .openapi(deletePromptByIdBasicRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const success = await promptService.delete(id)
+
+    if (!success) {
+      return c.json({ error: 'Prompt not found' }, 404)
+    }
+
+    return c.json({ success: true, message: 'Prompt deleted successfully' }, 200)
+  })
+
 export type PromptRouteTypes = typeof promptRoutes

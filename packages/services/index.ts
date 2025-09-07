@@ -386,21 +386,21 @@ export { ticketService as ticketServiceV2 } from './src/ticket-service'
 export { promptService as promptServiceV2 } from './src/prompt-service'
 
 export { providerKeyService as providerkeyServiceV2 } from './src/provider-key-service'
-// QueueItem operations are part of queue service
-export const queueitemServiceV2 = {
-  list: async () => [],
-  getById: async (id: number | string) => ({ id: Number(id) }),
-  create: async (data: any) => ({ id: Date.now(), ...data }),
-  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
-  delete: async (id: number | string) => true
-}
-// SelectedFile operations need stub implementation
-export const selectedfileServiceV2 = {
-  list: async () => [],
-  getById: async (id: number | string) => ({ id: Number(id) }),
-  create: async (data: any) => ({ id: Date.now(), ...data }),
-  update: async (id: number | string, data: any) => ({ id: Number(id), ...data }),
-  delete: async (id: number | string) => true
-}
+
+// QueueItem operations - proper service implementation
+export { queueItemService as queueitemServiceV2 } from './src/queue-item-service'
+
+// SelectedFile operations - proper service implementation
+export { selectedFileService as selectedfileServiceV2 } from './src/selected-file-service'
 export { taskService as tickettaskServiceV2 } from './src/task-service'
 export { projectService as projectServiceV2 } from './src/project-service'
+
+// Additional exports for factory routes (using correct names)
+export { activeTabService } from './src/active-tab-service'
+export { chatService as chatMessageService } from './src/chat-service'
+// fileService already exported above (lines 111-117)
+// queueService already exported above (lines 49-79)
+// Re-export with different aliases for backward compatibility
+export { queueItemService } from './src/queue-item-service'
+export { selectedFileService } from './src/selected-file-service'
+export { taskService as ticketTaskService } from './src/task-service'

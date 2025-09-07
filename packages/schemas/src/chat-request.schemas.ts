@@ -124,7 +124,7 @@ export const MessageListResponseSchema = z
         chatId: z.number(),
         role: MessageRoleEnum,
         content: z.string(),
-        metadata: z.record(z.any()).nullable(),
+        metadata: z.record(z.string(), z.any()).nullable(),
         createdAt: z.number()
       })
     )

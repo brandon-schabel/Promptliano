@@ -39,7 +39,7 @@ export function createStreamingResponseSchema<T extends z.ZodTypeAny>(
   }
   
   if (options?.includeMetadata) {
-    dataUnion.push(z.object({ metadata: z.record(z.any()) }))
+    dataUnion.push(z.object({ metadata: z.record(z.string(), z.any()) }))
   }
   
   if (options?.includeProgress) {

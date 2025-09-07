@@ -80,10 +80,17 @@ export const standardResponses = {
  * Create standard response set for routes
  */
 export function createStandardResponses(successSchema: z.ZodTypeAny) {
+  // Be defensive: if a non-Zod value is passed, coerce to z.any() to avoid doc generation crashes
+  const schema: z.ZodTypeAny =
+    successSchema &&
+    typeof successSchema === 'object' &&
+    (('_def' in (successSchema as any)) || ('def' in (successSchema as any)))
+      ? (successSchema as z.ZodTypeAny)
+      : z.any()
   return {
     200: {
       content: {
-        'application/json': { schema: successSchema }
+        'application/json': { schema }
       },
       description: 'Success'
     },
@@ -99,10 +106,16 @@ export function createStandardResponsesWithStatus(
   statusCode: number = 200,
   description: string = 'Success'
 ) {
+  const schema: z.ZodTypeAny =
+    successSchema &&
+    typeof successSchema === 'object' &&
+    (('_def' in (successSchema as any)) || ('def' in (successSchema as any)))
+      ? (successSchema as z.ZodTypeAny)
+      : z.any()
   return {
     [statusCode]: {
       content: {
-        'application/json': { schema: successSchema }
+        'application/json': { schema }
       },
       description
     },

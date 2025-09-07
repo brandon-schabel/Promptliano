@@ -5,7 +5,7 @@
  * and proper TypeScript types for API validation and client consumption.
  */
 
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 // =============================================================================
 // JSON FIELD TRANSFORMERS
@@ -61,7 +61,7 @@ export const jsonToNumberArraySchema = () =>
 export const jsonToRecordSchema = <T extends Record<string, any>>() =>
   z.union([
     z.string(),
-    z.record(z.any()),
+    z.record(z.string(), z.any()),
     z.null()
   ]).transform((val): T | null => {
     if (val === null || val === undefined) return null

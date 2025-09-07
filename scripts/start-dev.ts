@@ -43,12 +43,15 @@ async function startServices() {
     const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT || 4983)
     const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT || 6274)
     const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT || 6277)
+    const autostartInspector = String(process.env.MCP_INSPECTOR_AUTOSTART || '').toLowerCase() === 'true'
 
     await killPort(serverPort) // server
     await killPort(clientPort) // client
     await killPort(drizzlePort) // drizzle studio
-    await killPort(inspectorClientPort) // mcp inspector ui
-    await killPort(inspectorServerPort) // mcp inspector proxy
+    if (autostartInspector) {
+      await killPort(inspectorClientPort) // mcp inspector ui
+      await killPort(inspectorServerPort) // mcp inspector proxy
+    }
     // Start server (runs on 3147)
     // the server must be running first because the client needs
     console.log('🚀 Starting server...')
@@ -74,38 +77,47 @@ async function startServices() {
     })
     processes.push(drizzleProcess)
 
-    // Start MCP Inspector (UI + proxy)
-    console.log('🛠️  Starting MCP Inspector...')
-    // Prepare a minimal Inspector config that preloads Promptliano MCP (stdio)
-    const inspectorConfigPath = join(rootDir, '.mcp-inspector.config.json')
-    const isWindows = process.platform === 'win32'
-    const scriptArg = isWindows ? 'packages\\server\\mcp-start.bat' : 'packages/server/mcp-start.sh'
-    const inspectorConfig = {
-      mcpServers: {
-        'default-server': {
-          type: 'stdio',
-          command: isWindows ? 'cmd.exe' : 'sh',
-          args: isWindows ? ['/c', scriptArg] : [scriptArg],
-          ...(process.env.PROMPTLIANO_PROJECT_ID
-            ? { env: { PROMPTLIANO_PROJECT_ID: String(process.env.PROMPTLIANO_PROJECT_ID) } }
-            : {})
+    // Start MCP Inspector (UI + proxy) — disabled by default
+    if (autostartInspector) {
+      console.log('🛠️  Starting MCP Inspector...')
+      // Prepare a minimal Inspector config that preloads Promptliano MCP (stdio)
+      const inspectorConfigPath = join(rootDir, '.mcp-inspector.config.json')
+      const isWindows = process.platform === 'win32'
+      const scriptArg = isWindows ? 'packages\\server\\mcp-start.bat' : 'packages/server/mcp-start.sh'
+      const inspectorConfig = {
+        mcpServers: {
+          'default-server': {
+            type: 'stdio',
+            command: isWindows ? 'cmd.exe' : 'sh',
+            args: isWindows ? ['/c', scriptArg] : [scriptArg],
+            ...(process.env.PROMPTLIANO_PROJECT_ID
+              ? { env: { PROMPTLIANO_PROJECT_ID: String(process.env.PROMPTLIANO_PROJECT_ID) } }
+              : {})
+          }
         }
       }
+      await Bun.write(inspectorConfigPath, JSON.stringify(inspectorConfig, null, 2))
+      const inspectorEnv = { ...process.env }
+      if (process.env.MCP_INSPECTOR_CLIENT_PORT) {
+        inspectorEnv.CLIENT_PORT = process.env.MCP_INSPECTOR_CLIENT_PORT
+      }
+      if (process.env.MCP_INSPECTOR_SERVER_PORT) {
+        inspectorEnv.SERVER_PORT = process.env.MCP_INSPECTOR_SERVER_PORT
+      }
+      // Some versions of the Inspector auto-open the browser; prefer headless startup when possible
+      // If supported by the inspector, honor NO_OPEN / OPEN=false patterns.
+      inspectorEnv.NO_OPEN = inspectorEnv.NO_OPEN || '1'
+      inspectorEnv.OPEN = inspectorEnv.OPEN || 'false'
+
+      const inspectorProcess = Bun.spawn(['bun', 'run', 'mcp:inspector', '--config', inspectorConfigPath], {
+        cwd: rootDir,
+        stdio: ['inherit', 'inherit', 'inherit'],
+        env: inspectorEnv
+      })
+      processes.push(inspectorProcess)
+    } else {
+      console.log('🛠️  MCP Inspector autostart is disabled. Set MCP_INSPECTOR_AUTOSTART=true to enable.')
     }
-    await Bun.write(inspectorConfigPath, JSON.stringify(inspectorConfig, null, 2))
-    const inspectorEnv = { ...process.env }
-    if (process.env.MCP_INSPECTOR_CLIENT_PORT) {
-      inspectorEnv.CLIENT_PORT = process.env.MCP_INSPECTOR_CLIENT_PORT
-    }
-    if (process.env.MCP_INSPECTOR_SERVER_PORT) {
-      inspectorEnv.SERVER_PORT = process.env.MCP_INSPECTOR_SERVER_PORT
-    }
-    const inspectorProcess = Bun.spawn(['bun', 'run', 'mcp:inspector', '--config', inspectorConfigPath], {
-      cwd: rootDir,
-      stdio: ['inherit', 'inherit', 'inherit'],
-      env: inspectorEnv
-    })
-    processes.push(inspectorProcess)
 
     // Handle process termination
     process.on('SIGINT', async () => {

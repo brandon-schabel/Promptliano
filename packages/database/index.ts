@@ -86,7 +86,7 @@ import {
 } from './src/schema-transformers'
 
 // Import Zod for type inference
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
 // Helper type for drizzle-zod schema inference
 type InferSchema<T> = T extends { _output: infer U } ? U : T extends { _def: { _output: infer V } } ? V : any

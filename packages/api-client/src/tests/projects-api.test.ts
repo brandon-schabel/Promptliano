@@ -10,9 +10,11 @@ import type { PromptlianoClient } from '@promptliano/api-client'
 import { type Project, type File as ProjectFile } from '@promptliano/database'
 // Import application-level schemas
 import { ProjectFileSchema } from '@promptliano/schemas'
-import { TEST_API_URL } from './test-config'
+import type { TestEnvironment } from './test-environment'
+import { createTestEnvironment } from './test-environment'
 
-const BASE_URL = TEST_API_URL
+let BASE_URL: string
+let testEnv: TestEnvironment
 
 // Schemas for direct validation of client responses' `data` part
 const SpecificProjectSummaryResponseSchema = z.object({
@@ -26,8 +28,10 @@ describe('Project API Tests', () => {
   let testProjectPaths: string[] = []
   let createdFileIdsForBulkOps: number[] = []
 
-  beforeAll(() => {
+  beforeAll(async () => {
     console.log('Starting Project API Tests...')
+    testEnv = await createTestEnvironment()
+    BASE_URL = testEnv.baseUrl
     client = createPromptlianoClient({ baseUrl: BASE_URL })
   })
 
@@ -53,6 +57,7 @@ describe('Project API Tests', () => {
         console.error(`Failed to remove test directory ${path}:`, err)
       }
     }
+    await testEnv.cleanup()
   })
 
   test('POST /api/projects - Create projects', async () => {

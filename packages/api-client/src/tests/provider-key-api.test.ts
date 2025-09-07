@@ -4,16 +4,20 @@ import type { PromptlianoClient } from '../index'
 
 // Import database schemas as source of truth
 import { selectProviderKeySchema as ProviderKeySchema, type ProviderKey } from '@promptliano/database'
-import { TEST_API_URL } from './test-config'
+import type { TestEnvironment } from './test-environment'
+import { createTestEnvironment } from './test-environment'
 
-const BASE_URL = TEST_API_URL
+let BASE_URL: string
+let testEnv: TestEnvironment
 
 describe('Provider Key API Tests', () => {
   let client: PromptlianoClient
   let testKeys: ProviderKey[] = []
 
-  beforeAll(() => {
+  beforeAll(async () => {
     console.log('Starting Provider Key API Tests...')
+    testEnv = await createTestEnvironment()
+    BASE_URL = testEnv.baseUrl
     client = createPromptlianoClient({ baseUrl: BASE_URL })
   })
 
@@ -30,6 +34,7 @@ describe('Provider Key API Tests', () => {
         }
       }
     }
+    await testEnv.cleanup()
   })
 
   test('POST /api/keys - Create provider keys', async () => {

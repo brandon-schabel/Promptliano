@@ -25,6 +25,8 @@ const TicketSchema = z.object({}).passthrough()
 const ChatSchema = z.object({}).passthrough()
 const QueueSchema = z.object({}).passthrough()
 const ActiveTabSchema = z.object({}).passthrough()
+const PromptSchema = z.object({}).passthrough()
+const FileSchema = z.object({}).passthrough()
 
 // Recreate schema definitions locally based on database schema
 
@@ -56,7 +58,7 @@ export const ChatMessageCreateSchema = z
     chatId: z.number().int().positive(),
     role: z.enum(['user', 'assistant', 'system']),
     content: z.string().min(1),
-    metadata: z.record(z.any()).optional().default({})
+    metadata: z.record(z.string(), z.any()).optional().default({})
   })
   .openapi('ChatMessageCreate')
 
@@ -66,7 +68,7 @@ const ChatMessageSchema = z.object({
   chatId: z.number(),
   role: z.enum(['user', 'assistant', 'system']),
   content: z.string(),
-  metadata: z.record(z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable(),
   createdAt: z.number()
 }).describe('ChatMessage')
 
@@ -87,6 +89,25 @@ const ChatDataSchema = z.object({
 
 // Chat Response Schema
 export const ChatResponseSchema = createSuccessResponseSchema(ChatDataSchema, { name: 'Chat' })
+
+// Chat List Response Schema  
+export const ChatListResponseSchema = createListResponseSchema(ChatDataSchema, { name: 'Chat' })
+
+// Ticket List Response Schema
+export const TicketListResponseSchema = createListResponseSchema(TicketSchema, { name: 'Ticket' })
+
+// Note: PromptListResponseSchema is exported from prompt.schemas.ts to avoid duplicates
+
+// Queue List Response Schema
+export const QueueListResponseSchema = createListResponseSchema(QueueSchema, { name: 'Queue' })
+
+// Note: FileListResponseSchema is exported from project.schemas.ts to avoid duplicates
+
+// SelectedFile List Response Schema
+export const SelectedFileListResponseSchema = createListResponseSchema(SelectedFileSchema, { name: 'SelectedFile' })
+
+// ActiveTab List Response Schema  
+export const ActiveTabListResponseSchema = createListResponseSchema(ActiveTabSchema, { name: 'ActiveTab' })
 
 // Hook Schema
 const HookSchema = z.object({
@@ -152,7 +173,7 @@ export const HookGenerationResponseSchema = createSuccessResponseSchema(HookGene
 export const HookTestRequestSchema = z
   .object({
     command: z.string(),
-    testData: z.record(z.any()).optional()
+    testData: z.record(z.string(), z.any()).optional()
   })
   .openapi('HookTestRequest')
 
@@ -171,7 +192,7 @@ export const QueueItemCreateSchema = z
   .object({
     queueId: z.number().int().positive(),
     type: z.string().min(1),
-    data: z.record(z.any()),
+    data: z.record(z.string(), z.any()),
     priority: z.number().int().min(0).max(10).default(5),
     scheduledFor: z.number().optional(),
     maxRetries: z.number().int().min(0).default(3)
@@ -183,7 +204,7 @@ const QueueItemSchema = z.object({
   id: z.number(),
   queueId: z.number(),
   type: z.string(),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   status: z.enum(['pending', 'processing', 'completed', 'failed']),
   priority: z.number(),
   scheduledFor: z.number().nullable(),
@@ -223,17 +244,6 @@ export const QueueStatsResponseSchema = createSuccessResponseSchema(QueueStatsDa
 // =============================================================================
 // MISSING LIST RESPONSE SCHEMAS
 // =============================================================================
-
-// Ticket List Response Schema
-export const TicketListResponseSchema = createListResponseSchema(TicketSchema, { name: 'Ticket' })
-
-// Chat List Response Schema
-export const ChatListResponseSchema = createListResponseSchema(ChatSchema, { name: 'Chat' })
-
-// Queue List Response Schema
-export const QueueListResponseSchema = createListResponseSchema(QueueSchema, { name: 'Queue' })
-
-
 
 // Command Execution Response Schema
 const CommandExecutionDataSchema = z.object({
@@ -279,12 +289,6 @@ const CommandSuggestionsDataSchema = z.object({
 }).describe('CommandSuggestions')
 
 export const CommandSuggestionsResponseSchema = createSuccessResponseSchema(CommandSuggestionsDataSchema, { name: 'CommandSuggestions' })
-
-// Selected File List Response Schema
-export const SelectedFileListResponseSchema = createListResponseSchema(SelectedFileSchema, { name: 'SelectedFile' })
-
-// Active Tab List Response Schema
-export const ActiveTabListResponseSchema = createListResponseSchema(ActiveTabSchema, { name: 'ActiveTab' })
 
 // Note: ProjectListResponseSchema and PromptListResponseSchema are exported 
 // from project.schemas.ts and prompt.schemas.ts respectively to avoid duplicates

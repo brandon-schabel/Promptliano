@@ -20,7 +20,7 @@ export const gitFileStatusSchema = z.object({
   staged: z.boolean().describe('Whether the file is staged for commit'),
   index: z.string().nullable().describe('The index status code from git'),
   workingDir: z.string().nullable().describe('The working directory status code from git')
-})
+}).openapi('GitFileStatus')
 
 export type GitFileStatus = z.infer<typeof gitFileStatusSchema>
 
@@ -37,14 +37,14 @@ export const gitStatusSchema = z.object({
   deleted: z.array(z.string()).describe('List of deleted file paths'),
   renamed: z.array(z.string()).describe('List of renamed file paths'),
   conflicted: z.array(z.string()).describe('List of conflicted file paths')
-})
+}).openapi('GitStatus')
 
 export type GitStatus = z.infer<typeof gitStatusSchema>
 
 export const gitStatusErrorSchema = z.object({
   type: z.enum(['not_a_repo', 'git_not_installed', 'permission_denied', 'unknown']),
   message: z.string()
-})
+}).openapi('GitStatusError')
 
 export type GitStatusError = z.infer<typeof gitStatusErrorSchema>
 
@@ -62,20 +62,20 @@ export const getProjectGitStatusResponseSchema = z.object({
   success: z.boolean(),
   data: gitStatusResultSchema.optional(),
   message: z.string().optional()
-})
+}).openapi('GetProjectGitStatusResponse')
 
 export type GetProjectGitStatusResponse = z.infer<typeof getProjectGitStatusResponseSchema>
 
 // Stage/Unstage request schemas
 export const stageFilesRequestSchema = z.object({
   filePaths: z.array(z.string()).describe('Array of file paths to stage')
-})
+}).openapi('StageFilesRequest')
 
 export type StageFilesRequest = z.infer<typeof stageFilesRequestSchema>
 
 export const unstageFilesRequestSchema = z.object({
   filePaths: z.array(z.string()).describe('Array of file paths to unstage')
-})
+}).openapi('UnstageFilesRequest')
 
 export type UnstageFilesRequest = z.infer<typeof unstageFilesRequestSchema>
 
@@ -93,7 +93,7 @@ export const gitBranchSchema = z.object({
   tracking: z.string().nullable().describe('Tracking branch name'),
   ahead: z.number().describe('Commits ahead of tracking branch'),
   behind: z.number().describe('Commits behind tracking branch')
-})
+}).openapi('GitBranch')
 
 export type GitBranch = z.infer<typeof gitBranchSchema>
 
@@ -102,7 +102,7 @@ export const gitCommitAuthorSchema = z.object({
   name: z.string(),
   email: z.string(),
   date: z.string().describe('ISO date string')
-})
+}).openapi('GitCommitAuthor')
 
 export const gitCommitSchema = z.object({
   hash: z.string().describe('Commit hash'),
@@ -111,7 +111,7 @@ export const gitCommitSchema = z.object({
   committer: gitCommitAuthorSchema,
   parents: z.array(z.string()).describe('Parent commit hashes'),
   files: z.array(z.string()).describe('Files changed in this commit').optional()
-})
+}).openapi('GitCommit')
 
 export type GitCommit = z.infer<typeof gitCommitSchema>
 
@@ -126,7 +126,7 @@ export const gitLogEntrySchema = z.object({
   }),
   date: z.string(),
   refs: z.string().optional().describe('Branch/tag references')
-})
+}).openapi('GitLogEntry')
 
 export type GitLogEntry = z.infer<typeof gitLogEntrySchema>
 
@@ -138,14 +138,14 @@ export const gitDiffFileSchema = z.object({
   deletions: z.number(),
   binary: z.boolean(),
   oldPath: z.string().optional().describe('For renamed files')
-})
+}).openapi('GitDiffFile')
 
 export const gitDiffSchema = z.object({
   files: z.array(gitDiffFileSchema),
   additions: z.number().describe('Total additions'),
   deletions: z.number().describe('Total deletions'),
   content: z.string().optional().describe('Diff content for single file')
-})
+}).openapi('GitDiff')
 
 export type GitDiff = z.infer<typeof gitDiffSchema>
 
@@ -154,7 +154,7 @@ export const gitRemoteSchema = z.object({
   name: z.string(),
   fetch: z.string().describe('Fetch URL'),
   push: z.string().describe('Push URL')
-})
+}).openapi('GitRemote')
 
 export type GitRemote = z.infer<typeof gitRemoteSchema>
 
@@ -164,7 +164,7 @@ export const gitTagSchema = z.object({
   commit: z.string().describe('Commit hash'),
   annotation: z.string().optional().describe('Tag message for annotated tags'),
   tagger: gitCommitAuthorSchema.optional().describe('Tagger info for annotated tags')
-})
+}).openapi('GitTag')
 
 export type GitTag = z.infer<typeof gitTagSchema>
 
@@ -174,7 +174,7 @@ export const gitStashSchema = z.object({
   message: z.string(),
   branch: z.string().describe('Branch where stash was created'),
   date: z.string()
-})
+}).openapi('GitStash')
 
 export type GitStash = z.infer<typeof gitStashSchema>
 
@@ -185,14 +185,14 @@ export const gitBlameLineSchema = z.object({
   commit: z.string().describe('Commit hash'),
   author: z.string(),
   date: z.string()
-})
+}).openapi('GitBlameLine')
 
 export type GitBlameLine = z.infer<typeof gitBlameLineSchema>
 
 export const gitBlameSchema = z.object({
   path: z.string(),
   lines: z.array(gitBlameLineSchema)
-})
+}).openapi('GitBlame')
 
 export type GitBlame = z.infer<typeof gitBlameSchema>
 
@@ -201,7 +201,7 @@ export const gitBranchListResponseSchema = z.object({
   success: z.boolean(),
   data: z.array(gitBranchSchema).optional(),
   message: z.string().optional()
-})
+}).openapi('GitBranchListResponse')
 
 export type GitBranchListResponse = z.infer<typeof gitBranchListResponseSchema>
 
@@ -210,37 +210,37 @@ export const gitLogResponseSchema = z.object({
   data: z.array(gitLogEntrySchema).optional(),
   hasMore: z.boolean().optional(),
   message: z.string().optional()
-})
+}).openapi('GitLogResponse')
 
 export type GitLogResponse = z.infer<typeof gitLogResponseSchema>
 
 export const gitCreateBranchRequestSchema = z.object({
   name: z.string(),
   startPoint: z.string().optional().describe('Branch or commit to start from')
-})
+}).openapi('GitCreateBranchRequest')
 
 export const gitSwitchBranchRequestSchema = z.object({
   name: z.string(),
   createIfNotExists: z.boolean().optional()
-})
+}).openapi('GitSwitchBranchRequest')
 
 export const gitMergeBranchRequestSchema = z.object({
   branch: z.string(),
   noFastForward: z.boolean().optional(),
   message: z.string().optional()
-})
+}).openapi('GitMergeBranchRequest')
 
 export const gitPushRequestSchema = z.object({
   remote: z.string().optional().default('origin'),
   branch: z.string().optional().describe('Current branch if not specified'),
   force: z.boolean().optional(),
   setUpstream: z.boolean().optional()
-})
+}).openapi('GitPushRequest')
 
 export const gitResetRequestSchema = z.object({
   ref: z.string().describe('Commit reference to reset to'),
   mode: z.enum(['soft', 'mixed', 'hard']).default('mixed')
-})
+}).openapi('GitResetRequest')
 
 // Git diff request/response schemas
 export const gitDiffRequestSchema = z.object({
@@ -250,7 +250,7 @@ export const gitDiffRequestSchema = z.object({
     .optional()
     .describe('Get staged diff instead of working directory diff'),
   commit: z.string().optional().describe('Get diff for a specific commit')
-})
+}).openapi('GitDiffRequest')
 
 export type GitDiffRequest = z.infer<typeof gitDiffRequestSchema>
 
@@ -265,7 +265,7 @@ export const gitDiffResponseSchema = z.object({
     })
     .optional(),
   message: z.string().optional()
-})
+}).openapi('GitDiffResponse')
 
 export type GitDiffResponse = z.infer<typeof gitDiffResponseSchema>
 
@@ -278,7 +278,7 @@ export const gitAuthorEnhancedSchema = z.object({
   name: z.string(),
   email: z.string(),
   avatarUrl: z.string().url().optional().describe('Gravatar or other avatar URL')
-})
+}).openapi('GitAuthorEnhanced')
 
 export type GitAuthorEnhanced = z.infer<typeof gitAuthorEnhancedSchema>
 
@@ -289,7 +289,7 @@ export const gitFileStatsSchema = z.object({
   deletions: z.number().int().min(0).describe('Number of lines removed'),
   status: z.enum(['added', 'modified', 'deleted', 'renamed', 'copied']).describe('Change type'),
   oldPath: z.string().optional().describe('Previous path for renamed/moved files')
-})
+}).openapi('GitFileStats')
 
 export type GitFileStats = z.infer<typeof gitFileStatsSchema>
 
@@ -327,7 +327,7 @@ export const gitCommitEnhancedSchema = z.object({
 
   // Detailed file changes (optional for performance)
   fileStats: z.array(gitFileStatsSchema).optional().describe('Per-file change statistics')
-})
+}).openapi('GitCommitEnhanced')
 
 export type GitCommitEnhanced = z.infer<typeof gitCommitEnhancedSchema>
 
@@ -356,7 +356,7 @@ export const gitBranchEnhancedSchema = z.object({
 
   // Metadata
   lastActivity: z.string().optional().describe('ISO 8601 timestamp of last activity')
-})
+}).openapi('GitBranchEnhanced')
 
 export type GitBranchEnhanced = z.infer<typeof gitBranchEnhancedSchema>
 
@@ -367,7 +367,7 @@ export const gitPaginationSchema = z.object({
   totalCount: z.number().int().min(0).optional().describe('Total number of items if available'),
   hasMore: z.boolean().describe('Whether more items are available'),
   cursor: z.string().optional().describe('Cursor for cursor-based pagination')
-})
+}).openapi('GitPagination')
 
 export type GitPagination = z.infer<typeof gitPaginationSchema>
 
@@ -382,7 +382,7 @@ export const gitLogEnhancedRequestSchema = z.object({
   until: z.string().optional().describe('ISO date or relative time'),
   includeStats: z.boolean().default(false).describe('Include file statistics (slower)'),
   includeFileDetails: z.boolean().default(false).describe('Include per-file change details (much slower)')
-})
+}).openapi('GitLogEnhancedRequest')
 
 export type GitLogEnhancedRequest = z.infer<typeof gitLogEnhancedRequestSchema>
 
@@ -397,7 +397,7 @@ export const gitLogEnhancedResponseSchema = z.object({
     })
     .optional(),
   message: z.string().optional()
-})
+}).openapi('GitLogEnhancedResponse')
 
 export type GitLogEnhancedResponse = z.infer<typeof gitLogEnhancedResponseSchema>
 
@@ -411,7 +411,7 @@ export const gitBranchListEnhancedResponseSchema = z.object({
     })
     .optional(),
   message: z.string().optional()
-})
+}).openapi('GitBranchListEnhancedResponse')
 
 export type GitBranchListEnhancedResponse = z.infer<typeof gitBranchListEnhancedResponseSchema>
 
@@ -419,7 +419,7 @@ export type GitBranchListEnhancedResponse = z.infer<typeof gitBranchListEnhanced
 export const gitCommitDetailRequestSchema = z.object({
   hash: z.string().describe('Commit hash (full or abbreviated)'),
   includeFileContents: z.boolean().default(false).describe('Include file content diffs')
-})
+}).openapi('GitCommitDetailRequest')
 
 export type GitCommitDetailRequest = z.infer<typeof gitCommitDetailRequestSchema>
 
@@ -432,7 +432,7 @@ export const gitFileDiffSchema = z.object({
   binary: z.boolean(),
   oldPath: z.string().optional(),
   diff: z.string().optional().describe('Unified diff content if requested')
-})
+}).openapi('GitFileDiff')
 
 export type GitFileDiff = z.infer<typeof gitFileDiffSchema>
 
@@ -446,7 +446,7 @@ export const gitCommitDetailResponseSchema = z.object({
     })
     .optional(),
   message: z.string().optional()
-})
+}).openapi('GitCommitDetailResponse')
 
 export type GitCommitDetailResponse = z.infer<typeof gitCommitDetailResponseSchema>
 
@@ -456,7 +456,7 @@ export const gitCompareCommitsRequestSchema = z.object({
   head: z.string().describe('Head commit/branch/tag to compare'),
   includeStats: z.boolean().default(true).describe('Include change statistics'),
   includeDiffs: z.boolean().default(false).describe('Include file diffs')
-})
+}).openapi('GitCompareCommitsRequest')
 
 export type GitCompareCommitsRequest = z.infer<typeof gitCompareCommitsRequestSchema>
 
@@ -480,7 +480,7 @@ export const gitCompareCommitsResponseSchema = z.object({
     })
     .optional(),
   message: z.string().optional()
-})
+}).openapi('GitCompareCommitsResponse')
 
 export type GitCompareCommitsResponse = z.infer<typeof gitCompareCommitsResponseSchema>
 
@@ -496,7 +496,7 @@ export const gitWorktreeSchema = z.object({
   isLocked: z.boolean().describe('Whether the worktree is locked'),
   lockReason: z.string().optional().describe('Reason for locking if locked'),
   prunable: z.boolean().optional().describe('Whether the worktree can be pruned')
-})
+}).openapi('GitWorktree')
 
 export type GitWorktree = z.infer<typeof gitWorktreeSchema>
 
@@ -504,7 +504,7 @@ export const gitWorktreeListResponseSchema = z.object({
   success: z.boolean(),
   data: z.array(gitWorktreeSchema).optional(),
   message: z.string().optional()
-})
+}).openapi('GitWorktreeListResponse')
 
 export type GitWorktreeListResponse = z.infer<typeof gitWorktreeListResponseSchema>
 
@@ -514,27 +514,27 @@ export const gitWorktreeAddRequestSchema = z.object({
   newBranch: z.string().optional().describe('Create new branch with this name'),
   commitish: z.string().optional().describe('Commit/tag to check out'),
   detach: z.boolean().optional().describe('Detach HEAD at specified commit')
-})
+}).openapi('GitWorktreeAddRequest')
 
 export type GitWorktreeAddRequest = z.infer<typeof gitWorktreeAddRequestSchema>
 
 export const gitWorktreeRemoveRequestSchema = z.object({
   path: z.string().describe('Path of the worktree to remove'),
   force: z.boolean().optional().describe('Force removal even with uncommitted changes')
-})
+}).openapi('GitWorktreeRemoveRequest')
 
 export type GitWorktreeRemoveRequest = z.infer<typeof gitWorktreeRemoveRequestSchema>
 
 export const gitWorktreeLockRequestSchema = z.object({
   path: z.string().describe('Path of the worktree to lock'),
   reason: z.string().optional().describe('Reason for locking')
-})
+}).openapi('GitWorktreeLockRequest')
 
 export type GitWorktreeLockRequest = z.infer<typeof gitWorktreeLockRequestSchema>
 
 export const gitWorktreePruneRequestSchema = z.object({
   dryRun: z.boolean().optional().describe('Only show what would be pruned')
-})
+}).openapi('GitWorktreePruneRequest')
 
 export type GitWorktreePruneRequest = z.infer<typeof gitWorktreePruneRequestSchema>
 
@@ -542,6 +542,6 @@ export const gitWorktreePruneResponseSchema = z.object({
   success: z.boolean(),
   data: z.array(z.string()).optional().describe('Paths that were pruned or would be pruned'),
   message: z.string().optional()
-})
+}).openapi('GitWorktreePruneResponse')
 
 export type GitWorktreePruneResponse = z.infer<typeof gitWorktreePruneResponseSchema>
