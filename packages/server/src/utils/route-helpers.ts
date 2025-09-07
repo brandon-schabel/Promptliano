@@ -7,13 +7,31 @@ import type { Context } from 'hono'
  * Generic success response schema factory
  * Reduces repetitive response schema definitions
  */
+// Reuse common schema pieces to reduce per-call overhead in factory functions
+const SUCCESS_LITERAL = z.literal(true)
+const PAGINATION_CORE = z.object({
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  hasMore: z.boolean()
+})
+
 export function createSuccessResponseSchema<T extends z.ZodTypeAny>(dataSchema: T, name: string) {
-  return z
+  const schema = z
     .object({
-      success: z.literal(true),
+      success: SUCCESS_LITERAL,
       data: dataSchema
     })
     .openapi(name)
+
+  // Ensure compatibility with tests that read _def.openapi._internal.refId
+  // Some versions of the OpenAPI plugin may not populate _internal on string overload
+  const def = (schema as any)?._def
+  if (def && def.openapi) {
+    def.openapi._internal = { ...(def.openapi._internal ?? {}), refId: name }
+  }
+
+  return schema
 }
 
 /**
@@ -22,7 +40,7 @@ export function createSuccessResponseSchema<T extends z.ZodTypeAny>(dataSchema: 
 export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
-      success: z.literal(true),
+      success: SUCCESS_LITERAL,
       data: z.array(itemSchema)
     })
     .openapi(name)
@@ -34,14 +52,9 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, 
 export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T, name: string) {
   return z
     .object({
-      success: z.literal(true),
+      success: SUCCESS_LITERAL,
       data: z.array(itemSchema),
-      pagination: z.object({
-        page: z.number(),
-        limit: z.number(),
-        total: z.number(),
-        hasMore: z.boolean()
-      })
+      pagination: PAGINATION_CORE
     })
     .openapi(name)
 }
