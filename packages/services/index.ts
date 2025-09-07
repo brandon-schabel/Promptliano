@@ -293,7 +293,6 @@ export * from './src/utils/json-scribe'
 
 // export * from './src/utils/storage-maintenance' // File not found
 export * from './src/file-search-service'
-export * from './src/file-indexing-service'
 export * from './src/mcp-tracking-service'
 export * from './src/file-relevance-service'
 export * from './src/file-suggestion-strategy-service'

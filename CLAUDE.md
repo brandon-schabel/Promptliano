@@ -116,7 +116,7 @@ Task(
 
 ```python
 # Get next task
-mcp__promptliano__queue_processor(...)
+mcp__promptliano__flow_manager({ action: "processor_get_next", queueId: <QUEUE_ID> })
 
 # Load the assigned agent FIRST
 Task(
@@ -347,6 +347,38 @@ function ProjectManager() {
 | **Total**      | **15 hours** | **1.5 hours** | **10x faster** |
 
 ---
+
+## 🔍 File Search Transition (AST-grep Default)
+
+Promptliano now uses a lean, runtime-selected search backend with no pre-indexing:
+
+- Backends (selected automatically unless overridden):
+  - `sg` (ast-grep): default structural AST search across your project
+  - `rg` (ripgrep): fast text search fallback
+  - `fts` (minimal FTS5): single-table fallback if present
+  - `like`: SQL LIKE fallback when others are unavailable
+- Configuration:
+  - `FILE_SEARCH_BACKEND=sg|rg|fts|like` (default `sg`)
+  - `FILE_SEARCH_ASTGREP_PATH=/path/to/ast-grep` (optional binary path)
+  - `FILE_SEARCH_RIPGREP_PATH=/path/to/rg` (optional binary path)
+
+Install ast-grep if needed:
+
+```
+npm install --global @ast-grep/cli  # or: brew install ast-grep
+```
+- Migration: run `bun run db:migrate` to drop legacy search tables and indexes.
+
+What was removed:
+
+- Legacy indexing service and multi-table search schema (metadata/keywords/trigrams/cache)
+- Trigram/TF/keyword scoring layers and DB cache
+- Any ensureIndexed/maintenance steps in sync flows
+
+API unchanged:
+
+- `createFileSearchService().search(projectId, options)` still returns `{ results, stats }`
+- Callers do not need to change usage; selection happens under the hood
 
 ## 🚀 Code Generation System: The Heart of Promptliano
 
@@ -828,12 +860,12 @@ mcp__promptliano__project_manager(action: "overview", projectId: <PROJECT_ID>)
 mcp__promptliano__project_manager(action: "suggest_files", projectId: <PROJECT_ID>, data: { prompt: "auth" })
 
 # Queue management
-mcp__promptliano__queue_manager(action: "create_queue", ...)
-mcp__promptliano__queue_processor(action: "get_next_task", ...)
+mcp__promptliano__flow_manager({ action: "queues_create", projectId: <PROJECT_ID>, data: { name: "Main" } })
+mcp__promptliano__flow_manager({ action: "processor_get_next", queueId: <QUEUE_ID> })
 
 # Task management
-mcp__promptliano__ticket_manager(action: "create", ...)
-mcp__promptliano__task_manager(action: "create", ...)
+mcp__promptliano__flow_manager({ action: "tickets_create", projectId: <PROJECT_ID>, data: { title: "Do X" } })
+mcp__promptliano__flow_manager({ action: "tasks_create", ticketId: <TICKET_ID>, data: { content: "Do subtask" } })
 ```
 
 ---

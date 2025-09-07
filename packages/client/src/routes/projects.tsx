@@ -28,7 +28,6 @@ import { AssetsTabWithSidebar } from '@/components/assets/assets-tab-with-sideba
 import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
-import { useActiveTabSync } from '@/hooks/utility-hooks/use-active-tab-sync'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
 import { ProjectNavigationMenu } from '@/components/projects/project-navigation-menu'
@@ -75,8 +74,7 @@ export function ProjectsPage() {
   // Only fetch project when we have a valid selection
   const { data: projectData } = useProject(selectedProjectId ?? -1)
 
-  // Sync active tab with backend
-  useActiveTabSync(selectedProjectId)
+  // Removed legacy active-tab backend sync
 
   // Auto-sync the active project every ~4s (server lock prevents overlap)
   useAutoProjectSync(selectedProjectId, 4000)

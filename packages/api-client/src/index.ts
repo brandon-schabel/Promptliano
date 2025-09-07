@@ -258,53 +258,6 @@ export class PromptlianoClient {
         headers: { 'Content-Type': 'application/json', ...this.config.headers },
         body: JSON.stringify(data)
       }).then((r) => r.json())
-    },
-
-    // ActiveTab methods (factory endpoints)
-    getActiveTab: async (projectId: number, clientId?: string) => {
-      const params: Record<string, any> = { projectId }
-      if (clientId) params.clientId = clientId
-      const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        }
-      })
-      if (!res.ok) throw new Error(`Failed to fetch active tab (${res.status})`)
-      return res.json()
-    },
-    setActiveTab: async (projectId: number, data: any) => {
-      // Translate legacy body { tabId, tabMetadata, clientId? } → factory body { projectId, activeTabId, tabMetadata, clientId? }
-      const body = {
-        projectId,
-        activeTabId: data?.tabId ?? data?.activeTabId,
-        clientId: data?.clientId,
-        tabMetadata: data?.tabMetadata
-      }
-      const res = await fetch(`${this.config.baseUrl}/api/active-tab`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        },
-        body: JSON.stringify(body)
-      })
-      if (!res.ok) throw new Error(`Failed to set active tab (${res.status})`)
-      return res.json()
-    },
-    clearActiveTab: async (projectId: number, clientId?: string) => {
-      const params: Record<string, any> = { projectId }
-      if (clientId) params.clientId = clientId
-      const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        }
-      })
-      if (!res.ok) throw new Error(`Failed to clear active tab (${res.status})`)
-      return res.json()
     }
   }
 
@@ -477,53 +430,7 @@ export class PromptlianoClient {
     }
   }
 
-  // ActiveTab methods (factory endpoints) - note: these require projectId
-  getActiveTab = async (projectId: number, clientId?: string) => {
-    const params: Record<string, any> = { projectId }
-    if (clientId) params.clientId = clientId
-    const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.config.headers
-      }
-    })
-    if (!res.ok) throw new Error(`Failed to fetch active tab (${res.status})`)
-    return res.json()
-  }
-
-  setActiveTab = async (projectId: number, data: any) => {
-    const body = {
-      projectId,
-      activeTabId: data?.tabId ?? data?.activeTabId,
-      clientId: data?.clientId,
-      tabMetadata: data?.tabMetadata
-    }
-    const res = await fetch(`${this.config.baseUrl}/api/active-tab`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.config.headers
-      },
-      body: JSON.stringify(body)
-    })
-    if (!res.ok) throw new Error(`Failed to set active tab (${res.status})`)
-    return res.json()
-  }
-
-  clearActiveTab = async (projectId: number, clientId?: string) => {
-    const params: Record<string, any> = { projectId }
-    if (clientId) params.clientId = clientId
-    const res = await fetch(`${this.config.baseUrl}/api/active-tab?` + new URLSearchParams(params).toString(), {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.config.headers
-      }
-    })
-    if (!res.ok) throw new Error(`Failed to clear active tab (${res.status})`)
-    return res.json()
-  }
+  // ActiveTab endpoints removed
 
   // MCP methods
   public readonly mcp = {

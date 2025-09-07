@@ -183,7 +183,7 @@ mcp__promptliano__project_manager(
 
             <CodeBlock
               code={`// Step 1: Create ticket with detailed overview
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "create",
   projectId: <PROJECT_ID>,
   data: {
@@ -195,7 +195,7 @@ mcp__promptliano__ticket_manager(
 )
 
 // Step 2: Auto-generate tasks based on your codebase
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "auto_generate_tasks",
   ticketId: 456  // ID from the create response
 )`}
@@ -303,7 +303,7 @@ mcp__promptliano__ticket_manager(
 
                 <CodeBlock
                   code={`// Fast - for quick results or large codebases
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -344,7 +344,7 @@ mcp__promptliano__ticket_manager(
                   Most focused - finds files for implementing a specific task.
                 </p>
                 <CodeBlock
-                  code={`mcp__promptliano__task_manager(
+                  code={`mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -439,7 +439,7 @@ mcp__promptliano__ticket_manager(
             <div className='flex items-start gap-3'>
               <Target className='h-5 w-5 text-primary mt-0.5' />
               <div className='flex-1'>
-                <h3 className='text-lg font-medium mb-2'>ticket_manager</h3>
+                <h3 className='text-lg font-medium mb-2'>flow_manager</h3>
                 <p className='text-sm text-muted-foreground mb-3'>Feature planning with AI-powered task generation.</p>
                 <div className='space-y-2'>
                   <details className='group'>
@@ -477,7 +477,7 @@ mcp__promptliano__ticket_manager(
             <div className='flex items-start gap-3'>
               <Code2 className='h-5 w-5 text-primary mt-0.5' />
               <div className='flex-1'>
-                <h3 className='text-lg font-medium mb-2'>task_manager</h3>
+                <h3 className='text-lg font-medium mb-2'>flow_manager</h3>
                 <p className='text-sm text-muted-foreground mb-3'>Fine-grained task management within tickets.</p>
                 <div className='space-y-2'>
                   <details className='group'>
@@ -639,8 +639,8 @@ mcp__promptliano__ticket_manager(
 
 2. Before searching for files manually, ALWAYS use file suggestions:
    - For general exploration: use project_manager with action: "suggest_files"
-   - For ticket work: use ticket_manager with action: "suggest_files" and appropriate strategy
-   - For specific tasks: use task_manager with action: "suggest_files"
+   - For ticket work: use flow_manager with action: "tickets_list" and appropriate strategy
+   - For specific tasks: use flow_manager with action: "tasks_list_by_ticket"
 
 3. When starting a new feature:
    - Create a ticket with detailed overview
@@ -747,7 +747,7 @@ mcp__promptliano__git_manager(
             </p>
             <CodeBlock
               code={`// Create multiple tickets for a large feature
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "batch_create",
   projectId: <PROJECT_ID>,
   data: {
@@ -782,7 +782,7 @@ mcp__promptliano__ticket_manager(
 mcp__promptliano__project_manager(action: "overview", projectId: <PROJECT_ID>)
 
 // 2. Create feature ticket
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "create",
   projectId: <PROJECT_ID>,
   data: {
@@ -792,10 +792,10 @@ mcp__promptliano__ticket_manager(
 )
 
 // 3. Generate implementation tasks
-mcp__promptliano__ticket_manager(action: "auto_generate_tasks", ticketId: 789)
+mcp__promptliano__flow_manager(action: "tasks_create", ticketId: 789, data: { content: "Generated Task" })
 
 // 4. Find relevant files for the feature
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 789,
   data: { strategy: "thorough", extraUserInput: "websocket and notification components" }

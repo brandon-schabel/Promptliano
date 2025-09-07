@@ -21,6 +21,14 @@ This guide aligns contributors and AI agents on how to work in this monorepo. Th
 - `bun run test` — run package tests; `bun run typecheck` — TypeScript checks; `bun run validate` — typecheck + tests.
 - Database: `bun run db:migrate` and `bun run db:studio` (Drizzle Studio).
 
+### File Search Backend
+
+- New runtime-selected backends, no pre-indexing required:
+  - `FILE_SEARCH_BACKEND=sg|rg|fts|like` (default `sg`)
+  - `FILE_SEARCH_ASTGREP_PATH=/path/to/ast-grep` (optional)
+  - `FILE_SEARCH_RIPGREP_PATH=/path/to/rg` (optional)
+- Run `bun run db:migrate` after pulling to drop legacy search tables (metadata/keywords/trigrams/cache/fts).
+
 ## Coding Style & Naming Conventions
 
 - Language: TypeScript, ESM (`"type": "module"`).
@@ -44,3 +52,4 @@ This guide aligns contributors and AI agents on how to work in this monorepo. Th
 
 - Copy `.env.example` → `.env`. Set provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.). Never commit secrets; prefer Docker/host secrets in production.
 - Dev ports are configurable (see README “Port Configuration”).
+- File search env: see README “File Search Backend”. Use ripgrep by default; FTS/LIKE fallbacks are automatic.

@@ -354,10 +354,8 @@ export class MCPIntegrationSafety {
 
     const mockHandlers: Record<string, (params: any) => any> = {
       project_manager: this.mockProjectManager,
-      ticket_manager: this.mockTicketManager,
-      queue_processor: this.mockQueueProcessor,
       prompt_manager: this.mockPromptManager,
-      task_manager: this.mockTaskManager
+      flow_manager: this.mockFlowManager,
     }
 
     const handler = mockHandlers[toolName]
@@ -409,22 +407,22 @@ export class MCPIntegrationSafety {
   }
 
   /**
-   * Mock ticket manager tool
+   * Mock flow manager tool (unified tickets/tasks/queues)
    */
-  private mockTicketManager(params: any): any {
+  private mockFlowManager(params: any): any {
     switch (params.action) {
-      case 'create':
+      case 'tickets_create':
         return {
           success: true,
           data: {
             id: Math.floor(Math.random() * 1000) + 1,
-            title: params.data?.title || 'Mock Ticket',
+            title: params.data?.title || params.data?.ticket?.title || 'Mock Ticket',
             overview: params.data?.overview || 'Mock ticket overview',
             priority: params.data?.priority || 'normal',
             createdAt: new Date().toISOString()
           }
         }
-      case 'list':
+      case 'tickets_list':
         return {
           success: true,
           data: [
@@ -432,17 +430,17 @@ export class MCPIntegrationSafety {
             { id: 2, title: 'Mock Ticket 2', overview: 'Mock overview 2', priority: 'normal' }
           ]
         }
-      default:
-        return { success: false, error: `Mock action '${params.action}' not implemented` }
-    }
-  }
-
-  /**
-   * Mock queue processor tool
-   */
-  private mockQueueProcessor(params: any): any {
-    switch (params.action) {
-      case 'get_next_task':
+      case 'queues_create':
+        return {
+          success: true,
+          data: {
+            id: Math.floor(Math.random() * 100) + 1,
+            name: params.data?.name || 'Mock Queue',
+            description: params.data?.description || 'Mock queue',
+            isActive: true,
+          }
+        }
+      case 'processor_get_next':
         return {
           success: true,
           data: {
@@ -452,10 +450,10 @@ export class MCPIntegrationSafety {
             priority: 'normal'
           }
         }
-      case 'complete_task':
+      case 'processor_complete':
         return {
           success: true,
-          data: { id: params.data?.itemId, status: 'completed' }
+          data: { id: params.data?.queueItemId, status: 'completed' }
         }
       default:
         return { success: false, error: `Mock action '${params.action}' not implemented` }

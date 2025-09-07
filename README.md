@@ -86,6 +86,50 @@ bun run dev
 
 The development UI will be available at [http://localhost:1420](http://localhost:1420)
 
+### File Search Backend
+
+Promptliano uses a fast, no-index search stack with structural AST support by default.
+
+- Backends (auto-selected):
+  - `sg` (default): ast-grep performs structural AST search across your codebase
+  - `rg`: ripgrep text search as a robust fallback
+  - `fts`: minimal SQLite FTS5 fallback (if table exists)
+  - `like`: SQL LIKE fallback when others are unavailable
+- Configure via env:
+  - `FILE_SEARCH_BACKEND=sg|rg|fts|like` (default `sg`)
+  - `FILE_SEARCH_ASTGREP_PATH=/path/to/ast-grep` (optional)
+  - `FILE_SEARCH_RIPGREP_PATH=/path/to/rg` (optional)
+
+Install ast-grep if you don't already have it:
+
+```
+npm install --global @ast-grep/cli  # or: brew install ast-grep
+```
+
+Optional: install additional grep utilities
+
+These tools are auto‑detected. If they aren’t on your PATH, either install them or set `FILE_SEARCH_ASTGREP_PATH` / `FILE_SEARCH_RIPGREP_PATH`.
+
+- ast-grep (sg): structural search
+  - macOS (Homebrew): `brew install ast-grep`
+  - Node (npm): `npm install --global @ast-grep/cli`
+  - Rust (cargo): `cargo install ast-grep --locked`
+  - Windows (Scoop): `scoop install main/ast-grep`
+  - macOS (MacPorts): `sudo port install ast-grep`
+  - Python (pip): `pip install ast-grep-cli`
+  - Nix: `nix-shell -p ast-grep`
+
+- ripgrep (rg): fast text search fallback
+  - macOS (Homebrew): `brew install ripgrep`
+  - Debian/Ubuntu: `sudo apt-get install ripgrep`
+  - Fedora: `sudo dnf install ripgrep`
+  - Arch: `sudo pacman -S ripgrep`
+  - Windows (Chocolatey): `choco install ripgrep`
+  - Windows (winget): `winget install ripgrep`
+  - Windows (Scoop): `scoop install ripgrep`
+
+Upgrading from older versions: run database migrations (below) to drop legacy search tables.
+
 ### Port Configuration (Dev)
 
 - Server API: `SERVER_PORT` or `PORT` (default: 3147)
@@ -105,6 +149,16 @@ bun run dev
 ```
 
 Note: The dev script auto‑frees these ports before starting.
+
+### Database Migrations
+
+Run Drizzle migrations whenever you pull changes or upgrade:
+
+```
+bun run db:migrate
+```
+
+This includes a migration to drop legacy file search tables (`file_search_metadata`, `file_keywords`, `file_trigrams`, `search_cache`, and `file_search_fts`) as the new ripgrep/FTS-min backends do not require pre-indexing.
 
 ### MCP Inspector Config (Promptliano)
 

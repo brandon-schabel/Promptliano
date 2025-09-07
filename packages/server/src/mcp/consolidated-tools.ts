@@ -16,11 +16,8 @@ export {
   PromptManagerAction,
   MarkdownPromptManagerAction,
   AgentManagerAction,
-  TicketManagerAction,
-  TaskManagerAction,
   AIAssistantAction,
   GitManagerAction,
-  TabManagerAction,
   FileSummarizationManagerAction
 } from './tools/shared'
 

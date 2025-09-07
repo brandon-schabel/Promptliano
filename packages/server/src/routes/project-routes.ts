@@ -45,6 +45,7 @@ import {
   summarizeFiles,
   removeSummariesFromFiles
 } from '@promptliano/services'
+import { createFileSearchService } from '@promptliano/services'
 // Note: projectServiceV2 is now exported from @promptliano/services
 // and contains all necessary methods for generated routes
 
@@ -79,6 +80,45 @@ const SuggestFilesBodySchema = z.object({
 })
 
 const SuggestFilesResponseSchema = DbFileListResponseSchema
+
+// File search schemas
+const FileSearchRequestSchema = z.object({
+  query: z.string().min(1),
+  searchType: z.enum(['ast', 'exact', 'fuzzy', 'regex', 'semantic']).optional().default('ast'),
+  fileTypes: z.array(z.string()).optional(),
+  limit: z.number().int().positive().max(1000).optional(),
+  offset: z.number().int().nonnegative().optional(),
+  includeContext: z.boolean().optional(),
+  contextLines: z.number().int().min(0).max(20).optional(),
+  caseSensitive: z.boolean().optional(),
+})
+
+const FileSearchMatchSchema = z.object({
+  line: z.number().int().nonnegative(),
+  column: z.number().int().nonnegative(),
+  text: z.string(),
+  context: z.string().optional(),
+})
+
+const FileSearchResultSchema = z.object({
+  file: DbFileSchema as any,
+  score: z.number(),
+  matches: z.array(FileSearchMatchSchema),
+  snippet: z.string().optional(),
+})
+
+const FileSearchResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    results: z.array(FileSearchResultSchema),
+    stats: z.object({
+      totalResults: z.number().int().nonnegative(),
+      searchTime: z.number().int().nonnegative(),
+      cached: z.boolean(),
+      indexCoverage: z.number().int().nonnegative(),
+    })
+  })
+})
 
 // Revert to version schema
 const RevertToVersionBodySchema = z.object({
@@ -214,6 +254,18 @@ const deleteProjectRoute = createRoute({
   summary: 'Delete a project and its associated data',
   request: { params: IDParamsSchema },
   responses: createStandardResponses(OperationSuccessResponseSchema)
+})
+
+const searchProjectFilesRoute = createRoute({
+  method: 'post',
+  path: '/api/projects/{id}/search',
+  tags: ['Projects', 'Files'],
+  summary: 'Search project files (AST-grep by default)',
+  request: {
+    params: IDParamsSchema,
+    body: { content: { 'application/json': { schema: FileSearchRequestSchema } } },
+  },
+  responses: createStandardResponses(FileSearchResponseSchema)
 })
 
 const syncProjectRoute = createRoute({
@@ -669,6 +721,19 @@ export const projectRoutes = new OpenAPIHono()
       return c.json(operationSuccessResponse('Project deleted successfully.'), 200)
     } catch (error) {
       // ErrorFactory integration - errors are already properly formatted
+      throw error
+    }
+  })
+
+  .openapi(searchProjectFilesRoute, async (c) => {
+    const { id: projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    try {
+      await projectService.getById(projectId)
+      const searchService = createFileSearchService()
+      const { results, stats } = await searchService.search(projectId, body as any)
+      return c.json(successResponse({ results, stats }), 200)
+    } catch (error) {
       throw error
     }
   })

@@ -416,10 +416,10 @@ test.describe('Tickets and Queue Management', () => {
   })
 
   test.describe('MCP Integration - Tickets and Queues', () => {
-    test('should integrate with MCP ticket_manager tool', async ({ page }) => {
+    test('should integrate with MCP flow_manager tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (availableTools.includes('ticket_manager')) {
+      if (availableTools.includes('flow_manager')) {
         // Test listing tickets via MCP
         const mcpResponse = await MCPTestHelpers.testTicketManagerTool(page, 'list')
         expect(mcpResponse).toBeDefined()
@@ -440,14 +440,14 @@ test.describe('Tickets and Queue Management', () => {
           expect(await ticketsPage.ticketExists(ticketData.title)).toBe(true)
         }
       } else {
-        console.warn('MCP ticket_manager tool not available')
+        console.warn('MCP flow_manager tool not available')
       }
     })
 
-    test('should integrate with MCP queue_processor tool', async ({ page }) => {
+    test('should integrate with MCP flow_manager processor', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (availableTools.includes('queue_processor')) {
+      if (availableTools.includes('flow_manager')) {
         // Test queue operations via MCP
         const queueData = TestDataFactory.createQueue()
 
@@ -469,7 +469,7 @@ test.describe('Tickets and Queue Management', () => {
           expect(statusResponse.data).toBeDefined()
         }
       } else {
-        console.warn('MCP queue_processor tool not available')
+        console.warn('MCP flow_manager processor not available')
       }
     })
 
@@ -482,7 +482,7 @@ test.describe('Tickets and Queue Management', () => {
       // Check status via MCP
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (availableTools.includes('ticket_manager')) {
+      if (availableTools.includes('flow_manager')) {
         const statusResponse = await MCPTestHelpers.testTicketManagerTool(page, 'get_status', {
           title: ticketData.title
         })
