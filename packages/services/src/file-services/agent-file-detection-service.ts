@@ -13,7 +13,8 @@ export const DetectedAgentFileSchema = z.object({
   exists: z.boolean(),
   writable: z.boolean(),
   content: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  // Zod v4: z.record requires key and value schemas
+  metadata: z.record(z.string(), z.any()).optional()
 })
 
 export type DetectedAgentFile = z.infer<typeof DetectedAgentFileSchema>

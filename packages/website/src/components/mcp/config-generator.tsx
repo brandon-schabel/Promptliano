@@ -13,7 +13,7 @@ const ConfigSchema = z.object({
   command: z.string().min(1, 'Command is required'),
   args: z.array(z.string()).default(['start', '--mcp']),
   cwd: z.string().optional(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
   autoStart: z.boolean().default(true),
   restartOnFailure: z.boolean().default(true),
   maxRestarts: z.number().min(0).default(3),

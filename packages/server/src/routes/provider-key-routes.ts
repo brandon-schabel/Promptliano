@@ -171,11 +171,8 @@ const providerHealthRoute = createRoute({
   description: 'Retrieve health status information for all configured AI providers',
   request: {
     query: z.object({
-      refresh: z
-        .string()
-        .optional()
-        .transform((val) => val === 'true')
-        .pipe(z.boolean().optional())
+      // Coerce typical query string values to boolean
+      refresh: z.coerce.boolean().optional()
         .openapi({
           param: {
             name: 'refresh',

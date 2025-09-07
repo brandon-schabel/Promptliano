@@ -6,14 +6,14 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navigationItems: NavigationItem[] = [
-  { id: 'home', label: 'Home', href: '/' },
-  { id: 'local-first', label: 'Local First', href: '/local-first' },
-  { id: 'integrations', label: 'Integrations', href: '/integrations' },
-  { id: 'docs', label: 'Docs', href: '/docs' },
-  { id: 'mcp-tools', label: 'MCP Tools', href: '/docs/mcp-tools' },
-  { id: 'downloads', label: 'Downloads', href: '/downloads' },
-  { id: 'community', label: 'Community', href: '/community' },
-  { id: 'about', label: 'About', href: '/about' }
+  { id: 'home', label: 'Home', href: '/', target: '_self' },
+  { id: 'local-first', label: 'Local First', href: '/local-first', target: '_self' },
+  { id: 'integrations', label: 'Integrations', href: '/integrations', target: '_self' },
+  { id: 'docs', label: 'Docs', href: '/docs', target: '_self' },
+  { id: 'mcp-tools', label: 'MCP Tools', href: '/docs/mcp-tools', target: '_self' },
+  { id: 'downloads', label: 'Downloads', href: '/downloads', target: '_self' },
+  { id: 'community', label: 'Community', href: '/community', target: '_self' },
+  { id: 'about', label: 'About', href: '/about', target: '_self' }
 ]
 
 export function Header() {

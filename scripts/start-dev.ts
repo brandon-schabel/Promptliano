@@ -43,7 +43,8 @@ async function startServices() {
     const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT || 4983)
     const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT || 6274)
     const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT || 6277)
-    const autostartInspector = String(process.env.MCP_INSPECTOR_AUTOSTART || '').toLowerCase() === 'true'
+    // Default: autostart inspector unless explicitly disabled
+    const autostartInspector = String(process.env.MCP_INSPECTOR_AUTOSTART ?? 'true').toLowerCase() !== 'false'
 
     await killPort(serverPort) // server
     await killPort(clientPort) // client
@@ -77,7 +78,7 @@ async function startServices() {
     })
     processes.push(drizzleProcess)
 
-    // Start MCP Inspector (UI + proxy) — disabled by default
+    // Start MCP Inspector (UI + proxy) — enabled by default, but keep headless
     if (autostartInspector) {
       console.log('🛠️  Starting MCP Inspector...')
       // Prepare a minimal Inspector config that preloads Promptliano MCP (stdio)
@@ -104,10 +105,11 @@ async function startServices() {
       if (process.env.MCP_INSPECTOR_SERVER_PORT) {
         inspectorEnv.SERVER_PORT = process.env.MCP_INSPECTOR_SERVER_PORT
       }
-      // Some versions of the Inspector auto-open the browser; prefer headless startup when possible
-      // If supported by the inspector, honor NO_OPEN / OPEN=false patterns.
+      // Suppress auto-opening a browser tab; run headless if supported
       inspectorEnv.NO_OPEN = inspectorEnv.NO_OPEN || '1'
       inspectorEnv.OPEN = inspectorEnv.OPEN || 'false'
+      inspectorEnv.BROWSER = inspectorEnv.BROWSER || 'none'
+      inspectorEnv.CI = inspectorEnv.CI || '1'
 
       const inspectorProcess = Bun.spawn(['bun', 'run', 'mcp:inspector', '--config', inspectorConfigPath], {
         cwd: rootDir,

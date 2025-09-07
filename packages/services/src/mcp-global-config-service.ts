@@ -27,16 +27,18 @@ export const GlobalMCPServerConfigSchema = z.object({
   type: z.enum(['stdio', 'http']).default('stdio'),
   command: z.string(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional(),
+  // Zod v4: record requires explicit key and value schemas
+  env: z.record(z.string(), z.string()).optional(),
   timeout: z.number().optional()
 })
 
 export const GlobalMCPConfigSchema = z.object({
-  servers: z.record(GlobalMCPServerConfigSchema),
+  // Zod v4: record requires key schema
+  servers: z.record(z.string(), GlobalMCPServerConfigSchema),
   defaultServerUrl: z.string().default('http://localhost:3147/api/mcp'),
   debugMode: z.boolean().default(false),
   defaultTimeout: z.number().optional(),
-  globalEnv: z.record(z.string()).optional()
+  globalEnv: z.record(z.string(), z.string()).optional()
 })
 
 export const GlobalInstallationRecordSchema = z.object({

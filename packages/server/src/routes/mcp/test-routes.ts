@@ -92,7 +92,7 @@ const testToolExecutionRoute = createRoute({
           schema: z.object({
             serverId: z.string().optional(),
             toolName: z.string(),
-            arguments: z.record(z.any()).optional().default({}),
+            arguments: z.record(z.string(), z.any()).optional().default({}),
             validateOnly: z.boolean().optional().default(false)
           })
         }

@@ -325,7 +325,7 @@ export const InterceptorConfigSchema = z.object({
   routes: z.array(z.string()).optional(),
   methods: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
-  config: z.record(z.any()).optional()
+  config: z.record(z.string(), z.any()).optional()
 })
 
 export const InterceptorChainConfigSchema = z.object({

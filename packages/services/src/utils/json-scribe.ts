@@ -96,7 +96,7 @@ export async function writeJson<TData, S extends ZodTypeAny | undefined = undefi
       if (!validationResult.success) {
         // Throw a more informative error
         console.error(`Zod validation failed for path: ${filePath}`)
-        throw new ZodError(validationResult.error.errors)
+        throw new ZodError(validationResult.error.issues)
       }
       dataToWrite = validationResult.data // Use the potentially transformed data
     }

@@ -26,7 +26,7 @@ const DetectedAgentFileResponseSchema = z.object({
   writable: z.boolean(),
   hasInstructions: z.boolean().optional(),
   instructionVersion: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 })
 
 const AgentFilesDetectionResponseSchema = z.object({

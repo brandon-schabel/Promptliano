@@ -181,7 +181,7 @@ export class LMStudioProvider {
 
       if (error instanceof z.ZodError) {
         throw new ApiError(400, 'LM Studio response failed schema validation', 'LMSTUDIO_VALIDATION_ERROR', {
-          errors: error.errors
+          errors: error.issues
         })
       }
 

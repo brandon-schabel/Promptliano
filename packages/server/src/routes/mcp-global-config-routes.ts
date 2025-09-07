@@ -16,18 +16,19 @@ import * as fs from 'fs/promises'
 // Schemas for API
 const GlobalMCPConfigSchema = z.object({
   servers: z.record(
+    z.string(),
     z.object({
       type: z.enum(['stdio', 'http']).default('stdio'),
       command: z.string(),
       args: z.array(z.string()).optional(),
-      env: z.record(z.string()).optional(),
+      env: z.record(z.string(), z.string()).optional(),
       timeout: z.number().optional()
     })
   ),
   defaultServerUrl: z.string().default('http://localhost:3147/api/mcp'),
   debugMode: z.boolean().default(false),
   defaultTimeout: z.number().optional(),
-  globalEnv: z.record(z.string()).optional()
+  globalEnv: z.record(z.string(), z.string()).optional()
 })
 
 // Define record schema first
@@ -118,7 +119,7 @@ const GlobalConfigUpdateSchema = z.object({
   defaultServerUrl: z.string().optional(),
   debugMode: z.boolean().optional(),
   defaultTimeout: z.number().optional(),
-  globalEnv: z.record(z.string()).optional()
+  globalEnv: z.record(z.string(), z.string()).optional()
 })
 
 // Helper function to handle ApiError responses consistently

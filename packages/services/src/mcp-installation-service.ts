@@ -36,12 +36,14 @@ export type MCPTool = z.infer<typeof MCPToolSchema>
 const MCPServerSchema = z.object({
   command: z.string(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional()
+  // Zod v4: provide key and value types
+  env: z.record(z.string(), z.string()).optional()
 })
 
 export const MCPConfigSchema = z
   .object({
-    mcpServers: z.record(MCPServerSchema).optional()
+    // Zod v4: record requires key schema
+    mcpServers: z.record(z.string(), MCPServerSchema).optional()
   })
   .refine((data) => data.mcpServers, "Config must have 'mcpServers' field")
 
@@ -51,10 +53,11 @@ export type MCPConfig = z.infer<typeof MCPConfigSchema>
 export const VSCodeSettingsSchema = z.object({
   'mcp.servers': z
     .record(
+      z.string(),
       z.object({
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()
@@ -75,11 +78,12 @@ export const ContinueConfigSchema = z.object({
     .optional(),
   mcpConfigs: z
     .record(
+      z.string(),
       z.object({
         transport: z.string(),
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()
@@ -92,6 +96,7 @@ export const ClaudeCodeConfigSchema = z.object({
   defaultMcpServers: z.array(z.string()).optional(),
   projectBindings: z
     .record(
+      z.string(),
       z.object({
         projectId: z.string(),
         autoConnect: z.boolean().optional()
@@ -100,10 +105,11 @@ export const ClaudeCodeConfigSchema = z.object({
     .optional(),
   mcpServers: z
     .record(
+      z.string(),
       z.object({
         command: z.string(),
         args: z.array(z.string()).optional(),
-        env: z.record(z.string()).optional()
+        env: z.record(z.string(), z.string()).optional()
       })
     )
     .optional()

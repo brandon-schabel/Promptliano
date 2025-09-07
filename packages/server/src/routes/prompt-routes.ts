@@ -672,7 +672,7 @@ const deletePromptByIdBasicRoute = createRoute({
 promptRoutes
   .openapi(getPromptByIdBasicRoute, async (c) => {
     const { id } = c.req.valid('param')
-    const prompt = await promptService.getById(id)
+    const prompt = await getPromptById(id)
 
     if (!prompt) {
       return c.json({ error: 'Prompt not found' }, 404)
@@ -683,7 +683,7 @@ promptRoutes
   .openapi(updatePromptByIdBasicRoute, async (c) => {
     const { id } = c.req.valid('param')
     const data = c.req.valid('json')
-    const prompt = await promptService.update(id, data)
+    const prompt = await updatePrompt(id, data)
 
     if (!prompt) {
       return c.json({ error: 'Prompt not found' }, 404)
@@ -693,7 +693,7 @@ promptRoutes
   })
   .openapi(deletePromptByIdBasicRoute, async (c) => {
     const { id } = c.req.valid('param')
-    const success = await promptService.delete(id)
+    const success = await deletePrompt(id)
 
     if (!success) {
       return c.json({ error: 'Prompt not found' }, 404)

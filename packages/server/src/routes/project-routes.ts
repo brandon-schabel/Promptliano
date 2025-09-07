@@ -495,8 +495,8 @@ const getProjectStatisticsRoute = createRoute({
         fileStats: z.object({
           totalFiles: z.number(),
           totalSize: z.number(),
-          filesByType: z.record(z.number()),
-          sizeByType: z.record(z.number()),
+          filesByType: z.record(z.string(), z.number()),
+          sizeByType: z.record(z.string(), z.number()),
           filesByCategory: z.object({
             source: z.number(),
             tests: z.number(),
@@ -538,7 +538,7 @@ const getProjectStatisticsRoute = createRoute({
           totalPrompts: z.number(),
           totalTokens: z.number(),
           averagePromptLength: z.number(),
-          promptTypes: z.record(z.number())
+          promptTypes: z.record(z.string(), z.number())
         }),
         activityStats: z.object({
           recentUpdates: z.number(),

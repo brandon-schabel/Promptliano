@@ -5,7 +5,8 @@ import { z } from 'zod'
  * that support structured outputs via response_format.json_schema
  */
 export function zodToJsonSchema(schema: z.ZodType<any>): any {
-  return convertZodType(schema._def)
+  // Access internal def via any to avoid tight coupling to Zod's internal types
+  return convertZodType((schema as any)._def)
 }
 
 function convertZodType(def: any): any {
@@ -141,6 +142,6 @@ function convertZodType(def: any): any {
  * Helper to get descriptions from Zod schema if using .describe()
  */
 export function extractZodDescription(schema: z.ZodType<any>): string | undefined {
-  const def = schema._def
-  return def.description
+  const def: any = (schema as any)._def
+  return def?.description
 }

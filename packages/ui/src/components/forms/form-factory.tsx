@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useForm, UseFormReturn, FieldPath, Control, ControllerRenderProps } from 'react-hook-form'
+import { useForm, UseFormReturn, FieldPath, FieldValues } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '../../utils'
@@ -164,10 +164,10 @@ export type FieldConfig =
 // FORM FACTORY CONFIGURATION
 // =============================================
 
-export interface FormConfig<T extends z.ZodType> {
-  schema: T
+export interface FormConfig<TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>> {
+  schema: TSchema
   fields: FieldConfig[]
-  defaultValues?: Partial<z.infer<T>>
+  defaultValues?: Partial<TFieldValues>
   mode?: 'onChange' | 'onBlur' | 'onSubmit' | 'onTouched' | 'all'
   reValidateMode?: 'onChange' | 'onBlur' | 'onSubmit'
   submitButton?: {
@@ -203,8 +203,11 @@ export interface FormConfig<T extends z.ZodType> {
   }
 }
 
-export interface FormFactoryProps<T extends z.ZodType> extends FormConfig<T> {
-  onSubmit: (data: z.infer<T>) => void | Promise<void>
+export interface FormFactoryProps<
+  TFieldValues extends FieldValues,
+  TSchema extends z.ZodType<TFieldValues>
+> extends FormConfig<TFieldValues, TSchema> {
+  onSubmit: (data: TFieldValues) => void | Promise<void>
   onCancel?: () => void
   isLoading?: boolean
   isDisabled?: boolean
@@ -215,23 +218,25 @@ export interface FormFactoryProps<T extends z.ZodType> extends FormConfig<T> {
 // FIELD RENDERER COMPONENTS
 // =============================================
 
-interface FieldRendererProps<T extends z.ZodType> {
+interface FieldRendererProps<TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>> {
   config: FieldConfig
-  form: UseFormReturn<z.infer<T>>
+  form: UseFormReturn<TFieldValues>
   isDisabled?: boolean
 }
 
-const TextFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: TextFieldConfig }) => {
+const TextFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  {
+    config,
+    form,
+    isDisabled
+  }: FieldRendererProps<TFieldValues, TSchema> & { config: TextFieldConfig }
+) => {
   const [charCount, setCharCount] = React.useState(0)
 
   return (
     <FormField
       control={form.control}
-      name={config.name as FieldPath<z.infer<T>>}
+      name={config.name as FieldPath<TFieldValues>}
       render={({ field }) => {
         React.useEffect(() => {
           setCharCount(String(field.value || '').length)
@@ -282,14 +287,12 @@ const TextFieldRenderer = <T extends z.ZodType>({
   )
 }
 
-const NumberFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: NumberFieldConfig }) => (
+const NumberFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: NumberFieldConfig }
+) => (
   <FormField
     control={form.control}
-    name={config.name as FieldPath<z.infer<T>>}
+    name={config.name as FieldPath<TFieldValues>}
     render={({ field }) => (
       <FormItem className={config.className}>
         <FormLabel>{config.label}</FormLabel>
@@ -321,17 +324,15 @@ const NumberFieldRenderer = <T extends z.ZodType>({
   />
 )
 
-const PasswordFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: PasswordFieldConfig }) => {
+const PasswordFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: PasswordFieldConfig }
+) => {
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
     <FormField
       control={form.control}
-      name={config.name as FieldPath<z.infer<T>>}
+      name={config.name as FieldPath<TFieldValues>}
       render={({ field }) => (
         <FormItem className={config.className}>
           <FormLabel>{config.label}</FormLabel>
@@ -365,14 +366,12 @@ const PasswordFieldRenderer = <T extends z.ZodType>({
   )
 }
 
-const SelectFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: SelectFieldConfig }) => (
+const SelectFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: SelectFieldConfig }
+) => (
   <FormField
     control={form.control}
-    name={config.name as FieldPath<z.infer<T>>}
+    name={config.name as FieldPath<TFieldValues>}
     render={({ field }) => (
       <FormItem className={config.className}>
         <FormLabel>{config.label}</FormLabel>
@@ -383,7 +382,7 @@ const SelectFieldRenderer = <T extends z.ZodType>({
             </SelectTrigger>
           </FormControl>
           <SelectContent>
-            {config.options.map((option) => (
+            {config.options.map((option: { value: string; label: string; disabled?: boolean }) => (
               <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
                 {option.label}
               </SelectItem>
@@ -397,14 +396,12 @@ const SelectFieldRenderer = <T extends z.ZodType>({
   />
 )
 
-const CheckboxFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: CheckboxFieldConfig }) => (
+const CheckboxFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: CheckboxFieldConfig }
+) => (
   <FormField
     control={form.control}
-    name={config.name as FieldPath<z.infer<T>>}
+    name={config.name as FieldPath<TFieldValues>}
     render={({ field }) => (
       <FormItem className={cn('flex flex-row items-start space-x-3 space-y-0', config.className)}>
         <FormControl>
@@ -420,14 +417,12 @@ const CheckboxFieldRenderer = <T extends z.ZodType>({
   />
 )
 
-const RadioFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: RadioFieldConfig }) => (
+const RadioFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: RadioFieldConfig }
+) => (
   <FormField
     control={form.control}
-    name={config.name as FieldPath<z.infer<T>>}
+    name={config.name as FieldPath<TFieldValues>}
     render={({ field }) => (
       <FormItem className={config.className}>
         <FormLabel>{config.label}</FormLabel>
@@ -438,7 +433,7 @@ const RadioFieldRenderer = <T extends z.ZodType>({
             className={cn(config.orientation === 'horizontal' ? 'flex flex-row space-x-6' : 'flex flex-col space-y-3')}
             disabled={isDisabled || config.disabled}
           >
-            {config.options.map((option) => (
+            {config.options.map((option: { value: string; label: string; description?: string }) => (
               <div key={option.value} className='flex items-center space-x-2'>
                 <RadioGroupItem value={option.value} id={`${config.name}-${option.value}`} />
                 <Label htmlFor={`${config.name}-${option.value}`} className='cursor-pointer font-normal'>
@@ -458,14 +453,12 @@ const RadioFieldRenderer = <T extends z.ZodType>({
   />
 )
 
-const SwitchFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: SwitchFieldConfig }) => (
+const SwitchFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: SwitchFieldConfig }
+) => (
   <FormField
     control={form.control}
-    name={config.name as FieldPath<z.infer<T>>}
+    name={config.name as FieldPath<TFieldValues>}
     render={({ field }) => (
       <FormItem className={cn('flex flex-row items-center justify-between rounded-lg border p-4', config.className)}>
         <div className='space-y-0.5'>
@@ -481,17 +474,15 @@ const SwitchFieldRenderer = <T extends z.ZodType>({
   />
 )
 
-const DateFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: DateFieldConfig }) => {
+const DateFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: DateFieldConfig }
+) => {
   const [open, setOpen] = React.useState(false)
 
   return (
     <FormField
       control={form.control}
-      name={config.name as FieldPath<z.infer<T>>}
+      name={config.name as FieldPath<TFieldValues>}
       render={({ field }) => (
         <FormItem className={cn('flex flex-col', config.className)}>
           <FormLabel>{config.label}</FormLabel>
@@ -538,17 +529,15 @@ const DateFieldRenderer = <T extends z.ZodType>({
   )
 }
 
-const TagsFieldRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: TagsFieldConfig }) => {
+const TagsFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: TagsFieldConfig }
+) => {
   const [inputValue, setInputValue] = React.useState('')
 
   return (
     <FormField
       control={form.control}
-      name={config.name as FieldPath<z.infer<T>>}
+      name={config.name as FieldPath<TFieldValues>}
       render={({ field }) => {
         const tags = Array.isArray(field.value) ? (field.value as string[]) : []
 
@@ -619,11 +608,9 @@ const TagsFieldRenderer = <T extends z.ZodType>({
   )
 }
 
-const FieldGroupRenderer = <T extends z.ZodType>({
-  config,
-  form,
-  isDisabled
-}: FieldRendererProps<T> & { config: FieldGroupConfig }) => {
+const FieldGroupRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: FieldGroupConfig }
+) => {
   const [isExpanded, setIsExpanded] = React.useState(config.defaultExpanded ?? true)
 
   return (
@@ -648,7 +635,7 @@ const FieldGroupRenderer = <T extends z.ZodType>({
             config.columns === 4 && 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
           )}
         >
-          {config.fields.map((fieldConfig, index) => (
+          {config.fields.map((fieldConfig: FieldConfig, index: number) => (
             <FieldRenderer
               key={('name' in fieldConfig ? fieldConfig.name : undefined) || index}
               config={fieldConfig}
@@ -666,7 +653,10 @@ const FieldGroupRenderer = <T extends z.ZodType>({
 // MAIN FIELD RENDERER
 // =============================================
 
-const FieldRenderer = <T extends z.ZodType>({ config, form, isDisabled }: FieldRendererProps<T>) => {
+const FieldRenderer = <
+  TFieldValues extends FieldValues,
+  TSchema extends z.ZodType<TFieldValues>
+>({ config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema>) => {
   switch (config.type) {
     case 'text':
       return <TextFieldRenderer config={config} form={form} isDisabled={isDisabled} />
@@ -707,31 +697,36 @@ const FieldRenderer = <T extends z.ZodType>({ config, form, isDisabled }: FieldR
 // FORM FACTORY COMPONENTS
 // =============================================
 
-export function FormFactory<T extends z.ZodType>({
-  schema,
-  fields,
-  defaultValues,
-  mode = 'onChange',
-  reValidateMode = 'onBlur',
-  onSubmit,
-  onCancel,
-  isLoading = false,
-  isDisabled = false,
-  submitButton,
-  cancelButton,
-  layout,
-  styling,
-  features,
-  children
-}: FormFactoryProps<T>) {
-  const form = useForm<z.infer<T>>({
+export function FormFactory<
+  TFieldValues extends FieldValues,
+  TSchema extends z.ZodType<TFieldValues>
+>(
+  {
+    schema,
+    fields,
+    defaultValues,
+    mode = 'onChange',
+    reValidateMode = 'onBlur',
+    onSubmit,
+    onCancel,
+    isLoading = false,
+    isDisabled = false,
+    submitButton,
+    cancelButton,
+    layout,
+    styling,
+    features,
+    children
+  }: FormFactoryProps<TFieldValues, TSchema>
+) {
+  const form = useForm<TFieldValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as any,
     mode,
     reValidateMode
   })
 
-  const handleSubmit = async (data: z.infer<T>) => {
+  const handleSubmit = async (data: TFieldValues) => {
     try {
       await onSubmit(data)
       if (features?.resetOnSubmit) {
@@ -744,7 +739,8 @@ export function FormFactory<T extends z.ZodType>({
 
   return (
     <div className={cn('space-y-6', styling?.containerClassName)}>
-      <Form {...form}>
+      {/* Narrow FormProvider generics to this form's values */}
+      <Form<TFieldValues> {...(form as any)}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={cn('space-y-6', styling?.className)}>
           <div
             className={cn(
@@ -814,9 +810,14 @@ export function createFormSchema<T extends z.ZodRawShape>(fields: T) {
   return z.object(fields)
 }
 
-export function createFormComponent<T extends z.ZodType>(config: FormConfig<T>) {
-  return function FormComponent(props: Omit<FormFactoryProps<T>, keyof FormConfig<T>>) {
-    return <FormFactory {...config} {...props} />
+export function createFormComponent<
+  TFieldValues extends FieldValues,
+  TSchema extends z.ZodType<TFieldValues>
+>(config: FormConfig<TFieldValues, TSchema>) {
+  return function FormComponent(
+    props: Omit<FormFactoryProps<TFieldValues, TSchema>, keyof FormConfig<TFieldValues, TSchema>>
+  ) {
+    return <FormFactory<TFieldValues, TSchema> {...config} {...props} />
   }
 }
 

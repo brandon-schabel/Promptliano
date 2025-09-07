@@ -29,7 +29,8 @@ export const MCPServerConfigSchema = z.object({
   type: z.enum(['stdio', 'http']).default('stdio'),
   command: z.string(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional(),
+  // Zod v4: explicit key/value for record
+  env: z.record(z.string(), z.string()).optional(),
   timeout: z.number().optional()
 })
 
@@ -43,7 +44,8 @@ export const MCPInputConfigSchema = z.object({
 
 // Support both old 'servers' format and new 'mcpServers' format
 export const ProjectMCPConfigSchema = z.object({
-  mcpServers: z.record(MCPServerConfigSchema).optional(),
+  // Zod v4: record requires key schema
+  mcpServers: z.record(z.string(), MCPServerConfigSchema).optional(),
   inputs: z.array(MCPInputConfigSchema).optional(),
   extends: z.union([z.string(), z.array(z.string())]).optional()
 }).transform((data) => {
@@ -181,7 +183,8 @@ export function createMCPProjectConfigService(deps?: MCPProjectConfigDependencie
    * Get the servers from config, handling both formats
    */
   const getServersFromConfig = (config: ProjectMCPConfig): Record<string, MCPServerConfig> => {
-    return config.mcpServers || {}
+    // If undefined, fallback to empty typed record
+    return (config.mcpServers as Record<string, MCPServerConfig> | undefined) || ({} as Record<string, MCPServerConfig>)
   }
 
   /**

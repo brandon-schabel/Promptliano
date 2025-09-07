@@ -38,7 +38,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
         <CardContent>
           <div className='flex items-center justify-between'>
             <p className='text-sm text-muted-foreground'>No queues created yet</p>
-            <Link to='/projects' search={{ projectId, activeView: 'queues' }}>
+            <Link to='/projects' search={{ projectId, activeView: 'flow', flowView: 'queues' }}>
               <Button variant='outline' size='sm'>
                 <ListPlus className='mr-2 h-4 w-4' />
                 Create Queue
@@ -66,7 +66,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
       <CardHeader className='pb-3'>
         <div className='flex items-center justify-between'>
           <CardTitle className='text-lg'>Task Queues</CardTitle>
-          <Link to='/projects' search={{ projectId, activeView: 'queues' }}>
+          <Link to='/projects' search={{ projectId, activeView: 'flow', flowView: 'queues' }}>
             <Button variant='ghost' size='sm'>
               View All
               <ArrowRight className='ml-2 h-4 w-4' />

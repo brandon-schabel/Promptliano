@@ -86,7 +86,7 @@ function handleZodError(err: ZodError, c: Context) {
   const fieldErrors: Record<string, string[]> = {}
   
   // Group errors by field path
-  err.errors.forEach(error => {
+  err.issues.forEach(error => {
     const path = error.path.join('.')
     if (!fieldErrors[path]) {
       fieldErrors[path] = []
@@ -95,7 +95,7 @@ function handleZodError(err: ZodError, c: Context) {
   })
   
   // Create a summary message
-  const errorCount = err.errors.length
+  const errorCount = err.issues.length
   const fields = Object.keys(fieldErrors).join(', ')
   const message = `Validation failed for ${errorCount} field${errorCount > 1 ? 's' : ''}: ${fields}`
   
@@ -106,7 +106,7 @@ function handleZodError(err: ZodError, c: Context) {
         code: 'VALIDATION_ERROR',
         message,
         fieldErrors,
-        issues: err.errors.map(e => ({
+        issues: err.issues.map(e => ({
           path: e.path.join('.'),
           message: e.message,
           code: e.code

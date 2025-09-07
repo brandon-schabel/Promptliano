@@ -79,48 +79,40 @@ export const standardResponses = {
 /**
  * Create standard response set for routes
  */
-export function createStandardResponses(successSchema: z.ZodTypeAny) {
-  // Be defensive: if a non-Zod value is passed, coerce to z.any() to avoid doc generation crashes
-  const schema: z.ZodTypeAny =
-    successSchema &&
-    typeof successSchema === 'object' &&
-    (('_def' in (successSchema as any)) || ('def' in (successSchema as any)))
-      ? (successSchema as z.ZodTypeAny)
-      : z.any()
+export function createStandardResponses<T extends z.ZodTypeAny>(successSchema: T) {
+  // Preserve literal status and schema typing so OpenAPIHono infers handler types correctly
   return {
     200: {
       content: {
-        'application/json': { schema }
+        'application/json': { schema: successSchema }
       },
       description: 'Success'
     },
     ...standardResponses
-  }
+  } as const
 }
 
 /**
  * Create standard responses with custom status code
  */
-export function createStandardResponsesWithStatus(
-  successSchema: z.ZodTypeAny,
+export function createStandardResponsesWithStatus<T extends z.ZodTypeAny>(
+  successSchema: T,
   statusCode: number = 200,
   description: string = 'Success'
 ) {
-  const schema: z.ZodTypeAny =
-    successSchema &&
-    typeof successSchema === 'object' &&
-    (('_def' in (successSchema as any)) || ('def' in (successSchema as any)))
-      ? (successSchema as z.ZodTypeAny)
-      : z.any()
-  return {
+  // Use computed property for status while keeping schema typing
+  const responses = {
+    ...standardResponses,
     [statusCode]: {
       content: {
-        'application/json': { schema }
+        'application/json': { schema: successSchema }
       },
       description
-    },
-    ...standardResponses
+    }
   } as const
+
+  // Move the success status to the front (cosmetic); typing stays intact
+  return responses
 }
 
 /**

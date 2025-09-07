@@ -55,19 +55,22 @@ export const modalPresets = {
 // FORM CONFIG BUILDERS
 // =============================================
 
-export function createEntityFormConfig<T extends z.ZodType>(
-  schema: T,
+export function createEntityFormConfig<
+  TFieldValues extends Record<string, any>,
+  TSchema extends z.ZodType<TFieldValues>
+>(
+  schema: TSchema,
   options: {
-    excludeFields?: (keyof z.infer<T>)[]
-    fieldOverrides?: Partial<Record<keyof z.infer<T>, any>>
+    excludeFields?: (keyof TFieldValues)[]
+    fieldOverrides?: Partial<Record<keyof TFieldValues, any>>
     layout?: 'single' | 'two-column' | 'grouped'
   } = {}
-): FormConfig<T> {
+): FormConfig<TFieldValues, TSchema> {
   const { excludeFields = [], fieldOverrides = {}, layout = 'single' } = options
 
   const shape = (schema as any)._def.shape()
   const fields = Object.keys(shape)
-    .filter((key) => !excludeFields.includes(key as keyof z.infer<T>))
+    .filter((key) => !excludeFields.includes(key as keyof TFieldValues))
     .map((key) => {
       const zodField = shape[key]
       const override = fieldOverrides && key in fieldOverrides ? (fieldOverrides as any)[key] : undefined
@@ -85,7 +88,7 @@ export function createEntityFormConfig<T extends z.ZodType>(
     schema,
     fields,
     layout: layout === 'two-column' ? { columns: 2 } : undefined
-  } as FormConfig<T>
+  } as FormConfig<TFieldValues, TSchema>
 }
 
 function inferFieldType(zodField: any): string {
@@ -116,10 +119,10 @@ function inferFieldType(zodField: any): string {
 export interface EnhancedCrudModalOptions<T extends Record<string, any>>
   extends Omit<CrudModalConfig<T>, 'formConfig'> {
   schema?: z.ZodType<T>
-  formConfig?: FormConfig<z.ZodType<T>>
+  formConfig?: FormConfig<T, z.ZodType<T>>
   fields?: {
-    create?: FormConfig<z.ZodType<T>>
-    edit?: FormConfig<z.ZodType<T>>
+    create?: FormConfig<T, z.ZodType<T>>
+    edit?: FormConfig<T, z.ZodType<T>>
     view?: {
       fields: (keyof T)[]
       formatters?: Partial<Record<keyof T, (value: any) => React.ReactNode>>

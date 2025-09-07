@@ -183,10 +183,12 @@ export function validateRequest<
         c.set('validatedBody', validated)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          errors.push(...error.errors.map(e => ({
-            ...e,
-            path: ['body', ...e.path]
-          })))
+          errors.push(
+            ...error.issues.map((e) => ({
+              ...e,
+              path: ['body', ...e.path]
+            }))
+          )
         } else {
           throw error
         }
@@ -204,10 +206,12 @@ export function validateRequest<
         c.set('validatedQuery', validated)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          errors.push(...error.errors.map(e => ({
-            ...e,
-            path: ['query', ...e.path]
-          })))
+          errors.push(
+            ...error.issues.map((e) => ({
+              ...e,
+              path: ['query', ...e.path]
+            }))
+          )
         }
       }
     }
@@ -223,10 +227,12 @@ export function validateRequest<
         c.set('validatedParams', validated)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          errors.push(...error.errors.map(e => ({
-            ...e,
-            path: ['params', ...e.path]
-          })))
+          errors.push(
+            ...error.issues.map((e) => ({
+              ...e,
+              path: ['params', ...e.path]
+            }))
+          )
         }
       }
     }
@@ -250,10 +256,12 @@ export function validateRequest<
         c.set('validatedHeaders', validated)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          errors.push(...error.errors.map(e => ({
-            ...e,
-            path: ['headers', ...e.path]
-          })))
+          errors.push(
+            ...error.issues.map((e) => ({
+              ...e,
+              path: ['headers', ...e.path]
+            }))
+          )
         }
       }
     }

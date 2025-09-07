@@ -683,7 +683,8 @@ export async function generateSingleText({
 }
 
 // Helper function for generating structured JSON objects.
-export async function generateStructuredData<T extends z.ZodType<any, z.ZodTypeDef, any>>({
+// Zod v4: avoid referencing internal ZodTypeDef; accept any ZodType
+export async function generateStructuredData<T extends z.ZodTypeAny>({
   // Accept ZodTypeAny
   prompt,
   schema,
@@ -988,7 +989,11 @@ Start your response with { and end with }`
       }
     )
 
-    return result
+    return {
+      object: result.object as z.infer<T>,
+      usage: result.usage,
+      finishReason: result.finishReason
+    }
   } catch (error: any) {
     if (error instanceof ApiError) throw error
     logModelError(provider, model || '', error)

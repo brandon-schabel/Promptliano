@@ -160,9 +160,10 @@ export function ProjectNavigationMenu({
   }
 
   const navigateToSettings = (tab: string) => {
+    // Cast search to any to satisfy the router's inferred union type for tab
     navigate({
       to: '/settings',
-      search: { tab }
+      search: { tab } as any
     })
   }
 

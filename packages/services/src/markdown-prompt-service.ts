@@ -357,7 +357,7 @@ async function validateMarkdown(content: string): Promise<ValidationResult> {
         })
       } catch (error) {
         if (error instanceof ZodError) {
-          for (const issue of error.errors) {
+          for (const issue of error.issues) {
             validation.warnings.push(`Frontmatter validation: ${issue.path.join('.')}: ${issue.message}`)
           }
         }
