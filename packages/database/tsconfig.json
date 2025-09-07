@@ -13,11 +13,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src/**/*",
-    "index.ts",
-    "drizzle.config.ts"
-  ],
+  "include": ["src/**/*", "index.ts", "drizzle.config.ts"],
   "references": [
     {
       "path": "../schemas"

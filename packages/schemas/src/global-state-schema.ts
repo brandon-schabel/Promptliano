@@ -420,7 +420,10 @@ export const appSettingsSchema = z
     selectedPreset: z
       .enum(['low', 'medium', 'high', 'planning'])
       .optional()
-      .openapi({ description: 'Currently selected model intelligence preset for chat configuration.', example: 'medium' }),
+      .openapi({
+        description: 'Currently selected model intelligence preset for chat configuration.',
+        example: 'medium'
+      }),
     devToolsEnabled: z
       .object({
         tanstackQuery: z
@@ -437,22 +440,34 @@ export const appSettingsSchema = z
           .boolean()
           .optional()
           .default(false)
-          .openapi({ description: 'Whether React Scan DevTools are enabled for performance visualization.', example: false }),
+          .openapi({
+            description: 'Whether React Scan DevTools are enabled for performance visualization.',
+            example: false
+          }),
         drizzleStudio: z
           .boolean()
           .optional()
           .default(false)
-          .openapi({ description: 'Whether Drizzle Studio database management interface is accessible via navigation.', example: false }),
+          .openapi({
+            description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
+            example: false
+          }),
         swaggerUI: z
           .boolean()
           .optional()
           .default(false)
-          .openapi({ description: 'Whether Swagger UI API documentation is accessible via navigation.', example: false }),
+          .openapi({
+            description: 'Whether Swagger UI API documentation is accessible via navigation.',
+            example: false
+          }),
         mcpInspector: z
           .boolean()
           .optional()
           .default(false)
-          .openapi({ description: 'Whether MCP Inspector debugging interface is accessible via navigation.', example: false })
+          .openapi({
+            description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
+            example: false
+          })
       })
       .optional()
       .default({
@@ -466,7 +481,8 @@ export const appSettingsSchema = z
       .openapi({ description: 'Configuration for enabling/disabling various development tools in the application UI.' })
   })
   .openapi('AppSettings', {
-    description: 'Global application settings, including theme, AI provider configuration, default chat parameters, and development tool configuration.'
+    description:
+      'Global application settings, including theme, AI provider configuration, default chat parameters, and development tool configuration.'
   })
 
 // Base schemas for partial updates (Project only) - Not directly used in GlobalState, but good practice

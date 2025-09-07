@@ -224,7 +224,11 @@ async function handleJSONRPCRequest(
 }
 
 // Initialize MCP session
-async function handleInitialize(id: string | number, params: Record<string, unknown> | undefined, projectId?: string): Promise<JSONRPCResponse> {
+async function handleInitialize(
+  id: string | number,
+  params: Record<string, unknown> | undefined,
+  projectId?: string
+): Promise<JSONRPCResponse> {
   const { capabilities, clientInfo } = params || {}
 
   const sessionId = generateSessionId()
@@ -243,7 +247,10 @@ async function handleInitialize(id: string | number, params: Record<string, unkn
   }
 
   // Validate client capabilities and create server capabilities
-  const clientCapabilities = capabilities && typeof capabilities === 'object' && capabilities !== null ? capabilities as Record<string, unknown> : {}
+  const clientCapabilities =
+    capabilities && typeof capabilities === 'object' && capabilities !== null
+      ? (capabilities as Record<string, unknown>)
+      : {}
   const serverCapabilities = {
     tools: clientCapabilities.tools !== false,
     resources: clientCapabilities.resources !== false,
@@ -257,7 +264,10 @@ async function handleInitialize(id: string | number, params: Record<string, unkn
     createdAt: Date.now(),
     lastActivity: Date.now(),
     capabilities: serverCapabilities,
-    clientInfo: clientInfo && typeof clientInfo === 'object' && clientInfo !== null ? clientInfo as Record<string, unknown> : undefined,
+    clientInfo:
+      clientInfo && typeof clientInfo === 'object' && clientInfo !== null
+        ? (clientInfo as Record<string, unknown>)
+        : undefined,
     clientCapabilities: clientCapabilities
   }
 
@@ -355,7 +365,7 @@ async function handleToolsCall(
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const paramsObj = Array.isArray(params) ? {} : params || {}
     const { name, arguments: args } = paramsObj
 
     if (!name) {
@@ -369,7 +379,7 @@ async function handleToolsCall(
       }
     }
 
-    // Handle built-in Promptliano tools  
+    // Handle built-in Promptliano tools
     if (typeof name === 'string' && name.startsWith('external_')) {
       // Handle external MCP server tools
       if (!projectId) {
@@ -402,13 +412,17 @@ async function handleToolsCall(
       const executionId = await startMCPToolExecution(
         `external_${externalToolName}`,
         parseInt(projectId),
-        (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}),
+        args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {},
         undefined,
         sessionId
       )
 
       try {
-        const result = await getMCPClientManager().executeTool(tool.serverId, externalToolName, (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}))
+        const result = await getMCPClientManager().executeTool(
+          tool.serverId,
+          externalToolName,
+          args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {}
+        )
         const content = Array.isArray(result)
           ? result
           : [
@@ -462,13 +476,16 @@ async function handleToolsCall(
       executionId = await startMCPToolExecution(
         typeof name === 'string' ? name : 'unknown',
         projectId ? parseInt(projectId) : undefined,
-        (args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}),
+        args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {},
         undefined,
         sessionId || 'unknown'
       )
       console.log('[MCP] Execution ID:', executionId)
 
-      const toolResult = await tool.handler((args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {}), projectId ? parseInt(projectId) : undefined)
+      const toolResult = await tool.handler(
+        args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {},
+        projectId ? parseInt(projectId) : undefined
+      )
       result = toolResult.content
 
       // Calculate output size
@@ -640,7 +657,7 @@ async function handleResourcesRead(
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const paramsObj = Array.isArray(params) ? {} : params || {}
     const { uri } = paramsObj
 
     if (!uri) {
@@ -899,7 +916,7 @@ async function handlePromptsGet(
   sessionId?: string
 ): Promise<JSONRPCResponse> {
   try {
-    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const paramsObj = Array.isArray(params) ? {} : params || {}
     const { name } = paramsObj
 
     if (!name) {
@@ -936,9 +953,13 @@ async function handlePromptsGet(
 }
 
 // Set logging level
-async function handleLoggingSetLevel(id: string | number, params: Record<string, unknown> | unknown[] | undefined, sessionId?: string): Promise<JSONRPCResponse> {
+async function handleLoggingSetLevel(
+  id: string | number,
+  params: Record<string, unknown> | unknown[] | undefined,
+  sessionId?: string
+): Promise<JSONRPCResponse> {
   try {
-    const paramsObj = Array.isArray(params) ? {} : (params || {})
+    const paramsObj = Array.isArray(params) ? {} : params || {}
     const { level } = paramsObj
 
     if (!level || typeof level !== 'string' || !['error', 'warn', 'info', 'debug'].includes(level)) {
@@ -1028,7 +1049,12 @@ async function handlePOSTRequest(c: Context): Promise<Response> {
 
     // Check if this was an initialize response with a new session
     const firstResponse = responses[0]
-    if (responses.length === 1 && firstResponse?.result && typeof firstResponse.result === 'object' && firstResponse.result !== null) {
+    if (
+      responses.length === 1 &&
+      firstResponse?.result &&
+      typeof firstResponse.result === 'object' &&
+      firstResponse.result !== null
+    ) {
       const result = firstResponse.result as Record<string, unknown>
       if (result._meta && typeof result._meta === 'object' && result._meta !== null) {
         const meta = result._meta as Record<string, unknown>

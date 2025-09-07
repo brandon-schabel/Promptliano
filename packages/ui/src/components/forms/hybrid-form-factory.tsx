@@ -28,10 +28,9 @@ interface ComplexityAnalysis {
   recommendations: string[]
 }
 
-function analyzeFormComplexity<
-  TFieldValues extends Record<string, any>,
-  TSchema extends z.ZodType<TFieldValues>
->(config: HybridFormConfig<TFieldValues, TSchema>): ComplexityAnalysis {
+function analyzeFormComplexity<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>(
+  config: HybridFormConfig<TFieldValues, TSchema>
+): ComplexityAnalysis {
   const reasons: string[] = []
   let score = 0
   const recommendations: string[] = []
@@ -125,10 +124,8 @@ function analyzeFormComplexity<
 // HYBRID FORM TYPES
 // =============================================
 
-export interface HybridFormConfig<
-  TFieldValues extends Record<string, any>,
-  TSchema extends z.ZodType<TFieldValues>
-> extends Omit<FormConfig<TFieldValues, TSchema>, 'fields'> {
+export interface HybridFormConfig<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>
+  extends Omit<FormConfig<TFieldValues, TSchema>, 'fields'> {
   /** Form submission handler */
   onSubmit: (data: TFieldValues) => void | Promise<void>
 
@@ -326,10 +323,9 @@ function convertFieldsToTanStack(fields: any[]): FieldProps[] {
 // HYBRID FORM FACTORY COMPONENT
 // =============================================
 
-export function HybridFormFactory<
-  TFieldValues extends Record<string, any>,
-  TSchema extends z.ZodType<TFieldValues>
->(config: HybridFormConfig<TFieldValues, TSchema>) {
+export function HybridFormFactory<TFieldValues extends Record<string, any>, TSchema extends z.ZodType<TFieldValues>>(
+  config: HybridFormConfig<TFieldValues, TSchema>
+) {
   const {
     forceImplementation,
     features,

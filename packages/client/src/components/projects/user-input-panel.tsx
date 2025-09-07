@@ -62,7 +62,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const { data: selectedPrompts = [] } = useProjectTabField('selectedPrompts', activeProjectTabId ?? -1)
   const { data: globalUserPrompt = '' } = useProjectTabField('userPrompt', activeProjectTabId ?? -1)
   const [suggestedFiles, setSuggestedFiles] = useState<ProjectFile[]>([])
-  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([])  // Matches API return type
+  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]) // Matches API return type
 
   // Keep a local copy of userPrompt so that typing is instantly reflected in the textarea
   const [localUserPrompt, setLocalUserPrompt] = useState(globalUserPrompt)
@@ -209,23 +209,25 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
             // Convert HookPrompt objects to Prompt objects
             // Type the recommendedPrompts parameter properly
             type HookPrompt = {
-              id: number;
-              name: string;
-              content: string;
-              projectId?: number;
-              created?: number;
-              updated?: number;
+              id: number
+              name: string
+              content: string
+              projectId?: number
+              created?: number
+              updated?: number
             }
-            const convertedPrompts: Prompt[] = (recommendedPrompts as HookPrompt[]).map((hookPrompt): Prompt => ({
-              id: hookPrompt.id,
-              title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
-              content: hookPrompt.content,
-              description: null, // HookPrompt doesn't have description
-              projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
-              tags: [], // HookPrompt doesn't have tags
-              createdAt: hookPrompt.created || Date.now(),
-              updatedAt: hookPrompt.updated || Date.now()
-            }))
+            const convertedPrompts: Prompt[] = (recommendedPrompts as HookPrompt[]).map(
+              (hookPrompt): Prompt => ({
+                id: hookPrompt.id,
+                title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
+                content: hookPrompt.content,
+                description: null, // HookPrompt doesn't have description
+                projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
+                tags: [], // HookPrompt doesn't have tags
+                createdAt: hookPrompt.created || Date.now(),
+                updatedAt: hookPrompt.updated || Date.now()
+              })
+            )
             setSuggestedPrompts(convertedPrompts)
             setShowPromptSuggestions(true)
           } else {

@@ -27,7 +27,11 @@ const presetConfigCache = new Map<string, { config: ModelConfig; timestamp: numb
 const CACHE_TTL = 60 * 1000 // 1 minute cache
 
 export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
-  const { repository = modelConfigRepository, presetRepository = modelPresetRepository, logger = createServiceLogger('ModelConfigService') } = deps
+  const {
+    repository = modelConfigRepository,
+    presetRepository = modelPresetRepository,
+    logger = createServiceLogger('ModelConfigService')
+  } = deps
 
   // Static config fallbacks for when database is unavailable
   const STATIC_FALLBACKS: Record<string, ModelConfig> = {
@@ -64,7 +68,10 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         return configs
       } catch (error) {
         logger.error('Failed to retrieve provider configurations', { provider, error })
-        throw ErrorFactory.operationFailed('getConfigsByProvider', `Failed to retrieve provider configurations for ${provider}`)
+        throw ErrorFactory.operationFailed(
+          'getConfigsByProvider',
+          `Failed to retrieve provider configurations for ${provider}`
+        )
       }
     },
 
@@ -86,7 +93,10 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         return config
       } catch (error) {
         logger.error('Failed to retrieve default configuration', { provider, error })
-        throw ErrorFactory.operationFailed('getDefaultConfig', `Failed to retrieve default configuration for ${provider}`)
+        throw ErrorFactory.operationFailed(
+          'getDefaultConfig',
+          `Failed to retrieve default configuration for ${provider}`
+        )
       }
     },
 
@@ -119,7 +129,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
       try {
         // Try to get from database
         const config = await repository.getByName(presetName)
-        
+
         if (config) {
           // Update cache
           presetConfigCache.set(presetName, { config, timestamp: Date.now() })
@@ -308,7 +318,10 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
         return presets
       } catch (error) {
         logger.error('Failed to retrieve presets by category', { category, error })
-        throw ErrorFactory.operationFailed('getPresetsByCategory', `Failed to retrieve presets for category: ${category}`)
+        throw ErrorFactory.operationFailed(
+          'getPresetsByCategory',
+          `Failed to retrieve presets for category: ${category}`
+        )
       }
     },
 
@@ -563,7 +576,10 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
     /**
      * Import configurations and presets
      */
-    async importConfigurations(data: { configs?: CreateModelConfig[]; presets?: CreateModelPreset[] }): Promise<{ configsImported: number; presetsImported: number }> {
+    async importConfigurations(data: {
+      configs?: CreateModelConfig[]
+      presets?: CreateModelPreset[]
+    }): Promise<{ configsImported: number; presetsImported: number }> {
       try {
         let configsImported = 0
         let presetsImported = 0

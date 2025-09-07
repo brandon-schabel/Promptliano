@@ -38,21 +38,14 @@ export interface QueueTimeoutConfig {
 /**
  * Create Queue Timeout Service with functional factory pattern
  */
-export function createQueueTimeoutService(
-  config: QueueTimeoutConfig = {},
-  deps: QueueTimeoutDeps = {}
-) {
+export function createQueueTimeoutService(config: QueueTimeoutConfig = {}, deps: QueueTimeoutDeps = {}) {
   const {
     checkInterval = 30000, // Default: 30 seconds
     defaultTimeout = 300000, // Default: 5 minutes
     autoStart = false
   } = config
 
-  const {
-    queueService,
-    projectService,
-    logger = createServiceLogger('QueueTimeoutService')
-  } = deps
+  const { queueService, projectService, logger = createServiceLogger('QueueTimeoutService') } = deps
 
   let intervalId: NodeJS.Timeout | null = null
   let isRunning = false
@@ -194,9 +187,8 @@ export function createQueueTimeoutService(
             statistics.totalRecoveries += totalTimedOut
             statistics.totalErrors += totalErrors
             statistics.lastCheckTime = new Date()
-            statistics.averageCheckDuration = 
-              (statistics.averageCheckDuration * (statistics.totalChecks - 1) + duration) / 
-              statistics.totalChecks
+            statistics.averageCheckDuration =
+              (statistics.averageCheckDuration * (statistics.totalChecks - 1) + duration) / statistics.totalChecks
 
             if (totalTimedOut > 0 || totalErrors > 0) {
               logger.info('Timeout check completed', {
@@ -228,7 +220,7 @@ export function createQueueTimeoutService(
           }
 
           const result = await queueService.checkAndHandleTimeouts(queueId)
-          
+
           if (result.timedOut > 0) {
             logger.info(`Recovered ${result.timedOut} timed-out items from queue ${queueId}`)
           }
@@ -276,10 +268,10 @@ export function createQueueTimeoutService(
     async shutdown(): Promise<void> {
       logger.info('Initiating graceful shutdown')
       operations.stop()
-      
+
       // Wait a moment for any ongoing operations to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       logger.info('Graceful shutdown completed')
     }
   }
@@ -287,7 +279,7 @@ export function createQueueTimeoutService(
   // Auto-start if configured
   if (autoStart && queueService && projectService) {
     setImmediate(() => {
-      operations.start().catch(error => {
+      operations.start().catch((error) => {
         logger.error('Failed to auto-start timeout service', error)
       })
     })
@@ -311,19 +303,16 @@ export function getQueueTimeoutService(options?: {
       // Try to load dependencies dynamically for backward compatibility
       const { getQueuesByProject, checkAndHandleTimeouts } = require('./queue-service')
       const { listProjects } = require('./project-service')
-      
-      defaultService = createQueueTimeoutService(
-        options || {},
-        {
-          queueService: {
-            getByProject: getQueuesByProject,
-            checkAndHandleTimeouts
-          },
-          projectService: {
-            list: listProjects
-          }
+
+      defaultService = createQueueTimeoutService(options || {}, {
+        queueService: {
+          getByProject: getQueuesByProject,
+          checkAndHandleTimeouts
+        },
+        projectService: {
+          list: listProjects
         }
-      )
+      })
     } catch (error) {
       // Fallback service without dependencies
       defaultService = createQueueTimeoutService(options || {})

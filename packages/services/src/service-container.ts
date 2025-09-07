@@ -137,7 +137,6 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
   //   projectService
   // } as FileServiceDeps)
 
-
   const ticketService = createTicketService({
     ticketRepository: repos.ticket,
     taskRepository: repos.task,
@@ -146,7 +145,6 @@ export function createServiceContainer(config: ServiceContainerConfig = {}): Ser
     // fileService, // Temporarily disabled
     aiService: external.aiService
   } as TicketServiceDeps)
-
 
   const queueService = createQueueService({
     queueRepository: repos.queue,

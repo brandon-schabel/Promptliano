@@ -336,11 +336,11 @@ export interface MutationHookReturn<TData, TError = ApiError, TVariables = void>
  */
 export interface InfiniteQueryHookReturn<TData, TError = ApiError> {
   data:
-  | {
-    pages: TData[]
-    pageParams: unknown[]
-  }
-  | undefined
+    | {
+        pages: TData[]
+        pageParams: unknown[]
+      }
+    | undefined
   error: TError | null
   isLoading: boolean
   isError: boolean

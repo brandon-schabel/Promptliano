@@ -111,12 +111,7 @@ export const ProviderPageTestData = {
       modelsEndpoint: '/v1/models',
       testEndpoint: '/v1/models',
       keyFormat: 'sk-ant-[varies]',
-      models: [
-        'claude-3-opus-20240229',
-        'claude-4-sonnet',
-        'claude-3-haiku-20240307',
-        'claude-3-5-sonnet-20241022'
-      ],
+      models: ['claude-3-opus-20240229', 'claude-4-sonnet', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'],
       testKey: 'sk-ant-test1234567890abcdef1234567890abcdef',
       invalidKey: 'invalid-anthropic-key',
       testPrompt: 'Hello, this is a test message for Anthropic'

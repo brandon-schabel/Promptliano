@@ -1,6 +1,4 @@
-
 ---
-
 name: promptliano-architect
 description: Comprehensive Promptliano Architect Agent that combines all migration learnings into a unified architecture guide. Expert in modern full-stack development with Drizzle ORM, functional service patterns, Zod schema-first design, centralized configuration, and comprehensive testing. Uses the current project structure as the gold standard for implementing new features.
 model: opus
@@ -49,31 +47,34 @@ Result: Complete type-safe stack with ZERO manual boilerplate!
 import { z } from 'zod'
 
 // Base entity schema - defines structure, validation, and types
-export const FeatureSchema = z.object({
-  id: z.number().int().positive(),
-  projectId: z.number().int().positive(),
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'archived']),
-  metadata: z.record(z.any()).default({}),
-  createdAt: z.number().int().positive(),
-  updatedAt: z.number().int().positive()
-}).strict()
+export const FeatureSchema = z
+  .object({
+    id: z.number().int().positive(),
+    projectId: z.number().int().positive(),
+    name: z.string().min(1).max(100),
+    description: z.string().optional(),
+    status: z.enum(['active', 'inactive', 'archived']),
+    metadata: z.record(z.any()).default({}),
+    createdAt: z.number().int().positive(),
+    updatedAt: z.number().int().positive()
+  })
+  .strict()
 
 // Derived schemas for different layers
 export const CreateFeatureSchema = FeatureSchema.omit({
-  id: true, createdAt: true, updatedAt: true
+  id: true,
+  createdAt: true,
+  updatedAt: true
 })
 
 export const UpdateFeatureSchema = FeatureSchema.partial().omit({
-  id: true, createdAt: true
+  id: true,
+  createdAt: true
 })
 
 // API contract schemas
 export const FeatureResponseSchema = createStandardResponses(FeatureSchema)
-export const FeatureListResponseSchema = createStandardResponses(
-  z.array(FeatureSchema)
-)
+export const FeatureListResponseSchema = createStandardResponses(z.array(FeatureSchema))
 
 // Auto-inferred types (NEVER manually define interfaces)
 export type Feature = z.infer<typeof FeatureSchema>
@@ -87,20 +88,30 @@ export type UpdateFeature = z.infer<typeof UpdateFeatureSchema>
 
 ```typescript
 // packages/database/src/schema.ts
-export const features = sqliteTable('features', {
-  id: integer('id').primaryKey(),
-  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  description: text('description'),
-  status: text('status', { enum: ['active', 'inactive', 'archived'] }).notNull().default('active'),
-  metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>().default(sql`'{}'`),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull()
-}, (table) => ({
-  projectIdx: index('features_project_idx').on(table.projectId),
-  statusIdx: index('features_status_idx').on(table.status),
-  nameIdx: index('features_name_idx').on(table.name)
-}))
+export const features = sqliteTable(
+  'features',
+  {
+    id: integer('id').primaryKey(),
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    status: text('status', { enum: ['active', 'inactive', 'archived'] })
+      .notNull()
+      .default('active'),
+    metadata: text('metadata', { mode: 'json' })
+      .$type<Record<string, any>>()
+      .default(sql`'{}'`),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (table) => ({
+    projectIdx: index('features_project_idx').on(table.projectId),
+    statusIdx: index('features_status_idx').on(table.status),
+    nameIdx: index('features_name_idx').on(table.name)
+  })
+)
 
 // Relations for complex queries
 export const featuresRelations = relations(features, ({ one, many }) => ({
@@ -159,12 +170,13 @@ export function createFeatureService(deps?: FeatureServiceDeps) {
     },
 
     async bulkUpdateStatuses(updates: Array<{ id: number; status: FeatureStatus }>) {
-      return withErrorContext(async () => {
-        const results = await Promise.allSettled(
-          updates.map(({ id, status }) => baseService.update(id, { status }))
-        )
-        return results.filter(r => r.status === 'fulfilled').length
-      }, { entity: 'Feature', action: 'bulkUpdateStatuses' })
+      return withErrorContext(
+        async () => {
+          const results = await Promise.allSettled(updates.map(({ id, status }) => baseService.update(id, { status })))
+          return results.filter((r) => r.status === 'fulfilled').length
+        },
+        { entity: 'Feature', action: 'bulkUpdateStatuses' }
+      )
     }
   }
 
@@ -370,33 +382,43 @@ describe('FeatureService', () => {
 
 ```typescript
 // 1. Define Zod schemas first (packages/schemas/src/feature.schemas.ts)
-export const FeatureSchema = z.object({
-  id: z.number().int().positive(),
-  projectId: z.number().int().positive(),
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'archived']),
-  metadata: z.record(z.any()).default({}),
-  createdAt: z.number().int().positive(),
-  updatedAt: z.number().int().positive()
-}).strict()
+export const FeatureSchema = z
+  .object({
+    id: z.number().int().positive(),
+    projectId: z.number().int().positive(),
+    name: z.string().min(1).max(100),
+    description: z.string().optional(),
+    status: z.enum(['active', 'inactive', 'archived']),
+    metadata: z.record(z.any()).default({}),
+    createdAt: z.number().int().positive(),
+    updatedAt: z.number().int().positive()
+  })
+  .strict()
 
 export type Feature = z.infer<typeof FeatureSchema>
 
 // 2. Define Drizzle table (packages/database/src/schema.ts)
-export const features = sqliteTable('features', {
-  id: integer('id').primaryKey(),
-  projectId: integer('project_id').notNull().references(() => projects.id),
-  name: text('name').notNull(),
-  description: text('description'),
-  status: text('status', { enum: ['active', 'inactive', 'archived'] }).default('active'),
-  metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>().default(sql`'{}'`),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull()
-}, (table) => ({
-  projectIdx: index('features_project_idx').on(table.projectId),
-  statusIdx: index('features_status_idx').on(table.status)
-}))
+export const features = sqliteTable(
+  'features',
+  {
+    id: integer('id').primaryKey(),
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => projects.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    status: text('status', { enum: ['active', 'inactive', 'archived'] }).default('active'),
+    metadata: text('metadata', { mode: 'json' })
+      .$type<Record<string, any>>()
+      .default(sql`'{}'`),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (table) => ({
+    projectIdx: index('features_project_idx').on(table.projectId),
+    statusIdx: index('features_status_idx').on(table.status)
+  })
+)
 
 // 3. Auto-generate Drizzle schemas
 export const insertFeatureSchema = createInsertSchema(features)
@@ -427,7 +449,7 @@ export class FeatureStorage extends BaseStorage<Feature> {
         this.db.update(features).set({ status, updatedAt: Date.now() }).where(eq(features.id, id))
       )
     )
-    return results.filter(r => r.status === 'fulfilled').length
+    return results.filter((r) => r.status === 'fulfilled').length
   }
 }
 
@@ -459,16 +481,19 @@ export function createFeatureService(deps?: FeatureServiceDeps) {
     },
 
     async bulkUpdateStatuses(updates: Array<{ id: number; status: FeatureStatus }>) {
-      return withErrorContext(async () => {
-        const count = await storage.bulkUpdateStatus(updates)
+      return withErrorContext(
+        async () => {
+          const count = await storage.bulkUpdateStatus(updates)
 
-        // Invalidate cache
-        if (cache) {
-          updates.forEach(({ id }) => cache.invalidate(`feature:${id}`))
-        }
+          // Invalidate cache
+          if (cache) {
+            updates.forEach(({ id }) => cache.invalidate(`feature:${id}`))
+          }
 
-        return count
-      }, { entity: 'Feature', action: 'bulkUpdateStatuses' })
+          return count
+        },
+        { entity: 'Feature', action: 'bulkUpdateStatuses' }
+      )
     }
   }
 

@@ -24,4 +24,3 @@ main().catch((err) => {
   console.error('Error inspecting provider keys:', err)
   process.exit(1)
 })
-

@@ -23,9 +23,11 @@ export function ModelPresetConfigurator() {
 
   // Filter to only system presets with preset categories
   const systemPresets = useMemo(() => {
-    const presets = configs?.filter((c: any) => 
-      c.isSystemPreset && c.presetCategory && ['low', 'medium', 'high', 'planning'].includes(c.presetCategory)
-    ) || []
+    const presets =
+      configs?.filter(
+        (c: any) =>
+          c.isSystemPreset && c.presetCategory && ['low', 'medium', 'high', 'planning'].includes(c.presetCategory)
+      ) || []
     // Sort by uiOrder
     return presets.sort((a: any, b: any) => (a.uiOrder || 0) - (b.uiOrder || 0))
   }, [configs])
@@ -50,8 +52,8 @@ export function ModelPresetConfigurator() {
 
   const handleParameterChange = (params: any) => {
     if (!currentConfig || !activePresetId) return
-    
-    setEditedConfigs(prev => ({
+
+    setEditedConfigs((prev) => ({
       ...prev,
       [activePresetId]: {
         ...prev[activePresetId],
@@ -67,7 +69,7 @@ export function ModelPresetConfigurator() {
 
   const handleProviderChange = (provider: APIProviders) => {
     if (!activePresetId) return
-    setEditedConfigs(prev => ({
+    setEditedConfigs((prev) => ({
       ...prev,
       [activePresetId]: {
         ...prev[activePresetId],
@@ -79,7 +81,7 @@ export function ModelPresetConfigurator() {
 
   const handleModelChange = (model: string) => {
     if (!activePresetId) return
-    setEditedConfigs(prev => ({
+    setEditedConfigs((prev) => ({
       ...prev,
       [activePresetId]: {
         ...prev[activePresetId],
@@ -132,7 +134,7 @@ export function ModelPresetConfigurator() {
       })
 
       await Promise.all(updates)
-      
+
       toast.success('Preset configurations saved successfully')
       setEditedConfigs({})
       setHasChanges(false)
@@ -150,7 +152,7 @@ export function ModelPresetConfigurator() {
 
   const handleResetPreset = () => {
     if (!activePresetId) return
-    setEditedConfigs(prev => {
+    setEditedConfigs((prev) => {
       const updated = { ...prev }
       delete updated[activePresetId]
       return updated
@@ -191,23 +193,14 @@ export function ModelPresetConfigurator() {
       <div className='flex items-center justify-between'>
         <div>
           <h2 className='text-2xl font-bold'>Model Preset Configuration</h2>
-          <p className='text-muted-foreground'>
-            Customize the models and parameters for each preset
-          </p>
+          <p className='text-muted-foreground'>Customize the models and parameters for each preset</p>
         </div>
         <div className='flex gap-2'>
-          <Button
-            variant='outline'
-            onClick={handleReset}
-            disabled={!hasChanges}
-          >
+          <Button variant='outline' onClick={handleReset} disabled={!hasChanges}>
             <RotateCcw className='h-4 w-4 mr-2' />
             Reset All
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || updateMutation.isPending}
-          >
+          <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending}>
             {updateMutation.isPending ? (
               <Loader2 className='h-4 w-4 mr-2 animate-spin' />
             ) : (
@@ -221,9 +214,7 @@ export function ModelPresetConfigurator() {
       {hasChanges && (
         <Alert>
           <AlertCircle className='h-4 w-4' />
-          <AlertDescription>
-            You have unsaved changes. Click "Save Changes" to apply them.
-          </AlertDescription>
+          <AlertDescription>You have unsaved changes. Click "Save Changes" to apply them.</AlertDescription>
         </Alert>
       )}
 
@@ -239,16 +230,12 @@ export function ModelPresetConfigurator() {
                 type='button'
                 onClick={() => setActivePresetId(preset.id)}
                 className={`flex-1 px-3 py-2 rounded-md flex items-center justify-center gap-2 transition-colors ${
-                  activePresetId === preset.id 
-                    ? 'bg-background shadow-sm' 
-                    : 'hover:bg-background/50'
+                  activePresetId === preset.id ? 'bg-background shadow-sm' : 'hover:bg-background/50'
                 }`}
               >
                 <Icon className={`h-4 w-4 ${preset.uiColor || 'text-muted-foreground'}`} />
                 <span>{preset.displayName?.split(' - ')[0] || preset.name}</span>
-                {hasEdits && (
-                  <div className='h-2 w-2 bg-yellow-500 rounded-full' />
-                )}
+                {hasEdits && <div className='h-2 w-2 bg-yellow-500 rounded-full' />}
               </button>
             )
           })}
@@ -271,11 +258,7 @@ export function ModelPresetConfigurator() {
                     </div>
                   </div>
                   {activePresetId && editedConfigs[activePresetId] && (
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={handleResetPreset}
-                    >
+                    <Button variant='ghost' size='sm' onClick={handleResetPreset}>
                       <RotateCcw className='h-4 w-4 mr-2' />
                       Reset This Preset
                     </Button>
@@ -292,17 +275,12 @@ export function ModelPresetConfigurator() {
                     <Settings className='h-5 w-5' />
                     Provider & Model
                   </CardTitle>
-                  <CardDescription>
-                    Select the AI provider and model for this preset
-                  </CardDescription>
+                  <CardDescription>Select the AI provider and model for this preset</CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   <div className='space-y-2'>
                     <Label>Provider</Label>
-                    <Select
-                      value={currentConfig.provider}
-                      onValueChange={handleProviderChange}
-                    >
+                    <Select value={currentConfig.provider} onValueChange={handleProviderChange}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -341,18 +319,23 @@ export function ModelPresetConfigurator() {
                   </div>
 
                   {/* Contextual Save button only when provider/model changed */}
-                  {activeConfig && (currentConfig.provider !== activeConfig.provider || currentConfig.model !== activeConfig.model) && (
-                    <div className='pt-2 flex justify-end'>
-                      <Button onClick={handleSaveProviderModel} disabled={updateMutation.isPending || !currentConfig.model}>
-                        {updateMutation.isPending ? (
-                          <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                        ) : (
-                          <Save className='h-4 w-4 mr-2' />
-                        )}
-                        Save Provider & Model
-                      </Button>
-                    </div>
-                  )}
+                  {activeConfig &&
+                    (currentConfig.provider !== activeConfig.provider ||
+                      currentConfig.model !== activeConfig.model) && (
+                      <div className='pt-2 flex justify-end'>
+                        <Button
+                          onClick={handleSaveProviderModel}
+                          disabled={updateMutation.isPending || !currentConfig.model}
+                        >
+                          {updateMutation.isPending ? (
+                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                          ) : (
+                            <Save className='h-4 w-4 mr-2' />
+                          )}
+                          Save Provider & Model
+                        </Button>
+                      </div>
+                    )}
                 </CardContent>
               </Card>
 

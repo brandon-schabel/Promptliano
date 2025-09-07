@@ -40,7 +40,8 @@ export function QueueOverviewView({
 
   // Calculate summary stats
   const totalQueued = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.queuedItems || 0), 0) || 0
-  const totalInProgress = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.inProgressItems || 0), 0) || 0
+  const totalInProgress =
+    queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.inProgressItems || 0), 0) || 0
   const totalCompleted = queuesWithStats?.reduce((sum: number, q: any) => sum + (q.stats?.completedItems || 0), 0) || 0
   const activeQueues = queuesWithStats?.filter((q: any) => q.queue?.isActive === true).length || 0
 
@@ -151,8 +152,8 @@ export function QueueOverviewView({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Queue</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the queue "{queueToDelete?.queue?.name || 'Unnamed Queue'}"? This will also delete all queued
-              items. This action cannot be undone.
+              Are you sure you want to delete the queue "{queueToDelete?.queue?.name || 'Unnamed Queue'}"? This will
+              also delete all queued items. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

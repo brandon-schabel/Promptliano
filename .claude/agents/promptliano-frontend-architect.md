@@ -190,16 +190,16 @@ import { queryClient } from '../lib/query-client'
 export const Route = createFileRoute('/_authenticated/projects')({
   context: () => ({
     queryClient,
-    auth: useAuth(),
+    auth: useAuth()
   }),
   loader: ({ context }) => {
     // Access context in loader
     return context.queryClient.fetchQuery({
       queryKey: ['projects'],
-      queryFn: () => fetchProjects(context.auth.token),
+      queryFn: () => fetchProjects(context.auth.token)
     })
   },
-  component: ProjectsPage,
+  component: ProjectsPage
 })
 ```
 
@@ -676,4 +676,4 @@ function NewProjectPage() {
 
 ---
 
-*This consolidated frontend architect combines the expertise from promptliano-ui-architect and tanstack-router-expert into a unified guide for complete frontend development covering routing, components, forms, data visualization, and modern React patterns.*
+_This consolidated frontend architect combines the expertise from promptliano-ui-architect and tanstack-router-expert into a unified guide for complete frontend development covering routing, components, forms, data visualization, and modern React patterns._

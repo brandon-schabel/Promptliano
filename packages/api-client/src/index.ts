@@ -331,10 +331,8 @@ export class PromptlianoClient {
     // Task management
     getTasks: (ticketId: number) => this.typeSafe.listTicketsByTicketIdTasks(ticketId),
     createTask: (ticketId: number, data: any) => this.typeSafe.createTicketsByTicketIdTasks(ticketId, data),
-    updateTask: (ticketId: number, taskId: number, data: any) =>
-      this.typeSafe.updateTickettask(taskId, data),
-    deleteTask: (ticketId: number, taskId: number) =>
-      this.typeSafe.deleteTickettask(taskId),
+    updateTask: (ticketId: number, taskId: number, data: any) => this.typeSafe.updateTickettask(taskId, data),
+    deleteTask: (ticketId: number, taskId: number) => this.typeSafe.deleteTickettask(taskId),
     reorderTasks: (ticketId: number, data: any) => this.typeSafe.createFlowReorder(data),
     // Pass empty body to avoid JSON parse errors when server expects optional JSON with Content-Type set
     autoGenerateTasks: (ticketId: number) =>
@@ -413,10 +411,8 @@ export class PromptlianoClient {
       this.typeSafe.createProjectsByIdGitFetch(projectId, { remote, prune }),
     createTag: (projectId: number, name: string, options?: { message?: string; ref?: string }) =>
       this.typeSafe.createProjectsByIdGitTags(projectId, { name, ...options }),
-    stash: (projectId: number, message?: string) =>
-      this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
-    stashApply: (projectId: number, ref?: string) =>
-      this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
+    stash: (projectId: number, message?: string) => this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
+    stashApply: (projectId: number, ref?: string) => this.typeSafe.createProjectsByIdGitStashApply(projectId, { ref }),
     stashPop: (projectId: number, ref?: string) =>
       this.typeSafe.createProjectsByIdGitStashPop(projectId, ref ? { stashRef: ref } : {}),
     stashDrop: (projectId: number, ref?: string) =>
@@ -468,9 +464,7 @@ export class PromptlianoClient {
     generateStructured: (data: any) => this.typeSafe.createGenAiStructured(data),
     streamText: (data: any) => this.typeSafe.createGenAiStream(data),
     getProviders: () =>
-      this.typeSafe
-        .getProviders()
-        .then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r)),
+      this.typeSafe.getProviders().then((r: any) => (r && typeof r === 'object' && 'data' in r ? (r as any).data : r)),
     getModels: (provider?: string, options?: { ollamaUrl?: string; lmstudioUrl?: string }) => {
       const query: Record<string, any> = {}
       if (provider) query.provider = provider
@@ -619,14 +613,10 @@ export class PromptlianoClient {
 
   // MCP Analytics methods
   public readonly mcpAnalytics = {
-    getExecutions: (projectId: number, query?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsExecutions(projectId),
-    getOverview: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsOverview(projectId),
-    getStatistics: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsStatistics(projectId),
-    getTimeline: (projectId: number, request?: any) =>
-      this.typeSafe.getProjectsByIdMcpAnalyticsTimeline(projectId),
+    getExecutions: (projectId: number, query?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsExecutions(projectId),
+    getOverview: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsOverview(projectId),
+    getStatistics: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsStatistics(projectId),
+    getTimeline: (projectId: number, request?: any) => this.typeSafe.getProjectsByIdMcpAnalyticsTimeline(projectId),
     getErrorPatterns: (projectId: number, request?: any) =>
       this.typeSafe.getProjectsByIdMcpAnalyticsErrorPatterns(projectId)
   }
@@ -724,13 +714,11 @@ export class PromptlianoClient {
     browseDirectory: (data: any) => this.typeSafe.createBrowseDirector(data)
   }
 
-
   // Add missing direct file access method
   listProjectsByProjectIdFiles = (projectId: number) => this.typeSafe.getProjectsByIdFiles(projectId)
 
   // Add missing flow reorder method
   createFlowReorder = (data: any) => this.typeSafe.createFlowReorder(data)
-
 }
 
 /**

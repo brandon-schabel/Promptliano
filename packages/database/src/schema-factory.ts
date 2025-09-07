@@ -1,9 +1,9 @@
 /**
  * Official Schema Factory - drizzle-zod v0.8.0+ with @hono/zod-openapi Integration
- * 
+ *
  * This module provides the official createSchemaFactory from drizzle-zod v0.8.0+
  * configured to use @hono/zod-openapi's extended Zod instance.
- * 
+ *
  * This ensures all generated schemas are compatible with Hono's OpenAPI system
  * and eliminates ZodLazy prototype mismatch issues.
  */
@@ -22,9 +22,7 @@ export const { createInsertSchema, createSelectSchema, createUpdateSchema } = cr
 /**
  * Helper type for table transformations with OpenAPI metadata support
  */
-export type TableTransform = Partial<
-  Record<string, (schema: any) => any>
->
+export type TableTransform = Partial<Record<string, (schema: any) => any>>
 
 /**
  * Creates typed schemas with OpenAPI metadata support
@@ -32,10 +30,7 @@ export type TableTransform = Partial<
  * @param transforms - Optional field transformations with OpenAPI metadata
  * @returns Object containing select, insert, and update schemas
  */
-export const createTypedSchemas = (
-  table: any,
-  transforms?: TableTransform
-) => ({
+export const createTypedSchemas = (table: any, transforms?: TableTransform) => ({
   select: createSelectSchema(table, transforms),
   insert: createInsertSchema(table, transforms),
   update: createUpdateSchema(table, transforms)

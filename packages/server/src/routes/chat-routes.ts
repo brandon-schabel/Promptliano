@@ -196,12 +196,12 @@ export const chatRoutes = new OpenAPIHono()
   })
   .openapi(createChatRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
-    
+
     const chat = await chatService.createChat(body.title, {
       copyExisting: body.copyExisting,
       currentChatId: body.currentChatId
     })
-    
+
     return c.json(successResponse(chat), 201)
   })
   .openapi(getChatMessagesRoute, async (c) => {
@@ -311,13 +311,17 @@ const getChatByIdRoute = createRoute({
   summary: 'Get a chat by ID',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(ChatResponseSchema)
@@ -330,13 +334,17 @@ const updateChatByIdRoute = createRoute({
   summary: 'Update a chat by ID',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     }),
     body: {
       content: {
@@ -356,13 +364,17 @@ const deleteChatByIdRoute = createRoute({
   summary: 'Delete a chat by ID',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
@@ -386,12 +398,12 @@ chatRoutes
   })
   .openapi(createChatRoute, async (c): Promise<any> => {
     const body = c.req.valid('json')
-    
+
     const chat = await chatService.createChat(body.title, {
       copyExisting: body.copyExisting,
       currentChatId: body.currentChatId
     })
-    
+
     return c.json(successResponse(chat), 201)
   })
   .openapi(getChatMessagesRoute, async (c) => {

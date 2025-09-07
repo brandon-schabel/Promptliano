@@ -26,7 +26,8 @@ function MCPInspectorPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <p className='text-muted-foreground'>
-              MCP Inspector is currently disabled. Enable it in the settings to access the Model Context Protocol debugging interface.
+              MCP Inspector is currently disabled. Enable it in the settings to access the Model Context Protocol
+              debugging interface.
             </p>
             <div className='flex gap-2'>
               <Button asChild>
@@ -36,18 +37,16 @@ function MCPInspectorPage() {
                 </Link>
               </Button>
               <Button variant='outline' asChild>
-                <a 
-                  href={mcpInspectorUrl} 
-                  target='_blank' 
-                  rel='noopener noreferrer'
-                >
+                <a href={mcpInspectorUrl} target='_blank' rel='noopener noreferrer'>
                   <ExternalLink className='h-4 w-4 mr-2' />
                   Open in New Tab
                 </a>
               </Button>
             </div>
             <div className='text-xs text-muted-foreground space-y-1'>
-              <p><strong>Note:</strong> MCP Inspector must be started separately using:</p>
+              <p>
+                <strong>Note:</strong> MCP Inspector must be started separately using:
+              </p>
               <code className='bg-muted px-2 py-1 rounded text-xs'>bun run mcp:inspector</code>
             </div>
           </CardContent>

@@ -110,22 +110,16 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
             relevanceScores.slice(0, strategyConfig.maxAIFiles)
           )
 
-          finalSuggestions = await aiRefineSuggestions(
-            ticket,
-            candidateFiles,
-            maxResults,
-            strategyConfig,
-            userContext
-          )
+          finalSuggestions = await aiRefineSuggestions(ticket, candidateFiles, maxResults, strategyConfig, userContext)
 
           // Map AI suggestions back to relevance scores
-          scores = finalSuggestions.map(fileId => {
-            const score = relevanceScores.find(s => s.fileId === fileId)
+          scores = finalSuggestions.map((fileId) => {
+            const score = relevanceScores.find((s) => s.fileId === fileId)
             return score || createDefaultScore(fileId)
           })
         } else {
           // Fast mode: Use only pre-filtering results
-          finalSuggestions = relevanceScores.slice(0, maxResults).map(score => score.fileId)
+          finalSuggestions = relevanceScores.slice(0, maxResults).map((score) => score.fileId)
           scores = relevanceScores.slice(0, maxResults)
         }
 
@@ -179,10 +173,8 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
       return []
     }
 
-    const fileMap = new Map(allFiles.map(f => [f.id, f]))
-    return scores
-      .map(score => fileMap.get(score.fileId))
-      .filter((file): file is File => file !== undefined)
+    const fileMap = new Map(allFiles.map((f) => [f.id, f]))
+    return scores.map((score) => fileMap.get(score.fileId)).filter((file): file is File => file !== undefined)
   }
 
   async function aiRefineSuggestions(
@@ -224,10 +216,8 @@ Select the ${maxResults} most relevant file IDs from the above list.`
         })
 
         // Get dynamic preset config based on AI model setting
-        const presetConfig = await modelConfigService.getPresetConfig(
-          config.aiModel === 'high' ? 'high' : 'medium'
-        )
-        
+        const presetConfig = await modelConfigService.getPresetConfig(config.aiModel === 'high' ? 'high' : 'medium')
+
         // Convert ModelConfig (with null values) to ModelOptionsWithProvider (with undefined values)
         const modelConfig: ModelOptionsWithProvider = {
           provider: presetConfig.provider as ModelOptionsWithProvider['provider'],
@@ -262,21 +252,19 @@ Select the ${maxResults} most relevant file IDs from the above list.`
     return service.withErrorContext(
       async () => {
         const results = new Map<number, FileSuggestionResponse>()
-        
+
         // Use parallel processor for batch operations
-        const processor = service.createParallelProcessor(
-          async (batch: Ticket[]) => {
-            return Promise.allSettled(
-              batch.map(async ticket => {
-                const result = await suggestFiles(ticket, strategy, maxResultsPerTicket)
-                return { ticketId: ticket.id, result }
-              })
-            )
-          }
-        )
+        const processor = service.createParallelProcessor(async (batch: Ticket[]) => {
+          return Promise.allSettled(
+            batch.map(async (ticket) => {
+              const result = await suggestFiles(ticket, strategy, maxResultsPerTicket)
+              return { ticketId: ticket.id, result }
+            })
+          )
+        })
 
         const batchResult = await processor.processBatch(tickets)
-        
+
         // Process successful results
         for (const settled of batchResult.successful) {
           if (settled.status === 'fulfilled') {
@@ -373,14 +361,14 @@ Select the ${maxResults} most relevant file IDs from the above list.`
     let hash = 0
     for (let i = 0; i < context.length; i++) {
       const char = context.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
+      hash = (hash << 5) - hash + char
       hash = hash & hash // Convert to 32-bit integer
     }
     return hash.toString()
   }
 
   // Progressive suggestion refinement
-  async function *progressiveSuggestion(
+  async function* progressiveSuggestion(
     ticket: Ticket,
     maxResults: number = 10,
     userContext?: string
@@ -398,7 +386,7 @@ Select the ${maxResults} most relevant file IDs from the above list.`
     }
 
     const prefilterResults = await preFilterFiles(ticket, 50, userContext)
-    const fastSuggestions = prefilterResults.slice(0, maxResults).map(s => s.fileId)
+    const fastSuggestions = prefilterResults.slice(0, maxResults).map((s) => s.fileId)
 
     yield {
       stage: 'prefilter',
@@ -426,8 +414,8 @@ Select the ${maxResults} most relevant file IDs from the above list.`
           userContext
         )
 
-        const finalScores = aiSuggestions.map(fileId => {
-          const score = prefilterResults.find(s => s.fileId === fileId)
+        const finalScores = aiSuggestions.map((fileId) => {
+          const score = prefilterResults.find((s) => s.fileId === fileId)
           return score || createDefaultScore(fileId)
         })
 
@@ -489,8 +477,4 @@ export type FileSuggestionStrategyService = ReturnType<typeof createFileSuggesti
 export const fileSuggestionStrategyService = createFileSuggestionStrategyService()
 
 // Export individual functions for tree-shaking
-export const {
-  suggestFiles,
-  batchSuggestFiles,
-  recommendStrategy
-} = fileSuggestionStrategyService
+export const { suggestFiles, batchSuggestFiles, recommendStrategy } = fileSuggestionStrategyService

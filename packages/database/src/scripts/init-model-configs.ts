@@ -51,7 +51,7 @@ const INTELLIGENCE_CONFIGS = {
   }
 } as const
 
-const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number})[] = [
+const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: number })[] = [
   // Intelligence-based configurations
   {
     name: 'low-intelligence',
@@ -130,7 +130,8 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     topK: INTELLIGENCE_CONFIGS.planning.topK,
     frequencyPenalty: INTELLIGENCE_CONFIGS.planning.frequencyPenalty,
     presencePenalty: INTELLIGENCE_CONFIGS.planning.presencePenalty,
-    systemPrompt: 'You are a planning specialist optimized for breaking down complex tasks and creating actionable plans.',
+    systemPrompt:
+      'You are a planning specialist optimized for breaking down complex tasks and creating actionable plans.',
     description: 'Optimized for planning and task analysis',
     presetCategory: 'planning' as any,
     uiIcon: 'Brain',
@@ -141,7 +142,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Keep some provider-specific models for flexibility
   {
     name: 'gpt-4o',
@@ -173,7 +174,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Anthropic Models
   {
     name: 'claude-3-5-sonnet',
@@ -207,7 +208,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Google Models
   {
     name: 'gemini-1.5-pro',
@@ -239,7 +240,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Groq Models
   {
     name: 'llama-3.1-70b',
@@ -256,7 +257,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Perplexity Models
   {
     name: 'llama-3.1-sonar-large',
@@ -274,7 +275,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Mistral Models
   {
     name: 'mistral-large',
@@ -291,7 +292,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Cohere Models
   {
     name: 'command-r-plus',
@@ -308,7 +309,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Fireworks Models
   {
     name: 'llama-3.1-405b',
@@ -325,7 +326,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // Together AI Models
   {
     name: 'llama-3.2-90b-vision',
@@ -342,7 +343,7 @@ const defaultConfigs: (CreateModelConfig & {createdAt: number, updatedAt: number
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
-  
+
   // OpenRouter Models
   {
     name: 'openrouter-auto',
@@ -507,7 +508,7 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
 
 export async function initializeModelConfigs() {
   console.log('🚀 Initializing model configurations...')
-  
+
   try {
     // Check if configs already exist
     const existingConfigs = await db.select().from(modelConfigs).limit(1)
@@ -516,34 +517,33 @@ export async function initializeModelConfigs() {
       console.log('   To reinitialize, delete existing configs first.')
       return
     }
-    
+
     // Insert default configurations
     console.log('📝 Inserting default model configurations...')
     const insertedConfigs = await db.insert(modelConfigs).values(defaultConfigs).returning()
     console.log(`✅ Inserted ${insertedConfigs.length} model configurations`)
-    
+
     // Create presets for each configuration
     console.log('📝 Creating model presets...')
     let presetCount = 0
-    
+
     for (const config of insertedConfigs) {
       // Create presets for each model config
-      const presetsForConfig = defaultPresets.map(preset => ({
+      const presetsForConfig = defaultPresets.map((preset) => ({
         ...preset,
         configId: config.id,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }))
-      
+
       if (presetsForConfig.length > 0) {
         await db.insert(modelPresets).values(presetsForConfig)
         presetCount += presetsForConfig.length
       }
     }
-    
+
     console.log(`✅ Created ${presetCount} model presets`)
     console.log('🎉 Model configuration initialization complete!')
-    
   } catch (error) {
     console.error('❌ Error initializing model configurations:', error)
     process.exit(1)

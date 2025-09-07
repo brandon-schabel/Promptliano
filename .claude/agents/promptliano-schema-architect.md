@@ -97,7 +97,8 @@ export const createEmailField = (required = true) => {
 }
 
 export const createPasswordField = (minLength = 8) =>
-  z.string()
+  z
+    .string()
     .min(minLength, `Password must be at least ${minLength} characters`)
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number')
 
@@ -114,11 +115,11 @@ export function createCrudSchemas<T extends Record<string, z.ZodTypeAny>>(
   const baseSchema = z.object(fields)
 
   const createSchema = options.createExcludes
-    ? baseSchema.omit(Object.fromEntries(options.createExcludes.map(key => [key, true])))
+    ? baseSchema.omit(Object.fromEntries(options.createExcludes.map((key) => [key, true])))
     : baseSchema
 
   const updateSchema = options.updateExcludes
-    ? baseSchema.omit(Object.fromEntries(options.updateExcludes.map(key => [key, true])))
+    ? baseSchema.omit(Object.fromEntries(options.updateExcludes.map((key) => [key, true])))
     : baseSchema.partial()
 
   return {
@@ -212,7 +213,8 @@ export const UserLoginSchema = z.object({
 
 ```typescript
 // Async validation with external dependencies
-export const UniqueEmailSchema = z.string()
+export const UniqueEmailSchema = z
+  .string()
   .email('Invalid email format')
   .refine(
     async (email) => {
@@ -226,17 +228,22 @@ export const UniqueEmailSchema = z.string()
   )
 
 // Data transformation schemas
-export const CreateUserInputSchema = z.object({
-  email: z.string().email().transform(s => s.toLowerCase().trim()),
-  password: z.string(),
-  firstName: z.string().transform(s => s.trim()),
-  lastName: z.string().transform(s => s.trim())
-}).transform((data) => ({
-  ...data,
-  fullName: `${data.firstName} ${data.lastName}`,
-  emailVerified: false,
-  createdAt: new Date()
-}))
+export const CreateUserInputSchema = z
+  .object({
+    email: z
+      .string()
+      .email()
+      .transform((s) => s.toLowerCase().trim()),
+    password: z.string(),
+    firstName: z.string().transform((s) => s.trim()),
+    lastName: z.string().transform((s) => s.trim())
+  })
+  .transform((data) => ({
+    ...data,
+    fullName: `${data.firstName} ${data.lastName}`,
+    emailVerified: false,
+    createdAt: new Date()
+  }))
 ```
 
 ### Example 3: Recursive and Complex Validation
@@ -253,28 +260,23 @@ export const CategorySchema: z.ZodType<Category> = z.object({
 })
 
 // Complex business rule validation
-export const ProjectSchema = z.object({
-  name: z.string().min(1, 'Project name is required'),
-  description: z.string().max(500, 'Description too long'),
-  ownerId: z.string().uuid(),
-  memberIds: z.array(z.string().uuid())
-    .min(1, 'At least one member required')
-    .max(50, 'Too many members'),
-  startDate: z.date(),
-  endDate: z.date().optional()
-}).refine(
-  (data) => !data.endDate || data.endDate > data.startDate,
-  {
+export const ProjectSchema = z
+  .object({
+    name: z.string().min(1, 'Project name is required'),
+    description: z.string().max(500, 'Description too long'),
+    ownerId: z.string().uuid(),
+    memberIds: z.array(z.string().uuid()).min(1, 'At least one member required').max(50, 'Too many members'),
+    startDate: z.date(),
+    endDate: z.date().optional()
+  })
+  .refine((data) => !data.endDate || data.endDate > data.startDate, {
     message: 'End date must be after start date',
     path: ['endDate']
-  }
-).refine(
-  (data) => data.memberIds.includes(data.ownerId),
-  {
+  })
+  .refine((data) => data.memberIds.includes(data.ownerId), {
     message: 'Owner must be a project member',
     path: ['ownerId']
-  }
-)
+  })
 ```
 
 ## Workflow & Best Practices
@@ -295,17 +297,17 @@ export const ProjectSchema = z.object({
    - Design base schemas with proper type constraints
    - Create discriminated unions for variant types
 
-2. **Factory Implementation**
+3. **Factory Implementation**
    - Implement CRUD factories for consistent patterns
    - Add custom validation rules and transformations
    - Create computed and derived schemas
 
-3. **Integration and Testing**
+4. **Integration and Testing**
    - Integrate schemas across packages (API, database, UI)
    - Implement comprehensive error handling
    - Test validation scenarios and edge cases
 
-4. **Optimization and Maintenance**
+5. **Optimization and Maintenance**
    - Optimize schema performance for high-throughput scenarios
    - Update schemas as requirements evolve
    - Maintain backwards compatibility
@@ -339,12 +341,18 @@ import { createCrudSchemas, commonFields } from '@promptliano/schemas/src/schema
 const EmailSchema = z.string().email()
 
 // With transformation
-const NormalizedEmailSchema = z.string().email().transform(s => s.toLowerCase())
+const NormalizedEmailSchema = z
+  .string()
+  .email()
+  .transform((s) => s.toLowerCase())
 
 // Async validation
-const UniqueEmailSchema = z.string().email().refine(async (email) => {
-  return !(await userExists(email))
-}, 'Email already exists')
+const UniqueEmailSchema = z
+  .string()
+  .email()
+  .refine(async (email) => {
+    return !(await userExists(email))
+  }, 'Email already exists')
 
 // Discriminated union
 const PaymentSchema = z.discriminatedUnion('type', [
@@ -379,4 +387,4 @@ const PaymentSchema = z.discriminatedUnion('type', [
 
 ---
 
-*This consolidated schema architect combines expertise from zod-schema-architect and migration-schema-refactor into a unified guide for schema development in Promptliano.*
+_This consolidated schema architect combines expertise from zod-schema-architect and migration-schema-refactor into a unified guide for schema development in Promptliano._

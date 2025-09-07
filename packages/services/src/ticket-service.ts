@@ -10,7 +10,13 @@
  * - 75% code reduction from original service
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
+import {
+  createCrudService,
+  extendService,
+  withErrorContext,
+  createServiceLogger,
+  safeErrorFactory
+} from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { ticketRepository, taskRepository, validateJsonField } from '@promptliano/database'
 import {
@@ -181,7 +187,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+          if (isNaN(numericId) || numericId <= 0)
+            throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
 
           const ticket = await baseService.getById(ticketId)
           const tasks = await taskRepo.getByTicket(numericId)
@@ -259,7 +266,8 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const numericId = typeof ticketId === 'string' ? parseInt(ticketId, 10) : ticketId
-          if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
+          if (isNaN(numericId) || numericId <= 0)
+            throw safeErrorFactory.invalidInput('ticketId', 'valid number', ticketId)
 
           const ticket = await baseService.getById(ticketId)
 
@@ -308,12 +316,14 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
     /**
      * Get tickets with task count and completion status
      */
-    async getByProjectWithStats(projectId: number): Promise<(Ticket & {
-      taskCount: number
-      completedTaskCount: number
-      progress: number
-      lastActivity: number
-    })[]> {
+    async getByProjectWithStats(projectId: number): Promise<
+      (Ticket & {
+        taskCount: number
+        completedTaskCount: number
+        progress: number
+        lastActivity: number
+      })[]
+    > {
       return withErrorContext(
         async () => {
           const rawTickets = await repo.getByProject(projectId)
@@ -645,7 +655,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     // Ask the model for structured task suggestions with provider/model fallbacks
     let suggestions: z.infer<typeof TaskSuggestionListSchema>['tasks'] = []
     const promptCombined = promptParts.join('\n')
-    
+
     // Get dynamic model configs with fallback order
     const modelFallbacks = await Promise.all([
       modelConfigService.getPresetConfig('planning'),
@@ -653,7 +663,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       modelConfigService.getPresetConfig('medium'),
       modelConfigService.getPresetConfig('low')
     ])
-    
+
     let lastError: any = null
     for (const modelOptions of modelFallbacks) {
       try {
@@ -686,9 +696,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     }
 
     // Filter duplicates against existing tasks and normalize
-    const filtered = suggestions
-      .filter((s) => s && s.title && !existingTitles.has(s.title.toLowerCase()))
-      .slice(0, 10)
+    const filtered = suggestions.filter((s) => s && s.title && !existingTitles.has(s.title.toLowerCase())).slice(0, 10)
 
     if (filtered.length === 0) return []
 
@@ -761,7 +769,7 @@ export const getTasksForTickets = async (ticketIds: number[]) => {
 }
 
 export const listTicketsWithTasks = async (projectId: number) => {
-  // Get tickets with their tasks  
+  // Get tickets with their tasks
   const tickets = await getTicketsByProject(projectId)
   const result = []
   for (const ticket of tickets) {

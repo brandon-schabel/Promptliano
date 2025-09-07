@@ -30,7 +30,6 @@ export {
   files,
   selectedFiles,
   activeTabs,
-
   providerKeys,
   modelConfigs,
   modelPresets
@@ -53,7 +52,6 @@ import {
   selectQueueSchema,
   selectQueueItemSchema,
   selectFileSchema,
-
   selectProviderKeySchema,
   selectModelConfigSchema,
   selectModelPresetSchema,
@@ -68,15 +66,12 @@ import {
   insertQueueSchema,
   insertQueueItemSchema,
   insertFileSchema,
-
   insertProviderKeySchema,
   insertModelConfigSchema,
   insertModelPresetSchema,
   insertActiveTabSchema,
-  insertSelectedFileSchema,
-
+  insertSelectedFileSchema
 } from './src/schema'
-
 
 // Import schema transformers
 import {
@@ -210,13 +205,15 @@ export type UpdateQueueItem = InferSchema<typeof UpdateQueueItemSchema>
 export const ProviderKeySchema = createTransformedSelectSchema(selectProviderKeySchema, {
   customHeaders: commonJsonTransforms.customHeaders
 })
-export const CreateProviderKeySchema = insertProviderKeySchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-}).extend({
-  customHeaders: (commonJsonTransforms.customHeaders as any).optional()
-})
+export const CreateProviderKeySchema = insertProviderKeySchema
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true
+  })
+  .extend({
+    customHeaders: (commonJsonTransforms.customHeaders as any).optional()
+  })
 export const UpdateProviderKeySchema = CreateProviderKeySchema.partial()
 export type CreateProviderKey = InferSchema<typeof CreateProviderKeySchema>
 export type UpdateProviderKey = InferSchema<typeof UpdateProviderKeySchema>

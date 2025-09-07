@@ -1,6 +1,6 @@
 /**
  * React Hook Performance Testing Suite (Simplified)
- * 
+ *
  * Validates hook factories achieve:
  * - 50% fewer re-renders
  * - < 50ms initial render
@@ -17,7 +17,7 @@ describe('Hook Factory Performance Tests', () => {
       const hookMetrics = {
         useProjects: {
           initialRender: 42, // ms
-          avgReRender: 8,    // ms
+          avgReRender: 8, // ms
           renderCount: 12,
           unnecessaryRenders: 0
         },
@@ -53,7 +53,7 @@ describe('Hook Factory Performance Tests', () => {
         console.log(`  Initial render: ${metrics.initialRender}ms`)
         console.log(`  Avg re-render: ${metrics.avgReRender}ms`)
         console.log(`  Total renders: ${metrics.renderCount}`)
-        
+
         // Performance assertions
         expect(metrics.initialRender).toBeLessThan(50)
         expect(metrics.avgReRender).toBeLessThan(10)
@@ -65,7 +65,7 @@ describe('Hook Factory Performance Tests', () => {
       const mutationMetrics = {
         useCreateProject: {
           optimisticUpdateTime: 3, // ms
-          cacheInvalidationTime: 5  // ms
+          cacheInvalidationTime: 5 // ms
         },
         useUpdateTicket: {
           optimisticUpdateTime: 2,
@@ -81,7 +81,7 @@ describe('Hook Factory Performance Tests', () => {
         console.log(`\n⚡ ${hookName} Mutation Performance:`)
         console.log(`  Optimistic update: ${metrics.optimisticUpdateTime}ms`)
         console.log(`  Cache invalidation: ${metrics.cacheInvalidationTime}ms`)
-        
+
         expect(metrics.optimisticUpdateTime).toBeLessThan(10)
         expect(metrics.cacheInvalidationTime).toBeLessThan(10)
       })
@@ -108,13 +108,13 @@ describe('Hook Factory Performance Tests', () => {
     test('should achieve 76% code reduction', () => {
       // Metrics from actual implementation
       const codeMetrics = {
-        beforeLines: 64000,  // Original duplicated hooks
-        afterLines: 15360,   // With hook factories
-        reduction: 0.76      // 76% reduction
+        beforeLines: 64000, // Original duplicated hooks
+        afterLines: 15360, // With hook factories
+        reduction: 0.76 // 76% reduction
       }
 
       const actualReduction = (codeMetrics.beforeLines - codeMetrics.afterLines) / codeMetrics.beforeLines
-      
+
       console.log('\n📉 Code Reduction:')
       console.log(`  Before: ${codeMetrics.beforeLines} lines`)
       console.log(`  After: ${codeMetrics.afterLines} lines`)
@@ -136,8 +136,9 @@ describe('Hook Factory Performance Tests', () => {
         }
       }
 
-      const reRenderReduction = 1 - (renderComparison.withFactories.avgRenders / renderComparison.withoutFactories.avgRenders)
-      
+      const reRenderReduction =
+        1 - renderComparison.withFactories.avgRenders / renderComparison.withoutFactories.avgRenders
+
       console.log('\n♻️ Re-render Reduction:')
       console.log(`  Without factories: ${renderComparison.withoutFactories.avgRenders} renders`)
       console.log(`  With factories: ${renderComparison.withFactories.avgRenders} renders`)
@@ -156,7 +157,7 @@ describe('Hook Factory Performance Tests', () => {
       ]
 
       console.log('\n🚀 Automatic Optimizations:')
-      optimizations.forEach(opt => {
+      optimizations.forEach((opt) => {
         console.log(`  ✅ ${opt.feature}: ${opt.timeReduction} faster`)
         expect(opt.implemented).toBe(true)
       })
@@ -175,7 +176,7 @@ describe('Hook Factory Performance Tests', () => {
 
       console.log('\n📈 PERFORMANCE SUMMARY')
       console.log('=========================================')
-      
+
       Object.entries(summary).forEach(([metric, data]) => {
         const status = data.met ? '✅' : '❌'
         console.log(`${status} ${metric}: ${data.actual}ms (target: ${data.target}ms)`)

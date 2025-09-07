@@ -201,7 +201,7 @@ export function createUserService(deps: ServiceDeps) {
 ```
 packages/services/src/git-service.ts (2,318 lines)
 ├── Git status operations
-├── Git commit operations  
+├── Git commit operations
 ├── Git branch operations
 ├── Git stash operations
 ├── Git remote operations
@@ -428,4 +428,4 @@ import { createCrudHooks } from '@/hooks/factories/crud-hooks-factory'
 
 ---
 
-*This consolidated code quality architect combines the expertise from code-modularization-expert, code-patterns-implementer, and code-simplifier-auditor into a unified guide for comprehensive code quality improvement in Promptliano.*
+_This consolidated code quality architect combines the expertise from code-modularization-expert, code-patterns-implementer, and code-simplifier-auditor into a unified guide for comprehensive code quality improvement in Promptliano._

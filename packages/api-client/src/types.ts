@@ -10,7 +10,7 @@ export type {
   UpdateChatMessage
 } from '@promptliano/database'
 
-// Use schema types for entities  
+// Use schema types for entities
 import type { ChatSchema, ChatMessageSchema } from '@promptliano/database'
 import { z } from 'zod'
 
@@ -245,6 +245,5 @@ export type GitDiffRequest = {
   commitHash2?: string
   staged?: boolean
 }
-
 
 // Other hook types available via API types

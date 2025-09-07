@@ -195,12 +195,10 @@ export const gitWorktreeRoutes = new OpenAPIHono()
   )
   .openapi(
     unlockWorktreeRoute,
-    createRouteHandler<{ id: number }, void, { worktreePath: string }>(
-      async ({ params, body }): Promise<any> => {
-        await unlockWorktree(params!.id, body!.worktreePath)
-        return operationSuccessResponse('Worktree unlocked successfully')
-      }
-    ) as any
+    createRouteHandler<{ id: number }, void, { worktreePath: string }>(async ({ params, body }): Promise<any> => {
+      await unlockWorktree(params!.id, body!.worktreePath)
+      return operationSuccessResponse('Worktree unlocked successfully')
+    }) as any
   )
   .openapi(
     pruneWorktreesRoute,

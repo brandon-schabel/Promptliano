@@ -51,8 +51,8 @@ export interface ProjectServiceDeps {
  * Create Project Service with functional factory pattern
  */
 export function createProjectService(deps: ProjectServiceDeps = {}) {
-  const { 
-    repository = projectRepository, 
+  const {
+    repository = projectRepository,
     logger = createServiceLogger('ProjectService'),
     fileService: injectedFileService = fileService
   } = deps
@@ -95,7 +95,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           if (existing) {
             throw ErrorFactory.alreadyExists('Project', 'path', data.path)
           }
-          
+
           // Use the base service create method
           return await baseService.create(data)
         },
@@ -306,10 +306,12 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           return {
             ticketCount: relations.tickets?.length || 0,
             openTickets: relations.tickets?.filter((t: any) => t.status !== 'closed').length || 0,
-            totalTasks: relations.tickets?.reduce((sum: number, ticket: any) => sum + (ticket.tasks?.length || 0), 0) || 0,
+            totalTasks:
+              relations.tickets?.reduce((sum: number, ticket: any) => sum + (ticket.tasks?.length || 0), 0) || 0,
             completedTasks:
               relations.tickets?.reduce(
-                (sum: number, ticket: any) => sum + (ticket.tasks?.filter((task: any) => task.status === 'completed').length || 0),
+                (sum: number, ticket: any) =>
+                  sum + (ticket.tasks?.filter((task: any) => task.status === 'completed').length || 0),
                 0
               ) || 0,
             queueCount: relations.queues?.length || 0,
@@ -486,10 +488,9 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           await baseService.getById(projectId)
 
           // Normalize prompt (strip common wrappers)
-          const normalized = (prompt || '').replace(
-            /^\s*please\s+find\s+the\s+relevant\s+files\s+for\s+the\s+following\s+prompt:\s*/i,
-            ''
-          ).trim()
+          const normalized = (prompt || '')
+            .replace(/^\s*please\s+find\s+the\s+relevant\s+files\s+for\s+the\s+following\s+prompt:\s*/i, '')
+            .trim()
 
           // Use the file search service with semantic search and relevance scoring
           const { createFileSearchService } = await import('./file-services/file-search-service')
@@ -502,7 +503,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           })
 
           // Map to files and enforce limit
-          const files = results.map(r => r.file).slice(0, limit)
+          const files = results.map((r) => r.file).slice(0, limit)
           return files
         },
         { entity: 'Project', action: 'suggestFiles', id: projectId }
@@ -848,7 +849,7 @@ export const getProjectFileTree = async (
     if (!current) continue // truncated by depth
 
     // Enforce max files per directory on the immediate directory
-    const fileCount = (current.__fileCount || 0)
+    const fileCount = current.__fileCount || 0
     if (fileCount >= maxFilesPerDir) {
       current.truncated = true
       continue

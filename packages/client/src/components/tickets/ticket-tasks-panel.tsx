@@ -53,8 +53,8 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
     if (!newTaskContent.trim()) return
     await createTaskMut.mutateAsync({
       ticketId: Number(ticketId),
-      data: { 
-        content: newTaskContent, 
+      data: {
+        content: newTaskContent,
         ticketId: Number(ticketId),
         description: null,
         agentId: null,

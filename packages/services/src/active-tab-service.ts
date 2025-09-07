@@ -135,7 +135,6 @@ export async function setActiveTab(
         const updated = await activeTabRepository.update(existingActiveTab.id, updateData)
         return mapToLegacyFormat(updated)
       } else {
-        
         const createData = mapFromLegacyFormat(activeTabData)
         const created = await activeTabRepository.create(createData)
         return mapToLegacyFormat(created)

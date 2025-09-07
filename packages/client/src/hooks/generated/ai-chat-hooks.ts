@@ -79,7 +79,16 @@ export type AiSdkOptions = {
   presencePenalty?: number
 }
 
-export type APIProviders = 'anthropic' | 'openai' | 'openrouter' | 'ollama' | 'lmstudio' | 'google_gemini' | 'groq' | 'together' | 'xai'
+export type APIProviders =
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'ollama'
+  | 'lmstudio'
+  | 'google_gemini'
+  | 'groq'
+  | 'together'
+  | 'xai'
 
 // ============================================================================
 // Query Keys

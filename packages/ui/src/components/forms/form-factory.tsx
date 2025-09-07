@@ -203,10 +203,8 @@ export interface FormConfig<TFieldValues extends FieldValues, TSchema extends z.
   }
 }
 
-export interface FormFactoryProps<
-  TFieldValues extends FieldValues,
-  TSchema extends z.ZodType<TFieldValues>
-> extends FormConfig<TFieldValues, TSchema> {
+export interface FormFactoryProps<TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>
+  extends FormConfig<TFieldValues, TSchema> {
   onSubmit: (data: TFieldValues) => void | Promise<void>
   onCancel?: () => void
   isLoading?: boolean
@@ -224,13 +222,11 @@ interface FieldRendererProps<TFieldValues extends FieldValues, TSchema extends z
   isDisabled?: boolean
 }
 
-const TextFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  {
-    config,
-    form,
-    isDisabled
-  }: FieldRendererProps<TFieldValues, TSchema> & { config: TextFieldConfig }
-) => {
+const TextFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: TextFieldConfig }) => {
   const [charCount, setCharCount] = React.useState(0)
 
   return (
@@ -287,9 +283,11 @@ const TextFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.Z
   )
 }
 
-const NumberFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: NumberFieldConfig }
-) => (
+const NumberFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: NumberFieldConfig }) => (
   <FormField
     control={form.control}
     name={config.name as FieldPath<TFieldValues>}
@@ -324,9 +322,11 @@ const NumberFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z
   />
 )
 
-const PasswordFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: PasswordFieldConfig }
-) => {
+const PasswordFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: PasswordFieldConfig }) => {
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
@@ -366,9 +366,11 @@ const PasswordFieldRenderer = <TFieldValues extends FieldValues, TSchema extends
   )
 }
 
-const SelectFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: SelectFieldConfig }
-) => (
+const SelectFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: SelectFieldConfig }) => (
   <FormField
     control={form.control}
     name={config.name as FieldPath<TFieldValues>}
@@ -396,9 +398,11 @@ const SelectFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z
   />
 )
 
-const CheckboxFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: CheckboxFieldConfig }
-) => (
+const CheckboxFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: CheckboxFieldConfig }) => (
   <FormField
     control={form.control}
     name={config.name as FieldPath<TFieldValues>}
@@ -417,9 +421,11 @@ const CheckboxFieldRenderer = <TFieldValues extends FieldValues, TSchema extends
   />
 )
 
-const RadioFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: RadioFieldConfig }
-) => (
+const RadioFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: RadioFieldConfig }) => (
   <FormField
     control={form.control}
     name={config.name as FieldPath<TFieldValues>}
@@ -453,9 +459,11 @@ const RadioFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.
   />
 )
 
-const SwitchFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: SwitchFieldConfig }
-) => (
+const SwitchFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: SwitchFieldConfig }) => (
   <FormField
     control={form.control}
     name={config.name as FieldPath<TFieldValues>}
@@ -474,9 +482,11 @@ const SwitchFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z
   />
 )
 
-const DateFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: DateFieldConfig }
-) => {
+const DateFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: DateFieldConfig }) => {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -529,9 +539,11 @@ const DateFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.Z
   )
 }
 
-const TagsFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: TagsFieldConfig }
-) => {
+const TagsFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: TagsFieldConfig }) => {
   const [inputValue, setInputValue] = React.useState('')
 
   return (
@@ -608,9 +620,11 @@ const TagsFieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.Z
   )
 }
 
-const FieldGroupRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
-  { config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema> & { config: FieldGroupConfig }
-) => {
+const FieldGroupRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema> & { config: FieldGroupConfig }) => {
   const [isExpanded, setIsExpanded] = React.useState(config.defaultExpanded ?? true)
 
   return (
@@ -653,10 +667,11 @@ const FieldGroupRenderer = <TFieldValues extends FieldValues, TSchema extends z.
 // MAIN FIELD RENDERER
 // =============================================
 
-const FieldRenderer = <
-  TFieldValues extends FieldValues,
-  TSchema extends z.ZodType<TFieldValues>
->({ config, form, isDisabled }: FieldRendererProps<TFieldValues, TSchema>) => {
+const FieldRenderer = <TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  config,
+  form,
+  isDisabled
+}: FieldRendererProps<TFieldValues, TSchema>) => {
   switch (config.type) {
     case 'text':
       return <TextFieldRenderer config={config} form={form} isDisabled={isDisabled} />
@@ -697,28 +712,23 @@ const FieldRenderer = <
 // FORM FACTORY COMPONENTS
 // =============================================
 
-export function FormFactory<
-  TFieldValues extends FieldValues,
-  TSchema extends z.ZodType<TFieldValues>
->(
-  {
-    schema,
-    fields,
-    defaultValues,
-    mode = 'onChange',
-    reValidateMode = 'onBlur',
-    onSubmit,
-    onCancel,
-    isLoading = false,
-    isDisabled = false,
-    submitButton,
-    cancelButton,
-    layout,
-    styling,
-    features,
-    children
-  }: FormFactoryProps<TFieldValues, TSchema>
-) {
+export function FormFactory<TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>({
+  schema,
+  fields,
+  defaultValues,
+  mode = 'onChange',
+  reValidateMode = 'onBlur',
+  onSubmit,
+  onCancel,
+  isLoading = false,
+  isDisabled = false,
+  submitButton,
+  cancelButton,
+  layout,
+  styling,
+  features,
+  children
+}: FormFactoryProps<TFieldValues, TSchema>) {
   const form = useForm<TFieldValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as any,
@@ -810,10 +820,9 @@ export function createFormSchema<T extends z.ZodRawShape>(fields: T) {
   return z.object(fields)
 }
 
-export function createFormComponent<
-  TFieldValues extends FieldValues,
-  TSchema extends z.ZodType<TFieldValues>
->(config: FormConfig<TFieldValues, TSchema>) {
+export function createFormComponent<TFieldValues extends FieldValues, TSchema extends z.ZodType<TFieldValues>>(
+  config: FormConfig<TFieldValues, TSchema>
+) {
   return function FormComponent(
     props: Omit<FormFactoryProps<TFieldValues, TSchema>, keyof FormConfig<TFieldValues, TSchema>>
   ) {

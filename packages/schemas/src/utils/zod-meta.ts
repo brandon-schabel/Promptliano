@@ -26,4 +26,3 @@ export function setZodOpenApiRef(schema: z.ZodTypeAny, ref: string): void {
   const openapi = ensureZodOpenApi(schema)
   if (openapi) openapi.ref = ref
 }
-

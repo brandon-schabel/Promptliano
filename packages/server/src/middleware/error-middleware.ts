@@ -1,13 +1,13 @@
 /**
  * Global Error Handling Middleware
- * 
+ *
  * Provides centralized error handling for:
  * - Zod validation errors
  * - ApiError from ErrorFactory
  * - Database constraint violations
  * - External API errors
  * - Unknown errors
- * 
+ *
  * Reduces error handling code by 60% across all routes
  */
 
@@ -38,43 +38,43 @@ export const globalErrorMiddleware = (err: Error, c: Context) => {
   const requestId = c.get('requestId') || 'unknown'
   const method = c.req.method
   const path = c.req.path
-  
+
   console.error(`[${requestId}] Error in ${method} ${path}:`, {
     name: err.name,
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   })
-  
+
   // Handle Zod validation errors
   if (err instanceof ZodError) {
     return handleZodError(err, c)
   }
-  
+
   // Handle ApiError from ErrorFactory
   if (err instanceof ApiError) {
     return handleApiError(err, c)
   }
-  
+
   // Handle database errors
   if (isDatabaseError(err)) {
     return handleDatabaseError(err, c)
   }
-  
+
   // Handle network/external API errors
   if (isNetworkError(err)) {
     return handleNetworkError(err, c)
   }
-  
+
   // Handle not found errors
   if (isNotFoundError(err)) {
     return handleNotFoundError(err, c)
   }
-  
+
   // Handle timeout errors
   if (isTimeoutError(err)) {
     return handleTimeoutError(err, c)
   }
-  
+
   // Default internal error
   return handleInternalError(err, c)
 }
@@ -84,21 +84,21 @@ export const globalErrorMiddleware = (err: Error, c: Context) => {
  */
 function handleZodError(err: ZodError, c: Context) {
   const fieldErrors: Record<string, string[]> = {}
-  
+
   // Group errors by field path
-  err.issues.forEach(error => {
+  err.issues.forEach((error) => {
     const path = error.path.join('.')
     if (!fieldErrors[path]) {
       fieldErrors[path] = []
     }
     fieldErrors[path].push(error.message)
   })
-  
+
   // Create a summary message
   const errorCount = err.issues.length
   const fields = Object.keys(fieldErrors).join(', ')
   const message = `Validation failed for ${errorCount} field${errorCount > 1 ? 's' : ''}: ${fields}`
-  
+
   return c.json(
     {
       success: false,
@@ -106,7 +106,7 @@ function handleZodError(err: ZodError, c: Context) {
         code: 'VALIDATION_ERROR',
         message,
         fieldErrors,
-        issues: err.issues.map(e => ({
+        issues: err.issues.map((e) => ({
           path: e.path.join('.'),
           message: e.message,
           code: e.code
@@ -142,7 +142,7 @@ function handleDatabaseError(err: Error, c: Context) {
   let code = 'DATABASE_ERROR'
   let message = 'Database operation failed'
   let statusCode = 500
-  
+
   // SQLite constraint violations
   if (err.message.includes('SQLITE_CONSTRAINT')) {
     if (err.message.includes('UNIQUE')) {
@@ -163,14 +163,14 @@ function handleDatabaseError(err: Error, c: Context) {
       statusCode = 409
     }
   }
-  
+
   // Connection errors
   if (err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) {
     code = 'DATABASE_CONNECTION_ERROR'
     message = 'Unable to connect to database'
     statusCode = 503
   }
-  
+
   return c.json(
     {
       success: false,
@@ -193,7 +193,7 @@ function handleNetworkError(err: Error, c: Context) {
   let code = 'NETWORK_ERROR'
   let message = 'Network request failed'
   let statusCode = 502
-  
+
   if (err.message.includes('ECONNREFUSED')) {
     message = 'Unable to connect to external service'
     statusCode = 503
@@ -205,7 +205,7 @@ function handleNetworkError(err: Error, c: Context) {
     message = 'External service not found'
     statusCode = 502
   }
-  
+
   return c.json(
     {
       success: false,
@@ -255,15 +255,13 @@ function handleTimeoutError(err: Error, c: Context) {
  */
 function handleInternalError(err: Error, c: Context) {
   const isDevelopment = process.env.NODE_ENV === 'development'
-  
+
   return c.json(
     {
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: isDevelopment 
-          ? err.message 
-          : 'An unexpected error occurred',
+        message: isDevelopment ? err.message : 'An unexpected error occurred',
         ...(isDevelopment && {
           stack: err.stack,
           name: err.name
@@ -327,9 +325,7 @@ function isTimeoutError(err: Error): boolean {
  * Async error wrapper for route handlers
  * Catches async errors and passes them to error middleware
  */
-export function asyncErrorHandler<T extends Context>(
-  fn: (c: T) => Promise<Response>
-) {
+export function asyncErrorHandler<T extends Context>(fn: (c: T) => Promise<Response>) {
   return async (c: T) => {
     try {
       return await fn(c)
@@ -363,7 +359,7 @@ export function formatErrorForLogging(err: Error, context?: Record<string, unkno
     stack: err.stack,
     ...context
   }
-  
+
   return JSON.stringify(errorInfo, null, 2)
 }
 
@@ -394,36 +390,29 @@ export const errorRecoveryStrategies = {
   /**
    * Retry with exponential backoff
    */
-  async retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 3,
-    initialDelay: number = 1000
-  ): Promise<T> {
+  async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number = 3, initialDelay: number = 1000): Promise<T> {
     let lastError: Error
-    
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         return await fn()
       } catch (error) {
         lastError = error as Error
-        
+
         if (i < maxRetries - 1) {
           const delay = initialDelay * Math.pow(2, i)
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
     }
-    
+
     throw lastError!
   },
-  
+
   /**
    * Fallback to default value
    */
-  async withFallback<T>(
-    fn: () => Promise<T>,
-    fallback: T
-  ): Promise<T> {
+  async withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
     try {
       return await fn()
     } catch (error) {
@@ -431,31 +420,28 @@ export const errorRecoveryStrategies = {
       return fallback
     }
   },
-  
+
   /**
    * Circuit breaker pattern
    */
-  createCircuitBreaker(
-    threshold: number = 5,
-    resetTimeout: number = 60000
-  ) {
+  createCircuitBreaker(threshold: number = 5, resetTimeout: number = 60000) {
     let failures = 0
     let lastFailureTime = 0
     let isOpen = false
-    
+
     return async <T>(fn: () => Promise<T>): Promise<T> => {
       if (isOpen) {
         const timeSinceFailure = Date.now() - lastFailureTime
-        
+
         if (timeSinceFailure < resetTimeout) {
           throw new Error('Circuit breaker is open')
         }
-        
+
         // Try to close the circuit
         isOpen = false
         failures = 0
       }
-      
+
       try {
         const result = await fn()
         failures = 0
@@ -463,11 +449,11 @@ export const errorRecoveryStrategies = {
       } catch (error) {
         failures++
         lastFailureTime = Date.now()
-        
+
         if (failures >= threshold) {
           isOpen = true
         }
-        
+
         throw error
       }
     }

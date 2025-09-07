@@ -24,10 +24,7 @@ import {
   handleChatMessage
 } from '@promptliano/services' // Import the service instance
 import { type APIProviders, type ProviderKey } from '@promptliano/database'
-import {
-  type ProviderKeysConfig,
-  ModelFetcherService
-} from '@promptliano/services'
+import { type ProviderKeysConfig, ModelFetcherService } from '@promptliano/services'
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
 import { stream } from 'hono/streaming'
 
@@ -124,9 +121,7 @@ const postAiChatSdkRoute = createRoute({
     200: {
       content: {
         'text/event-stream': {
-          schema: z
-            .string()
-            .openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
+          schema: z.string().openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
         }
       },
       description: 'Successfully initiated AI response stream.'
@@ -265,9 +260,7 @@ export const genAiRoutes = new OpenAPIHono()
         {
           success: false,
           error: {
-            message: !Number.isFinite(chatId)
-              ? 'Missing or invalid chat id'
-              : 'Missing user message',
+            message: !Number.isFinite(chatId) ? 'Missing or invalid chat id' : 'Missing user message',
             code: 'INVALID_CHAT_REQUEST'
           }
         },
@@ -298,7 +291,7 @@ export const genAiRoutes = new OpenAPIHono()
     return c.body(readableStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      Connection: 'keep-alive'
     })
   })
   .openapi(getProvidersRoute, async (c) => {
@@ -353,7 +346,7 @@ export const genAiRoutes = new OpenAPIHono()
     return c.body(aiSDKStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      Connection: 'keep-alive'
     })
   })
   .openapi(generateTextRoute, async (c) => {
@@ -574,7 +567,9 @@ export const genAiRoutes = new OpenAPIHono()
 
       const providerKeysConfig: ProviderKeysConfig = {}
       for (const key of keys) {
-        const normalized = String(key.provider || '').toLowerCase().replace(/[^a-z]/g, '')
+        const normalized = String(key.provider || '')
+          .toLowerCase()
+          .replace(/[^a-z]/g, '')
         const configProp = PROVIDER_TO_CONFIG_KEY_NORMALIZED[normalized]
         if (!configProp) continue
         let resolvedKey: string | undefined
@@ -610,7 +605,9 @@ export const genAiRoutes = new OpenAPIHono()
       const keysMeta = keys.map((k) => ({
         id: k.id,
         provider: k.provider,
-        normalized: String(k.provider || '').toLowerCase().replace(/[^a-z]/g, ''),
+        normalized: String(k.provider || '')
+          .toLowerCase()
+          .replace(/[^a-z]/g, ''),
         isDefault: k.isDefault,
         decrypted: typeof k.key === 'string' && k.key.length > 0,
         createdAt: k.createdAt,

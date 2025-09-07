@@ -26,10 +26,9 @@ export function useModelConfigPresets() {
     }
 
     // Filter configs that have a preset category and are system presets
-    const systemPresets = configs.filter((c: ModelConfig) => 
-      c.isSystemPreset && 
-      c.presetCategory && 
-      ['low', 'medium', 'high', 'planning'].includes(c.presetCategory)
+    const systemPresets = configs.filter(
+      (c: ModelConfig) =>
+        c.isSystemPreset && c.presetCategory && ['low', 'medium', 'high', 'planning'].includes(c.presetCategory)
     )
 
     // Map configs to their preset categories
@@ -54,16 +53,16 @@ export function useModelConfigPresets() {
   // Get the default preset (the one marked as isDefault or 'medium' as fallback)
   const defaultPreset = useMemo(() => {
     if (!presets) return 'medium' as PresetCategory
-    
+
     // Find the preset marked as default
     const defaultConfig = Object.entries(presets).find(([_, config]) => config?.isDefault)
     if (defaultConfig) {
       return defaultConfig[0] as PresetCategory
     }
-    
+
     // Fallback to medium if it exists, otherwise first available
     if (presets.medium) return 'medium' as PresetCategory
-    
+
     const firstAvailable = Object.entries(presets).find(([_, config]) => config !== null)
     return (firstAvailable?.[0] || 'medium') as PresetCategory
   }, [presets])

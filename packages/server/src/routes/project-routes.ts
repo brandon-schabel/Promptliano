@@ -69,7 +69,7 @@ const BulkUpdateFilesBodySchema = z.object({
   )
 })
 
-const DbFileResponseSchema = z.object({ success: z.literal(true), data: (DbFileSchema as any) })
+const DbFileResponseSchema = z.object({ success: z.literal(true), data: DbFileSchema as any })
 const DbFileListResponseSchema = z.object({ success: z.literal(true), data: z.array(DbFileSchema as any) })
 const BulkFilesResponseSchema = DbFileListResponseSchema
 

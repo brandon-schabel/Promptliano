@@ -294,7 +294,7 @@ app.get('/api/_openapi-debug', async (c) => {
       QueueItemCreateSchema: (Schemas as any).QueueItemCreateSchema,
       QueueItemResponseSchema: (Schemas as any).QueueItemResponseSchema,
       QueueStatsResponseSchema: (Schemas as any).QueueStatsResponseSchema,
-      OptimizePromptResponseSchema: (Schemas as any).OptimizePromptResponseSchema,
+      OptimizePromptResponseSchema: (Schemas as any).OptimizePromptResponseSchema
     }
 
     const report = Object.fromEntries(
@@ -305,8 +305,8 @@ app.get('/api/_openapi-debug', async (c) => {
           type: typeof v,
           has_def: !!(v && (v as any).def),
           has__def: !!(v && (v as any)._def),
-          has_openapi: !!(v && (v as any).openapi),
-        },
+          has_openapi: !!(v && (v as any).openapi)
+        }
       ])
     )
 
@@ -329,7 +329,7 @@ app.route('/', providerKeyLegacyRoutes)
 
 // Register MCP config routes
 // app.route('/', mcpConfigRoutes)
-app.route('/', modelConfigRoutes)  // Model configuration and presets
+app.route('/', modelConfigRoutes) // Model configuration and presets
 
 // KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)
@@ -341,7 +341,6 @@ app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', mcpInstallationRoutes)
-
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -405,16 +404,15 @@ app.get('/doc', async (c) => {
       )
     }
     if (/Missing parameter data/i.test(msg)) {
-      hints.push(
-        'For transformed/refined query params, set openapi.param { name, in: "query" } on the field.'
-      )
+      hints.push('For transformed/refined query params, set openapi.param { name, in: "query" } on the field.')
     }
     return hints.length ? hints : undefined
   }
 
   // Build docs in isolation and skip failing groups with diagnostics
   const finalApp = new OpenAPIHono()
-  const buildLog: Record<string, { ok: boolean; error?: string; stack?: string; zodIssues?: any; hints?: string[] }> = {}
+  const buildLog: Record<string, { ok: boolean; error?: string; stack?: string; zodIssues?: any; hints?: string[] }> =
+    {}
 
   function tryRegister(label: string, registerTo: (app: OpenAPIHono) => void) {
     // Probe registration in isolation
@@ -428,7 +426,7 @@ app.get('/doc', async (c) => {
     } catch (e: any) {
       const zodIssues = formatZodIssues(e)
       const hints = diagnose(e)
-      const stack = isDevelopment ? (e?.stack || undefined) : undefined
+      const stack = isDevelopment ? e?.stack || undefined : undefined
       console.error('[OpenAPI Doc] Group error', {
         group: label,
         message: e?.message || String(e),
@@ -467,7 +465,6 @@ app.get('/doc', async (c) => {
   tryRegister('mcpInstallationRoutes', (a) => a.route('/', mcpInstallationRoutes))
   // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
   tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
-
 
   try {
     const doc = finalApp.getOpenAPI31Document({

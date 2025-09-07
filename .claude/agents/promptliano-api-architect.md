@@ -185,7 +185,7 @@ export class ErrorFactory {
       error: {
         code: 'VALIDATION_FAILED',
         message: 'Request validation failed',
-        details: errors.errors.map(err => ({
+        details: errors.errors.map((err) => ({
           field: err.path.join('.'),
           message: err.message
         }))
@@ -259,6 +259,7 @@ export const rateLimitMiddleware = createMiddleware(async (c, next) => {
 ### Implementation Workflow
 
 1. **AUTO-GENERATION First (MANDATORY)**
+
    ```bash
    # After ANY database schema change:
    cd packages/server && bun run routes:generate
@@ -266,6 +267,7 @@ export const rateLimitMiddleware = createMiddleware(async (c, next) => {
    ```
 
 2. **Register Generated Routes (One Line)**
+
    ```typescript
    // packages/server/src/app.ts
    import { registerAllGeneratedRoutes } from './routes/generated/index.generated'
@@ -277,12 +279,12 @@ export const rateLimitMiddleware = createMiddleware(async (c, next) => {
    - Never write CRUD routes manually - they're generated
    - Apply consistent middleware across route groups
 
-3. **Error Handling Implementation**
+4. **Error Handling Implementation**
    - Implement ErrorFactory patterns for all error responses
    - Create middleware for cross-cutting concerns
    - Test error scenarios and edge cases
 
-4. **Documentation & Testing**
+5. **Documentation & Testing**
    - Generate OpenAPI documentation automatically
    - Implement comprehensive route testing
    - Validate API contracts with consumers
@@ -382,4 +384,4 @@ import { createCrudRoutes } from '../utils/route-codegen'
 
 ---
 
-*This consolidated API architect combines the expertise from hono-bun-api-architect and route-codegen-architect into a unified, comprehensive guide for API development in Promptliano.*
+_This consolidated API architect combines the expertise from hono-bun-api-architect and route-codegen-architect into a unified, comprehensive guide for API development in Promptliano._

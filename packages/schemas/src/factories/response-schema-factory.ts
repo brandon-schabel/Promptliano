@@ -15,15 +15,15 @@ export function createSuccessResponseSchema<T extends z.ZodTypeAny>(
   }
 ) {
   const schemaName = options?.name || getZodDescription(dataSchema) || 'Data'
-  
+
   const baseSchema = {
     success: z.literal(true).describe('Indicates successful operation'),
     data: dataSchema.describe(`The ${schemaName} data`),
     ...options?.additionalFields
   }
-  
+
   const responseSchema = z.object(baseSchema)
-  
+
   // Add OpenAPI metadata
   const openApiSchema = responseSchema.openapi(`${schemaName}Response`, {
     description: options?.description || `Successful ${schemaName} response`,
@@ -32,10 +32,10 @@ export function createSuccessResponseSchema<T extends z.ZodTypeAny>(
       data: getZodExample(dataSchema) || {}
     }
   })
-  
+
   // Ensure the ref is set correctly for test compatibility
   setZodOpenApiRef(openApiSchema, `${schemaName}Response`)
-  
+
   return openApiSchema
 }
 
@@ -49,11 +49,13 @@ export function createOperationResponseSchema(
     additionalFields?: Record<string, z.ZodTypeAny>
   }
 ) {
-  return z.object({
-    success: z.literal(true),
-    message: z.string().default(options?.message || `${operation} completed successfully`),
-    ...options?.additionalFields
-  }).openapi(`${operation}Response`)
+  return z
+    .object({
+      success: z.literal(true),
+      message: z.string().default(options?.message || `${operation} completed successfully`),
+      ...options?.additionalFields
+    })
+    .openapi(`${operation}Response`)
 }
 
 /**
@@ -65,46 +67,46 @@ export function createMetadataResponseSchema<T extends z.ZodTypeAny>(
   name?: string
 ) {
   const schemaName = name || getZodDescription(dataSchema) || 'Data'
-  return z.object({
-    success: z.literal(true),
-    data: dataSchema,
-    metadata: metadataSchema
-  }).openapi(`${schemaName}WithMetadataResponse`)
+  return z
+    .object({
+      success: z.literal(true),
+      data: dataSchema,
+      metadata: metadataSchema
+    })
+    .openapi(`${schemaName}WithMetadataResponse`)
 }
 
 /**
  * Creates a response with optional warning messages
  */
-export function createResponseWithWarningsSchema<T extends z.ZodTypeAny>(
-  dataSchema: T,
-  name?: string
-) {
+export function createResponseWithWarningsSchema<T extends z.ZodTypeAny>(dataSchema: T, name?: string) {
   const schemaName = name || getZodDescription(dataSchema) || 'Data'
-  return z.object({
-    success: z.literal(true),
-    data: dataSchema,
-    warnings: z.array(z.string()).optional().describe('Optional warning messages')
-  }).openapi(`${schemaName}ResponseWithWarnings`)
+  return z
+    .object({
+      success: z.literal(true),
+      data: dataSchema,
+      warnings: z.array(z.string()).optional().describe('Optional warning messages')
+    })
+    .openapi(`${schemaName}ResponseWithWarnings`)
 }
 
 /**
  * Creates a conditional response schema (success with data or message)
  */
-export function createConditionalResponseSchema<T extends z.ZodTypeAny>(
-  dataSchema: T,
-  name?: string
-) {
+export function createConditionalResponseSchema<T extends z.ZodTypeAny>(dataSchema: T, name?: string) {
   const schemaName = name || getZodDescription(dataSchema) || 'Data'
-  return z.union([
-    z.object({
-      success: z.literal(true),
-      data: dataSchema
-    }),
-    z.object({
-      success: z.literal(true),
-      message: z.string()
-    })
-  ]).openapi(`${schemaName}ConditionalResponse`)
+  return z
+    .union([
+      z.object({
+        success: z.literal(true),
+        data: dataSchema
+      }),
+      z.object({
+        success: z.literal(true),
+        message: z.string()
+      })
+    ])
+    .openapi(`${schemaName}ConditionalResponse`)
 }
 
 /**
@@ -123,10 +125,10 @@ export function createMutationResponseSchema(
     affectedCount: z.number().int().min(0).describe('Number of affected records'),
     ...options?.additionalFields
   }
-  
+
   if (options?.includeIds) {
     ;(baseSchema as any)['affectedIds'] = z.array(z.number()).describe('IDs of affected records')
   }
-  
+
   return z.object(baseSchema).openapi(`${operation}MutationResponse`)
 }

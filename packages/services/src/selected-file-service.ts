@@ -1,11 +1,17 @@
 /**
  * Selected File Service - Functional Factory Pattern
  * Provides CRUD operations for selected files with proper error handling
- * 
+ *
  * Uses generated types from database schema and integrates with selectedFileRepository
  */
 
-import { extendService, withErrorContext, createServiceLogger, safeErrorFactory, makeServiceRouteCompatible } from './core/base-service'
+import {
+  extendService,
+  withErrorContext,
+  createServiceLogger,
+  safeErrorFactory,
+  makeServiceRouteCompatible
+} from './core/base-service'
 import { selectedFileRepository } from '@promptliano/database'
 import {
   type SelectedFile,
@@ -26,10 +32,8 @@ export interface SelectedFileServiceDeps {
  * Create Selected File Service with functional factory pattern
  */
 export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
-  const {
-    selectedFileRepository: repo = selectedFileRepository,
-    logger = createServiceLogger('SelectedFileService')
-  } = deps
+  const { selectedFileRepository: repo = selectedFileRepository, logger = createServiceLogger('SelectedFileService') } =
+    deps
 
   // Create a compatible repository interface by adding missing methods
   const compatibleRepo = {
@@ -144,8 +148,8 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
 
           // Find the selected file entry
           const selectedFiles = await extensions.getByProject(projectId)
-          const selectedFile = selectedFiles.find(sf => sf.fileId === fileId && sf.isActive)
-          
+          const selectedFile = selectedFiles.find((sf) => sf.fileId === fileId && sf.isActive)
+
           if (!selectedFile) {
             logger.warn(`Attempted to deselect non-selected file`, { projectId, fileId })
             return false
@@ -164,11 +168,15 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
     /**
      * Toggle file selection for a project
      */
-    async toggleFileSelection(projectId: number, fileId: string, reason?: string): Promise<{ selected: boolean; selectedFile?: SelectedFile }> {
+    async toggleFileSelection(
+      projectId: number,
+      fileId: string,
+      reason?: string
+    ): Promise<{ selected: boolean; selectedFile?: SelectedFile }> {
       return withErrorContext(
         async () => {
           const isSelected = await extensions.isFileSelected(projectId, fileId)
-          
+
           if (isSelected) {
             const success = await extensions.deselectFile(projectId, fileId)
             return { selected: false }
@@ -188,7 +196,7 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
       return withErrorContext(
         async () => {
           const allSelected = await extensions.getByProject(projectId)
-          return allSelected.filter(sf => sf.isActive)
+          return allSelected.filter((sf) => sf.isActive)
         },
         { entity: 'SelectedFile', action: 'getActiveSelected', projectId }
       )
@@ -205,8 +213,8 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
           }
 
           const selectedFiles = await extensions.getByProject(projectId)
-          const ids = selectedFiles.map(sf => sf.id)
-          
+          const ids = selectedFiles.map((sf) => sf.id)
+
           if (ids.length === 0) {
             logger.info(`No selected files to clear for project`, { projectId })
             return 0
@@ -245,9 +253,9 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
                 results.push(selected)
               }
             } catch (error) {
-              errors.push({ 
-                fileId, 
-                error: error instanceof Error ? error.message : String(error) 
+              errors.push({
+                fileId,
+                error: error instanceof Error ? error.message : String(error)
               })
             }
           }
@@ -310,7 +318,7 @@ export function createSelectedFileService(deps: SelectedFileServiceDeps = {}) {
           const result = await baseService.update(id, {
             selectionReason: reason
           })
-          
+
           logger.info(`Updated selection reason`, { id: numericId, reason })
           return result
         },

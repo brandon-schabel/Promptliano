@@ -198,7 +198,9 @@ const providerHealthRoute = createRoute({
   request: {
     query: z.object({
       // Coerce typical query string values to boolean
-      refresh: z.coerce.boolean().optional()
+      refresh: z.coerce
+        .boolean()
+        .optional()
         .openapi({
           param: {
             name: 'refresh',
@@ -236,16 +238,24 @@ const updateProviderSettingsRoute = createRoute({
 export const providerKeyRoutes = new OpenAPIHono()
   .openapi(createProviderKeyRoute, (async (c: Context) => {
     const body = (c.req as any).valid('json')
-    
+
     // Validate that only one storage method is used
     if (body.key && body.secretRef) {
-      throw new ApiError(400, 'Cannot provide both key and secretRef. Choose one storage method.', 'INVALID_STORAGE_METHOD')
+      throw new ApiError(
+        400,
+        'Cannot provide both key and secretRef. Choose one storage method.',
+        'INVALID_STORAGE_METHOD'
+      )
     }
-    
+
     if (!body.key && !body.secretRef) {
-      throw new ApiError(400, 'Must provide either key (direct storage) or secretRef (environment variable).', 'MISSING_CREDENTIALS')
+      throw new ApiError(
+        400,
+        'Must provide either key (direct storage) or secretRef (environment variable).',
+        'MISSING_CREDENTIALS'
+      )
     }
-    
+
     const createKeyInput = {
       ...body,
       isActive: body.isActive ?? true,

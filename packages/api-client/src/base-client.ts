@@ -186,12 +186,7 @@ export class BaseApiClient {
       return schema.parse(data)
     } catch (e) {
       if (e instanceof z.ZodError) {
-        throw new PromptlianoError(
-          `Request validation failed: ${e.message}`,
-          undefined,
-          'VALIDATION_ERROR',
-          e.issues
-        )
+        throw new PromptlianoError(`Request validation failed: ${e.message}`, undefined, 'VALIDATION_ERROR', e.issues)
       }
       throw e
     }

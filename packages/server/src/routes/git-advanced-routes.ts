@@ -24,7 +24,13 @@ import {
   stashApply,
   reset
 } from '@promptliano/services'
-import { createStandardResponses, createStandardResponsesWithStatus, createListResponseSchema, successResponse, operationSuccessResponse } from '../utils/route-helpers'
+import {
+  createStandardResponses,
+  createStandardResponsesWithStatus,
+  createListResponseSchema,
+  successResponse,
+  operationSuccessResponse
+} from '../utils/route-helpers'
 
 // Define reusable response schemas using factory functions
 const RemotesResponseSchema = createListResponseSchema(gitRemoteSchema.openapi('GitRemote'), 'RemotesResponse')
@@ -243,10 +249,7 @@ gitAdvancedRoutes.openapi(stashRoute, async (c) => {
 
   await stash(projectId, message)
 
-  return c.json(
-    operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`),
-    200
-  )
+  return c.json(operationSuccessResponse(`Changes stashed successfully${message ? `: ${message}` : ''}`), 200)
 })
 
 // Get stash list route

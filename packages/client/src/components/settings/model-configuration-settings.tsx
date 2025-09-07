@@ -11,12 +11,12 @@ export function ModelConfigurationSettings() {
 
   const handlePresetChange = async (preset: ModelPreset) => {
     setSelectedPreset(preset)
-    
+
     // In a real implementation, this would save to backend
     try {
       setIsLoading(true)
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500))
       toast.success(`Switched to ${preset} preset configuration`)
     } catch (error) {
       toast.error('Failed to apply preset')
@@ -35,9 +35,7 @@ export function ModelConfigurationSettings() {
       <div className='flex items-center justify-between'>
         <div>
           <h1 className='text-3xl font-bold'>Model Configuration</h1>
-          <p className='text-muted-foreground'>
-            Select AI model presets optimized for different use cases.
-          </p>
+          <p className='text-muted-foreground'>Select AI model presets optimized for different use cases.</p>
         </div>
         <Button variant='outline' onClick={handleRefresh}>
           <RefreshCw className='h-4 w-4 mr-2' />
@@ -46,11 +44,7 @@ export function ModelConfigurationSettings() {
       </div>
 
       {/* Preset Selection */}
-      <ModelPresetSelector
-        value={selectedPreset}
-        onChange={handlePresetChange}
-        disabled={isLoading}
-      />
+      <ModelPresetSelector value={selectedPreset} onChange={handlePresetChange} disabled={isLoading} />
 
       {/* Current Configuration Display */}
       <Card>
@@ -59,9 +53,7 @@ export function ModelConfigurationSettings() {
             <Settings2 className='h-5 w-5' />
             Current Configuration
           </CardTitle>
-          <CardDescription>
-            Active model settings based on selected preset
-          </CardDescription>
+          <CardDescription>Active model settings based on selected preset</CardDescription>
         </CardHeader>
         <CardContent>
           <div className='space-y-3 text-sm'>
@@ -69,7 +61,7 @@ export function ModelConfigurationSettings() {
               <span className='text-muted-foreground'>Active Preset:</span>
               <span className='font-medium capitalize'>{selectedPreset}</span>
             </div>
-            
+
             {selectedPreset === 'low' && (
               <>
                 <div className='flex justify-between items-center py-2 border-b'>
@@ -86,7 +78,7 @@ export function ModelConfigurationSettings() {
                 </div>
               </>
             )}
-            
+
             {selectedPreset === 'medium' && (
               <>
                 <div className='flex justify-between items-center py-2 border-b'>
@@ -103,7 +95,7 @@ export function ModelConfigurationSettings() {
                 </div>
               </>
             )}
-            
+
             {selectedPreset === 'high' && (
               <>
                 <div className='flex justify-between items-center py-2 border-b'>
@@ -120,7 +112,7 @@ export function ModelConfigurationSettings() {
                 </div>
               </>
             )}
-            
+
             {selectedPreset === 'planning' && (
               <>
                 <div className='flex justify-between items-center py-2 border-b'>
@@ -137,7 +129,7 @@ export function ModelConfigurationSettings() {
                 </div>
               </>
             )}
-            
+
             <div className='flex justify-between items-center py-2 border-b'>
               <span className='text-muted-foreground'>Temperature:</span>
               <span className='font-medium'>0.7</span>
@@ -158,7 +150,8 @@ export function ModelConfigurationSettings() {
         <CardContent>
           <div className='space-y-2 text-sm text-muted-foreground'>
             <p>
-              <strong>Low:</strong> Fast local model for quick tasks and simple queries. Runs on your machine via LMStudio.
+              <strong>Low:</strong> Fast local model for quick tasks and simple queries. Runs on your machine via
+              LMStudio.
             </p>
             <p>
               <strong>Medium:</strong> Balanced performance for most tasks. Good mix of speed and quality.

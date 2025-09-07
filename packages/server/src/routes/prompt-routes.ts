@@ -365,14 +365,16 @@ export const promptRoutes = new OpenAPIHono()
     // suggestions may be array of strings like "Prompt ID: {id}"; map to Prompt[] if possible
     let prompts: any[] = []
     try {
-      const ids = (suggestions as any[]).map((s) => {
-        if (typeof s === 'number') return s
-        if (typeof s === 'string') {
-          const m = s.match(/(\d+)/)
-          return m ? Number(m[1]) : undefined
-        }
-        return undefined
-      }).filter((v) => typeof v === 'number') as number[]
+      const ids = (suggestions as any[])
+        .map((s) => {
+          if (typeof s === 'number') return s
+          if (typeof s === 'string') {
+            const m = s.match(/(\d+)/)
+            return m ? Number(m[1]) : undefined
+          }
+          return undefined
+        })
+        .filter((v) => typeof v === 'number') as number[]
       if (ids.length > 0) {
         const { getPromptsByIds } = await import('@promptliano/services')
         prompts = await getPromptsByIds(ids)
@@ -455,8 +457,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-            ; (error as any).statusCode = 413
-            ; (error as any).code = 'FILE_TOO_LARGE'
+          ;(error as any).statusCode = 413
+          ;(error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
@@ -551,8 +553,8 @@ export const promptRoutes = new OpenAPIHono()
         // Validate file size - throw error which will be handled by middleware
         if (entry.size > MAX_FILE_SIZE) {
           const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
-            ; (error as any).statusCode = 413
-            ; (error as any).code = 'FILE_TOO_LARGE'
+          ;(error as any).statusCode = 413
+          ;(error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
@@ -634,13 +636,17 @@ const getPromptByIdBasicRoute = createRoute({
   summary: 'Get a prompt by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(PromptResponseSchema)
@@ -653,13 +659,17 @@ const updatePromptByIdBasicRoute = createRoute({
   summary: 'Update a prompt by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     }),
     body: {
       content: {
@@ -679,13 +689,17 @@ const deletePromptByIdBasicRoute = createRoute({
   summary: 'Delete a prompt by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
@@ -697,7 +711,10 @@ promptRoutes
     const prompt = await getPromptById(id)
 
     if (!prompt) {
-      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
+      throw new (class extends Error {
+        status = 404
+        code = 'PROMPT_NOT_FOUND'
+      })()
     }
 
     return c.json(successResponse(prompt), 200)
@@ -708,7 +725,10 @@ promptRoutes
     const prompt = await updatePrompt(id, data)
 
     if (!prompt) {
-      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
+      throw new (class extends Error {
+        status = 404
+        code = 'PROMPT_NOT_FOUND'
+      })()
     }
 
     return c.json(successResponse(prompt), 200)
@@ -718,7 +738,10 @@ promptRoutes
     const success = await deletePrompt(id)
 
     if (!success) {
-      throw new (class extends Error { status = 404; code = 'PROMPT_NOT_FOUND' })()
+      throw new (class extends Error {
+        status = 404
+        code = 'PROMPT_NOT_FOUND'
+      })()
     }
 
     return c.json(operationSuccessResponse('Prompt deleted successfully'), 200)

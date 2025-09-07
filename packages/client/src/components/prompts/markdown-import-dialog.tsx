@@ -236,7 +236,8 @@ export function MarkdownImportDialog({ open, onOpenChange, projectId, onSuccess 
         <DialogHeader>
           <DialogTitle>Import Markdown Prompts</DialogTitle>
           <DialogDescription>
-            Import prompts from markdown files. Frontmatter with metadata is optional - the filename will be used as the prompt name if no frontmatter is present.
+            Import prompts from markdown files. Frontmatter with metadata is optional - the filename will be used as the
+            prompt name if no frontmatter is present.
             {projectId && ' Prompts will be added to the current project.'}
           </DialogDescription>
         </DialogHeader>

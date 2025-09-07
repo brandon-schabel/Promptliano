@@ -171,7 +171,7 @@ export * from './src/project-domain-service'
 export { cleanupQueueData, resetQueue, moveFailedToDeadLetter, getQueueHealth } from './src/queue-cleanup-service'
 export type { CleanupResult as QueueCleanupResult } from './src/queue-cleanup-service'
 export {
-  // Queue Timeout Service  
+  // Queue Timeout Service
   createQueueTimeoutService,
   getQueueTimeoutService,
   queueTimeoutService,
@@ -317,10 +317,7 @@ export {
 export * from './src/agent-instruction-service'
 export * from './src/agent-file-detection-service'
 // Explicit re-export to avoid VSCodeSettings ambiguity with parsers
-export {
-  createMCPInstallationService,
-  mcpInstallationService
-} from './src/mcp-installation-service'
+export { createMCPInstallationService, mcpInstallationService } from './src/mcp-installation-service'
 export type {
   MCPConfig,
   MCPTool,
@@ -343,10 +340,7 @@ export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
 
 // Re-export types from schemas for backward compatibility
-export type {
-  CreateProjectBody,
-  UpdateProjectBody
-} from '@promptliano/schemas'
+export type { CreateProjectBody, UpdateProjectBody } from '@promptliano/schemas'
 
 // Re-export hook-related types from schemas for backward compatibility
 // Note: API request/response types should be imported from response.schemas or database schemas

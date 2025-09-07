@@ -101,10 +101,7 @@ export class TicketRepository {
   constructor(private db: Database) {}
 
   async findByProject(projectId: number) {
-    return this.db.select()
-      .from(tickets)
-      .where(eq(tickets.projectId, projectId))
-      .orderBy(desc(tickets.createdAt))
+    return this.db.select().from(tickets).where(eq(tickets.projectId, projectId)).orderBy(desc(tickets.createdAt))
   }
 
   async createWithValidation(data: InsertTicket) {
@@ -173,9 +170,7 @@ export const ticketService = {
   },
 
   async getByProject(projectId: number) {
-    return db.select().from(tickets)
-      .where(eq(tickets.projectId, projectId))
-      .orderBy(desc(tickets.createdAt))
+    return db.select().from(tickets).where(eq(tickets.projectId, projectId)).orderBy(desc(tickets.createdAt))
   }
 }
 ```
@@ -187,11 +182,11 @@ export const ticketService = {
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   project: one(projects, {
     fields: [tickets.projectId],
-    references: [projects.id],
+    references: [projects.id]
   }),
   tasks: many(tasks, {
-    relationName: "ticketTasks"
-  }),
+    relationName: 'ticketTasks'
+  })
 }))
 
 // Repository with complex queries
@@ -224,9 +219,7 @@ export class BulkOperationsService {
 
       for (let i = 0; i < tickets.length; i += batchSize) {
         const batch = tickets.slice(i, i + batchSize)
-        const inserted = await tx.insert(ticketsTable)
-          .values(batch)
-          .returning()
+        const inserted = await tx.insert(ticketsTable).values(batch).returning()
         results.push(...inserted)
       }
 
@@ -248,6 +241,7 @@ export class BulkOperationsService {
    - Plan indexing strategy for query patterns
 
 2. **Trigger Code Generation (AUTOMATIC)**
+
    ```bash
    # After ANY schema change, run:
    cd packages/server && bun run routes:generate
@@ -366,4 +360,4 @@ import { relations } from 'drizzle-orm'
 
 ---
 
-*This consolidated database architect combines the expertise from drizzle-migration-architect and promptliano-drizzle-sqlite-expert into a unified, comprehensive guide for database development in Promptliano.*
+_This consolidated database architect combines the expertise from drizzle-migration-architect and promptliano-drizzle-sqlite-expert into a unified, comprehensive guide for database development in Promptliano._

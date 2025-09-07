@@ -1,11 +1,17 @@
 /**
  * Queue Item Service - Functional Factory Pattern
  * Provides CRUD operations for queue items with proper error handling
- * 
+ *
  * Uses generated types from database schema and integrates with queueItemRepository
  */
 
-import { createCrudService, extendService, withErrorContext, createServiceLogger, safeErrorFactory } from './core/base-service'
+import {
+  createCrudService,
+  extendService,
+  withErrorContext,
+  createServiceLogger,
+  safeErrorFactory
+} from './core/base-service'
 import { queueItemRepository } from '@promptliano/database'
 import {
   type QueueItem,
@@ -27,10 +33,7 @@ export interface QueueItemServiceDeps {
  * Create Queue Item Service with functional factory pattern
  */
 export function createQueueItemService(deps: QueueItemServiceDeps = {}) {
-  const {
-    queueItemRepository: repo = queueItemRepository,
-    logger = createServiceLogger('QueueItemService')
-  } = deps
+  const { queueItemRepository: repo = queueItemRepository, logger = createServiceLogger('QueueItemService') } = deps
 
   // Base CRUD operations using createCrudService
   const baseService = createCrudService<QueueItem, CreateQueueItem, UpdateQueueItem>({
@@ -78,9 +81,9 @@ export function createQueueItemService(deps: QueueItemServiceDeps = {}) {
           if (!queueId || queueId <= 0) {
             throw safeErrorFactory.invalidInput('queueId', 'valid positive number', queueId)
           }
-          
+
           const allQueueItems = await repo.getByQueue(queueId)
-          return allQueueItems.filter(item => item.status === status)
+          return allQueueItems.filter((item) => item.status === status)
         },
         { entity: 'QueueItem', action: 'getByQueueAndStatus', queueId, status }
       )
@@ -108,7 +111,7 @@ export function createQueueItemService(deps: QueueItemServiceDeps = {}) {
             updateData.startedAt = Date.now()
           } else if (['completed', 'failed', 'cancelled'].includes(status) && !updateData.completedAt) {
             updateData.completedAt = Date.now()
-            
+
             // Calculate actual processing time if we have startedAt
             const currentItem = await repo.getById(numericId)
             if (currentItem?.startedAt) {
@@ -215,28 +218,30 @@ export function createQueueItemService(deps: QueueItemServiceDeps = {}) {
     /**
      * Get queue items with processing time statistics
      */
-    async getWithStats(queueId?: number): Promise<Array<QueueItem & {
-      isOverdue?: boolean
-      estimatedCompletion?: number
-    }>> {
+    async getWithStats(queueId?: number): Promise<
+      Array<
+        QueueItem & {
+          isOverdue?: boolean
+          estimatedCompletion?: number
+        }
+      >
+    > {
       return withErrorContext(
         async () => {
-          const items = queueId 
-            ? await extensions.getByQueue(queueId)
-            : await baseService.getAll()
+          const items = queueId ? await extensions.getByQueue(queueId) : await baseService.getAll()
 
           const now = Date.now()
-          
-          return items.map(item => {
+
+          return items.map((item) => {
             const stats: QueueItem & { isOverdue?: boolean; estimatedCompletion?: number } = { ...item }
-            
+
             // Check if item is overdue (if it has estimated processing time)
             if (item.status === 'in_progress' && item.startedAt && item.estimatedProcessingTime) {
               const expectedCompletion = item.startedAt + item.estimatedProcessingTime
               stats.isOverdue = now > expectedCompletion
               stats.estimatedCompletion = expectedCompletion
             }
-            
+
             return stats
           })
         },

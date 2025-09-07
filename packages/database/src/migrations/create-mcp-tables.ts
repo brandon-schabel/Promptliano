@@ -91,20 +91,20 @@ const indexes = [
   'CREATE INDEX IF NOT EXISTS idx_mcp_sessions_project ON mcp_sessions(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_sessions_tool_server ON mcp_sessions(tool_server)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_sessions_started ON mcp_sessions(started_at)',
-  
+
   // Tool call indexes
   'CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_session ON mcp_tool_calls(session_id)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_project ON mcp_tool_calls(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_tool ON mcp_tool_calls(tool_name)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_status ON mcp_tool_calls(status)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_started ON mcp_tool_calls(started_at)',
-  
+
   // Error pattern indexes
   'CREATE INDEX IF NOT EXISTS idx_mcp_error_patterns_project ON mcp_error_patterns(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_error_patterns_tool ON mcp_error_patterns(tool_name)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_error_patterns_type ON mcp_error_patterns(error_type)',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_error_pattern_unique ON mcp_error_patterns(project_id, tool_name, error_pattern)',
-  
+
   // Performance stats indexes
   'CREATE INDEX IF NOT EXISTS idx_mcp_performance_project ON mcp_performance_stats(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_mcp_performance_tool ON mcp_performance_stats(tool_name)',
@@ -114,14 +114,14 @@ const indexes = [
 
 try {
   console.log('📋 Creating MCP tracking tables...')
-  
+
   // Create tables
   for (const sql of tables) {
     const tableName = sql.match(/CREATE TABLE IF NOT EXISTS (\w+)/)?.[1]
     console.log(`  Creating table: ${tableName}`)
     db.exec(sql)
   }
-  
+
   // Create indexes
   console.log('\n📊 Creating indexes for performance...')
   for (const sql of indexes) {
@@ -129,15 +129,14 @@ try {
     console.log(`  Creating index: ${indexName}`)
     db.exec(sql)
   }
-  
+
   // Verify tables were created
   console.log('\n✅ Verifying tables...')
   const result = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'mcp%'").all()
   console.log('MCP tables in database:')
   result.forEach((row: any) => console.log(`  - ${row.name}`))
-  
+
   console.log('\n🎉 MCP tracking tables created successfully!')
-  
 } catch (error) {
   console.error('❌ Failed to create MCP tables:', error)
   process.exit(1)

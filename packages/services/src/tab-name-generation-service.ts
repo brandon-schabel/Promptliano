@@ -1,7 +1,7 @@
 /**
  * Tab Name Generation Service - Functional Factory Pattern
  * Generates meaningful tab names using AI or rule-based fallbacks
- * 
+ *
  * Key improvements:
  * - Uses functional factory pattern instead of class
  * - Consistent error handling with ErrorFactory
@@ -48,10 +48,7 @@ export function createTabNameGenerationService(deps: TabNameGenerationDeps = {})
     /**
      * Generate tab name with AI or fallback to rule-based generation
      */
-    async generateTabName(
-      projectId: number,
-      tabData: Partial<ProjectTabMetadata>
-    ): Promise<TabNameGenerationResult> {
+    async generateTabName(projectId: number, tabData: Partial<ProjectTabMetadata>): Promise<TabNameGenerationResult> {
       return withErrorContext(
         async () => {
           // Create cache key for this generation request
@@ -183,9 +180,9 @@ export function createTabNameGenerationService(deps: TabNameGenerationDeps = {})
   ): Promise<TabNameGenerationResult> {
     const timestamp = new Date().getTime()
     const shortId = timestamp.toString().slice(-4)
-    
+
     let name: string
-    
+
     if (tabData.selectedFiles && tabData.selectedFiles.length > 0) {
       name = `Project Work ${shortId}`
     } else if (tabData.userPrompt) {
@@ -235,7 +232,7 @@ export function getTabNameGenerationService(): TabNameGenerationService {
     try {
       const { generateTabName } = require('./gen-ai-services')
       const { getProjectById, getProjectFiles } = require('./project-service')
-      
+
       defaultService = createTabNameGenerationService({
         aiService: { generateTabName },
         projectService: { getById: getProjectById, getProjectFiles }

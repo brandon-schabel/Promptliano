@@ -54,7 +54,10 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
   const totalQueued = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.pending || 0), 0)
   const totalInProgress = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.processing || 0), 0)
   const totalCompleted = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.completed || 0), 0)
-  const totalItems = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.total || q.stats?.totalItems || 0), 0)
+  const totalItems = queuesWithStats.reduce(
+    (sum: number, q: any) => sum + (q.stats?.total || q.stats?.totalItems || 0),
+    0
+  )
   const totalTickets = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.uniqueTickets || 0), 0)
   const totalTasks = queuesWithStats.reduce((sum: number, q: any) => sum + (q.stats?.taskCount || 0), 0)
   const activeQueues = queuesWithStats.filter((q: any) => q.status === 'active')

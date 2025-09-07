@@ -64,10 +64,7 @@ export * from './src/response.schemas'
 export * from './src/chat-request.schemas'
 
 // Active Tab Request Schemas - using specific exports to avoid conflicts
-export {
-  updateActiveTabSchema,
-  type UpdateActiveTab as UpdateActiveTabRequest
-} from './src/active-tab-request.schemas'
+export { updateActiveTabSchema, type UpdateActiveTab as UpdateActiveTabRequest } from './src/active-tab-request.schemas'
 
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
@@ -98,7 +95,6 @@ export {
   TicketSchema,
   TicketTaskSchema,
   PromptSchema,
-
   ProviderKeySchema, // was: ProviderModelSchema
   // Create schemas for missing entities
   CreateActiveTabSchema,
@@ -135,7 +131,6 @@ export {
   type Ticket,
   type TicketTask,
   type Prompt,
-
   type ProviderKey,
   type CreateActiveTab,
   type CreateChat,
@@ -190,7 +185,7 @@ export {
   GetNextTaskResponseSchema,
   BatchEnqueueBodySchema,
   QueueTimelineSchema,
-  // From queue.schemas.ts - avoid conflicts with entity.schemas.ts  
+  // From queue.schemas.ts - avoid conflicts with entity.schemas.ts
   type CreateQueueBody,
   type UpdateQueueBody
 } from './src/queue.schemas'

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
  * Service Layer Performance Benchmarks
- * 
+ *
  * Validates that functional factory pattern services maintain or exceed
  * performance compared to legacy implementations.
- * 
+ *
  * Target Metrics:
  * - List operations: < 10ms
  * - Get operations: < 5ms
@@ -38,7 +38,7 @@ describe('Service Performance Benchmarks', () => {
   // Setup test data
   beforeAll(async () => {
     console.log('Setting up benchmark test data...')
-    
+
     // Create test projects
     for (let i = 0; i < TEST_PROJECT_COUNT; i++) {
       const project = await projectRepository.create({
@@ -48,7 +48,7 @@ describe('Service Performance Benchmarks', () => {
         updatedAt: Date.now()
       })
       testProjectIds.push(project.id)
-      
+
       // Create tickets for first 10 projects
       if (i < 10) {
         for (let j = 0; j < TEST_TICKET_COUNT / 10; j++) {
@@ -65,7 +65,7 @@ describe('Service Performance Benchmarks', () => {
         }
       }
     }
-    
+
     // Create test queues
     for (let i = 0; i < TEST_QUEUE_COUNT; i++) {
       const queue = await queueRepository.create({
@@ -78,27 +78,27 @@ describe('Service Performance Benchmarks', () => {
       })
       testQueueIds.push(queue.id)
     }
-    
+
     console.log('Test data setup complete')
   })
 
   // Cleanup after benchmarks
   afterAll(async () => {
     console.log('Cleaning up benchmark test data...')
-    
+
     // Clean up in reverse order due to foreign keys
     for (const id of testTicketIds) {
       await ticketRepository.delete(id)
     }
-    
+
     for (const id of testQueueIds) {
       await queueRepository.delete(id)
     }
-    
+
     for (const id of testProjectIds) {
       await projectRepository.delete(id)
     }
-    
+
     console.log('Cleanup complete')
   })
 
@@ -107,22 +107,22 @@ describe('Service Performance Benchmarks', () => {
     bench('projectService.list()', async () => {
       await projectService.list()
     })
-    
+
     bench('projectService.list() with pagination', async () => {
       await projectService.list({ limit: 10, offset: 0 })
     })
-    
+
     bench('ticketService.list()', async () => {
       await ticketService.list()
     })
-    
+
     bench('ticketService.list() with filters', async () => {
-      await ticketService.list({ 
+      await ticketService.list({
         projectId: testProjectIds[0],
-        status: 'open' 
+        status: 'open'
       })
     })
-    
+
     bench('queueService.list()', async () => {
       await queueService.list()
     })
@@ -133,11 +133,11 @@ describe('Service Performance Benchmarks', () => {
     bench('projectService.get()', async () => {
       await projectService.get(testProjectIds[Math.floor(Math.random() * testProjectIds.length)])
     })
-    
+
     bench('ticketService.get()', async () => {
       await ticketService.get(testTicketIds[Math.floor(Math.random() * testTicketIds.length)])
     })
-    
+
     bench('queueService.get()', async () => {
       await queueService.get(testQueueIds[Math.floor(Math.random() * testQueueIds.length)])
     })
@@ -146,7 +146,7 @@ describe('Service Performance Benchmarks', () => {
   // ============= CREATE OPERATIONS =============
   describe('Create Operations (Target: < 20ms)', () => {
     let createCounter = 0
-    
+
     bench('projectService.create()', async () => {
       const project = await projectService.create({
         name: `Bench Create Project ${createCounter++}`,
@@ -156,7 +156,7 @@ describe('Service Performance Benchmarks', () => {
       // Immediately delete to avoid accumulating data
       await projectRepository.delete(project.id)
     })
-    
+
     bench('ticketService.create()', async () => {
       const ticket = await ticketService.create({
         title: `Bench Create Ticket ${createCounter++}`,
@@ -168,7 +168,7 @@ describe('Service Performance Benchmarks', () => {
       // Immediately delete to avoid accumulating data
       await ticketRepository.delete(ticket.id)
     })
-    
+
     bench('queueService.create()', async () => {
       const queue = await queueService.create({
         name: `Bench Create Queue ${createCounter++}`,
@@ -184,14 +184,14 @@ describe('Service Performance Benchmarks', () => {
   // ============= UPDATE OPERATIONS =============
   describe('Update Operations (Target: < 15ms)', () => {
     let updateCounter = 0
-    
+
     bench('projectService.update()', async () => {
       const projectId = testProjectIds[Math.floor(Math.random() * testProjectIds.length)]
       await projectService.update(projectId, {
         description: `Updated during benchmark ${updateCounter++}`
       })
     })
-    
+
     bench('ticketService.update()', async () => {
       const ticketId = testTicketIds[Math.floor(Math.random() * testTicketIds.length)]
       await ticketService.update(ticketId, {
@@ -199,7 +199,7 @@ describe('Service Performance Benchmarks', () => {
         status: Math.random() > 0.5 ? 'open' : 'closed'
       })
     })
-    
+
     bench('queueService.update()', async () => {
       const queueId = testQueueIds[Math.floor(Math.random() * testQueueIds.length)]
       await queueService.update(queueId, {
@@ -220,7 +220,7 @@ describe('Service Performance Benchmarks', () => {
       })
       await projectService.delete(project.id)
     })
-    
+
     bench('ticketService.delete()', async () => {
       // Create and immediately delete
       const ticket = await ticketRepository.create({
@@ -247,7 +247,7 @@ describe('Service Performance Benchmarks', () => {
           updatedAt: Date.now()
         })
       }
-      
+
       // Use transaction for batch create
       const created = await db.transaction(async () => {
         const results = []
@@ -256,20 +256,20 @@ describe('Service Performance Benchmarks', () => {
         }
         return results
       })
-      
+
       // Clean up
       for (const project of created) {
         await projectRepository.delete(project.id)
       }
     })
-    
+
     bench('batch update 10 tickets', async () => {
       const ticketIds = testTicketIds.slice(0, 10)
       const updates = ticketIds.map((id, index) => ({
         id,
         description: `Batch update ${index}`
       }))
-      
+
       await db.transaction(async () => {
         for (const update of updates) {
           await ticketRepository.update(update.id, { description: update.description })
@@ -282,12 +282,9 @@ describe('Service Performance Benchmarks', () => {
   describe('Complex Query Performance', () => {
     bench('projectService with related tickets', async () => {
       const projectId = testProjectIds[0]
-      const [project, tickets] = await Promise.all([
-        projectService.get(projectId),
-        ticketService.list({ projectId })
-      ])
+      const [project, tickets] = await Promise.all([projectService.get(projectId), ticketService.list({ projectId })])
     })
-    
+
     bench('queue with items count', async () => {
       const queueId = testQueueIds[0]
       const queue = await queueService.get(queueId)

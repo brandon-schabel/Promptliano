@@ -2,31 +2,38 @@ import { z } from '@hono/zod-openapi'
 import { createSuccessResponseSchema } from './factories'
 
 // Directory entry schema
-export const DirectoryEntrySchema = z.object({
-  name: z.string(),
-  path: z.string(),
-  isDirectory: z.boolean(),
-  isHidden: z.boolean()
-}).openapi('DirectoryEntry')
+export const DirectoryEntrySchema = z
+  .object({
+    name: z.string(),
+    path: z.string(),
+    isDirectory: z.boolean(),
+    isHidden: z.boolean()
+  })
+  .openapi('DirectoryEntry')
 
 export type DirectoryEntry = z.infer<typeof DirectoryEntrySchema>
 
 // Browse directory request schema
-export const BrowseDirectoryRequestSchema = z.object({
-  path: z.string().optional().describe('The directory path to browse. If not provided, defaults to home directory')
-}).openapi('BrowseDirectoryRequest')
+export const BrowseDirectoryRequestSchema = z
+  .object({
+    path: z.string().optional().describe('The directory path to browse. If not provided, defaults to home directory')
+  })
+  .openapi('BrowseDirectoryRequest')
 
 export type BrowseDirectoryRequest = z.infer<typeof BrowseDirectoryRequestSchema>
 
 // Browse directory data schema
-const BrowseDirectoryDataSchema = z.object({
-  currentPath: z.string(),
-  parentPath: z.string().nullable(),
-  entries: z.array(DirectoryEntrySchema)
-}).describe('BrowseDirectoryData').openapi('BrowseDirectoryData')
+const BrowseDirectoryDataSchema = z
+  .object({
+    currentPath: z.string(),
+    parentPath: z.string().nullable(),
+    entries: z.array(DirectoryEntrySchema)
+  })
+  .describe('BrowseDirectoryData')
+  .openapi('BrowseDirectoryData')
 
 // Browse directory response schema
-export const BrowseDirectoryResponseSchema = createSuccessResponseSchema(BrowseDirectoryDataSchema, { 
+export const BrowseDirectoryResponseSchema = createSuccessResponseSchema(BrowseDirectoryDataSchema, {
   name: 'BrowseDirectory'
 })
 

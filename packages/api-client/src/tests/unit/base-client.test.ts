@@ -60,7 +60,9 @@ describe('BaseApiClient request()', () => {
     const mockFetch: typeof fetch = async (_input, init) => {
       // Never resolve, simulate a hanging request that honors AbortSignal
       return await new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('AbortError'), { name: 'AbortError' })))
+        init?.signal?.addEventListener('abort', () =>
+          reject(Object.assign(new Error('AbortError'), { name: 'AbortError' }))
+        )
       })
     }
     const client = createClient(mockFetch)
@@ -70,4 +72,3 @@ describe('BaseApiClient request()', () => {
     ).rejects.toMatchObject({ code: 'TIMEOUT' })
   })
 })
-

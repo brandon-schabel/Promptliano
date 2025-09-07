@@ -68,7 +68,7 @@ color: blue
 test('generated routes have correct types', async () => {
   const schema = await import('@promptliano/database/schema')
   const routes = await import('@promptliano/server/routes/generated')
-  
+
   // Verify all entities have routes
   expect(routes.projectRoutes).toBeDefined()
   expect(routes.ticketRoutes).toBeDefined()
@@ -78,7 +78,7 @@ test('generated routes have correct types', async () => {
 test('API client matches server routes', async () => {
   const client = createApiClient()
   const spec = await fetch('/api/openapi.json')
-  
+
   // Verify client methods match spec
   expect(client.getProjects).toBeDefined()
   expect(client.createProject).toBeDefined()
@@ -87,7 +87,7 @@ test('API client matches server routes', async () => {
 // Test that React hooks use generated client
 test('hooks use generated API client', async () => {
   const { useProjects } = await import('@promptliano/client/hooks/generated')
-  
+
   // Verify hooks are properly generated
   expect(typeof useProjects).toBe('function')
 })
@@ -275,9 +275,7 @@ describe('AI Chat Service', () => {
     // Mock AI service as unavailable
     const mockClient = createMockAIClient({ available: false })
 
-    await expect(
-      mockClient.generateCompletion({ prompt: 'test' })
-    ).rejects.toThrow('AI service unavailable')
+    await expect(mockClient.generateCompletion({ prompt: 'test' })).rejects.toThrow('AI service unavailable')
   })
 })
 ```
@@ -306,13 +304,10 @@ test.describe('Visual Regression', () => {
   test('should match user profile form', async ({ page }) => {
     await page.goto('/profile')
 
-    await expect(page.locator('[data-testid="profile-form"]')).toHaveScreenshot(
-      'profile-form.png',
-      {
-        threshold: 0.05,
-        animations: 'disabled'
-      }
-    )
+    await expect(page.locator('[data-testid="profile-form"]')).toHaveScreenshot('profile-form.png', {
+      threshold: 0.05,
+      animations: 'disabled'
+    })
   })
 })
 ```
@@ -412,4 +407,4 @@ import { UserFactory } from '@/test-utils/factories'
 
 ---
 
-*This consolidated testing architect combines expertise from api-test-automation-expert, promptliano-playwright-expert, and migration-test-modernizer into a unified guide for comprehensive testing in Promptliano.*
+_This consolidated testing architect combines expertise from api-test-automation-expert, promptliano-playwright-expert, and migration-test-modernizer into a unified guide for comprehensive testing in Promptliano._

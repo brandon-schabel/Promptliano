@@ -37,7 +37,9 @@ export const modelConfigRepository = {
     const results = await db
       .select()
       .from(modelConfigs)
-      .where(and(eq(modelConfigs.provider, provider), eq(modelConfigs.isDefault, true), eq(modelConfigs.isActive, true)))
+      .where(
+        and(eq(modelConfigs.provider, provider), eq(modelConfigs.isDefault, true), eq(modelConfigs.isActive, true))
+      )
       .limit(1)
 
     return (results[0] as ModelConfig) || null
@@ -127,7 +129,10 @@ export const modelConfigRepository = {
   /**
    * Update a model configuration
    */
-  async update(id: number, data: Partial<Omit<InsertModelConfig, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ModelConfig | null> {
+  async update(
+    id: number,
+    data: Partial<Omit<InsertModelConfig, 'id' | 'createdAt' | 'updatedAt'>>
+  ): Promise<ModelConfig | null> {
     const result = await db
       .update(modelConfigs)
       .set({

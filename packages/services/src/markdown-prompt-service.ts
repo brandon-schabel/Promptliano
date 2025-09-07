@@ -191,8 +191,8 @@ async function parseMarkdownContent(content: string, filename?: string): Promise
     promptName = filename
       .replace(/\.(md|markdown)$/i, '')
       .replace(/[-_]/g, ' ')
-      .replace(/\s+/g, ' ')  // Normalize multiple spaces
-      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace(/\s+/g, ' ') // Normalize multiple spaces
+      .replace(/\b\w/g, (l) => l.toUpperCase())
       .trim()
     if (promptName.length === 0) {
       promptName = 'Untitled Prompt'
@@ -681,8 +681,8 @@ async function performExportToMarkdown(prompts: Prompt[], options: ExportOptions
     for (const prompt of sortedPrompts) {
       const frontmatter: Record<string, any> = includeFrontmatter
         ? {
-          name: prompt.title || `prompt-${prompt.id}`
-        }
+            name: prompt.title || `prompt-${prompt.id}`
+          }
         : {}
 
       if (includeFrontmatter) {
@@ -757,8 +757,8 @@ async function performExportToMarkdown(prompts: Prompt[], options: ExportOptions
     for (const prompt of sortedPrompts) {
       const frontmatter: Record<string, any> = includeFrontmatter
         ? {
-          name: prompt.title || `prompt-${prompt.id}`
-        }
+            name: prompt.title || `prompt-${prompt.id}`
+          }
         : {}
 
       if (includeFrontmatter) {
@@ -856,7 +856,9 @@ export const {
 } = markdownPromptService
 
 // Helper function to create ZIP file from export result
-export async function createZipFromExportResult(result: MarkdownExportResult): Promise<{ filename: string; buffer: Uint8Array }> {
+export async function createZipFromExportResult(
+  result: MarkdownExportResult
+): Promise<{ filename: string; buffer: Uint8Array }> {
   if (result.format !== 'multi-file' || !result.files) {
     throw new Error('createZipFromExportResult only works with multi-file format')
   }
@@ -868,6 +870,6 @@ export async function createZipFromExportResult(result: MarkdownExportResult): P
 
   const buffer = await zip.generateAsync({ type: 'uint8array' })
   const filename = `prompts-export-${new Date().toISOString().slice(0, 10)}.zip`
-  
+
   return { filename, buffer }
 }

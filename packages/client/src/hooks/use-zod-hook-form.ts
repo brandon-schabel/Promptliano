@@ -6,12 +6,10 @@ type UseZodFormProps<T extends z.ZodType<Record<string, any>>> = Omit<UseFormPro
   schema: T
 }
 
-export default function useZodForm<T extends z.ZodType<Record<string, any>>>(
-  {
-    schema,
-    ...formProps
-  }: UseZodFormProps<T>
-): UseFormReturn<z.infer<T>> {
+export default function useZodForm<T extends z.ZodType<Record<string, any>>>({
+  schema,
+  ...formProps
+}: UseZodFormProps<T>): UseFormReturn<z.infer<T>> {
   return useForm({
     ...formProps,
     resolver: zodResolver(schema),

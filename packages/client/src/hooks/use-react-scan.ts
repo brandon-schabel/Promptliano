@@ -18,7 +18,7 @@ export function useReactScan(enabled: boolean) {
       script.id = REACT_SCAN_SCRIPT_ID
       script.src = REACT_SCAN_URL
       script.async = true
-      
+
       script.onload = () => {
         isLoadedRef.current = true
         console.log('React Scan DevTools loaded successfully')
@@ -36,7 +36,6 @@ export function useReactScan(enabled: boolean) {
 
       document.head.appendChild(script)
       scriptRef.current = script
-
     } else if (!enabled && isLoadedRef.current) {
       // Unload React Scan
       const existingScript = document.getElementById(REACT_SCAN_SCRIPT_ID)

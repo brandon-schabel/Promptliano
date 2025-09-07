@@ -130,11 +130,16 @@ export class BaseRepository<
         if (ErrorFactory.updateFailed) {
           throw ErrorFactory.updateFailed(this.entityName || 'Entity', id, 'No rows affected')
         }
-        throw new ApiError(500, `Failed to update ${this.entityName || 'Entity'} with ID ${id}: No rows affected`, 'UPDATE_FAILED', {
-          entity: this.entityName || 'Entity',
-          id,
-          reason: 'No rows affected'
-        })
+        throw new ApiError(
+          500,
+          `Failed to update ${this.entityName || 'Entity'} with ID ${id}: No rows affected`,
+          'UPDATE_FAILED',
+          {
+            entity: this.entityName || 'Entity',
+            id,
+            reason: 'No rows affected'
+          }
+        )
       }
 
       return this.validateEntity(updated)
@@ -499,8 +504,8 @@ export function createBaseRepository<
     const instanceType = validDbInstance ? typeof validDbInstance : 'null/undefined'
     throw new Error(
       `Invalid database instance provided to repository. ` +
-      `Expected Drizzle database instance with .select method, got ${instanceType}. ` +
-      `This often happens when tests don't use createTestDatabase() properly.`
+        `Expected Drizzle database instance with .select method, got ${instanceType}. ` +
+        `This often happens when tests don't use createTestDatabase() properly.`
     )
   }
 

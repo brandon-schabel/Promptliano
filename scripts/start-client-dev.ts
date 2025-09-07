@@ -18,7 +18,7 @@ async function killPort(port: number) {
   if (process.platform === 'win32') {
     try {
       await $`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"`.quiet()
-      console.log(`🔪 Killed process(es) on port ${port} (Windows)`) 
+      console.log(`🔪 Killed process(es) on port ${port} (Windows)`)
     } catch {}
   }
 }

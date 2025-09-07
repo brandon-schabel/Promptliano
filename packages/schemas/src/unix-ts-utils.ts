@@ -72,17 +72,17 @@ export const unixTimestampSchema = z.preprocess(
     }
 
     // Now we expect rawValue to be string, number, or Date
-  try {
+    try {
       // The cast is now safer because we've handled null/undefined
       return toMillisecondTimestamp(rawValue as string | number | Date)
-  } catch (error) {
+    } catch (error) {
       // For specific error messaging requirements in tests, rethrow
       if (error instanceof Error && error.message === 'Expected number, received date') {
         throw error
       }
       // Otherwise, return raw value and let Zod handle it
       return rawValue
-  }
+    }
   },
   z
     .number()

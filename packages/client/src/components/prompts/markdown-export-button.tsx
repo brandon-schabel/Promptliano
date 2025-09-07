@@ -260,7 +260,12 @@ export function MarkdownExportMenuItem({
         // Single prompt export - direct download
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
+          filename: promptName
+            ? `${promptName
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')}.md`
+            : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - use batch export API
@@ -356,7 +361,12 @@ export function MarkdownExportButton({
         // Single prompt export - direct download
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
+          filename: promptName
+            ? `${promptName
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')}.md`
+            : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - use batch export API
@@ -469,7 +479,12 @@ export function MarkdownExportDialog({
       if (promptId) {
         await exportSingle.mutateAsync({
           promptId,
-          filename: promptName ? `${promptName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.md` : undefined
+          filename: promptName
+            ? `${promptName
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')}.md`
+            : undefined
         })
       } else if (promptIds) {
         // Multiple prompts export - use batch export API

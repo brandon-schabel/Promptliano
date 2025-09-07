@@ -148,17 +148,17 @@ export async function handleChatMessage({
   enableChatAutoNaming = false
 }: AiChatRequest): Promise<ReturnType<typeof streamText>> {
   let finalAssistantMessageId: number | undefined
-  
+
   // Get dynamic model configuration
   const modelConfigService = createModelConfigService()
   const provider = (options.provider || 'openai') as APIProviders
-  
+
   // Try to get default config for provider, or use provided options
   let defaultConfig = await modelConfigService.getDefaultConfig(provider)
-  
+
   // If no default config found, use the provided options as fallback
-  const finalOptions = defaultConfig 
-    ? { 
+  const finalOptions = defaultConfig
+    ? {
         provider: defaultConfig.provider,
         model: defaultConfig.model,
         temperature: defaultConfig.temperature,
@@ -219,11 +219,7 @@ export async function handleChatMessage({
     // Handle completion and errors
     onFinish: async ({ text, usage, finishReason }) => {
       if (debug) {
-        logModelCompletion(
-          finalOptions.provider as string,
-          finalOptions.model as string,
-          usage
-        )
+        logModelCompletion(finalOptions.provider as string, finalOptions.model as string, usage)
       }
 
       const finalContent = text || ''
@@ -590,13 +586,13 @@ export async function generateSingleText({
   // Get dynamic model configuration
   const modelConfigService = createModelConfigService()
   const provider = (options.provider || 'openai') as APIProviders
-  
+
   // Try to get default config for provider
   let defaultConfig = await modelConfigService.getDefaultConfig(provider)
-  
+
   // Merge with provided options
-  const finalOptions = defaultConfig 
-    ? { 
+  const finalOptions = defaultConfig
+    ? {
         provider: defaultConfig.provider,
         model: defaultConfig.model,
         temperature: defaultConfig.temperature,
@@ -608,7 +604,7 @@ export async function generateSingleText({
         ...options // User options override defaults
       }
     : options
-    
+
   if (!prompt && (!messages || messages.length === 0)) {
     throw ErrorFactory.missingRequired('prompt or messages', 'generateSingleText')
   }
@@ -650,11 +646,7 @@ export async function generateSingleText({
         })
 
         if (debug) {
-          logModelCompletion(
-            provider,
-            finalOptions.model || modelInstance.modelId,
-            usage
-          )
+          logModelCompletion(provider, finalOptions.model || modelInstance.modelId, usage)
         }
 
         return text
@@ -705,13 +697,13 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
   // Get dynamic model configuration
   const modelConfigService = createModelConfigService()
   const provider = (options.provider || 'openai') as APIProviders
-  
+
   // Try to get default config for provider
   let defaultConfig = await modelConfigService.getDefaultConfig(provider)
-  
+
   // Merge with provided options
-  const finalOptions = defaultConfig 
-    ? { 
+  const finalOptions = defaultConfig
+    ? {
         provider: defaultConfig.provider,
         model: defaultConfig.model,
         temperature: defaultConfig.temperature,
@@ -962,11 +954,7 @@ Start your response with { and end with }`
         })
 
         if (debug) {
-          logModelCompletion(
-            provider,
-            model || '',
-            result.usage
-          )
+          logModelCompletion(provider, model || '', result.usage)
         }
 
         return result
@@ -1062,10 +1050,7 @@ export async function genTextStream({
     })
 
     if (debug) {
-      console.log(
-        `[UnifiedProviderService - genTextStream] Messages:`,
-        messagesToProcess.length
-      )
+      console.log(`[UnifiedProviderService - genTextStream] Messages:`, messagesToProcess.length)
     }
 
     const aiSdkOptions = convertDbOptionsToAiSdk(options)
@@ -1079,11 +1064,7 @@ export async function genTextStream({
 
       onFinish: ({ text, usage, finishReason }) => {
         if (debug) {
-          logModelCompletion(
-            provider,
-            finalOptions.model || modelInstance.modelId,
-            usage
-          )
+          logModelCompletion(provider, finalOptions.model || modelInstance.modelId, usage)
         }
       },
       onError: (error) => {

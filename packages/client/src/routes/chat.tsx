@@ -930,12 +930,12 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   const search = Route.useSearch()
   const activeChatId = search.chatId ?? null
   const { data: chatsData } = useGetChats()
-  const { 
-    settings: modelSettings, 
-    setTemperature, 
-    setMaxTokens, 
-    setTopP, 
-    setFreqPenalty, 
+  const {
+    settings: modelSettings,
+    setTemperature,
+    setMaxTokens,
+    setTopP,
+    setFreqPenalty,
     setPresPenalty,
     setPreset,
     selectedPreset
@@ -991,7 +991,6 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   )
 }
 
-
 export const Route = createFileRoute('/chat')({
   validateSearch: zodValidator(chatSearchSchema),
   component: ChatPage
@@ -1026,14 +1025,12 @@ function ChatPage() {
   // Filter and sort chats
   const filteredAndSortedChats = useMemo(() => {
     if (!chatsData) return []
-    
+
     let filtered = chatsData
     if (searchTerm.trim()) {
-      filtered = chatsData.filter(chat => 
-        (chat.title || '').toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      filtered = chatsData.filter((chat) => (chat.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
     }
-    
+
     return filtered.sort((a, b) => b.updatedAt - a.updatedAt)
   }, [chatsData, searchTerm])
 
@@ -1140,24 +1137,26 @@ function ChatPage() {
     }
   }, [createChat, navigate, search])
 
-  const handleDeleteChat = useCallback(async (chatId: number) => {
-    if (!window.confirm('Are you sure you want to delete this chat?')) return
-    try {
-      await deleteChat.mutateAsync(chatId)
-      toast.success('Chat deleted')
-      if (activeChatId === chatId) {
-        navigate({
-          to: '/chat',
-          search: { ...search, chatId: undefined },
-          replace: true
-        })
+  const handleDeleteChat = useCallback(
+    async (chatId: number) => {
+      if (!window.confirm('Are you sure you want to delete this chat?')) return
+      try {
+        await deleteChat.mutateAsync(chatId)
+        toast.success('Chat deleted')
+        if (activeChatId === chatId) {
+          navigate({
+            to: '/chat',
+            search: { ...search, chatId: undefined },
+            replace: true
+          })
+        }
+      } catch (error) {
+        console.error('Error deleting chat:', error)
+        toast.error('Failed to delete chat')
       }
-    } catch (error) {
-      console.error('Error deleting chat:', error)
-      toast.error('Failed to delete chat')
-    }
-  }, [deleteChat, activeChatId, navigate, search])
-
+    },
+    [deleteChat, activeChatId, navigate, search]
+  )
 
   useEffect(() => {
     if (
@@ -1211,7 +1210,9 @@ function ChatPage() {
                 <span className='inline-flex items-center gap-2'>
                   {selectedModelName}
                   {matchedPreset && (
-                    <Badge variant='outline' className='ml-1'>Preset: {matchedPreset.key}</Badge>
+                    <Badge variant='outline' className='ml-1'>
+                      Preset: {matchedPreset.key}
+                    </Badge>
                   )}
                   {model && (
                     <Button
@@ -1283,13 +1284,11 @@ function ChatPage() {
                   <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6'>
                     <div>
                       <h1 className='text-3xl font-bold tracking-tight'>Recent Chats</h1>
-                      <p className='text-muted-foreground mt-1'>
-                        Continue your conversations or start a new one
-                      </p>
+                      <p className='text-muted-foreground mt-1'>Continue your conversations or start a new one</p>
                     </div>
-                    
+
                     {/* New Chat Button */}
-                    <Button 
+                    <Button
                       onClick={handleCreateNewChat}
                       size='lg'
                       className='gap-2 shadow-lg hover:shadow-xl transition-all'
@@ -1330,10 +1329,9 @@ function ChatPage() {
                         {searchTerm.trim() ? 'No matching chats' : 'No chats yet'}
                       </h3>
                       <p className='text-muted-foreground mb-6'>
-                        {searchTerm.trim() 
-                          ? 'Try adjusting your search terms' 
-                          : 'Start your first conversation to see it here'
-                        }
+                        {searchTerm.trim()
+                          ? 'Try adjusting your search terms'
+                          : 'Start your first conversation to see it here'}
                       </p>
                       {!searchTerm.trim() && (
                         <Button onClick={handleCreateNewChat} disabled={createChat.isPending}>
@@ -1347,11 +1345,7 @@ function ChatPage() {
                   /* Chat Grid */
                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                     {filteredAndSortedChats.map((chat) => (
-                      <ChatCard
-                        key={chat.id}
-                        chat={chat}
-                        onDelete={handleDeleteChat}
-                      />
+                      <ChatCard key={chat.id} chat={chat} onDelete={handleDeleteChat} />
                     ))}
                   </div>
                 )}

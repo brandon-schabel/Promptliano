@@ -171,10 +171,7 @@ export function createMCPTool<T extends z.ZodTypeAny>({
         setTimeout(() => reject(new Error('Tool execution timeout')), timeout)
       )
 
-      return Promise.race([
-        handler(validatedInput, context),
-        timeoutPromise
-      ])
+      return Promise.race([handler(validatedInput, context), timeoutPromise])
     }
   }
 }
@@ -271,10 +268,14 @@ export const createProjectWithTeamTool = createMCPTool({
       name: z.string().min(1),
       description: z.string().optional()
     }),
-    teamMembers: z.array(z.object({
-      email: z.string().email(),
-      role: z.enum(['admin', 'member']).default('member')
-    })).min(1)
+    teamMembers: z
+      .array(
+        z.object({
+          email: z.string().email(),
+          role: z.enum(['admin', 'member']).default('member')
+        })
+      )
+      .min(1)
   }),
   handler: async ({ project: projectData, teamMembers }, context) => {
     const { services, logger } = context
@@ -288,21 +289,20 @@ export const createProjectWithTeamTool = createMCPTool({
         // Create invitations
         const invitations = []
         for (const member of teamMembers) {
-          const invitation = await services.invitations.create({
-            projectId: project.id,
-            email: member.email,
-            role: member.role
-          }, { tx })
+          const invitation = await services.invitations.create(
+            {
+              projectId: project.id,
+              email: member.email,
+              role: member.role
+            },
+            { tx }
+          )
 
           invitations.push(invitation)
         }
 
         // Send notifications
-        await services.notifications.sendProjectInvitations(
-          project,
-          invitations,
-          { tx }
-        )
+        await services.notifications.sendProjectInvitations(project, invitations, { tx })
 
         return { project, invitations }
       })
@@ -317,7 +317,6 @@ export const createProjectWithTeamTool = createMCPTool({
         data: result,
         message: `Project "${result.project.name}" created with ${teamMembers.length} team members`
       }
-
     } catch (error) {
       logger.error('Failed to create project with team', {
         error: error.message,
@@ -386,7 +385,7 @@ import { ProjectCrudTools } from './tools/project-tools'
 
 export const mcpServer = new MCPServer({
   tools: [
-    ...Object.values(ProjectCrudTools),
+    ...Object.values(ProjectCrudTools)
     // ... other tools
   ]
 })
@@ -415,4 +414,4 @@ export const mcpServer = new MCPServer({
 
 ---
 
-*This consolidated MCP architect combines expertise from promptliano-mcp-tool-creator into a comprehensive guide for MCP tool development and AI agent integration.*
+_This consolidated MCP architect combines expertise from promptliano-mcp-tool-creator into a comprehensive guide for MCP tool development and AI agent integration._

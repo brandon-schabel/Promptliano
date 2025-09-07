@@ -562,9 +562,9 @@ export function KanbanBoard({ projectId, onCreateTicket }: KanbanBoardProps) {
                 console.warn('Queue missing required properties:', queueWithStats)
                 return null
               }
-              
+
               const queueId = queueWithStats?.queue?.id?.toString() || 'unknown'
-              
+
               return (
                 <KanbanColumn
                   key={queueId}

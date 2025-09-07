@@ -172,10 +172,10 @@ export type ListModelsOptions = {
 /**
  * Model Fetcher Service - Functional Factory Pattern
  * Fetches and manages AI models from various providers
- * 
+ *
  * Key improvements:
  * - Uses functional factory pattern instead of class
- * - Consistent error handling with ErrorFactory  
+ * - Consistent error handling with ErrorFactory
  * - Dependency injection for testing
  * - Caching support for performance
  * - Provider-specific logic cleanly separated
@@ -217,10 +217,7 @@ function normalizeLocalBaseUrl(input: string): string {
 /**
  * Create Model Fetcher Service with functional factory pattern
  */
-export function createModelFetcherService(
-  config: ProviderKeysConfig, 
-  deps: ModelFetcherDeps = {}
-) {
+export function createModelFetcherService(config: ProviderKeysConfig, deps: ModelFetcherDeps = {}) {
   const {
     logger = createServiceLogger('ModelFetcherService'),
     cache = new Map(),
@@ -518,7 +515,9 @@ export function createModelFetcherService(
     /**
      * List Ollama models with caching and error handling
      */
-    listOllamaModels: async ({ baseUrl }: { baseUrl: string } = { baseUrl: OLLAMA_BASE_URL }): Promise<UnifiedModel[]> => {
+    listOllamaModels: async (
+      { baseUrl }: { baseUrl: string } = { baseUrl: OLLAMA_BASE_URL }
+    ): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
           const normalizedBase = normalizeLocalBaseUrl(baseUrl)
@@ -553,7 +552,9 @@ export function createModelFetcherService(
     /**
      * List LM Studio models with caching and error handling
      */
-    listLMStudioModels: async ({ baseUrl }: { baseUrl: string } = { baseUrl: LMSTUDIO_BASE_URL }): Promise<UnifiedModel[]> => {
+    listLMStudioModels: async (
+      { baseUrl }: { baseUrl: string } = { baseUrl: LMSTUDIO_BASE_URL }
+    ): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
           const normalizedBase0 = normalizeLocalBaseUrl(baseUrl)
@@ -591,7 +592,13 @@ export function createModelFetcherService(
     /**
      * List Custom Provider models with caching and error handling
      */
-    listCustomProviderModels: async ({ baseUrl, apiKey }: { baseUrl: string; apiKey: string }): Promise<UnifiedModel[]> => {
+    listCustomProviderModels: async ({
+      baseUrl,
+      apiKey
+    }: {
+      baseUrl: string
+      apiKey: string
+    }): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
           const cacheKey = `custom-models-${baseUrl}`
@@ -809,10 +816,7 @@ export class ModelFetcherServiceClass {
     return this.service.listCustomProviderModels({ baseUrl, apiKey })
   }
 
-  async listModels(
-    provider: APIProviders,
-    options: ListModelsOptions = {}
-  ): Promise<UnifiedModel[]> {
+  async listModels(provider: APIProviders, options: ListModelsOptions = {}): Promise<UnifiedModel[]> {
     return this.service.listModels(provider, options)
   }
 }

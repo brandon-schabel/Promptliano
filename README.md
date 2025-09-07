@@ -93,8 +93,8 @@ The development UI will be available at [http://localhost:1420](http://localhost
 - Drizzle Studio: `DRIZZLE_STUDIO_PORT` (default: 4983)
 - MCP Inspector UI: `MCP_INSPECTOR_CLIENT_PORT` (default: 6274)
 - MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)
-   - Alternatively, set Inspector's native vars: `CLIENT_PORT` / `SERVER_PORT`.
-     The dev script maps `MCP_INSPECTOR_*` to these for the Inspector process.
+  - Alternatively, set Inspector's native vars: `CLIENT_PORT` / `SERVER_PORT`.
+    The dev script maps `MCP_INSPECTOR_*` to these for the Inspector process.
 
 Example:
 
@@ -111,21 +111,25 @@ Note: The dev script auto‑frees these ports before starting.
 Recommended: use STDIO transport (matches our MCP services).
 
 Option A — macOS/Linux (uses helper script):
+
 - Transport: `stdio`
 - Command: `sh`
 - Args: `["packages/server/mcp-start.sh"]`
 
 Option B — Windows:
+
 - Transport: `stdio`
 - Command: `cmd.exe`
 - Args: `["/c", "packages\\server\\mcp-start.bat"]`
 
 Option C — Cross‑platform (no shell scripts):
+
 - Transport: `stdio`
 - Command: `bun`
 - Args: `["run", "-C", "packages/server", "mcp"]`
 
 Optional env:
+
 - `PROMPTLIANO_PROJECT_ID`: scope tools/resources to a specific project ID
 
 Example `mcp.json` (macOS/Linux script):

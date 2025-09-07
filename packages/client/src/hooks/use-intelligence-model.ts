@@ -69,7 +69,7 @@ export function useIntelligenceModel(options: UseIntelligenceModelOptions = {}) 
 
   const [selectedLevel, setSelectedLevel] = useState<IntelligenceLevel>(defaultLevel)
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(true)
-  
+
   const client = useApiClient()
 
   // Fetch model configurations from server
@@ -90,47 +90,54 @@ export function useIntelligenceModel(options: UseIntelligenceModelOptions = {}) 
   })
 
   // Recommend intelligence level based on task characteristics
-  const recommendLevel = useCallback((characteristics: {
-    taskType?: string
-    contextSize?: number
-    complexity?: 'simple' | 'moderate' | 'complex'
-    requiresPlanning?: boolean
-  }): IntelligenceLevel => {
-    const { 
-      taskType: task, 
-      contextSize: size = 0, 
-      complexity = 'moderate', 
-      requiresPlanning = false 
-    } = characteristics
+  const recommendLevel = useCallback(
+    (characteristics: {
+      taskType?: string
+      contextSize?: number
+      complexity?: 'simple' | 'moderate' | 'complex'
+      requiresPlanning?: boolean
+    }): IntelligenceLevel => {
+      const {
+        taskType: task,
+        contextSize: size = 0,
+        complexity = 'moderate',
+        requiresPlanning = false
+      } = characteristics
 
-    // Planning tasks always use planning level
-    if (requiresPlanning || task?.toLowerCase().includes('planning') || task?.toLowerCase().includes('ticket')) {
-      return 'planning'
-    }
+      // Planning tasks always use planning level
+      if (requiresPlanning || task?.toLowerCase().includes('planning') || task?.toLowerCase().includes('ticket')) {
+        return 'planning'
+      }
 
-    // Large context requires high intelligence
-    if (size > 50000) {
-      return 'high'
-    }
+      // Large context requires high intelligence
+      if (size > 50000) {
+        return 'high'
+      }
 
-    // File suggestions require high intelligence
-    if (task?.toLowerCase().includes('file') || task?.toLowerCase().includes('suggest')) {
-      return 'high'
-    }
+      // File suggestions require high intelligence
+      if (task?.toLowerCase().includes('file') || task?.toLowerCase().includes('suggest')) {
+        return 'high'
+      }
 
-    // Simple tasks use low intelligence
-    if (complexity === 'simple' || task?.toLowerCase().includes('summar') || size < 5000) {
-      return 'low'
-    }
+      // Simple tasks use low intelligence
+      if (complexity === 'simple' || task?.toLowerCase().includes('summar') || size < 5000) {
+        return 'low'
+      }
 
-    // Complex tasks require high intelligence
-    if (complexity === 'complex' || task?.toLowerCase().includes('architect') || task?.toLowerCase().includes('refactor')) {
-      return 'high'
-    }
+      // Complex tasks require high intelligence
+      if (
+        complexity === 'complex' ||
+        task?.toLowerCase().includes('architect') ||
+        task?.toLowerCase().includes('refactor')
+      ) {
+        return 'high'
+      }
 
-    // Default to medium
-    return 'medium'
-  }, [])
+      // Default to medium
+      return 'medium'
+    },
+    []
+  )
 
   // Get recommended level based on current context
   const recommendedLevel = useMemo(() => {
@@ -151,12 +158,15 @@ export function useIntelligenceModel(options: UseIntelligenceModelOptions = {}) 
   }, [recommendedLevel])
 
   // Get level info with recommendation flag
-  const getLevelInfo = useCallback((level: IntelligenceLevel): IntelligenceLevelInfo => {
-    return {
-      ...INTELLIGENCE_LEVELS[level],
-      recommended: level === recommendedLevel
-    }
-  }, [recommendedLevel])
+  const getLevelInfo = useCallback(
+    (level: IntelligenceLevel): IntelligenceLevelInfo => {
+      return {
+        ...INTELLIGENCE_LEVELS[level],
+        recommended: level === recommendedLevel
+      }
+    },
+    [recommendedLevel]
+  )
 
   // Check if task fits within context window
   const validateContextSize = useCallback((level: IntelligenceLevel, size: number): boolean => {
@@ -179,11 +189,9 @@ export function useIntelligenceModel(options: UseIntelligenceModelOptions = {}) 
     if (!task) return true
 
     const taskLower = task.toLowerCase()
-    const useCases = INTELLIGENCE_LEVELS[level].useCases.map(uc => uc.toLowerCase())
+    const useCases = INTELLIGENCE_LEVELS[level].useCases.map((uc) => uc.toLowerCase())
 
-    return useCases.some(useCase => 
-      useCase.includes(taskLower) || taskLower.includes(useCase.split(' ')[0])
-    )
+    return useCases.some((useCase) => useCase.includes(taskLower) || taskLower.includes(useCase.split(' ')[0]))
   }, [])
 
   return {

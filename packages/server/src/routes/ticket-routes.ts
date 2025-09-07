@@ -739,13 +739,17 @@ const getTicketByIdBasicRoute = createRoute({
   summary: 'Get a ticket by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(TicketResponseSchema)
@@ -758,13 +762,17 @@ const updateTicketByIdBasicRoute = createRoute({
   summary: 'Update a ticket by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     }),
     body: {
       content: {
@@ -784,13 +792,17 @@ const deleteTicketByIdBasicRoute = createRoute({
   summary: 'Delete a ticket by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(OperationSuccessResponseSchema)
@@ -833,6 +845,10 @@ export type TicketRouteTypes = typeof ticketRoutes
 // Local params schema matching path placeholder {projectId}
 const ProjectIdParamsProjectIdSchema = z
   .object({
-    projectId: z.coerce.number().int().positive().openapi({ param: { name: 'projectId', in: 'path' } })
+    projectId: z.coerce
+      .number()
+      .int()
+      .positive()
+      .openapi({ param: { name: 'projectId', in: 'path' } })
   })
   .openapi('ProjectIdParamsProjectId')

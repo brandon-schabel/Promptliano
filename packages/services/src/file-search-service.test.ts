@@ -14,10 +14,10 @@ describe('FileSearchService', () => {
   beforeAll(async () => {
     // Initialize mock logger
     mockLogger = {
-      debug: () => { },
-      warn: () => { },
-      error: () => { },
-      info: () => { }
+      debug: () => {},
+      warn: () => {},
+      error: () => {},
+      info: () => {}
     }
 
     // Create service instances with test dependencies
@@ -37,19 +37,19 @@ describe('FileSearchService', () => {
     // Clean up test data - tables might not exist yet
     try {
       db.prepare('DELETE FROM file_search_fts WHERE project_id = ?').run(testProjectId)
-    } catch { }
+    } catch {}
     try {
       db.prepare('DELETE FROM file_search_metadata WHERE project_id = ?').run(testProjectId)
-    } catch { }
+    } catch {}
     try {
       db.prepare('DELETE FROM file_keywords WHERE file_id LIKE ?').run(`test-${testProjectId}-%`)
-    } catch { }
+    } catch {}
     try {
       db.prepare('DELETE FROM file_trigrams WHERE file_id LIKE ?').run(`test-${testProjectId}-%`)
-    } catch { }
+    } catch {}
     try {
       db.prepare('DELETE FROM search_cache WHERE project_id = ?').run(testProjectId)
-    } catch { }
+    } catch {}
   })
 
   afterAll(async () => {
@@ -434,7 +434,7 @@ describe('FileSearchService', () => {
           testProjectId: 1,
           testDb: { db: {} }
         }),
-        cleanupTest: async () => { }
+        cleanupTest: async () => {}
       }
 
       testContext = await testEnv.setupTest()

@@ -1,6 +1,6 @@
 /**
  * Mutation Hooks Factory - Advanced mutation patterns beyond basic CRUD
- * 
+ *
  * This factory creates specialized mutation hooks for:
  * - Batch operations (create, update, delete)
  * - Import/export operations
@@ -9,12 +9,7 @@
  * - Transaction support
  */
 
-import {
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-  type UseMutationResult
-} from '@tanstack/react-query'
+import { useMutation, useQueryClient, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useApiClient } from '../api/use-api-client'
 import { useState, useCallback, useRef } from 'react'
@@ -28,22 +23,22 @@ export interface MutationHookConfig<TEntity> {
    * Display name for the entity
    */
   entityName: string
-  
+
   /**
    * Plural display name
    */
   entityNamePlural?: string
-  
+
   /**
    * Path to the API client methods
    */
   clientPath: string
-  
+
   /**
    * Custom query keys
    */
   queryKeys?: QueryKeyFactory
-  
+
   /**
    * Hook options
    */
@@ -52,32 +47,32 @@ export interface MutationHookConfig<TEntity> {
      * Enable optimistic updates for batch operations
      */
     optimistic?: boolean
-    
+
     /**
      * Show progress for batch operations
      */
     showProgress?: boolean
-    
+
     /**
      * Batch size for operations
      */
     batchSize?: number
-    
+
     /**
      * Retry failed items in batch
      */
     retryFailedItems?: boolean
-    
+
     /**
      * Custom success message formatter
      */
     successMessage?: (action: string, count: number) => string
-    
+
     /**
-     * Custom error message formatter  
+     * Custom error message formatter
      */
     errorMessage?: (action: string, error: Error, count?: number) => string
-    
+
     /**
      * Disable toast notifications
      */
@@ -135,27 +130,31 @@ export interface ProgressState {
  */
 export interface MutationHooks<TEntity> {
   // Batch operations
-  useBatchCreate: (
-    options?: UseMutationOptions<BatchResult<TEntity>, Error, TEntity[]>
-  ) => UseMutationResult<BatchResult<TEntity>, Error, TEntity[]> & {
+  useBatchCreate: (options?: UseMutationOptions<BatchResult<TEntity>, Error, TEntity[]>) => UseMutationResult<
+    BatchResult<TEntity>,
+    Error,
+    TEntity[]
+  > & {
     progress: ProgressState
     abort: () => void
   }
-  
+
   useBatchUpdate: (
     options?: UseMutationOptions<BatchResult<TEntity>, Error, Array<{ id: number | string; data: Partial<TEntity> }>>
   ) => UseMutationResult<BatchResult<TEntity>, Error, Array<{ id: number | string; data: Partial<TEntity> }>> & {
     progress: ProgressState
     abort: () => void
   }
-  
-  useBatchDelete: (
-    options?: UseMutationOptions<BatchResult<void>, Error, (number | string)[]>
-  ) => UseMutationResult<BatchResult<void>, Error, (number | string)[]> & {
+
+  useBatchDelete: (options?: UseMutationOptions<BatchResult<void>, Error, (number | string)[]>) => UseMutationResult<
+    BatchResult<void>,
+    Error,
+    (number | string)[]
+  > & {
     progress: ProgressState
     abort: () => void
   }
-  
+
   // Import/Export operations
   useImport: (
     options?: UseMutationOptions<BatchResult<TEntity>, Error, { file: File; options?: ImportExportOptions }>
@@ -163,32 +162,32 @@ export interface MutationHooks<TEntity> {
     progress: ProgressState
     validateFile: (file: File) => Promise<{ valid: boolean; errors?: string[] }>
   }
-  
+
   useExport: (
     options?: UseMutationOptions<Blob, Error, { params?: any; options?: ImportExportOptions }>
   ) => UseMutationResult<Blob, Error, { params?: any; options?: ImportExportOptions }> & {
     download: (blob: Blob, filename?: string) => void
   }
-  
+
   // Reorder operation
   useReorder: (
     options?: UseMutationOptions<TEntity[], Error, { items: TEntity[]; field?: string }>
   ) => UseMutationResult<TEntity[], Error, { items: TEntity[]; field?: string }>
-  
+
   // Duplicate operation
   useDuplicate: (
     options?: UseMutationOptions<TEntity, Error, { id: number | string; data?: Partial<TEntity> }>
   ) => UseMutationResult<TEntity, Error, { id: number | string; data?: Partial<TEntity> }>
-  
+
   // Archive/Restore operations
   useArchive: (
     options?: UseMutationOptions<TEntity, Error, number | string>
   ) => UseMutationResult<TEntity, Error, number | string>
-  
+
   useRestore: (
     options?: UseMutationOptions<TEntity, Error, number | string>
   ) => UseMutationResult<TEntity, Error, number | string>
-  
+
   // Bulk field update
   useBulkFieldUpdate: <K extends keyof TEntity>(
     options?: UseMutationOptions<BatchResult<TEntity>, Error, { ids: (number | string)[]; field: K; value: TEntity[K] }>
@@ -201,31 +200,30 @@ export interface MutationHooks<TEntity> {
 export function createMutationHooks<TEntity extends { id: number | string }>(
   config: MutationHookConfig<TEntity>
 ): MutationHooks<TEntity> {
-  const {
-    entityName,
-    entityNamePlural = `${entityName}s`,
-    clientPath,
-    options = {}
-  } = config
+  const { entityName, entityNamePlural = `${entityName}s`, clientPath, options = {} } = config
 
   // Create query keys
   const KEYS = config.queryKeys || createQueryKeys(clientPath)
-  
+
   // Default options
   const batchSize = options.batchSize || 50
-  
+
   // Success message formatter
-  const formatSuccess = options.successMessage || ((action: string, count: number) => {
-    const entity = count === 1 ? entityName : entityNamePlural
-    return `${count} ${entity} ${action} successfully`
-  })
-  
+  const formatSuccess =
+    options.successMessage ||
+    ((action: string, count: number) => {
+      const entity = count === 1 ? entityName : entityNamePlural
+      return `${count} ${entity} ${action} successfully`
+    })
+
   // Error message formatter
-  const formatError = options.errorMessage || ((action: string, error: Error, count?: number) => {
-    const entity = count === 1 ? entityName : entityNamePlural
-    return error.message || `Failed to ${action} ${count ? `${count} ${entity}` : entityNamePlural.toLowerCase()}`
-  })
-  
+  const formatError =
+    options.errorMessage ||
+    ((action: string, error: Error, count?: number) => {
+      const entity = count === 1 ? entityName : entityNamePlural
+      return error.message || `Failed to ${action} ${count ? `${count} ${entity}` : entityNamePlural.toLowerCase()}`
+    })
+
   // Show toast helper
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     if (!options.silent) {
@@ -244,15 +242,18 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       status: 'idle'
     })
 
-    const updateProgress = useCallback((current: number, total: number, status?: ProgressState['status'], message?: string) => {
-      setProgress({
-        current,
-        total,
-        percentage: total > 0 ? Math.round((current / total) * 100) : 0,
-        status: status || 'processing',
-        message
-      })
-    }, [])
+    const updateProgress = useCallback(
+      (current: number, total: number, status?: ProgressState['status'], message?: string) => {
+        setProgress({
+          current,
+          total,
+          percentage: total > 0 ? Math.round((current / total) * 100) : 0,
+          status: status || 'processing',
+          message
+        })
+      },
+      []
+    )
 
     const resetProgress = useCallback(() => {
       setProgress({
@@ -289,7 +290,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       }
 
       const batch = items.slice(i, Math.min(i + batchSize, items.length))
-      
+
       try {
         const batchResults = await processor(batch)
         results.successful.push(...batchResults)
@@ -308,7 +309,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
             }
           }
         } else {
-          batch.forEach(item => {
+          batch.forEach((item) => {
             results.failed.push({ item, error: error as Error })
             results.failureCount++
           })
@@ -324,9 +325,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
   /**
    * Batch create hook
    */
-  const useBatchCreate = (
-    mutationOptions?: UseMutationOptions<BatchResult<TEntity>, Error, TEntity[]>
-  ) => {
+  const useBatchCreate = (mutationOptions?: UseMutationOptions<BatchResult<TEntity>, Error, TEntity[]>) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
     const { progress, updateProgress, resetProgress } = useProgressState()
@@ -336,12 +335,12 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async (items: TEntity[]) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         resetProgress()
         updateProgress(0, items.length, 'processing', `Creating ${items.length} ${entityNamePlural.toLowerCase()}...`)
-        
+
         abortControllerRef.current = new AbortController()
-        
+
         if (api?.batchCreate) {
           // Use batch API if available
           try {
@@ -363,20 +362,16 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
           const result = await processBatch(
             items,
             async (batch) => {
-              const promises = batch.map(item => api.create(item))
+              const promises = batch.map((item) => api.create(item))
               const responses = await Promise.all(promises)
-              return responses.map(r => r.data || r)
+              return responses.map((r) => r.data || r)
             },
             updateProgress,
             abortControllerRef.current?.signal
           )
-          
-          updateProgress(
-            result.successCount,
-            result.total,
-            result.failureCount === 0 ? 'completed' : 'failed'
-          )
-          
+
+          updateProgress(result.successCount, result.total, result.failureCount === 0 ? 'completed' : 'failed')
+
           return result
         } else {
           throw new Error(`API client missing batchCreate/create method for ${clientPath}`)
@@ -384,7 +379,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       },
       onSuccess: (result, variables, context) => {
         queryClient.invalidateQueries({ queryKey: KEYS.all })
-        
+
         if (result.failureCount === 0) {
           showToast('success', formatSuccess('created', result.successCount))
         } else if (result.successCount > 0) {
@@ -392,7 +387,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
         } else {
           showToast('error', formatError('create', new Error('All items failed'), result.total))
         }
-        
+
         mutationOptions?.onSuccess?.(result, variables, context)
       },
       onError: (error, variables, context) => {
@@ -417,7 +412,11 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
    * Batch update hook
    */
   const useBatchUpdate = (
-    mutationOptions?: UseMutationOptions<BatchResult<TEntity>, Error, Array<{ id: number | string; data: Partial<TEntity> }>>
+    mutationOptions?: UseMutationOptions<
+      BatchResult<TEntity>,
+      Error,
+      Array<{ id: number | string; data: Partial<TEntity> }>
+    >
   ) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
@@ -428,12 +427,17 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async (updates: Array<{ id: number | string; data: Partial<TEntity> }>) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         resetProgress()
-        updateProgress(0, updates.length, 'processing', `Updating ${updates.length} ${entityNamePlural.toLowerCase()}...`)
-        
+        updateProgress(
+          0,
+          updates.length,
+          'processing',
+          `Updating ${updates.length} ${entityNamePlural.toLowerCase()}...`
+        )
+
         abortControllerRef.current = new AbortController()
-        
+
         if (api?.batchUpdate) {
           // Use batch API if available
           try {
@@ -457,18 +461,14 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
             async (batch) => {
               const promises = batch.map(({ id, data }) => api.update(id, data))
               const responses = await Promise.all(promises)
-              return responses.map(r => r.data || r)
+              return responses.map((r) => r.data || r)
             },
             updateProgress,
             abortControllerRef.current?.signal
           )
-          
-          updateProgress(
-            result.successCount,
-            result.total,
-            result.failureCount === 0 ? 'completed' : 'failed'
-          )
-          
+
+          updateProgress(result.successCount, result.total, result.failureCount === 0 ? 'completed' : 'failed')
+
           return result
         } else {
           throw new Error(`API client missing batchUpdate/update method for ${clientPath}`)
@@ -476,7 +476,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       },
       onSuccess: (result, variables, context) => {
         queryClient.invalidateQueries({ queryKey: KEYS.all })
-        
+
         if (result.failureCount === 0) {
           showToast('success', formatSuccess('updated', result.successCount))
         } else if (result.successCount > 0) {
@@ -484,7 +484,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
         } else {
           showToast('error', formatError('update', new Error('All items failed'), result.total))
         }
-        
+
         mutationOptions?.onSuccess?.(result, variables, context)
       },
       onError: (error, variables, context) => {
@@ -508,9 +508,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
   /**
    * Batch delete hook
    */
-  const useBatchDelete = (
-    mutationOptions?: UseMutationOptions<BatchResult<void>, Error, (number | string)[]>
-  ) => {
+  const useBatchDelete = (mutationOptions?: UseMutationOptions<BatchResult<void>, Error, (number | string)[]>) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
     const { progress, updateProgress, resetProgress } = useProgressState()
@@ -520,12 +518,12 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async (ids: (number | string)[]) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         resetProgress()
         updateProgress(0, ids.length, 'processing', `Deleting ${ids.length} ${entityNamePlural.toLowerCase()}...`)
-        
+
         abortControllerRef.current = new AbortController()
-        
+
         if (api?.batchDelete) {
           // Use batch API if available
           try {
@@ -547,20 +545,16 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
           const result = await processBatch(
             ids,
             async (batch) => {
-              const promises = batch.map(id => api.delete(id))
+              const promises = batch.map((id) => api.delete(id))
               await Promise.all(promises)
               return batch.map(() => undefined as any)
             },
             updateProgress,
             abortControllerRef.current?.signal
           )
-          
-          updateProgress(
-            result.successCount,
-            result.total,
-            result.failureCount === 0 ? 'completed' : 'failed'
-          )
-          
+
+          updateProgress(result.successCount, result.total, result.failureCount === 0 ? 'completed' : 'failed')
+
           return result
         } else {
           throw new Error(`API client missing batchDelete/delete method for ${clientPath}`)
@@ -568,7 +562,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       },
       onSuccess: (result, variables, context) => {
         queryClient.invalidateQueries({ queryKey: KEYS.all })
-        
+
         if (result.failureCount === 0) {
           showToast('success', formatSuccess('deleted', result.successCount))
         } else if (result.successCount > 0) {
@@ -576,7 +570,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
         } else {
           showToast('error', formatError('delete', new Error('All items failed'), result.total))
         }
-        
+
         mutationOptions?.onSuccess?.(result, variables, context)
       },
       onError: (error, variables, context) => {
@@ -610,17 +604,17 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     const validateFile = async (file: File): Promise<{ valid: boolean; errors?: string[] }> => {
       // Basic file validation
       const errors: string[] = []
-      
+
       if (file.size === 0) {
         errors.push('File is empty')
       }
-      
+
       const extension = file.name.split('.').pop()?.toLowerCase()
       const validExtensions = ['json', 'csv', 'xlsx', 'xls']
       if (!extension || !validExtensions.includes(extension)) {
         errors.push(`Invalid file format. Supported formats: ${validExtensions.join(', ')}`)
       }
-      
+
       return { valid: errors.length === 0, errors }
     }
 
@@ -628,17 +622,17 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async ({ file, options: importOptions }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         resetProgress()
         updateProgress(0, 100, 'processing', 'Importing data...')
-        
+
         if (api?.import) {
           const formData = new FormData()
           formData.append('file', file)
           if (importOptions) {
             formData.append('options', JSON.stringify(importOptions))
           }
-          
+
           const response = await api.import(formData)
           updateProgress(100, 100, 'completed')
           return response.data || response
@@ -689,7 +683,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async ({ params, options: exportOptions }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.export) {
           const response = await api.export({ ...params, ...exportOptions })
           return response.data || response
@@ -717,9 +711,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
   /**
    * Other mutation hooks (simpler implementations)
    */
-  const useReorder = (
-    mutationOptions?: UseMutationOptions<TEntity[], Error, { items: TEntity[]; field?: string }>
-  ) => {
+  const useReorder = (mutationOptions?: UseMutationOptions<TEntity[], Error, { items: TEntity[]; field?: string }>) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
 
@@ -727,9 +719,12 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async ({ items, field = 'orderIndex' }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.reorder) {
-          const response = await api.reorder(items.map(item => item.id), field)
+          const response = await api.reorder(
+            items.map((item) => item.id),
+            field
+          )
           return response.data || response
         } else {
           throw new Error(`API client missing reorder method for ${clientPath}`)
@@ -758,7 +753,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async ({ id, data }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.duplicate) {
           const response = await api.duplicate(id, data)
           return response.data || response
@@ -785,9 +780,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     })
   }
 
-  const useArchive = (
-    mutationOptions?: UseMutationOptions<TEntity, Error, number | string>
-  ) => {
+  const useArchive = (mutationOptions?: UseMutationOptions<TEntity, Error, number | string>) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
 
@@ -795,7 +788,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async (id: number | string) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.archive) {
           const response = await api.archive(id)
           return response.data || response
@@ -820,9 +813,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
     })
   }
 
-  const useRestore = (
-    mutationOptions?: UseMutationOptions<TEntity, Error, number | string>
-  ) => {
+  const useRestore = (mutationOptions?: UseMutationOptions<TEntity, Error, number | string>) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
 
@@ -830,7 +821,7 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async (id: number | string) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.restore) {
           const response = await api.restore(id)
           return response.data || response
@@ -856,7 +847,11 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
   }
 
   const useBulkFieldUpdate = <K extends keyof TEntity>(
-    mutationOptions?: UseMutationOptions<BatchResult<TEntity>, Error, { ids: (number | string)[]; field: K; value: TEntity[K] }>
+    mutationOptions?: UseMutationOptions<
+      BatchResult<TEntity>,
+      Error,
+      { ids: (number | string)[]; field: K; value: TEntity[K] }
+    >
   ) => {
     const client = useApiClient()
     const queryClient = useQueryClient()
@@ -865,20 +860,17 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       mutationFn: async ({ ids, field, value }) => {
         if (!client) throw new Error('API client not initialized')
         const api = (client as any)[clientPath]
-        
+
         if (api?.bulkFieldUpdate) {
           const response = await api.bulkFieldUpdate(ids, field, value)
           return response.data || response
         } else if (api?.update) {
           // Fallback to individual updates
-          const result = await processBatch(
-            ids,
-            async (batch) => {
-              const promises = batch.map(id => api.update(id, { [field]: value }))
-              const responses = await Promise.all(promises)
-              return responses.map(r => r.data || r)
-            }
-          )
+          const result = await processBatch(ids, async (batch) => {
+            const promises = batch.map((id) => api.update(id, { [field]: value }))
+            const responses = await Promise.all(promises)
+            return responses.map((r) => r.data || r)
+          })
           return result
         } else {
           throw new Error(`API client missing bulkFieldUpdate method for ${clientPath}`)
@@ -886,13 +878,13 @@ export function createMutationHooks<TEntity extends { id: number | string }>(
       },
       onSuccess: (result, variables, context) => {
         queryClient.invalidateQueries({ queryKey: KEYS.all })
-        
+
         if (result.failureCount === 0) {
           showToast('success', formatSuccess('updated', result.successCount))
         } else {
           showToast('info', `Updated ${result.successCount} of ${result.total} ${entityNamePlural.toLowerCase()}`)
         }
-        
+
         mutationOptions?.onSuccess?.(result, variables, context)
       },
       onError: (error, variables, context) => {

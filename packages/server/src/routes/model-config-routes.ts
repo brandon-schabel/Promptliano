@@ -1,9 +1,7 @@
 import { createRoute, z, OpenAPIHono } from '@hono/zod-openapi'
 import { createStandardResponses, createStandardResponsesWithStatus, successResponse } from '../utils/route-helpers'
 import { ApiError } from '@promptliano/shared'
-import { 
-  createModelConfigService
-} from '@promptliano/services'
+import { createModelConfigService } from '@promptliano/services'
 import {
   selectModelConfigSchema,
   selectModelPresetSchema,
@@ -18,65 +16,85 @@ import {
 } from '@promptliano/database'
 
 // Response schemas
-const ModelConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: (selectModelConfigSchema as any).openapi('ModelConfig')
-}).openapi('ModelConfigResponse')
-
-const ModelConfigListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array((selectModelConfigSchema as any).openapi('ModelConfig'))
-}).openapi('ModelConfigListResponse')
-
-const ModelPresetResponseSchema = z.object({
-  success: z.literal(true),
-  data: (selectModelPresetSchema as any).openapi('ModelPreset')
-}).openapi('ModelPresetResponse')
-
-const ModelPresetListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
-}).openapi('ModelPresetListResponse')
-
-const ModelPresetWithConfigResponseSchema = z.object({
-  success: z.literal(true),
-  data: (selectModelPresetSchema as any).extend({
-    config: (selectModelConfigSchema as any).openapi('ModelConfig')
-  }).openapi('ModelPresetWithConfig')
-}).openapi('ModelPresetWithConfigResponse')
-
-const ExportDataResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    configs: z.array((selectModelConfigSchema as any).openapi('ModelConfig')),
-    presets: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
+const ModelConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: (selectModelConfigSchema as any).openapi('ModelConfig')
   })
-}).openapi('ExportDataResponse')
+  .openapi('ModelConfigResponse')
 
-const ImportResultResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    configsImported: z.number(),
-    presetsImported: z.number()
+const ModelConfigListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array((selectModelConfigSchema as any).openapi('ModelConfig'))
   })
-}).openapi('ImportResultResponse')
+  .openapi('ModelConfigListResponse')
+
+const ModelPresetResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: (selectModelPresetSchema as any).openapi('ModelPreset')
+  })
+  .openapi('ModelPresetResponse')
+
+const ModelPresetListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
+  })
+  .openapi('ModelPresetListResponse')
+
+const ModelPresetWithConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: (selectModelPresetSchema as any)
+      .extend({
+        config: (selectModelConfigSchema as any).openapi('ModelConfig')
+      })
+      .openapi('ModelPresetWithConfig')
+  })
+  .openapi('ModelPresetWithConfigResponse')
+
+const ExportDataResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      configs: z.array((selectModelConfigSchema as any).openapi('ModelConfig')),
+      presets: z.array((selectModelPresetSchema as any).openapi('ModelPreset'))
+    })
+  })
+  .openapi('ExportDataResponse')
+
+const ImportResultResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      configsImported: z.number(),
+      presetsImported: z.number()
+    })
+  })
+  .openapi('ImportResultResponse')
 
 // Request schemas
-const CreateModelConfigSchema = (insertModelConfigSchema as any).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-}).openapi('CreateModelConfig')
+const CreateModelConfigSchema = (insertModelConfigSchema as any)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true
+  })
+  .openapi('CreateModelConfig')
 
 const UpdateModelConfigSchema = CreateModelConfigSchema.partial().openapi('UpdateModelConfig')
 
-const CreateModelPresetSchema = (insertModelPresetSchema as any).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  usageCount: true,
-  lastUsedAt: true
-}).openapi('CreateModelPreset')
+const CreateModelPresetSchema = (insertModelPresetSchema as any)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    usageCount: true,
+    lastUsedAt: true
+  })
+  .openapi('CreateModelPreset')
 
 const UpdateModelPresetSchema = CreateModelPresetSchema.partial().openapi('UpdateModelPreset')
 
@@ -261,12 +279,14 @@ const deleteConfigRoute = createRoute({
       hard: z.coerce.boolean().optional().default(false)
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      deleted: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        deleted: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 modelConfigRoutes.openapi(deleteConfigRoute, async (c) => {
@@ -285,12 +305,14 @@ const setDefaultConfigRoute = createRoute({
   request: {
     params: ConfigIdParamsSchema
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      updated: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        updated: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 modelConfigRoutes.openapi(setDefaultConfigRoute, async (c) => {
@@ -311,12 +333,20 @@ const getAllPresetsRoute = createRoute({
   path: '/api/model-presets',
   tags: ['Model Presets'],
   summary: 'Get all model presets with configurations',
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.array((selectModelPresetSchema as any).extend({
-      config: (selectModelConfigSchema as any).openapi('ModelConfig')
-    }).openapi('ModelPresetWithConfig'))
-  }).openapi('ModelPresetsWithConfigResponse'))
+  responses: createStandardResponses(
+    z
+      .object({
+        success: z.literal(true),
+        data: z.array(
+          (selectModelPresetSchema as any)
+            .extend({
+              config: (selectModelConfigSchema as any).openapi('ModelConfig')
+            })
+            .openapi('ModelPresetWithConfig')
+        )
+      })
+      .openapi('ModelPresetsWithConfigResponse')
+  )
 })
 
 modelConfigRoutes.openapi(getAllPresetsRoute, async (c) => {
@@ -469,12 +499,14 @@ const deletePresetRoute = createRoute({
       hard: z.coerce.boolean().optional().default(false)
     })
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      deleted: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        deleted: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 modelConfigRoutes.openapi(deletePresetRoute, async (c) => {
@@ -493,12 +525,14 @@ const usePresetRoute = createRoute({
   request: {
     params: PresetIdParamsSchema
   },
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      updated: z.boolean()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        updated: z.boolean()
+      })
     })
-  }))
+  )
 })
 
 modelConfigRoutes.openapi(usePresetRoute, async (c) => {
@@ -515,12 +549,14 @@ const initSystemDefaultsRoute = createRoute({
   path: '/api/model-configs/system/initialize',
   tags: ['Model Configuration'],
   summary: 'Initialize system default configurations',
-  responses: createStandardResponses(z.object({
-    success: z.literal(true),
-    data: z.object({
-      message: z.string()
+  responses: createStandardResponses(
+    z.object({
+      success: z.literal(true),
+      data: z.object({
+        message: z.string()
+      })
     })
-  }))
+  )
 })
 
 modelConfigRoutes.openapi(initSystemDefaultsRoute, async (c) => {

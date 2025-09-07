@@ -323,7 +323,9 @@ export function SettingsPage() {
                       </div>
                       <div>
                         <Label className='text-sm font-medium'>React Scan</Label>
-                        <p className='text-sm text-muted-foreground'>Visualize React component performance and re-renders</p>
+                        <p className='text-sm text-muted-foreground'>
+                          Visualize React component performance and re-renders
+                        </p>
                       </div>
                     </div>
                     <Switch
@@ -395,15 +397,24 @@ export function SettingsPage() {
             <CardContent className='space-y-4 text-sm text-muted-foreground'>
               <div>
                 <p className='font-medium text-foreground mb-2'>TanStack DevTools:</p>
-                <p>When enabled, debugging tools will appear at the bottom of the screen. Use them to inspect query cache, routing state, and component performance.</p>
+                <p>
+                  When enabled, debugging tools will appear at the bottom of the screen. Use them to inspect query
+                  cache, routing state, and component performance.
+                </p>
               </div>
               <div>
                 <p className='font-medium text-foreground mb-2'>External Tools:</p>
-                <p>When enabled, navigation items will appear in the sidebar to access database management, API documentation, and protocol debugging interfaces.</p>
+                <p>
+                  When enabled, navigation items will appear in the sidebar to access database management, API
+                  documentation, and protocol debugging interfaces.
+                </p>
               </div>
               <div>
                 <p className='font-medium text-foreground mb-2'>Note:</p>
-                <p>Development tools are disabled by default and only intended for development environments. Some tools require external services to be running.</p>
+                <p>
+                  Development tools are disabled by default and only intended for development environments. Some tools
+                  require external services to be running.
+                </p>
               </div>
             </CardContent>
           </Card>

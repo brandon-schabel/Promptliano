@@ -67,12 +67,7 @@ const PARAMETER_INFO = {
   }
 }
 
-export function ModelParameterEditor({ 
-  parameters, 
-  onChange, 
-  disabled = false,
-  className 
-}: ModelParameterEditorProps) {
+export function ModelParameterEditor({ parameters, onChange, disabled = false, className }: ModelParameterEditorProps) {
   const handleSliderChange = (param: keyof ModelParameters) => (value: number[]) => {
     onChange({
       ...parameters,
@@ -147,47 +142,41 @@ export function ModelParameterEditor({
     <TooltipProvider>
       <div className={className}>
         <div className='grid gap-4'>
-        {/* Generation Parameters */}
-        <Card>
-          <CardHeader className='pb-3'>
-            <CardTitle className='text-sm'>Generation Settings</CardTitle>
-            <CardDescription className='text-xs'>
-              Control how the model generates responses
-            </CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            {renderParameter('temperature')}
-            {renderParameter('maxTokens')}
-          </CardContent>
-        </Card>
+          {/* Generation Parameters */}
+          <Card>
+            <CardHeader className='pb-3'>
+              <CardTitle className='text-sm'>Generation Settings</CardTitle>
+              <CardDescription className='text-xs'>Control how the model generates responses</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              {renderParameter('temperature')}
+              {renderParameter('maxTokens')}
+            </CardContent>
+          </Card>
 
-        {/* Sampling Parameters */}
-        <Card>
-          <CardHeader className='pb-3'>
-            <CardTitle className='text-sm'>Sampling Settings</CardTitle>
-            <CardDescription className='text-xs'>
-              Fine-tune token selection behavior
-            </CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            {renderParameter('topP')}
-            {parameters.topK !== undefined && renderParameter('topK')}
-          </CardContent>
-        </Card>
+          {/* Sampling Parameters */}
+          <Card>
+            <CardHeader className='pb-3'>
+              <CardTitle className='text-sm'>Sampling Settings</CardTitle>
+              <CardDescription className='text-xs'>Fine-tune token selection behavior</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              {renderParameter('topP')}
+              {parameters.topK !== undefined && renderParameter('topK')}
+            </CardContent>
+          </Card>
 
-        {/* Penalty Parameters */}
-        <Card>
-          <CardHeader className='pb-3'>
-            <CardTitle className='text-sm'>Penalty Settings</CardTitle>
-            <CardDescription className='text-xs'>
-              Control repetition in generated text
-            </CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            {renderParameter('frequencyPenalty')}
-            {renderParameter('presencePenalty')}
-          </CardContent>
-        </Card>
+          {/* Penalty Parameters */}
+          <Card>
+            <CardHeader className='pb-3'>
+              <CardTitle className='text-sm'>Penalty Settings</CardTitle>
+              <CardDescription className='text-xs'>Control repetition in generated text</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              {renderParameter('frequencyPenalty')}
+              {renderParameter('presencePenalty')}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </TooltipProvider>

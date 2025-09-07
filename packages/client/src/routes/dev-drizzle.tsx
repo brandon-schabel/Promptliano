@@ -23,7 +23,8 @@ function DrizzleStudioPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <p className='text-muted-foreground'>
-              Drizzle Studio is currently disabled. Enable it in the settings to access the database management interface.
+              Drizzle Studio is currently disabled. Enable it in the settings to access the database management
+              interface.
             </p>
             <Button asChild>
               <Link to='/settings' search={{ tab: 'dev' }}>

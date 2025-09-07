@@ -7,14 +7,7 @@
 import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { db } from '../db'
-import {
-  files,
-  selectedFiles,
-  type File,
-  type SelectedFile,
-  type InsertFile,
-
-} from '../schema'
+import { files, selectedFiles, type File, type SelectedFile, type InsertFile } from '../schema'
 
 // Create custom file repository for string IDs
 export const fileRepository = {

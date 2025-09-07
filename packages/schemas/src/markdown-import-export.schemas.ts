@@ -6,7 +6,8 @@ export const MarkdownFrontmatterSchema = z
   .object({
     name: z.string().min(1).openapi({
       example: 'My Awesome Prompt',
-      description: 'The prompt name from frontmatter. If no frontmatter exists, the filename (without extension, cleaned up) will be used as the name.'
+      description:
+        'The prompt name from frontmatter. If no frontmatter exists, the filename (without extension, cleaned up) will be used as the name.'
     }),
     created: z.string().datetime().optional().openapi({
       example: '2024-01-01T00:00:00Z',

@@ -57,7 +57,7 @@ export function useLocalModelStatus(provider: LocalModelProvider, options: UseLo
         })()
 
         // Race between timeout and fetch
-        const response = await Promise.race([fetchPromise, timeoutPromise]) as any
+        const response = (await Promise.race([fetchPromise, timeoutPromise])) as any
 
         // Accept both wrapped and unwrapped shapes
         const models = Array.isArray(response)

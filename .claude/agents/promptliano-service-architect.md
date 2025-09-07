@@ -70,7 +70,8 @@ import { CreateProjectSchema } from '@promptliano/schemas'
 
 // Service uses generated types - ZERO manual type definitions!
 export function createProjectService(deps: ServiceDependencies) {
-  async function create(data: InsertProject) { // Generated type
+  async function create(data: InsertProject) {
+    // Generated type
     const validated = CreateProjectSchema.parse(data) // Generated schema
     return deps.database.insert(projects).values(validated) // Type-safe!
   }
@@ -155,16 +156,9 @@ export function createProjectManagementService(deps: ServiceDependencies) {
       const txDeps = { ...deps, database: tx }
 
       const project = await createProjectService(txDeps).create(data.project)
-      const owner = await createUserService(txDeps).addToProject(
-        data.ownerId,
-        project.id,
-        'owner'
-      )
+      const owner = await createUserService(txDeps).addToProject(data.ownerId, project.id, 'owner')
 
-      await createNotificationService(txDeps).projectCreated(
-        project,
-        owner
-      )
+      await createNotificationService(txDeps).projectCreated(project, owner)
 
       return { project, owner }
     })
@@ -172,11 +166,7 @@ export function createProjectManagementService(deps: ServiceDependencies) {
 
   return {
     createProjectWithOwner,
-    transferOwnership: composeServices(
-      projectService,
-      userService,
-      notificationService
-    ).transferOwnership
+    transferOwnership: composeServices(projectService, userService, notificationService).transferOwnership
   }
 }
 ```
@@ -303,17 +293,17 @@ export function createApplicationServices(config: AppConfig) {
    - Identify dependencies and injection requirements
    - Plan error handling and recovery strategies
 
-2. **Factory Implementation**
+3. **Factory Implementation**
    - Create functional factories with proper dependency injection
    - Implement business logic with ErrorFactory patterns
    - Add comprehensive error context and logging
 
-3. **Service Composition**
+4. **Service Composition**
    - Design service interaction patterns
    - Implement transaction boundaries
    - Create composite services for complex operations
 
-4. **Testing and Validation**
+5. **Testing and Validation**
    - Implement comprehensive unit tests
    - Test service composition and error scenarios
    - Validate dependency injection patterns
@@ -368,4 +358,4 @@ import { createProjectService } from './project-service'
 
 ---
 
-*This consolidated service architect combines expertise from promptliano-service-architect and service-migration-architect into a unified guide for service development in Promptliano.*
+_This consolidated service architect combines expertise from promptliano-service-architect and service-migration-architect into a unified guide for service development in Promptliano._

@@ -89,7 +89,7 @@ export function createProviderKeyService() {
     if (keyData.key) {
       return keyData.key
     }
-    
+
     // If secretRef is provided, look up environment variable
     if (keyData.secretRef) {
       const envValue = process.env[keyData.secretRef]
@@ -99,10 +99,10 @@ export function createProviderKeyService() {
       }
       return envValue
     }
-    
+
     return null
   }
-  
+
   /**
    * Get storage method indicator for a key
    */
@@ -204,14 +204,14 @@ export function createProviderKeyService() {
         const keyList = transformedKeys.map((key) => {
           const storageMethod = getStorageMethod(key)
           const actualKey = getKeyValue(key)
-          
+
           // Add storage method and handle display appropriately
-          return { 
-            ...key, 
+          return {
+            ...key,
             key: actualKey ? maskApiKey(actualKey) : null,
             storageMethod,
             // Show environment variable name if using env storage
-            displayValue: storageMethod === 'env' ? `ENV: ${key.secretRef}` : (actualKey ? maskApiKey(actualKey) : null)
+            displayValue: storageMethod === 'env' ? `ENV: ${key.secretRef}` : actualKey ? maskApiKey(actualKey) : null
           }
         })
 
@@ -332,7 +332,7 @@ export function createProviderKeyService() {
 
         // Update plain text key
         if ((data as any).key !== undefined) {
-          (updateData as any).key = (data as any).key
+          ;(updateData as any).key = (data as any).key
         }
 
         // Update the key using repository

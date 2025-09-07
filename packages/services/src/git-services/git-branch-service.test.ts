@@ -68,9 +68,9 @@ describe('Git Branch Service - Functional Factory', () => {
         projectService: mockProjectService
       })
 
-      await expect(service.getBranches(1))
-        .rejects
-        .toThrow('Cannot git operations Project in current state: missing path')
+      await expect(service.getBranches(1)).rejects.toThrow(
+        'Cannot git operations Project in current state: missing path'
+      )
     })
 
     test('should handle project service errors', async () => {
@@ -82,9 +82,7 @@ describe('Git Branch Service - Functional Factory', () => {
         projectService: mockProjectService
       })
 
-      await expect(service.getBranches(1))
-        .rejects
-        .toThrow('Database connection failed')
+      await expect(service.getBranches(1)).rejects.toThrow('Database connection failed')
     })
 
     test('should handle git-related errors through the error handler', async () => {
@@ -142,9 +140,7 @@ describe('Git Branch Service - Functional Factory', () => {
       ]
 
       for (const { method, args } of methods) {
-        await expect((service as any)[method](...args))
-          .rejects
-          .toThrow() // All should throw some error due to invalid path
+        await expect((service as any)[method](...args)).rejects.toThrow() // All should throw some error due to invalid path
       }
     })
 
@@ -158,23 +154,20 @@ describe('Git Branch Service - Functional Factory', () => {
       })
 
       // Test all service methods with missing path error
-      const methods = [
-        'getBranches',
-        'getCurrentBranch',
-        'createBranch',
-        'switchBranch',
-        'deleteBranch',
-        'mergeBranch'
-      ]
+      const methods = ['getBranches', 'getCurrentBranch', 'createBranch', 'switchBranch', 'deleteBranch', 'mergeBranch']
 
       for (const method of methods) {
-        const args = method === 'createBranch' || method === 'switchBranch' || method === 'deleteBranch' || method === 'mergeBranch'
-          ? [1, 'test-branch']
-          : [1]
+        const args =
+          method === 'createBranch' ||
+          method === 'switchBranch' ||
+          method === 'deleteBranch' ||
+          method === 'mergeBranch'
+            ? [1, 'test-branch']
+            : [1]
 
-        await expect((service as any)[method](...args))
-          .rejects
-          .toThrow('Cannot git operations Project in current state: missing path')
+        await expect((service as any)[method](...args)).rejects.toThrow(
+          'Cannot git operations Project in current state: missing path'
+        )
       }
     })
   })
@@ -231,9 +224,15 @@ describe('Git Branch Service - Functional Factory', () => {
       })
 
       // Try operations that should clear cache (they'll fail but should attempt to clear)
-      try { await service.createBranch(1, 'test') } catch { }
-      try { await service.switchBranch(1, 'main') } catch { }
-      try { await service.mergeBranch(1, 'feature') } catch { }
+      try {
+        await service.createBranch(1, 'test')
+      } catch {}
+      try {
+        await service.switchBranch(1, 'main')
+      } catch {}
+      try {
+        await service.mergeBranch(1, 'feature')
+      } catch {}
 
       // Cache clear should not be called since operations fail early
       // But the service should have the clearCache dependency
@@ -309,13 +308,9 @@ describe('Git Branch Service - Functional Factory', () => {
       })
 
       // Test a few methods to ensure they handle upstream errors
-      await expect(service.getBranches(1))
-        .rejects
-        .toThrow('Service unavailable')
+      await expect(service.getBranches(1)).rejects.toThrow('Service unavailable')
 
-      await expect(service.getCurrentBranch(1))
-        .rejects
-        .toThrow('Service unavailable')
+      await expect(service.getCurrentBranch(1)).rejects.toThrow('Service unavailable')
     })
   })
 
@@ -347,7 +342,7 @@ describe('Git Branch Service - Functional Factory', () => {
           testProjectId: 1,
           testDb: { db: {} }
         }),
-        cleanupTest: async () => { }
+        cleanupTest: async () => {}
       }
 
       testContext = await testEnv.setupTest()

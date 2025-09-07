@@ -24,35 +24,39 @@ const app = new OpenAPIHono()
 
 // === Flow Data Schemas ===
 
-const FlowItemSchema = z.object({
-  id: z.string(),
-  type: z.enum(['ticket', 'task']),
-  title: z.string(),
-  description: z.string().optional(),
-  ticket: TicketSchema.openapi('Ticket').optional(),
-  task: TicketTaskSchema.openapi('TicketTask').optional(),
-  queueId: z.number().nullable().optional(),
-  queuePosition: z.number().nullable().optional(),
-  queueStatus: z.string().nullable().optional(),
-  queuePriority: z.number().optional(),
-  created: z.number(),
-  updated: z.number()
-}).openapi('FlowItem')
+const FlowItemSchema = z
+  .object({
+    id: z.string(),
+    type: z.enum(['ticket', 'task']),
+    title: z.string(),
+    description: z.string().optional(),
+    ticket: TicketSchema.openapi('Ticket').optional(),
+    task: TicketTaskSchema.openapi('TicketTask').optional(),
+    queueId: z.number().nullable().optional(),
+    queuePosition: z.number().nullable().optional(),
+    queueStatus: z.string().nullable().optional(),
+    queuePriority: z.number().optional(),
+    created: z.number(),
+    updated: z.number()
+  })
+  .openapi('FlowItem')
 
-const FlowDataSchema = z.object({
-  unqueued: z.object({
-    tickets: z.array(TicketSchema.openapi('Ticket')),
-    tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
-  }),
-  queues: z.record(
-    z.string(),
-    z.object({
-      queue: QueueSchema.openapi('Queue'),
+const FlowDataSchema = z
+  .object({
+    unqueued: z.object({
       tickets: z.array(TicketSchema.openapi('Ticket')),
       tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
-    })
-  )
-}).openapi('FlowData')
+    }),
+    queues: z.record(
+      z.string(),
+      z.object({
+        queue: QueueSchema.openapi('Queue'),
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+    )
+  })
+  .openapi('FlowData')
 
 // === Flow Data Endpoints ===
 
@@ -132,10 +136,12 @@ const getUnqueuedItemsRoute = createRoute({
     })
   },
   responses: createStandardResponses(
-    z.object({
-      tickets: z.array(TicketSchema.openapi('Ticket')),
-      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
-    }).openapi('UnqueuedItems')
+    z
+      .object({
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+      .openapi('UnqueuedItems')
   ),
   tags: ['Flow'],
   summary: 'Get all unqueued tickets and tasks'
@@ -224,10 +230,12 @@ const getQueueItemsRoute = createRoute({
     query: z.object({ status: z.string().optional() })
   },
   responses: createStandardResponses(
-    z.object({
-      tickets: z.array(TicketSchema.openapi('Ticket')),
-      tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
-    }).openapi('QueueItems')
+    z
+      .object({
+        tickets: z.array(TicketSchema.openapi('Ticket')),
+        tasks: z.array(TicketTaskSchema.openapi('TicketTask'))
+      })
+      .openapi('QueueItems')
   ),
   tags: ['Flow'],
   summary: 'Get items in a queue (Flow)'
@@ -239,10 +247,13 @@ app.openapi(getQueueItemsRoute, async (c) => {
   const items = await flowService.getQueueItems(queueId)
   if (!status) return c.json(items, 200)
   const normalize = (s: any) => (s ? String(s).toLowerCase() : s)
-  return c.json({
-    tickets: items.tickets.filter((t: any) => normalize(t.queueStatus) === normalize(status)),
-    tasks: items.tasks.filter((t: any) => normalize(t.queueStatus) === normalize(status))
-  }, 200)
+  return c.json(
+    {
+      tickets: items.tickets.filter((t: any) => normalize(t.queueStatus) === normalize(status)),
+      tasks: items.tasks.filter((t: any) => normalize(t.queueStatus) === normalize(status))
+    },
+    200
+  )
 })
 
 // Queue stats for a specific queue (Flow)
@@ -278,11 +289,7 @@ app.openapi(getQueueStatsRoute, async (c) => {
     completedItems: toPairs.filter((i) => i.status === 'completed').length,
     failedItems: toPairs.filter((i) => i.status === 'failed').length,
     currentAgents: Array.from(
-      new Set(
-        toPairs
-          .filter((i) => i.status === 'in_progress' && i.agentId)
-          .map((i) => String(i.agentId))
-      )
+      new Set(toPairs.filter((i) => i.status === 'in_progress' && i.agentId).map((i) => String(i.agentId)))
     )
   }
   return c.json(stats, 200)

@@ -65,7 +65,8 @@ export const queueManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for: create_queue, list_queues, get_all_stats). Tip: use project_manager(list) to fetch a valid ID.'
+        description:
+          'The project ID (required for: create_queue, list_queues, get_all_stats). Tip: use project_manager(list) to fetch a valid ID.'
       },
       queueId: {
         type: 'number',

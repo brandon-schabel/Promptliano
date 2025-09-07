@@ -18,4 +18,3 @@ describe('Route param naming', () => {
     expect(res.status).not.toBe(400)
   })
 })
-

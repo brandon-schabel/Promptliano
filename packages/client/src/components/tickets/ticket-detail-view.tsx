@@ -253,8 +253,8 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
     try {
       if (ticket?.ticket?.id) {
-      await completeTicket.mutateAsync(ticket.ticket.id)
-    }
+        await completeTicket.mutateAsync(ticket.ticket.id)
+      }
       toast.success('Ticket completed successfully')
       setIsCompleteDialogOpen(false)
       onTicketUpdate?.()
@@ -278,8 +278,8 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
 
     try {
       if (ticket?.ticket?.id) {
-      await deleteTicket.mutateAsync(ticket.ticket.id)
-    }
+        await deleteTicket.mutateAsync(ticket.ticket.id)
+      }
       toast.success('Ticket deleted successfully')
       setIsDeleteDialogOpen(false)
       onTicketUpdate?.()

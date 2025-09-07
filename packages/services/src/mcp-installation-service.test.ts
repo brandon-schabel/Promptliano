@@ -14,7 +14,7 @@ import {
   type MCPInstallationOptions,
   type MCPInstallationResult,
   type MCPTool,
-  type MCPToolInfo,
+  type MCPToolInfo
 } from './mcp-installation-service'
 
 // Set test environment
@@ -44,10 +44,10 @@ const mockToolInfo: MCPToolInfo = {
 // Mock dependencies
 const mockDeps = {
   logger: {
-    info: mock(() => { }),
-    warn: mock(() => { }),
-    error: mock(() => { }),
-    debug: mock(() => { })
+    info: mock(() => {}),
+    warn: mock(() => {}),
+    error: mock(() => {}),
+    debug: mock(() => {})
   },
   platform: 'darwin' as const,
   defaultServerUrl: 'http://localhost:3147/api/mcp'
@@ -55,14 +55,14 @@ const mockDeps = {
 
 // Mock file system operations
 const mockFs = {
-  mkdir: mock(async () => { }),
+  mkdir: mock(async () => {}),
   readFile: mock(),
-  writeFile: mock(async () => { }),
+  writeFile: mock(async () => {}),
   access: mock(),
   stat: mock(),
-  copyFile: mock(async () => { }),
-  chmod: mock(async () => { }),
-  rm: mock(async () => { })
+  copyFile: mock(async () => {}),
+  chmod: mock(async () => {}),
+  rm: mock(async () => {})
 }
 
 // Mock MCP service helpers to align with actual service behavior
@@ -70,7 +70,7 @@ const mockMCPFileOps = {
   readJsonFile: mock(),
   writeJsonFile: mock(async () => ({ backupPath: '/test/backup/path' })),
   fileExists: mock(async () => true),
-  makeExecutable: mock(async () => { })
+  makeExecutable: mock(async () => {})
 }
 
 const mockMCPPlatformPaths = {
@@ -78,8 +78,8 @@ const mockMCPPlatformPaths = {
 }
 
 const mockMCPValidation = {
-  validateTool: mock(() => { }),
-  validatePlatform: mock(() => { })
+  validateTool: mock(() => {}),
+  validatePlatform: mock(() => {})
 }
 
 // Mock modules
@@ -88,7 +88,8 @@ mock.module('./utils/service-helpers', () => ({
   withErrorContext: (fn: Function) => fn(),
   withRetry: (operation: Function) => operation(),
   ErrorFactory: {
-    invalidInput: (field: string, expected: string, received: string) => new Error(`Invalid ${field}: expected ${expected}, got ${received}`)
+    invalidInput: (field: string, expected: string, received: string) =>
+      new Error(`Invalid ${field}: expected ${expected}, got ${received}`)
   }
 }))
 mock.module('./utils/mcp-service-helpers', () => ({
@@ -103,19 +104,19 @@ mock.module('./utils/mcp-service-helpers', () => ({
   MCPCacheConfig: { installation: { ttl: 300000, maxEntries: 20 } },
   withMCPCache: (fn: Function) => fn,
   createProgressTracker: () => ({
-    startStep: mock(() => { }),
-    completeStep: mock(() => { }),
-    error: mock(() => { }),
+    startStep: mock(() => {}),
+    completeStep: mock(() => {}),
+    error: mock(() => {}),
     getProgress: mock(() => ({ step: 'test', progress: 1, total: 1 }))
   })
 }))
 
 // Mock logger
 const mockLogger = {
-  info: mock(() => { }),
-  warn: mock(() => { }),
-  error: mock(() => { }),
-  debug: mock(() => { })
+  info: mock(() => {}),
+  warn: mock(() => {}),
+  error: mock(() => {}),
+  debug: mock(() => {})
 }
 
 mock.module('./utils/logger', () => ({
@@ -131,9 +132,9 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
 
   beforeEach(async () => {
     // Reset all mocks
-    Object.values(mockFs).forEach(mock => mock.mockReset())
-    Object.values(mockDeps.logger).forEach(mock => mock.mockClear())
-    Object.values(mockMCPFileOps).forEach(mock => mock.mockReset())
+    Object.values(mockFs).forEach((mock) => mock.mockReset())
+    Object.values(mockDeps.logger).forEach((mock) => mock.mockClear())
+    Object.values(mockMCPFileOps).forEach((mock) => mock.mockReset())
     mockMCPPlatformPaths.getFullConfigPath.mockReset()
     mockMCPValidation.validateTool.mockReset()
     mockMCPValidation.validatePlatform.mockReset()
@@ -148,8 +149,9 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
 
     // Setup MCP service helper mocks to return success
     mockMCPFileOps.readJsonFile
-      .mockResolvedValueOnce(null) // First call: No existing config 
-      .mockResolvedValue({ // All subsequent calls: Valid config for validation
+      .mockResolvedValueOnce(null) // First call: No existing config
+      .mockResolvedValue({
+        // All subsequent calls: Valid config for validation
         mcpServers: {
           'promptliano-test-project': { command: 'test' }
         }
@@ -303,9 +305,7 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
         }
       }
 
-      mockMCPFileOps.readJsonFile
-        .mockResolvedValueOnce(existingConfig)
-        .mockResolvedValueOnce(configAfterInstall)
+      mockMCPFileOps.readJsonFile.mockResolvedValueOnce(existingConfig).mockResolvedValueOnce(configAfterInstall)
 
       const result = await service.installMCP(mockInstallConfig)
 
@@ -390,11 +390,12 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
 
       // Mock validation to throw error for invalid tool
       mockMCPValidation.validateTool.mockImplementationOnce(() => {
-        throw new Error('Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool')
+        throw new Error(
+          'Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool'
+        )
       })
 
-      await expect(service.installMCP(invalidConfig as any))
-        .rejects.toThrow()
+      await expect(service.installMCP(invalidConfig as any)).rejects.toThrow()
     })
   })
 
@@ -464,18 +465,18 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
       mockMCPFileOps.readJsonFile.mockReset()
       mockMCPFileOps.readJsonFile.mockRejectedValueOnce(new Error('Permission denied'))
 
-      await expect(service.uninstallMCP('claude-desktop', 'test-project'))
-        .rejects.toThrow('Permission denied')
+      await expect(service.uninstallMCP('claude-desktop', 'test-project')).rejects.toThrow('Permission denied')
     })
 
     test('should validate tool name for uninstall', async () => {
       // Mock validation to throw error for invalid tool
       mockMCPValidation.validateTool.mockImplementationOnce(() => {
-        throw new Error('Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool')
+        throw new Error(
+          'Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool'
+        )
       })
 
-      await expect(service.uninstallMCP('invalid-tool' as any, 'test-project'))
-        .rejects.toThrow()
+      await expect(service.uninstallMCP('invalid-tool' as any, 'test-project')).rejects.toThrow()
     })
   })
 
@@ -508,11 +509,7 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
 
   describe('Project Configuration', () => {
     test('should install project-specific configuration', async () => {
-      const result = await service.installProjectConfig(
-        123,
-        '/test/project',
-        'http://localhost:3147/api/mcp'
-      )
+      const result = await service.installProjectConfig(123, '/test/project', 'http://localhost:3147/api/mcp')
 
       expect(result.success).toBe(true)
       expect(result.configPath).toContain('.mcp.json')
@@ -541,19 +538,17 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
     })
 
     test('should handle project config errors', async () => {
-      // Mock writeJsonFile to reject with permission error 
+      // Mock writeJsonFile to reject with permission error
       mockMCPFileOps.writeJsonFile.mockRejectedValue(new Error('Permission denied'))
 
       // installProjectConfig uses withErrorContext which re-throws errors, unlike installMCP
-      await expect(service.installProjectConfig(123, '/test/project'))
-        .rejects
-        .toThrow('Permission denied')
+      await expect(service.installProjectConfig(123, '/test/project')).rejects.toThrow('Permission denied')
     })
   })
 
   describe('Error Recovery', () => {
     test('should handle file system errors during installation', async () => {
-      // Mock writeJsonFile to consistently throw EBUSY error (simulating persistent file system issue) 
+      // Mock writeJsonFile to consistently throw EBUSY error (simulating persistent file system issue)
       mockMCPFileOps.writeJsonFile.mockRejectedValue(new Error('EBUSY: resource busy or locked'))
 
       // Mock readJsonFile to return no existing config
@@ -576,13 +571,13 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
 
       // Mock validation to throw error
       mockMCPValidation.validateTool.mockImplementationOnce(() => {
-        throw new Error('Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool')
+        throw new Error(
+          'Invalid tool: expected claude-desktop, vscode, cursor, continue, claude-code, windsurf, got invalid-tool'
+        )
       })
 
       // Validation errors should be thrown, not converted to failure results
-      await expect(service.installMCP(invalidConfig as any))
-        .rejects
-        .toThrow('Invalid tool')
+      await expect(service.installMCP(invalidConfig as any)).rejects.toThrow('Invalid tool')
     })
   })
 
@@ -643,7 +638,7 @@ describe('MCP Installation Service - Functional Factory Pattern', () => {
           testProjectId: 1,
           testDb: { db: {} }
         })),
-        cleanupTest: mock(async () => { })
+        cleanupTest: mock(async () => {})
       }
 
       testContext = await testEnv.setupTest()

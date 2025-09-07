@@ -221,10 +221,11 @@ export function createIntelligenceModelService(deps: IntelligenceModelServiceDep
      */
     getIntelligenceLevelForUseCase(useCase: string): IntelligenceLevel {
       const foundCase = INTELLIGENCE_USE_CASES.find(
-        (uc) => uc.name.toLowerCase() === useCase.toLowerCase() ||
-        uc.examples.some((ex) => ex.toLowerCase().includes(useCase.toLowerCase()))
+        (uc) =>
+          uc.name.toLowerCase() === useCase.toLowerCase() ||
+          uc.examples.some((ex) => ex.toLowerCase().includes(useCase.toLowerCase()))
       )
-      
+
       return foundCase?.level || 'medium' // Default to medium if not found
     },
 
@@ -292,7 +293,7 @@ export function createIntelligenceModelService(deps: IntelligenceModelServiceDep
 
       for (const [level, config] of Object.entries(INTELLIGENCE_CONFIGS)) {
         const { metadata, ...modelConfig } = config
-        
+
         configs.push({
           name: `${level}-intelligence`,
           displayName: `${level.charAt(0).toUpperCase() + level.slice(1)} Intelligence`,
@@ -339,4 +340,3 @@ export function createIntelligenceModelService(deps: IntelligenceModelServiceDep
 
 // Export singleton instance
 export const intelligenceModelService = createIntelligenceModelService()
-

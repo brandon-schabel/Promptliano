@@ -24,7 +24,8 @@ function SwaggerUIPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <p className='text-muted-foreground'>
-              Swagger UI is currently disabled. Enable it in the settings to access the API documentation and testing interface.
+              Swagger UI is currently disabled. Enable it in the settings to access the API documentation and testing
+              interface.
             </p>
             <Button asChild>
               <Link to='/settings' search={{ tab: 'dev' }}>

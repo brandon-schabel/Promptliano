@@ -141,25 +141,19 @@ export function TanStackForm<T extends Record<string, any>>({
         validationMode === 'onChange'
           ? ({ value }) => {
               const result = schema.safeParse(value)
-              return result.success
-                ? undefined
-                : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
+              return result.success ? undefined : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
             }
           : undefined,
       onBlur:
         validationMode === 'onBlur'
           ? ({ value }) => {
               const result = schema.safeParse(value)
-              return result.success
-                ? undefined
-                : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
+              return result.success ? undefined : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
             }
           : undefined,
       onSubmit: ({ value }) => {
         const result = schema.safeParse(value)
-        return result.success
-          ? undefined
-          : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
+        return result.success ? undefined : result.error.issues.map((err: z.ZodIssue) => err.message).join(', ')
       }
     },
     onSubmit: async ({ value, formApi }) => {

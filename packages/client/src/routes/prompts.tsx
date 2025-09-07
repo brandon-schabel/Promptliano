@@ -8,12 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@promptliano/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@promptliano/ui'
 import { toast } from 'sonner'
-import {
-  useCreatePrompt,
-  useUpdatePrompt,
-  useDeletePrompt,
-  usePrompts
-} from '@/hooks/generated'
+import { useCreatePrompt, useUpdatePrompt, useDeletePrompt, usePrompts } from '@/hooks/generated'
 import { useExportPromptAsMarkdown, useExportPromptsBatch } from '@/hooks/api-hooks'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
@@ -26,7 +21,19 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@promptliano/ui'
-import { ArrowDownAZ, ArrowUpDown, Copy, Pencil, Upload, Download, MoreVertical, Trash, ChevronDown, Archive, FileText } from 'lucide-react'
+import {
+  ArrowDownAZ,
+  ArrowUpDown,
+  Copy,
+  Pencil,
+  Upload,
+  Download,
+  MoreVertical,
+  Trash,
+  ChevronDown,
+  Archive,
+  FileText
+} from 'lucide-react'
 import { Badge } from '@promptliano/ui'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { ExpandableTextarea } from '@/components/expandable-textarea'
@@ -82,9 +89,8 @@ export function PromptsPage() {
   // Handle bulk export
   const handleBulkExport = async () => {
     // Determine which prompts to export
-    const promptsToExport = selectedPrompts.size > 0 
-      ? Array.from(selectedPrompts)
-      : filteredAndSortedPrompts?.map(p => p.id) || []
+    const promptsToExport =
+      selectedPrompts.size > 0 ? Array.from(selectedPrompts) : filteredAndSortedPrompts?.map((p) => p.id) || []
 
     if (promptsToExport.length === 0) {
       toast.error('No prompts available for export')
@@ -103,7 +109,7 @@ export function PromptsPage() {
         sortBy: 'name',
         sortOrder: 'asc'
       })
-      
+
       // Clear selection after successful export
       setSelectedPrompts(new Set())
       setExportMode(false)
@@ -116,9 +122,8 @@ export function PromptsPage() {
   // Handle single-file export
   const handleSingleFileExport = async () => {
     // Determine which prompts to export
-    const promptsToExport = selectedPrompts.size > 0 
-      ? Array.from(selectedPrompts)
-      : filteredAndSortedPrompts?.map(p => p.id) || []
+    const promptsToExport =
+      selectedPrompts.size > 0 ? Array.from(selectedPrompts) : filteredAndSortedPrompts?.map((p) => p.id) || []
 
     if (promptsToExport.length === 0) {
       toast.error('No prompts available for export')
@@ -137,7 +142,7 @@ export function PromptsPage() {
         sortBy: 'name',
         sortOrder: 'asc'
       })
-      
+
       // Clear selection after successful export
       setSelectedPrompts(new Set())
       setExportMode(false)
@@ -189,7 +194,7 @@ export function PromptsPage() {
                 <ChevronDown className='h-4 w-4 ml-2' />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align='end'>
               <DropdownMenuItem onClick={handleBulkExport}>
                 <Archive className='h-4 w-4 mr-2' />
                 Export as ZIP (individual files)
@@ -217,7 +222,9 @@ export function PromptsPage() {
 
         <div className='flex items-center gap-4'>
           <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-            <Label htmlFor='export-mode' className='cursor-pointer'>Export mode</Label>
+            <Label htmlFor='export-mode' className='cursor-pointer'>
+              Export mode
+            </Label>
             <Switch id='export-mode' checked={exportMode} onCheckedChange={setExportMode} />
           </div>
 

@@ -58,9 +58,6 @@ export async function createInitialSchema() {
       'prompts',
       'queues',
       'queue_items',
-      'claude_agents',
-      'claude_commands',
-      'claude_hooks',
       'provider_keys',
       'files',
       'selected_files',
@@ -121,29 +118,25 @@ async function ensureSchemaUpgrades() {
   try {
     // Helper: check if a column exists on a table
     const hasColumn = (table: string, column: string): boolean => {
-      const rows = rawDb
-        .query(`PRAGMA table_info(${table})`)
-        .all() as { name: string }[]
+      const rows = rawDb.query(`PRAGMA table_info(${table})`).all() as { name: string }[]
       return rows.some((r) => r.name === column)
     }
 
     // Helper: check if an index exists
     const hasIndex = (indexName: string): boolean => {
-      const rows = rawDb
-        .query(`PRAGMA index_list('files')`)
-        .all() as { name: string }[]
+      const rows = rawDb.query(`PRAGMA index_list('files')`).all() as { name: string }[]
       return rows.some((r) => r.name === indexName)
     }
 
     // Ensure new file columns added after initial deployments
     const fileColumns: Array<{ name: string; ddl: string }> = [
-      { name: 'content', ddl: "ALTER TABLE `files` ADD `content` text" },
-      { name: 'summary_last_updated', ddl: "ALTER TABLE `files` ADD `summary_last_updated` integer" },
-      { name: 'meta', ddl: "ALTER TABLE `files` ADD `meta` text" },
-      { name: 'checksum', ddl: "ALTER TABLE `files` ADD `checksum` text" },
-      { name: 'imports', ddl: "ALTER TABLE `files` ADD `imports` text" },
-      { name: 'exports', ddl: "ALTER TABLE `files` ADD `exports` text" },
-      { name: 'extension', ddl: "ALTER TABLE `files` ADD `extension` text" }
+      { name: 'content', ddl: 'ALTER TABLE `files` ADD `content` text' },
+      { name: 'summary_last_updated', ddl: 'ALTER TABLE `files` ADD `summary_last_updated` integer' },
+      { name: 'meta', ddl: 'ALTER TABLE `files` ADD `meta` text' },
+      { name: 'checksum', ddl: 'ALTER TABLE `files` ADD `checksum` text' },
+      { name: 'imports', ddl: 'ALTER TABLE `files` ADD `imports` text' },
+      { name: 'exports', ddl: 'ALTER TABLE `files` ADD `exports` text' },
+      { name: 'extension', ddl: 'ALTER TABLE `files` ADD `extension` text' }
     ]
 
     for (const col of fileColumns) {
@@ -160,7 +153,7 @@ async function ensureSchemaUpgrades() {
     // Ensure provider_keys columns that may not exist on older DBs
     if (!hasColumn('provider_keys', 'secret_ref')) {
       try {
-        rawDb.exec("ALTER TABLE `provider_keys` ADD `secret_ref` text")
+        rawDb.exec('ALTER TABLE `provider_keys` ADD `secret_ref` text')
         console.log('✅ Added missing column provider_keys.secret_ref')
       } catch (e) {
         console.warn('⚠️ Failed to add column provider_keys.secret_ref:', e)
@@ -197,9 +190,9 @@ async function ensureSchemaUpgrades() {
 async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
   try {
     const tableExists = (table: string): boolean => {
-      const res = rawDb
-        .query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?")
-        .get(table) as { name?: string } | undefined
+      const res = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(table) as
+        | { name?: string }
+        | undefined
       return !!res?.name
     }
 
@@ -212,9 +205,9 @@ async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
     let hasEntries = false
     if (hasJournal) {
       try {
-        const row = rawDb
-          .query(`SELECT id FROM ${migrationsTable} ORDER BY created_at DESC LIMIT 1`)
-          .get() as { id?: number } | undefined
+        const row = rawDb.query(`SELECT id FROM ${migrationsTable} ORDER BY created_at DESC LIMIT 1`).get() as
+          | { id?: number }
+          | undefined
         hasEntries = !!row?.id
       } catch {
         // ignore
@@ -250,9 +243,7 @@ async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
       const hash = createHash('sha256').update(sqlStr).digest('hex')
 
       try {
-        rawDb.exec(
-          `INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('${hash}', ${when})`
-        )
+        rawDb.exec(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('${hash}', ${when})`)
         console.log('✅ Seeded __drizzle_migrations with baseline entry')
       } catch (e) {
         // If unique constraints or similar, ignore

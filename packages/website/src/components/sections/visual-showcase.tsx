@@ -40,8 +40,7 @@ const showcaseCategories = {
         alt: 'Recommended Prompts',
         title: 'Context-Aware Prompts',
         description: 'Get prompt suggestions based on your project'
-      },
-
+      }
     ]
   },
   git: {

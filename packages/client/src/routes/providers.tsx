@@ -119,27 +119,29 @@ import { useAppSettings } from '@/hooks/use-kv-local-storage'
 // Encryption UI removed; provider keys use secretRef only
 
 // Form schema for adding/editing provider
-const providerFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  provider: z.string().min(1, 'Provider is required'),
-  storageMethod: z.enum(['direct', 'env']).default('direct'),
-  key: z.string().optional(),
-  secretRef: z.string().optional(),
-  isDefault: z.boolean().default(false)
-}).refine(
-  (data) => {
-    // Validate that either key or secretRef is provided based on storage method
-    if (data.storageMethod === 'direct') {
-      return data.key && data.key.length > 0
-    } else {
-      return data.secretRef && data.secretRef.length > 0
+const providerFormSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    provider: z.string().min(1, 'Provider is required'),
+    storageMethod: z.enum(['direct', 'env']).default('direct'),
+    key: z.string().optional(),
+    secretRef: z.string().optional(),
+    isDefault: z.boolean().default(false)
+  })
+  .refine(
+    (data) => {
+      // Validate that either key or secretRef is provided based on storage method
+      if (data.storageMethod === 'direct') {
+        return data.key && data.key.length > 0
+      } else {
+        return data.secretRef && data.secretRef.length > 0
+      }
+    },
+    {
+      message: 'API key or environment variable is required',
+      path: ['key'] // Show error on key field
     }
-  },
-  {
-    message: 'API key or environment variable is required',
-    path: ['key'] // Show error on key field
-  }
-)
+  )
 
 type ProviderFormValues = z.infer<typeof providerFormSchema>
 
@@ -666,17 +668,17 @@ function ProvidersPage() {
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex flex-row space-x-4"
+                            className='flex flex-row space-x-4'
                           >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="direct" id="direct" />
-                              <Label htmlFor="direct" className="font-normal cursor-pointer">
+                            <div className='flex items-center space-x-2'>
+                              <RadioGroupItem value='direct' id='direct' />
+                              <Label htmlFor='direct' className='font-normal cursor-pointer'>
                                 Direct API Key
                               </Label>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="env" id="env" />
-                              <Label htmlFor="env" className="font-normal cursor-pointer">
+                            <div className='flex items-center space-x-2'>
+                              <RadioGroupItem value='env' id='env' />
+                              <Label htmlFor='env' className='font-normal cursor-pointer'>
                                 Environment Variable
                               </Label>
                             </div>
@@ -699,15 +701,9 @@ function ProvidersPage() {
                         <FormItem>
                           <FormLabel>API Key</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="password"
-                              placeholder='sk-...' 
-                              {...field} 
-                            />
+                            <Input type='password' placeholder='sk-...' {...field} />
                           </FormControl>
-                          <FormDescription>
-                            The actual API key will be stored securely in the database
-                          </FormDescription>
+                          <FormDescription>The actual API key will be stored securely in the database</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -720,10 +716,7 @@ function ProvidersPage() {
                         <FormItem>
                           <FormLabel>Environment Variable Name</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder='OPENAI_API_KEY' 
-                              {...field} 
-                            />
+                            <Input placeholder='OPENAI_API_KEY' {...field} />
                           </FormControl>
                           <FormDescription>
                             Name of the environment variable containing the API key (without $ prefix)
@@ -753,10 +746,10 @@ function ProvidersPage() {
                   {(() => {
                     const selectedProviderId = form.watch('provider')
                     if (!selectedProviderId) return null
-                    
+
                     const provider = PROVIDERS.find((p) => p.id === selectedProviderId)
                     if (!provider) return null
-                    
+
                     return (
                       <Alert>
                         <AlertCircle className='h-4 w-4' />

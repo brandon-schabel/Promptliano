@@ -12,7 +12,6 @@ export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
 export * from './file-repository'
 
-
 // Configuration and state repositories
 export * from './provider-key-repository'
 export * from './model-config-repository'

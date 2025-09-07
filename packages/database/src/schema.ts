@@ -271,8 +271,7 @@ export const prompts = sqliteTable(
   'prompts',
   {
     id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     content: text('content').notNull(),
     description: text('description'),
@@ -345,7 +344,6 @@ export const queueItems = sqliteTable(
     agentIdx: index('queue_items_agent_idx').on(table.agentId)
   })
 )
-
 
 // =============================================================================
 // CONFIGURATION & SECURITY TABLES
@@ -1037,8 +1035,6 @@ export const gitWorktreesRelations = relations(gitWorktrees, ({ one }) => ({
   })
 }))
 
-
-
 export const aiSdkOptionsRelations = relations(aiSdkOptions, ({ one }) => ({
   project: one(projects, {
     fields: [aiSdkOptions.projectId],
@@ -1273,7 +1269,6 @@ export type Prompt = Omit<PromptInferred, 'tags'> & {
 export type Queue = typeof queues.$inferSelect
 export type QueueItem = typeof queueItems.$inferSelect
 
-
 // Override ProviderKey type to fix JSON field types
 type ProviderKeyInferred = typeof providerKeys.$inferSelect
 export type ProviderKey = Omit<ProviderKeyInferred, 'customHeaders'> & {
@@ -1334,7 +1329,6 @@ export type GitTag = Omit<GitTagInferred, 'tagger'> & {
 
 export type GitStash = typeof gitStashes.$inferSelect
 export type GitWorktree = typeof gitWorktrees.$inferSelect
-
 
 // Override AiSdkOptions type to fix JSON field types
 type AiSdkOptionsInferred = typeof aiSdkOptions.$inferSelect
@@ -1515,13 +1509,13 @@ export const modelConfigs = sqliteTable(
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     userId: integer('user_id'), // Optional: for user-specific configs
     description: text('description'), // Description like "Optimized for quick responses using local models"
-    
+
     // UI metadata for preset display
     presetCategory: text('preset_category', { enum: ['low', 'medium', 'high', 'planning', 'custom'] }), // Category for UI grouping
     uiIcon: text('ui_icon'), // Icon name for UI display (e.g., 'Zap', 'Gauge', 'Rocket', 'Brain')
     uiColor: text('ui_color'), // Color class for UI (e.g., 'text-green-600', 'text-blue-600')
     uiOrder: integer('ui_order').default(0), // Display order in UI
-    
+
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull()
   },
@@ -1539,8 +1533,12 @@ export const modelPresets = sqliteTable(
     id: integer('id').primaryKey(),
     name: text('name').notNull(), // Preset name (e.g., 'Quick Response', 'Deep Analysis')
     description: text('description'),
-    configId: integer('config_id').notNull().references(() => modelConfigs.id, { onDelete: 'cascade' }),
-    category: text('category', { enum: ['general', 'coding', 'creative', 'analysis', 'custom', 'chat', 'productivity'] }).default('general'),
+    configId: integer('config_id')
+      .notNull()
+      .references(() => modelConfigs.id, { onDelete: 'cascade' }),
+    category: text('category', {
+      enum: ['general', 'coding', 'creative', 'analysis', 'custom', 'chat', 'productivity']
+    }).default('general'),
     isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
     isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     userId: integer('user_id'), // For user-created presets

@@ -86,7 +86,7 @@ export function ProjectDialog({ open, projectId, onOpenChange }: ProjectDialogPr
           } else {
             progressData = event as SyncProgressEvent
           }
-          
+
           // Update progress in the dialog
           syncProgressRef.current?.updateProgress(progressData)
         },

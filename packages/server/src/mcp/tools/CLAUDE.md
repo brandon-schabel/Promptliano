@@ -940,7 +940,8 @@ export const exampleManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'Project ID (required for: list, create, search). Tip: use project_manager(list) to fetch a valid ID.'
+        description:
+          'Project ID (required for: list, create, search). Tip: use project_manager(list) to fetch a valid ID.'
       },
       exampleId: {
         type: 'number',

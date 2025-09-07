@@ -23,19 +23,19 @@ export function createServiceLogger(serviceName: string): ServiceLogger {
         console.log(`${prefix} ${message}`, data || '')
       }
     },
-    
+
     warn: (message: string, data?: any) => {
       if (process.env.NODE_ENV !== 'test') {
         console.warn(`${prefix} ${message}`, data || '')
       }
     },
-    
+
     error: (message: string, error?: any, data?: any) => {
       if (process.env.NODE_ENV !== 'test') {
         console.error(`${prefix} ${message}`, error, data || '')
       }
     },
-    
+
     debug: (message: string, data?: any) => {
       if (process.env.NODE_ENV === 'development') {
         console.debug(`${prefix} ${message}`, data || '')

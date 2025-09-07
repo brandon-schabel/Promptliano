@@ -42,7 +42,7 @@ export interface CrudServiceConfig<TEntity, TCreate, TUpdate = Partial<TCreate>>
  */
 export function withErrorContext<T>(
   operation: () => Promise<T>,
-  context: { entity: string; action: string; id?: number | string;[key: string]: any }
+  context: { entity: string; action: string; id?: number | string; [key: string]: any }
 ): Promise<T> {
   return operation().catch((error) => {
     if (error instanceof Error && error.name === 'ApiError') {
@@ -91,10 +91,15 @@ const safeErrorFactory = {
     if (ErrorFactory.notFound) {
       return ErrorFactory.notFound(entity, id)
     }
-    return new ApiError(404, `${entity} with ID ${id} not found`, `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`, {
-      entity,
-      id
-    })
+    return new ApiError(
+      404,
+      `${entity} with ID ${id} not found`,
+      `${entity.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`,
+      {
+        entity,
+        id
+      }
+    )
   },
 
   invalidState: (entity: string, currentState: string, attemptedAction: string) => {
@@ -112,10 +117,15 @@ const safeErrorFactory = {
     if (ErrorFactory.missingRequired) {
       return ErrorFactory.missingRequired(field, context)
     }
-    return new ApiError(400, `Missing required field: ${field}${context ? ` in ${context}` : ''}`, 'MISSING_REQUIRED_FIELD', {
-      field,
-      context
-    })
+    return new ApiError(
+      400,
+      `Missing required field: ${field}${context ? ` in ${context}` : ''}`,
+      'MISSING_REQUIRED_FIELD',
+      {
+        field,
+        context
+      }
+    )
   },
 
   validationFailed: (errors: any, context?: any) => {
@@ -129,22 +139,32 @@ const safeErrorFactory = {
     if (ErrorFactory.businessRuleViolation) {
       return ErrorFactory.businessRuleViolation(rule, details)
     }
-    return new ApiError(422, `Business rule violation: ${rule}${details ? `. ${details}` : ''}`, 'BUSINESS_RULE_VIOLATION', {
-      rule,
-      details
-    })
+    return new ApiError(
+      422,
+      `Business rule violation: ${rule}${details ? `. ${details}` : ''}`,
+      'BUSINESS_RULE_VIOLATION',
+      {
+        rule,
+        details
+      }
+    )
   },
 
   invalidInput: (field: string, expected: string, received?: any, context?: any) => {
     if (ErrorFactory.invalidInput) {
       return ErrorFactory.invalidInput(field, expected, received, context)
     }
-    return new ApiError(400, `Invalid ${field}: expected ${expected}${received !== undefined ? `, got ${typeof received}` : ''}`, 'INVALID_INPUT', {
-      field,
-      expected,
-      received,
-      context
-    })
+    return new ApiError(
+      400,
+      `Invalid ${field}: expected ${expected}${received !== undefined ? `, got ${typeof received}` : ''}`,
+      'INVALID_INPUT',
+      {
+        field,
+        expected,
+        received,
+        context
+      }
+    )
   },
 
   alreadyExists: (entity: string, field: string, value: string | number, context?: any) => {
@@ -191,10 +211,13 @@ const safeErrorFactory = {
     // Return a minimal entity-specific error factory
     return {
       notFound: (id: number | string) => safeErrorFactory.notFound(entityName, id),
-      alreadyExists: (field: string, value: string | number) => safeErrorFactory.alreadyExists(entityName, field, value),
+      alreadyExists: (field: string, value: string | number) =>
+        safeErrorFactory.alreadyExists(entityName, field, value),
       createFailed: (reason?: string) => safeErrorFactory.operationFailed(`create ${entityName}`, reason),
-      updateFailed: (id: number | string, reason?: string) => safeErrorFactory.operationFailed(`update ${entityName} ${id}`, reason),
-      deleteFailed: (id: number | string, reason?: string) => safeErrorFactory.operationFailed(`delete ${entityName} ${id}`, reason)
+      updateFailed: (id: number | string, reason?: string) =>
+        safeErrorFactory.operationFailed(`update ${entityName} ${id}`, reason),
+      deleteFailed: (id: number | string, reason?: string) =>
+        safeErrorFactory.operationFailed(`delete ${entityName} ${id}`, reason)
     }
   }
 }

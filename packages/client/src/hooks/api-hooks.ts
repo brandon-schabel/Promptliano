@@ -52,7 +52,11 @@ export function useSyncProjectWithProgress() {
   const queryClient = useQueryClient()
 
   return {
-    syncWithProgress: async (projectId: number, onProgress?: (event: MessageEvent) => void, abortSignal?: AbortSignal) => {
+    syncWithProgress: async (
+      projectId: number,
+      onProgress?: (event: MessageEvent) => void,
+      abortSignal?: AbortSignal
+    ) => {
       if (!client) throw new Error('API client not initialized')
 
       try {
@@ -123,20 +127,23 @@ export function useSyncProjectWithProgress() {
 export function useAutoProjectSync(projectId?: number, intervalMs: number = 4000) {
   const client = useApiClient()
   const queryClient = useQueryClient()
-  
+
   useEffect(() => {
     if (!client || !projectId || projectId === -1) return
     let cancelled = false
-    const id = setInterval(async () => {
-      if (cancelled) return
-      try {
-        await client.projects.syncProject(projectId)
-        // Lightly refresh file list cache in background
-        queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(projectId) })
-      } catch (_) {
-        // Ignore errors to keep interval running; server lock prevents overlap
-      }
-    }, Math.max(3000, intervalMs))
+    const id = setInterval(
+      async () => {
+        if (cancelled) return
+        try {
+          await client.projects.syncProject(projectId)
+          // Lightly refresh file list cache in background
+          queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(projectId) })
+        } catch (_) {
+          // Ignore errors to keep interval running; server lock prevents overlap
+        }
+      },
+      Math.max(3000, intervalMs)
+    )
     return () => {
       cancelled = true
       clearInterval(id)
@@ -312,16 +319,18 @@ export function useGetProjectPrompts(projectId: number) {
       const result = await client.prompts.getProjectPrompts(projectId)
       const data = result?.data || result
       // Ensure data matches expected Prompt schema format
-      return Array.isArray(data) ? data.map((item: any) => ({
-        id: item.id,
-        projectId: item.projectId || projectId,
-        title: item.title || item.name || '',
-        content: item.content || '',
-        description: item.description || null,
-        tags: Array.isArray(item.tags) ? item.tags : [],
-        createdAt: item.createdAt || item.created || Date.now(),
-        updatedAt: item.updatedAt || item.updated || Date.now()
-      })) : []
+      return Array.isArray(data)
+        ? data.map((item: any) => ({
+            id: item.id,
+            projectId: item.projectId || projectId,
+            title: item.title || item.name || '',
+            content: item.content || '',
+            description: item.description || null,
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            createdAt: item.createdAt || item.created || Date.now(),
+            updatedAt: item.updatedAt || item.updated || Date.now()
+          }))
+        : []
     },
     enabled: !!client && !!projectId && projectId !== -1,
     staleTime: 5 * 60 * 1000
@@ -597,13 +606,13 @@ export function useExportPromptsBatch() {
 
       // Check content type to handle different response formats
       const contentType = response.headers.get('content-type')
-      
+
       if (contentType?.includes('application/zip')) {
         // Multi-file format returns binary ZIP
         const blob = await response.blob()
         const contentDisposition = response.headers.get('content-disposition')
         const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || 'prompts-export.zip'
-        
+
         return {
           format: 'multi-file',
           blob,
@@ -671,7 +680,7 @@ export function useValidateMarkdownFile() {
       try {
         let metadata: any = {}
         let promptContent: string
-        
+
         // Check for frontmatter (optional)
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
@@ -701,16 +710,17 @@ export function useValidateMarkdownFile() {
         } else {
           // No frontmatter - use filename as name
           validation.hasValidFrontmatter = false
-          
+
           // Extract filename without extension and clean it up
           const fileName = file.name
-          const promptName = fileName
-            .replace(/\.(md|markdown)$/i, '')
-            .replace(/[-_]/g, ' ')
-            .replace(/\s+/g, ' ')  // Normalize multiple spaces
-            .replace(/\b\w/g, l => l.toUpperCase())
-            .trim() || 'Untitled Prompt'
-            
+          const promptName =
+            fileName
+              .replace(/\.(md|markdown)$/i, '')
+              .replace(/[-_]/g, ' ')
+              .replace(/\s+/g, ' ') // Normalize multiple spaces
+              .replace(/\b\w/g, (l) => l.toUpperCase())
+              .trim() || 'Untitled Prompt'
+
           metadata.name = promptName
           promptContent = content.trim()
         }
@@ -774,7 +784,7 @@ import {
   useTicketTasks,
   useProjectSync,
   useProjectFiles,
-  useUpdateTask,
+  useUpdateTask
 } from './generated'
 import { useEffect } from 'react'
 

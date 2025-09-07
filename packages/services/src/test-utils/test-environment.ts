@@ -1,15 +1,15 @@
 /**
  * Test Environment Factory - Enhanced for Test Isolation
- * 
+ *
  * Provides reusable test setup and teardown utilities with proper database isolation
  * to eliminate "Missing parameter '1'" errors and ensure test reliability.
- * 
+ *
  * Key improvements:
  * - Uses serialized database client to prevent concurrent access issues
  * - File-based databases for better isolation
  * - Automatic cleanup with proper resource management
  * - Enhanced error handling and logging
- * 
+ *
  * Benefits:
  * - Eliminates parameter binding errors
  * - True test isolation
@@ -20,10 +20,7 @@
  */
 
 import { randomBytes } from 'crypto'
-import {
-  createTestDatabase,
-  type TestDatabase
-} from '@promptliano/database'
+import { createTestDatabase, type TestDatabase } from '@promptliano/database'
 import {
   createBaseRepository,
   projects,
@@ -333,9 +330,7 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
   /**
    * Run a test with automatic setup and cleanup
    */
-  async function runWithContext<T>(
-    testFn: (context: TestContext) => Promise<T>
-  ): Promise<T> {
+  async function runWithContext<T>(testFn: (context: TestContext) => Promise<T>): Promise<T> {
     const context = await setupTest()
     try {
       return await testFn(context)
@@ -356,13 +351,13 @@ export function createTestEnvironment(config: TestEnvironmentConfig) {
 }
 
 /**
- * DEPRECATED: Shared test environment instances 
- * 
+ * DEPRECATED: Shared test environment instances
+ *
  * These are deprecated and should not be used as they can cause test isolation issues.
  * Instead, create test environments per test suite:
- * 
+ *
  * const testEnv = createTestEnvironment({ suiteName: 'your-test-name' })
- * 
+ *
  * @deprecated Use createTestEnvironment() directly in each test file
  */
 
@@ -380,22 +375,22 @@ export const testDataGenerators = {
 
 /**
  * Repository Mocking Helpers
- * 
+ *
  * Standardized patterns for creating test repositories with test databases
  * to prevent "this.dbInstance.select is not a function" errors
- * 
+ *
  * Usage Example:
  * ```typescript
  * import { createTestEnvironment, testRepositoryHelpers } from './test-utils/test-environment'
- * 
+ *
  * const testEnv = createTestEnvironment({ suiteName: 'my-service' })
- * 
+ *
  * beforeEach(async () => {
  *   const testContext = await testEnv.setupTest()
- *   
+ *
  *   // Create test repository with proper database connection
  *   const testRepository = testRepositoryHelpers.createQueueRepository(testContext.testDb.db)
- *   
+ *
  *   // Pass to service factory
  *   const service = createQueueService({ queueRepository: testRepository })
  * })
@@ -448,7 +443,9 @@ export const testRepositoryHelpers = {
         }
         return baseRepository.findWhere(eq(queues.isActive, true))
       },
-      async getItems(queueId: number) { return [] },
+      async getItems(queueId: number) {
+        return []
+      },
       async getWithItems(id: number) {
         const queue = await baseRepository.getById(id)
         if (!queue) return null
@@ -457,13 +454,21 @@ export const testRepositoryHelpers = {
       async addItem(data: any) {
         return { id: Date.now(), ...data, createdAt: Date.now(), updatedAt: Date.now() }
       },
-      async getItemById(id: number) { return null },
-      async removeItem(id: number) { return true },
+      async getItemById(id: number) {
+        return null
+      },
+      async removeItem(id: number) {
+        return true
+      },
       async updateItem(id: number, data: any) {
         return { id, ...data, createdAt: Date.now(), updatedAt: Date.now() }
       },
-      async deleteItem(id: number) { return true },
-      async getNextItem(queueId: number) { return null },
+      async deleteItem(id: number) {
+        return true
+      },
+      async getNextItem(queueId: number) {
+        return null
+      },
       async getQueueStats(queueId: number) {
         return { totalItems: 0, queuedItems: 0, processingItems: 0, completedItems: 0, failedItems: 0 }
       }

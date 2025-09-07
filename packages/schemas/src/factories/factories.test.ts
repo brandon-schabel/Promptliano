@@ -15,27 +15,29 @@ import {
 } from './index'
 
 describe('Response Schema Factories', () => {
-  const TestSchema = z.object({
-    id: z.number(),
-    name: z.string()
-  }).describe('TestEntity')
+  const TestSchema = z
+    .object({
+      id: z.number(),
+      name: z.string()
+    })
+    .describe('TestEntity')
 
   describe('createSuccessResponseSchema', () => {
     test('generates correct schema structure', () => {
       const schema = createSuccessResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         success: true,
         data: { id: 1, name: 'Test' }
       })
-      
+
       expect(parsed.success).toBe(true)
       expect(parsed.data).toEqual({ id: 1, name: 'Test' })
     })
 
     test('preserves OpenAPI metadata', () => {
       const schema = createSuccessResponseSchema(TestSchema, { name: 'TestEntity' })
-      
+
       expect(schema._def.openapi).toBeDefined()
       expect(schema._def.openapi?.ref).toBe('TestEntityResponse')
     })
@@ -46,13 +48,13 @@ describe('Response Schema Factories', () => {
           timestamp: z.number()
         }
       })
-      
+
       const parsed = schema.parse({
         success: true,
         data: { id: 1, name: 'Test' },
         timestamp: Date.now()
       })
-      
+
       expect(parsed.timestamp).toBeDefined()
     })
   })
@@ -60,7 +62,7 @@ describe('Response Schema Factories', () => {
   describe('createListResponseSchema', () => {
     test('generates list response', () => {
       const schema = createListResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         success: true,
         data: [
@@ -68,7 +70,7 @@ describe('Response Schema Factories', () => {
           { id: 2, name: 'Test2' }
         ]
       })
-      
+
       expect(parsed.data).toHaveLength(2)
     })
 
@@ -76,13 +78,13 @@ describe('Response Schema Factories', () => {
       const schema = createListResponseSchema(TestSchema, {
         includeCount: true
       })
-      
+
       const parsed = schema.parse({
         success: true,
         data: [{ id: 1, name: 'Test' }],
         count: 1
       })
-      
+
       expect(parsed.count).toBe(1)
     })
 
@@ -90,13 +92,13 @@ describe('Response Schema Factories', () => {
       const schema = createListResponseSchema(TestSchema, {
         includeFilters: true
       })
-      
+
       const parsed = schema.parse({
         success: true,
         data: [],
         appliedFilters: { status: 'active' }
       })
-      
+
       expect(parsed.appliedFilters).toEqual({ status: 'active' })
     })
   })
@@ -104,7 +106,7 @@ describe('Response Schema Factories', () => {
   describe('createPaginatedResponseSchema', () => {
     test('generates paginated response', () => {
       const schema = createPaginatedResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         success: true,
         data: [{ id: 1, name: 'Test' }],
@@ -117,7 +119,7 @@ describe('Response Schema Factories', () => {
           hasPrevious: false
         }
       })
-      
+
       expect(parsed.pagination.page).toBe(1)
       expect(parsed.pagination.totalItems).toBe(50)
     })
@@ -126,7 +128,7 @@ describe('Response Schema Factories', () => {
       const schema = createPaginatedResponseSchema(TestSchema, {
         includeCursors: true
       })
-      
+
       const parsed = schema.parse({
         success: true,
         data: [],
@@ -141,7 +143,7 @@ describe('Response Schema Factories', () => {
           previousCursor: null
         }
       })
-      
+
       expect(parsed.pagination.nextCursor).toBe('abc123')
     })
   })
@@ -149,7 +151,7 @@ describe('Response Schema Factories', () => {
   describe('createErrorResponseSchema', () => {
     test('generates error response', () => {
       const schema = createErrorResponseSchema('TEST_ERROR', 'Test error occurred')
-      
+
       const parsed = schema.parse({
         success: false,
         error: {
@@ -157,7 +159,7 @@ describe('Response Schema Factories', () => {
           message: 'Test error occurred'
         }
       })
-      
+
       expect(parsed.success).toBe(false)
       expect(parsed.error.code).toBe('TEST_ERROR')
     })
@@ -167,7 +169,7 @@ describe('Response Schema Factories', () => {
         includeDetails: true,
         includeTimestamp: true
       })
-      
+
       const now = Date.now()
       const parsed = schema.parse({
         success: false,
@@ -178,7 +180,7 @@ describe('Response Schema Factories', () => {
           timestamp: now
         }
       })
-      
+
       expect(parsed.error.details).toEqual({ field: 'value' })
       expect(parsed.error.timestamp).toBe(now)
     })
@@ -187,7 +189,7 @@ describe('Response Schema Factories', () => {
   describe('createValidationErrorResponseSchema', () => {
     test('generates validation error response', () => {
       const schema = createValidationErrorResponseSchema()
-      
+
       const parsed = schema.parse({
         success: false,
         error: {
@@ -199,7 +201,7 @@ describe('Response Schema Factories', () => {
           }
         }
       })
-      
+
       expect(parsed.error.fieldErrors.email).toContain('Invalid email format')
     })
   })
@@ -207,23 +209,23 @@ describe('Response Schema Factories', () => {
   describe('createStreamingResponseSchema', () => {
     test('generates streaming response', () => {
       const schema = createStreamingResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         event: 'data',
         data: { id: 1, name: 'Test' }
       })
-      
+
       expect(parsed.event).toBe('data')
     })
 
     test('handles error events', () => {
       const schema = createStreamingResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         event: 'error',
         data: { error: 'Something went wrong' }
       })
-      
+
       expect(parsed.event).toBe('error')
     })
 
@@ -231,12 +233,12 @@ describe('Response Schema Factories', () => {
       const schema = createStreamingResponseSchema(TestSchema, {
         includeHeartbeat: true
       })
-      
+
       const parsed = schema.parse({
         event: 'heartbeat',
         data: { heartbeat: Date.now() }
       })
-      
+
       expect(parsed.event).toBe('heartbeat')
     })
   })
@@ -244,12 +246,12 @@ describe('Response Schema Factories', () => {
   describe('createOperationResponseSchema', () => {
     test('generates operation response', () => {
       const schema = createOperationResponseSchema('Delete')
-      
+
       const parsed = schema.parse({
         success: true,
         message: 'Delete completed successfully'
       })
-      
+
       expect(parsed.success).toBe(true)
       expect(parsed.message).toBe('Delete completed successfully')
     })
@@ -258,12 +260,12 @@ describe('Response Schema Factories', () => {
       const schema = createOperationResponseSchema('Update', {
         message: 'Record updated'
       })
-      
+
       const parsed = schema.parse({
         success: true,
         message: 'Record updated'
       })
-      
+
       expect(parsed.message).toBe('Record updated')
     })
   })
@@ -271,17 +273,17 @@ describe('Response Schema Factories', () => {
   describe('createGroupedListResponseSchema', () => {
     test('generates grouped list response', () => {
       const schema = createGroupedListResponseSchema(TestSchema, 'category')
-      
+
       const parsed = schema.parse({
         success: true,
         data: {
-          'category1': [{ id: 1, name: 'Test1' }],
-          'category2': [{ id: 2, name: 'Test2' }]
+          category1: [{ id: 1, name: 'Test1' }],
+          category2: [{ id: 2, name: 'Test2' }]
         },
         groupedBy: 'category',
         groupCount: 2
       })
-      
+
       expect(parsed.groupedBy).toBe('category')
       expect(parsed.groupCount).toBe(2)
     })
@@ -290,7 +292,7 @@ describe('Response Schema Factories', () => {
   describe('createBatchErrorResponseSchema', () => {
     test('generates batch error response', () => {
       const schema = createBatchErrorResponseSchema(TestSchema)
-      
+
       const parsed = schema.parse({
         success: false,
         errors: [
@@ -306,7 +308,7 @@ describe('Response Schema Factories', () => {
         successCount: 2,
         errorCount: 1
       })
-      
+
       expect(parsed.errors).toHaveLength(1)
       expect(parsed.successCount).toBe(2)
       expect(parsed.errorCount).toBe(1)
@@ -330,7 +332,7 @@ describe('Response Schema Factories', () => {
           message: 'Resource not found'
         }
       })
-      
+
       expect(parsed.error.code).toBe('NOT_FOUND')
     })
   })
@@ -342,19 +344,19 @@ describe('Response Schema Factories', () => {
         success: z.literal(true),
         data: TestSchema
       })
-      
+
       // Factory-generated schema
       const factorySchema = createSuccessResponseSchema(TestSchema)
-      
+
       // Same input should work for both
       const testData = {
         success: true,
         data: { id: 1, name: 'Test' }
       }
-      
+
       const manualResult = manualSchema.parse(testData)
       const factoryResult = factorySchema.parse(testData)
-      
+
       // Results should be identical
       expect(manualResult).toEqual(factoryResult)
     })
@@ -364,9 +366,9 @@ describe('Response Schema Factories', () => {
         success: z.literal(true),
         data: z.array(TestSchema)
       })
-      
+
       const factoryListSchema = createListResponseSchema(TestSchema)
-      
+
       const testData = {
         success: true,
         data: [
@@ -374,10 +376,10 @@ describe('Response Schema Factories', () => {
           { id: 2, name: 'Test2' }
         ]
       }
-      
+
       const manualResult = manualListSchema.parse(testData)
       const factoryResult = factoryListSchema.parse(testData)
-      
+
       expect(manualResult).toEqual(factoryResult)
     })
   })
@@ -388,9 +390,9 @@ describe('Response Schema Factories', () => {
         version: z.string(),
         timestamp: z.number()
       })
-      
+
       const schema = createMetadataResponseSchema(TestSchema, metadataSchema)
-      
+
       const parsed = schema.parse({
         success: true,
         data: { id: 1, name: 'Test' },
@@ -399,7 +401,7 @@ describe('Response Schema Factories', () => {
           timestamp: Date.now()
         }
       })
-      
+
       expect(parsed.metadata.version).toBe('1.0.0')
     })
   })

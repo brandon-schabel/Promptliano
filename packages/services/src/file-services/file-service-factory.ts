@@ -85,7 +85,7 @@ export function createFileCache<T>(config?: CacheConfig) {
     const now = Date.now()
     const entries = Array.from(cache.entries())
       .map(([key, data]) => ({ key, ...data }))
-      .filter(entry => now - entry.timestamp <= ttl)
+      .filter((entry) => now - entry.timestamp <= ttl)
       .sort((a, b) => b.hits - a.hits) // Keep most used items
 
     cache.clear()
@@ -143,25 +143,21 @@ export function createFileStreamProcessor<TInput, TOutput>(
   processor: (item: TInput, index: number, signal?: AbortSignal) => Promise<TOutput>,
   options: FileOperationOptions = {}
 ) {
-  const {
-    maxConcurrency = 3,
-    progressCallback,
-    signal
-  } = options
+  const { maxConcurrency = 3, progressCallback, signal } = options
 
   return {
     async *processStream(
       items: TInput[]
     ): AsyncIterableIterator<{ item: TOutput; index: number } | { error: string; index: number }> {
       const promises: Promise<{ item: TOutput; index: number } | { error: string; index: number }>[] = []
-      
+
       for (let i = 0; i < items.length; i++) {
         const promise = processor(items[i]!, i, signal)
-          .then(result => ({ item: result, index: i }))
-          .catch(error => ({ error: error instanceof Error ? error.message : String(error), index: i }))
-        
+          .then((result) => ({ item: result, index: i }))
+          .catch((error) => ({ error: error instanceof Error ? error.message : String(error), index: i }))
+
         promises.push(promise)
-        
+
         // Yield results as they complete, respecting concurrency
         if (promises.length >= maxConcurrency || i === items.length - 1) {
           const results = await Promise.allSettled(promises.splice(0, maxConcurrency))
@@ -191,13 +187,13 @@ export function createParallelProcessor<TInput, TOutput>(
 
       for (let i = 0; i < items.length; i += batchSize) {
         const batch = items.slice(i, i + batchSize)
-        
+
         try {
           const results = await processor(batch)
           successful.push(...results)
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error)
-          batch.forEach(item => failed.push({ item, error: errorMsg }))
+          batch.forEach((item) => failed.push({ item, error: errorMsg }))
         }
       }
 
@@ -239,7 +235,7 @@ export function createMemoryManager(config: FileServiceConfig['memory'] = DEFAUL
       if (global.gc) {
         global.gc()
       }
-      
+
       // Reset tracking (objects should be gc'd)
       trackedObjects.clear()
       currentMemoryUsage = 0
@@ -284,9 +280,7 @@ export function createProgressTracker(totalItems: number) {
     } {
       const elapsedTime = Date.now() - startTime
       const percentage = (completed + errors) / totalItems
-      const estimatedTimeRemaining = percentage > 0 
-        ? (elapsedTime / percentage) * (1 - percentage)
-        : 0
+      const estimatedTimeRemaining = percentage > 0 ? (elapsedTime / percentage) * (1 - percentage) : 0
 
       return {
         completed,
@@ -333,9 +327,8 @@ export function createFileService<TConfig extends Record<string, any> = {}>(
     ) => createFileStreamProcessor(processor, { maxConcurrency: mergedConfig.streaming?.maxConcurrency }),
 
     // Parallel processing
-    createParallelProcessor: <TInput, TOutput>(
-      processor: (batch: TInput[]) => Promise<TOutput[]>
-    ) => createParallelProcessor(processor, mergedConfig.parallel),
+    createParallelProcessor: <TInput, TOutput>(processor: (batch: TInput[]) => Promise<TOutput[]>) =>
+      createParallelProcessor(processor, mergedConfig.parallel),
 
     // Progress tracking
     createProgressTracker,
@@ -351,14 +344,42 @@ export function createFileService<TConfig extends Record<string, any> = {}>(
 // File filtering utilities
 export function createFileFilter() {
   const binaryExtensions = new Set([
-    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'ico', 'svg', 'webp',
-    'mp4', 'avi', 'mov', 'mp3', 'wav', 'pdf', 'doc', 'docx',
-    'zip', 'tar', 'gz', 'exe', 'dll', 'so', 'dylib'
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'ico',
+    'svg',
+    'webp',
+    'mp4',
+    'avi',
+    'mov',
+    'mp3',
+    'wav',
+    'pdf',
+    'doc',
+    'docx',
+    'zip',
+    'tar',
+    'gz',
+    'exe',
+    'dll',
+    'so',
+    'dylib'
   ])
 
   const skipPaths = new Set([
-    'node_modules', 'vendor', 'dist', 'build', '.git', 
-    '.next', '.nuxt', 'coverage', 'tmp', 'temp'
+    'node_modules',
+    'vendor',
+    'dist',
+    'build',
+    '.git',
+    '.next',
+    '.nuxt',
+    'coverage',
+    'tmp',
+    'temp'
   ])
 
   return {
@@ -371,26 +392,26 @@ export function createFileFilter() {
       if (file.size && file.size > 1024 * 1024) return true // > 1MB
 
       // Check path
-      if (Array.from(skipPaths).some(skip => file.path.includes(skip))) return true
+      if (Array.from(skipPaths).some((skip) => file.path.includes(skip))) return true
 
       return false
     },
 
     filterTextFiles(files: File[]): File[] {
-      return files.filter(file => !this.shouldSkipFile(file))
+      return files.filter((file) => !this.shouldSkipFile(file))
     },
 
     getFileCategory(file: File): string {
       const ext = file.path.split('.').pop()?.toLowerCase() || ''
-      
+
       const categories: Record<string, string[]> = {
-        'component': ['tsx', 'jsx', 'vue', 'svelte'],
-        'style': ['css', 'scss', 'sass', 'less', 'styl'],
-        'script': ['ts', 'js', 'mjs', 'cjs'],
-        'config': ['json', 'yaml', 'yml', 'toml', 'ini', 'env'],
-        'documentation': ['md', 'mdx', 'txt', 'rst'],
-        'test': file.path.includes('test') || file.path.includes('spec') ? ['ts', 'js'] : [],
-        'api': ['ts', 'js'] // if path includes 'api' or 'route'
+        component: ['tsx', 'jsx', 'vue', 'svelte'],
+        style: ['css', 'scss', 'sass', 'less', 'styl'],
+        script: ['ts', 'js', 'mjs', 'cjs'],
+        config: ['json', 'yaml', 'yml', 'toml', 'ini', 'env'],
+        documentation: ['md', 'mdx', 'txt', 'rst'],
+        test: file.path.includes('test') || file.path.includes('spec') ? ['ts', 'js'] : [],
+        api: ['ts', 'js'] // if path includes 'api' or 'route'
       }
 
       for (const [category, extensions] of Object.entries(categories)) {
@@ -418,20 +439,20 @@ export function createTokenEstimator() {
 
     estimateFileTokens(file: File): number {
       let tokens = 0
-      
+
       // File metadata
       tokens += this.estimateTokens(file.path + file.name)
-      
+
       // Summary
       if (file.summary) {
         tokens += this.estimateTokens(file.summary)
       }
-      
+
       // Content (cap at 1000 chars for estimation)
       if (file.content) {
         tokens += this.estimateTokens(file.content.slice(0, 1000))
       }
-      
+
       // Imports/exports
       if (file.imports) {
         tokens += file.imports.length * 10 // ~10 tokens per import
@@ -439,7 +460,7 @@ export function createTokenEstimator() {
       if (file.exports) {
         tokens += file.exports.length * 8 // ~8 tokens per export
       }
-      
+
       return tokens
     },
 

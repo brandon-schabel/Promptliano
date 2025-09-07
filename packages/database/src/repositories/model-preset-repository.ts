@@ -114,9 +114,9 @@ export const modelPresetRepository = {
 
     if (results.length === 0) return null
     const result = results[0]!
-    return { 
-      ...(result.preset as ModelPreset), 
-      config: result.config as ModelConfig 
+    return {
+      ...(result.preset as ModelPreset),
+      config: result.config as ModelConfig
     }
   },
 
@@ -140,7 +140,10 @@ export const modelPresetRepository = {
   /**
    * Update a preset
    */
-  async update(id: number, data: Partial<Omit<InsertModelPreset, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ModelPreset | null> {
+  async update(
+    id: number,
+    data: Partial<Omit<InsertModelPreset, 'id' | 'createdAt' | 'updatedAt'>>
+  ): Promise<ModelPreset | null> {
     const result = await db
       .update(modelPresets)
       .set({

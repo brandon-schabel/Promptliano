@@ -22,10 +22,7 @@ import { ComponentErrorBoundary } from '@/components/error-boundary/component-er
 import { useProjects } from '@/hooks/generated'
 import { useDebounce } from '@/hooks/utility-hooks/use-debounce'
 import { useNavigate } from '@tanstack/react-router'
-import {
-  useGetActiveProjectTabId,
-  useAppSettings
-} from '@/hooks/use-kv-local-storage'
+import { useGetActiveProjectTabId, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MenuIcon } from 'lucide-react' // For a custom trigger example
 import { Button } from '@promptliano/ui'
 import { useMigrateDefaultTab } from '@/hooks/use-migrate-default-tab'
@@ -35,14 +32,14 @@ import { useReactScan } from '@/hooks/use-react-scan'
 
 // Dynamic imports for DevTools - only load when enabled
 const ReactQueryDevtools = React.lazy(() =>
-  import('@tanstack/react-query-devtools').then(module => ({ 
-    default: module.ReactQueryDevtools 
+  import('@tanstack/react-query-devtools').then((module) => ({
+    default: module.ReactQueryDevtools
   }))
 )
 
 const TanStackRouterDevtools = React.lazy(() =>
-  import('@tanstack/router-devtools').then(module => ({ 
-    default: module.TanStackRouterDevtools 
+  import('@tanstack/router-devtools').then((module) => ({
+    default: module.TanStackRouterDevtools
   }))
 )
 
@@ -183,7 +180,7 @@ function RootComponent() {
   const [activeProjectTabId] = useGetActiveProjectTabId()
   const navigate = useNavigate()
   const [settings] = useAppSettings()
-  
+
   // Get dev tools enabled settings
   const devToolsEnabled = settings?.devToolsEnabled || {
     tanstackQuery: false,

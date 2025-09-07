@@ -25,7 +25,12 @@ import {
   Terminal
 } from 'lucide-react'
 import { HelpDialog } from '@/components/navigation/help-dialog'
-import { useActiveProjectTab, useSelectSetting, useUpdateActiveProjectTab, useAppSettings } from '@/hooks/use-kv-local-storage'
+import {
+  useActiveProjectTab,
+  useSelectSetting,
+  useUpdateActiveProjectTab,
+  useAppSettings
+} from '@/hooks/use-kv-local-storage'
 import { Logo } from '@promptliano/ui'
 import {
   Sidebar,
@@ -118,10 +123,10 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   // Create dynamic navigation sections based on dev tools enabled
   const navigationSections = React.useMemo(() => {
     const sections = [...baseNavigationSections]
-    
+
     // Add dev tools section if any dev tools are enabled
     const enabledDevTools = []
-    
+
     if (devToolsEnabled.drizzleStudio) {
       enabledDevTools.push({
         id: 'dev-drizzle',
@@ -132,7 +137,7 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
         testId: 'sidebar-nav-dev-drizzle'
       })
     }
-    
+
     if (devToolsEnabled.swaggerUI) {
       enabledDevTools.push({
         id: 'dev-swagger',
@@ -143,7 +148,7 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
         testId: 'sidebar-nav-dev-swagger'
       })
     }
-    
+
     if (devToolsEnabled.mcpInspector) {
       enabledDevTools.push({
         id: 'dev-mcp',
@@ -154,14 +159,14 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
         testId: 'sidebar-nav-dev-mcp'
       })
     }
-    
+
     if (enabledDevTools.length > 0) {
       sections.push({
         title: 'Dev Tools',
         items: enabledDevTools
       })
     }
-    
+
     return sections
   }, [devToolsEnabled])
 

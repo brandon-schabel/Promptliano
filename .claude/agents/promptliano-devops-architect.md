@@ -63,9 +63,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -475,4 +475,4 @@ FROM nginx:alpine AS runner
 
 ---
 
-*This consolidated DevOps architect combines expertise from github-actions-workflow-architect and migration-config-centralizer into a comprehensive guide for production infrastructure and deployment.*
+_This consolidated DevOps architect combines expertise from github-actions-workflow-architect and migration-config-centralizer into a comprehensive guide for production infrastructure and deployment._

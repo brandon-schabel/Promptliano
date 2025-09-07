@@ -736,7 +736,9 @@ queueRoutesApp.openapi(enqueueItemsRoute, async (c) => {
   // Try to find the created queue item
   const items = await getQueueItems(queueId)
   const found = items.find((it) =>
-    ticketId ? it.queueItem.itemType === 'ticket' && it.queueItem.itemId === ticketId : it.queueItem.itemType === 'task' && it.queueItem.itemId === taskId
+    ticketId
+      ? it.queueItem.itemType === 'ticket' && it.queueItem.itemId === ticketId
+      : it.queueItem.itemType === 'task' && it.queueItem.itemId === taskId
   )
   if (found) {
     return c.json(successResponse(found.queueItem), 200)
@@ -827,13 +829,17 @@ const getQueueByIdBasicRoute = createRoute({
   summary: 'Get a queue by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(
@@ -851,13 +857,17 @@ const updateQueueByIdBasicRoute = createRoute({
   summary: 'Update a queue by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     }),
     body: {
       content: {
@@ -882,13 +892,17 @@ const deleteQueueByIdBasicRoute = createRoute({
   summary: 'Delete a queue by ID (basic)',
   request: {
     params: z.object({
-      id: z.string().regex(/^\d+$/).transform(Number).openapi({
-        param: {
-          name: 'id',
-          in: 'path'
-        },
-        example: '1'
-      })
+      id: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .openapi({
+          param: {
+            name: 'id',
+            in: 'path'
+          },
+          example: '1'
+        })
     })
   },
   responses: createStandardResponses(

@@ -53,7 +53,8 @@ const PRESET_INFO = {
     label: 'Medium Intelligence',
     description: 'Balanced quality for most development tasks',
     icon: Gauge,
-    provider: INTELLIGENCE_CONFIGS.medium.provider === 'openrouter' ? 'OpenRouter' : INTELLIGENCE_CONFIGS.medium.provider,
+    provider:
+      INTELLIGENCE_CONFIGS.medium.provider === 'openrouter' ? 'OpenRouter' : INTELLIGENCE_CONFIGS.medium.provider,
     model: INTELLIGENCE_CONFIGS.medium.model,
     color: 'text-blue-600',
     useCases: ['Code generation', 'Documentation', 'Analysis'],
@@ -75,7 +76,8 @@ const PRESET_INFO = {
     label: 'Planning Intelligence',
     description: 'Optimized for project planning and ticket creation',
     icon: Brain,
-    provider: INTELLIGENCE_CONFIGS.planning.provider === 'openrouter' ? 'OpenRouter' : INTELLIGENCE_CONFIGS.planning.provider,
+    provider:
+      INTELLIGENCE_CONFIGS.planning.provider === 'openrouter' ? 'OpenRouter' : INTELLIGENCE_CONFIGS.planning.provider,
     model: INTELLIGENCE_CONFIGS.planning.model,
     color: 'text-orange-600',
     useCases: ['Task breakdown', 'Project planning', 'Ticket management'],

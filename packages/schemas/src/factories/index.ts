@@ -1,6 +1,6 @@
 /**
  * Schema Factory Exports
- * 
+ *
  * Centralized exports for all schema factory functions.
  * These factories reduce repetitive schema definitions by 90%.
  */

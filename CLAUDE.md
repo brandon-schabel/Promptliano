@@ -61,20 +61,20 @@ UI Components (React + shadcn/ui)
 
 **RULE: Every task needs an agent. No exceptions.**
 
-| Working On      | Agent                            | Why                                                 |
-| --------------- | -------------------------------- | --------------------------------------------------- |
-| **Planning**    | `promptliano-planning-architect` | Creates tickets with agent assignments              |
-| **Database**    | `promptliano-database-architect` | Drizzle ORM, migrations, repositories               |
-| **Services**    | `promptliano-service-architect`  | Functional factory patterns                         |
-| **API Routes**  | `promptliano-api-architect`      | Hono + OpenAPI + Zod validation                     |
-| **Frontend**    | `promptliano-frontend-architect` | React + TanStack Router + components + forms        |
-| **Testing**     | `promptliano-testing-architect`  | E2E + API testing, isolated environments            |
-| **Schemas**     | `promptliano-schema-architect`   | Zod schemas, validation, type inference             |
-| **AI Features** | `promptliano-ai-architect`       | AI SDK integration, streaming, orchestration        |
-| **DevOps**      | `promptliano-devops-architect`   | CI/CD, deployment, monitoring                        |
-| **MCP Tools**   | `promptliano-mcp-architect`      | MCP tool creation, integration                      |
-| **Code Quality**| `promptliano-code-quality-architect`| Analysis, patterns, modularization                  |
-| **Code Review** | `staff-engineer-code-reviewer`   | **MANDATORY** - Quality, security, type safety      |
+| Working On       | Agent                                | Why                                            |
+| ---------------- | ------------------------------------ | ---------------------------------------------- |
+| **Planning**     | `promptliano-planning-architect`     | Creates tickets with agent assignments         |
+| **Database**     | `promptliano-database-architect`     | Drizzle ORM, migrations, repositories          |
+| **Services**     | `promptliano-service-architect`      | Functional factory patterns                    |
+| **API Routes**   | `promptliano-api-architect`          | Hono + OpenAPI + Zod validation                |
+| **Frontend**     | `promptliano-frontend-architect`     | React + TanStack Router + components + forms   |
+| **Testing**      | `promptliano-testing-architect`      | E2E + API testing, isolated environments       |
+| **Schemas**      | `promptliano-schema-architect`       | Zod schemas, validation, type inference        |
+| **AI Features**  | `promptliano-ai-architect`           | AI SDK integration, streaming, orchestration   |
+| **DevOps**       | `promptliano-devops-architect`       | CI/CD, deployment, monitoring                  |
+| **MCP Tools**    | `promptliano-mcp-architect`          | MCP tool creation, integration                 |
+| **Code Quality** | `promptliano-code-quality-architect` | Analysis, patterns, modularization             |
+| **Code Review**  | `staff-engineer-code-reviewer`       | **MANDATORY** - Quality, security, type safety |
 
 ### How to Load an Agent
 
@@ -195,7 +195,9 @@ export const projects = sqliteTable('projects', {
 
 export const tickets = sqliteTable('tickets', {
   id: integer('id').primaryKey(),
-  projectId: integer('project_id').notNull().references(() => projects.id),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id),
   title: text('title').notNull(),
   status: text('status', { enum: ['open', 'in_progress', 'closed'] }).notNull(),
   createdAt: integer('created_at').notNull()
@@ -640,12 +642,12 @@ PREFER_SERVER_SPEC=true
 
 ### 📊 Codegen Benefits Achieved
 
-| Generator          | Manual Lines Saved | Automation Level | Type Safety |
-| ------------------ | ------------------ | ---------------- | ----------- |
-| **API Client**     | ~500 lines         | 100%             | ✅ Full     |
-| **Routes**         | ~800 lines         | 95%              | ✅ Full     |
-| **React Hooks**    | ~600 lines         | 100%             | ✅ Full     |
-| **Total**          | **~1,900 lines**   | **98%**          | ✅ Complete |
+| Generator       | Manual Lines Saved | Automation Level | Type Safety |
+| --------------- | ------------------ | ---------------- | ----------- |
+| **API Client**  | ~500 lines         | 100%             | ✅ Full     |
+| **Routes**      | ~800 lines         | 95%              | ✅ Full     |
+| **React Hooks** | ~600 lines         | 100%             | ✅ Full     |
+| **Total**       | **~1,900 lines**   | **98%**          | ✅ Complete |
 
 ### 🎯 Best Practices: The Generation-First Mindset
 

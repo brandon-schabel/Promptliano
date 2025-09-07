@@ -223,15 +223,10 @@ export class RAGService {
     const questionEmbedding = await this.aiProvider.generateEmbedding(question)
 
     // 2. Find relevant context from vector store
-    const relevantDocs = await this.vectorStore.similaritySearch(
-      questionEmbedding,
-      contextLimit
-    )
+    const relevantDocs = await this.vectorStore.similaritySearch(questionEmbedding, contextLimit)
 
     // 3. Build context string
-    const context = relevantDocs
-      .map(doc => doc.content)
-      .join('\n\n')
+    const context = relevantDocs.map((doc) => doc.content).join('\n\n')
 
     // 4. Generate answer with context
     const prompt = `
@@ -342,4 +337,4 @@ export const aiConfig = {
 
 ---
 
-*This consolidated AI architect combines expertise from vercel-ai-sdk-expert into a comprehensive guide for AI integration and orchestration in Promptliano.*
+_This consolidated AI architect combines expertise from vercel-ai-sdk-expert into a comprehensive guide for AI integration and orchestration in Promptliano._

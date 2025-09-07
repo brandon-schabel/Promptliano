@@ -114,10 +114,10 @@ export const hookManagerTool: MCPToolDefinition = {
           error instanceof MCPError
             ? error
             : MCPError.fromError(error, {
-              tool: 'hook_manager',
-              action: args.action,
-              projectId: args.projectId
-            })
+                tool: 'hook_manager',
+                action: args.action,
+                projectId: args.projectId
+              })
         // Return formatted error response with recovery suggestions
         return await formatMCPErrorResponse(mcpError)
       }

@@ -45,7 +45,8 @@ export const ticketManagerTool: MCPToolDefinition = {
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (required for: list, create, list_with_task_count). Tip: use project_manager(list) to fetch a valid ID.'
+        description:
+          'The project ID (required for: list, create, list_with_task_count). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
@@ -152,8 +153,7 @@ Updated: ${new Date(ticket.updatedAt).toLocaleString()}`
             const filteredTickets = status ? tickets.filter((t) => t.status === status) : tickets
             const ticketList = filteredTickets
               .map(
-                (t) =>
-                  `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
+                (t) => `${t.id}: ${t.title} [${t.status}/${t.priority}] - Tasks: ${t.completedTaskCount}/${t.taskCount}`
               )
               .join('\n')
             return {

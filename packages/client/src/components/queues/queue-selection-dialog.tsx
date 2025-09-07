@@ -129,11 +129,7 @@ export function QueueSelectionDialog({ isOpen, onClose, ticketId, projectId }: Q
 
                       return (
                         <div key={q.id} className='relative'>
-                          <RadioGroupItem
-                            value={q.id?.toString?.()}
-                            id={`queue-${q.id}`}
-                            className='peer sr-only'
-                          />
+                          <RadioGroupItem value={q.id?.toString?.()} id={`queue-${q.id}`} className='peer sr-only' />
                           <Label htmlFor={`queue-${q.id}`} className='cursor-pointer'>
                             <Card
                               className={cn(
@@ -155,9 +151,7 @@ export function QueueSelectionDialog({ isOpen, onClose, ticketId, projectId }: Q
                                   <Badge className={cn('text-xs', healthColor)}>{health}</Badge>
                                 </div>
 
-                                {q.description && (
-                                  <p className='text-sm text-muted-foreground mb-2'>{q.description}</p>
-                                )}
+                                {q.description && <p className='text-sm text-muted-foreground mb-2'>{q.description}</p>}
 
                                 <div className='grid grid-cols-4 gap-2 text-xs'>
                                   <div className='flex items-center gap-1'>

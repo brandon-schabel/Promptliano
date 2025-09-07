@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED ADVANCED REACT QUERY HOOKS
  * Generated at: 2025-08-30T02:20:17.556Z
- * 
+ *
  * Uses the CRUD Hook Factory for advanced features:
  * ✅ Optimistic updates
- * ✅ Batch operations  
+ * ✅ Batch operations
  * ✅ Smart caching
  * ✅ Prefetching
  * ✅ Error handling
- * 
+ *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
 
@@ -79,15 +79,15 @@ export const queryKeys = {
     lists: () => ['projects', 'list'] as const,
     list: (params?: any) => ['projects', 'list', params] as const,
     details: () => ['projects', 'detail'] as const,
-    detail: (id: number) => ['projects', 'detail', id] as const,
+    detail: (id: number) => ['projects', 'detail', id] as const
   },
   chats: {
     all: ['chats'] as const,
     lists: () => ['chats', 'list'] as const,
     list: (params?: any) => ['chats', 'list', params] as const,
     details: () => ['chats', 'detail'] as const,
-    detail: (id: number) => ['chats', 'detail', id] as const,
-  },
+    detail: (id: number) => ['chats', 'detail', id] as const
+  }
 } as const
 
 // =============================================================================
@@ -96,47 +96,80 @@ export const queryKeys = {
 
 /**
  * CRITICAL: API Response Adapter Pattern
- * 
+ *
  * The API returns wrapped responses: { success: true, data: Project[] }
  * But the hook factory expects unwrapped data: Project[]
- * 
+ *
  * Each API call is wrapped in an async adapter function that:
  * 1. Calls the API client method
  * 2. Extracts the .data property from the wrapped response
  * 3. Returns the unwrapped entity data to the hook factory
- * 
+ *
  * This maintains type safety while bridging the response format mismatch.
  */
 const projectHooks = createCrudHooks({
   entityName: 'Project',
   queryKeys: queryKeys.projects,
   apiClient: {
-    list: async (): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }[]> => {
+    list: async (): Promise<
+      { id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number }[]
+    > => {
       const response = await getApiClient().getProjects()
       return unwrapResponse(response)
     },
-    getById: async (_, id: number): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
+    getById: async (
+      _,
+      id: number
+    ): Promise<{
+      id: number
+      name: string
+      description: string | null
+      path: string
+      createdAt: number
+      updatedAt: number
+    }> => {
       const response = await getApiClient().getProject(id)
       return unwrapResponse(response)
     },
-    create: async (_, data: CreateProjectRequest): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
+    create: async (
+      _,
+      data: CreateProjectRequest
+    ): Promise<{
+      id: number
+      name: string
+      description: string | null
+      path: string
+      createdAt: number
+      updatedAt: number
+    }> => {
       const response = await getApiClient().createProject(data)
       return unwrapResponse(response)
     },
-    update: async (_, id: number, data: UpdateProjectRequest): Promise<{ id: number; name: string; description: string | null; path: string; createdAt: number; updatedAt: number; }> => {
+    update: async (
+      _,
+      id: number,
+      data: UpdateProjectRequest
+    ): Promise<{
+      id: number
+      name: string
+      description: string | null
+      path: string
+      createdAt: number
+      updatedAt: number
+    }> => {
       const response = await getApiClient().updateProject(id, data)
       return unwrapResponse(response)
     },
     delete: async (_, id: number): Promise<boolean> => {
       await getApiClient().deleteProject(id)
       return true
-    },
+    }
   },
   useApiClient: useApiClient,
   messages: {
     createSuccess: (project) => `Project "${project.name}" created successfully`,
     updateSuccess: (project) => `Project "${project.name}" updated successfully`,
-    deleteSuccess: 'Project deleted successfully',
+    deleteSuccess: 'Project deleted successfully'
   },
   optimistic: {
     enabled: true,
@@ -144,13 +177,13 @@ const projectHooks = createCrudHooks({
       ...data,
       id: -Date.now(),
       created: Date.now(),
-      updated: Date.now(),
-    }),
+      updated: Date.now()
+    })
   },
   invalidation: {
     onCreate: 'lists',
     onUpdate: 'lists',
-    onDelete: 'all',
+    onDelete: 'all'
   }
 })
 
@@ -182,35 +215,47 @@ const chatHooks = createCrudHooks({
   entityName: 'Chat',
   queryKeys: queryKeys.chats,
   apiClient: {
-    list: async (): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }[]> => {
+    list: async (): Promise<
+      { id: number; projectId: number; title: string; createdAt: number; updatedAt: number }[]
+    > => {
       const response = await getApiClient().getChats()
       return unwrapResponse(response)
     },
-    getById: async (_, id: number): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
+    getById: async (
+      _,
+      id: number
+    ): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number }> => {
       throw new Error('getChat not available - endpoint does not exist')
     },
-    create: async (_, data: CreateChatRequest): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
+    create: async (
+      _,
+      data: CreateChatRequest
+    ): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number }> => {
       const response = await getApiClient().createChat(data)
       return unwrapResponse(response)
     },
-    update: async (_, id: number, data: UpdateChatRequest): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number; }> => {
+    update: async (
+      _,
+      id: number,
+      data: UpdateChatRequest
+    ): Promise<{ id: number; projectId: number; title: string; createdAt: number; updatedAt: number }> => {
       const response = await getApiClient().updateChat(id, data)
       return unwrapResponse(response)
     },
     delete: async (_, id: number): Promise<boolean> => {
       await getApiClient().deleteChat(id)
       return true
-    },
+    }
   },
   useApiClient: useApiClient,
   messages: {
     createSuccess: (chat) => `Chat "${chat.title}" created successfully`,
     updateSuccess: (chat) => `Chat "${chat.title}" updated successfully`,
-    deleteSuccess: 'Chat deleted successfully',
+    deleteSuccess: 'Chat deleted successfully'
   },
   staleTime: 1 * 60 * 1000, // 1 minute for real-time feel
   optimistic: {
-    enabled: true,
+    enabled: true
   }
 })
 

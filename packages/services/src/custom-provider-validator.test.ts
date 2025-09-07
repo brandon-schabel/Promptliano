@@ -107,7 +107,7 @@ describe('Custom Provider Validator - Pure Functions', () => {
           testProjectId: 1,
           testDb: { db: {} }
         }),
-        cleanupTest: async () => { }
+        cleanupTest: async () => {}
       }
 
       testContext = await testEnv.setupTest()
@@ -133,7 +133,7 @@ describe('Custom Provider Validator - Pure Functions', () => {
           projectId: testContext.testProjectId,
           name: 'custom-provider',
           url: 'https://api.custom-provider.com/v1',
-          headers: { 'Authorization': 'Bearer token' },
+          headers: { Authorization: 'Bearer token' },
           models: ['gpt-4', 'gpt-3.5-turbo'],
           capabilities: ['chat', 'completions'],
           isValid: true,
@@ -176,23 +176,12 @@ describe('Custom Provider Validator - Pure Functions', () => {
         name: 'Test Custom Provider',
         url: 'https://api.test-provider.com/v1',
         headers: {
-          'Authorization': 'Bearer test-token-123',
+          Authorization: 'Bearer test-token-123',
           'Content-Type': 'application/json',
           'X-API-Key': 'test-api-key'
         },
-        models: [
-          'gpt-4-turbo',
-          'gpt-4',
-          'gpt-3.5-turbo',
-          'claude-3-opus',
-          'claude-3-sonnet'
-        ],
-        capabilities: [
-          'chat',
-          'completions',
-          'embeddings',
-          'moderations'
-        ],
+        models: ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet'],
+        capabilities: ['chat', 'completions', 'embeddings', 'moderations'],
         rateLimits: {
           requestsPerMinute: 60,
           tokensPerMinute: 150000
