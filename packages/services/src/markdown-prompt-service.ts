@@ -68,6 +68,11 @@ export interface File {
   size: number
 }
 
+// Options for bulk import behavior
+export interface BulkImportOptions {
+  overwriteExisting?: boolean
+}
+
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_CONTENT_LENGTH = 1024 * 1024 // 1MB per prompt content
@@ -130,10 +135,14 @@ export function createMarkdownPromptService(deps: MarkdownPromptServiceDeps = {}
     /**
      * Handles bulk import of multiple markdown files
      */
-    bulkImportMarkdownPrompts: async (files: File[], projectId?: number): Promise<BulkImportResult> => {
+    bulkImportMarkdownPrompts: async (
+      files: File[],
+      projectId?: number,
+      options: BulkImportOptions = {}
+    ): Promise<BulkImportResult> => {
       return withErrorContext(
         async () => {
-          return performBulkImport(files, projectId, promptService, logger)
+          return performBulkImport(files, projectId, promptService, logger, options)
         },
         { entity: 'MarkdownPrompt', action: 'bulkImport' }
       )
@@ -471,8 +480,10 @@ async function performBulkImport(
   files: File[],
   projectId: number | undefined,
   promptService: PromptService,
-  logger: ServiceLogger
+  logger: ServiceLogger,
+  options: BulkImportOptions = {}
 ): Promise<BulkImportResult> {
+  const { overwriteExisting = false } = options
   const fileResults: MarkdownImportResult[] = []
   let totalPrompts = 0
   let promptsImported = 0
@@ -545,17 +556,25 @@ async function performBulkImport(
         const existingPrompt = existingPrompts.find((p) => p.title === parsedPrompt.frontmatter.name)
 
         if (existingPrompt) {
-          // Update existing prompt
-          const updatedPrompt = await promptService.update(existingPrompt.id, {
-            content: parsedPrompt.content
-          })
+          if (overwriteExisting) {
+            // Update existing prompt
+            const updatedPrompt = await promptService.update(existingPrompt.id, {
+              content: parsedPrompt.content
+            })
 
-          importResult.success = true
-          importResult.promptId = updatedPrompt.id
-          importResult.action = 'updated'
-          summary.updated++
-          promptsImported++
-          fileResult.promptsImported++
+            importResult.success = true
+            importResult.promptId = updatedPrompt.id
+            importResult.action = 'updated'
+            summary.updated++
+            promptsImported++
+            fileResult.promptsImported++
+          } else {
+            // Skip existing when overwrite not requested
+            importResult.success = true
+            importResult.promptId = existingPrompt.id
+            importResult.action = 'skipped'
+            summary.skipped++
+          }
         } else {
           // Create new prompt - projectId is optional
           const newPrompt = await promptService.create(

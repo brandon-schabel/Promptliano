@@ -19,6 +19,7 @@ import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
+import { processManagementRoutes } from './routes/process-management-routes'
 // import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
 import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
@@ -273,10 +274,7 @@ app.get('/api/_openapi-debug', async (c) => {
       CreateProviderKeySchema: (Schemas as any).CreateProviderKeySchema,
       UpdateProviderKeySchema: (Schemas as any).UpdateProviderKeySchema,
 
-      ActiveTabSchema: (Schemas as any).ActiveTabSchema,
-      CreateActiveTabSchema: (Schemas as any).CreateActiveTabSchema,
-      UpdateActiveTabSchema: (Schemas as any).UpdateActiveTabSchema,
-      ActiveTabIdParamsSchema: (Schemas as any).ActiveTabIdParamsSchema,
+      // ActiveTab schemas removed (frontend only)
 
       SelectedFileSchema: (Schemas as any).SelectedFileSchema,
       CreateSelectedFileSchema: (Schemas as any).CreateSelectedFileSchema,
@@ -341,6 +339,7 @@ app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', mcpInstallationRoutes)
+app.route('/', processManagementRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -349,7 +348,7 @@ app.route('/', mcpInstallationRoutes)
 // - promptRoutes -> /api/prompts CRUD via generated routes
 // - ticketRoutes -> /api/tickets CRUD via generated routes
 // - queueRoutes -> /api/queues CRUD via generated routes
-// - activeTabRoutes -> /api/activetabs CRUD via generated routes
+// - activeTabRoutes removed (frontend-only tabs)
 
 // Global error handler with ErrorFactory integration
 app.onError((err, c) => {
@@ -463,6 +462,7 @@ app.get('/doc', async (c) => {
   tryRegister('projectTabRoutes', (a) => a.route('/', projectTabRoutes))
   tryRegister('agentFilesRoutes', (a) => a.route('/', agentFilesRoutes))
   tryRegister('mcpInstallationRoutes', (a) => a.route('/', mcpInstallationRoutes))
+  tryRegister('processManagementRoutes', (a) => a.route('/', processManagementRoutes))
   // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
   tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
 

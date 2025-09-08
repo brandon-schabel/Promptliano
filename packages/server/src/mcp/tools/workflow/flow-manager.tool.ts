@@ -38,7 +38,7 @@ import {
   failQueueItem,
   // Flow-specific enqueue/dequeue
   enqueueTicket,
-  dequeueTask,
+  dequeueTask
 } from '@promptliano/services'
 
 export enum FlowManagerAction {
@@ -127,7 +127,12 @@ export const flowManagerTool: MCPToolDefinition = {
           case FlowManagerAction.TICKETS_CREATE: {
             const pid = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const title = validateDataField<string>(data, 'title', 'string', '"Add login"')
-            const ticket = await createTicket({ projectId: pid, title, overview: data?.overview, priority: data?.priority })
+            const ticket = await createTicket({
+              projectId: pid,
+              title,
+              overview: data?.overview,
+              priority: data?.priority
+            })
             return { content: [{ type: 'text', text: JSON.stringify({ ticket }, null, 2) }] }
           }
           case FlowManagerAction.TICKETS_UPDATE: {
@@ -150,7 +155,12 @@ export const flowManagerTool: MCPToolDefinition = {
           case FlowManagerAction.TASKS_CREATE: {
             const tid = validateRequiredParam(ticketId, 'ticketId', 'number', '123')
             const content = validateDataField<string>(data, 'content', 'string', '"Implement login form"')
-            const task = await createTask({ ticketId: tid, content, description: data?.description, status: data?.status })
+            const task = await createTask({
+              ticketId: tid,
+              content,
+              description: data?.description,
+              status: data?.status
+            })
             return { content: [{ type: 'text', text: JSON.stringify({ task }, null, 2) }] }
           }
           case FlowManagerAction.TASKS_UPDATE: {
@@ -165,7 +175,10 @@ export const flowManagerTool: MCPToolDefinition = {
           }
           case FlowManagerAction.TASKS_REORDER: {
             const tid = validateRequiredParam(ticketId, 'ticketId', 'number', '123')
-            const orders = validateDataField<Array<{ taskId: number; orderIndex: number }>>(data, 'orders', 'array',
+            const orders = validateDataField<Array<{ taskId: number; orderIndex: number }>>(
+              data,
+              'orders',
+              'array',
               '[{ "taskId": 1, "orderIndex": 1 }]'
             )
             await reorderTasks(tid, orders)
@@ -176,7 +189,12 @@ export const flowManagerTool: MCPToolDefinition = {
           case FlowManagerAction.QUEUES_CREATE: {
             const pid = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
             const name = validateDataField<string>(data, 'name', 'string', '"Main Queue"')
-            const queue = await createQueue({ projectId: pid, name, description: data?.description, maxParallelItems: data?.maxParallelItems })
+            const queue = await createQueue({
+              projectId: pid,
+              name,
+              description: data?.description,
+              maxParallelItems: data?.maxParallelItems
+            })
             return { content: [{ type: 'text', text: JSON.stringify({ queue }, null, 2) }] }
           }
           case FlowManagerAction.QUEUES_LIST: {
@@ -223,17 +241,32 @@ export const flowManagerTool: MCPToolDefinition = {
             const tskId = validateDataField<number>(data, 'taskId', 'number', '456')
             const priority = (data?.priority as number | undefined) ?? 5
             // Enqueue via generic queue op
-            const queueItem = await enqueueItem(qid, { type: 'task', referenceId: tskId, title: `Task ${tskId}`, priority })
+            const queueItem = await enqueueItem(qid, {
+              type: 'task',
+              referenceId: tskId,
+              title: `Task ${tskId}`,
+              priority
+            })
             return { content: [{ type: 'text', text: JSON.stringify({ queueItem }, null, 2) }] }
           }
           case FlowManagerAction.DEQUEUE_TICKET: {
-            const tid = validateRequiredParam(ticketId ?? (data?.ticketId as number | undefined), 'ticketId', 'number', '123')
+            const tid = validateRequiredParam(
+              ticketId ?? (data?.ticketId as number | undefined),
+              'ticketId',
+              'number',
+              '123'
+            )
             const flow = createFlowService()
             const ticket = await flow.dequeueTicket(tid)
             return { content: [{ type: 'text', text: JSON.stringify({ ticket }, null, 2) }] }
           }
           case FlowManagerAction.DEQUEUE_TASK: {
-            const tskId = validateRequiredParam(taskId ?? (data?.taskId as number | undefined), 'taskId', 'number', '456')
+            const tskId = validateRequiredParam(
+              taskId ?? (data?.taskId as number | undefined),
+              'taskId',
+              'number',
+              '456'
+            )
             const task = await dequeueTask(tskId)
             return { content: [{ type: 'text', text: JSON.stringify({ task }, null, 2) }] }
           }
@@ -267,7 +300,9 @@ export const flowManagerTool: MCPToolDefinition = {
         }
       } catch (error) {
         const mcpError =
-          error instanceof MCPError ? error : MCPError.fromError(error, { tool: 'flow_manager', action: (args as any).action })
+          error instanceof MCPError
+            ? error
+            : MCPError.fromError(error, { tool: 'flow_manager', action: (args as any).action })
         return formatMCPErrorResponse(mcpError)
       }
     }

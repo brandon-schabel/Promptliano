@@ -69,6 +69,8 @@ export { updateActiveTabSchema, type UpdateActiveTab as UpdateActiveTabRequest }
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
 export * from './src/parser-config.schemas'
+// Process management
+export * from './src/process.schemas'
 
 // Provider Testing Schemas
 export * from './src/provider-testing.schemas'

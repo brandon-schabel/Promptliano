@@ -367,6 +367,7 @@ Install ast-grep if needed:
 ```
 npm install --global @ast-grep/cli  # or: brew install ast-grep
 ```
+
 - Migration: run `bun run db:migrate` to drop legacy search tables and indexes.
 
 What was removed:

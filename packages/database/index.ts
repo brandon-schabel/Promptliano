@@ -29,7 +29,6 @@ export {
   queueItems,
   files,
   selectedFiles,
-  activeTabs,
   providerKeys,
   modelConfigs,
   modelPresets
@@ -55,7 +54,6 @@ import {
   selectProviderKeySchema,
   selectModelConfigSchema,
   selectModelPresetSchema,
-  selectActiveTabSchema,
   selectSelectedFileSchema,
   insertProjectSchema,
   insertTicketSchema,
@@ -69,7 +67,6 @@ import {
   insertProviderKeySchema,
   insertModelConfigSchema,
   insertModelPresetSchema,
-  insertActiveTabSchema,
   insertSelectedFileSchema
 } from './src/schema'
 
@@ -218,16 +215,7 @@ export const UpdateProviderKeySchema = CreateProviderKeySchema.partial()
 export type CreateProviderKey = InferSchema<typeof CreateProviderKeySchema>
 export type UpdateProviderKey = InferSchema<typeof UpdateProviderKeySchema>
 
-// ActiveTab schemas (with JSON field transformations)
-export const ActiveTabSchema = createTransformedSelectSchema(selectActiveTabSchema, {
-  tabData: commonJsonTransforms.tabData
-})
-export const CreateActiveTabSchema = createTransformedInsertSchema(insertActiveTabSchema).extend({
-  tabData: commonJsonTransforms.tabData.optional()
-})
-export const UpdateActiveTabSchema = CreateActiveTabSchema.partial()
-export type CreateActiveTab = InferSchema<typeof CreateActiveTabSchema>
-export type UpdateActiveTab = InferSchema<typeof UpdateActiveTabSchema>
+// ActiveTab removed: handled entirely on the frontend
 
 // SelectedFile schemas (backward compatibility)
 export const SelectedFileSchema = selectSelectedFileSchema

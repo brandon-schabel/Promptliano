@@ -87,7 +87,6 @@ export const mcpExecutionRepository = {
     status?: string
     startDate?: number
     endDate?: number
-    userId?: string
     sessionId?: string
     limit?: number
     offset?: number
@@ -110,9 +109,6 @@ export const mcpExecutionRepository = {
     }
     if (params.endDate) {
       conditions.push(lte(mcpToolExecutions.startedAt, new Date(params.endDate)))
-    }
-    if (params.userId) {
-      conditions.push(eq(mcpToolExecutions.userId, params.userId))
     }
     if (params.sessionId) {
       conditions.push(eq(mcpToolExecutions.sessionId, params.sessionId))

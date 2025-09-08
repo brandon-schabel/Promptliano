@@ -193,6 +193,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@hono/zod-openapi": "^1.1.0",
+        "@promptliano/config": "workspace:*",
         "@promptliano/schemas": "workspace:*",
         "@promptliano/shared": "workspace:*",
         "drizzle-orm": "^0.40.0",

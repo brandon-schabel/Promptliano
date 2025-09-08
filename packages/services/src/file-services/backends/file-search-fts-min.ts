@@ -49,4 +49,3 @@ export function searchWithFtsMin(
     rows: rows.map((r) => ({ fileId: String(r.fileId), path: r.path, rank: Number(r.rank), snippet: r.snippet }))
   }
 }
-

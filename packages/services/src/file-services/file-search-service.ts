@@ -2,6 +2,7 @@ import type { File, Ticket } from '@promptliano/database'
 import { rawDb } from '@promptliano/database'
 import { getProjectFiles, getProjectById as getProjectRecord } from '../project-service'
 import { searchWithRipgrep, buildGlobsForExtensions } from './backends/file-search-rg'
+import { searchWithAstGrep, type AstGrepResultItem } from './backends/file-search-sg'
 import { searchWithFtsMin } from './backends/file-search-fts-min'
 import { spawnSync } from 'node:child_process'
 import { createFileService, type FileServiceConfig } from './file-service-factory'
@@ -127,11 +128,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
 
     // Helper to fetch a file by relative path
     const getFileByPath = (relPath: string) =>
-      db
-        .prepare(
-          `SELECT * FROM files WHERE project_id = ? AND path = ? LIMIT 1`
-        )
-        .get(projectId, relPath) as File | null
+      db.prepare(`SELECT * FROM files WHERE project_id = ? AND path = ? LIMIT 1`).get(projectId, relPath) as File | null
 
     if (backend === 'sg' || backend === 'rg') {
       const proj = await getProjectRecord(projectId)
@@ -156,7 +153,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
         try {
           const sgItems = await searchWithAstGrep(projectPath, normalizedQuery, {
             caseSensitive: options.caseSensitive,
-            limit: options.limit,
+            limit: options.limit
           })
           const results: SearchResult[] = []
           for (const item of sgItems) {
@@ -167,7 +164,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
               if (!options.fileTypes.includes(ext)) continue
             }
             const content = file.content || ''
-            const matches = item.matches.map((m) => ({
+            const matches = item.matches.map((m: AstGrepResultItem['matches'][number]) => ({
               line: m.line,
               column: m.column,
               text: m.text,
@@ -197,7 +194,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
           const file = getFileByPath(item.path)
           if (!file) continue
           const content = file.content || ''
-          const matches = item.matches.map((m) => ({
+          const matches = item.matches.map((m: { line: number; column: number; text: string }) => ({
             line: m.line,
             column: m.column,
             text: m.text,
@@ -229,9 +226,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
       const { rows } = searchWithFtsMin(projectId, query, { limit: options.limit, offset: options.offset })
       const results: SearchResult[] = []
       for (const r of rows) {
-        const fileRow = db
-          .prepare('SELECT * FROM files WHERE id = ? LIMIT 1')
-          .get(r.fileId) as File | null
+        const fileRow = db.prepare('SELECT * FROM files WHERE id = ? LIMIT 1').get(r.fileId) as File | null
         if (!fileRow) continue
         if (options.fileTypes && options.fileTypes.length > 0) {
           const ext = getFileExtension(fileRow.path)
@@ -266,7 +261,12 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
         if (!options.fileTypes.includes(ext)) continue
       }
       const content = f.content || ''
-      results.push({ file: f, score: 1, matches: extractMatches(content, normalizedQuery), snippet: generateSnippet(content, normalizedQuery) })
+      results.push({
+        file: f,
+        score: 1,
+        matches: extractMatches(content, normalizedQuery),
+        snippet: generateSnippet(content, normalizedQuery)
+      })
     }
     return { results }
   }
@@ -458,7 +458,9 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
 
   // Debug utilities
   async function debugSearch(projectId: number, query?: string) {
-    const sample = query ? await search(projectId, { query, limit: 5 }) : { results: [], stats: { totalResults: 0, searchTime: 0, cached: false, indexCoverage: 100 } }
+    const sample = query
+      ? await search(projectId, { query, limit: 5 })
+      : { results: [], stats: { totalResults: 0, searchTime: 0, cached: false, indexCoverage: 100 } }
     return {
       indexStats: { mode: selectBackend(), note: 'legacy index removed' },
       ftsContent: { enabled: tryHasFts() },

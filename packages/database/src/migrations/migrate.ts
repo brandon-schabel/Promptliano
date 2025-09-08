@@ -24,7 +24,26 @@ export async function runMigrations() {
     // If baseline tables already exist (from bootstrap), seed migrations journal
     await seedBaselineIfAlreadyBootstrapped(migrationsPath)
 
-    await migrate(db, { migrationsFolder: migrationsPath })
+    // Run migrator but don't abort the whole startup on idempotency errors.
+    try {
+      await migrate(db, { migrationsFolder: migrationsPath })
+    } catch (e: any) {
+      const msg = String(e?.message || e)
+      // Common drizzle/sqlite idempotency errors we can safely ignore to continue upgrades
+      const isIdempotencyIssue = /already exists|duplicate column|duplicate key/i.test(msg)
+      if (isIdempotencyIssue) {
+        console.warn('⚠️ Migrator reported idempotency issue; proceeding with safety upgrades:', msg)
+      } else {
+        // Re-throw unknown/critical migration errors
+        throw e
+      }
+    }
+
+    // After migrator, defensively ensure any base tables and indexes are present
+    await ensureMissingTablesFromBase(migrationsPath)
+
+    // Ensure critical model configuration tables exist (defensive fallback)
+    await ensureModelConfigTables()
 
     // Apply safety fixes for existing databases that predate new columns
     await ensureSchemaUpgrades()
@@ -60,8 +79,7 @@ export async function createInitialSchema() {
       'queue_items',
       'provider_keys',
       'files',
-      'selected_files',
-      'active_tabs'
+      'selected_files'
     ]
 
     for (const table of tables) {
@@ -128,6 +146,14 @@ async function ensureSchemaUpgrades() {
       return rows.some((r) => r.name === indexName)
     }
 
+    // Helper: check if a table exists
+    const tableExists = (table: string): boolean => {
+      const res = rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(table) as
+        | { name?: string }
+        | undefined
+      return !!res?.name
+    }
+
     // Ensure new file columns added after initial deployments
     const fileColumns: Array<{ name: string; ddl: string }> = [
       { name: 'content', ddl: 'ALTER TABLE `files` ADD `content` text' },
@@ -178,8 +204,183 @@ async function ensureSchemaUpgrades() {
         console.warn('⚠️ Failed to create index files_checksum_idx:', e)
       }
     }
+
+    // Drop legacy tab tables (tabs are frontend-only now)
+    if (tableExists('active_tabs')) {
+      try {
+        rawDb.exec('DROP TABLE IF EXISTS `active_tabs`')
+        console.log('🧹 Dropped legacy table active_tabs')
+      } catch (e) {
+        console.warn('⚠️ Failed to drop legacy table active_tabs:', e)
+      }
+    }
+    if (tableExists('project_tab_state')) {
+      try {
+        rawDb.exec('DROP TABLE IF EXISTS `project_tab_state`')
+        console.log('🧹 Dropped legacy table project_tab_state')
+      } catch (e) {
+        console.warn('⚠️ Failed to drop legacy table project_tab_state:', e)
+      }
+    }
   } catch (e) {
     console.warn('⚠️ ensureSchemaUpgrades() encountered an issue:', e)
+  }
+}
+
+/**
+ * Ensure any tables defined in 0000_base.sql exist even if the migrator
+ * did not apply the base due to existing core tables.
+ */
+async function ensureMissingTablesFromBase(migrationsPath: string) {
+  try {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const baseSqlPath = path.join(migrationsPath, '0000_base.sql')
+    const migrationSql = fs.readFileSync(baseSqlPath, 'utf8')
+    const statements = migrationSql.split('--> statement-breakpoint')
+
+    const createTableRe = /^CREATE\s+TABLE\s+`?(\w+)`?\s*\(/i
+    const createIndexRe = /^CREATE\s+INDEX\s+`?(\w+)`?\s+ON\s+`?(\w+)`?/i
+
+    const tableExists = (name: string) =>
+      (
+        rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
+          | { name?: string }
+          | undefined
+      )?.name === name
+
+    const indexExists = (name: string) =>
+      (
+        rawDb.query("SELECT name FROM sqlite_master WHERE type='index' AND name=?").get(name) as
+          | { name?: string }
+          | undefined
+      )?.name === name
+
+    const toRun: string[] = []
+    const newlyCreatedTables: Set<string> = new Set()
+
+    for (const stmt of statements.map((s) => s.trim()).filter(Boolean)) {
+      const m = stmt.match(createTableRe)
+      if (m) {
+        const table = m[1] as string
+        if (!tableExists(table)) {
+          toRun.push(stmt)
+          newlyCreatedTables.add(table)
+        }
+      }
+    }
+
+    // Execute missing CREATE TABLE statements first
+    for (const sql of toRun) {
+      try {
+        rawDb.exec(sql)
+      } catch (e) {
+        console.warn('⚠️ Failed creating table from base:', e)
+      }
+    }
+
+    // Create indexes for newly created tables if missing
+    for (const stmt of statements.map((s) => s.trim()).filter(Boolean)) {
+      const mi = stmt.match(createIndexRe)
+      if (!mi) continue
+      const indexName = mi[1] as string
+      const tableName = mi[2] as string
+      if (!newlyCreatedTables.has(tableName)) continue
+      if (indexExists(indexName)) continue
+      try {
+        rawDb.exec(stmt)
+      } catch (e) {
+        console.warn(`⚠️ Failed creating index ${indexName}:`, e)
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ ensureMissingTablesFromBase() encountered an issue:', e)
+  }
+}
+
+/**
+ * Defensive fallback: explicitly create model configuration tables if missing.
+ * This covers edge cases where the migrator/journal baseline prevented the
+ * base migration from running and our generic filler missed these tables.
+ */
+async function ensureModelConfigTables() {
+  try {
+    const tableExists = (name: string) =>
+      (
+        rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
+          | { name?: string }
+          | undefined
+      )?.name === name
+
+    // Create model_configs first (referenced by model_presets)
+    if (!tableExists('model_configs')) {
+      try {
+        rawDb.exec(`CREATE TABLE \`model_configs\` (
+  \`id\` integer PRIMARY KEY NOT NULL,
+  \`name\` text NOT NULL,
+  \`display_name\` text,
+  \`provider\` text NOT NULL,
+  \`model\` text NOT NULL,
+  \`temperature\` real DEFAULT 0.7,
+  \`max_tokens\` integer DEFAULT 4096,
+  \`top_p\` real DEFAULT 1,
+  \`top_k\` integer DEFAULT 0,
+  \`frequency_penalty\` real DEFAULT 0,
+  \`presence_penalty\` real DEFAULT 0,
+  \`response_format\` text,
+  \`system_prompt\` text,
+  \`is_system_preset\` integer DEFAULT false NOT NULL,
+  \`is_default\` integer DEFAULT false NOT NULL,
+  \`is_active\` integer DEFAULT true NOT NULL,
+  \`user_id\` integer,
+  \`description\` text,
+  \`preset_category\` text,
+  \`ui_icon\` text,
+  \`ui_color\` text,
+  \`ui_order\` integer DEFAULT 0,
+  \`created_at\` integer NOT NULL,
+  \`updated_at\` integer NOT NULL
+)`)
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_name_idx\` ON \`model_configs\` (\`name\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_provider_idx\` ON \`model_configs\` (\`provider\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_is_default_idx\` ON \`model_configs\` (\`is_default\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_user_idx\` ON \`model_configs\` (\`user_id\`)')
+        console.log('✅ Ensured table model_configs')
+      } catch (e) {
+        console.warn('⚠️ Failed to ensure model_configs:', e)
+      }
+    }
+
+    // Then create model_presets
+    if (!tableExists('model_presets')) {
+      try {
+        rawDb.exec(`CREATE TABLE \`model_presets\` (
+  \`id\` integer PRIMARY KEY NOT NULL,
+  \`name\` text NOT NULL,
+  \`description\` text,
+  \`config_id\` integer NOT NULL,
+  \`category\` text DEFAULT 'general',
+  \`is_system_preset\` integer DEFAULT false NOT NULL,
+  \`is_active\` integer DEFAULT true NOT NULL,
+  \`user_id\` integer,
+  \`usage_count\` integer DEFAULT 0 NOT NULL,
+  \`last_used_at\` integer,
+  \`metadata\` text,
+  \`created_at\` integer NOT NULL,
+  \`updated_at\` integer NOT NULL,
+  FOREIGN KEY (\`config_id\`) REFERENCES \`model_configs\`(\`id\`) ON UPDATE no action ON DELETE cascade
+)`)
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_category_idx\` ON \`model_presets\` (\`category\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_config_idx\` ON \`model_presets\` (\`config_id\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_user_idx\` ON \`model_presets\` (\`user_id\`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_usage_idx\` ON \`model_presets\` (\`usage_count\`)')
+        console.log('✅ Ensured table model_presets')
+      } catch (e) {
+        console.warn('⚠️ Failed to ensure model_presets:', e)
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ ensureModelConfigTables() encountered an issue:', e)
   }
 }
 
@@ -196,25 +397,25 @@ async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
       return !!res?.name
     }
 
-    const baselineTables = ['projects', 'files', 'active_tabs']
-    const hasBaseline = baselineTables.every((t) => tableExists(t))
+    // Consider schema bootstrapped if ANY of the base tables already exist.
+    // We'll create missing ones afterwards via ensureMissingTablesFromBase().
+    const baselineTables = [
+      'projects',
+      'files',
+      'tickets',
+      'queues',
+      'chat_messages',
+      'prompts',
+      'provider_keys',
+      'selected_files'
+    ]
+    const hasBaseline = baselineTables.some((t) => tableExists(t))
 
     // Check if Drizzle journal exists and has entries
     const migrationsTable = '__drizzle_migrations'
     const hasJournal = tableExists(migrationsTable)
-    let hasEntries = false
-    if (hasJournal) {
-      try {
-        const row = rawDb.query(`SELECT id FROM ${migrationsTable} ORDER BY created_at DESC LIMIT 1`).get() as
-          | { id?: number }
-          | undefined
-        hasEntries = !!row?.id
-      } catch {
-        // ignore
-      }
-    }
 
-    if (hasBaseline && (!hasJournal || !hasEntries)) {
+    if (hasBaseline) {
       // Create journal table if missing
       try {
         rawDb.exec(
@@ -243,8 +444,14 @@ async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
       const hash = createHash('sha256').update(sqlStr).digest('hex')
 
       try {
-        rawDb.exec(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('${hash}', ${when})`)
-        console.log('✅ Seeded __drizzle_migrations with baseline entry')
+        // Only insert if the exact hash is not already present
+        const existing = rawDb.query(`SELECT 1 FROM __drizzle_migrations WHERE hash = ? LIMIT 1`).get(hash) as
+          | { 1?: number }
+          | undefined
+        if (!existing) {
+          rawDb.exec(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('${hash}', ${when})`)
+          console.log('✅ Seeded __drizzle_migrations with baseline entry')
+        }
       } catch (e) {
         // If unique constraints or similar, ignore
         console.warn('⚠️ Failed to seed __drizzle_migrations baseline entry:', e)

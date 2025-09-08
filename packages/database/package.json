@@ -13,6 +13,7 @@
     "studio": "bash -lc 'drizzle-kit studio --config=drizzle.config.cjs --port ${DRIZZLE_STUDIO_PORT:-4983}'"
   },
   "dependencies": {
+    "@promptliano/config": "workspace:*",
     "@hono/zod-openapi": "^1.1.0",
     "@promptliano/schemas": "workspace:*",
     "@promptliano/shared": "workspace:*",

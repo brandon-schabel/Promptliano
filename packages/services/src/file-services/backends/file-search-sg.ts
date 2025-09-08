@@ -117,10 +117,7 @@ async function runAstGrep(
   proc.stderr.setEncoding('utf8')
   proc.stderr.on('data', (d) => errors.push(String(d)))
 
-  await Promise.all([
-    consume().catch(() => {}),
-    new Promise<void>((resolve) => proc.on('close', () => resolve())),
-  ])
+  await Promise.all([consume().catch(() => {}), new Promise<void>((resolve) => proc.on('close', () => resolve()))])
 
   if (errors.length > 0 && byFile.size === 0) {
     const combined = errors.join('\n')
@@ -132,4 +129,3 @@ async function runAstGrep(
   const list = Array.from(byFile.values())
   return opts.limit ? list.slice(0, opts.limit) : list
 }
-

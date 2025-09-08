@@ -562,7 +562,7 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
     async exportConfigurations(): Promise<{ configs: ModelConfig[]; presets: ModelPreset[] }> {
       try {
         const configs = await repository.getAll()
-        const presets = await presetRepository.getUserPresets()
+        const presets = await presetRepository.getAllPresets()
 
         logger.info('Exported configurations', { configCount: configs.length, presetCount: presets.length })
 

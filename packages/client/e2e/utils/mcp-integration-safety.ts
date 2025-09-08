@@ -355,7 +355,7 @@ export class MCPIntegrationSafety {
     const mockHandlers: Record<string, (params: any) => any> = {
       project_manager: this.mockProjectManager,
       prompt_manager: this.mockPromptManager,
-      flow_manager: this.mockFlowManager,
+      flow_manager: this.mockFlowManager
     }
 
     const handler = mockHandlers[toolName]
@@ -437,7 +437,7 @@ export class MCPIntegrationSafety {
             id: Math.floor(Math.random() * 100) + 1,
             name: params.data?.name || 'Mock Queue',
             description: params.data?.description || 'Mock queue',
-            isActive: true,
+            isActive: true
           }
         }
       case 'processor_get_next':

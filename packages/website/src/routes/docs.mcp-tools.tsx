@@ -188,20 +188,26 @@ function MCPToolsOverviewPage() {
             <h3 className='text-xl font-medium mb-2'>Actions</h3>
             <ul className='list-disc list-inside text-muted-foreground mb-4'>
               <li>
-                Tickets: <code>tickets_list</code>, <code>tickets_get</code>, <code>tickets_create</code>, <code>tickets_update</code>, <code>tickets_delete</code>
+                Tickets: <code>tickets_list</code>, <code>tickets_get</code>, <code>tickets_create</code>,{' '}
+                <code>tickets_update</code>, <code>tickets_delete</code>
               </li>
               <li>
-                Tasks: <code>tasks_list_by_ticket</code>, <code>tasks_create</code>, <code>tasks_update</code>, <code>tasks_delete</code>, <code>tasks_reorder</code>
+                Tasks: <code>tasks_list_by_ticket</code>, <code>tasks_create</code>, <code>tasks_update</code>,{' '}
+                <code>tasks_delete</code>, <code>tasks_reorder</code>
               </li>
               <li>
-                Queues: <code>queues_create</code>, <code>queues_list</code>, <code>queues_get</code>, <code>queues_update</code>, <code>queues_delete</code>, <code>queues_get_stats</code>, <code>queues_get_all_stats</code>
+                Queues: <code>queues_create</code>, <code>queues_list</code>, <code>queues_get</code>,{' '}
+                <code>queues_update</code>, <code>queues_delete</code>, <code>queues_get_stats</code>,{' '}
+                <code>queues_get_all_stats</code>
               </li>
               <li>
                 Processor: <code>processor_get_next</code>, <code>processor_complete</code>, <code>processor_fail</code>
               </li>
             </ul>
             <p className='text-sm text-muted-foreground'>
-              Use <code>project_manager(list)</code> to obtain a valid <code>projectId</code>. Enqueue with <code>enqueue_ticket</code> / <code>enqueue_task</code>, then drive execution via <code>processor_get_next</code> until empty.
+              Use <code>project_manager(list)</code> to obtain a valid <code>projectId</code>. Enqueue with{' '}
+              <code>enqueue_ticket</code> / <code>enqueue_task</code>, then drive execution via{' '}
+              <code>processor_get_next</code> until empty.
             </p>
           </GlassCard>
         </section>

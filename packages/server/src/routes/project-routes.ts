@@ -90,21 +90,21 @@ const FileSearchRequestSchema = z.object({
   offset: z.number().int().nonnegative().optional(),
   includeContext: z.boolean().optional(),
   contextLines: z.number().int().min(0).max(20).optional(),
-  caseSensitive: z.boolean().optional(),
+  caseSensitive: z.boolean().optional()
 })
 
 const FileSearchMatchSchema = z.object({
   line: z.number().int().nonnegative(),
   column: z.number().int().nonnegative(),
   text: z.string(),
-  context: z.string().optional(),
+  context: z.string().optional()
 })
 
 const FileSearchResultSchema = z.object({
   file: DbFileSchema as any,
   score: z.number(),
   matches: z.array(FileSearchMatchSchema),
-  snippet: z.string().optional(),
+  snippet: z.string().optional()
 })
 
 const FileSearchResponseSchema = z.object({
@@ -115,7 +115,7 @@ const FileSearchResponseSchema = z.object({
       totalResults: z.number().int().nonnegative(),
       searchTime: z.number().int().nonnegative(),
       cached: z.boolean(),
-      indexCoverage: z.number().int().nonnegative(),
+      indexCoverage: z.number().int().nonnegative()
     })
   })
 })
@@ -263,7 +263,7 @@ const searchProjectFilesRoute = createRoute({
   summary: 'Search project files (AST-grep by default)',
   request: {
     params: IDParamsSchema,
-    body: { content: { 'application/json': { schema: FileSearchRequestSchema } } },
+    body: { content: { 'application/json': { schema: FileSearchRequestSchema } } }
   },
   responses: createStandardResponses(FileSearchResponseSchema)
 })

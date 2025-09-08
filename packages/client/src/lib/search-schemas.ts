@@ -16,7 +16,7 @@ export const tabSearchSchema = z.object({
 
 // Project view tabs enum
 export const projectViewSchema = z
-  .enum(['context', 'flow', 'git', 'manage', 'assets', 'claude-code'])
+  .enum(['context', 'flow', 'git', 'manage', 'assets', 'processes', 'claude-code'])
   .catch('context')
   .optional()
 

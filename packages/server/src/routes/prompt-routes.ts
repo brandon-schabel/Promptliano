@@ -431,7 +431,8 @@ export const promptRoutes = new OpenAPIHono()
     const files: Array<{ name: string; content: string; size: number }> = []
 
     // Handle both single file and multiple files
-    const fileEntries = body.getAll('files')
+    // Accept both 'files' and 'files[]' field names
+    const fileEntries = [...body.getAll('files'), ...body.getAll('files[]')]
     if (!fileEntries || fileEntries.length === 0) {
       throw new Error('No files provided')
     }
@@ -440,33 +441,39 @@ export const promptRoutes = new OpenAPIHono()
     const { MAX_FILE_SIZE, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } = MARKDOWN_UPLOAD_CONFIG
 
     for (const entry of fileEntries) {
-      if (entry instanceof File) {
-        // Validate file extension
-        const fileName = entry.name.toLowerCase()
+      const isFile = typeof File !== 'undefined' && entry instanceof File
+      const isBlobLike = !isFile && entry && typeof (entry as any).arrayBuffer === 'function'
+
+      if (isFile || isBlobLike) {
+        const f: any = entry as any
+        const originalName: string = typeof f.name === 'string' && f.name.length > 0 ? f.name : 'upload.md'
+        const fileName = originalName.toLowerCase()
+
+        // Validate by extension when present; otherwise fall back to MIME type
         const hasValidExtension = ALLOWED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
-
-        if (!hasValidExtension) {
-          throw new Error(`Invalid file type: ${entry.name}. Only .md and .markdown files are allowed`)
+        const mimeType: string | undefined = typeof f.type === 'string' ? f.type : undefined
+        const hasValidMime = !mimeType || mimeType === '' || ALLOWED_MIME_TYPES.includes(mimeType as any)
+        if (!hasValidExtension && !hasValidMime) {
+          throw new Error(
+            `Invalid file type for ${originalName}. Only .md/.markdown extensions or markdown/plain text MIME types are allowed`
+          )
         }
 
-        // Validate MIME type if available
-        if (entry.type && entry.type !== '' && !ALLOWED_MIME_TYPES.includes(entry.type as any)) {
-          throw new Error(`Invalid MIME type for ${entry.name}: ${entry.type}. Expected markdown or plain text`)
-        }
-
-        // Validate file size - throw error which will be handled by middleware
-        if (entry.size > MAX_FILE_SIZE) {
-          const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
+        // Validate size
+        const size = typeof f.size === 'number' ? f.size : 0
+        if (size > MAX_FILE_SIZE) {
+          const error = new Error(`File ${originalName} exceeds maximum size of 10MB`)
           ;(error as any).statusCode = 413
           ;(error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
-        const content = await entry.text()
+        // Read content
+        const content = typeof f.text === 'function' ? await f.text() : new TextDecoder().decode(await f.arrayBuffer())
         files.push({
-          name: entry.name,
+          name: originalName,
           content,
-          size: entry.size
+          size
         })
       }
     }
@@ -475,7 +482,7 @@ export const promptRoutes = new OpenAPIHono()
       throw new Error('No valid markdown files found')
     }
 
-    const result = await bulkImportMarkdownPrompts(files, projectId)
+    const result = await bulkImportMarkdownPrompts(files, projectId, { overwriteExisting })
     return c.json(successResponse(result))
   }) as any)
 
@@ -527,7 +534,8 @@ export const promptRoutes = new OpenAPIHono()
     const files: Array<{ name: string; content: string; size: number }> = []
 
     // Handle both single file and multiple files
-    const fileEntries = body.getAll('files')
+    // Accept both 'files' and 'files[]' field names
+    const fileEntries = [...body.getAll('files'), ...body.getAll('files[]')]
     if (!fileEntries || fileEntries.length === 0) {
       throw new Error('No files provided')
     }
@@ -536,33 +544,39 @@ export const promptRoutes = new OpenAPIHono()
     const { MAX_FILE_SIZE, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } = MARKDOWN_UPLOAD_CONFIG
 
     for (const entry of fileEntries) {
-      if (entry instanceof File) {
-        // Validate file extension
-        const fileName = entry.name.toLowerCase()
+      const isFile = typeof File !== 'undefined' && entry instanceof File
+      const isBlobLike = !isFile && entry && typeof (entry as any).arrayBuffer === 'function'
+
+      if (isFile || isBlobLike) {
+        const f: any = entry as any
+        const originalName: string = typeof f.name === 'string' && f.name.length > 0 ? f.name : 'upload.md'
+        const fileName = originalName.toLowerCase()
+
+        // Validate by extension when present; otherwise fall back to MIME type
         const hasValidExtension = ALLOWED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
-
-        if (!hasValidExtension) {
-          throw new Error(`Invalid file type: ${entry.name}. Only .md and .markdown files are allowed`)
+        const mimeType: string | undefined = typeof f.type === 'string' ? f.type : undefined
+        const hasValidMime = !mimeType || mimeType === '' || ALLOWED_MIME_TYPES.includes(mimeType as any)
+        if (!hasValidExtension && !hasValidMime) {
+          throw new Error(
+            `Invalid file type for ${originalName}. Only .md/.markdown extensions or markdown/plain text MIME types are allowed`
+          )
         }
 
-        // Validate MIME type if available
-        if (entry.type && entry.type !== '' && !ALLOWED_MIME_TYPES.includes(entry.type as any)) {
-          throw new Error(`Invalid MIME type for ${entry.name}: ${entry.type}. Expected markdown or plain text`)
-        }
-
-        // Validate file size - throw error which will be handled by middleware
-        if (entry.size > MAX_FILE_SIZE) {
-          const error = new Error(`File ${entry.name} exceeds maximum size of 10MB`)
+        // Validate size
+        const size = typeof f.size === 'number' ? f.size : 0
+        if (size > MAX_FILE_SIZE) {
+          const error = new Error(`File ${originalName} exceeds maximum size of 10MB`)
           ;(error as any).statusCode = 413
           ;(error as any).code = 'FILE_TOO_LARGE'
           throw error
         }
 
-        const content = await entry.text()
+        // Read content
+        const content = typeof f.text === 'function' ? await f.text() : new TextDecoder().decode(await f.arrayBuffer())
         files.push({
-          name: entry.name,
+          name: originalName,
           content,
-          size: entry.size
+          size
         })
       }
     }
@@ -571,7 +585,7 @@ export const promptRoutes = new OpenAPIHono()
       throw new Error('No valid markdown files found')
     }
 
-    const result = await bulkImportMarkdownPrompts(files, projectId)
+    const result = await bulkImportMarkdownPrompts(files, projectId, { overwriteExisting })
     return c.json(successResponse(result))
   }) as any)
 

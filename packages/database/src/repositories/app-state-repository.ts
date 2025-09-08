@@ -5,14 +5,7 @@
 
 import { eq, and, inArray } from 'drizzle-orm'
 import { db } from '../db'
-import {
-  selectedFiles as selectedFilesTable,
-  activeTabs as activeTabsTable,
-  type SelectedFile,
-  type ActiveTab,
-  type InsertSelectedFile,
-  type InsertActiveTab
-} from '../schema'
+import { selectedFiles as selectedFilesTable, type SelectedFile, type InsertSelectedFile } from '../schema'
 
 // Selected Files Repository (custom implementation due to non-standard schema)
 export const selectedFileRepository = {
@@ -81,79 +74,5 @@ export const selectedFileRepository = {
 }
 
 // Active Tabs Repository (custom implementation due to non-standard schema)
-export const activeTabRepository = {
-  async create(data: Omit<InsertActiveTab, 'id'>): Promise<ActiveTab> {
-    const result = await db
-      .insert(activeTabsTable)
-      .values({
-        ...data,
-        createdAt: data.createdAt || Date.now(),
-        lastAccessedAt: data.lastAccessedAt || Date.now()
-      })
-      .returning()
-
-    if (!result[0]) {
-      throw new Error('Failed to create active tab')
-    }
-
-    return result[0]
-  },
-
-  async getById(id: number): Promise<ActiveTab | null> {
-    const [tab] = await db.select().from(activeTabsTable).where(eq(activeTabsTable.id, id)).limit(1)
-    return tab ?? null
-  },
-
-  async getByProject(projectId: number): Promise<ActiveTab[]> {
-    return db.select().from(activeTabsTable).where(eq(activeTabsTable.projectId, projectId))
-  },
-
-  async update(id: number, data: Partial<Omit<InsertActiveTab, 'id'>>): Promise<ActiveTab> {
-    const result = await db
-      .update(activeTabsTable)
-      .set({
-        ...data,
-        lastAccessedAt: Date.now() // Update access time
-      })
-      .where(eq(activeTabsTable.id, id))
-      .returning()
-
-    if (!result[0]) {
-      throw new Error(`Active tab with id ${id} not found`)
-    }
-
-    return result[0]
-  },
-
-  async delete(id: number): Promise<boolean> {
-    const result = (await db.delete(activeTabsTable).where(eq(activeTabsTable.id, id)).run()) as unknown as {
-      changes: number
-    }
-    return result.changes > 0
-  },
-
-  async getByPath(projectId: number, filePath: string): Promise<ActiveTab | null> {
-    // Assuming filePath is stored in tabData or can be identified by tabType
-    // This is a simplified implementation - may need adjustment based on actual data structure
-    const tabs = await this.getByProject(projectId)
-    return (
-      tabs.find((tab) => tab.tabType === 'file' && tab.tabData && (tab.tabData as any).filePath === filePath) || null
-    )
-  },
-
-  async count(where?: any): Promise<number> {
-    const { count } = await import('drizzle-orm')
-    const query = db.select({ count: count() }).from(activeTabsTable)
-
-    if (where) {
-      query.where(where)
-    }
-
-    const [result] = await query
-    return result?.count ?? 0
-  }
-}
-
 // Backward compatibility exports
 export { selectedFileRepository as selectedFiles }
-export { activeTabRepository as activeTabs }

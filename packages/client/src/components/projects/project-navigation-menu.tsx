@@ -48,6 +48,7 @@ interface ProjectNavigationMenuProps {
   activeView: ProjectView | undefined
   onViewChange: (view: ProjectView) => void
   assetsEnabled?: boolean
+  processesEnabled?: boolean
   showMenus?: boolean
   showTabs?: boolean
 }
@@ -57,6 +58,7 @@ export function ProjectNavigationMenu({
   activeView,
   onViewChange,
   assetsEnabled,
+  processesEnabled,
   showMenus = true,
   showTabs = true
 }: ProjectNavigationMenuProps) {
@@ -201,6 +203,7 @@ export function ProjectNavigationMenu({
         <TabButton view='flow' icon={Workflow} label='Flow' />
         <TabButton view='manage' icon={Sliders} label='Manage' />
         {assetsEnabled && <TabButton view='assets' icon={FolderOpen} label='Assets' />}
+        {processesEnabled && <TabButton view={'processes' as ProjectView} icon={Activity} label='Processes' />}
       </div>
     )
   }

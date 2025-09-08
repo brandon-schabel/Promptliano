@@ -37,14 +37,7 @@ export async function searchWithRipgrep(
   query: string,
   opts: RipgrepOptions = {}
 ): Promise<RipgrepResultItem[]> {
-  const args: string[] = [
-    '--json',
-    '--line-number',
-    '--column',
-    '--hidden',
-    '--max-columns',
-    '200',
-  ]
+  const args: string[] = ['--json', '--line-number', '--column', '--hidden', '--max-columns', '200']
 
   // Default excludes to reduce noise
   const defaultExcludes = ['!**/node_modules/**', '!**/.git/**', '!**/.next/**', '!**/dist/**']
@@ -113,10 +106,7 @@ export async function searchWithRipgrep(
   rg.stderr.setEncoding('utf8')
   rg.stderr.on('data', (d) => errors.push(String(d)))
 
-  await Promise.all([
-    consume().catch(() => {}),
-    new Promise<void>((resolve) => rg.on('close', () => resolve())),
-  ])
+  await Promise.all([consume().catch(() => {}), new Promise<void>((resolve) => rg.on('close', () => resolve()))])
 
   // If ripgrep failed to execute, surface a clear error
   // Exit code 2 is usually usage error; 127 means not found
@@ -134,4 +124,3 @@ export function buildGlobsForExtensions(extensions?: string[]): string[] {
   if (!extensions || extensions.length === 0) return []
   return extensions.map((ext) => `**/*.${ext.replace(/^\./, '')}`)
 }
-

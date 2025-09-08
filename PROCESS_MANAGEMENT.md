@@ -36,11 +36,11 @@ This monorepo runs Bun 1.x with Hono on the server, React/Vite on the client, an
   - After pulling versions that change DB schema, run: `bun run db:migrate` (drops legacy search tables if present).
 
 - Hono wiring steps
-  1) Implement server modules in `packages/server/src/process/` (runner/manager/lifecycle/strategies/security) following the patterns below.
-  2) Add `packages/server/src/routes/process-routes.ts` exposing:
+  1. Implement server modules in `packages/server/src/process/` (runner/manager/lifecycle/strategies/security) following the patterns below.
+  2. Add `packages/server/src/routes/process-routes.ts` exposing:
      - `POST /api/processes` (start), `DELETE /api/processes/:id` (stop/signal), `GET /api/processes` (list), `GET /api/processes/:id/logs?tail=&since=` (tail logs).
-  3) Register routes in `packages/server/src/app.ts` with other route groups.
-  4) WebSockets: `packages/server/server.ts` currently has WS disabled. When enabling, add a `logs:{processId}` topic and a `process-updates` broadcast; publish ScriptRunner events.
+  3. Register routes in `packages/server/src/app.ts` with other route groups.
+  4. WebSockets: `packages/server/server.ts` currently has WS disabled. When enabling, add a `logs:{processId}` topic and a `process-updates` broadcast; publish ScriptRunner events.
 
 - Database wiring (optional, recommended)
   - Tables (suggested minimal):
@@ -65,21 +65,21 @@ This monorepo runs Bun 1.x with Hono on the server, React/Vite on the client, an
 
 ### Phased Implementation Plan
 
-1) Scaffolding
+1. Scaffolding
    - Create `packages/server/src/process/` modules and `packages/server/src/routes/process-routes.ts`; register in `app.ts`.
-2) Minimal vertical slice
+2. Minimal vertical slice
    - Start/list/stop for a benign script (e.g., a package’s unit test); HTTP tail for logs.
-3) WebSocket fan‑out (optional at this step)
+3. WebSocket fan‑out (optional at this step)
    - Re‑enable `/ws` in `server.ts`, add `logs:{processId}` topics and backpressure-aware replay.
-4) Client UI
+4. Client UI
    - Add `ProcessManager.tsx` and basic navigation; wire to HTTP/WS endpoints.
-5) Persistence
+5. Persistence
    - Add Drizzle schema/migrations and repositories; switch log writes to DB.
-6) Hardening & tests
+6. Hardening & tests
    - Unit for config/env/queue/splitter/lifecycle; E2E for start/stop/tail/WS replay; rate limit/authZ checks.
-7) Packaging & release
+7. Packaging & release
    - Ensure `bun run build` and `bun run build:binaries` include new server modules; keep dev scripts working.
-8) Operability
+8. Operability
    - Counters (started/completed/failed), audits, ring buffers; add runbooks below.
 
 ### Runbooks
@@ -103,11 +103,11 @@ Bun’s child‑process API is built on top of `posix_spawn(2/3)` and exposes bo
 
 Key API facts you’ll rely on:
 
-* **Two spawn signatures**: `Bun.spawn({ cmd: [...] , ...opts })` **or** `Bun.spawn(["bin", ...], opts)`. Both use `posix_spawn` under the hood. ([Bun][1])
-* **`maxBuffer`** exists on **both** async and sync spawn; if output exceeds it, Bun kills the child with `killSignal` (default: `SIGTERM`). Prefer streaming logs; use `maxBuffer` as a safety fuse. ([Bun][1])
-* **`onExit` may fire before `Bun.spawn()` returns**—always design handlers so you don’t depend on work that happens after construction returns. Prefer `await proc.exited` for sequencing. ([Bun][1])
-* **`proc.resourceUsage()` is only available *after* exit**; for live telemetry, sample OS metrics instead. ([Bun][1])
-* **WebSockets**: native **pub/sub** (`ws.subscribe(...)`, `server.publish(...)`), a **backpressure signal** from `ws.send()` (`-1` enqueued w/ backpressure, `0` dropped, `>0` bytes sent), default **`idleTimeout` 120s**, **`maxPayloadLength` 16 MB**, and **`backpressureLimit` 1 MB**. ([Bun][2])
+- **Two spawn signatures**: `Bun.spawn({ cmd: [...] , ...opts })` **or** `Bun.spawn(["bin", ...], opts)`. Both use `posix_spawn` under the hood. ([Bun][1])
+- **`maxBuffer`** exists on **both** async and sync spawn; if output exceeds it, Bun kills the child with `killSignal` (default: `SIGTERM`). Prefer streaming logs; use `maxBuffer` as a safety fuse. ([Bun][1])
+- **`onExit` may fire before `Bun.spawn()` returns**—always design handlers so you don’t depend on work that happens after construction returns. Prefer `await proc.exited` for sequencing. ([Bun][1])
+- **`proc.resourceUsage()` is only available _after_ exit**; for live telemetry, sample OS metrics instead. ([Bun][1])
+- **WebSockets**: native **pub/sub** (`ws.subscribe(...)`, `server.publish(...)`), a **backpressure signal** from `ws.send()` (`-1` enqueued w/ backpressure, `0` dropped, `>0` bytes sent), default **`idleTimeout` 120s**, **`maxPayloadLength` 16 MB**, and **`backpressureLimit` 1 MB**. ([Bun][2])
 
 ---
 
@@ -115,13 +115,13 @@ Key API facts you’ll rely on:
 
 You’ll build a Bun server that can start/stop `package.json` scripts, stream logs to a React UI in real time, enforce security (JWT + allow‑lists), and handle both short‑lived jobs (build/test) and long‑running ones (dev servers, watchers). Core components:
 
-* **ScriptRunner** – runs package scripts and streams output line‑by‑line.
-* **ProcessManager** – concurrency limits, queueing, validation, and cleanup.
-* **LifecycleManager** – signals, graceful stop, live resource guardrails, exit accounting.
-* **Strategies** – short‑lived vs long‑running process profiles.
-* **SecurityManager** – authZ, rate limits, input validation, audit logging.
-* **WebSocket layer** – pub/sub channels per process, buffering, backpressure‑aware replay.
-* **React client** – select a process, tail logs, start/stop with auth.
+- **ScriptRunner** – runs package scripts and streams output line‑by‑line.
+- **ProcessManager** – concurrency limits, queueing, validation, and cleanup.
+- **LifecycleManager** – signals, graceful stop, live resource guardrails, exit accounting.
+- **Strategies** – short‑lived vs long‑running process profiles.
+- **SecurityManager** – authZ, rate limits, input validation, audit logging.
+- **WebSocket layer** – pub/sub channels per process, buffering, backpressure‑aware replay.
+- **React client** – select a process, tail logs, start/stop with auth.
 
 ---
 
@@ -131,46 +131,46 @@ Define shared types once to prevent drift.
 
 ```ts
 // server/types.ts
-import type { Subprocess } from "bun";
+import type { Subprocess } from 'bun'
 
-export type ProcessType = "short-lived" | "long-running";
+export type ProcessType = 'short-lived' | 'long-running'
 
 export interface ProcessLimits {
-  maxMemory?: number; // bytes (advisory; enforced by monitor)
-  maxCpu?: number;    // logical CPUs (advisory)
+  maxMemory?: number // bytes (advisory; enforced by monitor)
+  maxCpu?: number // logical CPUs (advisory)
 }
 
 export interface ProcessOptions {
-  cwd?: string;
-  env?: Record<string, string | undefined>;
-  stdin?: "pipe" | "inherit" | "ignore" | ReadableStream | Blob | Request | Response | ArrayBufferView | number;
-  stdout?: "pipe" | "inherit" | "ignore" | number;
-  stderr?: "pipe" | "inherit" | "ignore" | number;
-  timeout?: number; // ms
-  killSignal?: NodeJS.Signals | number;
-  signal?: AbortSignal;
-  healthCheckUrl?: string;
+  cwd?: string
+  env?: Record<string, string | undefined>
+  stdin?: 'pipe' | 'inherit' | 'ignore' | ReadableStream | Blob | Request | Response | ArrayBufferView | number
+  stdout?: 'pipe' | 'inherit' | 'ignore' | number
+  stderr?: 'pipe' | 'inherit' | 'ignore' | number
+  timeout?: number // ms
+  killSignal?: NodeJS.Signals | number
+  signal?: AbortSignal
+  healthCheckUrl?: string
 }
 
 export interface ProcessConfig {
-  command: string[];
-  cwd?: string;
-  env?: Record<string, string | undefined>;
-  timeout?: number;
-  type?: ProcessType;
-  limits?: ProcessLimits;
-  options?: ProcessOptions;
-  maxBuffer?: number; // hard cap; Bun will kill if exceeded
+  command: string[]
+  cwd?: string
+  env?: Record<string, string | undefined>
+  timeout?: number
+  type?: ProcessType
+  limits?: ProcessLimits
+  options?: ProcessOptions
+  maxBuffer?: number // hard cap; Bun will kill if exceeded
 }
 
 export interface ProcessInfo {
-  process: Subprocess;
-  config: ProcessConfig;
-  startTime: number;
-  status: "running" | "completed" | "failed" | "stopped";
-  exitCode?: number | null;
-  signalCode?: number | null;
-  resourceUsage?: ReturnType<Subprocess["resourceUsage"]>;
+  process: Subprocess
+  config: ProcessConfig
+  startTime: number
+  status: 'running' | 'completed' | 'failed' | 'stopped'
+  exitCode?: number | null
+  signalCode?: number | null
+  resourceUsage?: ReturnType<Subprocess['resourceUsage']>
 }
 ```
 
@@ -180,92 +180,96 @@ export interface ProcessInfo {
 
 **Correctness fixes:**
 
-* Use **line‑by‑line streaming** via Web Streams to avoid multi‑byte boundary bugs.
-* Provide a real **event emitter**; you referenced `emit()` in the draft.
-* Optional `maxBuffer` is supported on `spawn`; keep it as a fuse, but don’t rely on it for normal operation. ([Bun][1])
+- Use **line‑by‑line streaming** via Web Streams to avoid multi‑byte boundary bugs.
+- Provide a real **event emitter**; you referenced `emit()` in the draft.
+- Optional `maxBuffer` is supported on `spawn`; keep it as a fuse, but don’t rely on it for normal operation. ([Bun][1])
 
 ```ts
 // server/lib/scriptRunner.ts
-import { EventEmitter } from "node:events";
-import type { Subprocess } from "bun";
+import { EventEmitter } from 'node:events'
+import type { Subprocess } from 'bun'
 
-type LogEvent = { processId: string; type: "stdout" | "stderr"; line: string; timestamp: number };
+type LogEvent = { processId: string; type: 'stdout' | 'stderr'; line: string; timestamp: number }
 
 export class ScriptRunner extends EventEmitter {
-  private processes = new Map<string, Subprocess>();
+  private processes = new Map<string, Subprocess>()
 
-  async runPackageScript(scriptName: string, args: string[] = [], options: {
-    cwd?: string;
-    env?: Record<string, string>;
-    timeout?: number;
-    killSignal?: NodeJS.Signals | number;
-    maxBuffer?: number; // safety fuse
-  } = {}) {
+  async runPackageScript(
+    scriptName: string,
+    args: string[] = [],
+    options: {
+      cwd?: string
+      env?: Record<string, string>
+      timeout?: number
+      killSignal?: NodeJS.Signals | number
+      maxBuffer?: number // safety fuse
+    } = {}
+  ) {
     // Validate script exists
-    const pkg = await Bun.file("./package.json").json();
+    const pkg = await Bun.file('./package.json').json()
     if (!pkg.scripts?.[scriptName]) {
-      throw new Error(`Script "${scriptName}" not found in package.json`);
+      throw new Error(`Script "${scriptName}" not found in package.json`)
     }
 
-    const processId = `proc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const processId = `proc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
     // Spawn child
     const proc = Bun.spawn({
-      cmd: ["bun", "run", scriptName, ...args],
+      cmd: ['bun', 'run', scriptName, ...args],
       cwd: options.cwd ?? process.cwd(),
       env: { ...process.env, ...options.env }, // Bun’s default is env at process start; pass explicitly if you mutate. :contentReference[oaicite:7]{index=7}
-      stdout: "pipe",
-      stderr: "pipe",
+      stdout: 'pipe',
+      stderr: 'pipe',
       timeout: options.timeout ?? 300_000,
-      killSignal: options.killSignal ?? "SIGTERM",
+      killSignal: options.killSignal ?? 'SIGTERM',
       maxBuffer: options.maxBuffer, // optional hard cap
       onExit: (sub, exitCode, signalCode, error) => {
         // NOTE: may fire before Bun.spawn returns; we reference IDs created above. :contentReference[oaicite:8]{index=8}
-        this.emit("exit", { processId, exitCode, signalCode, error });
-        this.processes.delete(processId);
-      },
-    });
+        this.emit('exit', { processId, exitCode, signalCode, error })
+        this.processes.delete(processId)
+      }
+    })
 
-    this.processes.set(processId, proc);
-    this._pipe(processId, proc, "stdout");
-    this._pipe(processId, proc, "stderr");
-    return { processId, pid: proc.pid };
+    this.processes.set(processId, proc)
+    this._pipe(processId, proc, 'stdout')
+    this._pipe(processId, proc, 'stderr')
+    return { processId, pid: proc.pid }
   }
 
-  private _pipe(processId: string, proc: Subprocess, which: "stdout" | "stderr") {
-    const stream = proc[which];
-    if (!stream) return;
+  private _pipe(processId: string, proc: Subprocess, which: 'stdout' | 'stderr') {
+    const stream = proc[which]
+    if (!stream) return
 
     // text decoding -> line splitting
-    const text = stream.pipeThrough(new TextDecoderStream());
+    const text = stream.pipeThrough(new TextDecoderStream())
     const splitter = new TransformStream<string, string>({
       transform(chunk, controller) {
         // robust line splitter with CRLF support
-        (this as any)._buf = ((this as any)._buf || "") + chunk;
-        const parts = (this as any)._buf.split(/\r?\n/);
-        (this as any)._buf = parts.pop() ?? "";
-        for (const p of parts) controller.enqueue(p);
+        ;(this as any)._buf = ((this as any)._buf || '') + chunk
+        const parts = (this as any)._buf.split(/\r?\n/)
+        ;(this as any)._buf = parts.pop() ?? ''
+        for (const p of parts) controller.enqueue(p)
       },
       flush(controller) {
-        const carry = (this as any)._buf;
-        if (carry) controller.enqueue(carry);
+        const carry = (this as any)._buf
+        if (carry) controller.enqueue(carry)
       }
-    });
+    })
 
-    (async () => {
+    ;(async () => {
       for await (const line of text.pipeThrough(splitter).getReader()) {
         // Reader iteration via for-await compatible helper:
       }
-    })();
+    })()
 
-    (async () => {
-      const reader = text.pipeThrough(splitter).getReader();
+    ;(async () => {
+      const reader = text.pipeThrough(splitter).getReader()
       while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        this.emit("log", <LogEvent>{ processId, type: which, line: value, timestamp: Date.now() });
+        const { value, done } = await reader.read()
+        if (done) break
+        this.emit('log', <LogEvent>{ processId, type: which, line: value, timestamp: Date.now() })
       }
-    })();
+    })()
   }
 }
 ```
@@ -278,148 +282,148 @@ export class ScriptRunner extends EventEmitter {
 
 **Fixes applied**
 
-* Validation now allows common flags safely (no over‑restriction).
-* `cwd` is constrained to a sandbox root to block traversal.
-* `maxBuffer` is optional (safety), logs are streamed.
-* `resourceUsage()` captured **after** exit; live telemetry is delegated to OS sampling.
+- Validation now allows common flags safely (no over‑restriction).
+- `cwd` is constrained to a sandbox root to block traversal.
+- `maxBuffer` is optional (safety), logs are streamed.
+- `resourceUsage()` captured **after** exit; live telemetry is delegated to OS sampling.
 
 ```ts
 // server/lib/processManager.ts
-import { resolve, sep } from "node:path";
-import type { ProcessConfig, ProcessInfo } from "../types";
+import { resolve, sep } from 'node:path'
+import type { ProcessConfig, ProcessInfo } from '../types'
 
-const SAFE_ARG = /^[\w@.+:=\/,-]+$/; // allow typical flags & values
+const SAFE_ARG = /^[\w@.+:=\/,-]+$/ // allow typical flags & values
 
 function isInside(base: string, target: string) {
-  const rBase = resolve(base) + sep;
-  const rTarget = resolve(target) + sep;
-  return rTarget.startsWith(rBase);
+  const rBase = resolve(base) + sep
+  const rTarget = resolve(target) + sep
+  return rTarget.startsWith(rBase)
 }
 
 export class ProcessManager {
-  private active = new Map<string, ProcessInfo>();
-  private queue: ProcessConfig[] = [];
-  private maxConcurrent = 5;
-  private acceptingNew = true;
-  private metricsInterval?: ReturnType<typeof setInterval>;
+  private active = new Map<string, ProcessInfo>()
+  private queue: ProcessConfig[] = []
+  private maxConcurrent = 5
+  private acceptingNew = true
+  private metricsInterval?: ReturnType<typeof setInterval>
 
-  constructor(private sandboxRoot = resolve("./sandbox")) {
-    this.startMetrics();
-    this.setupCleanupHandlers();
+  constructor(private sandboxRoot = resolve('./sandbox')) {
+    this.startMetrics()
+    this.setupCleanupHandlers()
   }
 
   async executeProcess(config: ProcessConfig): Promise<string> {
-    if (!this.acceptingNew) throw new Error("Server shutting down");
-    if (this.active.size >= this.maxConcurrent) return this.queueProcess(config);
+    if (!this.acceptingNew) throw new Error('Server shutting down')
+    if (this.active.size >= this.maxConcurrent) return this.queueProcess(config)
 
     // Validation
-    this.validateProcessConfig(config);
+    this.validateProcessConfig(config)
 
-    const processId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-    const startTime = Date.now();
+    const processId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+    const startTime = Date.now()
 
     try {
       const proc = Bun.spawn({
         cmd: config.command,
         cwd: config.cwd ?? this.sandboxRoot,
         env: this.createCleanEnv(config.env),
-        stdout: "pipe",
-        stderr: "pipe",
+        stdout: 'pipe',
+        stderr: 'pipe',
         timeout: config.timeout ?? 30_000,
-        killSignal: config.options?.killSignal ?? "SIGTERM",
-        maxBuffer: config.maxBuffer, // optional fuse
-      });
+        killSignal: config.options?.killSignal ?? 'SIGTERM',
+        maxBuffer: config.maxBuffer // optional fuse
+      })
 
       const info: ProcessInfo = {
         process: proc,
         config,
         startTime,
-        status: "running",
-      };
-      this.active.set(processId, info);
+        status: 'running'
+      }
+      this.active.set(processId, info)
 
       proc.exited.then((exitCode) => {
-        const item = this.active.get(processId);
+        const item = this.active.get(processId)
         if (item) {
-          item.exitCode = exitCode;
-          item.signalCode = proc.signalCode as number | null;
+          item.exitCode = exitCode
+          item.signalCode = proc.signalCode as number | null
           // Only defined after exit: :contentReference[oaicite:10]{index=10}
-          item.resourceUsage = proc.resourceUsage();
-          item.status = exitCode === 0 ? "completed" : "failed";
+          item.resourceUsage = proc.resourceUsage()
+          item.status = exitCode === 0 ? 'completed' : 'failed'
         }
-        this.active.delete(processId);
-        this.processNext();
-      });
+        this.active.delete(processId)
+        this.processNext()
+      })
 
-      return processId;
+      return processId
     } catch (err: any) {
-      this.active.delete(processId);
-      throw new Error(`Failed to spawn: ${err.message}`);
+      this.active.delete(processId)
+      throw new Error(`Failed to spawn: ${err.message}`)
     }
   }
 
   private validateProcessConfig(config: ProcessConfig) {
-    const allowed = new Set(["bun", "npm", "node", "yarn", "pnpm"]);
-    const [bin, ...args] = config.command;
-    if (!allowed.has(bin)) throw new Error(`Command "${bin}" not allowed`);
+    const allowed = new Set(['bun', 'npm', 'node', 'yarn', 'pnpm'])
+    const [bin, ...args] = config.command
+    if (!allowed.has(bin)) throw new Error(`Command "${bin}" not allowed`)
 
     for (const arg of args) {
-      if (!SAFE_ARG.test(arg) || arg.includes("..") || arg.startsWith("/etc/")) {
-        throw new Error(`Invalid argument: ${arg}`);
+      if (!SAFE_ARG.test(arg) || arg.includes('..') || arg.startsWith('/etc/')) {
+        throw new Error(`Invalid argument: ${arg}`)
       }
     }
 
-    const cwd = config.cwd ?? this.sandboxRoot;
+    const cwd = config.cwd ?? this.sandboxRoot
     if (!isInside(this.sandboxRoot, cwd)) {
-      throw new Error("cwd outside sandbox");
+      throw new Error('cwd outside sandbox')
     }
   }
 
   private createCleanEnv(userEnv?: Record<string, string | undefined>) {
-    const ALLOW = [/^(NODE_|NPM_|YARN_|BUN_)/, "CI", "PORT"];
+    const ALLOW = [/^(NODE_|NPM_|YARN_|BUN_)/, 'CI', 'PORT']
     const safe: Record<string, string> = {
-      PATH: process.env.PATH ?? "",
-      NODE_ENV: process.env.NODE_ENV ?? "production",
-    };
-    for (const [k, v] of Object.entries(userEnv ?? {})) {
-      if (v == null) continue;
-      if (ALLOW.some((p) => (typeof p === "string" ? p === k : p.test(k)))) safe[k] = v;
+      PATH: process.env.PATH ?? '',
+      NODE_ENV: process.env.NODE_ENV ?? 'production'
     }
-    return safe;
+    for (const [k, v] of Object.entries(userEnv ?? {})) {
+      if (v == null) continue
+      if (ALLOW.some((p) => (typeof p === 'string' ? p === k : p.test(k)))) safe[k] = v
+    }
+    return safe
   }
 
   private queueProcess(config: ProcessConfig) {
-    this.queue.push(config);
-    return `queued_${this.queue.length}_${Date.now()}`;
+    this.queue.push(config)
+    return `queued_${this.queue.length}_${Date.now()}`
   }
 
   private processNext() {
-    if (this.queue.length === 0) return;
-    if (this.active.size >= this.maxConcurrent) return;
-    const next = this.queue.shift()!;
-    this.executeProcess(next).catch((e) => console.error(e));
+    if (this.queue.length === 0) return
+    if (this.active.size >= this.maxConcurrent) return
+    const next = this.queue.shift()!
+    this.executeProcess(next).catch((e) => console.error(e))
   }
 
   private startMetrics() {
     this.metricsInterval = setInterval(() => {
       // attach your metrics sink here (Prometheus, logs, etc.)
-    }, 10_000);
+    }, 10_000)
   }
 
   private setupCleanupHandlers() {
     const shutdown = async (signal: string) => {
-      this.acceptingNew = false;
-      const all = [...this.active.values()];
-      await Promise.allSettled(all.map((i) => i.process.exited));
-      process.exit(0);
-    };
-    process.on("SIGINT", () => shutdown("SIGINT"));
-    process.on("SIGTERM", () => shutdown("SIGTERM"));
+      this.acceptingNew = false
+      const all = [...this.active.values()]
+      await Promise.allSettled(all.map((i) => i.process.exited))
+      process.exit(0)
+    }
+    process.on('SIGINT', () => shutdown('SIGINT'))
+    process.on('SIGTERM', () => shutdown('SIGTERM'))
   }
 
   getStatus(processId?: string) {
-    if (processId) return this.active.get(processId);
-    return [...this.active.entries()].map(([id, info]) => ({ id, ...info }));
+    if (processId) return this.active.get(processId)
+    return [...this.active.entries()].map(([id, info]) => ({ id, ...info }))
   }
 }
 ```
@@ -430,60 +434,60 @@ export class ProcessManager {
 
 **What changed:**
 
-* Added explicit `subscribe`/`unsubscribe` handling.
-* Used Bun’s **pub/sub** channels (`ws.subscribe`, `server.publish`).
-* Included a **bounded ring buffer** per process for replay.
-* Noted **backpressure** behavior and **drain** hook. ([Bun][2])
+- Added explicit `subscribe`/`unsubscribe` handling.
+- Used Bun’s **pub/sub** channels (`ws.subscribe`, `server.publish`).
+- Included a **bounded ring buffer** per process for replay.
+- Noted **backpressure** behavior and **drain** hook. ([Bun][2])
 
 ```ts
 // server/websocket.ts
-type WSData = { processId?: string; userId: string };
+type WSData = { processId?: string; userId: string }
 
 const server = Bun.serve<WSData>({
   port: 3001,
   fetch(req, server) {
-    const url = new URL(req.url);
-    if (url.pathname === "/ws") {
-      const processId = url.searchParams.get("processId") ?? undefined;
-      const ok = server.upgrade(req, { data: { processId, userId: extractUserId(req) } });
-      return ok ? undefined : new Response("Upgrade failed", { status: 400 });
+    const url = new URL(req.url)
+    if (url.pathname === '/ws') {
+      const processId = url.searchParams.get('processId') ?? undefined
+      const ok = server.upgrade(req, { data: { processId, userId: extractUserId(req) } })
+      return ok ? undefined : new Response('Upgrade failed', { status: 400 })
     }
-    return handleHttpRequest(req);
+    return handleHttpRequest(req)
   },
   websocket: {
     open(ws) {
-      ws.subscribe("process-updates");
-      if (ws.data.processId) ws.subscribe(`logs:${ws.data.processId}`);
+      ws.subscribe('process-updates')
+      if (ws.data.processId) ws.subscribe(`logs:${ws.data.processId}`)
 
       // initial status snapshot
-      const status = processManager.getStatus(ws.data.processId);
-      ws.send(JSON.stringify({ type: "status", data: status }));
+      const status = processManager.getStatus(ws.data.processId)
+      ws.send(JSON.stringify({ type: 'status', data: status }))
       // optional: replay last N lines for selected process
-      if (ws.data.processId) replayBufferToSocket(ws, ws.data.processId);
+      if (ws.data.processId) replayBufferToSocket(ws, ws.data.processId)
     },
 
     message(ws, raw) {
-      const msg = JSON.parse(String(raw));
+      const msg = JSON.parse(String(raw))
       switch (msg.type) {
-        case "subscribe":
-          if (typeof msg.processId === "string") {
-            ws.subscribe(`logs:${msg.processId}`);
-            replayBufferToSocket(ws, msg.processId);
-            ws.send(JSON.stringify({ type: "subscribed", processId: msg.processId }));
+        case 'subscribe':
+          if (typeof msg.processId === 'string') {
+            ws.subscribe(`logs:${msg.processId}`)
+            replayBufferToSocket(ws, msg.processId)
+            ws.send(JSON.stringify({ type: 'subscribed', processId: msg.processId }))
           }
-          break;
-        case "unsubscribe":
-          if (typeof msg.processId === "string") {
-            ws.unsubscribe(`logs:${msg.processId}`);
-            ws.send(JSON.stringify({ type: "unsubscribed", processId: msg.processId }));
+          break
+        case 'unsubscribe':
+          if (typeof msg.processId === 'string') {
+            ws.unsubscribe(`logs:${msg.processId}`)
+            ws.send(JSON.stringify({ type: 'unsubscribed', processId: msg.processId }))
           }
-          break;
-        case "start-process":
-          handleStartProcess(ws, msg.config);
-          break;
-        case "stop-process":
-          handleStopProcess(ws, msg.processId);
-          break;
+          break
+        case 'start-process':
+          handleStartProcess(ws, msg.config)
+          break
+        case 'stop-process':
+          handleStopProcess(ws, msg.processId)
+          break
       }
     },
 
@@ -493,30 +497,30 @@ const server = Bun.serve<WSData>({
     },
 
     close(ws) {
-      if (ws.data.processId) ws.unsubscribe(`logs:${ws.data.processId}`);
-      ws.unsubscribe("process-updates");
+      if (ws.data.processId) ws.unsubscribe(`logs:${ws.data.processId}`)
+      ws.unsubscribe('process-updates')
     }
   }
-});
+})
 
 // Ring buffer + publisher
-type LogEntry = { ts: number; type: "stdout" | "stderr"; line: string };
-const LOGS = new Map<string, LogEntry[]>(); // processId -> ring
+type LogEntry = { ts: number; type: 'stdout' | 'stderr'; line: string }
+const LOGS = new Map<string, LogEntry[]>() // processId -> ring
 
 function addLog(processId: string, entry: LogEntry) {
-  const buf = LOGS.get(processId) ?? [];
-  buf.push(entry);
-  if (buf.length > 1000) buf.shift(); // keep last 1000
-  LOGS.set(processId, buf);
-  server.publish(`logs:${processId}`, JSON.stringify({ type: "logs", processId, entries: [entry] }));
+  const buf = LOGS.get(processId) ?? []
+  buf.push(entry)
+  if (buf.length > 1000) buf.shift() // keep last 1000
+  LOGS.set(processId, buf)
+  server.publish(`logs:${processId}`, JSON.stringify({ type: 'logs', processId, entries: [entry] }))
 }
 
 function replayBufferToSocket(ws: ServerWebSocket<WSData>, processId: string) {
-  const buf = LOGS.get(processId) ?? [];
+  const buf = LOGS.get(processId) ?? []
   for (const e of buf) {
-    const r = ws.send(JSON.stringify({ type: "logs", processId, entries: [e] }));
+    const r = ws.send(JSON.stringify({ type: 'logs', processId, entries: [e] }))
     // Backpressure: -1 enqueued w/ backpressure, 0 dropped, >0 bytes sent. Handle as needed. :contentReference[oaicite:12]{index=12}
-    if (r === -1) break; // wait for drain()
+    if (r === -1) break // wait for drain()
   }
 }
 ```
@@ -529,64 +533,66 @@ function replayBufferToSocket(ws: ServerWebSocket<WSData>, processId: string) {
 
 **Fixes applied**
 
-* Call `unref()` on long‑running subprocesses.
-* Health checks run on an interval; consider exponential backoff on restart.
+- Call `unref()` on long‑running subprocesses.
+- Health checks run on an interval; consider exponential backoff on restart.
 
 ```ts
 // server/lib/processStrategies.ts
-import type { ProcessOptions, ProcessType } from "../types";
+import type { ProcessOptions, ProcessType } from '../types'
 
 export class ProcessStrategyManager {
-  private strategies = new Map<ProcessType, any>();
-  constructor() { this.register(); }
+  private strategies = new Map<ProcessType, any>()
+  constructor() {
+    this.register()
+  }
 
   private register() {
-    this.strategies.set("short-lived", {
+    this.strategies.set('short-lived', {
       timeout: 60_000,
       maxRetries: 3,
       async execute(command: string[], options: ProcessOptions) {
-        const proc = Bun.spawn({ cmd: command, ...options, timeout: this.timeout, stdout: "pipe", stderr: "pipe" });
+        const proc = Bun.spawn({ cmd: command, ...options, timeout: this.timeout, stdout: 'pipe', stderr: 'pipe' })
         const [stdout, stderr] = await Promise.all([
           new Response(proc.stdout!).text(),
-          new Response(proc.stderr!).text(),
-        ]);
-        const exitCode = await proc.exited;
-        const usage = proc.resourceUsage(); // only after exit :contentReference[oaicite:14]{index=14}
-        return { exitCode, stdout, stderr, usage };
+          new Response(proc.stderr!).text()
+        ])
+        const exitCode = await proc.exited
+        const usage = proc.resourceUsage() // only after exit :contentReference[oaicite:14]{index=14}
+        return { exitCode, stdout, stderr, usage }
       }
-    });
+    })
 
-    this.strategies.set("long-running", {
+    this.strategies.set('long-running', {
       timeout: 0,
       autoRestart: true,
       async execute(command: string[], options: ProcessOptions & { healthCheckUrl?: string }) {
-        const proc = Bun.spawn({ cmd: command, ...options, stdout: "pipe", stderr: "pipe" });
-        proc.unref(); // don’t block server shutdown :contentReference[oaicite:15]{index=15}
+        const proc = Bun.spawn({ cmd: command, ...options, stdout: 'pipe', stderr: 'pipe' })
+        proc.unref() // don’t block server shutdown :contentReference[oaicite:15]{index=15}
 
-        if (options.healthCheckUrl) this.monitor(proc, options.healthCheckUrl);
+        if (options.healthCheckUrl) this.monitor(proc, options.healthCheckUrl)
         proc.exited.then((code) => {
-          if (code !== 0 && this.autoRestart) setTimeout(() => this.execute(command, options), 5_000);
-        });
-        return { pid: proc.pid, status: "running" };
+          if (code !== 0 && this.autoRestart) setTimeout(() => this.execute(command, options), 5_000)
+        })
+        return { pid: proc.pid, status: 'running' }
       },
       async monitor(proc: any, healthUrl: string) {
         const iv = setInterval(async () => {
           try {
-            const ok = (await fetch(healthUrl)).ok;
-            if (!ok) console.warn("Health check failed");
+            const ok = (await fetch(healthUrl)).ok
+            if (!ok) console.warn('Health check failed')
           } catch {
-            console.warn("Health check error");
+            console.warn('Health check error')
           }
-        }, 30_000);
-        proc.exited.then(() => clearInterval(iv));
+        }, 30_000)
+        proc.exited.then(() => clearInterval(iv))
       }
-    });
+    })
   }
 
   executeWithStrategy<T extends ProcessType>(type: T, command: string[], options: ProcessOptions) {
-    const s = this.strategies.get(type);
-    if (!s) throw new Error(`Unknown process type: ${type}`);
-    return s.execute.call(s, command, options);
+    const s = this.strategies.get(type)
+    if (!s) throw new Error(`Unknown process type: ${type}`)
+    return s.execute.call(s, command, options)
   }
 }
 ```
@@ -597,89 +603,98 @@ export class ProcessStrategyManager {
 
 **Fixes applied**
 
-* Live resource checks should not rely on `resourceUsage()` (post‑exit); sample OS metrics for running PIDs.
-* Signal escalation: `SIGTERM` → wait → `SIGKILL`.
-* Persist status for UI durability.
+- Live resource checks should not rely on `resourceUsage()` (post‑exit); sample OS metrics for running PIDs.
+- Signal escalation: `SIGTERM` → wait → `SIGKILL`.
+- Persist status for UI durability.
 
 ```ts
 // server/lib/lifecycleManager.ts
-import type { ProcessConfig } from "../types";
+import type { ProcessConfig } from '../types'
 
 export class ProcessLifecycleManager {
-  private states = new Map<string, any>();
-  private signals = ["SIGTERM", "SIGINT", "SIGHUP"] as const;
+  private states = new Map<string, any>()
+  private signals = ['SIGTERM', 'SIGINT', 'SIGHUP'] as const
 
   async startProcess(config: ProcessConfig) {
-    const id = crypto.randomUUID();
-    const state = { id, config, status: "starting", startTime: Date.now(), attempts: 0 };
-    this.states.set(id, state);
+    const id = crypto.randomUUID()
+    const state = { id, config, status: 'starting', startTime: Date.now(), attempts: 0 }
+    this.states.set(id, state)
 
     const proc = Bun.spawn({
       cmd: config.command,
       ...config.options,
-      onExit: (sub, exitCode, signalCode, error) => this.onExit(id, sub, exitCode, signalCode, error),
-    });
+      onExit: (sub, exitCode, signalCode, error) => this.onExit(id, sub, exitCode, signalCode, error)
+    })
 
-    state.process = proc;
-    state.pid = proc.pid;
-    state.status = "running";
-    this.forwardSignals(id, proc);
-    this.startLiveMonitor(id, proc, config.limits);
+    state.process = proc
+    state.pid = proc.pid
+    state.status = 'running'
+    this.forwardSignals(id, proc)
+    this.startLiveMonitor(id, proc, config.limits)
 
     return {
-      id, pid: proc.pid,
-      stop: (signal: NodeJS.Signals | number = "SIGTERM") => this.stop(id, signal),
-      restart: async () => { await this.stop(id); return this.startProcess(config); },
+      id,
+      pid: proc.pid,
+      stop: (signal: NodeJS.Signals | number = 'SIGTERM') => this.stop(id, signal),
+      restart: async () => {
+        await this.stop(id)
+        return this.startProcess(config)
+      },
       getStatus: () => this.states.get(id),
-      waitForExit: () => proc.exited,
-    };
+      waitForExit: () => proc.exited
+    }
   }
 
-  private async stop(id: string, signal: NodeJS.Signals | number = "SIGTERM") {
-    const s = this.states.get(id);
-    if (!s?.process) return;
-    s.status = "stopping";
-    s.process.kill(signal);
-    const t = setTimeout(() => { if (!s.process.killed) s.process.kill("SIGKILL"); }, 10_000);
-    await s.process.exited;
-    clearTimeout(t);
-    s.status = "stopped";
-    this.states.delete(id);
+  private async stop(id: string, signal: NodeJS.Signals | number = 'SIGTERM') {
+    const s = this.states.get(id)
+    if (!s?.process) return
+    s.status = 'stopping'
+    s.process.kill(signal)
+    const t = setTimeout(() => {
+      if (!s.process.killed) s.process.kill('SIGKILL')
+    }, 10_000)
+    await s.process.exited
+    clearTimeout(t)
+    s.status = 'stopped'
+    this.states.delete(id)
   }
 
   private startLiveMonitor(id: string, proc: any, limits?: { maxMemory?: number }) {
     const iv = setInterval(async () => {
-      const s = this.states.get(id);
-      if (!s || proc.killed) { clearInterval(iv); return; }
+      const s = this.states.get(id)
+      if (!s || proc.killed) {
+        clearInterval(iv)
+        return
+      }
       // Example Linux sampling (portable alternative: spawn `ps`)
       try {
         // read /proc/<pid>/statm for RSS (Linux only); wrap in try/catch
       } catch {}
       if (limits?.maxMemory && /* measured RSS */ 0 > limits.maxMemory) {
-        console.warn(`Process ${id} exceeded memory limit`);
-        this.stop(id, "SIGTERM");
+        console.warn(`Process ${id} exceeded memory limit`)
+        this.stop(id, 'SIGTERM')
       }
-    }, 5_000);
-    proc.exited.then(() => clearInterval(iv));
+    }, 5_000)
+    proc.exited.then(() => clearInterval(iv))
   }
 
   private onExit(id: string, sub: any, exitCode: number | null, signalCode: number | null, error?: Error) {
-    const s = this.states.get(id);
-    if (!s) return;
-    s.exitCode = exitCode;
-    s.signalCode = signalCode;
-    s.usage = sub.resourceUsage(); // only defined after exit :contentReference[oaicite:16]{index=16}
-    s.status = exitCode === 0 ? "completed" : "failed";
-    this.states.delete(id);
+    const s = this.states.get(id)
+    if (!s) return
+    s.exitCode = exitCode
+    s.signalCode = signalCode
+    s.usage = sub.resourceUsage() // only defined after exit :contentReference[oaicite:16]{index=16}
+    s.status = exitCode === 0 ? 'completed' : 'failed'
+    this.states.delete(id)
   }
 
   private forwardSignals(id: string, proc: any) {
     this.signals.forEach((sig) => {
       process.on(sig, () => {
-        const s = this.states.get(id);
-        if (s?.process) s.process.kill(sig);
-      });
-    });
+        const s = this.states.get(id)
+        if (s?.process) s.process.kill(sig)
+      })
+    })
   }
 }
 ```
@@ -690,69 +705,72 @@ export class ProcessLifecycleManager {
 
 **Fixes applied**
 
-* Remove `uid/gid` from spawn options (Bun’s spawn options don’t support them; run as non‑root at the container/service level). ([Bun][1])
-* Prefer `jose` for JWT verification; include aud/iss checks.
-* Rate limiting uses a sliding window with cleanup to avoid unbounded growth.
-* Map users/roles → allowed script set; log every action.
+- Remove `uid/gid` from spawn options (Bun’s spawn options don’t support them; run as non‑root at the container/service level). ([Bun][1])
+- Prefer `jose` for JWT verification; include aud/iss checks.
+- Rate limiting uses a sliding window with cleanup to avoid unbounded growth.
+- Map users/roles → allowed script set; log every action.
 
 ```ts
 // server/lib/security.ts
-import { jwtVerify } from "jose";
+import { jwtVerify } from 'jose'
 
 export class ProcessSecurityManager {
-  private rate = new Map<string, number[]>();
+  private rate = new Map<string, number[]>()
   private allowedByRole = new Map<string, Set<string>>([
-    ["admin", new Set(["build", "test", "dev", "lint"])],
-    ["user", new Set(["test", "lint"])],
-  ]);
+    ['admin', new Set(['build', 'test', 'dev', 'lint'])],
+    ['user', new Set(['test', 'lint'])]
+  ])
 
   async authorize(token: string, scriptName: string, ip: string) {
-    const { payload } = await jwtVerify(token, getJWKS(), { issuer: "https://issuer", audience: "process-api" });
-    const userId = String(payload.sub ?? "");
-    const roles = (payload.roles as string[] ?? []);
-    if (!this.checkRate(userId, 5, 60_000)) throw new Error("Rate limit exceeded");
+    const { payload } = await jwtVerify(token, getJWKS(), { issuer: 'https://issuer', audience: 'process-api' })
+    const userId = String(payload.sub ?? '')
+    const roles = (payload.roles as string[]) ?? []
+    if (!this.checkRate(userId, 5, 60_000)) throw new Error('Rate limit exceeded')
 
-    const allowed = roles.some((r) => this.allowedByRole.get(r)?.has(scriptName));
-    if (!allowed) throw new Error(`Script "${scriptName}" not authorized`);
+    const allowed = roles.some((r) => this.allowedByRole.get(r)?.has(scriptName))
+    if (!allowed) throw new Error(`Script "${scriptName}" not authorized`)
 
-    await this.audit({ userId, action: "EXECUTE_PROCESS", scriptName, ip, ts: Date.now() });
-    return { userId, roles };
+    await this.audit({ userId, action: 'EXECUTE_PROCESS', scriptName, ip, ts: Date.now() })
+    return { userId, roles }
   }
 
   validateInput(command: string[], args: string[]) {
-    const DANGEROUS = [/[;&|`$()]/, /\.\.\//, /^\0/];
+    const DANGEROUS = [/[;&|`$()]/, /\.\.\//, /^\0/]
     for (const arg of [...command, ...args]) {
-      if (arg.length > 1000) throw new Error("Argument too long");
-      if (DANGEROUS.some((re) => re.test(arg))) throw new Error(`Dangerous input: ${arg}`);
+      if (arg.length > 1000) throw new Error('Argument too long')
+      if (DANGEROUS.some((re) => re.test(arg))) throw new Error(`Dangerous input: ${arg}`)
     }
   }
 
   private checkRate(userId: string, limit: number, windowMs: number) {
-    const now = Date.now();
-    const arr = (this.rate.get(userId) ?? []).filter((t) => now - t < windowMs);
-    if (arr.length >= limit) return false;
-    arr.push(now); this.rate.set(userId, arr);
-    return true;
+    const now = Date.now()
+    const arr = (this.rate.get(userId) ?? []).filter((t) => now - t < windowMs)
+    if (arr.length >= limit) return false
+    arr.push(now)
+    this.rate.set(userId, arr)
+    return true
   }
 
-  private async audit(evt: any) { /* persist to DB */ }
+  private async audit(evt: any) {
+    /* persist to DB */
+  }
 }
 
 export async function secureSpawn(scriptName: string, args: string[], userToken: string, clientIP: string) {
-  const sec = new ProcessSecurityManager();
-  await sec.authorize(userToken, scriptName, clientIP);
-  sec.validateInput(["bun", "run", scriptName], args);
+  const sec = new ProcessSecurityManager()
+  await sec.authorize(userToken, scriptName, clientIP)
+  sec.validateInput(['bun', 'run', scriptName], args)
 
   const proc = Bun.spawn({
-    cmd: ["bun", "run", scriptName, ...args],
-    cwd: "./sandbox",
-    env: { PATH: "/usr/local/bin:/usr/bin:/bin", NODE_ENV: "production" },
-    stdout: "pipe",
-    stderr: "pipe",
+    cmd: ['bun', 'run', scriptName, ...args],
+    cwd: './sandbox',
+    env: { PATH: '/usr/local/bin:/usr/bin:/bin', NODE_ENV: 'production' },
+    stdout: 'pipe',
+    stderr: 'pipe',
     timeout: 30_000,
-    killSignal: "SIGTERM",
-  });
-  return proc;
+    killSignal: 'SIGTERM'
+  })
+  return proc
 }
 ```
 
@@ -760,16 +778,16 @@ export async function secureSpawn(scriptName: string, args: string[], userToken:
 
 ## Explicit HTTP/WS contracts (validate with Zod)
 
-* **REST**
+- **REST**
+  - `POST /api/processes` `{ scriptName, args, env?, type? } → { processId, pid }`
+  - `DELETE /api/processes/:id` → stop
+  - `POST /api/processes/:id/signal` `{ signal }` → send signal
+  - `GET /api/processes` → list
+  - `GET /api/processes/:id/logs?tail=1000&since=ts` → last N logs
 
-  * `POST /api/processes` `{ scriptName, args, env?, type? } → { processId, pid }`
-  * `DELETE /api/processes/:id` → stop
-  * `POST /api/processes/:id/signal` `{ signal }` → send signal
-  * `GET /api/processes` → list
-  * `GET /api/processes/:id/logs?tail=1000&since=ts` → last N logs
-* **WS (client → server)**
+- **WS (client → server)**
   `subscribe {processId}`, `unsubscribe {processId}`, `start-process {config}`, `stop-process {processId}`, `replay {processId}`
-* **WS (server → client)**
+- **WS (server → client)**
   `status {processes}`, `logs {processId, entries[]}`, `process-update {process}`
 
 ---
@@ -778,100 +796,113 @@ export async function secureSpawn(scriptName: string, args: string[], userToken:
 
 **Fixes applied**
 
-* Added `subscribe` on selection and `unsubscribe` on deselect.
-* Retains last 1 000 lines per process; “follow” mode; connection indicator.
+- Added `subscribe` on selection and `unsubscribe` on deselect.
+- Retains last 1 000 lines per process; “follow” mode; connection indicator.
 
 ```tsx
 // client/src/components/ProcessManager.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react'
 
 export const ProcessManager: React.FC = () => {
-  const [processes, setProcesses] = useState<any[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [connected, setConnected] = useState(false);
-  const ws = useRef<WebSocket | null>(null);
+  const [processes, setProcesses] = useState<any[]>([])
+  const [selected, setSelected] = useState<string | null>(null)
+  const [logs, setLogs] = useState<any[]>([])
+  const [connected, setConnected] = useState(false)
+  const ws = useRef<WebSocket | null>(null)
 
   useEffect(() => {
     const connect = () => {
-      ws.current = new WebSocket(`ws://${location.hostname}:3001/ws`);
-      ws.current.onopen = () => setConnected(true);
-      ws.current.onmessage = (ev) => handle(JSON.parse(ev.data));
-      ws.current.onclose = () => { setConnected(false); setTimeout(connect, 3000); };
-    };
-    connect();
-    return () => ws.current?.close();
-  }, []);
+      ws.current = new WebSocket(`ws://${location.hostname}:3001/ws`)
+      ws.current.onopen = () => setConnected(true)
+      ws.current.onmessage = (ev) => handle(JSON.parse(ev.data))
+      ws.current.onclose = () => {
+        setConnected(false)
+        setTimeout(connect, 3000)
+      }
+    }
+    connect()
+    return () => ws.current?.close()
+  }, [])
 
   useEffect(() => {
-    if (!ws.current) return;
-    ws.current.send(JSON.stringify({ type: "unsubscribe", processId: selected })); // previous
-    if (selected) ws.current.send(JSON.stringify({ type: "subscribe", processId: selected }));
-    setLogs([]);
-  }, [selected]);
+    if (!ws.current) return
+    ws.current.send(JSON.stringify({ type: 'unsubscribe', processId: selected })) // previous
+    if (selected) ws.current.send(JSON.stringify({ type: 'subscribe', processId: selected }))
+    setLogs([])
+  }, [selected])
 
   function handle(data: any) {
     switch (data.type) {
-      case "status": setProcesses(data.data ?? []); break;
-      case "logs":
+      case 'status':
+        setProcesses(data.data ?? [])
+        break
+      case 'logs':
         if (data.processId === selected) {
-          setLogs((prev) => [...prev, ...data.entries].slice(-1000));
+          setLogs((prev) => [...prev, ...data.entries].slice(-1000))
         }
-        break;
-      case "process-update":
-        setProcesses((prev) => prev.map((p: any) => p.id === data.process.id ? data.process : p));
-        break;
+        break
+      case 'process-update':
+        setProcesses((prev) => prev.map((p: any) => (p.id === data.process.id ? data.process : p)))
+        break
     }
   }
 
   async function startProcess(scriptName: string, args: string[]) {
-    const r = await fetch("/api/processes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAuthToken()}` },
+    const r = await fetch('/api/processes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
       body: JSON.stringify({ scriptName, args })
-    });
-    const res = await r.json();
-    if (res.processId) setSelected(res.processId);
+    })
+    const res = await r.json()
+    if (res.processId) setSelected(res.processId)
   }
 
   return (
-    <div className="flex h-screen">
+    <div className='flex h-screen'>
       {/* ... your ProcessList using Tailwind/shadcn ... */}
       <LogViewer logs={logs} processId={selected} connected={connected} />
     </div>
-  );
+  )
 }
 
-const LogViewer: React.FC<{ logs: any[]; processId: string | null; connected: boolean }> = ({ logs, processId, connected }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
-  useEffect(() => { if (autoScroll && containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, [logs, autoScroll]);
+const LogViewer: React.FC<{ logs: any[]; processId: string | null; connected: boolean }> = ({
+  logs,
+  processId,
+  connected
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
+  useEffect(() => {
+    if (autoScroll && containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight
+  }, [logs, autoScroll])
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b flex justify-between">
-        <h2 className="text-lg font-semibold">Process Logs</h2>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
+    <div className='flex flex-col h-full'>
+      <div className='p-4 border-b flex justify-between'>
+        <h2 className='text-lg font-semibold'>Process Logs</h2>
+        <div className='flex items-center gap-4'>
+          <label className='flex items-center gap-2'>
+            <input type='checkbox' checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
             Auto-scroll
           </label>
-          <span className={`px-2 py-1 rounded text-sm ${connected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-            {connected ? "Connected" : "Disconnected"}
+          <span
+            className={`px-2 py-1 rounded text-sm ${connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+          >
+            {connected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
       </div>
-      <div ref={containerRef} className="flex-1 overflow-auto p-4 bg-gray-900 text-gray-100 font-mono text-sm">
+      <div ref={containerRef} className='flex-1 overflow-auto p-4 bg-gray-900 text-gray-100 font-mono text-sm'>
         {logs.map((log, i) => (
-          <div key={i} className="mb-1">
-            <span className="text-gray-500">{new Date(log.ts ?? log.timestamp).toLocaleTimeString()}</span>
-            <span className={`ml-2 ${log.type === "stderr" ? "text-red-400" : "text-gray-300"}`}>{log.line}</span>
+          <div key={i} className='mb-1'>
+            <span className='text-gray-500'>{new Date(log.ts ?? log.timestamp).toLocaleTimeString()}</span>
+            <span className={`ml-2 ${log.type === 'stderr' ? 'text-red-400' : 'text-gray-300'}`}>{log.line}</span>
           </div>
         ))}
       </div>
     </div>
-  );
-};
+  )
+}
 ```
 
 ---
@@ -880,9 +911,9 @@ const LogViewer: React.FC<{ logs: any[]; processId: string | null; connected: bo
 
 **Hardened Dockerfile**
 
-* Run as non‑root via `USER bun`.
-* Ensure the healthcheck file path is correct and actually probes both HTTP and WS.
-* If your app needs runtime deps, install them in the final image; otherwise copy a self‑contained `dist`.
+- Run as non‑root via `USER bun`.
+- Ensure the healthcheck file path is correct and actually probes both HTTP and WS.
+- If your app needs runtime deps, install them in the final image; otherwise copy a self‑contained `dist`.
 
 ```dockerfile
 # Dockerfile
@@ -911,28 +942,28 @@ CMD ["bun", "dist/server.js"]
 
 **Security & tenancy**
 
-* Validate JWT with strict `aud`/`iss`.
-* Rate‑limit by user ID; add IP‑based fallback.
-* Allow‑list scripts per role.
-* Audit: `{ userId, script, args, pid, timestamps, exitCode, signal }`.
+- Validate JWT with strict `aud`/`iss`.
+- Rate‑limit by user ID; add IP‑based fallback.
+- Allow‑list scripts per role.
+- Audit: `{ userId, script, args, pid, timestamps, exitCode, signal }`.
 
 **Reliability**
 
-* Persist process state (e.g., SQLite/Postgres) so the UI survives server restarts.
-* On boot, **reconcile orphaned PIDs** by inspecting `/proc/<pid>/cmdline`.
-* Auto‑restart with exponential backoff; implement a circuit breaker.
+- Persist process state (e.g., SQLite/Postgres) so the UI survives server restarts.
+- On boot, **reconcile orphaned PIDs** by inspecting `/proc/<pid>/cmdline`.
+- Auto‑restart with exponential backoff; implement a circuit breaker.
 
 **Performance**
 
-* Use **streaming** for logs; keep only a window (ring buffer).
-* Prefer **server.publish** for broadcast and **ws.send** for targeted replay; respect **backpressure** (`drain`). ([Bun][2])
-* Tune `idleTimeout`, `maxPayloadLength`, and `backpressureLimit` for your traffic. ([Bun][2])
+- Use **streaming** for logs; keep only a window (ring buffer).
+- Prefer **server.publish** for broadcast and **ws.send** for targeted replay; respect **backpressure** (`drain`). ([Bun][2])
+- Tune `idleTimeout`, `maxPayloadLength`, and `backpressureLimit` for your traffic. ([Bun][2])
 
 **Testing**
 
-* Unit: config validation, env allow‑list, JWT, queue behavior, log splitter.
-* Integration: start/stop real child processes; autorestart & health probes; slow‑client WS backpressure.
-* Chaos: kill the manager mid‑run; simulate log bursts; disk‑full.
+- Unit: config validation, env allow‑list, JWT, queue behavior, log splitter.
+- Integration: start/stop real child processes; autorestart & health probes; slow‑client WS backpressure.
+- Chaos: kill the manager mid‑run; simulate log bursts; disk‑full.
 
 ---
 
@@ -942,25 +973,34 @@ A minimal controller that ties security + runner + pub/sub together:
 
 ```ts
 // server/http/processRoutes.ts
-import { ScriptRunner } from "../lib/scriptRunner";
-import { ProcessSecurityManager } from "../lib/security";
+import { ScriptRunner } from '../lib/scriptRunner'
+import { ProcessSecurityManager } from '../lib/security'
 
-const runner = new ScriptRunner();
-const security = new ProcessSecurityManager();
+const runner = new ScriptRunner()
+const security = new ProcessSecurityManager()
 
-runner.on("log", (e) => server.publish(`logs:${e.processId}`, JSON.stringify({ type: "logs", processId: e.processId, entries: [{ ts: e.timestamp, type: e.type, line: e.line }] })));
-runner.on("exit", (e) => server.publish("process-updates", JSON.stringify({ type: "process-update", process: e })));
+runner.on('log', (e) =>
+  server.publish(
+    `logs:${e.processId}`,
+    JSON.stringify({ type: 'logs', processId: e.processId, entries: [{ ts: e.timestamp, type: e.type, line: e.line }] })
+  )
+)
+runner.on('exit', (e) => server.publish('process-updates', JSON.stringify({ type: 'process-update', process: e })))
 
 export async function postProcess(req: Request) {
-  const { scriptName, args, env } = await req.json();
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const { scriptName, args, env } = await req.json()
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
 
-  await security.authorize(token, scriptName, ip);
-  security.validateInput(["bun", "run", scriptName], args);
+  await security.authorize(token, scriptName, ip)
+  security.validateInput(['bun', 'run', scriptName], args)
 
-  const { processId, pid } = await runner.runPackageScript(scriptName, args, { env, timeout: 30_000, maxBuffer: 10 * 1024 * 1024 });
-  return Response.json({ processId, pid });
+  const { processId, pid } = await runner.runPackageScript(scriptName, args, {
+    env,
+    timeout: 30_000,
+    maxBuffer: 10 * 1024 * 1024
+  })
+  return Response.json({ processId, pid })
 }
 ```
 
@@ -968,30 +1008,30 @@ export async function postProcess(req: Request) {
 
 ## Key takeaways
 
-* **Use Bun.spawn for async streaming**; keep `maxBuffer` as a **fuse**, not as a normal control surface. **`onExit` can fire early**; use `proc.exited` for sequencing. **`resourceUsage()` is post‑exit**; sample OS metrics for live checks. ([Bun][1])
-* **Lean on Bun WebSockets**: built‑in **pub/sub**, backpressure hints from `ws.send`, and sensible defaults for `idleTimeout`/payload/backpressure. ([Bun][2])
-* **Security**: JWT + allow‑lists + audits; run the container as a non‑root user; don’t attempt `uid/gid` in spawn options. ([Bun][1])
-* For production, pair **bounded log buffers**, **graceful shutdown**, **auto‑restart with backoff**, and **persistent state** with dashboards & alerts.
+- **Use Bun.spawn for async streaming**; keep `maxBuffer` as a **fuse**, not as a normal control surface. **`onExit` can fire early**; use `proc.exited` for sequencing. **`resourceUsage()` is post‑exit**; sample OS metrics for live checks. ([Bun][1])
+- **Lean on Bun WebSockets**: built‑in **pub/sub**, backpressure hints from `ws.send`, and sensible defaults for `idleTimeout`/payload/backpressure. ([Bun][2])
+- **Security**: JWT + allow‑lists + audits; run the container as a non‑root user; don’t attempt `uid/gid` in spawn options. ([Bun][1])
+- For production, pair **bounded log buffers**, **graceful shutdown**, **auto‑restart with backoff**, and **persistent state** with dashboards & alerts.
 
 ---
 
 ## References
 
-* **Bun.spawn API**: options (`maxBuffer`, `killSignal`, env semantics), `onExit` caveat, `resourceUsage`, `unref`, `Bun.which` and `posix_spawn`. ([Bun][1])
-* **Child processes guide**: `spawn` vs `spawnSync`, **\~60% faster `spawnSync`** benchmark (Bun vs Node), usage patterns. ([Bun][3])
-* **WebSockets API**: **7× throughput** claim (simple chat), **pub/sub**, **backpressure signaling**, **timeouts/limits**. ([Bun][2])
+- **Bun.spawn API**: options (`maxBuffer`, `killSignal`, env semantics), `onExit` caveat, `resourceUsage`, `unref`, `Bun.which` and `posix_spawn`. ([Bun][1])
+- **Child processes guide**: `spawn` vs `spawnSync`, **\~60% faster `spawnSync`** benchmark (Bun vs Node), usage patterns. ([Bun][3])
+- **WebSockets API**: **7× throughput** claim (simple chat), **pub/sub**, **backpressure signaling**, **timeouts/limits**. ([Bun][2])
 
 ---
 
 ### What I changed vs. your original draft (at a glance)
 
-* **Corrected**: `maxBuffer` applies to `spawn` too (not just `spawnSync`). ([Bun][1])
-* **Clarified**: `resourceUsage()` is **only** meaningful after exit. ([Bun][1])
-* **Added**: explicit `subscribe`/`unsubscribe` WS handlers and targeted **replay** with backpressure awareness. ([Bun][2])
-* **Removed**: `uid/gid` from spawn options (unsupported in Bun). Run as non‑root via the container/service. ([Bun][1])
-* **Hardened**: input validation regex, sandboxed `cwd`, env allow‑list (`NODE_`, `NPM_`, `YARN_`, `BUN_`, plus `CI`, `PORT`).
-* **Polished**: typed `EventEmitter`, stable line splitting via Web Streams, `unref()` for long‑running tasks, and a concrete REST/WS contract.
+- **Corrected**: `maxBuffer` applies to `spawn` too (not just `spawnSync`). ([Bun][1])
+- **Clarified**: `resourceUsage()` is **only** meaningful after exit. ([Bun][1])
+- **Added**: explicit `subscribe`/`unsubscribe` WS handlers and targeted **replay** with backpressure awareness. ([Bun][2])
+- **Removed**: `uid/gid` from spawn options (unsupported in Bun). Run as non‑root via the container/service. ([Bun][1])
+- **Hardened**: input validation regex, sandboxed `cwd`, env allow‑list (`NODE_`, `NPM_`, `YARN_`, `BUN_`, plus `CI`, `PORT`).
+- **Polished**: typed `EventEmitter`, stable line splitting via Web Streams, `unref()` for long‑running tasks, and a concrete REST/WS contract.
 
-[1]: https://bun.com/reference/bun/spawn " Bun.spawn function | API Reference | Bun"
-[2]: https://bun.com/docs/api/websockets "WebSockets – API | Bun Docs"
-[3]: https://bun.com/docs/api/spawn?utm_source=chatgpt.com "Child processes – API | Bun Docs"
+[1]: https://bun.com/reference/bun/spawn ' Bun.spawn function | API Reference | Bun'
+[2]: https://bun.com/docs/api/websockets 'WebSockets – API | Bun Docs'
+[3]: https://bun.com/docs/api/spawn?utm_source=chatgpt.com 'Child processes – API | Bun Docs'

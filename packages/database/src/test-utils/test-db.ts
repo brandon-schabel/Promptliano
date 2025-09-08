@@ -499,16 +499,7 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       is_active INTEGER NOT NULL DEFAULT 1
     )`,
 
-    // Active tabs table
-    `CREATE TABLE IF NOT EXISTS active_tabs (
-      id INTEGER PRIMARY KEY,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      tab_type TEXT NOT NULL,
-      tab_data TEXT NOT NULL DEFAULT '{}',
-      is_active INTEGER NOT NULL DEFAULT 1,
-      last_accessed_at INTEGER NOT NULL,
-      created_at INTEGER NOT NULL
-    )`,
+    // Active tabs removed – frontend-only
 
     // MCP executions table (from separate schema)
     `CREATE TABLE IF NOT EXISTS mcp_executions (
@@ -546,7 +537,6 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
     'CREATE INDEX IF NOT EXISTS files_path_idx ON files(path)',
     'CREATE INDEX IF NOT EXISTS selected_files_project_idx ON selected_files(project_id)',
     'CREATE INDEX IF NOT EXISTS selected_files_file_idx ON selected_files(file_id)',
-    'CREATE INDEX IF NOT EXISTS active_tabs_project_idx ON active_tabs(project_id)',
     'CREATE INDEX IF NOT EXISTS mcp_executions_project_idx ON mcp_executions(project_id)',
     'CREATE INDEX IF NOT EXISTS mcp_executions_session_idx ON mcp_executions(session_id)'
   ]
@@ -648,7 +638,6 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
 async function resetAllTables(db: ReturnType<typeof createSerializedDrizzleClient>) {
   const tableNames = [
     'mcp_executions',
-    'active_tabs',
     'selected_files',
     'files',
     'provider_keys',

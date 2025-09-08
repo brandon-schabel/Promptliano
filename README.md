@@ -58,6 +58,31 @@ cd promptliano-0.10.0-bun-bundle && bun run start
 
 [View Your Local Promptliano UI](http://localhost:3579/)
 
+## Database Location & Overrides
+
+- Development default: `./data/promptliano.db` at the repo root (auto-created).
+- Production default (prebuilt binaries):
+  - macOS: `~/Library/Application Support/Promptliano/promptliano.db`
+  - Linux: `$XDG_DATA_HOME/promptliano/promptliano.db` or `~/.local/share/promptliano/promptliano.db`
+  - Windows: `%APPDATA%\\Promptliano\\promptliano.db`
+
+Override options (take precedence in this order):
+
+- `DATABASE_PATH` — absolute path to the SQLite file
+- `PROMPTLIANO_DATA_DIR` — directory to store `promptliano.db`
+
+Examples:
+
+- macOS/Linux: `DATABASE_PATH="$HOME/.promptliano/custom.db" ./promptliano`
+- macOS/Linux: `PROMPTLIANO_DATA_DIR="$HOME/.promptliano" ./promptliano`
+- Windows (PowerShell): `$env:DATABASE_PATH = "$env:USERPROFILE\\Promptliano\\my.db"; .\\promptliano.exe`
+- Docker: mount a volume and set `PROMPTLIANO_DATA_DIR=/data`
+
+Notes:
+
+- Tests use `:memory:` automatically.
+- The app creates the DB directory if needed. If the location is read-only, you’ll see an EROFS error — use one of the overrides above.
+
 ## MCP Setup
 
 Promptliano works with all MCP-compatible editors. The easiest way to set up MCP is through the Promptliano UI:

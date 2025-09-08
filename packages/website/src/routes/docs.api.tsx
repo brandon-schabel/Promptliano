@@ -263,7 +263,10 @@ function ApiReferencePage() {
 
             <GlassCard className='p-6 mb-6'>
               <h3 className='text-xl font-medium mb-3'>Overview</h3>
-              <p className='text-muted-foreground mb-4'>Unify tickets, tasks, and queues under a single flow. Create tickets, enqueue work, and drive processing via the processor actions.</p>
+              <p className='text-muted-foreground mb-4'>
+                Unify tickets, tasks, and queues under a single flow. Create tickets, enqueue work, and drive processing
+                via the processor actions.
+              </p>
 
               <h4 className='font-medium mb-2'>Key Features:</h4>
               <ul className='list-disc list-inside space-y-1 text-muted-foreground'>
@@ -304,7 +307,9 @@ function ApiReferencePage() {
 }`}
                   language='json'
                 />
-                <p className='text-sm text-muted-foreground mt-6 mb-3'>Next: enqueue work and process via processor_get_next</p>
+                <p className='text-sm text-muted-foreground mt-6 mb-3'>
+                  Next: enqueue work and process via processor_get_next
+                </p>
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
                   code={`{

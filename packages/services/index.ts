@@ -220,7 +220,6 @@ export {
   startMCPServer as startMCPServerLegacy,
   stopMCPServer as stopMCPServerLegacy
 } from './src/mcp-service'
-export * from './src/active-tab-service'
 
 // Git services - Re-export all git functionality
 export * from './src/git-services'
@@ -337,6 +336,8 @@ export * from './src/mcp-config-manager'
 export * from './src/mcp-project-config-service'
 export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
+// Process management service (runtime processes per project)
+export * from './src/process-management-service'
 
 // Re-export types from schemas for backward compatibility
 export type { CreateProjectBody, UpdateProjectBody } from '@promptliano/schemas'
@@ -370,7 +371,6 @@ export * from './src/enhanced-summarization-service'
 
 // V2 Service Aliases for backward compatibility with generated routes
 // Now using properly compatible services
-export { activeTabService as activetabServiceV2 } from './src/active-tab-service'
 export { chatService as chatServiceV2 } from './src/chat-service'
 export { chatService as chatmessageServiceV2 } from './src/chat-service'
 export { fileService as fileServiceV2 } from './src/file-service'
@@ -389,7 +389,6 @@ export { taskService as tickettaskServiceV2 } from './src/task-service'
 export { projectService as projectServiceV2 } from './src/project-service'
 
 // Additional exports for factory routes (using correct names)
-export { activeTabService } from './src/active-tab-service'
 export { chatService as chatMessageService } from './src/chat-service'
 // fileService already exported above (lines 111-117)
 // queueService already exported above (lines 49-79)

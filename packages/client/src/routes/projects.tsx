@@ -27,6 +27,7 @@ import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { AssetsTabWithSidebar } from '@/components/assets/assets-tab-with-sidebar'
 import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
+import { ProcessesTab } from '@/components/processes/processes-tab'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
@@ -351,6 +352,7 @@ export function ProjectsPage() {
                 })
               }}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
+              processesEnabled={(activeProjectTabState as any)?.processesEnabled}
               showTabs={false}
               showMenus={true}
             />
@@ -376,6 +378,7 @@ export function ProjectsPage() {
                 })
               }}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
+              processesEnabled={(activeProjectTabState as any)?.processesEnabled}
               showTabs={true}
               showMenus={false}
             />
@@ -480,6 +483,20 @@ export function ProjectsPage() {
               <div className='p-6 text-center text-muted-foreground'>
                 <p>Assets is not enabled for this project.</p>
                 <p className='mt-2'>Enable it in the Settings tab to access Assets.</p>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value='processes' className='flex-1 overflow-y-auto mt-0 ring-0 focus-visible:ring-0'>
+            {(activeProjectTabState as any)?.processesEnabled ? (
+              selectedProjectId && projectData ? (
+                <ProcessesTab projectId={selectedProjectId} projectName={projectData.name} />
+              ) : (
+                <p className='p-4 md:p-6'>No project selected for Processes.</p>
+              )
+            ) : (
+              <div className='p-6 text-center text-muted-foreground'>
+                <p>Processes is not enabled for this project.</p>
+                <p className='mt-2'>Enable it in the Settings tab to access Processes.</p>
               </div>
             )}
           </TabsContent>

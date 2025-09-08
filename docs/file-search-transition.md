@@ -3,11 +3,13 @@
 This document outlines a clean transition to a simpler, more reliable file search while keeping the existing API surface compatible. It proposes replacing the multi-table, index-heavy approach with a primary ripgrep backend and a minimal SQLite FTS fallback. It also enumerates what can be removed (files, DB tables, and code paths), and provides a migration plan and rollout strategy.
 
 ## Goals
+
 - Preserve API: keep `createFileSearchService()` and `search(projectId, options)` signatures and return shapes (`SearchResult`, `SearchStats`).
 - Drastically reduce code and moving parts (no multi-table index maintenance, no custom TF/trigram/DB cache layers).
 - Improve reliability: search works without pre-indexing, defaulting to `ripgrep` with a minimal FTS or LIKE fallback.
 
 ## Target Architecture
+
 - Backends (selected at runtime, ordered by preference):
   - ripgrep backend (primary): spawn `rg` with `--json`, parse streaming results, rank simply, return context.
   - FTS minimal backend (fallback): a single FTS5 table with BM25 ranking and `snippet(...)`.
@@ -15,9 +17,11 @@ This document outlines a clean transition to a simpler, more reliable file searc
 - Factory: `createFileSearchService` detects backend by env (`FILE_SEARCH_BACKEND=rg|fts|like`) and availability (e.g., `rg` on PATH). API stays the same.
 
 ## What Can Be Removed
+
 Two removal modes are supported. Choose A (ripgrep-only) for the simplest system, or B (ripgrep primary + minimal FTS fallback) to keep a DB-based fallback.
 
 ### A) Ripgrep-only (remove all search-specific tables and indexing code)
+
 - DB tables to DROP:
   - `file_search_fts`
   - `file_search_metadata`
@@ -35,6 +39,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
   - `packages/services/src/file-search-service.test.ts` sections that assert trigram/TF/DB cache behavior. Replace with ripgrep/FTS/LIKE backend tests.
 
 ### B) Ripgrep primary + minimal FTS fallback (keep 1 FTS table; remove the rest)
+
 - DB tables to KEEP:
   - `file_search_fts` only.
 - DB tables to DROP:
@@ -52,6 +57,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
   - As above, remove tests asserting trigram/TF/DB cache behavior; add tests that validate BM25 ordering and ripgrep fallback.
 
 ## New Files to Add
+
 - `packages/services/src/file-services/backends/file-search-rg.ts`
   - Spawns `rg` with `--json`, `--line-number`, `--column`, `--hidden` (plus glob filters for `fileTypes`), and parses streaming results.
   - Supports `searchType` mapping:
@@ -74,7 +80,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
     ```
   - Query pattern:
     ```sql
-    SELECT 
+    SELECT
       file_id,
       path,
       bm25(file_search_fts) AS rank,
@@ -88,6 +94,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
 - Optional: `packages/services/src/file-services/backends/lru.ts` (tiny in-memory LRU cache for small, short-lived query results; no DB cache).
 
 ## Factory Selection (unchanged API)
+
 - `createFileSearchService` remains the entry point; internal backend selection:
   - `FILE_SEARCH_BACKEND=rg|fts|like` (default `rg`).
   - If `rg` not available, fall back to `fts` if `file_search_fts` exists, else `like`.
@@ -96,6 +103,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
 ## Database Migration
 
 ### If choosing A) Ripgrep-only
+
 - Drizzle migration (SQLite) to drop tables:
   ```sql
   DROP TABLE IF EXISTS search_cache;
@@ -112,6 +120,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
 - No new tables required.
 
 ### If choosing B) Ripgrep + minimal FTS fallback
+
 - Drizzle migration (SQLite) to drop tables except FTS:
   ```sql
   DROP TABLE IF EXISTS search_cache;
@@ -134,6 +143,7 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
   );
   ```
 - Recommended: keep FTS in sync with the `files` table via triggers (no separate indexer):
+
   ```sql
   CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
     DELETE FROM file_search_fts WHERE file_id = NEW.id;
@@ -183,16 +193,25 @@ Two removal modes are supported. Choose A (ripgrep-only) for the simplest system
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 
-export async function searchWithRipgrep(projectPath: string, query: string, opts: {
-  caseSensitive?: boolean
-  exact?: boolean
-  regex?: boolean
-  limit?: number
-  fileGlobs?: string[]
-}) {
+export async function searchWithRipgrep(
+  projectPath: string,
+  query: string,
+  opts: {
+    caseSensitive?: boolean
+    exact?: boolean
+    regex?: boolean
+    limit?: number
+    fileGlobs?: string[]
+  }
+) {
   const args = [
-    '--json', '--line-number', '--column', '--hidden', '--max-columns', '200',
-    opts.caseSensitive ? '-S' : '-i',
+    '--json',
+    '--line-number',
+    '--column',
+    '--hidden',
+    '--max-columns',
+    '200',
+    opts.caseSensitive ? '-S' : '-i'
   ]
   if (opts.exact) args.push('-F')
   // Add file glob filters
@@ -221,6 +240,7 @@ export async function searchWithRipgrep(projectPath: string, query: string, opts
 ```
 
 ## Rollout Plan
+
 - Phase 1 (additive):
   - Add new backends and factory selection; default to ripgrep with automatic fallback.
   - Keep old code intact behind a feature flag (`FILE_SEARCH_BACKEND=legacy`) to compare.
@@ -231,6 +251,7 @@ export async function searchWithRipgrep(projectPath: string, query: string, opts
   - Remove `file-indexing-service.ts` or shrink it to the minimal helper (if using triggers).
 
 ## Operational Notes
+
 - Env flags:
   - `FILE_SEARCH_BACKEND=rg|fts|like|legacy` (default `rg`).
   - `FILE_SEARCH_RIPGREP_PATH` (optional), to set a custom path to `rg` if not on PATH; otherwise use `@vscode/ripgrep` as a vendored binary.
@@ -239,6 +260,7 @@ export async function searchWithRipgrep(projectPath: string, query: string, opts
   - FTS minimal: fast, but requires content duplication; triggers avoid batch re-indexing complexity.
 
 ## Checklist
+
 - [ ] Add ripgrep backend file and factory selection.
 - [ ] Add minimal FTS backend and (optional) DB triggers.
 - [ ] Remove tables (A: all five; B: keep `file_search_fts`, drop the rest).
@@ -249,6 +271,7 @@ export async function searchWithRipgrep(projectPath: string, query: string, opts
 - [ ] Document env flags and rollout in README.
 
 ## Rollback
+
 - Set `FILE_SEARCH_BACKEND=legacy` to revert to the current implementation while code remains.
 - If you already dropped tables, restore from backup or re-run the legacy table creation scripts before flipping back.
 

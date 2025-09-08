@@ -191,6 +191,11 @@ export const projectTabStateSchema = z
       .optional()
       .default(false)
       .openapi({ description: 'Whether the Assets tab is enabled for this project.' }),
+    processesEnabled: z
+      .boolean()
+      .optional()
+      .default(false)
+      .openapi({ description: 'Whether the Processes tab is enabled for this project.' }),
     autoIncludeClaudeMd: z.boolean().optional().default(false).openapi({
       description: 'DEPRECATED: Use instructionFileSettings instead. Kept for backward compatibility.',
       example: true
@@ -417,13 +422,10 @@ export const appSettingsSchema = z
       .optional()
       .default(true)
       .openapi({ description: 'Whether to automatically name new chats based on their initial content.' }),
-    selectedPreset: z
-      .enum(['low', 'medium', 'high', 'planning'])
-      .optional()
-      .openapi({
-        description: 'Currently selected model intelligence preset for chat configuration.',
-        example: 'medium'
-      }),
+    selectedPreset: z.enum(['low', 'medium', 'high', 'planning']).optional().openapi({
+      description: 'Currently selected model intelligence preset for chat configuration.',
+      example: 'medium'
+    }),
     devToolsEnabled: z
       .object({
         tanstackQuery: z
@@ -436,38 +438,22 @@ export const appSettingsSchema = z
           .optional()
           .default(false)
           .openapi({ description: 'Whether TanStack Router DevTools are enabled in the UI.', example: false }),
-        reactScan: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether React Scan DevTools are enabled for performance visualization.',
-            example: false
-          }),
-        drizzleStudio: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
-            example: false
-          }),
-        swaggerUI: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether Swagger UI API documentation is accessible via navigation.',
-            example: false
-          }),
-        mcpInspector: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
-            example: false
-          })
+        reactScan: z.boolean().optional().default(false).openapi({
+          description: 'Whether React Scan DevTools are enabled for performance visualization.',
+          example: false
+        }),
+        drizzleStudio: z.boolean().optional().default(false).openapi({
+          description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
+          example: false
+        }),
+        swaggerUI: z.boolean().optional().default(false).openapi({
+          description: 'Whether Swagger UI API documentation is accessible via navigation.',
+          example: false
+        }),
+        mcpInspector: z.boolean().optional().default(false).openapi({
+          description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
+          example: false
+        })
       })
       .optional()
       .default({
@@ -631,6 +617,7 @@ export const createSafeGlobalState = (): GlobalState => ({
       selectedFilesCollapsed: false,
 
       assetsEnabled: false,
+      processesEnabled: false,
       autoIncludeClaudeMd: false,
       instructionFileSettings: {
         autoIncludeEnabled: false,

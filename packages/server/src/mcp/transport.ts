@@ -413,7 +413,6 @@ async function handleToolsCall(
         `external_${externalToolName}`,
         parseInt(projectId),
         args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {},
-        undefined,
         sessionId
       )
 
@@ -477,7 +476,6 @@ async function handleToolsCall(
         typeof name === 'string' ? name : 'unknown',
         projectId ? parseInt(projectId) : undefined,
         args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {},
-        undefined,
         sessionId || 'unknown'
       )
       console.log('[MCP] Execution ID:', executionId)

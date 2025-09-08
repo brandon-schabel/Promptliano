@@ -54,9 +54,7 @@ export type {
 export { createOptimisticHooks, OptimisticStrategy, ConflictResolution } from './create-optimistic-hooks'
 export type { OptimisticConfig, OptimisticHooks } from './create-optimistic-hooks'
 
-// Cross-domain and composite patterns
-export { createCompositeHooks, RelationType, CascadeOperation } from './create-composite-hooks'
-export type { CompositeConfig, CompositeHooks, EntityRelationship } from './create-composite-hooks'
+// Cross-domain and composite patterns - REMOVED: Not used anywhere in codebase
 
 // ============================================================================
 // Query Key Management
