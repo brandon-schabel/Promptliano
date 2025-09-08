@@ -51,7 +51,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "rm -rf dist && NODE_ENV=production vite build && bun run build:css && bun run build:types",
+    "build": "node -e \"try{require('fs').rmSync('dist',{recursive:true,force:true})}catch(e){}\" && vite build && bun run build:css && bun run build:types",
     "build:css": "postcss src/styles/globals.css -o dist/index.css --verbose",
     "build:types": "tsc --project tsconfig.build.json",
     "dev": "vite build --watch",

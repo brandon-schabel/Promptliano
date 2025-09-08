@@ -3,7 +3,7 @@
  * Handles database operations for process runs, logs, and ports
  */
 
-import { eq, and, desc, asc, gte, lte } from 'drizzle-orm'
+import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { processRuns, processLogs, processPorts } from '../schema'
 import { createBaseRepository, extendRepository } from './base-repository'
@@ -278,20 +278,19 @@ export const processPortsRepository = extendRepository(createBaseRepository(proc
         updatedAt: now
       }))
 
-      const first = portsWithTimestamp[0]!
-
       return db
         .insert(processPorts)
         .values(portsWithTimestamp)
         .onConflictDoUpdate({
           target: [processPorts.projectId, processPorts.port],
           set: {
-            protocol: first.protocol,
-            address: first.address,
-            pid: first.pid,
-            processName: first.processName,
-            runId: first.runId,
-            state: 'listening',
+            protocol: sql`excluded.protocol`,
+            address: sql`excluded.address`,
+            pid: sql`excluded.pid`,
+            // Column name in DB is process_name
+            processName: sql`excluded.process_name`,
+            runId: sql`excluded.run_id`,
+            state: sql`excluded.state`,
             updatedAt: now
           }
         })

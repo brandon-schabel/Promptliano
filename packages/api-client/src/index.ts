@@ -284,8 +284,10 @@ export class PromptlianoClient {
     // Task management
     getTasks: (ticketId: number) => this.typeSafe.listTicketsByTicketIdTasks(ticketId),
     createTask: (ticketId: number, data: any) => this.typeSafe.createTicketsByTicketIdTasks(ticketId, data),
-    updateTask: (ticketId: number, taskId: number, data: any) => this.typeSafe.updateTickettask(taskId, data),
-    deleteTask: (ticketId: number, taskId: number) => this.typeSafe.deleteTickettask(taskId),
+    updateTask: (ticketId: number, taskId: number, data: any) =>
+      this.typeSafe.updateTicketsByTicketIdTasksByTaskId(ticketId, taskId, data),
+    deleteTask: (ticketId: number, taskId: number) =>
+      this.typeSafe.deleteTicketsByTicketIdTasksByTaskId(ticketId, taskId),
     reorderTasks: (ticketId: number, data: any) => this.typeSafe.createFlowReorder(data),
     // Pass empty body to avoid JSON parse errors when server expects optional JSON with Content-Type set
     autoGenerateTasks: (ticketId: number) =>
@@ -356,12 +358,31 @@ export class PromptlianoClient {
     unstageAll: (projectId: number) => this.typeSafe.createProjectsByIdGitUnstageAll(projectId),
     commitChanges: (projectId: number, message: string) =>
       this.typeSafe.createProjectsByIdGitCommit(projectId, { message }),
-    push: (projectId: number, remote?: string, branch?: string, options?: { force?: boolean; setUpstream?: boolean }) =>
-      this.typeSafe.createProjectsByIdGitPush(projectId, { remote, branch, ...options }),
-    pull: (projectId: number, remote?: string, branch?: string, rebase?: boolean) =>
-      this.typeSafe.createProjectsByIdGitPull(projectId, { remote, branch, rebase }),
-    fetch: (projectId: number, remote?: string, prune?: boolean) =>
-      this.typeSafe.createProjectsByIdGitFetch(projectId, { remote, prune }),
+    push: (
+      projectId: number,
+      remote?: string,
+      branch?: string,
+      options?: { force?: boolean; setUpstream?: boolean }
+    ) => {
+      const payload: any = { remote: remote ?? 'origin' }
+      if (branch !== undefined) payload.branch = branch
+      if (options?.force !== undefined) payload.force = options.force
+      if (options?.setUpstream !== undefined) payload.setUpstream = options.setUpstream
+      return this.typeSafe.createProjectsByIdGitPush(projectId, payload)
+    },
+    pull: (projectId: number, remote?: string, branch?: string, rebase?: boolean) => {
+      const payload: any = {}
+      if (remote !== undefined) payload.remote = remote
+      if (branch !== undefined) payload.branch = branch
+      if (rebase !== undefined) payload.rebase = rebase
+      return this.typeSafe.createProjectsByIdGitPull(projectId, payload)
+    },
+    fetch: (projectId: number, remote?: string, prune?: boolean) => {
+      const payload: any = {}
+      if (remote !== undefined) payload.remote = remote
+      if (prune !== undefined) payload.prune = prune
+      return this.typeSafe.createProjectsByIdGitFetch(projectId, payload)
+    },
     createTag: (projectId: number, name: string, options?: { message?: string; ref?: string }) =>
       this.typeSafe.createProjectsByIdGitTags(projectId, { name, ...options }),
     stash: (projectId: number, message?: string) => this.typeSafe.createProjectsByIdGitStash(projectId, { message }),
@@ -370,7 +391,7 @@ export class PromptlianoClient {
       this.typeSafe.createProjectsByIdGitStashPop(projectId, ref ? { stashRef: ref } : {}),
     stashDrop: (projectId: number, ref?: string) =>
       this.typeSafe.deleteProjectsByIdGitStash(projectId, ref ? { stashRef: ref } : {}),
-    reset: (projectId: number, ref: string, mode?: 'soft' | 'mixed' | 'hard') =>
+    reset: (projectId: number, ref: string, mode: 'soft' | 'mixed' | 'hard' = 'mixed') =>
       this.typeSafe.createProjectsByIdGitReset(projectId, { ref, mode }),
     // Worktree operations
     worktrees: {
@@ -434,13 +455,58 @@ export class PromptlianoClient {
 
   // MCP methods
   public readonly mcp = {
-    // ----- Global (placeholder – real global endpoints exist but not used here) -----
-    getGlobalConfig: () => this.typeSafe.listMcpGlobalConfig(),
-    getGlobalInstallations: () => this.typeSafe.listMcpGlobalInstallations(),
-    getGlobalStatus: () => this.typeSafe.listMcpGlobalStatus(),
-    updateGlobalConfig: (updates: any) => this.typeSafe.createMcpGlobalConfig(updates),
-    installGlobalMCP: (data: any) => this.typeSafe.createMcpGlobalInstall(data),
-    uninstallGlobalMCP: (data: any) => this.typeSafe.createMcpGlobalUninstall(data),
+    // ----- Global (use explicit fetch to match server routes) -----
+    getGlobalConfig: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/config`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get global MCP config (${res.status})`)
+      return res.json()
+    },
+    getGlobalInstallations: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/installations`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get global MCP installations (${res.status})`)
+      return res.json()
+    },
+    getGlobalStatus: async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/status`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers }
+      })
+      if (!res.ok) throw new Error(`Failed to get global MCP status (${res.status})`)
+      return res.json()
+    },
+    updateGlobalConfig: async (updates: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(updates)
+      })
+      if (!res.ok) throw new Error(`Failed to update global MCP config (${res.status})`)
+      return res.json()
+    },
+    installGlobalMCP: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to install global MCP (${res.status})`)
+      return res.json()
+    },
+    uninstallGlobalMCP: async (data: any) => {
+      const res = await fetch(`${this.config.baseUrl}/api/mcp/global/uninstall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error(`Failed to uninstall global MCP (${res.status})`)
+      return res.json()
+    },
 
     // ----- Project Config (use explicit fetch to match server routes) -----
     // Locations where project config can live (e.g. .vscode/mcp.json, .cursor/mcp.json, etc.)

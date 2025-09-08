@@ -292,14 +292,22 @@ export const processManagementRoutes = new OpenAPIHono()
     const { state } = c.req.valid('query')
 
     try {
-      let ports
-      if (state === 'all') {
-        ports = await processPortsRepository.getByProject(id)
-      } else {
-        ports = await processPortsRepository.getByState(id, state as any)
+      // Always perform a fresh scan; persist if possible
+      const scanned = await processService.scanPorts(id)
+
+      // Read latest snapshot from DB
+      const fromDb =
+        state === 'all'
+          ? await processPortsRepository.getByProject(id)
+          : await processPortsRepository.getByState(id, state as any)
+
+      // Fallback: if DB read is empty but we scanned ports, return scanned results
+      if ((!fromDb || fromDb.length === 0) && scanned && scanned.length > 0) {
+        const filtered = state === 'all' ? scanned : scanned.filter((p) => p.state === state)
+        return c.json(successResponse(filtered), 200)
       }
 
-      return c.json(successResponse(ports), 200)
+      return c.json(successResponse(fromDb), 200)
     } catch (e: any) {
       throw ErrorFactory.wrap(e, 'Failed to get ports')
     }
@@ -308,6 +316,8 @@ export const processManagementRoutes = new OpenAPIHono()
     const { id, port } = c.req.valid('param')
 
     try {
+      // Refresh scan prior to lookup to ensure PID mapping is up-to-date
+      await processService.scanPorts(id)
       // Find process using this port
       const ports = await processPortsRepository.getByState(id, 'listening')
       const portInfo = ports.find((p) => p.port === port)
@@ -335,7 +345,7 @@ export const processManagementRoutes = new OpenAPIHono()
     const { id } = c.req.valid('param')
 
     try {
-      const ports = await processService.scanPorts()
+      const ports = await processService.scanPorts(id)
       return c.json(successResponse(ports), 200)
     } catch (e: any) {
       throw ErrorFactory.wrap(e, 'Failed to scan ports')

@@ -205,6 +205,21 @@ async function ensureSchemaUpgrades() {
       }
     }
 
+    // Ensure unique index for process_ports(project_id, port) to support upsert
+    try {
+      const portsIndex = rawDb
+        .query("SELECT name FROM sqlite_master WHERE type='index' AND name=?")
+        .get('process_ports_project_port_unique') as { name?: string } | undefined
+      if (!portsIndex?.name) {
+        rawDb.exec(
+          'CREATE UNIQUE INDEX IF NOT EXISTS `process_ports_project_port_unique` ON `process_ports` (`project_id`, `port`)' 
+        )
+        console.log('✅ Created unique index process_ports_project_port_unique')
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to ensure unique index on process_ports(project_id, port):', e)
+    }
+
     // Drop legacy tab tables (tabs are frontend-only now)
     if (tableExists('active_tabs')) {
       try {

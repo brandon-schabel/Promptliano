@@ -31,7 +31,7 @@
     "test:e2e:suite": "bun run e2e/scripts/test-execution-coordinator.ts production && bun run e2e/scripts/test-execution-coordinator.ts ci",
     "test:e2e:comprehensive": "bun run e2e/scripts/test-execution-coordinator.ts production --headed",
     "typecheck": "tsc -b tsconfig.app.json",
-    "check-db-imports": "grep -r \"import.*@promptliano/database\" src/ --include=\"*.ts\" --include=\"*.tsx\" | grep -v \"import type\" || echo \"✅ All database imports are type-only\"",
+    "check-db-imports": "bun run scripts/check-db-imports.ts",
     "validate-types": "bun run typecheck && bun run check-db-imports"
   },
   "dependencies": {

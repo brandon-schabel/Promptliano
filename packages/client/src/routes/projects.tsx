@@ -27,7 +27,7 @@ import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { AssetsTabWithSidebar } from '@/components/assets/assets-tab-with-sidebar'
 import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
-import { ProcessesTab } from '@/components/processes/processes-tab'
+import { ProcessesTabWithSidebar } from '@/components/processes/processes-tab-with-sidebar'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
@@ -489,7 +489,14 @@ export function ProjectsPage() {
           <TabsContent value='processes' className='flex-1 overflow-y-auto mt-0 ring-0 focus-visible:ring-0'>
             {(activeProjectTabState as any)?.processesEnabled ? (
               selectedProjectId && projectData ? (
-                <ProcessesTab projectId={selectedProjectId} projectName={projectData.name} />
+                <ProcessesTabWithSidebar
+                  projectId={selectedProjectId}
+                  projectName={projectData.name}
+                  processView={search.processView}
+                  onProcessViewChange={(view) =>
+                    navigate({ to: '/projects', search: (prev) => ({ ...prev, processView: view }), replace: true })
+                  }
+                />
               ) : (
                 <p className='p-4 md:p-6'>No project selected for Processes.</p>
               )

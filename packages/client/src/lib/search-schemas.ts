@@ -20,6 +20,12 @@ export const projectViewSchema = z
   .catch('context')
   .optional()
 
+// Processes view sub-tabs enum
+export const processViewSchema = z
+  .enum(['processes', 'ports'])
+  .catch('processes')
+  .optional()
+
 // Git view sub-tabs enum
 export const gitViewSchema = z
   .enum(['changes', 'history', 'branches', 'stashes', 'worktrees'])
@@ -61,6 +67,7 @@ export const projectsSearchSchema = tabSearchSchema.merge(projectIdSearchSchema)
   flowView: flowViewSchema,
   ticketView: flowViewSchema, // Deprecated - mapped to flowView for backward compatibility
   assetView: assetViewSchema,
+  processView: processViewSchema,
   claudeCodeView: claudeCodeViewSchema,
   manageView: manageViewSchema,
   queueView: flowViewSchema, // Deprecated - mapped to flowView for backward compatibility
@@ -110,6 +117,7 @@ export type GitView = z.infer<typeof gitViewSchema>
 export type FlowView = z.infer<typeof flowViewSchema>
 export type TicketView = z.infer<typeof ticketViewSchema> // Deprecated
 export type AssetView = z.infer<typeof assetViewSchema>
+export type ProcessView = z.infer<typeof processViewSchema>
 export type ClaudeCodeView = z.infer<typeof claudeCodeViewSchema>
 export type ManageView = z.infer<typeof manageViewSchema>
 export type QueueView = z.infer<typeof queueViewSchema> // Deprecated

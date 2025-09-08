@@ -530,46 +530,114 @@ export class SecurityManager {
 // PORT MANAGEMENT AND SCANNING
 // =============================================================================
 
-export class PortManager {
-  private logger = createLogger('PortManager')
+  export class PortManager {
+    private logger = createLogger('PortManager')
 
   async scanOpenPorts(): Promise<ProcessPort[]> {
     try {
-      // Use netstat or ss to get open ports (platform-specific)
-      const command = process.platform === 'darwin' ? 'netstat' : 'ss'
-      const args = process.platform === 'darwin' ? ['-an', '-p', 'tcp'] : ['-tuln']
+      let ports: ProcessPort[] = []
+      if (process.platform === 'darwin') {
+        // Prefer lsof on macOS for reliable parsing with PID and process name
+        const proc = Bun.spawn({ cmd: ['lsof', '-nP', '-iTCP', '-sTCP:LISTEN'], stdout: 'pipe', stderr: 'pipe' })
+        const output = await new Response(proc.stdout!).text()
+        await proc.exited
+        ports = this.parseLsofOutput(output)
+        if (ports.length === 0) {
+          // Fallback to netstat parsing if lsof returns nothing
+          const ns = Bun.spawn({ cmd: ['netstat', '-an', '-p', 'tcp'], stdout: 'pipe', stderr: 'pipe' })
+          const nsOut = await new Response(ns.stdout!).text()
+          await ns.exited
+          ports = this.parseNetstatOutput(nsOut)
+        }
+      } else if (process.platform === 'win32') {
+        // Windows: Use PowerShell to list listening TCP ports with owning process
+        // Prefer JSON output for robust parsing
+        const psScript = `
+          $conns = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+            Select-Object LocalAddress,LocalPort,OwningProcess
+          $procMap = @{}
+          foreach ($c in $conns) {
+            if ($c.OwningProcess -and -not $procMap.ContainsKey($c.OwningProcess)) {
+              try { $procMap[$c.OwningProcess] = (Get-Process -Id $c.OwningProcess -ErrorAction Stop).ProcessName }
+              catch { $procMap[$c.OwningProcess] = $null }
+            }
+          }
+          $conns | ForEach-Object {
+            [PSCustomObject]@{
+              Address = $_.LocalAddress
+              Port = $_.LocalPort
+              Pid = $_.OwningProcess
+              ProcessName = $(if ($procMap.ContainsKey($_.OwningProcess)) { $procMap[$_.OwningProcess] } else { $null })
+            }
+          } | ConvertTo-Json -Compress
+        `
+        let output = ''
+        try {
+          const pwsh = Bun.spawn({ cmd: ['powershell', '-NoProfile', '-Command', psScript], stdout: 'pipe', stderr: 'pipe' })
+          output = await new Response(pwsh.stdout!).text()
+          await pwsh.exited
+        } catch {
+          try {
+            const pwshCore = Bun.spawn({ cmd: ['pwsh', '-NoProfile', '-Command', psScript], stdout: 'pipe', stderr: 'pipe' })
+            output = await new Response(pwshCore.stdout!).text()
+            await pwshCore.exited
+          } catch {}
+        }
+        try {
+          let arr = JSON.parse(output)
+          if (!Array.isArray(arr)) arr = [arr]
+          ports = arr
+            .filter((x: any) => x && typeof x.Port === 'number')
+            .map((x: any) => ({
+              port: x.Port,
+              address: x.Address === '::' ? '::' : x.Address || '0.0.0.0',
+              protocol: 'tcp',
+              pid: typeof x.Pid === 'number' ? x.Pid : null,
+              processName: x.ProcessName || null,
+              state: 'listening',
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            } as ProcessPort))
+        } catch (e) {
+          this.logger.warn('Failed to parse PowerShell port list', { error: e })
+          ports = []
+        }
+      } else {
+        // Linux: use ss; try to include process info if possible
+        let ss = Bun.spawn({ cmd: ['ss', '-tulnp'], stdout: 'pipe', stderr: 'pipe' })
+        let output = await new Response(ss.stdout!).text()
+        await ss.exited
+        ports = this.parseSsOutput(output)
 
-      const proc = Bun.spawn({
-        cmd: [command, ...args],
-        stdout: 'pipe',
-        stderr: 'pipe'
-      })
-
-      const output = await new Response(proc.stdout!).text()
-      await proc.exited
-
-      return this.parsePortOutput(output)
+        if (ports.length === 0) {
+          // Fallback without process info
+          ss = Bun.spawn({ cmd: ['ss', '-tuln'], stdout: 'pipe', stderr: 'pipe' })
+          output = await new Response(ss.stdout!).text()
+          await ss.exited
+          ports = this.parseSsOutput(output)
+        }
+      }
+      return ports
     } catch (error) {
       this.logger.warn('Port scanning failed', { error })
       return []
     }
   }
 
-  private parsePortOutput(output: string): ProcessPort[] {
+  private parseNetstatOutput(output: string): ProcessPort[] {
     const ports: ProcessPort[] = []
     const lines = output.split('\n')
-
     for (const line of lines) {
-      // Parse netstat/ss output format
-      const match = line.match(/\s+(\d+\.\d+\.\d+\.\d+|\*):(\d+)\s+/)
-      if (match) {
-        const [, address, portStr] = match
-        const port = parseInt(portStr || '0', 10)
-
+      if (!/LISTEN/i.test(line)) continue
+      // macOS netstat shows addresses like 127.0.0.1.3000 or *.3000
+      const m = line.match(/\s(\*|\d+(?:\.\d+){3})[\.:](\d+)\s/)
+      if (m) {
+        const [, addr, portStr] = m
+        const port = parseInt(portStr!, 10)
         if (port > 0) {
           ports.push({
             port,
-            address: address === '*' ? '0.0.0.0' : address,
+            address: addr === '*' ? '0.0.0.0' : addr,
             protocol: 'tcp',
             state: 'listening',
             createdAt: Date.now(),
@@ -578,7 +646,61 @@ export class PortManager {
         }
       }
     }
+    return ports
+  }
 
+  private parseLsofOutput(output: string): ProcessPort[] {
+    const ports: ProcessPort[] = []
+    const lines = output.split('\n')
+    for (const line of lines) {
+      if (!/\(LISTEN\)/.test(line)) continue
+      const m = line.match(/^(\S+)\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+TCP\s+(\S+):(\d+)\s+\(LISTEN\)/)
+      if (m) {
+        const [, cmd, pidStr, addr, portStr] = m
+        const port = parseInt(portStr!, 10)
+        const pid = parseInt(pidStr!, 10)
+        if (port > 0) {
+          ports.push({
+            port,
+            address: addr === '*' ? '0.0.0.0' : addr,
+            protocol: 'tcp',
+            pid: isNaN(pid) ? null : pid,
+            processName: cmd,
+            state: 'listening',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          } as ProcessPort)
+        }
+      }
+    }
+    return ports
+  }
+
+  private parseSsOutput(output: string): ProcessPort[] {
+    const ports: ProcessPort[] = []
+    const lines = output.split('\n')
+    for (const line of lines) {
+      if (!/^LISTEN/.test(line)) continue
+      // Example: LISTEN 0 128 127.0.0.1:3000 0.0.0.0:* users:(("node",pid=1234,fd=23))
+      const addrMatch = line.match(/\s(\*|\d+(?:\.\d+){3}|\[::\]|::):([0-9]+)\b/)
+      if (!addrMatch) continue
+      const addr = addrMatch[1]
+      const port = parseInt(addrMatch[2] || '0', 10)
+      if (!(port > 0)) continue
+      const procMatch = line.match(/users:\(\("([^"]+)",pid=(\d+)/)
+      const name = procMatch?.[1]
+      const pid = procMatch?.[2] ? parseInt(procMatch[2], 10) : NaN
+      ports.push({
+        port,
+        address: addr === '*' ? '0.0.0.0' : addr,
+        protocol: 'tcp',
+        pid: isNaN(pid) ? null : pid,
+        processName: name || null,
+        state: 'listening',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      } as ProcessPort)
+    }
     return ports
   }
 
@@ -612,6 +734,24 @@ export class PortManager {
     } catch (error) {
       this.logger.error('Failed to get ports for project', { projectId, error })
       return []
+    }
+  }
+
+  async persistScan(projectId: number, ports: ProcessPort[]): Promise<ProcessPort[]> {
+    try {
+      const values = ports.map((p) => ({
+        port: p.port,
+        protocol: p.protocol,
+        address: p.address,
+        pid: (p as any).pid ?? null,
+        processName: (p as any).processName ?? null,
+        runId: (p as any).runId ?? undefined
+      }))
+      await processPortsRepository.updateProjectPorts(projectId, values)
+      return await processPortsRepository.getByState(projectId, 'listening')
+    } catch (error) {
+      this.logger.warn('Failed to persist scanned ports', { projectId, error })
+      return ports
     }
   }
 }
@@ -653,15 +793,18 @@ export class ProcessManager {
   }
 
   private setupEventHandlers(): void {
-    this.scriptRunner.on('started', ({ processId, config }) => {
-      const managed = this.scriptRunner.getProcess(processId)
-      if (managed) {
-        this.active.set(processId, managed)
-        this.startResourceMonitoring(managed)
+    this.scriptRunner.on(
+      'started',
+      ({ processId, config }: { processId: string; config: ProcessConfig }) => {
+        const managed = this.scriptRunner.getProcess(processId)
+        if (managed) {
+          this.active.set(processId, managed)
+          this.startResourceMonitoring(managed)
+        }
       }
-    })
+    )
 
-    this.scriptRunner.on('exit', ({ processId }) => {
+    this.scriptRunner.on('exit', ({ processId }: { processId: string }) => {
       this.active.delete(processId)
       this.processNext()
     })
@@ -1241,7 +1384,13 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
 
     // Utility functions
     getProcessStatus: (processId?: string) => processManager.getStatus(processId),
-    scanPorts: () => portManager.scanOpenPorts(),
+    scanPorts: async (projectId?: number) => {
+      const ports = await portManager.scanOpenPorts()
+      if (projectId != null) {
+        return await portManager.persistScan(projectId, ports)
+      }
+      return ports
+    },
 
     // Event access for WebSocket integration
     on: (event: string, listener: (...args: any[]) => void) => scriptRunner.on(event, listener),

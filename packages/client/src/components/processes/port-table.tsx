@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -28,7 +28,7 @@ import {
   Badge,
   cn
 } from '@promptliano/ui'
-import { Network, XCircle, RefreshCw, Wifi, WifiOff, Search, Terminal, Activity } from 'lucide-react'
+import { Network, XCircle, RefreshCw, Wifi, WifiOff, Search, Terminal, Activity, Copy, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProcessPorts, useKillByPort, useScanPorts } from '@/hooks/api/processes-hooks'
 import {
@@ -67,6 +67,7 @@ export function PortTable({ projectId, className }: PortTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [portToKill, setPortToKill] = useState<number | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
 
   // toast imported from sonner
 
@@ -74,6 +75,7 @@ export function PortTable({ projectId, className }: PortTableProps) {
   const { data: ports = [], isLoading, refetch } = useProcessPorts(projectId, stateFilter)
   const { mutate: killByPort, isPending: isKilling } = useKillByPort(projectId)
   const { mutate: scanPorts, isPending: isScanning } = useScanPorts(projectId)
+  const autoScanned = useRef(false)
 
   // Handle port kill confirmation
   const handleKillPort = (port: number) => {
@@ -90,6 +92,32 @@ export function PortTable({ projectId, className }: PortTableProps) {
       })
     }
   }
+
+  const toggleExpanded = (id: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const copy = async (text: string, message = 'Copied to clipboard') => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(message)
+    } catch {
+      toast.error('Failed to copy')
+    }
+  }
+
+  // Auto-scan once if no ports found on initial load (listening view)
+  useEffect(() => {
+    if (!isLoading && !autoScanned.current && ports.length === 0 && stateFilter === 'listening') {
+      autoScanned.current = true
+      scanPorts()
+    }
+  }, [isLoading, ports.length, stateFilter, scanPorts])
 
   // Protocol badge component
   const ProtocolBadge = ({ protocol }: { protocol: 'tcp' | 'udp' }) => {
@@ -130,6 +158,18 @@ export function PortTable({ projectId, className }: PortTableProps) {
           <div className='flex items-center gap-2'>
             <Network className='h-4 w-4 text-muted-foreground' />
             <span className='font-mono font-semibold'>{port}</span>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-7 w-7'
+              onClick={(e) => {
+                e.stopPropagation()
+                copy(String(port), 'Port copied')
+              }}
+              title='Copy port'
+            >
+              <Copy className='h-3.5 w-3.5' />
+            </Button>
           </div>
         )
       }
@@ -161,9 +201,25 @@ export function PortTable({ projectId, className }: PortTableProps) {
         return (
           <div className='flex items-center gap-2'>
             <Terminal className='h-3 w-3 text-muted-foreground' />
-            <div className='flex flex-col'>
-              {name && <span className='text-sm font-medium'>{name}</span>}
-              {pid && <span className='text-xs text-muted-foreground'>PID: {pid}</span>}
+            <div className='flex items-center gap-2'>
+              <div className='flex flex-col'>
+                {name && <span className='text-sm font-medium'>{name}</span>}
+                {pid && <span className='text-xs text-muted-foreground'>PID: {pid}</span>}
+              </div>
+              {pid ? (
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-7 w-7'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    copy(String(pid), 'PID copied')
+                  }}
+                  title='Copy PID'
+                >
+                  <Copy className='h-3.5 w-3.5' />
+                </Button>
+              ) : null}
             </div>
           </div>
         )
@@ -192,7 +248,7 @@ export function PortTable({ projectId, className }: PortTableProps) {
                 className='h-8'
               >
                 <XCircle className='h-4 w-4 text-destructive' />
-                <span className='ml-2'>Kill</span>
+                <span className='ml-2'>Stop</span>
               </Button>
             )}
           </div>
@@ -287,13 +343,90 @@ export function PortTable({ projectId, className }: PortTableProps) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const isExpanded = expandedRows.has(row.original.id)
+                const port = row.original.port
+                const pid = row.original.pid
+                const commands: Array<{ label: string; cmd: string }> = [
+                  { label: 'Who uses port', cmd: `lsof -i :${port}` },
+                  { label: 'Listening on port', cmd: `lsof -a -i tcp:${port} -sTCP:LISTEN` },
+                  ...(pid
+                    ? [
+                        { label: 'Inspect PID', cmd: `ps -p ${pid} -o pid,ppid,command,%cpu,%mem,etime` },
+                        { label: 'Kill PID (SIGTERM)', cmd: `kill -15 ${pid}` },
+                        { label: 'Kill PID (SIGKILL)', cmd: `kill -9 ${pid}` }
+                      ]
+                    : [])
+                ]
+
+                return (
+                  <React.Fragment key={row.id}>
+                    <TableRow
+                      data-state={row.getIsSelected() && 'selected'}
+                      className='cursor-pointer'
+                      onClick={() => toggleExpanded(row.original.id)}
+                    >
+                      {row.getVisibleCells().map((cell, idx) => (
+                        <TableCell key={cell.id}>
+                          {idx === 0 ? (
+                            <div className='flex items-center gap-2'>
+                              <ChevronDown
+                                className={cn('h-4 w-4 transition-transform', isExpanded ? 'rotate-180' : 'rotate-0')}
+                              />
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          ) : (
+                            flexRender(cell.column.columnDef.cell, cell.getContext())
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow>
+                        <TableCell colSpan={columns.length}>
+                          <div className='p-3 rounded-md bg-muted/40 border flex flex-col gap-3'>
+                            <div className='flex items-center gap-2'>
+                              <span className='text-sm text-muted-foreground'>Quick actions</span>
+                              {row.original.state === 'listening' && row.original.pid && (
+                                <Button
+                                  size='sm'
+                                  variant='destructive'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleKillPort(row.original.port)
+                                  }}
+                                >
+                                  <XCircle className='h-4 w-4 mr-1' /> Stop process
+                                </Button>
+                              )}
+                            </div>
+                            <div className='space-y-2'>
+                              {commands.map(({ label, cmd }) => (
+                                <div key={label} className='flex items-start justify-between gap-2'>
+                                  <div className='text-sm min-w-[160px] text-muted-foreground'>{label}</div>
+                                  <div className='flex-1'>
+                                    <pre className='text-xs bg-background rounded border px-2 py-1 overflow-auto'>{cmd}</pre>
+                                  </div>
+                                  <Button
+                                    variant='outline'
+                                    size='sm'
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      copy(cmd)
+                                    }}
+                                  >
+                                    <Copy className='h-3.5 w-3.5 mr-1' /> Copy
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className='h-24 text-center'>
