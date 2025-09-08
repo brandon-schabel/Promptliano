@@ -6,16 +6,19 @@ import {
   ProcessStartRequestSchema,
   ProcessDetailResponseSchema,
   ProcessListResponseSchema,
+  ProjectScriptListResponseSchema,
   createListResponseSchema,
   createSuccessResponseSchema
 } from '@promptliano/schemas'
 import {
   listProjectProcesses,
+  listProjectScripts,
   startProjectProcess,
   stopProjectProcess,
   createProcessManagementService
 } from '@promptliano/services'
 import { projectService } from '@promptliano/services'
+import { resolve as pathResolve } from 'node:path'
 import { processRunsRepository, processLogsRepository, processPortsRepository } from '@promptliano/database'
 
 // Additional schemas for new features
@@ -193,7 +196,8 @@ const runScriptRoute = createRoute({
         'application/json': {
           schema: z.object({
             scriptName: z.string(),
-            packageManager: z.enum(['npm', 'bun', 'yarn', 'pnpm']).optional().default('bun')
+            packageManager: z.enum(['npm', 'bun', 'yarn', 'pnpm']).optional().default('bun'),
+            packagePath: z.string().optional()
           })
         }
       }
@@ -205,11 +209,29 @@ const runScriptRoute = createRoute({
   summary: 'Run a package.json script'
 })
 
+// List available package.json scripts
+const listScriptsRoute = createRoute({
+  method: 'get',
+  path: '/api/projects/{id}/processes/scripts',
+  request: {
+    params: z.object({ id: z.string().transform(Number) })
+  },
+  responses: createStandardResponses(ProjectScriptListResponseSchema),
+  tags: ['Processes'],
+  operationId: 'listProjectScripts',
+  summary: 'List package.json scripts in the project (root + workspaces)'
+})
+
 export const processManagementRoutes = new OpenAPIHono()
   .openapi(listProcessesRoute, async (c) => {
     const { id } = c.req.valid('param')
     const processes = await listProjectProcesses(id)
     return c.json(successResponse(processes), 200)
+  })
+  .openapi(listScriptsRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const scripts = await listProjectScripts(id)
+    return c.json(successResponse(scripts), 200)
   })
   .openapi(startProcessRoute, async (c) => {
     const { id } = c.req.valid('param')
@@ -321,7 +343,7 @@ export const processManagementRoutes = new OpenAPIHono()
   })
   .openapi(runScriptRoute, async (c) => {
     const { id } = c.req.valid('param')
-    const { scriptName, packageManager } = c.req.valid('json')
+    const { scriptName, packageManager, packagePath } = c.req.valid('json')
 
     try {
       // Get project path
@@ -330,12 +352,23 @@ export const processManagementRoutes = new OpenAPIHono()
         throw ErrorFactory.notFound('Project', id)
       }
 
+      // Optional safety: ensure provided packagePath (if any) is inside project path
+      let cwd = project.path
+      if (packagePath) {
+        const resolved = pathResolve(packagePath)
+        const projectResolved = pathResolve(project.path)
+        if (!resolved.startsWith(projectResolved)) {
+          throw ErrorFactory.badRequest('Invalid packagePath: outside project')
+        }
+        cwd = resolved
+      }
+
       // Run the script
       const processInfo = await startProjectProcess(id, {
         command: packageManager,
         args: ['run', scriptName],
         name: scriptName,
-        cwd: project.path
+        cwd
       })
 
       return c.json(successResponse(processInfo), 200)

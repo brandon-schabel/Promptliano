@@ -50,4 +50,25 @@ export const ProcessDetailResponseSchema = z
 
 export type ProcessInfo = z.infer<typeof ProcessInfoSchema>
 export type ProcessStartRequest = z.infer<typeof ProcessStartRequestSchema>
+
+// Scripts discovered in package.json files within a project
+export const ProjectScriptSchema = z
+  .object({
+    packageName: z.string().openapi({ description: 'Name from the package.json' }),
+    packagePath: z.string().openapi({ description: 'Absolute path to the package directory' }),
+    scriptName: z.string().openapi({ description: 'Script key in package.json' }),
+    command: z.string().openapi({ description: 'Script command content' }),
+    packageManager: z.enum(['npm', 'bun', 'yarn', 'pnpm']).openapi({ description: 'Inferred package manager' }),
+    workspace: z.boolean().openapi({ description: 'True if located under a workspace directory like packages/*' })
+  })
+  .openapi('ProjectScript', {})
+
+export const ProjectScriptListResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.array(ProjectScriptSchema)
+  })
+  .openapi('ProjectScriptListResponse', {})
+
+export type ProjectScript = z.infer<typeof ProjectScriptSchema>
 export type ProcessStopRequest = z.infer<typeof ProcessStopRequestSchema>

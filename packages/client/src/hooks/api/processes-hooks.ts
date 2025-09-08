@@ -7,7 +7,8 @@ const KEY = {
   list: (projectId: number) => ['processes', 'list', projectId] as const,
   history: (projectId: number) => ['processes', 'history', projectId] as const,
   logs: (projectId: number, processId: string) => ['processes', 'logs', projectId, processId] as const,
-  ports: (projectId: number) => ['processes', 'ports', projectId] as const
+  ports: (projectId: number) => ['processes', 'ports', projectId] as const,
+  scripts: (projectId: number) => ['processes', 'scripts', projectId] as const
 }
 
 export function useListProcesses(projectId: number | undefined) {
@@ -226,17 +227,19 @@ export function useRunScript(projectId: number | undefined) {
   return useMutation({
     mutationFn: async ({
       scriptName,
-      packageManager = 'bun'
+      packageManager = 'bun',
+      packagePath
     }: {
       scriptName: string
       packageManager?: 'npm' | 'bun' | 'yarn' | 'pnpm'
+      packagePath?: string
     }) => {
       if (!projectId || projectId === -1) throw new Error('No project selected')
 
       const res = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/processes/scripts/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scriptName, packageManager })
+        body: JSON.stringify({ scriptName, packageManager, packagePath })
       })
       if (!res.ok) {
         const error = await res.json()
@@ -250,5 +253,20 @@ export function useRunScript(projectId: number | undefined) {
       toast.success(`Script '${variables.scriptName}' started`)
     },
     onError: (err: any) => toast.error(err.message || 'Failed to run script')
+  })
+}
+
+// List package.json scripts available in the project (root + packages/*)
+export function useProjectScripts(projectId: number | undefined) {
+  return useQuery({
+    queryKey: KEY.scripts(projectId || -1),
+    queryFn: async () => {
+      if (!projectId || projectId === -1) return []
+      const res = await fetch(`${SERVER_HTTP_ENDPOINT}/api/projects/${projectId}/processes/scripts`)
+      if (!res.ok) throw new Error('Failed to fetch scripts')
+      const json = await res.json()
+      return json.data || []
+    },
+    enabled: !!projectId && projectId !== -1
   })
 }

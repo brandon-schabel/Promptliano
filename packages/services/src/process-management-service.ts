@@ -15,14 +15,16 @@
  */
 
 import { EventEmitter } from 'node:events'
-import { resolve, sep } from 'node:path'
+import { resolve, sep, join, dirname } from 'node:path'
+import { readdir, access } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import type { Subprocess } from 'bun'
 import { createLogger } from './utils/logger'
 import { safeAsync, throwNotFound, throwApiError } from './utils/error-handlers'
 import { withErrorContext, createServiceLogger } from './core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
-import type { ProcessInfo, ProcessStartRequest } from '@promptliano/schemas'
+import type { ProcessInfo, ProcessStartRequest, ProjectScript } from '@promptliano/schemas'
 import type {
   ProcessRun,
   ProcessLog,
@@ -165,7 +167,7 @@ export class ScriptRunner extends EventEmitter {
     }
 
     // Validate script exists in package.json
-    const pkg = await Bun.file(resolve(project.path, 'package.json'))
+    const pkg = await Bun.file(resolve(options.cwd ?? project.path, 'package.json'))
       .json()
       .catch(() => null)
     if (!pkg?.scripts?.[scriptName]) {
@@ -428,6 +430,16 @@ function isInside(base: string, target: string): boolean {
   return rTarget.startsWith(rBase)
 }
 
+function inferDefaultSandboxRoot(): string {
+  const cwd = resolve(process.cwd())
+  const marker = `${sep}packages${sep}server`
+  if (cwd.includes(marker)) {
+    // Likely running the API from packages/server; sandbox to the monorepo root
+    return resolve(cwd, '..', '..')
+  }
+  return cwd
+}
+
 export class SecurityManager {
   private logger = createLogger('SecurityManager')
   private rateLimits = new Map<string, number[]>()
@@ -435,6 +447,13 @@ export class SecurityManager {
     ['admin', new Set(['bun', 'npm', 'node', 'yarn', 'pnpm', 'git'])],
     ['user', new Set(['bun', 'npm'])]
   ])
+  private sandboxRoot: string
+
+  constructor(sandboxRoot?: string) {
+    // Default sandbox to the monorepo root if running from packages/server
+    const envRoot = process.env.PROCESS_SANDBOX_ROOT
+    this.sandboxRoot = sandboxRoot || envRoot || inferDefaultSandboxRoot()
+  }
 
   validateProcessConfig(config: ProcessConfig, userRole: string = 'user'): void {
     const [bin, ...args] = config.command
@@ -451,10 +470,9 @@ export class SecurityManager {
       }
     }
 
-    // Validate working directory is within sandbox
+    // Validate working directory is within sandbox (repo root by default)
     if (config.cwd) {
-      const sandboxRoot = resolve('./sandbox')
-      if (config.cwd && !isInside(sandboxRoot, config.cwd)) {
+      if (!isInside(this.sandboxRoot, config.cwd)) {
         throw ErrorFactory.badRequest('Working directory outside sandbox')
       }
     }
@@ -933,14 +951,14 @@ export interface ProcessServiceDependencies {
 export function createProcessManagementService(deps: ProcessServiceDependencies = {}) {
   const logger = deps.logger || createServiceLogger('ProcessManagementService')
   const scriptRunner = deps.scriptRunner || new ScriptRunner()
-  const securityManager = deps.securityManager || new SecurityManager()
+  const securityManager = deps.securityManager || new SecurityManager(deps.sandboxRoot || inferDefaultSandboxRoot())
   const portManager = deps.portManager || new PortManager()
 
   const processManager =
     deps.processManager ||
     new ProcessManager({
       maxConcurrent: deps.maxConcurrent || 5,
-      sandboxRoot: deps.sandboxRoot,
+      sandboxRoot: deps.sandboxRoot || inferDefaultSandboxRoot(),
       scriptRunner,
       securityManager,
       portManager
@@ -949,6 +967,105 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
   const lifecycleManager = deps.lifecycleManager || new LifecycleManager(processManager)
 
   return {
+    // Discover package.json scripts in the project (root + packages/*)
+    async listProjectScripts(projectId: number): Promise<ProjectScript[]> {
+      return withErrorContext(
+        async () => {
+          const project = await projectService.getById(projectId)
+          if (!project) throw ErrorFactory.notFound('Project', projectId)
+
+          const projectRoot = resolve(project.path)
+
+          async function pathExists(p: string) {
+            try {
+              await access(p, fsConstants.F_OK)
+              return true
+            } catch {
+              return false
+            }
+          }
+
+          function parsePackageManager(pm: unknown): 'bun' | 'pnpm' | 'yarn' | 'npm' | undefined {
+            if (!pm || typeof pm !== 'string') return undefined
+            const lower = pm.toLowerCase()
+            if (lower.startsWith('bun')) return 'bun'
+            if (lower.startsWith('pnpm')) return 'pnpm'
+            if (lower.startsWith('yarn')) return 'yarn'
+            if (lower.startsWith('npm')) return 'npm'
+            return undefined
+          }
+
+          async function inferPackageManager(root: string): Promise<'bun' | 'pnpm' | 'yarn' | 'npm'> {
+            const bunLock = join(root, 'bun.lock')
+            const bunLockb = join(root, 'bun.lockb')
+            const pnpmLock = join(root, 'pnpm-lock.yaml')
+            const yarnLock = join(root, 'yarn.lock')
+            const npmLock = join(root, 'package-lock.json')
+            if (await pathExists(bunLock)) return 'bun'
+            if (await pathExists(bunLockb)) return 'bun'
+            if (await pathExists(pnpmLock)) return 'pnpm'
+            if (await pathExists(yarnLock)) return 'yarn'
+            if (await pathExists(npmLock)) return 'npm'
+            return 'bun'
+          }
+
+          const candidatePackageJsons: string[] = []
+          const rootPkg = join(projectRoot, 'package.json')
+          if (await pathExists(rootPkg)) candidatePackageJsons.push(rootPkg)
+
+          // Scan workspaces under packages/* (one level)
+          const workspacesDir = join(projectRoot, 'packages')
+          if (await pathExists(workspacesDir)) {
+            try {
+              const entries = await readdir(workspacesDir, { withFileTypes: true })
+              for (const ent of entries) {
+                if (ent.isDirectory()) {
+                  const pkgPath = join(workspacesDir, ent.name, 'package.json')
+                  if (await pathExists(pkgPath)) candidatePackageJsons.push(pkgPath)
+                }
+              }
+            } catch {
+              // ignore errors scanning workspaces
+            }
+          }
+
+          const pm = await inferPackageManager(projectRoot)
+          const scripts: ProjectScript[] = []
+
+          for (const pkgJsonPath of candidatePackageJsons) {
+            const dir = dirname(pkgJsonPath)
+            const pkg = await Bun.file(pkgJsonPath).json().catch(() => null as any)
+            if (!pkg || typeof pkg !== 'object') continue
+            const pkgName = (pkg as any).name || dir
+            const pkgPm = parsePackageManager((pkg as any).packageManager) || pm
+            const rawScripts = (pkg as any).scripts || {}
+            if (rawScripts && typeof rawScripts === 'object') {
+              for (const [scriptName, command] of Object.entries(rawScripts)) {
+                if (typeof command !== 'string') continue
+                scripts.push({
+                  packageName: String(pkgName),
+                  packagePath: dir,
+                  scriptName: String(scriptName),
+                  command: command as string,
+                  packageManager: pkgPm,
+                  workspace: dir.startsWith(join(projectRoot, 'packages'))
+                })
+              }
+            }
+          }
+
+          // Sort: root package first, then by packageName, then scriptName
+          scripts.sort((a, b) => {
+            if (a.workspace !== b.workspace) return a.workspace ? 1 : -1
+            if (a.packageName !== b.packageName) return a.packageName.localeCompare(b.packageName)
+            return a.scriptName.localeCompare(b.scriptName)
+          })
+
+          return scripts
+        },
+        { entity: 'Process', action: 'listProjectScripts', id: projectId }
+      )
+    },
     // Core process operations
     async startProcess(projectId: number, request: ProcessStartRequest): Promise<ProcessInfo> {
       return withErrorContext(
@@ -1149,6 +1266,7 @@ export const {
   startProcess: startProjectProcess,
   stopProcess: stopProjectProcess,
   listProcesses: listProjectProcesses,
+  listProjectScripts,
   getProcess: getProjectProcess,
   getProcessHistory,
   getProcessLogs,
