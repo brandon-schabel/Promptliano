@@ -305,6 +305,7 @@ export const genAiRoutes = new OpenAPIHono()
         { id: 'together', name: 'Together', isCustom: false },
         { id: 'xai', name: 'XAI', isCustom: false },
         { id: 'openrouter', name: 'OpenRouter', isCustom: false },
+        { id: 'copilot', name: 'GitHub Copilot', isCustom: false },
         { id: 'lmstudio', name: 'LMStudio', isCustom: false },
         { id: 'ollama', name: 'Ollama', isCustom: false }
       ]
@@ -440,7 +441,9 @@ export const genAiRoutes = new OpenAPIHono()
       groq: 'groqKey',
       together: 'togetherKey',
       xai: 'xaiKey',
-      openrouter: 'openrouterKey'
+      openrouter: 'openrouterKey',
+      copilot: 'copilotKey',
+      githubcopilot: 'copilotKey'
       // Local providers (ollama, lmstudio) and custom don't need API keys here
     }
 
@@ -479,6 +482,7 @@ export const genAiRoutes = new OpenAPIHono()
     providerKeysConfig.groqKey = providerKeysConfig.groqKey || (process.env.GROQ_API_KEY as any)
     providerKeysConfig.togetherKey = providerKeysConfig.togetherKey || (process.env.TOGETHER_API_KEY as any)
     providerKeysConfig.xaiKey = providerKeysConfig.xaiKey || (process.env.XAI_API_KEY as any)
+    providerKeysConfig.copilotKey = providerKeysConfig.copilotKey || (process.env.COPILOT_API_KEY as any)
 
     // If a required API key is missing for the selected provider, return an empty list gracefully
     const REQUIRED_KEY_BY_PROVIDER: Record<string, keyof ProviderKeysConfig> = {
@@ -488,7 +492,8 @@ export const genAiRoutes = new OpenAPIHono()
       groq: 'groqKey',
       together: 'togetherKey',
       xai: 'xaiKey',
-      openrouter: 'openrouterKey'
+      openrouter: 'openrouterKey',
+      copilot: 'copilotKey'
     }
 
     const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
@@ -562,7 +567,9 @@ export const genAiRoutes = new OpenAPIHono()
         groq: 'groqKey',
         together: 'togetherKey',
         xai: 'xaiKey',
-        openrouter: 'openrouterKey'
+        openrouter: 'openrouterKey',
+        copilot: 'copilotKey',
+        githubcopilot: 'copilotKey'
       }
 
       const providerKeysConfig: ProviderKeysConfig = {}
@@ -599,7 +606,8 @@ export const genAiRoutes = new OpenAPIHono()
         GOOGLE_GENERATIVE_AI_API_KEY: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         GROQ_API_KEY: !!process.env.GROQ_API_KEY,
         TOGETHER_API_KEY: !!process.env.TOGETHER_API_KEY,
-        XAI_API_KEY: !!process.env.XAI_API_KEY
+        XAI_API_KEY: !!process.env.XAI_API_KEY,
+        COPILOT_API_KEY: !!process.env.COPILOT_API_KEY
       }
 
       const keysMeta = keys.map((k) => ({

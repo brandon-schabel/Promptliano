@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { createWriteStream } from 'node:fs'
 import archiver from 'archiver'
 import { rm, cp, readFile, writeFile } from 'node:fs/promises'
-import { spawn } from 'bun'
 
 async function buildProject() {
   const startTime = performance.now()
@@ -192,7 +191,7 @@ await buildProject()
 
 // helper: run bun with cwd and inherit stdio
 async function runBun(cwd: string, args: string[]) {
-  const proc = spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
+  const proc = Bun.spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
   const code = await proc.exited
   if (code !== 0) throw new Error(`bun ${args.join(' ')} failed with code ${code}`)
 }

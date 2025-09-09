@@ -349,7 +349,7 @@ export function useAddPromptToProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.addPromptToProject(promptId, projectId)
+      return client.prompts.addPromptToProject(projectId, promptId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list
@@ -370,7 +370,7 @@ export function useRemovePromptFromProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.removePromptFromProject(promptId, projectId)
+      return client.prompts.removePromptFromProject(projectId, promptId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list

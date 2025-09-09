@@ -7,7 +7,8 @@ import {
   OLLAMA_BASE_URL,
   OPENROUTER_BASE_URL,
   OPENAI_BASE_URL,
-  XAI_BASE_URL
+  XAI_BASE_URL,
+  COPILOT_BASE_URL
 } from './provider-defaults'
 
 export type UnifiedModel = {
@@ -162,6 +163,7 @@ export interface ProviderKeysConfig {
   togetherKey?: string
   xaiKey?: string
   openrouterKey?: string
+  copilotKey?: string
 }
 
 export type ListModelsOptions = {
@@ -398,6 +400,39 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
           return data.data
         },
         { entity: 'OpenAIModels', action: 'list' }
+      )
+    },
+
+    /**
+     * List GitHub Copilot models with caching and error handling
+     */
+    async listCopilotModels(): Promise<OpenAIModelObject[]> {
+      return withErrorContext(
+        async () => {
+          const cacheKey = 'copilot-models'
+          const cached = getCached(cacheKey)
+          if (cached) return cached
+
+          const copilotKey = ensureKey(config.copilotKey, 'GitHub Copilot')
+          const response = await fetch(`${COPILOT_BASE_URL}/models`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${copilotKey}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`GitHub Copilot API error: ${response.status} - ${errorText}`)
+          }
+
+          const data = (await response.json()) as OpenAIModelsListResponse
+          setCached(cacheKey, data.data)
+          logger.info('Fetched GitHub Copilot models', { count: data.data.length })
+          return data.data
+        },
+        { entity: 'CopilotModels', action: 'list' }
       )
     },
 
@@ -710,6 +745,15 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
               }))
             }
 
+            case 'copilot': {
+              const models = await operations.listCopilotModels()
+              return models.map((m) => ({
+                id: m.id,
+                name: m.id,
+                description: `GitHub Copilot model: ${m.id}`
+              }))
+            }
+
             case 'openai':
             default: {
               try {
@@ -790,6 +834,10 @@ export class ModelFetcherServiceClass {
 
   async listOpenAiModels(): Promise<OpenAIModelObject[]> {
     return this.service.listOpenAiModels()
+  }
+
+  async listCopilotModels(): Promise<OpenAIModelObject[]> {
+    return this.service.listCopilotModels()
   }
 
   async listAnthropicModels(): Promise<AnthropicModel[]> {

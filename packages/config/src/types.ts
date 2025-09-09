@@ -8,6 +8,7 @@ export type APIProviders =
   | 'openrouter'
   | 'xai'
   | 'together'
+  | 'copilot'
   | 'lmstudio'
   | 'ollama'
   | 'custom'
@@ -47,6 +48,9 @@ export interface ProviderConfig {
     baseURL: string
   }
   groq: {
+    baseURL: string
+  }
+  copilot: {
     baseURL: string
   }
   ollama: {

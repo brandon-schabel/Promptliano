@@ -9,6 +9,7 @@ const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
 export const providerSchema = z.enum([
   'openai',
   'openrouter',
+  'copilot',
   'lmstudio',
   'ollama',
   'xai',

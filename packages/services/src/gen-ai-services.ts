@@ -62,6 +62,7 @@ const PROVIDER_CAPABILITIES = {
   google_gemini: { structuredOutput: true, useCustomProvider: false },
   groq: { structuredOutput: true, useCustomProvider: false },
   openrouter: { structuredOutput: true, useCustomProvider: false },
+  copilot: { structuredOutput: true, useCustomProvider: false },
   lmstudio: { structuredOutput: true, useCustomProvider: true }, // Uses custom provider for native json_schema support
   ollama: { structuredOutput: false, useCustomProvider: false }, // Still uses text fallback (TODO: add custom provider)
   xai: { structuredOutput: true, useCustomProvider: false },
@@ -454,6 +455,11 @@ async function getProviderLanguageModelInterface(
         baseURL: 'https://openrouter.ai/api/v1',
         headers: defaultHeaders
       })(modelId)
+    }
+    case 'copilot': {
+      const apiKey = (await getKey('copilot', debug)) || process.env.COPILOT_API_KEY
+      if (!apiKey) throw ErrorFactory.missingRequired('GitHub Copilot API Key', 'database or environment')
+      return createOpenAI({ baseURL: providersConfig.copilot.baseURL, apiKey, compatibility: 'compatible' })(modelId)
     }
     // --- OpenAI Compatible Providers ---
     case 'lmstudio': {

@@ -602,6 +602,43 @@ export class SecurityManager {
           this.logger.warn('Failed to parse PowerShell port list', { error: e })
           ports = []
         }
+        if (ports.length === 0) {
+          // Fallback: parse netstat output (Windows)
+          try {
+            const ns = Bun.spawn({ cmd: ['netstat', '-ano', '-p', 'tcp'], stdout: 'pipe', stderr: 'pipe' })
+            const nsOut = await new Response(ns.stdout!).text()
+            await ns.exited
+            const lines = nsOut.split('\n')
+            ports = lines
+              .filter((l) => /LISTENING/i.test(l))
+              .map((l) => {
+                // Example:  TCP    0.0.0.0:135    0.0.0.0:0    LISTENING    884
+                const m = l.trim().split(/\s+/)
+                const local = m[1] || ''
+                const state = m[3] || ''
+                const pidStr = m[4] || ''
+                const addrParts = local.split(':')
+                const portStr = addrParts.pop() || ''
+                const addr = addrParts.join(':') || '0.0.0.0'
+                const port = parseInt(portStr, 10)
+                const pid = parseInt(pidStr, 10)
+                if (state.toUpperCase() === 'LISTENING' && port > 0) {
+                  return {
+                    port,
+                    address: addr,
+                    protocol: 'tcp',
+                    pid: isNaN(pid) ? null : pid,
+                    processName: null,
+                    state: 'listening',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  } as ProcessPort
+                }
+                return null
+              })
+              .filter(Boolean) as ProcessPort[]
+          } catch {}
+        }
       } else {
         // Linux: use ss; try to include process info if possible
         let ss = Bun.spawn({ cmd: ['ss', '-tulnp'], stdout: 'pipe', stderr: 'pipe' })

@@ -238,6 +238,29 @@ The server-only script (`bun run dev:server`) also starts the Inspector headless
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
 
+## GitHub Copilot (via proxy)
+
+Promptliano supports GitHub Copilot through an OpenAI‑compatible proxy (e.g., ericc‑ch/copilot‑api). You can point Promptliano directly at the upstream or use the built‑in reverse proxy exposed at `/api/proxy/copilot/v1`.
+
+- Start the upstream proxy:
+  - `npx copilot-api@latest start --port 4141 --rate-limit 30`
+  - or Docker (see the copilot-api README)
+- Configure environment (see `.env.example`):
+  - Option A (direct):
+    - `COPILOT_BASE_URL=http://127.0.0.1:4141/v1`
+    - `COPILOT_API_KEY=dummy` (proxy typically accepts any bearer string)
+  - Option B (built‑in reverse proxy):
+    - `COPILOT_PROXY_UPSTREAM=http://127.0.0.1:4141/v1`
+    - `COPILOT_BASE_URL=http://127.0.0.1:${SERVER_PORT}/api/proxy/copilot/v1`
+    - `COPILOT_API_KEY=dummy`
+- In the UI Providers page, add a provider key for `GitHub Copilot` (use the same dummy key if you prefer DB storage over env vars).
+
+Notes
+- Rate‑limit the upstream proxy to avoid GitHub abuse detection (`--rate-limit 30` recommended) and prefer manual approval for sensitive ops if supported by the proxy (`--manual`).
+- The upstream exposes OpenAI‑compatible endpoints (`/v1/models`, `/v1/chat/completions`) so you can select Copilot and its models like any other provider.
+
+See docs/copilot-integration.md for a full guide and architecture details.
+
 ## Running Binaries
 
 ### Running on Linux

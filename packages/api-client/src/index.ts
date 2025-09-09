@@ -311,16 +311,16 @@ export class PromptlianoClient {
     exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
     validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
     // Connect/disconnect prompts to projects
-    addPromptToProject: async (promptId: number, projectId: number) => {
-      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+    addPromptToProject: async (projectId: number, promptId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/prompts/${promptId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...this.config.headers }
       })
       if (!res.ok) throw new Error(`Failed to connect prompt to project (${res.status})`)
       return res.json()
     },
-    removePromptFromProject: async (promptId: number, projectId: number) => {
-      const res = await fetch(`${this.config.baseUrl}/api/prompts/${promptId}/projects/${projectId}`, {
+    removePromptFromProject: async (projectId: number, promptId: number) => {
+      const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/prompts/${promptId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...this.config.headers }
       })

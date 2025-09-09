@@ -1247,6 +1247,7 @@ export type APIProviders =
   | 'anthropic'
   | 'groq'
   | 'together'
+  | 'copilot'
   | 'custom'
 
 // Hook Configuration Types (migrated from @promptliano/schemas)

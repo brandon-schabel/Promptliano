@@ -20,6 +20,7 @@ import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
 import { processManagementRoutes } from './routes/process-management-routes'
+import { copilotProxyRoutes } from './routes/copilot-proxy-routes'
 // import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
 import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
@@ -340,6 +341,7 @@ app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', mcpInstallationRoutes)
 app.route('/', processManagementRoutes)
+app.route('/', copilotProxyRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -463,6 +465,7 @@ app.get('/doc', async (c) => {
   tryRegister('agentFilesRoutes', (a) => a.route('/', agentFilesRoutes))
   tryRegister('mcpInstallationRoutes', (a) => a.route('/', mcpInstallationRoutes))
   tryRegister('processManagementRoutes', (a) => a.route('/', processManagementRoutes))
+  tryRegister('copilotProxyRoutes', (a) => a.route('/', copilotProxyRoutes))
   // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
   tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
 

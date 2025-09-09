@@ -133,6 +133,10 @@ export function createProviderKeyService() {
         return 'together'
       case 'xai':
         return 'xai'
+      case 'copilot':
+      case 'githubcopilot':
+      case 'github':
+        return 'copilot'
       case 'lmstudio':
         return 'lmstudio'
       case 'ollama':
@@ -704,6 +708,33 @@ export function createProviderKeyService() {
               provider: 'openrouter'
             })) || []
           break
+
+        case 'copilot': {
+          if (!apiKey) {
+            throw ErrorFactory.missingRequired('API key', 'GitHub Copilot provider')
+          }
+          // Support OpenAI-compatible proxy by honoring COPILOT_BASE_URL or a stored baseUrl
+          const base = (url || process.env.COPILOT_BASE_URL || 'https://api.githubcopilot.com').replace(/\/$/, '')
+          response = await fetch(`${base}/models`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+          })
+          if (!response.ok) {
+            throw ErrorFactory.operationFailed('Copilot API request', `${response.status}: ${response.statusText}`)
+          }
+          const copilotData = (await response.json()) as { data?: Array<{ id?: string; name?: string }> }
+          models =
+            copilotData.data?.map((m) => ({
+              id: m.id || 'unknown',
+              name: m.name || m.id || 'Unknown Model',
+              provider: 'copilot'
+            })) || []
+          break
+        }
 
         default:
           throw ErrorFactory.invalidParam('provider', 'supported provider type', provider)
