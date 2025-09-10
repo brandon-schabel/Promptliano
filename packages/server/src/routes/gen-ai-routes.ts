@@ -400,13 +400,16 @@ export const genAiRoutes = new OpenAPIHono()
       if (!isNaN(keyId)) {
         // Get the specific custom provider key
         const customKey = await providerKeyService.getKeyById(keyId)
-        if (customKey && customKey.provider === 'custom' && customKey.baseUrl && customKey.key) {
+        if (customKey && customKey.provider === 'custom' && customKey.baseUrl) {
           const modelFetcherService = new ModelFetcherService({})
 
           try {
             const models = await modelFetcherService.listCustomProviderModels({
               baseUrl: customKey.baseUrl,
-              apiKey: customKey.key
+              apiKey:
+                customKey.key ||
+                (process.env.CUSTOM_API_KEY as string | undefined) ||
+                (String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true' ? 'dummy' : undefined)
             })
 
             const modelData = models.map((model) => ({
@@ -492,8 +495,7 @@ export const genAiRoutes = new OpenAPIHono()
       groq: 'groqKey',
       together: 'togetherKey',
       xai: 'xaiKey',
-      openrouter: 'openrouterKey',
-      copilot: 'copilotKey'
+      openrouter: 'openrouterKey'
     }
 
     const requiredKeyProp = REQUIRED_KEY_BY_PROVIDER[String(provider)]
@@ -519,7 +521,13 @@ export const genAiRoutes = new OpenAPIHono()
 
     const listOptions = { ollamaBaseUrl: ollamaUrl, lmstudioBaseUrl: lmstudioUrl }
 
-    const models = await modelFetcherService.listModels(provider as APIProviders, listOptions)
+    let models = [] as { id: string; name: string; description: string }[]
+    try {
+      models = await modelFetcherService.listModels(provider as APIProviders, listOptions)
+    } catch (err: any) {
+      console.warn(`[GenAI Models] Failed to fetch models for provider '${provider}':`, err?.message || err)
+      models = []
+    }
 
     const modelData = models.map((model) => ({
       id: model.id,

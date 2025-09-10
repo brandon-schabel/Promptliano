@@ -10,7 +10,7 @@ import { MessageRoleEnum } from './common.schemas'
 export const CreateChatBodySchema = z
   .object({
     title: z.string().min(1).max(255),
-    projectId: z.number().int().positive(),
+    projectId: z.number().int().positive().optional(),
     copyExisting: z.boolean().optional(),
     currentChatId: z.number().int().positive().optional()
   })

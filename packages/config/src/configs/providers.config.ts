@@ -15,16 +15,21 @@ const getEnvVar = (key: string, defaultValue: string): string => {
 const computeCopilotBaseURL = (): string => {
   if (isBrowser) return 'https://api.githubcopilot.com'
   const envBase = process?.env?.COPILOT_BASE_URL
+  if (envBase) return envBase.replace(/\/$/, '')
+
+  const embedFlag = process?.env?.COPILOT_EMBED_ENABLED
+  const embedEnabled = embedFlag === undefined ? true : String(embedFlag).toLowerCase() === 'true'
   const upstream = process?.env?.COPILOT_PROXY_UPSTREAM || process?.env?.COPILOT_UPSTREAM_URL
-  // If an upstream is configured but no explicit base is set, default to the built-in proxy route
-  if (!envBase && upstream) {
+
+  // Prefer built-in proxy route by default when embedding is enabled or an upstream is configured
+  if (embedEnabled || upstream) {
     const port = process?.env?.SERVER_PORT || '3147'
     const host = process?.env?.SERVER_HOST || process?.env?.HOST || '127.0.0.1'
-    // Use localhost for most setups; SERVER_HOST may be 0.0.0.0 which is not ideal for clients
     const clientHost = host === '0.0.0.0' ? '127.0.0.1' : host
     return `http://${clientHost}:${port}/api/proxy/copilot/v1`
   }
-  return envBase || 'https://api.githubcopilot.com'
+
+  return 'https://api.githubcopilot.com'
 }
 
 export const providersConfig: ProviderConfig = {

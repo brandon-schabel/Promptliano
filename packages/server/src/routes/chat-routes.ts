@@ -76,7 +76,8 @@ const getChatMessagesRoute = createRoute({
 
 const postAiChatSdkRoute = createRoute({
   method: 'post',
-  path: '/api/ai/chat', // Keeping the path
+  // Legacy chat stream route kept for backward compatibility; main route is in gen-ai-routes
+  path: '/api/ai/chat/legacy',
   tags: ['AI'],
   summary: 'Chat completion (streaming, chat-associated)',
   description:

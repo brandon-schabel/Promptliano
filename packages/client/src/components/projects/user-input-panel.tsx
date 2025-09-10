@@ -246,8 +246,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     setTimeout(async () => {
       try {
         const newChat = await createChatMutation.mutateAsync({
-          title: defaultTitle,
-          projectId: activeProjectTabState?.selectedProjectId ?? -1
+          title: defaultTitle
         })
         // Ensure newChat has an ID (adjust based on actual return type)
         const newChatId = newChat?.id // Type assertion might be needed

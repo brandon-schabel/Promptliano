@@ -457,8 +457,7 @@ async function getProviderLanguageModelInterface(
       })(modelId)
     }
     case 'copilot': {
-      const apiKey = (await getKey('copilot', debug)) || process.env.COPILOT_API_KEY
-      if (!apiKey) throw ErrorFactory.missingRequired('GitHub Copilot API Key', 'database or environment')
+      const apiKey = (await getKey('copilot', debug)) || process.env.COPILOT_API_KEY || 'dummy'
       return createOpenAI({ baseURL: providersConfig.copilot.baseURL, apiKey, compatibility: 'compatible' })(modelId)
     }
     // --- OpenAI Compatible Providers ---
@@ -509,8 +508,12 @@ async function getProviderLanguageModelInterface(
         throw ErrorFactory.missingRequired('Base URL', 'custom provider')
       }
 
-      const apiKey = await getKey('custom', debug)
-      if (!apiKey) {
+      const allowKeylessCustom = String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true'
+      const apiKey =
+        (await getKey('custom', debug)) ||
+        process.env.CUSTOM_API_KEY ||
+        (allowKeylessCustom ? 'dummy' : undefined)
+      if (!apiKey && !allowKeylessCustom) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
 

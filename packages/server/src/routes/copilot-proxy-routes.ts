@@ -1,21 +1,31 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
+import { getEmbeddedUpstreamBase } from '../integrations/copilot-embed'
 
 // Simple reverse proxy for a Copilot OpenAI-compatible upstream (e.g., ericc-ch/copilot-api)
 // - Exposes: /api/proxy/copilot/v1/* -> {UPSTREAM}/*
 // - Injects Authorization header from env if missing
 // - Streams responses transparently (SSE for chat completions)
 
-const upstreamBase = (() => {
-  // Prefer explicit proxy upstream; fallback to COPILOT_BASE_URL
+export function getUpstreamBase(): string {
+  // Prefer explicit proxy upstream env overrides
   const explicit = process.env.COPILOT_PROXY_UPSTREAM || process.env.COPILOT_UPSTREAM_URL
-  const fallback = process.env.COPILOT_BASE_URL
-  const def = 'http://127.0.0.1:4141/v1' // sensible default matching copilot-api
-  const base = (explicit || fallback || def).replace(/\/$/, '')
-  return base
-})()
+  if (explicit) return explicit.replace(/\/$/, '')
 
-const envApiKey = process.env.COPILOT_API_KEY || ''
+  // If embedded mode is explicitly enabled, route to internal upstream
+  const embedFlag = process.env.COPILOT_EMBED_ENABLED
+  const embedEnabled = String(embedFlag || '').toLowerCase() === 'true'
+  if (embedEnabled) return getEmbeddedUpstreamBase()
+
+  // Fallback to COPILOT_BASE_URL or sensible default (copilot-api default)
+  const fallback = process.env.COPILOT_BASE_URL
+  const def = 'http://127.0.0.1:4141/v1'
+  return (fallback || def).replace(/\/$/, '')
+}
+
+// Default keyless fallback for Copilot proxy
+// If COPILOT_API_KEY is not set, use a safe dummy token
+const envApiKey = process.env.COPILOT_API_KEY || 'dummy'
 
 function buildTargetUrl(c: Context): string {
   const url = new URL(c.req.url)
@@ -23,7 +33,7 @@ function buildTargetUrl(c: Context): string {
   const prefix = '/api/proxy/copilot/v1'
   const restPath = url.pathname.startsWith(prefix) ? url.pathname.slice(prefix.length) : ''
   const path = restPath.startsWith('/') ? restPath : `/${restPath}`
-  const finalUrl = `${upstreamBase}${path}${url.search}`
+  const finalUrl = `${getUpstreamBase()}${path}${url.search}`
   return finalUrl
 }
 
@@ -102,13 +112,13 @@ export const copilotProxyRoutes = new OpenAPIHono()
   .openapi(healthRoute, async (c) => {
     try {
       // Probe upstream /models to validate reachability
-      const res = await fetch(`${upstreamBase}/models`, {
+      const res = await fetch(`${getUpstreamBase()}/models`, {
         method: 'GET',
         headers: buildProxyHeaders(c)
       })
-      return c.json({ success: true, upstream: upstreamBase, checked: true, status: res.status })
+      return c.json({ success: true, upstream: getUpstreamBase(), checked: true, status: res.status })
     } catch (e: any) {
-      return c.json({ success: true, upstream: upstreamBase, checked: false, error: String(e?.message || e) })
+      return c.json({ success: true, upstream: getUpstreamBase(), checked: false, error: String(e?.message || e) })
     }
   })
 
@@ -123,4 +133,3 @@ copilotProxyRoutes.all('/api/proxy/copilot/v1/*', async (c) => {
 })
 
 export type CopilotProxyRouteTypes = typeof copilotProxyRoutes
-

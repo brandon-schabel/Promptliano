@@ -204,9 +204,7 @@ export const ticketTasks = sqliteTable('ticket_tasks', {
 
 export const chats = sqliteTable('chats', {
   id: integer('id').primaryKey(),
-  projectId: integer('project_id')
-    .notNull()
-    .references(() => projects.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull()

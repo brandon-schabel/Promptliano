@@ -412,8 +412,8 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
           const cacheKey = 'copilot-models'
           const cached = getCached(cacheKey)
           if (cached) return cached
-
-          const copilotKey = ensureKey(config.copilotKey, 'GitHub Copilot')
+          // Default keyless fallback for Copilot model listing
+          const copilotKey = config.copilotKey || process.env.COPILOT_API_KEY || 'dummy'
           const response = await fetch(`${COPILOT_BASE_URL}/models`, {
             method: 'GET',
             headers: {
@@ -632,7 +632,7 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
       apiKey
     }: {
       baseUrl: string
-      apiKey: string
+      apiKey?: string
     }): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
@@ -646,12 +646,14 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
             normalizedUrl = normalizedUrl.replace(/\/$/, '') + '/v1'
           }
 
-          const response = await fetch(`${normalizedUrl}/models`, {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            }
-          })
+          const allowKeylessCustom = String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true'
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          // Only include Authorization if key provided or keyless enabled
+          if (apiKey || allowKeylessCustom) {
+            headers.Authorization = `Bearer ${apiKey || 'dummy'}`
+          }
+
+          const response = await fetch(`${normalizedUrl}/models`, { headers })
 
           if (!response.ok) {
             const errorText = await response.text()
@@ -860,7 +862,7 @@ export class ModelFetcherServiceClass {
     return this.service.listLMStudioModels(options || { baseUrl: LMSTUDIO_BASE_URL })
   }
 
-  async listCustomProviderModels({ baseUrl, apiKey }: { baseUrl: string; apiKey: string }): Promise<UnifiedModel[]> {
+  async listCustomProviderModels({ baseUrl, apiKey }: { baseUrl: string; apiKey?: string }): Promise<UnifiedModel[]> {
     return this.service.listCustomProviderModels({ baseUrl, apiKey })
   }
 

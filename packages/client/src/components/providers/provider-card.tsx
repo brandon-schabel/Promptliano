@@ -146,20 +146,7 @@ export function ProviderCard({
           )}
         />
 
-        {/* Status Indicator */}
-        <div className='absolute top-4 right-4 z-10'>
-          <Badge className={cn('gap-1 transition-all', getStatusColor(), isConnected && 'animate-pulse')}>
-            {getStatusIcon()}
-            {getStatusText()}
-          </Badge>
-        </div>
-
-        {/* Pulse Animation for Connected Status */}
-        {isConnected && (
-          <div className='absolute top-4 right-4 z-0'>
-            <div className='w-20 h-8 bg-green-500 rounded-full animate-ping opacity-20' />
-          </div>
-        )}
+        {/* Top status badge removed (status shown via bottom action) */}
 
         <CardHeader className='relative'>
           <div className='flex items-start gap-3'>
@@ -195,7 +182,7 @@ export function ProviderCard({
             {/* More Options Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon' className='h-8 w-8'>
+                <Button variant='ghost' size='icon' className='h-8 w-8 relative z-20'>
                   <MoreVertical className='h-4 w-4' />
                 </Button>
               </DropdownMenuTrigger>
@@ -353,7 +340,7 @@ export function ProviderCard({
             <Button
               size='sm'
               variant={isConnected ? 'outline' : 'default'}
-              className='flex-1 gap-1.5 max-w-[60%]'
+              className='flex-1 gap-1.5 max-w-[60%] rounded-xl'
               onClick={onTest}
               disabled={isTesting}
             >

@@ -196,6 +196,39 @@ async function ensureSchemaUpgrades() {
       }
     }
 
+    // Ensure chats.project_id is nullable (decouple chats from projects)
+    try {
+      const chatCols = rawDb.query(`PRAGMA table_info(chats)`).all() as Array<{ name: string; notnull: number }>
+      const projectCol = chatCols.find((c) => c.name === 'project_id')
+      if (projectCol && projectCol.notnull === 1) {
+        console.log('🔧 Updating chats.project_id to be NULLABLE (decouple from projects)')
+        rawDb.exec('PRAGMA foreign_keys=off')
+        rawDb.exec('BEGIN TRANSACTION')
+        rawDb.exec(
+          'CREATE TABLE `chats_new` (\n' +
+            '  `id` integer PRIMARY KEY,\n' +
+            '  `project_id` integer,\n' +
+            '  `title` text NOT NULL,\n' +
+            '  `created_at` integer NOT NULL,\n' +
+            '  `updated_at` integer NOT NULL,\n' +
+            '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE cascade\n' +
+            ')'
+        )
+        rawDb.exec(
+          'INSERT INTO `chats_new` (`id`, `project_id`, `title`, `created_at`, `updated_at`) ' +
+            'SELECT `id`, `project_id`, `title`, `created_at`, `updated_at` FROM `chats`'
+        )
+        rawDb.exec('DROP TABLE `chats`')
+        rawDb.exec('ALTER TABLE `chats_new` RENAME TO `chats`')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `chats_project_idx` ON `chats` (`project_id`)')
+        rawDb.exec('COMMIT')
+        rawDb.exec('PRAGMA foreign_keys=on')
+        console.log('✅ chats.project_id is now nullable')
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to ensure chats.project_id nullability:', e)
+    }
+
     if (!hasIndex('files_checksum_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_checksum_idx` ON `files` (`checksum`)')

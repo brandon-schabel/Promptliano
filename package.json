@@ -16,8 +16,8 @@
     "format": "prettier --write .",
     "update-version": "bun run scripts/update-version.ts",
     "db:migrate": "bun run -C packages/database migrate",
-    "db:studio": "bun run -C packages/database studio",
-    "drizzle:studio": "bun run -C packages/database studio"
+    "db:studio": "bun run --cwd packages/database studio",
+    "drizzle:studio": "bun run --cwd packages/database studio"
   },
   "workspaces": [
     "packages/*"
