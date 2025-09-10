@@ -4,7 +4,8 @@
  * Run this script to seed the database with intelligence-based presets
  */
 
-import { db } from '../db'
+import { db, rawDb } from '../db'
+import { runMigrations } from '../migrations/migrate'
 import { modelConfigs, modelPresets } from '../schema'
 import type { CreateModelConfig, CreateModelPreset } from '../schema'
 // Intelligence level configurations based on models.config.ts
@@ -506,16 +507,49 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
   }
 ]
 
-export async function initializeModelConfigs() {
+export type InitModelConfigsResult =
+  | { status: 'seeded'; configsInserted: number; presetsInserted: number }
+  | { status: 'skipped_existing' }
+  | { status: 'skipped_missing_tables'; reason: string }
+  | { status: 'skipped_error'; reason: string }
+
+export async function initializeModelConfigs(): Promise<InitModelConfigsResult> {
   console.log('🚀 Initializing model configurations...')
 
   try {
+    // Ensure required tables exist before querying
+    const tableExists = (name: string) =>
+      (
+        rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
+          | { name?: string }
+          | undefined
+      )?.name === name
+
+    if (!tableExists('model_configs') || !tableExists('model_presets')) {
+      console.warn('⚠️  Model configuration tables missing. Running migrations to ensure schema...')
+      try {
+        await runMigrations()
+      } catch (e) {
+        console.warn('⚠️  Migrations failed while ensuring model configuration tables:', e)
+      }
+    }
+
+    if (!tableExists('model_configs')) {
+      const reason = 'model_configs table is still missing after migrations'
+      console.error(`❌ ${reason}. Skipping initialization.`)
+      return { status: 'skipped_missing_tables', reason }
+    }
+    if (!tableExists('model_presets')) {
+      console.error('❌ model_presets table is still missing after migrations. Presets will be skipped.')
+      // We will proceed to insert configs but cannot insert presets
+    }
+
     // Check if configs already exist
     const existingConfigs = await db.select().from(modelConfigs).limit(1)
     if (existingConfigs.length > 0) {
       console.log('⚠️  Model configurations already exist. Skipping initialization.')
       console.log('   To reinitialize, delete existing configs first.')
-      return
+      return { status: 'skipped_existing' }
     }
 
     // Insert default configurations
@@ -536,7 +570,7 @@ export async function initializeModelConfigs() {
         updatedAt: Date.now()
       }))
 
-      if (presetsForConfig.length > 0) {
+      if (presetsForConfig.length > 0 && tableExists('model_presets')) {
         await db.insert(modelPresets).values(presetsForConfig)
         presetCount += presetsForConfig.length
       }
@@ -544,16 +578,21 @@ export async function initializeModelConfigs() {
 
     console.log(`✅ Created ${presetCount} model presets`)
     console.log('🎉 Model configuration initialization complete!')
-  } catch (error) {
+    return { status: 'seeded', configsInserted: insertedConfigs.length, presetsInserted: presetCount }
+  } catch (error: any) {
+    const reason = error?.message ? String(error.message) : 'unknown error'
     console.error('❌ Error initializing model configurations:', error)
-    process.exit(1)
+    return { status: 'skipped_error', reason }
   }
 }
 
 // Run if executed directly
 if (import.meta.main) {
   initializeModelConfigs()
-    .then(() => process.exit(0))
+    .then((result) => {
+      if (result.status === 'skipped_error') process.exit(1)
+      else process.exit(0)
+    })
     .catch((error) => {
       console.error(error)
       process.exit(1)

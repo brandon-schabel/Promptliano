@@ -20,7 +20,6 @@ import {
   summarizeSingleFile,
   type FileSyncData
 } from '../project-service'
-import { fileIndexingService } from '../file-indexing-service'
 import { resolvePath, normalizePathForDb as normalizePathForDbUtil } from '../utils/path-utils'
 import { analyzeCodeImportsExports } from '../utils/code-analysis'
 import { createLogger } from '../utils/logger'
@@ -662,35 +661,7 @@ export async function syncFileSet(
       `SyncFileSet results - Created: ${createdCount}, Updated: ${updatedCount}, Deleted: ${deletedCount}, Skipped: ${skippedCount}`
     )
 
-    // Index new and updated files immediately
-    if (createdCount > 0 || updatedCount > 0) {
-      const filesToIndex = [...createdFiles, ...updatedFiles]
-
-      // Switch to indexing phase
-      progressTracker?.setPhase('indexing', `Indexing ${filesToIndex.length} files for search...`)
-
-      try {
-        const indexResult = await fileIndexingService.indexFiles(filesToIndex)
-        logger.info(
-          `File indexing completed - Indexed: ${indexResult.indexed}, Skipped: ${indexResult.skipped}, Failed: ${indexResult.failed}`
-        )
-      } catch (error) {
-        logger.error('File indexing failed', error)
-        // Don't throw - let sync complete even if indexing fails
-      }
-    }
-    // Remove deleted files from index
-    if (deletedCount > 0) {
-      try {
-        for (const fileId of fileIdsToDelete) {
-          await fileIndexingService.removeFileFromIndex(fileId)
-        }
-        logger.info(`Removed ${fileIdsToDelete.length} files from search index`)
-      } catch (error) {
-        logger.error('Failed to remove files from index', error)
-        // Don't throw - let sync complete even if index cleanup fails
-      }
-    }
+    // No indexing step required with ripgrep/FTS minimal backends
     return { created: createdCount, updated: updatedCount, deleted: deletedCount, skipped: skippedCount }
   } catch (error) {
     logger.error(`Error during DB batch operations for project ${project.id}`, error)
@@ -1099,16 +1070,7 @@ export function createCleanupService(options: CleanupOptions) {
             removedCount = orphanedFiles.length
             cleanupLogger.info(`Removed ${removedCount} orphaned files from project ${project.id}`)
 
-            // Also remove from search index
-            try {
-              for (const fileId of orphanedFiles) {
-                await fileIndexingService.removeFileFromIndex(fileId)
-              }
-              cleanupLogger.debug(`Removed ${orphanedFiles.length} files from search index`)
-            } catch (indexError) {
-              cleanupLogger.warn(`Failed to remove some files from search index`, indexError)
-              // Don't fail the cleanup for index errors
-            }
+            // No index cleanup necessary with ripgrep/FTS minimal backends
           } else {
             cleanupLogger.debug(`No orphaned files found for project ${project.id}`)
           }

@@ -106,6 +106,7 @@ export const validateCreateProviderKeyData = (data: unknown): ValidationResult<C
       'openrouter',
       'lmstudio',
       'ollama',
+      'copilot',
       'custom'
     ]
 

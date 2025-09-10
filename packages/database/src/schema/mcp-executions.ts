@@ -12,7 +12,6 @@ export const mcpToolExecutions = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     toolName: text('tool_name').notNull(),
     projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
-    userId: text('user_id'),
     sessionId: text('session_id'),
     startedAt: integer('started_at', { mode: 'timestamp' }).notNull(),
     completedAt: integer('completed_at', { mode: 'timestamp' }),

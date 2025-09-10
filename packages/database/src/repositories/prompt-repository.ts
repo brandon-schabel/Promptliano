@@ -4,7 +4,7 @@
  * Enhanced with better performance and error handling
  */
 
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { prompts, type Prompt, type InsertPrompt, selectPromptSchema } from '../schema'
 
@@ -28,8 +28,49 @@ export const promptRepository = extendRepository(basePromptRepository, {
    * Get prompts by project ID (optimized with BaseRepository)
    */
   async getByProject(projectId: number): Promise<Prompt[]> {
-    const results = await basePromptRepository.findWhere(eq(prompts.projectId, projectId))
-    return results.map(convertPromptFromDb)
+    // Use a safe select that avoids Drizzle's JSON parsing on potentially malformed data
+    const rows = await basePromptRepository.customQuery(async (table, db) => {
+      const t = prompts
+      return db
+        .select({
+          id: t.id,
+          projectId: t.projectId,
+          title: t.title,
+          content: t.content,
+          description: t.description,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          // Coalesce invalid/malformed JSON to an empty array string to prevent JSON parse errors
+          safeTags: sql<string>`CASE WHEN json_valid(${t.tags}) THEN ${t.tags} ELSE '[]' END`
+        })
+        .from(t)
+        .where(eq(t.projectId, projectId))
+        .orderBy(desc(t.createdAt))
+    })
+
+    const parseSafeJson = (raw: unknown): string[] => {
+      if (Array.isArray(raw)) return raw.filter((x) => typeof x === 'string') as string[]
+      if (typeof raw === 'string') {
+        try {
+          const arr = JSON.parse(raw)
+          return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
+        } catch {
+          return []
+        }
+      }
+      return []
+    }
+
+    return (rows as Array<any>).map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      title: r.title,
+      content: r.content,
+      description: r.description ?? undefined,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      tags: parseSafeJson((r as any).safeTags)
+    }))
   },
 
   // Override base methods to apply proper conversions
@@ -44,8 +85,47 @@ export const promptRepository = extendRepository(basePromptRepository, {
   },
 
   async getAll(): Promise<Prompt[]> {
-    const results = await basePromptRepository.getAll()
-    return results.map(convertPromptFromDb)
+    // Safe select to avoid crashes if legacy rows contain malformed JSON in tags
+    const rows = await basePromptRepository.customQuery(async (table, db) => {
+      const t = prompts
+      return db
+        .select({
+          id: t.id,
+          projectId: t.projectId,
+          title: t.title,
+          content: t.content,
+          description: t.description,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          safeTags: sql<string>`CASE WHEN json_valid(${t.tags}) THEN ${t.tags} ELSE '[]' END`
+        })
+        .from(t)
+        .orderBy(desc(t.createdAt))
+    })
+
+    const parseSafeJson = (raw: unknown): string[] => {
+      if (Array.isArray(raw)) return raw.filter((x) => typeof x === 'string') as string[]
+      if (typeof raw === 'string') {
+        try {
+          const arr = JSON.parse(raw)
+          return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : []
+        } catch {
+          return []
+        }
+      }
+      return []
+    }
+
+    return (rows as Array<any>).map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      title: r.title,
+      content: r.content,
+      description: r.description ?? undefined,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      tags: parseSafeJson((r as any).safeTags)
+    }))
   },
 
   async update(id: number, data: Partial<InsertPrompt>): Promise<Prompt> {

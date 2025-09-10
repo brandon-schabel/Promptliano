@@ -39,14 +39,36 @@ export async function instantiateServer({
   port = Number(serverConfig.serverPort)
 }: ServerConfig = {}): Promise<Server> {
   logger.info(`Starting server initialization on port ${port}...`)
+  // Log database location as early as possible for debugging
+  try {
+    const earlyDbPath = getDatabasePath()
+    logger.info(`Database location (pre-migration): ${earlyDbPath === ':memory:' ? 'in-memory' : earlyDbPath}`)
+  } catch (e) {
+    logger.warn('Unable to determine database path before migrations', e)
+  }
   // Ensure database schema is up-to-date before serving requests or starting watchers
   try {
     await runMigrations()
     logger.info('Database migrations completed')
 
-    // Initialize model presets
-    await initializeModelConfigs()
-    logger.info('Model presets initialized')
+    // Initialize model presets and log specifics
+    const initResult = await initializeModelConfigs()
+    switch (initResult.status) {
+      case 'seeded':
+        logger.info(
+          `Model presets seeded (${initResult.configsInserted} configs, ${initResult.presetsInserted} presets)`
+        )
+        break
+      case 'skipped_existing':
+        logger.info('Model presets present; skipping seeding')
+        break
+      case 'skipped_missing_tables':
+        logger.warn(`Model presets skipped: ${initResult.reason}`)
+        break
+      case 'skipped_error':
+        logger.error(`Model presets initialization failed: ${initResult.reason}`)
+        break
+    }
     // Log database location for visibility
     const dbPath = getDatabasePath()
     logger.info(`Database location: ${dbPath === ':memory:' ? 'in-memory' : dbPath}`)

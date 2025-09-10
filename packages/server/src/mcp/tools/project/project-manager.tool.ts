@@ -24,7 +24,6 @@ import {
   suggestFiles,
   getCompactProjectSummary,
   syncProject,
-  getActiveTab,
   getProjectSummaryWithOptions,
   getProjectFileTree,
   getProjectOverview
@@ -37,7 +36,7 @@ import { ApiError } from '@promptliano/shared'
 export const projectManagerTool: MCPToolDefinition = {
   name: 'project_manager',
   description:
-    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), get_summary, get_summary_advanced (with options for depth/format/strategy), get_summary_metrics (summary generation metrics), browse_files, get_file_content, update_file_content, suggest_files, get_selection_context (get complete active tab context), search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
+    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), get_summary, get_summary_advanced (with options for depth/format/strategy), get_summary_metrics (summary generation metrics), browse_files, get_file_content, update_file_content, suggest_files, search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -376,60 +375,7 @@ Version Info:
             }
           }
 
-          case ProjectManagerAction.GET_SELECTION_CONTEXT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
-
-            // Get active tab to get selection context
-            const activeTab = await getActiveTab(validProjectId)
-            if (!activeTab) {
-              return {
-                content: [{ type: 'text', text: 'No active tab found' }]
-              }
-            }
-
-            const tabMetadata = activeTab.data.tabMetadata
-            if (!tabMetadata) {
-              return {
-                content: [{ type: 'text', text: 'No active tab metadata found' }]
-              }
-            }
-
-            // Get file details if there are selected files
-            let fileList = ''
-            if (tabMetadata.selectedFiles && tabMetadata.selectedFiles.length > 0) {
-              const files = await getProjectFiles(validProjectId)
-              const selectedFileDetails = files?.filter((f) => tabMetadata.selectedFiles?.includes(f.id)) || []
-              fileList = selectedFileDetails.map((f) => `  - ${f.path} (${f.size} bytes)`).join('\n')
-            }
-
-            // Build comprehensive context output
-            let contextText = `Active tab context for project ${validProjectId}:\n`
-            contextText += `\nTab ID: ${activeTab.data.activeTabId}`
-            contextText += `\nTab Name: ${tabMetadata.displayName || 'Unnamed Tab'}`
-            contextText += `\n\nSelected files (${tabMetadata.selectedFiles?.length || 0}):\n${fileList || '  None'}`
-            contextText += `\n\nPrompt IDs: ${tabMetadata.selectedPrompts?.join(', ') || 'none'}`
-            contextText += `\nUser prompt: ${tabMetadata.userPrompt || 'empty'}`
-            contextText += `\n\nSearch/Filter Settings:`
-            contextText += `\n  File search: ${tabMetadata.fileSearch || 'none'}`
-            contextText += `\n  Search by content: ${tabMetadata.searchByContent || false}`
-            contextText += `\n  Resolve imports: ${tabMetadata.resolveImports || false}`
-            contextText += `\n  Preferred editor: ${tabMetadata.preferredEditor || 'default'}`
-
-            if (tabMetadata.ticketSearch || tabMetadata.ticketSort || tabMetadata.ticketStatusFilter) {
-              contextText += `\n\nTicket Settings:`
-              contextText += `\n  Search: ${tabMetadata.ticketSearch || 'none'}`
-              contextText += `\n  Sort: ${tabMetadata.ticketSort || 'default'}`
-              contextText += `\n  Status filter: ${tabMetadata.ticketStatusFilter || 'all'}`
-            }
-
-            contextText += `\n\nUI State:`
-            contextText += `\n  Prompts panel: ${tabMetadata.promptsPanelCollapsed ? 'collapsed' : 'expanded'}`
-            contextText += `\n  Selected files panel: ${tabMetadata.selectedFilesCollapsed ? 'collapsed' : 'expanded'}`
-
-            return {
-              content: [{ type: 'text', text: contextText }]
-            }
-          }
+          // Removed: GET_SELECTION_CONTEXT (active-tab dependent)
 
           case ProjectManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
@@ -440,7 +386,7 @@ Version Info:
             const includeContext = (data?.includeContext as boolean) || false
             const contextLines = (data?.contextLines as number) || 3
             const caseSensitive = (data?.caseSensitive as boolean) || false
-            const searchType = (data?.searchType as 'exact' | 'fuzzy' | 'semantic' | 'regex') || 'semantic'
+            const searchType = (data?.searchType as 'ast' | 'exact' | 'fuzzy' | 'semantic' | 'regex') || 'ast'
             const scoringMethod = (data?.scoringMethod as 'relevance' | 'recency' | 'frequency') || 'relevance'
             const output = (data?.output as 'text' | 'json') || 'text'
 

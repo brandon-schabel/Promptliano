@@ -16,9 +16,12 @@ export * from './file-repository'
 export * from './provider-key-repository'
 export * from './model-config-repository'
 export * from './model-preset-repository'
-export * from './app-state-repository' // Exports selectedFileRepository, activeTabRepository
+export * from './app-state-repository' // Exports selectedFileRepository
 export * from './mcp-server-repository'
 export * from './mcp-execution-repository' // Exports MCP tracking repositories
+
+// Process management repositories
+export * from './process-repository'
 
 // Unified storage service (for backward compatibility)
 export * from './storage-service'

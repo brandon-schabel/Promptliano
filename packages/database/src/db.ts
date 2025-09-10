@@ -54,6 +54,7 @@ const schema: Record<string, any> = {
 }
 import { readFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname, resolve } from 'path'
+import { databaseConfig } from '@promptliano/config'
 import { fileURLToPath } from 'url'
 
 // Resolve stable paths relative to this package (robust to cwd)
@@ -65,12 +66,27 @@ const drizzleDir = join(packageRoot, 'drizzle')
 
 // Expose database path resolution so server can log it on startup
 export function getDatabasePath(): string {
-  return process.env.NODE_ENV === 'test'
-    ? ':memory:'
-    : process.env.DATABASE_PATH ||
-        (process.env.PROMPTLIANO_DATA_DIR
-          ? join(process.env.PROMPTLIANO_DATA_DIR, 'promptliano.db')
-          : join(repoRoot, 'data', 'promptliano.db'))
+  // 1) Explicit test mode: in-memory
+  if (process.env.NODE_ENV === 'test') return ':memory:'
+
+  // 2) Explicit overrides
+  const explicitPath = process.env.DATABASE_PATH
+  if (explicitPath && explicitPath.trim() !== '') {
+    return explicitPath
+  }
+  const dataDir = process.env.PROMPTLIANO_DATA_DIR
+  if (dataDir && dataDir.trim() !== '') {
+    return join(dataDir, 'promptliano.db')
+  }
+
+  // 3) Development defaults to local repo data dir for convenience
+  //    Treat DEV=true the same as development to align with server dev script.
+  if (process.env.NODE_ENV === 'development' || process.env.DEV === 'true') {
+    return join(repoRoot, 'data', 'promptliano.db')
+  }
+
+  // 4) Production: platform-appropriate app data directory
+  return databaseConfig.path
 }
 
 // Performance-optimized SQLite configuration
@@ -111,32 +127,56 @@ const sqlite = createDatabase()
 
 // Auto-run migrations and create tables
 try {
-  // If no core tables, bootstrap from earliest migration
-  const hasProjectsTable =
-    sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").all().length > 0
+  // If any core tables are missing, bootstrap from earliest migration
+  const coreTables = [
+    'projects',
+    'files',
+    'selected_files',
+    'provider_keys',
+    // Ensure model configuration tables exist during initial bootstrap
+    'model_configs',
+    'model_presets'
+  ]
+  const tableExists = (name: string) =>
+    (
+      sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
+        | { name?: string }
+        | undefined
+    )?.name === name
+  const missingCoreTables = coreTables.filter((t) => !tableExists(t))
 
-  if (!hasProjectsTable) {
+  if (missingCoreTables.length > 0) {
     if (process.env.NODE_ENV === 'test') {
       // In test mode, don't auto-create tables - tests should use createTestDatabase()
       console.log('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
       console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
     } else {
-      console.log('📋 Creating database tables (initial bootstrap)...')
+      console.log(
+        `📋 Creating database tables (initial bootstrap for missing tables: ${missingCoreTables.join(', ')})...`
+      )
       const migrationPath = join(drizzleDir, '0000_base.sql')
       const migrationSql = readFileSync(migrationPath, 'utf8')
       const statements = migrationSql.split('--> statement-breakpoint')
+      // Only execute CREATE TABLE statements for missing tables to avoid index/column errors
+      const createTableRe = /^CREATE\s+TABLE\s+`?(\w+)`?\s*\(/i
       for (const statement of statements) {
-        const cleanStatement = statement.trim()
-        if (cleanStatement && !cleanStatement.startsWith('--')) {
-          try {
-            sqlite.exec(cleanStatement)
-          } catch (e: any) {
-            const msg = String(e?.message || e)
-            if (!/already exists/i.test(msg)) throw e
-          }
+        const clean = statement.trim()
+        if (!clean || clean.startsWith('--')) continue
+        const m = clean.match(createTableRe)
+        if (!m) {
+          // Skip non-table statements during bootstrap (indexes will be handled by migrations/upgrades)
+          continue
+        }
+        const tableName = m[1] as string
+        if (!missingCoreTables.includes(tableName)) continue
+        try {
+          sqlite.exec(clean)
+        } catch (e: any) {
+          const msg = String(e?.message || e)
+          if (!/already exists/i.test(msg)) throw e
         }
       }
-      console.log('✅ Core tables created successfully')
+      console.log('✅ Core tables ensured successfully')
     }
   }
 

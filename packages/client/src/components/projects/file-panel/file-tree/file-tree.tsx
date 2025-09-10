@@ -711,20 +711,9 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (
-                    response &&
-                    ((response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response)
-                  ) {
-                    const diff =
-                      (response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response
+                  const payload: any = (response as any)?.data ?? response
+                  const diff: string | undefined = payload && typeof payload === 'object' ? payload.diff : undefined
+                  if (diff !== undefined) {
                     const { original } = parseDiff(diff)
                     copyToClipboard(original, {
                       successMessage: 'Previous version copied to clipboard',
@@ -757,20 +746,9 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (
-                    response &&
-                    ((response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response)
-                  ) {
-                    const diff =
-                      (response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response
+                  const payload: any = (response as any)?.data ?? response
+                  const diff: string | undefined = payload && typeof payload === 'object' ? payload.diff : undefined
+                  if (diff !== undefined) {
                     copyToClipboard(diff, {
                       successMessage: 'Diff copied to clipboard',
                       errorMessage: 'Failed to copy diff'

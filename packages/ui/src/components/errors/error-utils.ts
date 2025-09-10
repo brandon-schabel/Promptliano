@@ -156,6 +156,7 @@ export function extractProviderName(error: any): string | undefined {
   if (url.includes('openai')) return 'OpenAI'
   if (url.includes('anthropic')) return 'Anthropic'
   if (url.includes('openrouter')) return 'OpenRouter'
+  if (url.includes('githubcopilot') || url.includes('copilot')) return 'GitHub Copilot'
   if (url.includes('groq')) return 'Groq'
   if (url.includes('google')) return 'Google'
 

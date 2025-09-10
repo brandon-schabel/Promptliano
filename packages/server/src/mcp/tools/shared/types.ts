@@ -14,7 +14,6 @@ export enum ProjectManagerAction {
   GET_FILE_CONTENT = 'get_file_content',
   UPDATE_FILE_CONTENT = 'update_file_content',
   SUGGEST_FILES = 'suggest_files',
-  GET_SELECTION_CONTEXT = 'get_selection_context',
   SEARCH = 'search',
   CREATE_FILE = 'create_file',
   GET_FILE_CONTENT_PARTIAL = 'get_file_content_partial',
@@ -208,9 +207,6 @@ export const AIAssistantSchema = z.object({
 
 // Tab Manager Types (already migrated but included for completeness)
 export enum TabManagerAction {
-  GET_ACTIVE = 'get_active',
-  SET_ACTIVE = 'set_active',
-  CLEAR_ACTIVE = 'clear_active',
   GENERATE_NAME = 'generate_name'
 }
 

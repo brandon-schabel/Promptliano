@@ -178,13 +178,28 @@ function pathToMethodName(path: string, method: string): string {
  * Normalize path for TypeScript type name generation
  */
 function normalizePathForTypeName(path: string): string {
-  return (
-    path
-      // Convert :param to {param} for consistency
-      .replace(/:([^/]+)/g, '{$1}')
-      // Remove any remaining colons that might cause issues
-      .replace(/:/g, '')
-  )
+  // Keep original path literal for exact matching in types first.
+  // Only fall back to converting :param -> {param} if needed elsewhere.
+  return path
+}
+
+/**
+ * Resolve the actual path key that exists in the OpenAPI types
+ * Tries the exact path first, then converts between :param and {param}
+ */
+function resolvePathKeyForTypes(path: string, spec: any): string | null {
+  // 1) Exact match
+  if (spec.paths?.[path]) return path
+
+  // 2) Convert :param -> {param}
+  const brace = path.replace(/:([^/]+)/g, '{$1}')
+  if (spec.paths?.[brace]) return brace
+
+  // 3) Convert {param} -> :param
+  const colon = path.replace(/\{([^}]+)\}/g, ':$1')
+  if (spec.paths?.[colon]) return colon
+
+  return null
 }
 
 /**
@@ -212,8 +227,7 @@ function extractPathParams(path: string): string[] {
  * Check if a path exists in the OpenAPI spec types
  */
 function isValidPathForTypes(path: string, spec: any): boolean {
-  const normalizedPath = normalizePathForTypeName(path)
-  return !!spec.paths?.[normalizedPath]
+  return resolvePathKeyForTypes(path, spec) !== null
 }
 
 /**
@@ -225,8 +239,8 @@ function hasSupportedRequestBody(operation: any): boolean {
   const content = operation.requestBody?.content
   if (!content) return true
 
-  // We support application/json and no content
-  return !!content['application/json']
+  // We support application/json and multipart/form-data
+  return !!content['application/json'] || !!content['multipart/form-data']
 }
 
 /**
@@ -239,10 +253,10 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
   // Filter operations to only include those that are supported
   const supportedOperations = operations.filter((operation) => {
-    const pathExists = isValidPathForTypes(operation.path, spec)
+    const typesPathKey = resolvePathKeyForTypes(operation.path, spec)
     const supportedRequestBody = hasSupportedRequestBody(operation)
 
-    if (!pathExists) {
+    if (!typesPathKey) {
       console.warn(`⚠️  Skipping operation with path not in types: ${operation.method} ${operation.path}`)
       return false
     }
@@ -327,7 +341,8 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
       // Generate request/response types
       if (!generatedTypes.has(responseType)) {
-        const responsePath = normalizePathForTypeName(operation.path)
+        const responsePath = resolvePathKeyForTypes(operation.path, spec)
+        if (!responsePath) return
         const successResponse =
           operation.responses?.['200'] || operation.responses?.['201'] || operation.responses?.['204']
 
@@ -342,8 +357,17 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
       }
 
       if (operation.hasRequestBody && !generatedTypes.has(requestType)) {
-        const requestPath = normalizePathForTypeName(operation.path)
-        clientTypes += `export type ${requestType} = NonNullable<paths['${requestPath}']['${operation.method.toLowerCase()}']['requestBody']>['content']['application/json']\n`
+        const requestPath = resolvePathKeyForTypes(operation.path, spec)
+        if (!requestPath) return
+        const isJson = !!operation.requestBody?.content?.['application/json']
+        const isMultipart = !!operation.requestBody?.content?.['multipart/form-data']
+        if (isJson) {
+          clientTypes += `export type ${requestType} = NonNullable<paths['${requestPath}']['${operation.method.toLowerCase()}']['requestBody']>['content']['application/json']\n`
+        } else if (isMultipart) {
+          clientTypes += `export type ${requestType} = NonNullable<paths['${requestPath}']['${operation.method.toLowerCase()}']['requestBody']>['content']['multipart/form-data']\n`
+        } else {
+          clientTypes += `export type ${requestType} = Record<string, any>\n`
+        }
         generatedTypes.add(requestType)
       }
 
@@ -362,7 +386,12 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
 
       // Add request body parameter
       if (operation.hasRequestBody) {
-        methodParams.push(`data: ${requestType}`)
+        const isMultipart = !!operation.requestBody?.content?.['multipart/form-data']
+        if (isMultipart) {
+          methodParams.push(`data: FormData | ${requestType}`)
+        } else {
+          methodParams.push(`data: ${requestType}`)
+        }
       }
 
       // Add query parameters as optional object
@@ -389,16 +418,32 @@ function generateClientFromSpec(spec: any): { clientTypes: string; clientMethods
       if (operation.hasQueryParams) {
         requestOptions.push('params: query')
       }
-      if (operation.hasRequestBody) {
-        requestOptions.push('body: data')
-      }
+      // body handling below
       requestOptions.push('timeout: options?.timeout')
 
-      methodSignature += `    return this.request<${responseType}>('${operation.method}', ${pathExpression}`
-      if (requestOptions.length > 0) {
-        methodSignature += `, { ${requestOptions.join(', ')} }`
+      const isMultipart = !!operation.requestBody?.content?.['multipart/form-data']
+      if (operation.hasRequestBody && isMultipart) {
+        methodSignature += `    const bodyToSend = data instanceof FormData ? data : this.toFormData(data as any)\n`
+        const optsParts: string[] = []
+        if (operation.hasQueryParams) optsParts.push('params: query')
+        optsParts.push('body: bodyToSend')
+        optsParts.push('timeout: options?.timeout')
+        const opts = optsParts.join(', ')
+        methodSignature += `    return this.request<${responseType}>('${operation.method}', ${pathExpression}, { ${opts} })\n`
+      } else if (operation.hasRequestBody) {
+        const optsParts: string[] = []
+        if (operation.hasQueryParams) optsParts.push('params: query')
+        optsParts.push('body: data')
+        optsParts.push('timeout: options?.timeout')
+        const opts = optsParts.join(', ')
+        methodSignature += `    return this.request<${responseType}>('${operation.method}', ${pathExpression}, { ${opts} })\n`
+      } else {
+        const optsParts: string[] = []
+        if (operation.hasQueryParams) optsParts.push('params: query')
+        optsParts.push('timeout: options?.timeout')
+        const opts = optsParts.join(', ')
+        methodSignature += `    return this.request<${responseType}>('${operation.method}', ${pathExpression}${opts ? `, { ${opts} }` : ''})\n`
       }
-      methodSignature += ')\n'
       methodSignature += '  }\n\n'
 
       clientMethods += methodSignature
@@ -584,10 +629,17 @@ export class TypeSafeApiClient {
     const timeoutId = setTimeout(() => controller.abort(), requestTimeout)
 
     try {
+      const isForm = typeof FormData !== 'undefined' && options?.body instanceof FormData
+      const headers: Record<string, string> = { ...this.headers }
+      if (isForm && headers['Content-Type']) {
+        // Let fetch set the multipart boundary
+        delete headers['Content-Type']
+      }
+
       const response = await fetch(url.toString(), {
         method,
-        headers: this.headers,
-        body: options?.body ? JSON.stringify(options.body) : undefined,
+        headers,
+        body: isForm ? (options?.body as FormData) : options?.body ? JSON.stringify(options.body) : undefined,
         signal: controller.signal
       })
 
@@ -646,6 +698,51 @@ export class TypeSafeApiClient {
     }
     
     return path
+  }
+
+  /**
+   * Convert a plain object to FormData
+   */
+  private toFormData(data: Record<string, any>): FormData {
+    const form = new FormData()
+    if (!data) return form
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined || value === null) return
+      if (Array.isArray(value)) {
+        for (const item of value) this.appendFormValue(form, key, item)
+      } else {
+        this.appendFormValue(form, key, value)
+      }
+    })
+    return form
+  }
+
+  private appendFormValue(form: FormData, key: string, value: any) {
+    if (value === undefined || value === null) return
+    const isBlob = typeof Blob !== 'undefined' && value instanceof Blob
+    const isFile = typeof File !== 'undefined' && value instanceof File
+    if (isBlob || isFile) {
+      form.append(key, value as Blob)
+      return
+    }
+    if (typeof value === 'boolean') {
+      form.append(key, value ? 'true' : 'false')
+      return
+    }
+    if (typeof value === 'number') {
+      form.append(key, String(value))
+      return
+    }
+    if (typeof value === 'object') {
+      // Best-effort: try to detect blob-like
+      if (typeof (value as any).arrayBuffer === 'function') {
+        form.append(key, value as any)
+        return
+      }
+      form.append(key, JSON.stringify(value))
+      return
+    }
+    form.append(key, String(value))
   }
 
 ${clientMethods}
@@ -724,13 +821,8 @@ async function generateApiClient(): Promise<void> {
       console.warn('⚠️  Could not write updated OpenAPI spec file:', e)
     }
 
-    // Step 2: Generate TypeScript types (skip if already present)
-    const typesPath = join(config.outputDir, 'api-types.ts')
-    if (!existsSync(typesPath)) {
-      await generateTypes(spec)
-    } else {
-      console.log('⏭️  Skipping types generation (api-types.ts exists)')
-    }
+    // Step 2: Generate TypeScript types (always regenerate to match current spec)
+    await generateTypes(spec)
 
     // Step 3: Generate type-safe client
     generateTypeSafeClient(spec)

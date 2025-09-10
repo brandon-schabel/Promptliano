@@ -11,8 +11,7 @@ import type {
   Ticket as DatabaseTicket,
   Chat as DatabaseChat,
   Queue as DatabaseQueue,
-  SelectedFile as DatabaseSelectedFile,
-  ActiveTab as DatabaseActiveTab
+  SelectedFile as DatabaseSelectedFile
 } from '@promptliano/database'
 
 // Import the actual schemas for proper type validation (type-only to avoid bundling issues)

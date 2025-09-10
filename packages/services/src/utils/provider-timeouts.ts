@@ -21,6 +21,12 @@ export const PROVIDER_TIMEOUTS: Record<APIProviders, TimeoutConfig> = {
     chat: 60000, // 60 seconds for chat
     structured: 45000 // 45 seconds for structured generation
   },
+  copilot: {
+    default: 30000,
+    validation: 5000,
+    chat: 60000,
+    structured: 45000
+  },
   anthropic: {
     default: 30000,
     validation: 5000,
@@ -124,6 +130,7 @@ export const BATCH_TIMEOUTS = {
  */
 export const PROVIDER_RETRY_CONFIG: Record<APIProviders, { maxRetries: number; backoffMs: number }> = {
   openai: { maxRetries: 3, backoffMs: 1000 },
+  copilot: { maxRetries: 3, backoffMs: 1000 },
   anthropic: { maxRetries: 3, backoffMs: 1000 },
   google_gemini: { maxRetries: 2, backoffMs: 1500 },
   groq: { maxRetries: 3, backoffMs: 500 },

@@ -215,23 +215,19 @@ export class MCPTestHelpers {
         return { success: false, error: 'Action not mocked' }
       },
 
-      ticket_manager: (params: any) => {
-        if (params.action === 'create') {
+      flow_manager: (params: any) => {
+        if (params.action === 'tickets_create') {
           return {
             success: true,
             data: {
               id: 1,
-              title: params.data?.title || 'Test Ticket',
+              title: params.data?.title || params.data?.ticket?.title || 'Test Ticket',
               overview: params.data?.overview || 'Test overview',
               priority: 'normal'
             }
           }
         }
-        return { success: false, error: 'Action not mocked' }
-      },
-
-      queue_processor: (params: any) => {
-        if (params.action === 'get_next_task') {
+        if (params.action === 'processor_get_next') {
           return {
             success: true,
             data: {
@@ -367,7 +363,7 @@ export class MCPTestHelpers {
       requireReal?: boolean
     } = {}
   ) {
-    const { enableMocks = true, mockTools = ['project_manager', 'ticket_manager'], requireReal = false } = options
+    const { enableMocks = true, mockTools = ['project_manager', 'flow_manager'], requireReal = false } = options
 
     const status = await this.checkMCPAvailability(page)
 
@@ -411,10 +407,8 @@ export class MCPTestHelpers {
     // Map test assumptions to actual MCP tool names
     const toolNameMap: Record<string, string> = {
       project_manager: 'mcp__promptliano__project_manager',
-      ticket_manager: 'mcp__promptliano__ticket_manager',
-      queue_processor: 'mcp__promptliano__queue_processor',
-      prompt_manager: 'mcp__promptliano__prompt_manager',
-      task_manager: 'mcp__promptliano__task_manager'
+      flow_manager: 'mcp__promptliano__flow_manager',
+      prompt_manager: 'mcp__promptliano__prompt_manager'
     }
 
     return toolNameMap[toolName] || toolName

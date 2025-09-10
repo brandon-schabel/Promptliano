@@ -12,7 +12,7 @@ import { promptRepository } from './prompt-repository'
 import { queueRepository, queueItemRepository } from './queue-repository'
 import { fileRepository } from './file-repository'
 import { providerKeyRepository } from './provider-key-repository'
-import { activeTabRepository, selectedFileRepository } from './app-state-repository'
+import { selectedFileRepository } from './app-state-repository'
 import { mcpServerRepository } from './mcp-server-repository'
 import {
   projects,
@@ -26,7 +26,6 @@ import {
   providerKeys,
   files,
   selectedFiles,
-  activeTabs,
   mcpServerConfigs,
   type Project,
   type Ticket,
@@ -39,7 +38,6 @@ import {
   type ProviderKey,
   type File,
   type SelectedFile,
-  type ActiveTab,
   type McpServerConfig
 } from '../schema'
 
@@ -62,7 +60,6 @@ export class StorageService {
 
   // Configuration repositories (fully typed)
   public readonly providerKeys = providerKeyRepository
-  public readonly activeTabs = activeTabRepository
   public readonly mcpServers = mcpServerRepository
 
   /**
@@ -84,7 +81,6 @@ export class StorageService {
       fileCount,
 
       providerKeyCount,
-      activeTabCount,
       mcpServerCount
     ] = await Promise.all([
       db
@@ -130,10 +126,6 @@ export class StorageService {
         .then((result) => result[0]?.count ?? 0),
       db
         .select({ count: count() })
-        .from(activeTabs)
-        .then((result) => result[0]?.count ?? 0),
-      db
-        .select({ count: count() })
         .from(mcpServerConfigs)
         .then((result) => result[0]?.count ?? 0)
     ])
@@ -149,7 +141,6 @@ export class StorageService {
       queueItemCount +
       fileCount +
       providerKeyCount +
-      activeTabCount +
       mcpServerCount
 
     return {
@@ -166,7 +157,7 @@ export class StorageService {
 
       // Configuration
       providerKeys: providerKeyCount,
-      activeTabs: activeTabCount,
+      // activeTabs removed
       mcpServers: mcpServerCount,
 
       // Totals
@@ -174,7 +165,7 @@ export class StorageService {
 
       // Categories
       coreEntities: projectCount + ticketCount + taskCount + chatCount + messageCount,
-      configEntities: providerKeyCount + activeTabCount + mcpServerCount,
+      configEntities: providerKeyCount + mcpServerCount,
       workflowEntities: queueCount + queueItemCount + promptCount + fileCount
     }
   }
@@ -201,7 +192,6 @@ export class StorageService {
       { name: 'queues', repo: this.queues },
       { name: 'files', repo: this.files },
       { name: 'providerKeys', repo: this.providerKeys },
-      { name: 'activeTabs', repo: this.activeTabs },
       { name: 'mcpServers', repo: this.mcpServers }
     ]
 
@@ -255,7 +245,6 @@ export class StorageService {
       files: this.files,
       selectedFiles: this.selectedFiles,
       providerKeys: this.providerKeys,
-      activeTabs: this.activeTabs,
       mcpServers: this.mcpServers
     }
 

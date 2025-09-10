@@ -27,7 +27,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     // Setup MCP test environment with fallback to mocks
     await MCPTestHelpers.createMCPTestEnvironment(page, {
       enableMocks: true,
-      mockTools: ['project_manager', 'ticket_manager', 'queue_processor', 'prompt_manager'],
+      mockTools: ['project_manager', 'flow_manager', 'prompt_manager'],
       requireReal: false
     })
 
@@ -66,8 +66,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
       // Expected MCP tools for Promptliano (with correct naming)
       const expectedTools = [
         MCPTestHelpers.getMCPToolName('project_manager'),
-        MCPTestHelpers.getMCPToolName('ticket_manager'),
-        MCPTestHelpers.getMCPToolName('queue_processor'),
+        MCPTestHelpers.getMCPToolName('flow_manager'),
         MCPTestHelpers.getMCPToolName('prompt_manager')
       ]
 
@@ -229,7 +228,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should create ticket with tasks via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('ticket_manager')) {
+      if (!availableTools.includes('flow_manager')) {
         console.warn('Skipping ticket_manager tests - tool not available')
         return
       }
@@ -264,7 +263,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should update ticket status via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('ticket_manager')) {
+      if (!availableTools.includes('flow_manager')) {
         return
       }
 
@@ -293,7 +292,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should list tickets by status via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('ticket_manager')) {
+      if (!availableTools.includes('flow_manager')) {
         return
       }
 
@@ -331,7 +330,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should create and manage queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('queue_processor')) {
+      if (!availableTools.includes('flow_manager')) {
         console.warn('Skipping queue_processor tests - tool not available')
         return
       }
@@ -360,7 +359,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should add items to queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('queue_processor')) {
+      if (!availableTools.includes('flow_manager')) {
         return
       }
 
@@ -395,7 +394,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should process queue via MCP tool', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('queue_processor')) {
+      if (!availableTools.includes('flow_manager')) {
         return
       }
 
@@ -552,8 +551,8 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
 
       // Check which tools are available
       const hasProjectManager = availableTools.includes('project_manager')
-      const hasTicketManager = availableTools.includes('ticket_manager')
-      const hasQueueProcessor = availableTools.includes('queue_processor')
+      const hasTicketManager = availableTools.includes('flow_manager')
+      const hasQueueProcessor = availableTools.includes('flow_manager')
       const hasPromptManager = availableTools.includes('prompt_manager')
 
       if (!hasProjectManager || !hasTicketManager) {
@@ -637,7 +636,7 @@ test.describe('MCP (Model Context Protocol) Integration', () => {
     test('should sync data consistency across MCP tools and UI', async ({ page }) => {
       const availableTools = await MCPTestHelpers.verifyMCPToolsAvailable(page)
 
-      if (!availableTools.includes('project_manager') || !availableTools.includes('ticket_manager')) {
+      if (!availableTools.includes('project_manager') || !availableTools.includes('flow_manager')) {
         return
       }
 

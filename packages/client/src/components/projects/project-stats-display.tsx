@@ -45,7 +45,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
   const { data: projectFilesData, isLoading, error } = useGetProjectFilesWithoutContent(projectId)
   const files: ProjectFileWithoutContent[] = Array.isArray(projectFilesData)
-    ? (projectFilesData as ProjectFileWithoutContent[])
+    ? ((projectFilesData as unknown) as ProjectFileWithoutContent[])
     : []
 
   const stats = React.useMemo(() => {

@@ -14,11 +14,16 @@ import { genAiRoutes } from './routes/gen-ai-routes'
 import { flowRoutes } from './routes/flow-routes'
 import { browseDirectoryRoutes } from './routes/browse-directory-routes'
 import { mcpRoutes } from './routes/mcp'
+import { mcpProjectConfigApp } from './routes/mcp-project-config-routes'
 import { gitRoutes } from './routes/git'
 import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
 import { agentFilesRoutes } from './routes/agent-files-routes'
 import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
+import { processManagementRoutes } from './routes/process-management-routes'
+import { copilotProxyRoutes } from './routes/copilot-proxy-routes'
+import { copilotEmbedRoutes } from './routes/copilot-embed-routes'
+import { initCopilotEmbed, parseCopilotEmbedConfig } from './integrations/copilot-embed'
 // import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
 import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
@@ -273,10 +278,7 @@ app.get('/api/_openapi-debug', async (c) => {
       CreateProviderKeySchema: (Schemas as any).CreateProviderKeySchema,
       UpdateProviderKeySchema: (Schemas as any).UpdateProviderKeySchema,
 
-      ActiveTabSchema: (Schemas as any).ActiveTabSchema,
-      CreateActiveTabSchema: (Schemas as any).CreateActiveTabSchema,
-      UpdateActiveTabSchema: (Schemas as any).UpdateActiveTabSchema,
-      ActiveTabIdParamsSchema: (Schemas as any).ActiveTabIdParamsSchema,
+      // ActiveTab schemas removed (frontend only)
 
       SelectedFileSchema: (Schemas as any).SelectedFileSchema,
       CreateSelectedFileSchema: (Schemas as any).CreateSelectedFileSchema,
@@ -336,11 +338,15 @@ app.route('/', flowRoutes)
 app.route('/', genAiRoutes)
 app.route('/', browseDirectoryRoutes)
 app.route('/', mcpRoutes)
+app.route('/', mcpProjectConfigApp)
 app.route('/', gitRoutes)
 app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
 app.route('/', agentFilesRoutes)
 app.route('/', mcpInstallationRoutes)
+app.route('/', processManagementRoutes)
+app.route('/', copilotProxyRoutes)
+app.route('/', copilotEmbedRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -349,7 +355,7 @@ app.route('/', mcpInstallationRoutes)
 // - promptRoutes -> /api/prompts CRUD via generated routes
 // - ticketRoutes -> /api/tickets CRUD via generated routes
 // - queueRoutes -> /api/queues CRUD via generated routes
-// - activeTabRoutes -> /api/activetabs CRUD via generated routes
+// - activeTabRoutes removed (frontend-only tabs)
 
 // Global error handler with ErrorFactory integration
 app.onError((err, c) => {
@@ -458,11 +464,15 @@ app.get('/doc', async (c) => {
   tryRegister('flowRoutes', (a) => a.route('/', flowRoutes))
   tryRegister('browseDirectoryRoutes', (a) => a.route('/', browseDirectoryRoutes))
   tryRegister('mcpRoutes', (a) => a.route('/', mcpRoutes))
+  tryRegister('mcpProjectConfigRoutes', (a) => a.route('/', mcpProjectConfigApp))
   tryRegister('gitRoutes', (a) => a.route('/', gitRoutes))
   tryRegister('gitAdvancedRoutes', (a) => a.route('/', gitAdvancedRoutes))
   tryRegister('projectTabRoutes', (a) => a.route('/', projectTabRoutes))
   tryRegister('agentFilesRoutes', (a) => a.route('/', agentFilesRoutes))
   tryRegister('mcpInstallationRoutes', (a) => a.route('/', mcpInstallationRoutes))
+  tryRegister('processManagementRoutes', (a) => a.route('/', processManagementRoutes))
+  tryRegister('copilotProxyRoutes', (a) => a.route('/', copilotProxyRoutes))
+  tryRegister('copilotEmbedRoutes', (a) => a.route('/', copilotEmbedRoutes))
   // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
   tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
 
@@ -508,3 +518,23 @@ app.get('/doc', async (c) => {
 })
 
 // Manual routes are registered directly above, no async registration needed
+
+// Initialize and mount the embedded Copilot upstream app (skip in test env)
+;(async () => {
+  const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test'
+  if (isTest) {
+    console.log('[Copilot Embed] Skipping embedded initialization in test environment')
+    return
+  }
+  try {
+    const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
+    // Mount the embedded app under /api/upstream/copilot regardless of enabled flag
+    // (proxy selection will determine whether it is used).
+    const copilotApp = await initCopilotEmbed(cfg)
+    // Hono's route composition: attach mounted app
+    app.route('/api/upstream/copilot', copilotApp as any)
+    console.log('[Copilot Embed] Initialized embedded Copilot API under /api/upstream/copilot')
+  } catch (e) {
+    console.warn('[Copilot Embed] Failed to initialize embedded Copilot API:', e)
+  }
+})()

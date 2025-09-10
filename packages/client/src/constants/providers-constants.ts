@@ -26,6 +26,14 @@ export const PROVIDERS = [
     description: 'Access to multiple LLM providers through a single API'
   },
   {
+    id: 'copilot',
+    name: 'GitHub Copilot',
+    link: 'https://github.com/ericc-ch/copilot-api',
+    linkTitle: 'Run Copilot proxy (copilot-api)',
+    description:
+      'Use Copilot via an OpenAI-compatible proxy. Start the proxy locally and set COPILOT_BASE_URL (e.g., http://127.0.0.1:4141/v1). Use a dummy COPILOT_API_KEY if required.'
+  },
+  {
     id: 'xai',
     name: 'XAI',
     link: 'https://console.x.ai',

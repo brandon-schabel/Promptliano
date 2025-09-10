@@ -255,14 +255,6 @@ export const featuresData: FeaturesSection = {
       badge: { text: 'All Providers', variant: 'secondary' }
     },
     {
-      id: 'active-tab-sync',
-      title: 'Active Tab Syncing',
-      description: 'Your selected files and context automatically sync with AI assistants for seamless collaboration.',
-      category: 'collaboration',
-      icon: { type: 'emoji', value: '🔄' },
-      highlights: ['Real-time sync', 'Context preservation', 'Multi-file selection', 'AI awareness']
-    },
-    {
       id: 'project-assets',
       title: 'Project Assets Management',
       description: 'Manage documentation, diagrams, and visual assets that AI can reference and use.',

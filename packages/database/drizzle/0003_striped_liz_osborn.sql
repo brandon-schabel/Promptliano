@@ -1,1 +1,0 @@
-ALTER TABLE `model_configs` ADD `system_prompt` text;

@@ -203,7 +203,7 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
             })
           } else {
             lines.push('No task queues configured')
-            lines.push('Use queue_manager tool to create queues for AI task processing')
+            lines.push('Use flow_manager (queues_create) to create queues for AI task processing')
           }
 
           return lines.join('\n')

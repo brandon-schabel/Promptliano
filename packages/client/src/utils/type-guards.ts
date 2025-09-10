@@ -51,6 +51,7 @@ export const isValidAPIProvider = (value: unknown): value is APIProviders => {
     'anthropic',
     'groq',
     'together',
+    'copilot',
     'custom'
   ]
   return typeof value === 'string' && validProviders.includes(value as APIProviders)

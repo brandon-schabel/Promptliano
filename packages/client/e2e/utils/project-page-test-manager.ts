@@ -96,7 +96,7 @@ export class ProjectPageTestManager extends TestDataManager {
   private async setupMCPIntegration(): Promise<void> {
     const mcpEnvironment = await this.mcpHelpers.createMCPTestEnvironment(this.page, {
       enableMocks: true,
-      mockTools: ['project_manager', 'ticket_manager', 'queue_processor', 'prompt_manager'],
+      mockTools: ['project_manager', 'flow_manager', 'prompt_manager'],
       requireReal: false
     })
 

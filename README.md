@@ -58,6 +58,31 @@ cd promptliano-0.10.0-bun-bundle && bun run start
 
 [View Your Local Promptliano UI](http://localhost:3579/)
 
+## Database Location & Overrides
+
+- Development default: `./data/promptliano.db` at the repo root (auto-created).
+- Production default (prebuilt binaries):
+  - macOS: `~/Library/Application Support/Promptliano/promptliano.db`
+  - Linux: `$XDG_DATA_HOME/promptliano/promptliano.db` or `~/.local/share/promptliano/promptliano.db`
+  - Windows: `%APPDATA%\\Promptliano\\promptliano.db`
+
+Override options (take precedence in this order):
+
+- `DATABASE_PATH` — absolute path to the SQLite file
+- `PROMPTLIANO_DATA_DIR` — directory to store `promptliano.db`
+
+Examples:
+
+- macOS/Linux: `DATABASE_PATH="$HOME/.promptliano/custom.db" ./promptliano`
+- macOS/Linux: `PROMPTLIANO_DATA_DIR="$HOME/.promptliano" ./promptliano`
+- Windows (PowerShell): `$env:DATABASE_PATH = "$env:USERPROFILE\\Promptliano\\my.db"; .\\promptliano.exe`
+- Docker: mount a volume and set `PROMPTLIANO_DATA_DIR=/data`
+
+Notes:
+
+- Tests use `:memory:` automatically.
+- The app creates the DB directory if needed. If the location is read-only, you’ll see an EROFS error — use one of the overrides above.
+
 ## MCP Setup
 
 Promptliano works with all MCP-compatible editors. The easiest way to set up MCP is through the Promptliano UI:
@@ -86,6 +111,50 @@ bun run dev
 
 The development UI will be available at [http://localhost:1420](http://localhost:1420)
 
+### File Search Backend
+
+Promptliano uses a fast, no-index search stack with structural AST support by default.
+
+- Backends (auto-selected):
+  - `sg` (default): ast-grep performs structural AST search across your codebase
+  - `rg`: ripgrep text search as a robust fallback
+  - `fts`: minimal SQLite FTS5 fallback (if table exists)
+  - `like`: SQL LIKE fallback when others are unavailable
+- Configure via env:
+  - `FILE_SEARCH_BACKEND=sg|rg|fts|like` (default `sg`)
+  - `FILE_SEARCH_ASTGREP_PATH=/path/to/ast-grep` (optional)
+  - `FILE_SEARCH_RIPGREP_PATH=/path/to/rg` (optional)
+
+Install ast-grep if you don't already have it:
+
+```
+npm install --global @ast-grep/cli  # or: brew install ast-grep
+```
+
+Optional: install additional grep utilities
+
+These tools are auto‑detected. If they aren’t on your PATH, either install them or set `FILE_SEARCH_ASTGREP_PATH` / `FILE_SEARCH_RIPGREP_PATH`.
+
+- ast-grep (sg): structural search
+  - macOS (Homebrew): `brew install ast-grep`
+  - Node (npm): `npm install --global @ast-grep/cli`
+  - Rust (cargo): `cargo install ast-grep --locked`
+  - Windows (Scoop): `scoop install main/ast-grep`
+  - macOS (MacPorts): `sudo port install ast-grep`
+  - Python (pip): `pip install ast-grep-cli`
+  - Nix: `nix-shell -p ast-grep`
+
+- ripgrep (rg): fast text search fallback
+  - macOS (Homebrew): `brew install ripgrep`
+  - Debian/Ubuntu: `sudo apt-get install ripgrep`
+  - Fedora: `sudo dnf install ripgrep`
+  - Arch: `sudo pacman -S ripgrep`
+  - Windows (Chocolatey): `choco install ripgrep`
+  - Windows (winget): `winget install ripgrep`
+  - Windows (Scoop): `scoop install ripgrep`
+
+Upgrading from older versions: run database migrations (below) to drop legacy search tables.
+
 ### Port Configuration (Dev)
 
 - Server API: `SERVER_PORT` or `PORT` (default: 3147)
@@ -105,6 +174,16 @@ bun run dev
 ```
 
 Note: The dev script auto‑frees these ports before starting.
+
+### Database Migrations
+
+Run Drizzle migrations whenever you pull changes or upgrade:
+
+```
+bun run db:migrate
+```
+
+This includes a migration to drop legacy file search tables (`file_search_metadata`, `file_keywords`, `file_trigrams`, `search_cache`, and `file_search_fts`) as the new ripgrep/FTS-min backends do not require pre-indexing.
 
 ### MCP Inspector Config (Promptliano)
 
@@ -158,6 +237,29 @@ MCP_INSPECTOR_AUTOSTART=false bun run dev
 The server-only script (`bun run dev:server`) also starts the Inspector headlessly. You can run it manually anytime with `bun run mcp:inspector`.
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
+
+## GitHub Copilot (via proxy)
+
+Promptliano supports GitHub Copilot through an OpenAI‑compatible proxy (e.g., ericc‑ch/copilot‑api). You can point Promptliano directly at the upstream or use the built‑in reverse proxy exposed at `/api/proxy/copilot/v1`.
+
+- Start the upstream proxy:
+  - `npx copilot-api@latest start --port 4141 --rate-limit 30`
+  - or Docker (see the copilot-api README)
+- Configure environment (see `.env.example`):
+  - Option A (direct):
+    - `COPILOT_BASE_URL=http://127.0.0.1:4141/v1`
+    - `COPILOT_API_KEY=dummy` (proxy typically accepts any bearer string)
+  - Option B (built‑in reverse proxy):
+    - `COPILOT_PROXY_UPSTREAM=http://127.0.0.1:4141/v1`
+    - `COPILOT_BASE_URL=http://127.0.0.1:${SERVER_PORT}/api/proxy/copilot/v1`
+    - `COPILOT_API_KEY=dummy`
+- In the UI Providers page, add a provider key for `GitHub Copilot` (use the same dummy key if you prefer DB storage over env vars).
+
+Notes
+- Rate‑limit the upstream proxy to avoid GitHub abuse detection (`--rate-limit 30` recommended) and prefer manual approval for sensitive ops if supported by the proxy (`--manual`).
+- The upstream exposes OpenAI‑compatible endpoints (`/v1/models`, `/v1/chat/completions`) so you can select Copilot and its models like any other provider.
+
+See docs/copilot-integration.md for a full guide and architecture details.
 
 ## Running Binaries
 

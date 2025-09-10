@@ -1014,7 +1014,7 @@ test.describe('Project Page - Board Integration with MCP', () => {
     await page.route('**/api/mcp/**', async (route) => {
       const postData = await route.request().postDataJSON()
 
-      if (postData?.tool === 'queue_processor') {
+      if (postData?.tool === 'flow_manager') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',

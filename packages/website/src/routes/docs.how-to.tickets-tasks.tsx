@@ -500,13 +500,13 @@ function TicketsTasksGuide() {
           <h3 className='font-medium mb-3'>Available MCP Commands</h3>
           <CodeBlock
             code={`// List all tickets
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "list",
   projectId: YOUR_PROJECT_ID
 )
 
 // Create a new ticket
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "create",
   projectId: YOUR_PROJECT_ID,
   data: {
@@ -517,13 +517,13 @@ mcp__promptliano__ticket_manager(
 )
 
 // Generate tasks for a ticket
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "auto_generate_tasks",
   ticketId: TICKET_ID
 )
 
 // Update task status
-mcp__promptliano__task_manager(
+mcp__promptliano__flow_manager(
   action: "update",
   ticketId: TICKET_ID,
   data: {

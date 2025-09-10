@@ -27,8 +27,8 @@ import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { AssetsTabWithSidebar } from '@/components/assets/assets-tab-with-sidebar'
 import { ProjectSwitcher } from '@/components/projects/project-switcher'
 import { FlowTabWithSidebar } from '@/components/flow/flow-tab-with-sidebar'
+import { ProcessesTabWithSidebar } from '@/components/processes/processes-tab-with-sidebar'
 import { GitTabWithSidebar } from '@/components/projects/git-tab-with-sidebar'
-import { useActiveTabSync } from '@/hooks/utility-hooks/use-active-tab-sync'
 import { EmptyProjectTabsView } from '@/components/projects/empty-project-tabs-view'
 import { ManageTabWithSidebar } from '@/components/projects/manage-tab-with-sidebar'
 import { ProjectNavigationMenu } from '@/components/projects/project-navigation-menu'
@@ -75,8 +75,7 @@ export function ProjectsPage() {
   // Only fetch project when we have a valid selection
   const { data: projectData } = useProject(selectedProjectId ?? -1)
 
-  // Sync active tab with backend
-  useActiveTabSync(selectedProjectId)
+  // Removed legacy active-tab backend sync
 
   // Auto-sync the active project every ~4s (server lock prevents overlap)
   useAutoProjectSync(selectedProjectId, 4000)
@@ -353,6 +352,7 @@ export function ProjectsPage() {
                 })
               }}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
+              processesEnabled={(activeProjectTabState as any)?.processesEnabled}
               showTabs={false}
               showMenus={true}
             />
@@ -378,6 +378,7 @@ export function ProjectsPage() {
                 })
               }}
               assetsEnabled={(activeProjectTabState as any)?.assetsEnabled}
+              processesEnabled={(activeProjectTabState as any)?.processesEnabled}
               showTabs={true}
               showMenus={false}
             />
@@ -482,6 +483,27 @@ export function ProjectsPage() {
               <div className='p-6 text-center text-muted-foreground'>
                 <p>Assets is not enabled for this project.</p>
                 <p className='mt-2'>Enable it in the Settings tab to access Assets.</p>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value='processes' className='flex-1 overflow-y-auto mt-0 ring-0 focus-visible:ring-0'>
+            {(activeProjectTabState as any)?.processesEnabled ? (
+              selectedProjectId && projectData ? (
+                <ProcessesTabWithSidebar
+                  projectId={selectedProjectId}
+                  projectName={projectData.name}
+                  processView={search.processView}
+                  onProcessViewChange={(view) =>
+                    navigate({ to: '/projects', search: (prev) => ({ ...prev, processView: view }), replace: true })
+                  }
+                />
+              ) : (
+                <p className='p-4 md:p-6'>No project selected for Processes.</p>
+              )
+            ) : (
+              <div className='p-6 text-center text-muted-foreground'>
+                <p>Processes is not enabled for this project.</p>
+                <p className='mt-2'>Enable it in the Settings tab to access Processes.</p>
               </div>
             )}
           </TabsContent>

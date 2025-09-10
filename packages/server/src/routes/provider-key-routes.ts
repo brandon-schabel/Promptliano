@@ -248,7 +248,12 @@ export const providerKeyRoutes = new OpenAPIHono()
       )
     }
 
-    if (!body.key && !body.secretRef) {
+    // Allow keyless creation for Copilot and Custom providers
+    const rawProvider = String(body.provider || '')
+    const normalized = rawProvider.toLowerCase().replace(/[^a-z]/g, '')
+    const isCopilot = normalized === 'copilot' || normalized === 'githubcopilot'
+    const isCustom = normalized === 'custom'
+    if (!body.key && !body.secretRef && !(isCopilot || isCustom)) {
       throw new ApiError(
         400,
         'Must provide either key (direct storage) or secretRef (environment variable).',

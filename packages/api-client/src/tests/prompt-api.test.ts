@@ -223,8 +223,8 @@ describe('Prompt API Tests', () => {
       return
     }
 
-    const success = await client.prompts.addPromptToProject(testProjectId, promptToAdd.id)
-    expect(success).toBe(true)
+    const resultAdd = await client.prompts.addPromptToProject(testProjectId, promptToAdd.id)
+    expect(resultAdd.success).toBe(true)
 
     // Update local prompt data
     const promptIndex = testPrompts.findIndex((p) => p.id === promptToAdd.id)
@@ -263,8 +263,8 @@ describe('Prompt API Tests', () => {
       return
     }
 
-    const success = await client.prompts.removePromptFromProject(testProjectId, promptToRemove.id)
-    expect(success).toBe(true)
+    const resultRemove = await client.prompts.removePromptFromProject(testProjectId, promptToRemove.id)
+    expect(resultRemove.success).toBe(true)
 
     // Update local prompt data
     const promptIndex = testPrompts.findIndex((p) => p.id === promptToRemove.id)

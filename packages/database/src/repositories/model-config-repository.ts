@@ -67,19 +67,9 @@ export const modelConfigRepository = {
   },
 
   /**
-   * Get user configurations
+   * Get all configurations
    */
-  async getUserConfigs(userId?: number): Promise<ModelConfig[]> {
-    if (userId) {
-      const results = await db
-        .select()
-        .from(modelConfigs)
-        .where(and(eq(modelConfigs.userId, userId), eq(modelConfigs.isActive, true)))
-        .orderBy(modelConfigs.name)
-      return results as ModelConfig[]
-    }
-
-    // Get all non-system configs when no userId provided
+  async getAllConfigs(): Promise<ModelConfig[]> {
     const results = await db
       .select()
       .from(modelConfigs)

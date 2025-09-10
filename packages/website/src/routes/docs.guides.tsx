@@ -73,7 +73,7 @@ mcp__promptliano__project_manager(
           </p>
           <CodeBlock
             code={`// Fast strategy - no AI, pure relevance scoring
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -83,7 +83,7 @@ mcp__promptliano__ticket_manager(
 )
 
 // Balanced strategy - pre-filters 50 files, AI refines
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -93,7 +93,7 @@ mcp__promptliano__ticket_manager(
 )
 
 // Thorough strategy - pre-filters 100 files, high-quality AI
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -126,7 +126,7 @@ mcp__promptliano__ticket_manager(
                 filename: '1-create-ticket.ts',
                 language: 'typescript',
                 code: `// Step 1: Create a ticket with clear overview
-const ticket = await mcp__promptliano__ticket_manager(
+const ticket = await mcp__promptliano__flow_manager(
   action: "create",
   projectId: <PROJECT_ID>,
   data: {
@@ -141,13 +141,13 @@ const ticket = await mcp__promptliano__ticket_manager(
                 filename: '2-generate-tasks.ts',
                 language: 'typescript',
                 code: `// Step 2: Auto-generate tasks based on ticket
-await mcp__promptliano__ticket_manager(
+await mcp__promptliano__flow_manager(
   action: "auto_generate_tasks",
   ticketId: ticket.id
 )
 
 // Or manually create specific tasks
-await mcp__promptliano__task_manager(
+await mcp__promptliano__flow_manager(
   action: "batch_create",
   ticketId: ticket.id,
   data: {
@@ -163,7 +163,7 @@ await mcp__promptliano__task_manager(
                 filename: '3-track-progress.ts',
                 language: 'typescript',
                 code: `// Step 3: Update tasks as you work
-await mcp__promptliano__task_manager(
+await mcp__promptliano__flow_manager(
   action: "update",
   ticketId: ticket.id,
   data: {
@@ -174,7 +174,7 @@ await mcp__promptliano__task_manager(
 )
 
 // Get task complexity analysis
-await mcp__promptliano__task_manager(
+await mcp__promptliano__flow_manager(
   action: "analyze_complexity",
   ticketId: ticket.id,
   data: { taskId: 790 }
@@ -258,7 +258,7 @@ mcp__promptliano__project_manager(
 )
 
 // Ticket-level suggestions (with strategies)
-mcp__promptliano__ticket_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {
@@ -269,7 +269,7 @@ mcp__promptliano__ticket_manager(
 )
 
 // Task-level suggestions (most focused)
-mcp__promptliano__task_manager(
+mcp__promptliano__flow_manager(
   action: "suggest_files",
   ticketId: 456,
   data: {

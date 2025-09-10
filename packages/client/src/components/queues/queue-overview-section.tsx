@@ -178,7 +178,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
                       : `${totalQueued} task${totalQueued !== 1 ? 's' : ''} ready for processing`}
                   </p>
                   <p className='text-xs text-orange-700 dark:text-orange-300 mt-0.5'>
-                    Use the queue_processor MCP tool to start processing tasks
+                    Use the flow_manager MCP tool to start processing tasks
                   </p>
                 </div>
               </div>

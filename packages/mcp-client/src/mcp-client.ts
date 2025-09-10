@@ -223,6 +223,32 @@ export class MCPClient {
   private getMockTools(): MCPTool[] {
     return [
       {
+        id: 'flow_manager',
+        name: 'flow_manager',
+        description: 'Unified flow operations: tickets, tasks, queues, processor',
+        serverId: this.config.id,
+        parameters: [
+          { name: 'action', type: 'string', description: 'Action to perform', required: true },
+          { name: 'projectId', type: 'number', description: 'Project ID', required: false },
+          { name: 'ticketId', type: 'number', description: 'Ticket ID', required: false },
+          { name: 'taskId', type: 'number', description: 'Task ID', required: false },
+          { name: 'queueId', type: 'number', description: 'Queue ID', required: false },
+          { name: 'data', type: 'object', description: 'Action-specific payload', required: false }
+        ],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', description: 'Action to perform' },
+            projectId: { type: 'number', description: 'Project ID' },
+            ticketId: { type: 'number', description: 'Ticket ID' },
+            taskId: { type: 'number', description: 'Task ID' },
+            queueId: { type: 'number', description: 'Queue ID' },
+            data: { type: 'object', description: 'Action-specific payload' }
+          },
+          required: ['action']
+        }
+      },
+      {
         id: 'project_manager',
         name: 'project_manager',
         description: 'Manage projects, files, and project-related operations',

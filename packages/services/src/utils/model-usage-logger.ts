@@ -85,6 +85,7 @@ function formatProvider(provider: string, customUrl?: string): string {
     google_gemini: 'Gemini',
     groq: 'Groq',
     openrouter: 'OpenRouter',
+    copilot: 'GitHub Copilot',
     lmstudio: 'LMStudio',
     ollama: 'Ollama',
     xai: 'XAI',

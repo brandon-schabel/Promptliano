@@ -69,6 +69,14 @@ function getLanguageByExtension(extension?: string | null): string {
   return languageMap[ext] || 'plaintext'
 }
 
+// Extract unified diff string from various API response shapes
+function getDiffString(data: unknown): string | undefined {
+  const payload = (data as any)?.data ?? data
+  if (!payload || typeof payload !== 'object') return undefined
+  if ('diff' in (payload as any) && typeof (payload as any).diff === 'string') return (payload as any).diff
+  return undefined
+}
+
 export function FileViewerDialog({
   open,
   viewedFile,
@@ -330,7 +338,7 @@ export function FileViewerDialog({
                     variant='outline'
                     size='sm'
                     onClick={async () => {
-                      const diffContent = (diffData as any)?.diff || diffData?.content
+                      const diffContent = getDiffString(diffData)
                       if (!diffContent) return
                       try {
                         await navigator.clipboard.writeText(
@@ -341,7 +349,7 @@ export function FileViewerDialog({
                         toast.error('Failed to copy diff')
                       }
                     }}
-                    disabled={!((diffData as any)?.diff || diffData?.content)}
+                    disabled={!getDiffString(diffData)}
                   >
                     <Copy className='h-4 w-4 mr-2' />
                     Copy Diff
@@ -353,7 +361,7 @@ export function FileViewerDialog({
 
                   {diffError && <div className='text-red-500 p-4'>Failed to load diff: {diffError.message}</div>}
 
-                  {diffData?.content && !diffLoading && !diffError && (
+                  {getDiffString(diffData) && !diffLoading && !diffError && (
                     <>
                       {diffViewType === 'monaco' ? (
                         <div className='h-full'>
@@ -388,7 +396,8 @@ export function FileViewerDialog({
                                 modified: modified.join('\n')
                               }
                             }
-                            const diff = (diffData as any)?.diff || diffData?.content || diffData
+                            const diff = getDiffString(diffData) ||
+                              (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))
                             const { original, modified } = parseDiff(diff || '')
                             return (
                               <div className='relative h-full'>
@@ -421,8 +430,7 @@ export function FileViewerDialog({
                       ) : (
                         <div className='max-h-full overflow-auto'>
                           <pre className='text-xs p-2 bg-muted rounded font-mono'>
-                            {(diffData as any)?.diff ||
-                              diffData?.content ||
+                            {getDiffString(diffData) ||
                               (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))}
                           </pre>
                         </div>
@@ -430,7 +438,7 @@ export function FileViewerDialog({
                     </>
                   )}
 
-                  {diffData?.content === '' && !diffLoading && !diffError && (
+                  {!getDiffString(diffData) && !diffLoading && !diffError && (
                     <div className='text-muted-foreground p-4 text-center'>No changes in {diffViewMode} area</div>
                   )}
                 </div>

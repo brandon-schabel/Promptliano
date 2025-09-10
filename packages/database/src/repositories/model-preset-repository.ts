@@ -51,19 +51,9 @@ export const modelPresetRepository = {
   },
 
   /**
-   * Get user presets
+   * Get all presets
    */
-  async getUserPresets(userId?: number): Promise<ModelPreset[]> {
-    if (userId) {
-      const results = await db
-        .select()
-        .from(modelPresets)
-        .where(and(eq(modelPresets.userId, userId), eq(modelPresets.isActive, true)))
-        .orderBy(desc(modelPresets.usageCount), modelPresets.name)
-      return results as ModelPreset[]
-    }
-
-    // Get all non-system presets when no userId provided
+  async getAllPresets(): Promise<ModelPreset[]> {
     const results = await db
       .select()
       .from(modelPresets)
