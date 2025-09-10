@@ -122,7 +122,7 @@ const removePromptFromProjectRoute = createRoute({
 
 const getPromptByIdRoute = createRoute({
   method: 'get',
-  path: '/api/prompts/{promptId}',
+  path: '/api/prompts/{id}',
   tags: ['Prompts'],
   summary: 'Get a specific prompt by its ID',
   request: {
@@ -133,7 +133,7 @@ const getPromptByIdRoute = createRoute({
 
 const updatePromptRoute = createRoute({
   method: 'patch',
-  path: '/api/prompts/{promptId}',
+  path: '/api/prompts/{id}',
   tags: ['Prompts'],
   summary: "Update a prompt's details",
   request: {
@@ -148,7 +148,7 @@ const updatePromptRoute = createRoute({
 
 const deletePromptRoute = createRoute({
   method: 'delete',
-  path: '/api/prompts/{promptId}',
+  path: '/api/prompts/{id}',
   tags: ['Prompts'],
   summary: 'Delete a prompt',
   request: {
@@ -200,7 +200,7 @@ const importPromptsRoute = createRoute({
 
 const exportPromptRoute = createRoute({
   method: 'get',
-  path: '/api/prompts/{promptId}/export',
+  path: '/api/prompts/{id}/export',
   tags: ['Prompts', 'Import/Export'],
   summary: 'Export a single prompt as markdown',
   description: 'Download a prompt as a markdown file with frontmatter',
