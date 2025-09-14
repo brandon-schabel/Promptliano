@@ -87,7 +87,7 @@ async function syncVersions() {
     'schemas',
     'services',
     'shared',
-    'storage',
+    'hook-factory',
     'config',
     'ui'
   ]
@@ -117,8 +117,7 @@ async function syncVersions() {
     { search: /Promptliano MCP Server v\d+\.\d+\.\d+/g, replace: `Promptliano MCP Server v${VERSION}` }
   ])
 
-  // Update MCP Routes
-  await updateTypeScriptFile(join(ROOT_DIR, 'packages/server/src/routes/mcp-routes.ts'), versionPatterns)
+  // (routes/mcp-routes.ts removed in current structure)
 
   // Update MCP Installation Service
   await updateTypeScriptFile(join(ROOT_DIR, 'packages/services/src/mcp-installation-service.ts'), versionPatterns)
@@ -143,6 +142,8 @@ async function syncVersions() {
     await updateTypeScriptFile(join(ROOT_DIR, file), [
       // Update version strings
       { search: /version:\s*['"`]v?\d+\.\d+\.\d+['"`]/g, replace: `version: 'v${VERSION}'` },
+      // Update JSX prop usage version='vX.Y.Z'
+      { search: /version=\s*['"`]v?\d+\.\d+\.\d+['"`]/g, replace: `version='v${VERSION}'` },
       // Update download URLs
       { search: /\/download\/v\d+\.\d+\.\d+\//g, replace: `/download/v${VERSION}/` },
       { search: /promptliano-\d+\.\d+\.\d+-/g, replace: `promptliano-${VERSION}-` },
@@ -156,6 +157,26 @@ async function syncVersions() {
       }
     ])
   }
+
+  // Update generated OpenAPI specs if present
+  await updateJsonFile(join(ROOT_DIR, 'src/generated/openapi-spec.json'), (data: any) => {
+    if (data?.info) data.info.version = VERSION
+    return data
+  })
+
+  await updateJsonFile(join(ROOT_DIR, 'packages/api-client/src/generated/openapi-spec.json'), (data: any) => {
+    if (data?.info) data.info.version = VERSION
+    return data
+  })
+
+  // Update Promptliano tests expecting old version
+  await updateTypeScriptFile(join(ROOT_DIR, 'packages/promptliano/src/tests/test-utils.ts'), [
+    { search: /version:\s*['"`]\d+\.\d+\.\d+['"`]/g, replace: `version: '${VERSION}'` }
+  ])
+
+  await updateTypeScriptFile(join(ROOT_DIR, 'packages/promptliano/src/tests/lib/system-checker.test.ts'), [
+    { search: /expect\(result\.version\)\.toBe\(['"`]\d+\.\d+\.\d+['"`]\)/g, replace: `expect(result.version).toBe('${VERSION}')` }
+  ])
 
   console.log('\n✨ Version sync complete!')
 }

@@ -36,7 +36,7 @@ export class TestEnvironment {
       JSON.stringify(
         {
           name: 'promptliano-core',
-          version: '0.10.0',
+          version: '0.11.0',
           type: 'module'
         },
         null,

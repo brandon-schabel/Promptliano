@@ -36,7 +36,7 @@ const newVersion = process.argv[2]
 if (!newVersion) {
   console.error('❌ Please provide a version number')
   console.log('Usage: bun run update-version.ts <version>')
-  console.log('Example: bun run update-version.ts 0.10.0')
+  console.log('Example: bun run update-version.ts 0.11.0')
   process.exit(1)
 }
 

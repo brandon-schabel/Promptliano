@@ -59,7 +59,7 @@
     },
     "packages/api-client": {
       "name": "@promptliano/api-client",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@promptliano/hook-factory": "workspace:*",
       },
@@ -73,7 +73,7 @@
     },
     "packages/brand-kit": {
       "name": "@promptliano/brand-kit",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "color": "^4.2.3",
       },
@@ -85,7 +85,7 @@
     },
     "packages/client": {
       "name": "client",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@ai-sdk/react": "^1.2.9",
         "@dnd-kit/core": "^6.3.1",
@@ -179,7 +179,7 @@
     },
     "packages/config": {
       "name": "@promptliano/config",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "zod": "^4.1.5",
       },
@@ -238,7 +238,7 @@
     },
     "packages/hook-factory": {
       "name": "@promptliano/hook-factory",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@promptliano/shared": "workspace:*",
       },
@@ -253,7 +253,7 @@
     },
     "packages/mcp-client": {
       "name": "@promptliano/mcp-client",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^0.5.0",
       },
@@ -266,7 +266,7 @@
     },
     "packages/promptliano": {
       "name": "promptliano",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "bin": {
         "promptliano": "./dist/index.js",
       },
@@ -290,7 +290,7 @@
     },
     "packages/schemas": {
       "name": "@promptliano/schemas",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@hono/zod-openapi": "^1.1.0",
         "@promptliano/config": "workspace:*",
@@ -304,7 +304,7 @@
     },
     "packages/server": {
       "name": "@promptliano/server",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^0.5.0",
         "@promptliano/config": "workspace:*",
@@ -321,7 +321,7 @@
     },
     "packages/services": {
       "name": "@promptliano/services",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@promptliano/config": "workspace:*",
         "@promptliano/database": "workspace:*",
@@ -338,11 +338,11 @@
     },
     "packages/shared": {
       "name": "@promptliano/shared",
-      "version": "0.10.0",
+      "version": "0.11.0",
     },
     "packages/ui": {
       "name": "@promptliano/ui",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@tanstack/react-form": "^1.19.2",
         "@tanstack/zod-form-adapter": "^0.42.1",
@@ -428,7 +428,7 @@
     },
     "packages/website": {
       "name": "@promptliano/website",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@hookform/resolvers": "^3.10.0",
         "@promptliano/brand-kit": "workspace:*",
