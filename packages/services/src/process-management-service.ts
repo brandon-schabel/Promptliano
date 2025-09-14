@@ -215,10 +215,13 @@ export class ProcessRunner extends EventEmitter {
           }
 
           try {
-            const ru = sub.resourceUsage()
+            const ru = (sub.resourceUsage?.() as unknown as NodeJS.ResourceUsage | undefined) || undefined
             managed.resourceUsage = {
-              cpuTime: { user: ru.user ?? 0, system: ru.system ?? 0 },
-              maxRSS: ru.maxRSS ?? 0
+              cpuTime: {
+                user: ru?.userCPUTime ?? 0,
+                system: ru?.systemCPUTime ?? 0
+              },
+              maxRSS: ru?.maxRSS ?? 0
             }
           } catch {
             // Set default resource usage if not available
@@ -278,20 +281,35 @@ export class ProcessRunner extends EventEmitter {
     if (!stream || typeof stream === 'number') return
 
     try {
-      // Use the for-await pattern which is more reliable with Bun
-      for await (const chunk of stream) {
-        const text = new TextDecoder().decode(chunk)
-        const lines = text.split(/\r?\n/)
-
-        for (const line of lines) {
-          if (line.trim()) {
-            const managed = this.processes.get(processId)
-            if (managed) {
-              const entry = { timestamp: Date.now(), type: which, line: line.trim() }
-              managed.logBuffer.add(entry as any)
-              this.emit('log', { processId, type: which, line: line.trim(), timestamp: entry.timestamp })
-            }
-          }
+      // Read from Web ReadableStream via reader to avoid async iterator type issues
+      const reader = (stream as ReadableStream<Uint8Array>).getReader()
+      const decoder = new TextDecoder()
+      let residual = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (!value) continue
+        const text = decoder.decode(value, { stream: true })
+        const combined = residual + text
+        const parts = combined.split(/\r?\n/)
+        residual = parts.pop() || ''
+        for (const part of parts) {
+          const line = part.trim()
+          if (!line) continue
+          const managed = this.processes.get(processId)
+          if (!managed) continue
+          const entry = { timestamp: Date.now(), type: which, line }
+          managed.logBuffer.add(entry as any)
+          this.emit('log', { processId, type: which, line, timestamp: (entry as any).timestamp })
+        }
+      }
+      if (residual.trim()) {
+        const line = residual.trim()
+        const managed = this.processes.get(processId)
+        if (managed) {
+          const entry = { timestamp: Date.now(), type: which, line }
+          managed.logBuffer.add(entry as any)
+          this.emit('log', { processId, type: which, line, timestamp: (entry as any).timestamp })
         }
       }
     } catch (error) {
@@ -585,7 +603,18 @@ export class ScriptRunner extends EventEmitter {
     managed.exitCode = exitCode
     managed.signalCode = signalCode
     managed.status = exitCode === 0 ? 'completed' : 'failed'
-    managed.resourceUsage = sub.resourceUsage() // Only available after exit
+    try {
+      const ru = (sub.resourceUsage?.() as unknown as NodeJS.ResourceUsage | undefined) || undefined
+      managed.resourceUsage = {
+        cpuTime: {
+          user: ru?.userCPUTime ?? 0,
+          system: ru?.systemCPUTime ?? 0
+        },
+        maxRSS: ru?.maxRSS ?? 0
+      }
+    } catch {
+      // ignore resource usage errors; leave undefined
+    }
 
     if (managed.monitorInterval) {
       clearInterval(managed.monitorInterval)
@@ -642,7 +671,14 @@ export class ScriptRunner extends EventEmitter {
         args: managed.config.command.slice(1),
         cwd: managed.config.cwd || '',
         env: (managed.config.env as any) || null,
-        status: managed.status === 'failed' ? 'error' : managed.status === 'completed' ? 'exited' : managed.status,
+        status:
+          managed.status === 'failed'
+            ? 'error'
+            : managed.status === 'completed'
+              ? 'exited'
+              : managed.status === 'starting'
+                ? 'running'
+                : managed.status,
         startedAt: managed.startTime,
         scriptName: managed.config.name || null,
         scriptType: this.getScriptType(managed.config.command[0]),
@@ -659,7 +695,14 @@ export class ScriptRunner extends EventEmitter {
   private async updateProcessRun(managed: ManagedProcess): Promise<void> {
     try {
       await this.processRunsRepo.updateByProcessId(managed.id, {
-        status: managed.status === 'failed' ? 'error' : managed.status === 'completed' ? 'exited' : managed.status,
+        status:
+          managed.status === 'failed'
+            ? 'error'
+            : managed.status === 'completed'
+              ? 'exited'
+              : managed.status === 'starting'
+                ? 'running'
+                : managed.status,
         exitCode: managed.exitCode || null,
         signal: managed.signalCode ? String(managed.signalCode) : null,
         exitedAt: Date.now(),
