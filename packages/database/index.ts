@@ -229,3 +229,16 @@ export type UpdateSelectedFile = InferSchema<typeof UpdateSelectedFileSchema>
 // Note: test utilities are intentionally not re-exported here to avoid pulling
 // test-only code into consumer projects' type-checking.
 // They can still be imported directly from '@promptliano/database/src/test-utils/*' if needed.
+
+// =============================================================================
+// TEST UTILITIES (for test environments)
+// =============================================================================
+// Several test suites import test DB helpers directly from '@promptliano/database'.
+// Re-export a minimal, well-scoped set to keep those tests working while keeping
+// app/runtime bundles clean. Consumers should avoid using these outside tests.
+export {
+  createTestDatabase,
+  type TestDatabase,
+  getGlobalTestDb,
+  cleanupAllTestDatabases
+} from './src/test-utils/test-db'

@@ -28,7 +28,7 @@ CREATE INDEX `chat_messages_role_idx` ON `chat_messages` (`role`);--> statement-
 CREATE INDEX `chat_messages_created_at_idx` ON `chat_messages` (`created_at`);--> statement-breakpoint
 CREATE TABLE `chats` (
 	`id` integer PRIMARY KEY NOT NULL,
-	`project_id` integer NOT NULL,
+	`project_id` integer,
 	`title` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
@@ -640,7 +640,6 @@ CREATE TABLE `model_configs` (
 	`is_system_preset` integer DEFAULT false NOT NULL,
 	`is_default` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`user_id` integer,
 	`description` text,
 	`preset_category` text,
 	`ui_icon` text,
@@ -653,7 +652,7 @@ CREATE TABLE `model_configs` (
 CREATE INDEX `model_configs_name_idx` ON `model_configs` (`name`);--> statement-breakpoint
 CREATE INDEX `model_configs_provider_idx` ON `model_configs` (`provider`);--> statement-breakpoint
 CREATE INDEX `model_configs_is_default_idx` ON `model_configs` (`is_default`);--> statement-breakpoint
-CREATE INDEX `model_configs_user_idx` ON `model_configs` (`user_id`);--> statement-breakpoint
+--> statement-breakpoint
 CREATE TABLE `model_presets` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -662,7 +661,6 @@ CREATE TABLE `model_presets` (
 	`category` text DEFAULT 'general',
 	`is_system_preset` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`user_id` integer,
 	`usage_count` integer DEFAULT 0 NOT NULL,
 	`last_used_at` integer,
 	`metadata` text,
@@ -673,7 +671,7 @@ CREATE TABLE `model_presets` (
 --> statement-breakpoint
 CREATE INDEX `model_presets_category_idx` ON `model_presets` (`category`);--> statement-breakpoint
 CREATE INDEX `model_presets_config_idx` ON `model_presets` (`config_id`);--> statement-breakpoint
-CREATE INDEX `model_presets_user_idx` ON `model_presets` (`user_id`);--> statement-breakpoint
+--> statement-breakpoint
 CREATE INDEX `model_presets_usage_idx` ON `model_presets` (`usage_count`);--> statement-breakpoint
 CREATE TABLE `mcp_error_patterns` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -711,7 +709,6 @@ CREATE TABLE `mcp_tool_executions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`tool_name` text NOT NULL,
 	`project_id` integer,
-	`user_id` text,
 	`session_id` text,
 	`started_at` integer NOT NULL,
 	`completed_at` integer,
@@ -765,3 +762,68 @@ CREATE INDEX `mcp_stat_period_idx` ON `mcp_tool_statistics` (`period_start`,`per
 );
 --> statement-breakpoint
 -- provider_keys.secret_ref included in base provider_keys definition above
+
+-- Process Management Tables (squashed from 0001_process_management.sql)
+CREATE TABLE `process_runs` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`project_id` integer NOT NULL,
+	`process_id` text NOT NULL,
+	`pid` integer,
+	`name` text,
+	`command` text NOT NULL,
+	`args` text DEFAULT '[]' NOT NULL,
+	`cwd` text NOT NULL,
+	`env` text,
+	`status` text DEFAULT 'running' NOT NULL,
+	`exit_code` integer,
+	`signal` text,
+	`started_at` integer NOT NULL,
+	`exited_at` integer,
+	`cpu_usage` real,
+	`memory_usage` integer,
+	`script_name` text,
+	`script_type` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `process_runs_process_id_unique` ON `process_runs` (`process_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_project_idx` ON `process_runs` (`project_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_process_id_idx` ON `process_runs` (`process_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_status_idx` ON `process_runs` (`status`);--> statement-breakpoint
+CREATE INDEX `process_runs_started_at_idx` ON `process_runs` (`started_at`);--> statement-breakpoint
+CREATE TABLE `process_logs` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`run_id` integer NOT NULL,
+	`timestamp` integer NOT NULL,
+	`type` text NOT NULL,
+	`content` text NOT NULL,
+	`line_number` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`run_id`) REFERENCES `process_runs`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `process_logs_run_idx` ON `process_logs` (`run_id`);--> statement-breakpoint
+CREATE INDEX `process_logs_timestamp_idx` ON `process_logs` (`timestamp`);--> statement-breakpoint
+CREATE INDEX `process_logs_type_idx` ON `process_logs` (`type`);--> statement-breakpoint
+CREATE TABLE `process_ports` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`project_id` integer NOT NULL,
+	`run_id` integer,
+	`port` integer NOT NULL,
+	`protocol` text DEFAULT 'tcp' NOT NULL,
+	`address` text DEFAULT '0.0.0.0' NOT NULL,
+	`pid` integer,
+	`process_name` text,
+	`state` text DEFAULT 'listening' NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`run_id`) REFERENCES `process_runs`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE INDEX `process_ports_project_idx` ON `process_ports` (`project_id`);--> statement-breakpoint
+CREATE INDEX `process_ports_run_idx` ON `process_ports` (`run_id`);--> statement-breakpoint
+CREATE INDEX `process_ports_port_idx` ON `process_ports` (`port`);--> statement-breakpoint
+CREATE INDEX `process_ports_state_idx` ON `process_ports` (`state`);

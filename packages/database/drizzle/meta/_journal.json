@@ -8,13 +8,6 @@
       "when": 1757260000000,
       "tag": "0000_base",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1757296500000,
-      "tag": "0001_process_management",
-      "breakpoints": true
     }
   ]
 }

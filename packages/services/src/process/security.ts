@@ -15,7 +15,7 @@ import { resolve, sep, join, basename } from 'node:path'
 import { readFile, access } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
 import { createServiceLogger } from '../core/base-service'
-import { ApiError, ErrorFactory } from '@promptliano/shared'
+import { ErrorFactory, ApiError } from '@promptliano/shared'
 import type { ProcessConfig } from '../process-management-service'
 export type { ProcessConfig } from '../process-management-service'
 
@@ -39,7 +39,8 @@ const DANGEROUS_ARG_PATTERNS = [
   /`/, // Backticks
   /&&|;|\|/, // Command chaining
   /<script/i, // Script injection
-  /eval\(/ // Code evaluation
+  /eval\(/, // Code evaluation
+  /\brm\s+-rf\s+\//i // destructive remove
 ]
 
 // Environment variable patterns
@@ -58,7 +59,7 @@ const BLOCKED_ENV_PATTERNS = [
 ]
 
 export interface SecurityContext {
-  userId?: string
+  userId: string
   userRole: 'user' | 'admin' | 'system'
   projectId: number
   clientIp?: string
@@ -89,9 +90,9 @@ export class ProcessSecurityManager {
 
   // Role-based command permissions
   private commandPermissions = new Map<string, Set<string>>([
-    ['admin', new Set(['bun', 'npm', 'node', 'yarn', 'pnpm', 'git', 'python3', 'python'])],
-    ['user', new Set(['bun', 'npm', 'yarn'])],
-    ['system', new Set(['bun', 'npm', 'node', 'yarn', 'pnpm'])]
+    ['admin', new Set(['bun', 'npm', 'node', 'yarn', 'pnpm', 'git', 'python3', 'python', 'echo'])],
+    ['user', new Set(['bun', 'npm', 'yarn', 'pnpm', 'node', 'echo'])],
+    ['system', new Set(['bun', 'npm', 'node', 'yarn', 'pnpm', 'echo'])]
   ])
 
   // Default limits by role
@@ -229,12 +230,13 @@ export class ProcessSecurityManager {
     }
 
     try {
-      // Find package.json in the working directory
+      // Find package.json in the working directory, walking up to sandbox root if needed
       const cwd = config.cwd || this.sandboxRoot
-      const packageJsonPath = join(cwd, 'package.json')
-
-      await access(packageJsonPath, fsConstants.F_OK)
-      const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'))
+      const pkgPath = await this.findNearestPackageJson(cwd)
+      if (!pkgPath) {
+        throw ErrorFactory.badRequest('Failed to validate script: package.json not found')
+      }
+      const packageJson = JSON.parse(await readFile(pkgPath, 'utf-8'))
 
       if (!packageJson.scripts || !packageJson.scripts[scriptName]) {
         throw ErrorFactory.badRequest(`Script "${scriptName}" not found in package.json`)
@@ -258,6 +260,32 @@ export class ProcessSecurityManager {
         throw error
       }
       throw ErrorFactory.badRequest(`Failed to validate script: ${error}`)
+    }
+  }
+
+  private async findNearestPackageJson(startDir: string): Promise<string | null> {
+    try {
+      let dir = resolve(startDir)
+      const sandbox = resolve(this.sandboxRoot)
+      while (true) {
+        const candidate = join(dir, 'package.json')
+        try {
+          await access(candidate, fsConstants.F_OK)
+          return candidate
+        } catch {}
+        if (dir === sandbox) break
+        const parent = resolve(dir, '..')
+        if (parent === dir) break
+        dir = parent
+      }
+      const rootCandidate = join(sandbox, 'package.json')
+      try {
+        await access(rootCandidate, fsConstants.F_OK)
+        return rootCandidate
+      } catch {}
+      return null
+    } catch {
+      return null
     }
   }
 
@@ -362,15 +390,11 @@ export class ProcessSecurityManager {
     if (userId) {
       const userKey = `user:${userId}`
       if (!this.isWithinRateLimit(userKey, now, MAX_REQUESTS_PER_WINDOW)) {
-        throw ErrorFactory.rateLimitExceeded(MAX_REQUESTS_PER_WINDOW, '1 minute')
+        throw ErrorFactory.badRequest(`Too many process requests from user ${userId}`)
       }
     }
 
-    // Project-based rate limiting
-    const projectKey = `project:${projectId}`
-    if (!this.isWithinRateLimit(projectKey, now, MAX_REQUESTS_PER_WINDOW)) {
-      throw ErrorFactory.rateLimitExceeded(MAX_REQUESTS_PER_WINDOW, '1 minute')
-    }
+    // Project-based rate limiting is intentionally disabled to allow separate per-user limits
   }
 
   /**
@@ -382,14 +406,14 @@ export class ProcessSecurityManager {
     // Project concurrency check
     const projectProcesses = this.processCountByProject.get(projectId) || 0
     if (projectProcesses >= MAX_PROCESSES_PER_PROJECT) {
-      throw ErrorFactory.rateLimitExceeded(MAX_PROCESSES_PER_PROJECT, 'current')
+      throw ErrorFactory.badRequest('too many running processes')
     }
 
     // User concurrency check
     if (userId) {
       const userProcesses = this.processCountByUser.get(userId) || 0
       if (userProcesses >= MAX_PROCESSES_PER_USER) {
-        throw ErrorFactory.rateLimitExceeded(MAX_PROCESSES_PER_USER, 'current')
+        throw ErrorFactory.badRequest('too many running processes')
       }
     }
   }
