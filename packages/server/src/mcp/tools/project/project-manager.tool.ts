@@ -22,22 +22,19 @@ import {
   getProjectFiles,
   updateFileContent,
   suggestFiles,
-  getCompactProjectSummary,
   syncProject,
-  getActiveTab,
-  getProjectSummaryWithOptions,
   getProjectFileTree,
   getProjectOverview
 } from '@promptliano/services'
 import { createFileSearchService } from '@promptliano/services'
 import type { CreateProjectBody, UpdateProjectBody } from '@promptliano/services'
-import { SummaryOptionsSchema } from '@promptliano/schemas'
+// Removed summary options schema usage
 import { ApiError } from '@promptliano/shared'
 
 export const projectManagerTool: MCPToolDefinition = {
   name: 'project_manager',
   description:
-    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), get_summary, get_summary_advanced (with options for depth/format/strategy), get_summary_metrics (summary generation metrics), browse_files, get_file_content, update_file_content, suggest_files, get_selection_context (get complete active tab context), search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
+    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), browse_files, get_file_content, update_file_content, suggest_files, search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -54,7 +51,7 @@ export const projectManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get_file_content: { path: "src/index.ts" }. For browse_files: { path: "src/" }. For create: { name: "My Project", path: "/path/to/project" }. For delete_file: { path: "src/file.ts" }. For get_summary_advanced: { depth: "minimal" | "standard" | "detailed", format: "xml" | "json" | "markdown", strategy: "fast" | "balanced" | "thorough", focus: ["api", "frontend"], includeMetrics: true }. For overview: no data required'
+          'Action-specific data. For get_file_content: { path: "src/index.ts" }. For browse_files: { path: "src/" }. For create: { name: "My Project", path: "/path/to/project" }. For delete_file: { path: "src/file.ts" }. For overview: no data required'
       }
     },
     required: ['action']
@@ -135,86 +132,7 @@ export const projectManagerTool: MCPToolDefinition = {
             }
           }
 
-          case ProjectManagerAction.GET_SUMMARY: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
-            const summary = await getCompactProjectSummary(validProjectId)
-            return {
-              content: [{ type: 'text', text: summary }]
-            }
-          }
-
-          case ProjectManagerAction.GET_SUMMARY_ADVANCED: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
-            // Parse and validate options
-            const options = SummaryOptionsSchema.parse(data || {})
-            const result = await getProjectSummaryWithOptions(validProjectId, options)
-
-            // Format response based on whether metrics were requested
-            if (options.includeMetrics && result.metrics) {
-              const metricsText = `
-Summary Metrics:
-- Generation Time: ${result.metrics.generationTime}ms
-- Files Processed: ${result.metrics.filesProcessed}
-- Original Size: ${result.metrics.originalSize} chars
-- Compressed Size: ${result.metrics.compressedSize} chars
-- Compression Ratio: ${(result.metrics.compressionRatio * 100).toFixed(1)}%
-- Tokens Saved: ~${result.metrics.tokensSaved}
-- Cache Hit: ${result.metrics.cacheHit ? 'Yes' : 'No'}
-
-Summary:
-${result.summary}`
-              return {
-                content: [{ type: 'text', text: metricsText }]
-              }
-            }
-
-            return {
-              content: [{ type: 'text', text: result.summary }]
-            }
-          }
-
-          case ProjectManagerAction.GET_SUMMARY_METRICS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
-            // Get summary with metrics for standard options
-            const result = await getProjectSummaryWithOptions(validProjectId, {
-              depth: 'standard',
-              format: 'xml',
-              strategy: 'balanced',
-              includeImports: true,
-              includeExports: true,
-              progressive: false,
-              includeMetrics: true,
-              groupAware: false,
-              includeRelationships: true,
-              contextWindow: 3
-            })
-
-            if (!result.metrics) {
-              return {
-                content: [{ type: 'text', text: 'No metrics available' }]
-              }
-            }
-
-            const metricsReport = `
-Project Summary Metrics:
-- Generation Time: ${result.metrics.generationTime}ms
-- Files Processed: ${result.metrics.filesProcessed}
-- Original Size: ${result.metrics.originalSize.toLocaleString()} characters
-- Compressed Size: ${result.metrics.compressedSize.toLocaleString()} characters
-- Compression Ratio: ${(result.metrics.compressionRatio * 100).toFixed(1)}%
-- Estimated Tokens Saved: ~${result.metrics.tokensSaved.toLocaleString()}
-- Cache Status: ${result.metrics.cacheHit ? 'Hit (from cache)' : 'Miss (generated)'}
-- Content Truncated: ${result.metrics.truncated ? 'Yes' : 'No'}
-
-Version Info:
-- Format Version: ${result.version.version}
-- Model Used: ${result.version.model}
-- Generated: ${new Date(result.version.generated).toLocaleString()}`
-
-            return {
-              content: [{ type: 'text', text: metricsReport }]
-            }
-          }
+          // Project summary actions removed
 
           case ProjectManagerAction.BROWSE_FILES: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
@@ -370,66 +288,13 @@ Version Info:
             const limit = (data?.limit as number) || 10
 
             const suggestions = await suggestFiles(validProjectId, prompt, limit)
-            const suggestionText = suggestions.map((f) => `${f.path} - ${f.summary || 'No summary'}`).join('\n')
+            const suggestionText = suggestions.map((f) => `${f.path}`).join('\n')
             return {
               content: [{ type: 'text', text: suggestionText || 'No file suggestions found' }]
             }
           }
 
-          case ProjectManagerAction.GET_SELECTION_CONTEXT: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
-
-            // Get active tab to get selection context
-            const activeTab = await getActiveTab(validProjectId)
-            if (!activeTab) {
-              return {
-                content: [{ type: 'text', text: 'No active tab found' }]
-              }
-            }
-
-            const tabMetadata = activeTab.data.tabMetadata
-            if (!tabMetadata) {
-              return {
-                content: [{ type: 'text', text: 'No active tab metadata found' }]
-              }
-            }
-
-            // Get file details if there are selected files
-            let fileList = ''
-            if (tabMetadata.selectedFiles && tabMetadata.selectedFiles.length > 0) {
-              const files = await getProjectFiles(validProjectId)
-              const selectedFileDetails = files?.filter((f) => tabMetadata.selectedFiles?.includes(f.id)) || []
-              fileList = selectedFileDetails.map((f) => `  - ${f.path} (${f.size} bytes)`).join('\n')
-            }
-
-            // Build comprehensive context output
-            let contextText = `Active tab context for project ${validProjectId}:\n`
-            contextText += `\nTab ID: ${activeTab.data.activeTabId}`
-            contextText += `\nTab Name: ${tabMetadata.displayName || 'Unnamed Tab'}`
-            contextText += `\n\nSelected files (${tabMetadata.selectedFiles?.length || 0}):\n${fileList || '  None'}`
-            contextText += `\n\nPrompt IDs: ${tabMetadata.selectedPrompts?.join(', ') || 'none'}`
-            contextText += `\nUser prompt: ${tabMetadata.userPrompt || 'empty'}`
-            contextText += `\n\nSearch/Filter Settings:`
-            contextText += `\n  File search: ${tabMetadata.fileSearch || 'none'}`
-            contextText += `\n  Search by content: ${tabMetadata.searchByContent || false}`
-            contextText += `\n  Resolve imports: ${tabMetadata.resolveImports || false}`
-            contextText += `\n  Preferred editor: ${tabMetadata.preferredEditor || 'default'}`
-
-            if (tabMetadata.ticketSearch || tabMetadata.ticketSort || tabMetadata.ticketStatusFilter) {
-              contextText += `\n\nTicket Settings:`
-              contextText += `\n  Search: ${tabMetadata.ticketSearch || 'none'}`
-              contextText += `\n  Sort: ${tabMetadata.ticketSort || 'default'}`
-              contextText += `\n  Status filter: ${tabMetadata.ticketStatusFilter || 'all'}`
-            }
-
-            contextText += `\n\nUI State:`
-            contextText += `\n  Prompts panel: ${tabMetadata.promptsPanelCollapsed ? 'collapsed' : 'expanded'}`
-            contextText += `\n  Selected files panel: ${tabMetadata.selectedFilesCollapsed ? 'collapsed' : 'expanded'}`
-
-            return {
-              content: [{ type: 'text', text: contextText }]
-            }
-          }
+          // Removed: GET_SELECTION_CONTEXT (active-tab dependent)
 
           case ProjectManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')
@@ -440,7 +305,7 @@ Version Info:
             const includeContext = (data?.includeContext as boolean) || false
             const contextLines = (data?.contextLines as number) || 3
             const caseSensitive = (data?.caseSensitive as boolean) || false
-            const searchType = (data?.searchType as 'exact' | 'fuzzy' | 'semantic' | 'regex') || 'semantic'
+            const searchType = (data?.searchType as 'ast' | 'exact' | 'fuzzy' | 'semantic' | 'regex') || 'ast'
             const scoringMethod = (data?.scoringMethod as 'relevance' | 'recency' | 'frequency') || 'relevance'
             const output = (data?.output as 'text' | 'json') || 'text'
 

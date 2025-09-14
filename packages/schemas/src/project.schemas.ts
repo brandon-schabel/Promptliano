@@ -68,8 +68,6 @@ export const ProjectFileSchema = z
     lastModified: z.number().nullable(), // From database schema
     contentType: z.string().nullable(), // From database schema
     content: z.string().nullable(),
-    summary: z.string().nullable(),
-    summaryLastUpdated: unixTSSchemaSpec.nullable(),
     meta: z.string().nullable(),
     checksum: z.string().nullable(),
     imports: z.array(ImportInfoSchema).nullable().default(null),
@@ -107,23 +105,6 @@ export const UpdateProjectBodySchema = CreateProjectBodySchema.partial()
   })
   .openapi('UpdateProjectRequestBody')
 
-export const SummarizeFilesBodySchema = z
-  .object({
-    // file ids
-    fileIds: entityIdArraySchema,
-    force: z
-      .boolean()
-      .optional()
-      .default(false)
-      .openapi({ example: false, description: 'Force re-summarization even if summary exists' })
-  })
-  .openapi('SummarizeFilesRequestBody')
-
-export const RemoveSummariesBodySchema = z
-  .object({
-    fileIds: entityIdArraySchema
-  })
-  .openapi('RemoveSummariesRequestBody')
 
 export const SuggestFilesBodySchema = z
   .object({
@@ -202,14 +183,6 @@ export const FileResponseSchema = z
   })
   .openapi('FileResponse')
 
-// Define ProjectSummaryResponseSchema for the project summary route
-export const ProjectSummaryResponseSchema = z
-  .object({
-    success: z.literal(true),
-    summary: z.string()
-  })
-  .openapi('ProjectSummaryResponse')
-
 // Project Statistics Schemas
 export const ProjectStatisticsSchema = z
   .object({
@@ -224,9 +197,7 @@ export const ProjectStatisticsSchema = z
         docs: z.number(),
         config: z.number(),
         other: z.number()
-      }),
-      filesWithSummaries: z.number(),
-      averageSummaryLength: z.number()
+      })
     }),
     ticketStats: z.object({
       totalTickets: z.number(),
@@ -317,7 +288,6 @@ export type ProjectFileWithoutContentListResponse = z.infer<typeof ProjectFileWi
 export type FileResponse = z.infer<typeof FileResponseSchema>
 export type ProjectStatistics = z.infer<typeof ProjectStatisticsSchema>
 export type ProjectStatisticsResponse = z.infer<typeof ProjectStatisticsResponseSchema>
-export type ProjectSummaryResponse = z.infer<typeof ProjectSummaryResponseSchema>
 export type SuggestFilesResponse = z.infer<typeof SuggestFilesResponseSchema>
 
 // Sync Progress Schemas

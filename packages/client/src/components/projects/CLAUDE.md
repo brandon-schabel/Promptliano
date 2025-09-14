@@ -75,10 +75,10 @@ projects/
 │   ├── prompts-list.tsx                # Project prompts management
 │   ├── prompt-dialog.tsx               # Prompt creation/editing
 │   ├── prompt-overview-panel.tsx       # Prompts overview
-│   ├── summarization-view.tsx          # File summarization
-│   ├── summarization-stats-card.tsx    # Summarization metrics
-│   ├── summary-dialog.tsx              # Summary creation
-│   └── summary-options-dialog.tsx      # Summary options
+│   ├── content-insights-view.tsx       # Content insights
+│   ├── insights-stats-card.tsx         # Content metrics
+│   ├── context-dialog.tsx              # Context creation
+│   └── context-options-dialog.tsx      # Context options
 │
 └── Utilities
     ├── project-assets-view.tsx          # Project assets management

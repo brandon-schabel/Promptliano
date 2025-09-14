@@ -9,6 +9,7 @@ const defaultModelConfigs = DEFAULT_MODEL_EXAMPLES
 export const providerSchema = z.enum([
   'openai',
   'openrouter',
+  'copilot',
   'lmstudio',
   'ollama',
   'xai',
@@ -191,6 +192,11 @@ export const projectTabStateSchema = z
       .optional()
       .default(false)
       .openapi({ description: 'Whether the Assets tab is enabled for this project.' }),
+    processesEnabled: z
+      .boolean()
+      .optional()
+      .default(false)
+      .openapi({ description: 'Whether the Processes tab is enabled for this project.' }),
     autoIncludeClaudeMd: z.boolean().optional().default(false).openapi({
       description: 'DEPRECATED: Use instructionFileSettings instead. Kept for backward compatibility.',
       example: true
@@ -355,31 +361,6 @@ export const appSettingsSchema = z
           { name: 'Production', url: 'https://api.promptliano.com', isDefault: false }
         ]
       }),
-    summarizationIgnorePatterns: z
-      .array(z.string())
-      .optional()
-      .default([])
-      .openapi({
-        description: 'Glob patterns for files/folders to ignore during automatic summarization.',
-        example: ['**/node_modules/**', '**/*.log']
-      }),
-    summarizationAllowPatterns: z
-      .array(z.string())
-      .optional()
-      .default([])
-      .openapi({
-        description:
-          'Glob patterns for files/folders to explicitly include in summarization (if ignore patterns also match).',
-        example: ['src/**/*.ts']
-      }),
-    summarizationEnabledProjectIds: z
-      .array(z.number())
-      .optional()
-      .default([])
-      .openapi({
-        description: 'List of project IDs for which automatic summarization is enabled.',
-        example: [123, 456]
-      }),
     useSpacebarToSelectAutocomplete: z
       .boolean()
       .optional()
@@ -417,13 +398,10 @@ export const appSettingsSchema = z
       .optional()
       .default(true)
       .openapi({ description: 'Whether to automatically name new chats based on their initial content.' }),
-    selectedPreset: z
-      .enum(['low', 'medium', 'high', 'planning'])
-      .optional()
-      .openapi({
-        description: 'Currently selected model intelligence preset for chat configuration.',
-        example: 'medium'
-      }),
+    selectedPreset: z.enum(['low', 'medium', 'high', 'planning']).optional().openapi({
+      description: 'Currently selected model intelligence preset for chat configuration.',
+      example: 'medium'
+    }),
     devToolsEnabled: z
       .object({
         tanstackQuery: z
@@ -436,38 +414,22 @@ export const appSettingsSchema = z
           .optional()
           .default(false)
           .openapi({ description: 'Whether TanStack Router DevTools are enabled in the UI.', example: false }),
-        reactScan: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether React Scan DevTools are enabled for performance visualization.',
-            example: false
-          }),
-        drizzleStudio: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
-            example: false
-          }),
-        swaggerUI: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether Swagger UI API documentation is accessible via navigation.',
-            example: false
-          }),
-        mcpInspector: z
-          .boolean()
-          .optional()
-          .default(false)
-          .openapi({
-            description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
-            example: false
-          })
+        reactScan: z.boolean().optional().default(false).openapi({
+          description: 'Whether React Scan DevTools are enabled for performance visualization.',
+          example: false
+        }),
+        drizzleStudio: z.boolean().optional().default(false).openapi({
+          description: 'Whether Drizzle Studio database management interface is accessible via navigation.',
+          example: false
+        }),
+        swaggerUI: z.boolean().optional().default(false).openapi({
+          description: 'Whether Swagger UI API documentation is accessible via navigation.',
+          example: false
+        }),
+        mcpInspector: z.boolean().optional().default(false).openapi({
+          description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
+          example: false
+        })
       })
       .optional()
       .default({
@@ -581,9 +543,6 @@ export const createSafeGlobalState = (): GlobalState => ({
     lmStudioGlobalUrl: 'http://localhost:1234',
     promptlianoServerUrl: 'http://localhost:3147',
     promptlianoServerUrls: [],
-    summarizationIgnorePatterns: [],
-    summarizationAllowPatterns: [],
-    summarizationEnabledProjectIds: [],
     useSpacebarToSelectAutocomplete: true,
     hideInformationalTooltips: false,
     autoScrollEnabled: true,
@@ -631,6 +590,7 @@ export const createSafeGlobalState = (): GlobalState => ({
       selectedFilesCollapsed: false,
 
       assetsEnabled: false,
+      processesEnabled: false,
       autoIncludeClaudeMd: false,
       instructionFileSettings: {
         autoIncludeEnabled: false,

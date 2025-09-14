@@ -72,7 +72,7 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
     if (error instanceof ApiError) {
       return c.json(
         {
-          success: false,
+          success: false as const,
           error: {
             message: error.message,
             code: error.code
@@ -84,7 +84,7 @@ export const projectTabRoutes = new OpenAPIHono().openapi(projectTabNameGenerate
 
     return c.json(
       {
-        success: false,
+        success: false as const,
         error: {
           message: 'Failed to generate tab name',
           code: 'TAB_NAME_GENERATION_ERROR'

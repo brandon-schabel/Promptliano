@@ -167,8 +167,8 @@ describe('MCP API Tests', () => {
           // Create a server config first
           const configData = createMCPServerConfigData({
             name: 'Lifecycle Test Server',
-            command: 'sleep', // Use a simple command that won't fail
-            args: ['1'] // Sleep for 1 second
+            command: 'node',
+            args: ['-e', 'setTimeout(()=>{}, 1000)'] // Sleep for 1 second cross-platform
           })
 
           const createResult = await client.mcp.createServerConfig(project.id, configData)

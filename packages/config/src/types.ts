@@ -8,6 +8,7 @@ export type APIProviders =
   | 'openrouter'
   | 'xai'
   | 'together'
+  | 'copilot'
   | 'lmstudio'
   | 'ollama'
   | 'custom'
@@ -49,6 +50,9 @@ export interface ProviderConfig {
   groq: {
     baseURL: string
   }
+  copilot: {
+    baseURL: string
+  }
   ollama: {
     baseURL: string
   }
@@ -64,8 +68,6 @@ export interface ProviderConfig {
 export interface FilesConfig {
   allowedExtensions: string[]
   defaultExclusions: string[]
-  maxFileSizeForSummary: number
-  maxTokensForSummary: number
   charsPerTokenEstimate: number
   optimalTokensForBatch?: number
   promptOverheadTokens?: number
@@ -156,7 +158,6 @@ export interface RuntimeConfig {
     mcp: boolean
     websocket: boolean
     jobQueue: boolean
-    aiSummarization: boolean
   }
 }
 

@@ -139,8 +139,7 @@ export const featuresData: FeaturesSection = {
       highlights: [
         'Instant project context',
         'Active tab awareness',
-        'Recent activity tracking',
-        'File summarization status'
+        'Recent activity tracking'
       ],
       codeExample: {
         language: 'typescript',
@@ -214,15 +213,6 @@ export const featuresData: FeaturesSection = {
       badge: { text: 'Game Changer', variant: 'high' }
     },
     {
-      id: 'file-summarization',
-      title: 'Intelligent File Summarization',
-      description:
-        'Automatic file summaries that help AI assistants understand your codebase without reading entire files.',
-      category: 'efficiency',
-      icon: { type: 'emoji', value: '📝' },
-      highlights: ['Batch processing', 'Smart grouping strategies', 'Progress tracking', 'Stale summary detection']
-    },
-    {
       id: 'prompt-library',
       title: 'Global Prompt Library',
       description: 'Save and reuse documentation, patterns, and knowledge across all your projects.',
@@ -253,14 +243,6 @@ export const featuresData: FeaturesSection = {
         'Unified conversation history'
       ],
       badge: { text: 'All Providers', variant: 'secondary' }
-    },
-    {
-      id: 'active-tab-sync',
-      title: 'Active Tab Syncing',
-      description: 'Your selected files and context automatically sync with AI assistants for seamless collaboration.',
-      category: 'collaboration',
-      icon: { type: 'emoji', value: '🔄' },
-      highlights: ['Real-time sync', 'Context preservation', 'Multi-file selection', 'AI awareness']
     },
     {
       id: 'project-assets',

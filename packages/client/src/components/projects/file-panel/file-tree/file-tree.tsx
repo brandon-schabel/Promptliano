@@ -41,7 +41,7 @@ import {
   FileNode,
   estimateTokenCount
 } from '@promptliano/shared'
-import { buildNodeContent, buildNodeSummaries } from '@promptliano/shared'
+import { buildNodeContent } from '@promptliano/shared'
 
 import { getEditorUrl } from '@/utils/editor-urls'
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
@@ -339,10 +339,8 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
     [isFolder, item.node, folderChecked, handleToggleFile, handleToggleFolder, handleEnter]
   )
 
-  const summaries = useMemo(() => buildNodeSummaries(item.node, isFolder), [item.node, isFolder])
   const contents = useMemo(() => buildNodeContent(item.node, isFolder), [item.node, isFolder])
   const tree = useMemo(() => buildTreeStructure(item.node), [item.node])
-  const hasSummary = item.node.file?.summary
 
   // Function to parse diff and extract original content
   const parseDiff = useCallback((diff: string) => {
@@ -524,30 +522,7 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                   <Copy className='h-4 w-4' />
                 </Button>
 
-                {/* --- New Copy Summary Button --- */}
-                {hasSummary && ( // Only show if file has a summary
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    title='Copy File Summary' // Add tooltip
-                    className='opacity-0 group-hover:opacity-100 transition-opacity'
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      // Use false for isFolder when copying single file summary
-                      const summary = buildNodeSummaries(item.node, false)
-                      if (summary) {
-                        copyToClipboard(summary, {
-                          successMessage: 'File summary copied to clipboard',
-                          errorMessage: 'Failed to copy file summary'
-                        })
-                      } else {
-                        toast.info('No summary available for this file.')
-                      }
-                    }}
-                  >
-                    <ClipboardList className='h-4 w-4' />
-                  </Button>
-                )}
+                {/* Removed file summary copy action */}
 
                 {/* Git stage/unstage buttons */}
                 {gitFileStatus && gitFileStatus.status !== 'unchanged' && gitFileStatus.status !== 'ignored' && (
@@ -638,22 +613,6 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
         {/* Folder-specific context menu items */}
         {isFolder && (
           <>
-            {/* --- New Copy Folder Summaries Context Menu Item --- */}
-            <ContextMenuItem
-              onClick={async () => {
-                if (summaries) {
-                  copyToClipboard(summaries, {
-                    successMessage: 'Folder summaries copied to clipboard',
-                    errorMessage: 'Failed to copy folder summaries'
-                  })
-                } else {
-                  toast.info('No file summaries found in this folder.')
-                }
-              }}
-            >
-              Copy Folder Summaries ({estimateTokenCount(summaries)} Tokens)
-            </ContextMenuItem>
-            {/* --- End New Copy Folder Summaries Context Menu Item --- */}
 
             <ContextMenuItem /* Copy Folder Tree */
               onClick={async () => {
@@ -711,20 +670,9 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (
-                    response &&
-                    ((response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response)
-                  ) {
-                    const diff =
-                      (response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response
+                  const payload: any = (response as any)?.data ?? response
+                  const diff: string | undefined = payload && typeof payload === 'object' ? payload.diff : undefined
+                  if (diff !== undefined) {
                     const { original } = parseDiff(diff)
                     copyToClipboard(original, {
                       successMessage: 'Previous version copied to clipboard',
@@ -757,20 +705,9 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
                     return
                   }
                   const response = await client.git.getFileDiff(projectId, item.node.file.path, { staged: false })
-                  if (
-                    response &&
-                    ((response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response)
-                  ) {
-                    const diff =
-                      (response.data as any)?.diff ||
-                      response.data?.content ||
-                      (response as any)?.diff ||
-                      (response as any)?.content ||
-                      response
+                  const payload: any = (response as any)?.data ?? response
+                  const diff: string | undefined = payload && typeof payload === 'object' ? payload.diff : undefined
+                  if (diff !== undefined) {
                     copyToClipboard(diff, {
                       successMessage: 'Diff copied to clipboard',
                       errorMessage: 'Failed to copy diff'

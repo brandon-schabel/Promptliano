@@ -102,781 +102,584 @@ export interface ProjectTabMetadata {
 // CORE ENTITY TABLES
 // =============================================================================
 
-export const projects = sqliteTable(
-  'projects',
-  {
-    id: integer('id').primaryKey(),
-    name: text('name').notNull(),
-    description: text('description'),
-    path: text('path').notNull(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    pathIdx: index('projects_path_idx').on(table.path),
-    nameIdx: index('projects_name_idx').on(table.name)
-  })
-)
+export const projects = sqliteTable('projects', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  path: text('path').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const tickets = sqliteTable(
-  'tickets',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    overview: text('overview'),
-    status: text('status', { enum: ['open', 'in_progress', 'closed'] })
-      .notNull()
-      .default('open'),
-    priority: text('priority', { enum: ['low', 'normal', 'high'] })
-      .notNull()
-      .default('normal'),
-    suggestedFileIds: text('suggested_file_ids', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    suggestedAgentIds: text('suggested_agent_ids', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    suggestedPromptIds: text('suggested_prompt_ids', { mode: 'json' })
-      .$type<number[]>()
-      .notNull()
-      .default(sql`'[]'`),
+export const tickets = sqliteTable('tickets', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  overview: text('overview'),
+  status: text('status', { enum: ['open', 'in_progress', 'closed'] })
+    .notNull()
+    .default('open'),
+  priority: text('priority', { enum: ['low', 'normal', 'high'] })
+    .notNull()
+    .default('normal'),
+  suggestedFileIds: text('suggested_file_ids', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  suggestedAgentIds: text('suggested_agent_ids', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  suggestedPromptIds: text('suggested_prompt_ids', { mode: 'json' })
+    .$type<number[]>()
+    .notNull()
+    .default(sql`'[]'`),
 
-    // Queue integration fields (unified flow system)
-    queueId: integer('queue_id').references(() => queues.id, { onDelete: 'set null' }),
-    queuePosition: integer('queue_position'),
-    queueStatus: text('queue_status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] }),
-    queuePriority: integer('queue_priority'),
-    queuedAt: integer('queued_at'),
-    queueStartedAt: integer('queue_started_at'),
-    queueCompletedAt: integer('queue_completed_at'),
-    queueAgentId: text('queue_agent_id'),
-    queueErrorMessage: text('queue_error_message'),
-    estimatedProcessingTime: integer('estimated_processing_time'),
-    actualProcessingTime: integer('actual_processing_time'),
+  // Queue integration fields (unified flow system)
+  queueId: integer('queue_id').references(() => queues.id, { onDelete: 'set null' }),
+  queuePosition: integer('queue_position'),
+  queueStatus: text('queue_status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] }),
+  queuePriority: integer('queue_priority'),
+  queuedAt: integer('queued_at'),
+  queueStartedAt: integer('queue_started_at'),
+  queueCompletedAt: integer('queue_completed_at'),
+  queueAgentId: text('queue_agent_id'),
+  queueErrorMessage: text('queue_error_message'),
+  estimatedProcessingTime: integer('estimated_processing_time'),
+  actualProcessingTime: integer('actual_processing_time'),
 
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('tickets_project_idx').on(table.projectId),
-    statusIdx: index('tickets_status_idx').on(table.status),
-    priorityIdx: index('tickets_priority_idx').on(table.priority),
-    queueIdx: index('tickets_queue_idx').on(table.queueId, table.queuePosition),
-    queueStatusIdx: index('tickets_queue_status_idx').on(table.queueStatus),
-    createdAtIdx: index('tickets_created_at_idx').on(table.createdAt)
-  })
-)
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const ticketTasks = sqliteTable(
-  'ticket_tasks',
-  {
-    id: integer('id').primaryKey(),
-    ticketId: integer('ticket_id')
-      .notNull()
-      .references(() => tickets.id, { onDelete: 'cascade' }),
-    content: text('content').notNull(),
-    description: text('description'),
-    suggestedFileIds: text('suggested_file_ids', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    done: integer('done', { mode: 'boolean' }).notNull().default(false),
-    status: text('status', { enum: ['pending', 'in_progress', 'completed', 'cancelled'] })
-      .notNull()
-      .default('pending'),
-    orderIndex: integer('order_index').notNull().default(0),
-    estimatedHours: real('estimated_hours'),
-    dependencies: text('dependencies', { mode: 'json' })
-      .$type<number[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    tags: text('tags', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    agentId: text('agent_id'),
-    suggestedPromptIds: text('suggested_prompt_ids', { mode: 'json' })
-      .$type<number[]>()
-      .notNull()
-      .default(sql`'[]'`),
+export const ticketTasks = sqliteTable('ticket_tasks', {
+  id: integer('id').primaryKey(),
+  ticketId: integer('ticket_id')
+    .notNull()
+    .references(() => tickets.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  description: text('description'),
+  suggestedFileIds: text('suggested_file_ids', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  done: integer('done', { mode: 'boolean' }).notNull().default(false),
+  status: text('status', { enum: ['pending', 'in_progress', 'completed', 'cancelled'] })
+    .notNull()
+    .default('pending'),
+  orderIndex: integer('order_index').notNull().default(0),
+  estimatedHours: real('estimated_hours'),
+  dependencies: text('dependencies', { mode: 'json' })
+    .$type<number[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  tags: text('tags', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  agentId: text('agent_id'),
+  suggestedPromptIds: text('suggested_prompt_ids', { mode: 'json' })
+    .$type<number[]>()
+    .notNull()
+    .default(sql`'[]'`),
 
-    // Queue integration fields (unified flow system)
-    queueId: integer('queue_id').references(() => queues.id, { onDelete: 'set null' }),
-    queuePosition: integer('queue_position'),
-    queueStatus: text('queue_status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] }),
-    queuePriority: integer('queue_priority'),
-    queuedAt: integer('queued_at'),
-    queueStartedAt: integer('queue_started_at'),
-    queueCompletedAt: integer('queue_completed_at'),
-    queueAgentId: text('queue_agent_id'),
-    queueErrorMessage: text('queue_error_message'),
-    estimatedProcessingTime: integer('estimated_processing_time'),
-    actualProcessingTime: integer('actual_processing_time'),
+  // Queue integration fields (unified flow system)
+  queueId: integer('queue_id').references(() => queues.id, { onDelete: 'set null' }),
+  queuePosition: integer('queue_position'),
+  queueStatus: text('queue_status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] }),
+  queuePriority: integer('queue_priority'),
+  queuedAt: integer('queued_at'),
+  queueStartedAt: integer('queue_started_at'),
+  queueCompletedAt: integer('queue_completed_at'),
+  queueAgentId: text('queue_agent_id'),
+  queueErrorMessage: text('queue_error_message'),
+  estimatedProcessingTime: integer('estimated_processing_time'),
+  actualProcessingTime: integer('actual_processing_time'),
 
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    ticketIdx: index('ticket_tasks_ticket_idx').on(table.ticketId),
-    doneIdx: index('ticket_tasks_done_idx').on(table.done),
-    statusIdx: index('ticket_tasks_status_idx').on(table.status),
-    orderIdx: index('ticket_tasks_order_idx').on(table.ticketId, table.orderIndex),
-    queueIdx: index('ticket_tasks_queue_idx').on(table.queueId, table.queuePosition),
-    agentIdx: index('ticket_tasks_agent_idx').on(table.agentId)
-  })
-)
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const chats = sqliteTable(
-  'chats',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('chats_project_idx').on(table.projectId),
-    updatedAtIdx: index('chats_updated_at_idx').on(table.updatedAt)
-  })
-)
+export const chats = sqliteTable('chats', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const chatMessages = sqliteTable(
-  'chat_messages',
-  {
-    id: integer('id').primaryKey(),
-    chatId: integer('chat_id')
-      .notNull()
-      .references(() => chats.id, { onDelete: 'cascade' }),
-    role: text('role', { enum: ['user', 'assistant', 'system'] }).notNull(),
-    content: text('content').notNull(),
-    metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>(),
-    createdAt: integer('created_at').notNull()
-  },
-  (table) => ({
-    chatIdx: index('chat_messages_chat_idx').on(table.chatId),
-    roleIdx: index('chat_messages_role_idx').on(table.role),
-    createdAtIdx: index('chat_messages_created_at_idx').on(table.createdAt)
-  })
-)
+export const chatMessages = sqliteTable('chat_messages', {
+  id: integer('id').primaryKey(),
+  chatId: integer('chat_id')
+    .notNull()
+    .references(() => chats.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['user', 'assistant', 'system'] }).notNull(),
+  content: text('content').notNull(),
+  metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>(),
+  createdAt: integer('created_at').notNull()
+})
 
-export const prompts = sqliteTable(
-  'prompts',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    content: text('content').notNull(),
-    description: text('description'),
-    tags: text('tags', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('prompts_project_idx').on(table.projectId),
-    titleIdx: index('prompts_title_idx').on(table.title),
-    tagsIdx: index('prompts_tags_idx').on(table.tags)
-  })
-)
+export const prompts = sqliteTable('prompts', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  description: text('description'),
+  tags: text('tags', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // QUEUE MANAGEMENT TABLES
 // =============================================================================
 
-export const queues = sqliteTable(
-  'queues',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    description: text('description'),
-    maxParallelItems: integer('max_parallel_items').notNull().default(1),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('queues_project_idx').on(table.projectId),
-    nameIdx: index('queues_name_idx').on(table.name),
-    activeIdx: index('queues_active_idx').on(table.isActive)
-  })
-)
+export const queues = sqliteTable('queues', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  maxParallelItems: integer('max_parallel_items').notNull().default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const queueItems = sqliteTable(
-  'queue_items',
-  {
-    id: integer('id').primaryKey(),
-    queueId: integer('queue_id')
-      .notNull()
-      .references(() => queues.id, { onDelete: 'cascade' }),
-    itemType: text('item_type', { enum: ['ticket', 'task', 'chat', 'prompt'] }).notNull(),
-    itemId: integer('item_id').notNull(),
-    priority: integer('priority').notNull().default(5),
-    status: text('status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] })
-      .notNull()
-      .default('queued'),
-    agentId: text('agent_id'),
-    errorMessage: text('error_message'),
-    estimatedProcessingTime: integer('estimated_processing_time'),
-    actualProcessingTime: integer('actual_processing_time'),
-    startedAt: integer('started_at'),
-    completedAt: integer('completed_at'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    queueIdx: index('queue_items_queue_idx').on(table.queueId),
-    statusIdx: index('queue_items_status_idx').on(table.status),
-    priorityIdx: index('queue_items_priority_idx').on(table.priority),
-    itemIdx: index('queue_items_item_idx').on(table.itemType, table.itemId),
-    agentIdx: index('queue_items_agent_idx').on(table.agentId)
-  })
-)
+export const queueItems = sqliteTable('queue_items', {
+  id: integer('id').primaryKey(),
+  queueId: integer('queue_id')
+    .notNull()
+    .references(() => queues.id, { onDelete: 'cascade' }),
+  itemType: text('item_type', { enum: ['ticket', 'task', 'chat', 'prompt'] }).notNull(),
+  itemId: integer('item_id').notNull(),
+  priority: integer('priority').notNull().default(5),
+  status: text('status', { enum: ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] })
+    .notNull()
+    .default('queued'),
+  agentId: text('agent_id'),
+  errorMessage: text('error_message'),
+  estimatedProcessingTime: integer('estimated_processing_time'),
+  actualProcessingTime: integer('actual_processing_time'),
+  startedAt: integer('started_at'),
+  completedAt: integer('completed_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // CONFIGURATION & SECURITY TABLES
 // =============================================================================
 
-export const providerKeys = sqliteTable(
-  'provider_keys',
-  {
-    id: integer('id').primaryKey(),
-    provider: text('provider').notNull(),
-    keyName: text('key_name').notNull(), // Keep for backward compatibility
-    name: text('name'), // Display name for the key
-    // Reference to an environment variable name (optional - for production use)
-    secretRef: text('secret_ref'),
-    // Plain text key storage (simplified - no encryption)
-    key: text('key'),
-    baseUrl: text('base_url'),
-    customHeaders: text('custom_headers', { mode: 'json' })
-      .$type<Record<string, string>>()
-      .default(sql`'{}'`),
-    isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    environment: text('environment').notNull().default('production'),
-    description: text('description'),
-    expiresAt: integer('expires_at'),
-    lastUsed: integer('last_used'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    providerIdx: index('provider_keys_provider_idx').on(table.provider),
-    keyNameIdx: index('provider_keys_key_name_idx').on(table.keyName),
-    nameIdx: index('provider_keys_name_idx').on(table.name),
-    activeIdx: index('provider_keys_active_idx').on(table.isActive),
-    defaultIdx: index('provider_keys_default_idx').on(table.isDefault),
-    environmentIdx: index('provider_keys_environment_idx').on(table.environment)
-  })
-)
+export const providerKeys = sqliteTable('provider_keys', {
+  id: integer('id').primaryKey(),
+  provider: text('provider').notNull(),
+  keyName: text('key_name').notNull(), // Keep for backward compatibility
+  name: text('name'), // Display name for the key
+  // Reference to an environment variable name (optional - for production use)
+  secretRef: text('secret_ref'),
+  // Plain text key storage (simplified - no encryption)
+  key: text('key'),
+  baseUrl: text('base_url'),
+  customHeaders: text('custom_headers', { mode: 'json' })
+    .$type<Record<string, string>>()
+    .default(sql`'{}'`),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  environment: text('environment').notNull().default('production'),
+  description: text('description'),
+  expiresAt: integer('expires_at'),
+  lastUsed: integer('last_used'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // FILE MANAGEMENT TABLES
 // =============================================================================
 
-export const files = sqliteTable(
-  'files',
-  {
-    id: text('id').primaryKey(), // File path as ID
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    path: text('path').notNull(),
-    extension: text('extension'), // File extension for type classification
-    size: integer('size'),
-    lastModified: integer('last_modified'),
-    contentType: text('content_type'),
-    content: text('content'),
-    summary: text('summary'),
-    summaryLastUpdated: integer('summary_last_updated'),
-    meta: text('meta'),
-    checksum: text('checksum'),
-    imports: text('imports', { mode: 'json' }).$type<ImportInfo[]>(),
-    exports: text('exports', { mode: 'json' }).$type<ExportInfo[]>(),
-    isRelevant: integer('is_relevant', { mode: 'boolean' }).default(false),
-    relevanceScore: real('relevance_score'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('files_project_idx').on(table.projectId),
-    pathIdx: index('files_path_idx').on(table.path),
-    nameIdx: index('files_name_idx').on(table.name),
-    extensionIdx: index('files_extension_idx').on(table.extension),
-    relevantIdx: index('files_relevant_idx').on(table.isRelevant),
-    scoreIdx: index('files_score_idx').on(table.relevanceScore),
-    checksumIdx: index('files_checksum_idx').on(table.checksum)
-  })
-)
+export const files = sqliteTable('files', {
+  id: text('id').primaryKey(), // File path as ID
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  path: text('path').notNull(),
+  extension: text('extension'), // File extension for type classification
+  size: integer('size'),
+  lastModified: integer('last_modified'),
+  contentType: text('content_type'),
+  content: text('content'),
+  meta: text('meta'),
+  checksum: text('checksum'),
+  imports: text('imports', { mode: 'json' }).$type<ImportInfo[]>(),
+  exports: text('exports', { mode: 'json' }).$type<ExportInfo[]>(),
+  isRelevant: integer('is_relevant', { mode: 'boolean' }).default(false),
+  relevanceScore: real('relevance_score'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const selectedFiles = sqliteTable(
-  'selected_files',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    fileId: text('file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    selectedAt: integer('selected_at').notNull(),
-    selectionReason: text('selection_reason'),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true)
-  },
-  (table) => ({
-    projectIdx: index('selected_files_project_idx').on(table.projectId),
-    fileIdx: index('selected_files_file_idx').on(table.fileId),
-    activeIdx: index('selected_files_active_idx').on(table.isActive),
-    selectedAtIdx: index('selected_files_selected_at_idx').on(table.selectedAt),
-    // Unique constraint
-    uniqueProjectFile: index('selected_files_unique_project_file').on(table.projectId, table.fileId)
-  })
-)
+export const selectedFiles = sqliteTable('selected_files', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  selectedAt: integer('selected_at').notNull(),
+  selectionReason: text('selection_reason'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true)
+})
 
 // =============================================================================
 // GIT INTEGRATION TABLES
 // =============================================================================
 
-export const gitStatus = sqliteTable(
-  'git_status',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    isRepo: integer('is_repo', { mode: 'boolean' }).notNull(),
-    current: text('current'),
-    tracking: text('tracking'),
-    ahead: integer('ahead').notNull().default(0),
-    behind: integer('behind').notNull().default(0),
-    files: text('files', { mode: 'json' })
-      .$type<GitFileStatus[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    staged: text('staged', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    modified: text('modified', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    created: text('created_files', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    deleted: text('deleted', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    renamed: text('renamed', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    conflicted: text('conflicted', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'`),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('git_status_project_idx').on(table.projectId),
-    repoIdx: index('git_status_repo_idx').on(table.isRepo),
-    branchIdx: index('git_status_branch_idx').on(table.current)
-  })
-)
+export const gitStatus = sqliteTable('git_status', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  isRepo: integer('is_repo', { mode: 'boolean' }).notNull(),
+  current: text('current'),
+  tracking: text('tracking'),
+  ahead: integer('ahead').notNull().default(0),
+  behind: integer('behind').notNull().default(0),
+  files: text('files', { mode: 'json' })
+    .$type<GitFileStatus[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  staged: text('staged', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  modified: text('modified', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  created: text('created_files', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  deleted: text('deleted', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  renamed: text('renamed', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  conflicted: text('conflicted', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const gitRemotes = sqliteTable(
-  'git_remotes',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    fetch: text('fetch').notNull(),
-    push: text('push').notNull(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('git_remotes_project_idx').on(table.projectId),
-    nameIdx: index('git_remotes_name_idx').on(table.name)
-  })
-)
+export const gitRemotes = sqliteTable('git_remotes', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  fetch: text('fetch').notNull(),
+  push: text('push').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const gitTags = sqliteTable(
-  'git_tags',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    commit: text('commit').notNull(),
-    annotation: text('annotation'),
-    tagger: text('tagger', { mode: 'json' }).$type<GitCommitAuthor>(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('git_tags_project_idx').on(table.projectId),
-    nameIdx: index('git_tags_name_idx').on(table.name),
-    commitIdx: index('git_tags_commit_idx').on(table.commit)
-  })
-)
+export const gitTags = sqliteTable('git_tags', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  commit: text('commit').notNull(),
+  annotation: text('annotation'),
+  tagger: text('tagger', { mode: 'json' }).$type<GitCommitAuthor>(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const gitStashes = sqliteTable(
-  'git_stashes',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    index: integer('stash_index').notNull(),
-    message: text('message').notNull(),
-    branch: text('branch').notNull(),
-    date: text('date').notNull(),
-    createdAt: integer('created_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('git_stashes_project_idx').on(table.projectId),
-    indexIdx: index('git_stashes_index_idx').on(table.index),
-    branchIdx: index('git_stashes_branch_idx').on(table.branch)
-  })
-)
+export const gitStashes = sqliteTable('git_stashes', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  index: integer('stash_index').notNull(),
+  message: text('message').notNull(),
+  branch: text('branch').notNull(),
+  date: text('date').notNull(),
+  createdAt: integer('created_at').notNull()
+})
 
-export const gitWorktrees = sqliteTable(
-  'git_worktrees',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    path: text('path').notNull(),
-    branch: text('branch').notNull(),
-    commit: text('commit').notNull(),
-    isMain: integer('is_main', { mode: 'boolean' }).notNull().default(false),
-    isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
-    lockReason: text('lock_reason'),
-    prunable: integer('prunable', { mode: 'boolean' }).default(false),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('git_worktrees_project_idx').on(table.projectId),
-    pathIdx: index('git_worktrees_path_idx').on(table.path),
-    branchIdx: index('git_worktrees_branch_idx').on(table.branch),
-    mainIdx: index('git_worktrees_main_idx').on(table.isMain)
-  })
-)
+export const gitWorktrees = sqliteTable('git_worktrees', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  path: text('path').notNull(),
+  branch: text('branch').notNull(),
+  commit: text('commit').notNull(),
+  isMain: integer('is_main', { mode: 'boolean' }).notNull().default(false),
+  isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
+  lockReason: text('lock_reason'),
+  prunable: integer('prunable', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // AI CONFIGURATION TABLES
 // =============================================================================
 
-export const aiSdkOptions = sqliteTable(
-  'ai_sdk_options',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(), // Configuration name
-    ollamaUrl: text('ollama_url'),
-    lmstudioUrl: text('lmstudio_url'),
-    temperature: real('temperature'),
-    maxTokens: integer('max_tokens'),
-    topP: real('top_p'),
-    frequencyPenalty: real('frequency_penalty'),
-    presencePenalty: real('presence_penalty'),
-    topK: integer('top_k'),
-    stop: text('stop', { mode: 'json' }).$type<string | string[]>(),
-    responseFormat: text('response_format', { mode: 'json' }).$type<any>(),
-    provider: text('provider'),
-    model: text('model'),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('ai_sdk_options_project_idx').on(table.projectId),
-    nameIdx: index('ai_sdk_options_name_idx').on(table.name),
-    providerIdx: index('ai_sdk_options_provider_idx').on(table.provider),
-    modelIdx: index('ai_sdk_options_model_idx').on(table.model)
-  })
-)
+export const aiSdkOptions = sqliteTable('ai_sdk_options', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // Configuration name
+  ollamaUrl: text('ollama_url'),
+  lmstudioUrl: text('lmstudio_url'),
+  temperature: real('temperature'),
+  maxTokens: integer('max_tokens'),
+  topP: real('top_p'),
+  frequencyPenalty: real('frequency_penalty'),
+  presencePenalty: real('presence_penalty'),
+  topK: integer('top_k'),
+  stop: text('stop', { mode: 'json' }).$type<string | string[]>(),
+  responseFormat: text('response_format', { mode: 'json' }).$type<any>(),
+  provider: text('provider'),
+  model: text('model'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const mcpServerConfigs = sqliteTable(
-  'mcp_server_configs',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    command: text('command').notNull(),
-    args: text('args', { mode: 'json' })
-      .$type<string[]>()
-      .default(sql`'[]'`),
-    env: text('env', { mode: 'json' })
-      .$type<Record<string, string>>()
-      .default(sql`'{}'`),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-    autoStart: integer('auto_start', { mode: 'boolean' }).notNull().default(false),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('mcp_server_configs_project_idx').on(table.projectId),
-    nameIdx: index('mcp_server_configs_name_idx').on(table.name),
-    enabledIdx: index('mcp_server_configs_enabled_idx').on(table.enabled),
-    autoStartIdx: index('mcp_server_configs_auto_start_idx').on(table.autoStart)
-  })
-)
+export const mcpServerConfigs = sqliteTable('mcp_server_configs', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  command: text('command').notNull(),
+  args: text('args', { mode: 'json' })
+    .$type<string[]>()
+    .default(sql`'[]'`),
+  env: text('env', { mode: 'json' })
+    .$type<Record<string, string>>()
+    .default(sql`'{}'`),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  autoStart: integer('auto_start', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // FILE ANALYSIS TABLES
 // =============================================================================
 
-export const fileImportInfo = sqliteTable(
-  'file_import_info',
-  {
-    id: integer('id').primaryKey(),
-    fileId: text('file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    source: text('source').notNull(),
-    specifiers: text('specifiers', { mode: 'json' }).$type<ImportSpecifier[]>().notNull(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    fileIdx: index('file_import_info_file_idx').on(table.fileId),
-    sourceIdx: index('file_import_info_source_idx').on(table.source)
-  })
-)
+export const fileImportInfo = sqliteTable('file_import_info', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  source: text('source').notNull(),
+  specifiers: text('specifiers', { mode: 'json' }).$type<ImportSpecifier[]>().notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const fileExportInfo = sqliteTable(
-  'file_export_info',
-  {
-    id: integer('id').primaryKey(),
-    fileId: text('file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    type: text('type', { enum: ['default', 'named', 'all'] }).notNull(),
-    source: text('source'),
-    specifiers: text('specifiers', { mode: 'json' }).$type<ExportSpecifier[]>(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    fileIdx: index('file_export_info_file_idx').on(table.fileId),
-    typeIdx: index('file_export_info_type_idx').on(table.type)
-  })
-)
+export const fileExportInfo = sqliteTable('file_export_info', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['default', 'named', 'all'] }).notNull(),
+  source: text('source'),
+  specifiers: text('specifiers', { mode: 'json' }).$type<ExportSpecifier[]>(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const fileRelationships = sqliteTable(
-  'file_relationships',
-  {
-    id: integer('id').primaryKey(),
-    sourceFileId: text('source_file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    targetFileId: text('target_file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    type: text('type', { enum: ['imports', 'exports', 'sibling', 'parent', 'child', 'semantic'] }).notNull(),
-    strength: real('strength').notNull(), // 0-1 scale
-    metadata: text('metadata', { mode: 'json' })
-      .$type<Record<string, any>>()
-      .default(sql`'{}'`),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    sourceIdx: index('file_relationships_source_idx').on(table.sourceFileId),
-    targetIdx: index('file_relationships_target_idx').on(table.targetFileId),
-    typeIdx: index('file_relationships_type_idx').on(table.type),
-    strengthIdx: index('file_relationships_strength_idx').on(table.strength)
-  })
-)
+export const fileRelationships = sqliteTable('file_relationships', {
+  id: integer('id').primaryKey(),
+  sourceFileId: text('source_file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  targetFileId: text('target_file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['imports', 'exports', 'sibling', 'parent', 'child', 'semantic'] }).notNull(),
+  strength: real('strength').notNull(), // 0-1 scale
+  metadata: text('metadata', { mode: 'json' })
+    .$type<Record<string, any>>()
+    .default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const fileGroups = sqliteTable(
-  'file_groups',
-  {
-    id: text('id').primaryKey(), // String ID as in schema
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    strategy: text('strategy', { enum: ['imports', 'directory', 'semantic', 'mixed'] }).notNull(),
-    fileIds: text('file_ids', { mode: 'json' }).$type<string[]>().notNull(),
-    relationships: text('relationships', { mode: 'json' })
-      .$type<FileRelationship[]>()
-      .default(sql`'[]'`),
-    estimatedTokens: integer('estimated_tokens'),
-    priority: integer('priority').notNull().default(5), // 0-10 scale
-    metadata: text('metadata', { mode: 'json' })
-      .$type<{
-        directory?: string
-        primaryFile?: string
-        semanticCategory?: string
-      }>()
-      .default(sql`'{}'`),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('file_groups_project_idx').on(table.projectId),
-    strategyIdx: index('file_groups_strategy_idx').on(table.strategy),
-    priorityIdx: index('file_groups_priority_idx').on(table.priority),
-    nameIdx: index('file_groups_name_idx').on(table.name)
-  })
-)
+export const fileGroups = sqliteTable('file_groups', {
+  id: text('id').primaryKey(), // String ID as in schema
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  strategy: text('strategy', { enum: ['imports', 'directory', 'semantic', 'mixed'] }).notNull(),
+  fileIds: text('file_ids', { mode: 'json' }).$type<string[]>().notNull(),
+  relationships: text('relationships', { mode: 'json' })
+    .$type<FileRelationship[]>()
+    .default(sql`'[]'`),
+  estimatedTokens: integer('estimated_tokens'),
+  priority: integer('priority').notNull().default(5), // 0-10 scale
+  metadata: text('metadata', { mode: 'json' })
+    .$type<{
+      directory?: string
+      primaryFile?: string
+      semanticCategory?: string
+    }>()
+    .default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const fileImportance = sqliteTable(
-  'file_importance',
-  {
-    id: integer('id').primaryKey(),
-    fileId: text('file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    score: real('score').notNull(), // 0-10 scale
-    typeScore: real('type_score').notNull(),
-    locationScore: real('location_score').notNull(),
-    dependencyScore: real('dependency_score').notNull(),
-    sizeScore: real('size_score').notNull(),
-    recencyScore: real('recency_score').notNull(),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    fileIdx: index('file_importance_file_idx').on(table.fileId),
-    projectIdx: index('file_importance_project_idx').on(table.projectId),
-    scoreIdx: index('file_importance_score_idx').on(table.score)
-  })
-)
+export const fileImportance = sqliteTable('file_importance', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  score: real('score').notNull(), // 0-10 scale
+  typeScore: real('type_score').notNull(),
+  locationScore: real('location_score').notNull(),
+  dependencyScore: real('dependency_score').notNull(),
+  sizeScore: real('size_score').notNull(),
+  recencyScore: real('recency_score').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const relevanceScores = sqliteTable(
-  'relevance_scores',
-  {
-    id: integer('id').primaryKey(),
-    fileId: text('file_id')
-      .notNull()
-      .references(() => files.id, { onDelete: 'cascade' }),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    totalScore: real('total_score').notNull(), // 0-1 scale
-    keywordScore: real('keyword_score').notNull(),
-    pathScore: real('path_score').notNull(),
-    typeScore: real('type_score').notNull(),
-    recencyScore: real('recency_score').notNull(),
-    importScore: real('import_score').notNull(),
-    query: text('query'), // The query this relevance is for
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    fileIdx: index('relevance_scores_file_idx').on(table.fileId),
-    projectIdx: index('relevance_scores_project_idx').on(table.projectId),
-    totalScoreIdx: index('relevance_scores_total_score_idx').on(table.totalScore),
-    queryIdx: index('relevance_scores_query_idx').on(table.query)
-  })
-)
+export const relevanceScores = sqliteTable('relevance_scores', {
+  id: integer('id').primaryKey(),
+  fileId: text('file_id')
+    .notNull()
+    .references(() => files.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  totalScore: real('total_score').notNull(), // 0-1 scale
+  keywordScore: real('keyword_score').notNull(),
+  pathScore: real('path_score').notNull(),
+  typeScore: real('type_score').notNull(),
+  recencyScore: real('recency_score').notNull(),
+  importScore: real('import_score').notNull(),
+  query: text('query'), // The query this relevance is for
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
-export const relevanceConfigs = sqliteTable(
-  'relevance_configs',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    weights: text('weights', { mode: 'json' }).$type<RelevanceWeights>().notNull(),
-    maxFiles: integer('max_files').notNull().default(100),
-    minScore: real('min_score').notNull().default(0.1),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('relevance_configs_project_idx').on(table.projectId),
-    nameIdx: index('relevance_configs_name_idx').on(table.name)
-  })
-)
+export const relevanceConfigs = sqliteTable('relevance_configs', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  weights: text('weights', { mode: 'json' }).$type<RelevanceWeights>().notNull(),
+  maxFiles: integer('max_files').notNull().default(100),
+  minScore: real('min_score').notNull().default(0.1),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // UI STATE TABLES
 // =============================================================================
 
-export const projectTabState = sqliteTable(
-  'project_tab_state',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    activeTabId: integer('active_tab_id').notNull().default(0),
-    clientId: text('client_id'),
-    lastUpdated: integer('last_updated').notNull(),
-    tabMetadata: text('tab_metadata', { mode: 'json' })
-      .$type<ProjectTabMetadata>()
-      .default(sql`'{}'`),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('project_tab_state_project_idx').on(table.projectId),
-    clientIdx: index('project_tab_state_client_idx').on(table.clientId),
-    lastUpdatedIdx: index('project_tab_state_last_updated_idx').on(table.lastUpdated)
-  })
-)
+// project_tab_state removed – tabs are frontend-only
+
+// =============================================================================
+// PROCESS MANAGEMENT TABLES
+// =============================================================================
+
+export const processRuns = sqliteTable('process_runs', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  processId: text('process_id').notNull().unique(), // Internal process identifier
+  pid: integer('pid'), // OS process ID
+  name: text('name'), // Display name
+  command: text('command').notNull(),
+  args: text('args', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  cwd: text('cwd').notNull(),
+  env: text('env', { mode: 'json' }).$type<Record<string, string>>(),
+  status: text('status', { enum: ['running', 'stopped', 'exited', 'error', 'killed'] })
+    .notNull()
+    .default('running'),
+  exitCode: integer('exit_code'),
+  signal: text('signal'),
+  startedAt: integer('started_at').notNull(),
+  exitedAt: integer('exited_at'),
+  // Resource usage
+  cpuUsage: real('cpu_usage'),
+  memoryUsage: integer('memory_usage'),
+  // Script metadata
+  scriptName: text('script_name'), // package.json script name
+  scriptType: text('script_type', { enum: ['npm', 'bun', 'yarn', 'pnpm', 'custom'] }),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
+
+export const processLogs = sqliteTable('process_logs', {
+  id: integer('id').primaryKey(),
+  runId: integer('run_id')
+    .notNull()
+    .references(() => processRuns.id, { onDelete: 'cascade' }),
+  timestamp: integer('timestamp').notNull(),
+  type: text('type', { enum: ['stdout', 'stderr', 'system'] }).notNull(),
+  content: text('content').notNull(),
+  lineNumber: integer('line_number').notNull(),
+  createdAt: integer('created_at').notNull()
+})
+
+export const processPorts = sqliteTable('process_ports', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  runId: integer('run_id').references(() => processRuns.id, { onDelete: 'set null' }),
+  port: integer('port').notNull(),
+  protocol: text('protocol', { enum: ['tcp', 'udp'] })
+    .notNull()
+    .default('tcp'),
+  address: text('address').notNull().default('0.0.0.0'),
+  pid: integer('pid'),
+  processName: text('process_name'),
+  state: text('state', { enum: ['listening', 'established', 'closed'] })
+    .notNull()
+    .default('listening'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
 
 // =============================================================================
 // SESSION MANAGEMENT TABLES
 // =============================================================================
 
-export const activeTabs = sqliteTable(
-  'active_tabs',
-  {
-    id: integer('id').primaryKey(),
-    projectId: integer('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    tabType: text('tab_type').notNull(),
-    tabData: text('tab_data', { mode: 'json' })
-      .$type<Record<string, any>>()
-      .notNull()
-      .default(sql`'{}'`),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    lastAccessedAt: integer('last_accessed_at').notNull(),
-    createdAt: integer('created_at').notNull()
-  },
-  (table) => ({
-    projectIdx: index('active_tabs_project_idx').on(table.projectId),
-    typeIdx: index('active_tabs_type_idx').on(table.tabType),
-    activeIdx: index('active_tabs_active_idx').on(table.isActive),
-    accessedAtIdx: index('active_tabs_accessed_at_idx').on(table.lastAccessedAt)
-  })
-)
+// active_tabs removed – tabs are frontend-only
 
 // =============================================================================
 // RELATIONSHIPS - Drizzle Relational API
@@ -889,7 +692,6 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   queues: many(queues),
   files: many(files),
   selectedFiles: many(selectedFiles),
-  activeTabs: many(activeTabs),
   // New relationships
   gitStatus: many(gitStatus),
   gitRemotes: many(gitRemotes),
@@ -902,7 +704,8 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   fileImportance: many(fileImportance),
   relevanceScores: many(relevanceScores),
   relevanceConfigs: many(relevanceConfigs),
-  projectTabState: many(projectTabState)
+  processRuns: many(processRuns),
+  processPorts: many(processPorts)
 }))
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
@@ -992,12 +795,7 @@ export const selectedFilesRelations = relations(selectedFiles, ({ one }) => ({
   })
 }))
 
-export const activeTabsRelations = relations(activeTabs, ({ one }) => ({
-  project: one(projects, {
-    fields: [activeTabs.projectId],
-    references: [projects.id]
-  })
-}))
+// activeTabs relations removed
 
 // New table relationships
 export const gitStatusRelations = relations(gitStatus, ({ one }) => ({
@@ -1112,12 +910,7 @@ export const relevanceConfigsRelations = relations(relevanceConfigs, ({ one }) =
   })
 }))
 
-export const projectTabStateRelations = relations(projectTabState, ({ one }) => ({
-  project: one(projects, {
-    fields: [projectTabState.projectId],
-    references: [projects.id]
-  })
-}))
+// projectTabState relations removed
 
 // =============================================================================
 // AUTO-GENERATED ZOD SCHEMAS (replaces manual validation)
@@ -1136,7 +929,7 @@ export const insertQueueItemSchema = createInsertSchema(queueItems).openapi('Ins
 export const insertProviderKeySchema = createInsertSchema(providerKeys).openapi('InsertProviderKey')
 export const insertFileSchema = createInsertSchema(files).openapi('InsertFile')
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles).openapi('InsertSelectedFile')
-export const insertActiveTabSchema = createInsertSchema(activeTabs).openapi('InsertActiveTab')
+// ActiveTab insert schema removed
 
 // New table insert schemas - OpenAPI compatible
 export const insertGitStatusSchema = createInsertSchema(gitStatus).openapi('InsertGitStatus')
@@ -1153,7 +946,12 @@ export const insertFileGroupSchema = createInsertSchema(fileGroups).openapi('Ins
 export const insertFileImportanceSchema = createInsertSchema(fileImportance).openapi('InsertFileImportance')
 export const insertRelevanceScoreSchema = createInsertSchema(relevanceScores).openapi('InsertRelevanceScore')
 export const insertRelevanceConfigSchema = createInsertSchema(relevanceConfigs).openapi('InsertRelevanceConfig')
-export const insertProjectTabStateSchema = createInsertSchema(projectTabState).openapi('InsertProjectTabState')
+// ProjectTabState insert schema removed
+
+// Process Management insert schemas - OpenAPI compatible
+export const insertProcessRunSchema = createInsertSchema(processRuns).openapi('InsertProcessRun')
+export const insertProcessLogSchema = createInsertSchema(processLogs).openapi('InsertProcessLog')
+export const insertProcessPortSchema = createInsertSchema(processPorts).openapi('InsertProcessPort')
 
 // Select schemas (for reading existing records) - OpenAPI compatible
 export const selectProjectSchema = createSelectSchema(projects).openapi('Project')
@@ -1167,7 +965,7 @@ export const selectQueueItemSchema = createSelectSchema(queueItems).openapi('Que
 export const selectProviderKeySchema = createSelectSchema(providerKeys).openapi('ProviderKey')
 export const selectFileSchema = createSelectSchema(files).openapi('File')
 export const selectSelectedFileSchema = createSelectSchema(selectedFiles).openapi('SelectedFile')
-export const selectActiveTabSchema = createSelectSchema(activeTabs).openapi('ActiveTab')
+// ActiveTab select schema removed
 
 // New table select schemas - OpenAPI compatible
 export const selectGitStatusSchema = createSelectSchema(gitStatus).openapi('GitStatus')
@@ -1184,7 +982,12 @@ export const selectFileGroupSchema = createSelectSchema(fileGroups).openapi('Fil
 export const selectFileImportanceSchema = createSelectSchema(fileImportance).openapi('FileImportance')
 export const selectRelevanceScoreSchema = createSelectSchema(relevanceScores).openapi('RelevanceScore')
 export const selectRelevanceConfigSchema = createSelectSchema(relevanceConfigs).openapi('RelevanceConfig')
-export const selectProjectTabStateSchema = createSelectSchema(projectTabState).openapi('ProjectTabState')
+// ProjectTabState select schema removed
+
+// Process Management select schemas - OpenAPI compatible
+export const selectProcessRunSchema = createSelectSchema(processRuns).openapi('ProcessRun')
+export const selectProcessLogSchema = createSelectSchema(processLogs).openapi('ProcessLog')
+export const selectProcessPortSchema = createSelectSchema(processPorts).openapi('ProcessPort')
 
 // =============================================================================
 // AUTO-INFERRED TYPESCRIPT TYPES (replaces manual type definitions)
@@ -1204,7 +1007,7 @@ export type InsertModelConfig = typeof modelConfigs.$inferInsert
 export type InsertModelPreset = typeof modelPresets.$inferInsert
 export type InsertFile = typeof files.$inferInsert
 export type InsertSelectedFile = typeof selectedFiles.$inferInsert
-export type InsertActiveTab = typeof activeTabs.$inferInsert
+// ActiveTab insert type removed
 
 // New table insert types
 export type InsertGitStatus = typeof gitStatus.$inferInsert
@@ -1227,7 +1030,12 @@ export type InsertFileGroup = typeof fileGroups.$inferInsert
 export type InsertFileImportance = typeof fileImportance.$inferInsert
 export type InsertRelevanceScore = typeof relevanceScores.$inferInsert
 export type InsertRelevanceConfig = typeof relevanceConfigs.$inferInsert
-export type InsertProjectTabState = typeof projectTabState.$inferInsert
+// ProjectTabState insert type removed
+
+// Process Management insert types
+export type InsertProcessRun = typeof processRuns.$inferInsert
+export type InsertProcessLog = typeof processLogs.$inferInsert
+export type InsertProcessPort = typeof processPorts.$inferInsert
 
 // Select types (for reading existing records)
 export type Project = typeof projects.$inferSelect
@@ -1296,11 +1104,7 @@ export type File = Omit<FileInferred, 'imports' | 'exports'> & {
 
 export type SelectedFile = typeof selectedFiles.$inferSelect
 
-// Override ActiveTab type to fix JSON field types
-type ActiveTabInferred = typeof activeTabs.$inferSelect
-export type ActiveTab = Omit<ActiveTabInferred, 'tabData'> & {
-  tabData: Record<string, any>
-}
+// ActiveTab select type removed
 
 // New table select types
 
@@ -1383,10 +1187,25 @@ export type RelevanceConfig = Omit<RelevanceConfigInferred, 'weights'> & {
   weights: RelevanceWeights
 }
 
-// Override ProjectTabState type to fix JSON field types
-type ProjectTabStateInferred = typeof projectTabState.$inferSelect
-export type ProjectTabState = Omit<ProjectTabStateInferred, 'tabMetadata'> & {
-  tabMetadata: ProjectTabMetadata
+// ProjectTabState select type removed
+
+// Process Management select types
+
+// Override ProcessRun type to fix JSON field types
+type ProcessRunInferred = typeof processRuns.$inferSelect
+export type ProcessRun = Omit<ProcessRunInferred, 'args' | 'env'> & {
+  args: string[]
+  env: Record<string, string> | null
+}
+
+export type ProcessLog = typeof processLogs.$inferSelect
+
+export type ProcessPort = typeof processPorts.$inferSelect
+
+// Complex relationship types
+export type ProcessRunWithLogs = ProcessRun & {
+  logs: ProcessLog[]
+  ports: ProcessPort[]
 }
 
 // Enum types (extracted for reuse)
@@ -1424,9 +1243,17 @@ export type APIProviders =
   | 'anthropic'
   | 'groq'
   | 'together'
+  | 'copilot'
   | 'custom'
 
 // Hook Configuration Types (migrated from @promptliano/schemas)
+// Process Management enum types
+export type ProcessStatus = 'running' | 'stopped' | 'exited' | 'error' | 'killed'
+export type ProcessLogType = 'stdout' | 'stderr' | 'system'
+export type ProcessPortProtocol = 'tcp' | 'udp'
+export type ProcessPortState = 'listening' | 'established' | 'closed'
+export type ProcessScriptType = 'npm' | 'bun' | 'yarn' | 'pnpm' | 'custom'
+
 export type HookEvent =
   | 'PreToolUse'
   | 'PostToolUse'
@@ -1488,73 +1315,81 @@ export type ProjectWithGit = Project & {
 // MODEL CONFIGURATION TABLES
 // =============================================================================
 
-export const modelConfigs = sqliteTable(
-  'model_configs',
-  {
-    id: integer('id').primaryKey(),
-    name: text('name').notNull(), // e.g., 'low-intelligence', 'medium-intelligence', 'high-intelligence', 'custom_1'
-    displayName: text('display_name'), // User-friendly name like "Low - Fast Local"
-    provider: text('provider').notNull(), // 'openai', 'anthropic', etc.
-    model: text('model').notNull(), // Specific model identifier
-    temperature: real('temperature').default(0.7),
-    maxTokens: integer('max_tokens').default(4096),
-    topP: real('top_p').default(1.0),
-    topK: integer('top_k').default(0),
-    frequencyPenalty: real('frequency_penalty').default(0),
-    presencePenalty: real('presence_penalty').default(0),
-    responseFormat: text('response_format', { mode: 'json' }), // JSON string for response format
-    systemPrompt: text('system_prompt'), // System prompt for the model
-    isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
-    isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    userId: integer('user_id'), // Optional: for user-specific configs
-    description: text('description'), // Description like "Optimized for quick responses using local models"
+export const modelConfigs = sqliteTable('model_configs', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(), // e.g., 'low-intelligence', 'medium-intelligence', 'high-intelligence', 'custom_1'
+  displayName: text('display_name'), // User-friendly name like "Low - Fast Local"
+  provider: text('provider').notNull(), // 'openai', 'anthropic', etc.
+  model: text('model').notNull(), // Specific model identifier
+  temperature: real('temperature').default(0.7),
+  maxTokens: integer('max_tokens').default(4096),
+  topP: real('top_p').default(1.0),
+  topK: integer('top_k').default(0),
+  frequencyPenalty: real('frequency_penalty').default(0),
+  presencePenalty: real('presence_penalty').default(0),
+  responseFormat: text('response_format', { mode: 'json' }), // JSON string for response format
+  systemPrompt: text('system_prompt'), // System prompt for the model
+  isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  description: text('description'), // Description like "Optimized for quick responses using local models"
 
-    // UI metadata for preset display
-    presetCategory: text('preset_category', { enum: ['low', 'medium', 'high', 'planning', 'custom'] }), // Category for UI grouping
-    uiIcon: text('ui_icon'), // Icon name for UI display (e.g., 'Zap', 'Gauge', 'Rocket', 'Brain')
-    uiColor: text('ui_color'), // Color class for UI (e.g., 'text-green-600', 'text-blue-600')
-    uiOrder: integer('ui_order').default(0), // Display order in UI
+  // UI metadata for preset display
+  presetCategory: text('preset_category', { enum: ['low', 'medium', 'high', 'planning', 'custom'] }), // Category for UI grouping
+  uiIcon: text('ui_icon'), // Icon name for UI display (e.g., 'Zap', 'Gauge', 'Rocket', 'Brain')
+  uiColor: text('ui_color'), // Color class for UI (e.g., 'text-green-600', 'text-blue-600')
+  uiOrder: integer('ui_order').default(0), // Display order in UI
 
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    nameIdx: index('model_configs_name_idx').on(table.name),
-    providerIdx: index('model_configs_provider_idx').on(table.provider),
-    isDefaultIdx: index('model_configs_is_default_idx').on(table.isDefault),
-    userIdx: index('model_configs_user_idx').on(table.userId)
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
+
+export const modelPresets = sqliteTable('model_presets', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(), // Preset name (e.g., 'Quick Response', 'Deep Analysis')
+  description: text('description'),
+  configId: integer('config_id')
+    .notNull()
+    .references(() => modelConfigs.id, { onDelete: 'cascade' }),
+  category: text('category', {
+    enum: ['general', 'coding', 'creative', 'analysis', 'custom', 'chat', 'productivity']
+  }).default('general'),
+  isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  usageCount: integer('usage_count').notNull().default(0),
+  lastUsedAt: integer('last_used_at'),
+  metadata: text('metadata', { mode: 'json' }), // Additional preset-specific settings
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
+
+// Process Management Relations
+export const processRunsRelations = relations(processRuns, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [processRuns.projectId],
+    references: [projects.id]
+  }),
+  logs: many(processLogs),
+  ports: many(processPorts)
+}))
+
+export const processLogsRelations = relations(processLogs, ({ one }) => ({
+  run: one(processRuns, {
+    fields: [processLogs.runId],
+    references: [processRuns.id]
   })
-)
+}))
 
-export const modelPresets = sqliteTable(
-  'model_presets',
-  {
-    id: integer('id').primaryKey(),
-    name: text('name').notNull(), // Preset name (e.g., 'Quick Response', 'Deep Analysis')
-    description: text('description'),
-    configId: integer('config_id')
-      .notNull()
-      .references(() => modelConfigs.id, { onDelete: 'cascade' }),
-    category: text('category', {
-      enum: ['general', 'coding', 'creative', 'analysis', 'custom', 'chat', 'productivity']
-    }).default('general'),
-    isSystemPreset: integer('is_system_preset', { mode: 'boolean' }).notNull().default(false),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    userId: integer('user_id'), // For user-created presets
-    usageCount: integer('usage_count').notNull().default(0),
-    lastUsedAt: integer('last_used_at'),
-    metadata: text('metadata', { mode: 'json' }), // Additional preset-specific settings
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull()
-  },
-  (table) => ({
-    categoryIdx: index('model_presets_category_idx').on(table.category),
-    configIdx: index('model_presets_config_idx').on(table.configId),
-    userIdx: index('model_presets_user_idx').on(table.userId),
-    usageIdx: index('model_presets_usage_idx').on(table.usageCount)
+export const processPortsRelations = relations(processPorts, ({ one }) => ({
+  project: one(projects, {
+    fields: [processPorts.projectId],
+    references: [projects.id]
+  }),
+  run: one(processRuns, {
+    fields: [processPorts.runId],
+    references: [processRuns.id]
   })
-)
+}))
 
 // Model Configuration Relations
 export const modelConfigsRelations = relations(modelConfigs, ({ many }) => ({
@@ -1616,7 +1451,7 @@ export type LegacyTicketTask = {
 // =============================================================================
 
 // Alias for ProjectTabMetadata for existing imports
-export type ActiveTabMetadata = ProjectTabMetadata
+// ActiveTabMetadata removed
 
 // Additional type aliases for key migrated types
 export type AiChatStreamRequest = AiSdkOptions

@@ -1,6 +1,6 @@
 {
   "name": "@promptliano/ui",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "React component library for Promptliano with shadcn/ui components",
   "author": "Promptliano",
   "license": "MIT",
@@ -51,7 +51,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "rm -rf dist && NODE_ENV=production vite build && bun run build:css && bun run build:types",
+    "build": "bun run scripts/clean-dist.ts && vite build && bun run build:css && bun run build:types",
     "build:css": "postcss src/styles/globals.css -o dist/index.css --verbose",
     "build:types": "tsc --project tsconfig.build.json",
     "dev": "vite build --watch",

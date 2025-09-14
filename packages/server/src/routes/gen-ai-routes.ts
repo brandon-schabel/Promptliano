@@ -290,8 +290,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.body(readableStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
+      'Cache-Control': 'no-cache'
     })
   })
   .openapi(getProvidersRoute, async (c) => {
@@ -305,6 +304,7 @@ export const genAiRoutes = new OpenAPIHono()
         { id: 'together', name: 'Together', isCustom: false },
         { id: 'xai', name: 'XAI', isCustom: false },
         { id: 'openrouter', name: 'OpenRouter', isCustom: false },
+        { id: 'copilot', name: 'GitHub Copilot', isCustom: false },
         { id: 'lmstudio', name: 'LMStudio', isCustom: false },
         { id: 'ollama', name: 'Ollama', isCustom: false }
       ]
@@ -345,8 +345,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.body(aiSDKStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
+      'Cache-Control': 'no-cache'
     })
   })
   .openapi(generateTextRoute, async (c) => {
@@ -399,13 +398,16 @@ export const genAiRoutes = new OpenAPIHono()
       if (!isNaN(keyId)) {
         // Get the specific custom provider key
         const customKey = await providerKeyService.getKeyById(keyId)
-        if (customKey && customKey.provider === 'custom' && customKey.baseUrl && customKey.key) {
+        if (customKey && customKey.provider === 'custom' && customKey.baseUrl) {
           const modelFetcherService = new ModelFetcherService({})
 
           try {
             const models = await modelFetcherService.listCustomProviderModels({
               baseUrl: customKey.baseUrl,
-              apiKey: customKey.key
+              apiKey:
+                customKey.key ||
+                (process.env.CUSTOM_API_KEY as string | undefined) ||
+                (String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true' ? 'dummy' : undefined)
             })
 
             const modelData = models.map((model) => ({
@@ -440,7 +442,9 @@ export const genAiRoutes = new OpenAPIHono()
       groq: 'groqKey',
       together: 'togetherKey',
       xai: 'xaiKey',
-      openrouter: 'openrouterKey'
+      openrouter: 'openrouterKey',
+      copilot: 'copilotKey',
+      githubcopilot: 'copilotKey'
       // Local providers (ollama, lmstudio) and custom don't need API keys here
     }
 
@@ -479,6 +483,7 @@ export const genAiRoutes = new OpenAPIHono()
     providerKeysConfig.groqKey = providerKeysConfig.groqKey || (process.env.GROQ_API_KEY as any)
     providerKeysConfig.togetherKey = providerKeysConfig.togetherKey || (process.env.TOGETHER_API_KEY as any)
     providerKeysConfig.xaiKey = providerKeysConfig.xaiKey || (process.env.XAI_API_KEY as any)
+    providerKeysConfig.copilotKey = providerKeysConfig.copilotKey || (process.env.COPILOT_API_KEY as any)
 
     // If a required API key is missing for the selected provider, return an empty list gracefully
     const REQUIRED_KEY_BY_PROVIDER: Record<string, keyof ProviderKeysConfig> = {
@@ -514,7 +519,13 @@ export const genAiRoutes = new OpenAPIHono()
 
     const listOptions = { ollamaBaseUrl: ollamaUrl, lmstudioBaseUrl: lmstudioUrl }
 
-    const models = await modelFetcherService.listModels(provider as APIProviders, listOptions)
+    let models = [] as { id: string; name: string; description: string }[]
+    try {
+      models = await modelFetcherService.listModels(provider as APIProviders, listOptions)
+    } catch (err: any) {
+      console.warn(`[GenAI Models] Failed to fetch models for provider '${provider}':`, err?.message || err)
+      models = []
+    }
 
     const modelData = models.map((model) => ({
       id: model.id,
@@ -562,7 +573,9 @@ export const genAiRoutes = new OpenAPIHono()
         groq: 'groqKey',
         together: 'togetherKey',
         xai: 'xaiKey',
-        openrouter: 'openrouterKey'
+        openrouter: 'openrouterKey',
+        copilot: 'copilotKey',
+        githubcopilot: 'copilotKey'
       }
 
       const providerKeysConfig: ProviderKeysConfig = {}
@@ -599,7 +612,8 @@ export const genAiRoutes = new OpenAPIHono()
         GOOGLE_GENERATIVE_AI_API_KEY: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         GROQ_API_KEY: !!process.env.GROQ_API_KEY,
         TOGETHER_API_KEY: !!process.env.TOGETHER_API_KEY,
-        XAI_API_KEY: !!process.env.XAI_API_KEY
+        XAI_API_KEY: !!process.env.XAI_API_KEY,
+        COPILOT_API_KEY: !!process.env.COPILOT_API_KEY
       }
 
       const keysMeta = keys.map((k) => ({

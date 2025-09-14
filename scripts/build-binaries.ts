@@ -2,7 +2,7 @@ import { mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { createWriteStream } from 'node:fs'
 import archiver from 'archiver'
-import { $ } from 'bun'
+import { rm, cp, readFile, writeFile } from 'node:fs/promises'
 
 async function buildProject() {
   const startTime = performance.now()
@@ -14,12 +14,12 @@ async function buildProject() {
   const sharedDir = join(rootDir, 'packages', 'shared')
   const distDir = join(rootDir, 'dist')
 
-  // clear dist
-  await $`rm -rf ${distDir}`
+  // clear dist (cross-platform)
+  await rm(distDir, { recursive: true, force: true })
 
   // Build client first
   console.log('Building client...')
-  await $`cd ${clientDir} && bun run build:prod`
+  await runBun(clientDir, ['run', 'build:prod'])
 
   // Build server as normal JS bundle first
   console.log('Building server...')
@@ -37,14 +37,14 @@ async function buildProject() {
   mkdirSync(join(distDir, 'client-dist'), { recursive: true })
   // Copy the built client assets from packages/server/client-dist to dist/client-dist
   console.log('Copying built client files to main dist for Bun bundle...')
-  await $`cp -r ${clientBuildOutputDir}/* ${join(distDir, 'client-dist')}/`
+  mkdirSync(join(distDir, 'client-dist'), { recursive: true })
+  await cp(clientBuildOutputDir, join(distDir, 'client-dist'), { recursive: true, force: true })
 
   // Write modified package.json to dist
-  const pkg = require(join(serverDir, 'package.json'))
-  pkg.scripts = {
-    start: 'bun ./server.js'
-  }
-  await Bun.write(join(distDir, 'package.json'), JSON.stringify(pkg, null, 2))
+  const pkgRaw = await readFile(join(serverDir, 'package.json'), 'utf-8')
+  const pkg = JSON.parse(pkgRaw)
+  pkg.scripts = { start: 'bun ./server.js' }
+  await writeFile(join(distDir, 'package.json'), JSON.stringify(pkg, null, 2))
 
   // this is already done becuase its set in vite.config.ts
   // // Copy built client files
@@ -54,7 +54,13 @@ async function buildProject() {
   // Build a simple binary for the current platform (for development)
   console.log('Building binary for current platform...')
   const currentPlatformExt = process.platform === 'win32' ? '.exe' : ''
-  await $`cd ${serverDir} && bun build --compile ./server.ts --outfile ${join(distDir, `promptliano-bundle${currentPlatformExt}`)}`
+  await runBun(serverDir, [
+    'build',
+    '--compile',
+    './server.ts',
+    '--outfile',
+    join(distDir, `promptliano-bundle${currentPlatformExt}`)
+  ])
 
   // Define targets with proper executable extensions
   const bundleNamePrefix = `promptliano-${pkg.version}`
@@ -110,11 +116,18 @@ async function buildProject() {
     mkdirSync(platformDir, { recursive: true })
 
     // Copy client-dist folder to platform directory
-    await $`cp -r ${clientBuildOutputDir} ${join(platformDir, 'client-dist')}`
+    await cp(clientBuildOutputDir, join(platformDir, 'client-dist'), { recursive: true, force: true })
 
     // Build the standalone binary with version in the name
     const executableName = `promptliano${executableExt}`
-    await $`cd ${serverDir} && bun build --compile --target=${target} ./server.ts --outfile ${join(platformDir, executableName)}`
+    await runBun(serverDir, [
+      'build',
+      '--compile',
+      `--target=${target}`,
+      './server.ts',
+      '--outfile',
+      join(platformDir, executableName)
+    ])
 
     // Fix permissions for all executables (including Windows .exe files on Linux)
     try {
@@ -188,3 +201,10 @@ function createZipArchive(sourceDir: string, outputPath: string): Promise<void> 
 }
 
 await buildProject()
+
+// helper: run bun with cwd and inherit stdio
+async function runBun(cwd: string, args: string[]) {
+  const proc = Bun.spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
+  const code = await proc.exited
+  if (code !== 0) throw new Error(`bun ${args.join(' ')} failed with code ${code}`)
+}

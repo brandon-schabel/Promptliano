@@ -41,8 +41,6 @@ export * from './src/gen-ai.schemas'
 // File System & Directory Operations
 export * from './src/browse-directory.schemas'
 export * from './src/file-relevance.schemas'
-export * from './src/file-summarization.schemas'
-export * from './src/summary-options.schemas'
 
 // Git Operations
 export * from './src/git.schemas'
@@ -69,6 +67,8 @@ export { updateActiveTabSchema, type UpdateActiveTab as UpdateActiveTabRequest }
 // Import/Export & Processing
 export * from './src/markdown-import-export.schemas'
 export * from './src/parser-config.schemas'
+// Process management
+export * from './src/process.schemas'
 
 // Provider Testing Schemas
 export * from './src/provider-testing.schemas'

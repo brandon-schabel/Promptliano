@@ -62,6 +62,7 @@ const PROVIDER_CAPABILITIES = {
   google_gemini: { structuredOutput: true, useCustomProvider: false },
   groq: { structuredOutput: true, useCustomProvider: false },
   openrouter: { structuredOutput: true, useCustomProvider: false },
+  copilot: { structuredOutput: true, useCustomProvider: false },
   lmstudio: { structuredOutput: true, useCustomProvider: true }, // Uses custom provider for native json_schema support
   ollama: { structuredOutput: false, useCustomProvider: false }, // Still uses text fallback (TODO: add custom provider)
   xai: { structuredOutput: true, useCustomProvider: false },
@@ -455,6 +456,10 @@ async function getProviderLanguageModelInterface(
         headers: defaultHeaders
       })(modelId)
     }
+    case 'copilot': {
+      const apiKey = (await getKey('copilot', debug)) || process.env.COPILOT_API_KEY || 'dummy'
+      return createOpenAI({ baseURL: providersConfig.copilot.baseURL, apiKey, compatibility: 'compatible' })(modelId)
+    }
     // --- OpenAI Compatible Providers ---
     case 'lmstudio': {
       // Priority: options > provider settings > config
@@ -503,8 +508,10 @@ async function getProviderLanguageModelInterface(
         throw ErrorFactory.missingRequired('Base URL', 'custom provider')
       }
 
-      const apiKey = await getKey('custom', debug)
-      if (!apiKey) {
+      const allowKeylessCustom = String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true'
+      const apiKey =
+        (await getKey('custom', debug)) || process.env.CUSTOM_API_KEY || (allowKeylessCustom ? 'dummy' : undefined)
+      if (!apiKey && !allowKeylessCustom) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }
 

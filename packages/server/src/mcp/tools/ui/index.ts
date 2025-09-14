@@ -1,2 +1,1 @@
-// UI and state management tools
-export { tabManagerTool } from './tab-manager.tool'
+// UI tools removed

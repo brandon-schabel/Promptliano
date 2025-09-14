@@ -409,7 +409,7 @@ export const structuredDataSchemas = {
     name: 'Basic Summary',
     description: 'Generates a short summary of the input text.',
     promptTemplate: 'Summarize the following text concisely: {userInput}',
-    systemPrompt: 'You are a summarization expert.',
+    systemPrompt: 'Provide concise, accurate highlights of the provided text.',
     // modelSettings: { model: DEFAULT_MODEL_EXAMPLES.model, temperature: DEFAULT_MODEL_EXAMPLES.temperature, maxTokens: DEFAULT_MODEL_EXAMPLES.maxTokens },
     schema: z
       .object({

@@ -74,9 +74,16 @@ export class ProcessService {
 
   async isPortInUse(port: number): Promise<boolean> {
     try {
-      const { stdout } = await this.runCommand(
-        process.platform === 'darwin' ? `lsof -i :${port}` : `netstat -tulpn | grep :${port}`
-      )
+      let cmd = ''
+      if (process.platform === 'darwin') {
+        cmd = `lsof -i :${port}`
+      } else if (process.platform === 'win32') {
+        cmd = `powershell -NoProfile -Command "Get-NetTCPConnection -State Listen -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -First 1 LocalPort"`
+      } else {
+        // Linux
+        cmd = `sh -lc "ss -tuln | awk '{print \\"$5\\"}' | grep -E '[:\.]${port}\b' || true"`
+      }
+      const { stdout } = await this.runCommand(cmd)
       return stdout.trim().length > 0
     } catch {
       return false

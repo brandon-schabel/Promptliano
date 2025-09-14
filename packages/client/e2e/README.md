@@ -203,8 +203,8 @@ Model Context Protocol integration testing:
 test('should create complete workflow via MCP tools', async () => {
   // Create project via project_manager MCP tool
   // Create prompts via prompt_manager MCP tool
-  // Create tickets via ticket_manager MCP tool
-  // Process via queue_processor MCP tool
+  // Create tickets via flow_manager MCP tool (tickets_create)
+  // Process via flow_manager MCP tool (processor_get_next)
   // Verify all operations completed successfully
 })
 ```

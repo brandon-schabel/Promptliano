@@ -39,11 +39,12 @@ export function ProjectSettingsTab() {
   useScrollToSection({ search })
 
   const updateActiveProjectTab = useUpdateActiveProjectTab()
-  const [{ summarizationEnabledProjectIds = [] }, updateSettings] = useAppSettings()
+  const [, updateSettings] = useAppSettings()
   const { data: resolveImports } = useProjectTabField('resolveImports')
   const { data: preferredEditor } = useProjectTabField('preferredEditor')
   const { data: projectId } = useProjectTabField('selectedProjectId')
   const { data: assetsEnabled } = useProjectTabField('assetsEnabled')
+  const { data: processesEnabled } = useProjectTabField('processesEnabled')
   const { data: autoIncludeClaudeMd } = useProjectTabField('autoIncludeClaudeMd')
   const { data: instructionFileSettings } = useProjectTabField('instructionFileSettings')
 
@@ -108,6 +109,13 @@ export function ProjectSettingsTab() {
     updateActiveProjectTab((prev) => ({
       ...prev,
       assetsEnabled: value
+    }))
+  }
+
+  const setProcessesEnabled = (value: boolean) => {
+    updateActiveProjectTab((prev) => ({
+      ...prev,
+      processesEnabled: value
     }))
   }
 
@@ -433,6 +441,22 @@ export function ProjectSettingsTab() {
                 <p className='text-sm text-muted-foreground'>The Assets tab is experimental and subject to change.</p>
               </div>
               <Switch checked={!!assetsEnabled} onCheckedChange={setAssetsEnabled} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Processes (Beta)</CardTitle>
+            <CardDescription>Enable the Processes tab for this project</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-6'>
+            <div className='flex items-center justify-between'>
+              <div className='space-y-0.5'>
+                <label className='text-base font-medium'>Enable Processes</label>
+                <p className='text-sm text-muted-foreground'>The Processes tab is experimental and may change.</p>
+              </div>
+              <Switch checked={!!processesEnabled} onCheckedChange={setProcessesEnabled} />
             </div>
           </CardContent>
         </Card>

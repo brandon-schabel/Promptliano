@@ -15,8 +15,7 @@ export const routes = {
   assets: '/assets',
   prompts: '/prompts',
   providers: '/providers',
-  health: '/health',
-  projectSummarization: '/project-summarization'
+  health: '/health'
 } as const
 
 // Type-safe Link components with proper search param types

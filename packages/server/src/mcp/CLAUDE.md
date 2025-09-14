@@ -315,12 +315,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
       description: 'List of available projects',
       mimeType: 'application/json'
     },
-    {
-      uri: `promptliano://project/${projectId}/summary`,
-      name: 'Project Summary',
-      description: 'Project overview and structure',
-      mimeType: 'text/plain'
-    }
+    // Removed legacy project summary resource
   ]
 
   return { resources }

@@ -113,11 +113,10 @@ function MCPToolsOverviewPage() {
                 <code>create_file</code>, <code>delete_file</code>
               </li>
               <li>
-                <code>get_summary</code>, <code>get_summary_advanced</code>, <code>get_summary_metrics</code>,{' '}
                 <code>overview</code>
               </li>
               <li>
-                <code>suggest_files</code>, <code>get_selection_context</code>
+                <code>suggest_files</code>
               </li>
               <li>
                 <code>get_file_tree</code> (paginated), <code>search</code>
@@ -181,68 +180,34 @@ function MCPToolsOverviewPage() {
           </GlassCard>
         </section>
 
-        {/* Ticket Manager */}
-        <section id='ticket-manager' className='mb-12'>
-          <h2 className='text-3xl font-semibold mb-4'>ticket_manager</h2>
+        {/* Flow Manager */}
+        <section id='flow-manager' className='mb-12'>
+          <h2 className='text-3xl font-semibold mb-4'>flow_manager</h2>
           <GlassCard className='p-6'>
-            <ul className='list-disc list-inside text-muted-foreground mb-2'>
+            <h3 className='text-xl font-medium mb-2'>Actions</h3>
+            <ul className='list-disc list-inside text-muted-foreground mb-4'>
               <li>
-                <code>list</code>, <code>get</code>, <code>create</code>, <code>update</code>, <code>delete</code>,{' '}
-                <code>list_with_task_count</code>
+                Tickets: <code>tickets_list</code>, <code>tickets_get</code>, <code>tickets_create</code>,{' '}
+                <code>tickets_update</code>, <code>tickets_delete</code>
               </li>
               <li>
-                <code>suggest_tasks</code>, <code>auto_generate_tasks</code>, <code>suggest_files</code>,{' '}
-                <code>search</code>
+                Tasks: <code>tasks_list_by_ticket</code>, <code>tasks_create</code>, <code>tasks_update</code>,{' '}
+                <code>tasks_delete</code>, <code>tasks_reorder</code>
               </li>
               <li>
-                Batch: <code>batch_create</code>, <code>batch_update</code>, <code>batch_delete</code>
+                Queues: <code>queues_create</code>, <code>queues_list</code>, <code>queues_get</code>,{' '}
+                <code>queues_update</code>, <code>queues_delete</code>, <code>queues_get_stats</code>,{' '}
+                <code>queues_get_all_stats</code>
+              </li>
+              <li>
+                Processor: <code>processor_get_next</code>, <code>processor_complete</code>, <code>processor_fail</code>
               </li>
             </ul>
             <p className='text-sm text-muted-foreground'>
-              <code>projectId</code> required for <code>list</code>/<code>create</code>/<code>search</code>.{' '}
-              <code>search</code> includes filters (status, priority, limit).
+              Use <code>project_manager(list)</code> to obtain a valid <code>projectId</code>. Enqueue with{' '}
+              <code>enqueue_ticket</code> / <code>enqueue_task</code>, then drive execution via{' '}
+              <code>processor_get_next</code> until empty.
             </p>
-          </GlassCard>
-        </section>
-
-        {/* Task Manager */}
-        <section id='task-manager' className='mb-12'>
-          <h2 className='text-3xl font-semibold mb-4'>task_manager</h2>
-          <GlassCard className='p-6'>
-            <ul className='list-disc list-inside text-muted-foreground mb-2'>
-              <li>
-                <code>create</code>, <code>update</code>, <code>delete</code>, <code>filter</code>,{' '}
-                <code>analyze_complexity</code>
-              </li>
-              <li>
-                Batch: <code>batch_create</code>, <code>batch_update</code>, <code>batch_delete</code>,{' '}
-                <code>batch_move</code>
-              </li>
-            </ul>
-            <p className='text-sm text-muted-foreground'>
-              For <code>filter</code>, pass <code>data.projectId</code> and optional <code>status</code>/
-              <code>tags</code>/<code>query</code>.
-            </p>
-          </GlassCard>
-        </section>
-
-        {/* Queue Manager & Processor */}
-        <section id='queue-tools' className='mb-12'>
-          <h2 className='text-3xl font-semibold mb-4'>queue_manager & queue_processor</h2>
-          <GlassCard className='p-6'>
-            <p className='text-sm text-muted-foreground mb-2'>
-              Create/manage queues and process items via the processor.
-            </p>
-            <ul className='list-disc list-inside text-muted-foreground'>
-              <li>
-                <code>queue_manager</code>: <code>create_queue</code>, <code>list_queues</code>,{' '}
-                <code>get_all_stats</code>, <code>get_stats</code>
-              </li>
-              <li>
-                <code>queue_processor</code>: <code>get_next_task</code>, <code>complete_task</code>,{' '}
-                <code>fail_task</code>, etc.
-              </li>
-            </ul>
           </GlassCard>
         </section>
 
@@ -270,32 +235,7 @@ function MCPToolsOverviewPage() {
           <GlassCard className='p-6'>
             <ul className='list-disc list-inside text-muted-foreground'>
               <li>
-                <code>command_manager</code> — list/get/create/update/delete/execute/search/suggest/generate
-              </li>
-              <li>
-                <code>agent_manager</code> — DB-backed agents; use project associations and <code>suggest_agents</code>
-              </li>
-              <li>
-                <code>documentation_search</code> — <code>get_categories</code>, <code>search</code>
-              </li>
-              <li>
-                <code>ai_assistant</code> — <code>get_compact_summary</code> (project context summary)
-              </li>
-              <li>
-                <code>tab_manager</code> — <code>get_active</code> (active tab state)
-              </li>
-              <li>
-                <code>markdown_prompt_manager</code> — <code>validate_markdown</code>, <code>import_markdown</code>,{' '}
-                <code>export_markdown</code>, <code>bulk_import</code>
-              </li>
-              <li>
-                <code>mcp_setup_validator</code> — <code>diagnose</code> (common MCP setup issues)
-              </li>
-              <li>
-                <code>mcp_config_generator</code> — <code>get_templates</code> (Basic/Multi-Project/Dev/Prod templates)
-              </li>
-              <li>
-                <code>website_demo_runner</code> — <code>list_scenarios</code> (interactive demos)
+                <code>ai_assistant</code> — <code>optimize_prompt</code>
               </li>
             </ul>
           </GlassCard>

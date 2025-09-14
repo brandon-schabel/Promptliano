@@ -82,12 +82,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'default' | 'size_asc' | 'size_desc'>('alphabetical')
 
   const prompts = useMemo(() => {
-    return (
-      promptData?.map((prompt) => ({
-        ...prompt,
-        id: Number(prompt.id)
-      })) || []
-    )
+    return promptData?.map((prompt) => ({ ...prompt, id: Number(prompt.id) })) || []
   }, [promptData])
 
   const sortedPrompts = useMemo(() => {
@@ -192,8 +187,6 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
       updated: prompt.updatedAt,
       size: prompt.content?.length || 0,
       meta: null,
-      summary: null,
-      summaryLastUpdated: null,
       checksum: null,
       imports: null,
       exports: null,

@@ -76,7 +76,10 @@ export function createChatService(deps: ChatServiceDeps = {}) {
     /**
      * Create chat with title and options
      */
-    async createChat(title: string, options: { copyExisting?: boolean; currentChatId?: number } = {}): Promise<Chat> {
+    async createChat(
+      title: string,
+      options: { projectId?: number; copyExisting?: boolean; currentChatId?: number } = {}
+    ): Promise<Chat> {
       return withErrorContext(
         async () => {
           let chatData: any = { title }
@@ -84,7 +87,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
           if (options.copyExisting && options.currentChatId) {
             // Copy existing chat configuration
             const existingChat = await baseService.getById(options.currentChatId)
-            chatData.projectId = existingChat.projectId
+            // Do not carry over project association (chats are project-independent)
           }
 
           const newChat = await baseService.create(chatData)
@@ -133,8 +136,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
 
           // Create new chat
           const newChat = await baseService.create({
-            title: `${originalChat.title} (Fork)`,
-            projectId: originalChat.projectId
+            title: `${originalChat.title} (Fork)`
           })
 
           // Copy messages except excluded ones
@@ -178,8 +180,7 @@ export function createChatService(deps: ChatServiceDeps = {}) {
 
           // Create new chat
           const newChat = await baseService.create({
-            title: `${originalChat.title} (From Message)`,
-            projectId: originalChat.projectId
+            title: `${originalChat.title} (From Message)`
           })
 
           // Copy messages up to and including the target message

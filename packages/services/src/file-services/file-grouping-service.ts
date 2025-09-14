@@ -120,8 +120,8 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
             )
 
             if (!existingRelation) {
-              const content1 = `${file1.name} ${file1.summary || ''} ${file1.content?.slice(0, 500) || ''}`
-              const content2 = `${file2.name} ${file2.summary || ''} ${file2.content?.slice(0, 500) || ''}`
+              const content1 = `${file1.name} ${file1.content?.slice(0, 500) || ''}`
+              const content2 = `${file2.name} ${file2.content?.slice(0, 500) || ''}`
 
               const similarity = calculateTextRelevance(content1, content2)
               if (similarity > 0.3) {
@@ -542,10 +542,7 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
       // Include file metadata
       totalChars += file.path.length + file.name.length + 50
 
-      // Include summary if available
-      if (file.summary) {
-        totalChars += file.summary.length
-      }
+      // Summary removed
 
       // Include partial content for context
       if (file.content) {

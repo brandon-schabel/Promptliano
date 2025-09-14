@@ -61,7 +61,7 @@ import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { useDebounceCallback } from '@/hooks/utility-hooks/use-debounce'
 import { PROVIDER_SELECT_OPTIONS } from '@/constants/providers-constants'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useSelectSetting, useProjectTabField, useAppSettings } from '@/hooks/use-kv-local-storage'
+import { useSelectSetting, useProjectTabField, useAppSettings, useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGetModels } from '@/hooks/generated'
@@ -690,6 +690,7 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const navigate = useNavigate()
   const search = Route.useSearch()
   const activeChatId = search.chatId ?? null
+  const [activeProjectTabState] = useActiveProjectTab()
   const [editingChatId, setEditingChatId] = useState<number | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [visibleCount, setVisibleCount] = useState(50)
@@ -712,10 +713,7 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const handleCreateNewChat = useCallback(async () => {
     const defaultTitle = `New Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
     try {
-      const newChat = await createChatMutation.mutateAsync({
-        title: defaultTitle,
-        projectId: 1
-      })
+      const newChat = await createChatMutation.mutateAsync({ title: defaultTitle })
       const newChatId = newChat?.id
       if (newChatId) {
         navigate({
@@ -1118,10 +1116,7 @@ function ChatPage() {
   const handleCreateNewChat = useCallback(async () => {
     const defaultTitle = `New Chat ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
     try {
-      const newChat = await createChat.mutateAsync({
-        title: defaultTitle,
-        projectId: 1
-      })
+      const newChat = await createChat.mutateAsync({ title: defaultTitle })
       const newChatId = newChat?.id
       if (newChatId) {
         navigate({

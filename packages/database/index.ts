@@ -29,7 +29,6 @@ export {
   queueItems,
   files,
   selectedFiles,
-  activeTabs,
   providerKeys,
   modelConfigs,
   modelPresets
@@ -55,7 +54,6 @@ import {
   selectProviderKeySchema,
   selectModelConfigSchema,
   selectModelPresetSchema,
-  selectActiveTabSchema,
   selectSelectedFileSchema,
   insertProjectSchema,
   insertTicketSchema,
@@ -69,7 +67,6 @@ import {
   insertProviderKeySchema,
   insertModelConfigSchema,
   insertModelPresetSchema,
-  insertActiveTabSchema,
   insertSelectedFileSchema
 } from './src/schema'
 
@@ -218,16 +215,7 @@ export const UpdateProviderKeySchema = CreateProviderKeySchema.partial()
 export type CreateProviderKey = InferSchema<typeof CreateProviderKeySchema>
 export type UpdateProviderKey = InferSchema<typeof UpdateProviderKeySchema>
 
-// ActiveTab schemas (with JSON field transformations)
-export const ActiveTabSchema = createTransformedSelectSchema(selectActiveTabSchema, {
-  tabData: commonJsonTransforms.tabData
-})
-export const CreateActiveTabSchema = createTransformedInsertSchema(insertActiveTabSchema).extend({
-  tabData: commonJsonTransforms.tabData.optional()
-})
-export const UpdateActiveTabSchema = CreateActiveTabSchema.partial()
-export type CreateActiveTab = InferSchema<typeof CreateActiveTabSchema>
-export type UpdateActiveTab = InferSchema<typeof UpdateActiveTabSchema>
+// ActiveTab removed: handled entirely on the frontend
 
 // SelectedFile schemas (backward compatibility)
 export const SelectedFileSchema = selectSelectedFileSchema
@@ -238,7 +226,19 @@ export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
 export type CreateSelectedFile = InferSchema<typeof CreateSelectedFileSchema>
 export type UpdateSelectedFile = InferSchema<typeof UpdateSelectedFileSchema>
 
-// Export test utilities
-export * from './src/test-utils'
-export * from './src/test-utils/test-db'
-export { createTestDatabase } from './src/test-utils/test-db'
+// Note: test utilities are intentionally not re-exported here to avoid pulling
+// test-only code into consumer projects' type-checking.
+// They can still be imported directly from '@promptliano/database/src/test-utils/*' if needed.
+
+// =============================================================================
+// TEST UTILITIES (for test environments)
+// =============================================================================
+// Several test suites import test DB helpers directly from '@promptliano/database'.
+// Re-export a minimal, well-scoped set to keep those tests working while keeping
+// app/runtime bundles clean. Consumers should avoid using these outside tests.
+export {
+  createTestDatabase,
+  type TestDatabase,
+  getGlobalTestDb,
+  cleanupAllTestDatabases
+} from './src/test-utils/test-db'

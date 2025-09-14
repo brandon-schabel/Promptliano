@@ -1,9 +1,4 @@
-import {
-  CHARS_PER_TOKEN_ESTIMATE,
-  MAX_TOKENS_FOR_SUMMARY,
-  PROMPT_OVERHEAD_TOKENS,
-  RESPONSE_BUFFER_TOKENS
-} from '@promptliano/config'
+import { CHARS_PER_TOKEN_ESTIMATE, PROMPT_OVERHEAD_TOKENS, RESPONSE_BUFFER_TOKENS } from '@promptliano/config'
 
 export interface TruncationOptions {
   maxTokens?: number
@@ -33,11 +28,13 @@ export interface CodeSection {
 }
 
 /**
- * Smart truncation service for optimizing file content for summarization
+ * Smart truncation service for optimizing file content for context windows
  */
 export class SmartTruncation {
   // Configuration constants
-  private static readonly DEFAULT_MAX_TOKENS = MAX_TOKENS_FOR_SUMMARY - PROMPT_OVERHEAD_TOKENS - RESPONSE_BUFFER_TOKENS
+  private static readonly BASE_MAX_TOKENS = 32000
+  private static readonly DEFAULT_MAX_TOKENS =
+    SmartTruncation.BASE_MAX_TOKENS - PROMPT_OVERHEAD_TOKENS - RESPONSE_BUFFER_TOKENS
   private static readonly MAX_BLOCK_LINES = 1000 // Maximum lines to search for block end
   private static readonly FALLBACK_BLOCK_SIZE = 50 // Default block size when parsing fails
   private static readonly MIN_MEANINGFUL_TOKENS = 100 // Minimum tokens to consider adding content
@@ -81,7 +78,7 @@ export class SmartTruncation {
     // Handle maxTokens = 0 - return empty truncation
     if (maxTokens === 0) {
       return {
-        content: '\n// ... additional content truncated for summarization ...\n',
+        content: '\n// ... additional content truncated for context limits ...\n',
         wasTruncated: true,
         originalTokens,
         truncatedTokens: 0,
@@ -683,7 +680,7 @@ export class SmartTruncation {
 
     // Add truncation marker if needed
     if (preservedSections.length < sections.length) {
-      content += '\n// ... additional content truncated for summarization ...\n'
+      content += '\n// ... additional content truncated for context limits ...\n'
     }
 
     return {

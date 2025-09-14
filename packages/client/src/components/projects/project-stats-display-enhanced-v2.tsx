@@ -168,19 +168,6 @@ export function ProjectStatsDisplayEnhanced({ projectId }: ProjectStatsDisplayEn
                 {hasTicketStats ? statistics.ticketStats.averageTasksPerTicket.toFixed(1) : '0'}
               </p>
             </div>
-            <div>
-              <p className='text-sm text-muted-foreground'>Files with Summaries</p>
-              <p className='text-2xl font-bold'>
-                {hasFileStats ? statistics.fileStats.filesWithSummaries : 0}
-                <span className='text-sm font-normal text-muted-foreground ml-1'>
-                  (
-                  {hasFileStats && statistics.fileStats.totalFiles > 0
-                    ? ((statistics.fileStats.filesWithSummaries / statistics.fileStats.totalFiles) * 100).toFixed(0)
-                    : '0'}
-                  %)
-                </span>
-              </p>
-            </div>
           </div>
 
           <div className='flex flex-wrap gap-2 pt-2'>

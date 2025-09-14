@@ -195,7 +195,7 @@ export const projectManagerTool: MCPToolDefinition = {
 - **project/** - File operations, project management
 - **workflow/** - Tickets, tasks, queues
 - **content/** - AI agents, prompts
-- **analysis/** - File summarization
+- **analysis/** - Static analysis and metrics
 - **git/** - Git operations
 
 Tools use the same Drizzle-inferred types as API routes for consistency.

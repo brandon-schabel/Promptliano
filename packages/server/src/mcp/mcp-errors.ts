@@ -75,7 +75,7 @@ const ERROR_RECOVERY_SUGGESTIONS: Record<MCPErrorCode, string> = {
     'Verify the project ID exists. Use the project_manager list action to see available projects.',
   [MCPErrorCode.FILE_NOT_FOUND]: 'Check the file path is correct. Use browse_files to explore available files.',
   [MCPErrorCode.TICKET_NOT_FOUND]:
-    'Verify the ticket ID exists. Use ticket_manager list action to see available tickets.',
+    'Verify the ticket ID exists. Use flow_manager (tickets_list) to see available tickets.',
   [MCPErrorCode.PROMPT_NOT_FOUND]:
     'Check the prompt ID exists. Use prompt_manager list action to see available prompts.',
   [MCPErrorCode.AGENT_NOT_FOUND]: 'Verify the agent ID exists. Use agent_manager list action to see available agents.',
@@ -380,7 +380,7 @@ export async function formatMCPErrorResponse(error: MCPError): Promise<MCPToolRe
   }
 
   // Special handling for TICKET_NOT_FOUND to include available tickets
-  if (error.mcpCode === MCPErrorCode.TICKET_NOT_FOUND && error.context?.tool === 'ticket_manager') {
+  if (error.mcpCode === MCPErrorCode.TICKET_NOT_FOUND && error.context?.tool === 'flow_manager') {
     try {
       const projectId = error.context?.projectId
       if (projectId) {

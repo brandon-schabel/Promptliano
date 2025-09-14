@@ -115,8 +115,6 @@ export const DEFAULT_FILE_EXCLUSIONS = [
 ]
 
 // Export individual constants for backward compatibility
-export const MAX_FILE_SIZE_FOR_SUMMARY = 1024 * 1024 // 1MB in bytes
-export const MAX_TOKENS_FOR_SUMMARY = 28000 // Optimized for GPT-OSS-20B's 32k context
 export const CHARS_PER_TOKEN_ESTIMATE = 4
 
 // New constants for batch processing optimization
@@ -128,8 +126,6 @@ export const MAX_FILES_PER_BATCH = 5 // Optimal batch size for related files
 export const filesConfig: FilesConfig = {
   allowedExtensions: ALLOWED_FILE_CONFIGS,
   defaultExclusions: DEFAULT_FILE_EXCLUSIONS,
-  maxFileSizeForSummary: MAX_FILE_SIZE_FOR_SUMMARY,
-  maxTokensForSummary: MAX_TOKENS_FOR_SUMMARY,
   charsPerTokenEstimate: CHARS_PER_TOKEN_ESTIMATE,
   optimalTokensForBatch: OPTIMAL_TOKENS_FOR_BATCH,
   promptOverheadTokens: PROMPT_OVERHEAD_TOKENS,

@@ -1,5 +1,17 @@
 import type { File } from '@promptliano/database'
-import type { FileImportance } from '@promptliano/schemas'
+
+interface FileImportance {
+  fileId: string
+  score: number
+  factors: {
+    type: number
+    location: number
+    imports: number
+    exports: number
+    size: number
+    recency: number
+  }
+}
 
 // File type weights for importance scoring
 const FILE_TYPE_WEIGHTS: Record<string, number> = {

@@ -41,12 +41,6 @@ export type CreateProjectsByIdSyncResponse =
 export type GetProjectsByIdSyncStreamResponse = { success: boolean; message?: string }
 export type GetProjectsByIdFilesResponse =
   paths['/api/projects/{id}/files']['get']['responses']['200']['content']['application/json']
-export type GetProjectsByIdSummaryResponse =
-  paths['/api/projects/{id}/summary']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdFilesSummarizeResponse =
-  paths['/api/projects/{id}/files/summarize']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdFilesSummarizeRequest =
-  paths['/api/projects/{id}/files/summarize']['post']['requestBody']['content']['application/json']
 export type GetProjectsByIdStatisticsResponse =
   paths['/api/projects/{id}/statistics']['get']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdRefreshResponse =
@@ -951,33 +945,6 @@ export class TypeSafeApiClient {
       params: query,
       timeout: options?.timeout
     })
-  }
-
-  /**
-   * Get a combined summary of all files in the project
-   */
-  async getProjectsByIdSummary(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdSummaryResponse> {
-    return this.request<GetProjectsByIdSummaryResponse>('GET', this.buildPath(`/api/projects/{id}/summary`, { id }), {
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * Summarize specified files in a project
-   */
-  async createProjectsByIdFilesSummarize(
-    id: string | number,
-    data: CreateProjectsByIdFilesSummarizeRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdFilesSummarizeResponse> {
-    return this.request<CreateProjectsByIdFilesSummarizeResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/files/summarize`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
   }
 
   /**

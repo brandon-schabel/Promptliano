@@ -241,7 +241,7 @@ Helper functions for file processing:
 - **Compact Formats**: 60-70% token reduction
 - **Smart Pre-filtering**: Only send relevant files to AI
 - **Strategy-based Processing**: Match strategy to project size
-- **Truncation**: Large files truncated for summarization
+- **Truncation**: Large files truncated for context limits
 
 ### Memory Management
 

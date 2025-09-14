@@ -68,8 +68,8 @@ const comparisonData: ComparisonFeature[] = [
     withoutPromptliano: false
   },
   {
-    feature: 'Automated Summaries',
-    description: 'AI-generated file and project summaries',
+    feature: 'Concise Overviews',
+    description: 'AI-generated code overviews and documentation snippets',
     withPromptliano: true,
     withoutPromptliano: false
   }

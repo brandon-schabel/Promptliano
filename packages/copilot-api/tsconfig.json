@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "allowJs": true,
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "pages/**/*"],
+  "exclude": ["tests", "**/*.test.ts", "**/*.test.tsx"]
+}

@@ -61,19 +61,31 @@ export function SuggestedFilesDialog({ open, onClose, suggestedFiles }: Suggeste
             <DialogDescription>Based on your prompt, the system recommends:</DialogDescription>
           </DialogHeader>
 
-          <div className='mt-2 space-y-2 max-h-[300px] overflow-y-auto pr-2'>
-            {suggestedFiles.map((file) => {
-              const isSelected = localSelectedFiles.has(file.id)
-              return (
-                <div key={file.id} className='flex items-center gap-2'>
-                  <input type='checkbox' checked={isSelected} onChange={() => toggleLocalFile(file.id)} />
-                  <div className='text-sm leading-tight break-all'>
-                    <div className='font-medium'>{file.name}</div>
-                    <div className='text-xs text-muted-foreground'>{file.path}</div>
+          <div className='mt-2 space-y-2 max-h-[360px] overflow-y-auto pr-2'>
+            {[...suggestedFiles]
+              .sort((a: any, b: any) => (b.suggestionRelevance || 0) - (a.suggestionRelevance || 0))
+              .map((file: any) => {
+                const isSelected = localSelectedFiles.has(file.id)
+                return (
+                  <div key={file.id} className='flex items-center gap-2'>
+                    <input type='checkbox' checked={isSelected} onChange={() => toggleLocalFile(file.id)} />
+                    <div className='text-sm leading-tight break-all flex-1'>
+                      <div className='flex items-center justify-between'>
+                        <div className='font-medium'>{file.name}</div>
+                        {typeof file.suggestionRelevance === 'number' && (
+                          <div className='text-xs text-muted-foreground'>
+                            {Math.round(file.suggestionRelevance * 100)}%
+                          </div>
+                        )}
+                      </div>
+                      <div className='text-xs text-muted-foreground'>{file.path}</div>
+                      {file.suggestionReason && (
+                        <div className='text-xs text-muted-foreground mt-0.5'>Reason: {file.suggestionReason}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
           </div>
 
           <DialogFooter>

@@ -57,7 +57,6 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
     toolName: string,
     projectId?: number,
     inputParams?: Record<string, unknown>,
-    userId?: string,
     sessionId?: string
   ): Promise<number> {
     return withErrorContext(
@@ -65,7 +64,6 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
         const execution = await executionRepo.startExecution({
           toolName,
           projectId: projectId ?? null,
-          userId: userId ?? null,
           sessionId: sessionId ?? null,
           inputParams: inputParams ? JSON.stringify(inputParams) : null
         })
@@ -153,10 +151,9 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
     projectId: number | undefined,
     inputParams: Record<string, unknown>,
     handler: () => Promise<T>,
-    userId?: string,
     sessionId?: string
   ): Promise<T> {
-    const executionId = await startMCPToolExecution(toolName, projectId, inputParams, userId, sessionId)
+    const executionId = await startMCPToolExecution(toolName, projectId, inputParams, sessionId)
 
     try {
       const result = await handler()
@@ -268,7 +265,6 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
               errorType: (error as any).errorType || 'unknown',
               duration: error.durationMs,
               projectId: error.projectId,
-              userId: error.userId,
               sessionId: error.sessionId,
               inputParams: error.inputParams,
               outputResult: (error as any).output,

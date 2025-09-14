@@ -42,8 +42,8 @@ type CreateTicketBody = CreateTicket
 type UpdateTicketBody = UpdateTicket
 import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
-import { suggestFiles as aiSuggestFiles } from './file-services/file-suggestion-strategy-service'
-import { getProjectSummaryWithOptions, getCompactProjectSummary } from './utils/project-summary-service'
+import { createFileSuggestionStrategyService } from './file-services/file-suggestion-strategy-service'
+// Removed project summary usage
 import { modelConfigService } from './model-config-service'
 
 // Use transformed types for service returns
@@ -299,7 +299,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
 
           const successful = results.filter((r) => r.status === 'fulfilled').length
           const failed = results.length - successful
-          const errors = results.filter((r) => r.status === 'rejected').map((r) => r.reason)
+          const errors = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected').map((r) => r.reason)
 
           logger.info('Bulk status update completed', {
             total: updates.length,
@@ -584,29 +584,8 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     const ticketOverview = (overview && overview.trim()) || ticket.overview || ticket.title
     if (!ticketOverview || ticketOverview.trim() === '') return []
 
-    // Build project context summary: try compact AI summary, fall back to fast summary
-    let projectSummary = ''
-    try {
-      projectSummary = await getCompactProjectSummary(ticket.projectId)
-    } catch {
-      try {
-        const fast = await getProjectSummaryWithOptions(ticket.projectId, {
-          depth: 'standard',
-          format: 'xml',
-          strategy: 'fast',
-          includeImports: true,
-          includeExports: true,
-          progressive: false,
-          includeMetrics: false,
-          groupAware: true,
-          includeRelationships: true,
-          contextWindow: 3000
-        })
-        projectSummary = fast.summary
-      } catch {
-        projectSummary = ''
-      }
-    }
+    // Project summaries removed; proceed without project-level summary context
+    const projectSummary = ''
 
     // Define structured output schema for tasks
     const TaskSuggestionSchema = z
@@ -636,12 +615,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     promptParts.push(`Ticket #${ticket.id}: ${ticket.title}`)
     promptParts.push('Overview:')
     promptParts.push(ticketOverview)
-    if (projectSummary) {
-      promptParts.push('\n--- Project Summary (truncated) ---')
-      // Keep the prompt size reasonable
-      const trimmed = projectSummary.length > 6000 ? projectSummary.slice(0, 6000) + '…' : projectSummary
-      promptParts.push(trimmed)
-    }
+    // No project summary included
     if (existingTasks.length > 0) {
       const listed = existingTasks
         .slice(0, 20)
@@ -711,8 +685,9 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       for (const strategy of tryOrders) {
         try {
           const max = strategy === 'thorough' ? Math.max(10, filtered.length * 2) : 10
-          const fileResp = await aiSuggestFiles(ticket as any, strategy, max, contextForFiles)
-          const list = Array.isArray(fileResp?.suggestions) ? fileResp.suggestions : []
+          const suggestionService = createFileSuggestionStrategyService()
+          const fileResp = await suggestionService.suggestFiles(ticket as any, strategy, max, contextForFiles)
+          const list = Array.isArray(fileResp?.suggestions) ? (fileResp.suggestions as string[]) : []
           if (list.length > 0) {
             ticketSuggestedFiles = list.slice(0, 15)
             break
@@ -780,8 +755,19 @@ export const listTicketsWithTasks = async (projectId: number) => {
 }
 
 export const suggestFilesForTicket = async (ticketId: number) => {
-  // Placeholder implementation - should suggest relevant files
-  return []
+  try {
+    // Fetch the ticket
+    const rawTicket = await ticketRepository.getById(ticketId)
+    if (!rawTicket) return []
+    const ticket = transformTicket(rawTicket)
+
+    // Use balanced strategy by default
+    const service = createFileSuggestionStrategyService()
+    const resp = await service.suggestFiles(ticket as any, 'balanced', 10)
+    return Array.isArray(resp?.suggestions) ? resp.suggestions : []
+  } catch (e) {
+    return []
+  }
 }
 
 export const batchUpdateTickets = async (tickets: Array<{ id: number; data: any }>) => {

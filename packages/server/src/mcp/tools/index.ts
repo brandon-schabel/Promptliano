@@ -1,12 +1,9 @@
 // Main aggregator for all tools
 
 // Import all tool groups
-import { documentationSearchTool, websiteDemoRunnerTool } from './website'
-import { mcpConfigGeneratorTool, mcpCompatibilityCheckerTool, mcpSetupValidatorTool } from './setup'
-import { tabManagerTool } from './ui'
+import { flowManagerTool } from './workflow'
 import { aiAssistantTool } from './content'
-import { projectManagerTool, promptManagerTool, markdownPromptManagerTool } from './project'
-import { ticketManagerTool, taskManagerTool, queueManagerTool, queueProcessorTool } from './workflow'
+import { projectManagerTool, promptManagerTool } from './project'
 import { gitManagerTool } from './git'
 
 // Import types
@@ -17,23 +14,10 @@ export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = [
   // Project tools
   projectManagerTool,
   promptManagerTool,
-  markdownPromptManagerTool,
-  // Workflow tools
-  ticketManagerTool,
-  taskManagerTool,
-  queueManagerTool,
-  queueProcessorTool,
+  // Workflow (unified)
+  flowManagerTool,
   // Content tools
   aiAssistantTool,
-  // Website tools
-  documentationSearchTool,
-  websiteDemoRunnerTool,
-  // Setup tools
-  mcpConfigGeneratorTool,
-  mcpCompatibilityCheckerTool,
-  mcpSetupValidatorTool,
-  // UI tools
-  tabManagerTool,
   // Git tool
   gitManagerTool
 ] as const

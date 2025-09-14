@@ -67,7 +67,7 @@ export class MCPClient {
       this.client = new Client(
         {
           name: `promptliano-${this.config.id}`,
-          version: '0.9.4'
+          version: '0.11.0'
         },
         {
           capabilities: {
@@ -109,7 +109,7 @@ export class MCPClient {
             capabilities: {},
             clientInfo: {
               name: `promptliano-client-${this.config.id}`,
-              version: '0.9.4'
+              version: '0.11.0'
             }
           }
         })
@@ -223,6 +223,32 @@ export class MCPClient {
   private getMockTools(): MCPTool[] {
     return [
       {
+        id: 'flow_manager',
+        name: 'flow_manager',
+        description: 'Unified flow operations: tickets, tasks, queues, processor',
+        serverId: this.config.id,
+        parameters: [
+          { name: 'action', type: 'string', description: 'Action to perform', required: true },
+          { name: 'projectId', type: 'number', description: 'Project ID', required: false },
+          { name: 'ticketId', type: 'number', description: 'Ticket ID', required: false },
+          { name: 'taskId', type: 'number', description: 'Task ID', required: false },
+          { name: 'queueId', type: 'number', description: 'Queue ID', required: false },
+          { name: 'data', type: 'object', description: 'Action-specific payload', required: false }
+        ],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', description: 'Action to perform' },
+            projectId: { type: 'number', description: 'Project ID' },
+            ticketId: { type: 'number', description: 'Ticket ID' },
+            taskId: { type: 'number', description: 'Task ID' },
+            queueId: { type: 'number', description: 'Queue ID' },
+            data: { type: 'object', description: 'Action-specific payload' }
+          },
+          required: ['action']
+        }
+      },
+      {
         id: 'project_manager',
         name: 'project_manager',
         description: 'Manage projects, files, and project-related operations',
@@ -233,18 +259,7 @@ export class MCPClient {
             type: 'string',
             description: 'The action to perform',
             required: true,
-            enum: [
-              'list',
-              'get',
-              'create',
-              'update',
-              'delete',
-              'get_summary',
-              'browse_files',
-              'get_file_content',
-              'update_file_content',
-              'suggest_files'
-            ]
+            enum: ['list', 'get', 'create', 'update', 'delete', 'browse_files', 'get_file_content', 'update_file_content', 'suggest_files']
           },
           {
             name: 'projectId',
@@ -265,18 +280,7 @@ export class MCPClient {
             action: {
               type: 'string',
               description: 'The action to perform',
-              enum: [
-                'list',
-                'get',
-                'create',
-                'update',
-                'delete',
-                'get_summary',
-                'browse_files',
-                'get_file_content',
-                'update_file_content',
-                'suggest_files'
-              ]
+              enum: ['list', 'get', 'create', 'update', 'delete', 'browse_files', 'get_file_content', 'update_file_content', 'suggest_files']
             },
             projectId: {
               type: 'number',
@@ -365,7 +369,7 @@ export class MCPClient {
             type: 'string',
             description: 'The action to perform',
             required: true,
-            enum: ['optimize_prompt', 'get_compact_summary']
+            enum: ['optimize_prompt']
           },
           {
             name: 'projectId',
@@ -386,7 +390,7 @@ export class MCPClient {
             action: {
               type: 'string',
               description: 'The action to perform',
-              enum: ['optimize_prompt', 'get_compact_summary']
+              enum: ['optimize_prompt']
             },
             projectId: {
               type: 'number',
@@ -492,31 +496,7 @@ export class MCPClient {
     // Handle consolidated tools
     if (toolId === 'project_manager') {
       const action = parameters.action
-      if (action === 'get_summary' || action === 'get_compact_summary') {
-        return [
-          {
-            type: 'text',
-            text: `## Project Architecture Summary (Mock)
-
-**Stack**: TypeScript, React, Bun, Hono
-**Pattern**: Monorepo with layered architecture
-**Storage**: JSON file-based with caching
-**AI Integration**: Multi-provider (OpenAI, Anthropic, etc.)
-
-**Key Files**:
-- \`packages/server/server.ts\` - Main server entry
-- \`packages/client/src/routes/\` - React frontend routes
-- \`packages/services/src/\` - Business logic layer
-- \`packages/storage/src/\` - Data persistence
-
-**Data Flow**: Client → API Routes → Services → Storage
-**Build**: \`bun run dev\` for development
-**Testing**: Bun test with functional API tests
-
-This is a mock response from MCP server '${this.config.name}' (ID: ${this.config.id}) for project ${parameters.projectId}.`
-          }
-        ]
-      } else if (action === 'list') {
+      if (action === 'list') {
         return [
           {
             type: 'text',
@@ -629,13 +609,6 @@ This is a mock response from MCP server '${this.config.name}' (ID: ${this.config
         name: 'Project Files',
         description: 'Access to project files and directories',
         mimeType: 'application/json',
-        serverId: this.config.id
-      },
-      {
-        uri: `mcp://${this.config.name}/project-summary`,
-        name: 'Project Summary',
-        description: 'High-level project overview and structure',
-        mimeType: 'text/markdown',
         serverId: this.config.id
       }
     ]

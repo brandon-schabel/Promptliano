@@ -14,7 +14,7 @@ import { GlobalStateEditorType as EditorType, EDITOR_OPTIONS } from '@promptlian
 
 export function ProjectSettingsDialog() {
   const updateActiveProjectTab = useUpdateActiveProjectTab()
-  const [{ summarizationEnabledProjectIds = [] }, updateSettings] = useAppSettings()
+  const [, updateSettings] = useAppSettings()
   const { data: resolveImports } = useProjectTabField('resolveImports')
   const { data: preferredEditor } = useProjectTabField('preferredEditor')
   const { data: projectId } = useProjectTabField('selectedProjectId')

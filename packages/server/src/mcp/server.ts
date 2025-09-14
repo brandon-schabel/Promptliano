@@ -10,7 +10,7 @@ import {
   type CallToolResult,
   type ReadResourceResult
 } from '@modelcontextprotocol/sdk/types.js'
-import { listProjects, getProjectCompactSummary } from '@promptliano/services'
+import { listProjects } from '@promptliano/services'
 import { CONSOLIDATED_TOOLS } from './consolidated-tools'
 
 // MCP Server instance - singleton
@@ -108,14 +108,6 @@ function registerResources(server: Server) {
 
       // Add individual project resources
       for (const project of projects) {
-        // Project summary resource
-        resources.push({
-          uri: `promptliano://project/${project.id}/summary`,
-          name: `${project.name} Summary`,
-          description: `Compact summary of ${project.name} project structure and content`,
-          mimeType: 'text/plain'
-        })
-
         // Project files resource
         resources.push({
           uri: `promptliano://project/${project.id}/files`,
@@ -145,23 +137,6 @@ function registerResources(server: Server) {
               uri,
               mimeType: 'application/json',
               text: JSON.stringify(projects, null, 2)
-            }
-          ]
-        } as ReadResourceResult
-      }
-
-      // Handle project summary
-      const summaryMatch = uri.match(/^promptliano:\/\/project\/(\d+)\/summary$/)
-      if (summaryMatch) {
-        const projectId = parseInt(summaryMatch[1], 10)
-        const summary = await getProjectCompactSummary(projectId)
-
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'text/plain',
-              text: summary
             }
           ]
         } as ReadResourceResult

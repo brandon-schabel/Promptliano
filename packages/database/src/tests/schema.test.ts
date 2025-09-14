@@ -17,7 +17,7 @@ describe('Drizzle Schema Definition', () => {
     await db.delete(schema.providerKeys)
     await db.delete(schema.files)
     await db.delete(schema.selectedFiles)
-    await db.delete(schema.activeTabs)
+    // activeTabs table removed
   })
 
   describe('Table Structure Validation', () => {

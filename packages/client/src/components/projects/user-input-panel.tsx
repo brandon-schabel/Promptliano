@@ -20,8 +20,8 @@ import { SuggestedFilesDialog } from '../suggest-files-dialog'
 import { SuggestedPromptsDialog } from '../suggest-prompts-dialog'
 import { useCreateChat } from '@/hooks/generated'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { Binoculars, Bot, Copy, Check, FileText, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
-import { useGetProjectSummary, useSuggestFiles } from '@/hooks/api-hooks'
+import { Binoculars, Bot, Copy, Check, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
+import { useSuggestFiles } from '@/hooks/api-hooks'
 import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api-hooks'
 // Import the correct Prompt type from database schema
 import type { PromptSchema } from '@promptliano/database'
@@ -81,7 +81,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
 
   // Load the project's prompts
   const { data: promptData } = useGetProjectPrompts(activeProjectTabState?.selectedProjectId ?? -1)
-  const { data: projectSummaryRes } = useGetProjectSummary(activeProjectTabState?.selectedProjectId ?? -1)
 
   // Read selected files
   const { selectedFiles, projectFileMap } = useSelectedFiles()
@@ -246,8 +245,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     setTimeout(async () => {
       try {
         const newChat = await createChatMutation.mutateAsync({
-          title: defaultTitle,
-          projectId: activeProjectTabState?.selectedProjectId ?? -1
+          title: defaultTitle
         })
         // Ensure newChat has an ID (adjust based on actual return type)
         const newChatId = newChat?.id // Type assertion might be needed
@@ -302,14 +300,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     return outputLines.join('\n')
   }, [fileTree])
 
-  const handleCopyProjectSummary = () => {
-    const summaryText = projectSummaryRes?.summary ?? 'No project summary available.'
-    const combinedContent = `Project Summary:\n${summaryText}\n\nFile Tree:\n${tree}`
-    copyToClipboard(combinedContent, {
-      successMessage: 'Project summary and file tree copied to clipboard',
-      errorMessage: 'Failed to copy project summary and file tree'
-    })
-  }
 
   return (
     <ErrorBoundary>
@@ -403,7 +393,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Suggest relevant files based on your user input as well as your project summary context.</p>
+                    <p>Suggest relevant files based on your user input and project context.</p>
                   </TooltipContent>
                 </Tooltip>
 
@@ -446,16 +436,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                   </TooltipContent>
                 </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={handleCopyProjectSummary} size='sm'>
-                      <FileText className='h-3.5 w-3.5 mr-1' /> Summary
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy the project summary and file tree to clipboard.</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
             </div>
           </div>

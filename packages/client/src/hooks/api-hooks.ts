@@ -151,19 +151,7 @@ export function useAutoProjectSync(projectId?: number, intervalMs: number = 4000
   }, [client, projectId, intervalMs, queryClient])
 }
 
-export function useGetProjectSummary(projectId: number) {
-  const client = useApiClient()
-
-  return useQuery({
-    queryKey: PROJECT_ENHANCED_KEYS.summary(projectId),
-    queryFn: () => {
-      if (!client) throw new Error('API client not initialized')
-      return client.projects.getProjectSummary(projectId).then((r) => r)
-    },
-    enabled: !!client && !!projectId && projectId !== -1,
-    staleTime: 10 * 60 * 1000 // 10 minutes for summary
-  })
-}
+// Removed: project summary hook
 
 export function useGetProjectStatistics(projectId: number) {
   const client = useApiClient()
@@ -246,7 +234,38 @@ export function useSuggestFiles() {
   return useMutation({
     mutationFn: async ({ projectId, prompt, limit = 10 }: { projectId: number; prompt: string; limit?: number }) => {
       if (!client) throw new Error('API client not initialized')
-      const response = await client.projects.suggestFiles(projectId, { prompt, limit })
+      // Send both keys for compatibility with server variants
+      const response = await client.projects.suggestFiles(projectId, { prompt, userInput: prompt, limit } as any)
+
+      // New shape: { success, data: { suggestedFiles: [{ path, relevance, reason, fileType }], ... } }
+      if (response?.data?.suggestedFiles && Array.isArray(response.data.suggestedFiles)) {
+        const suggested = response.data.suggestedFiles as Array<{
+          path: string
+          relevance?: number
+          reason?: string
+          fileType?: string
+        }>
+        // Fetch project files and map by path
+        const allFilesRes = await client.projects.getProjectFiles(projectId)
+        const allFiles = (allFilesRes?.data || allFilesRes || []) as any[]
+        const byPath = new Map(allFiles.map((f: any) => [String(f.path), f]))
+        const files = suggested
+          .map((s) => {
+            const base = byPath.get(s.path)
+            if (!base) return null
+            // Attach metadata for UI display (non-breaking extra fields)
+            return {
+              ...base,
+              suggestionRelevance: s.relevance,
+              suggestionReason: s.reason,
+              suggestionFileType: s.fileType
+            }
+          })
+          .filter(Boolean)
+        return files
+      }
+
+      // Old shape: { success, data: File[] } or just File[]
       return response?.data || response
     },
     onError: (error: any) => {
@@ -255,55 +274,6 @@ export function useSuggestFiles() {
   })
 }
 
-export function useSummarizeProjectFiles() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({
-      projectId,
-      fileIds,
-      force = false
-    }: {
-      projectId: number
-      fileIds: number[]
-      force?: boolean
-    }) => {
-      if (!client) throw new Error('API client not initialized')
-      const response = await client.projects.summarizeFiles(projectId, { fileIds, force })
-      return response?.data || response
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate project files to refresh summaries
-      queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(variables.projectId) })
-      toast.success(`Summarized ${data.included} files`)
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to summarize files')
-    }
-  })
-}
-
-export function useRemoveSummariesFromFiles() {
-  const client = useApiClient()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ projectId, fileIds }: { projectId: number; fileIds: number[] }) => {
-      if (!client) throw new Error('API client not initialized')
-      const response = await client.projects.removeSummariesFromFiles(projectId, { fileIds })
-      return response?.data || response
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate project files to refresh summaries
-      queryClient.invalidateQueries({ queryKey: PROJECT_ENHANCED_KEYS.files(variables.projectId) })
-      toast.success(`Removed summaries from ${data.removedCount} files`)
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to remove summaries')
-    }
-  })
-}
 
 /**
  * Advanced Prompt Operations
@@ -321,15 +291,15 @@ export function useGetProjectPrompts(projectId: number) {
       // Ensure data matches expected Prompt schema format
       return Array.isArray(data)
         ? data.map((item: any) => ({
-            id: item.id,
-            projectId: item.projectId || projectId,
-            title: item.title || item.name || '',
-            content: item.content || '',
-            description: item.description || null,
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            createdAt: item.createdAt || item.created || Date.now(),
-            updatedAt: item.updatedAt || item.updated || Date.now()
-          }))
+          id: item.id,
+          projectId: item.projectId || projectId,
+          title: item.title || item.name || '',
+          content: item.content || '',
+          description: item.description || null,
+          tags: Array.isArray(item.tags) ? item.tags : [],
+          createdAt: item.createdAt || item.created || Date.now(),
+          updatedAt: item.updatedAt || item.updated || Date.now()
+        }))
         : []
     },
     enabled: !!client && !!projectId && projectId !== -1,
@@ -349,7 +319,7 @@ export function useAddPromptToProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.addPromptToProject(promptId, projectId)
+      return client.prompts.addPromptToProject(projectId, promptId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list
@@ -370,7 +340,7 @@ export function useRemovePromptFromProject() {
   return useMutation({
     mutationFn: ({ projectId, promptId }: { projectId: number; promptId: number }) => {
       if (!client) throw new Error('API client not initialized')
-      return client.prompts.removePromptFromProject(promptId, projectId)
+      return client.prompts.removePromptFromProject(projectId, promptId)
     },
     onSuccess: (_, { projectId }) => {
       // Invalidate both project-specific prompts and all prompts list

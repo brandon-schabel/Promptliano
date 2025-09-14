@@ -1,4 +1,4 @@
-import { $ } from 'bun'
+// Use Bun.spawn via the global Bun object for portability
 import { join } from 'node:path'
 
 async function buildAll() {
@@ -42,15 +42,15 @@ async function buildClient(clientDir: string, useBun: boolean) {
   if (useBun) {
     // Use Bun-optimized build if available
     try {
-      await $`cd ${clientDir} && bun run build:bun`
+      await runBun(clientDir, ['run', 'build:bun'])
     } catch {
       // Fallback to regular build if bun build script doesn't exist
       console.log('Bun build script not found, falling back to regular build...')
-      await $`cd ${clientDir} && bun run build`
+      await runBun(clientDir, ['run', 'build'])
     }
   } else {
     // Use regular build process
-    await $`cd ${clientDir} && bun run build`
+    await runBun(clientDir, ['run', 'build'])
   }
 
   console.log('✅ Client package built successfully')
@@ -62,3 +62,9 @@ if (import.meta.main) {
 }
 
 export { buildAll }
+
+async function runBun(cwd: string, args: string[]) {
+  const proc = Bun.spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
+  const code = await proc.exited
+  if (code !== 0) throw new Error(`bun ${args.join(' ')} failed with code ${code}`)
+}

@@ -35,8 +35,8 @@ function ApiReferencePage() {
             <GlassCard className='p-6 mb-6'>
               <h3 className='text-xl font-medium mb-3'>Overview</h3>
               <p className='text-muted-foreground mb-4'>
-                The Project Manager API provides comprehensive project operations including creation, updates, file
-                management, and intelligent summaries.
+                The Project Manager API provides comprehensive project operations including creation, updates,
+                file management, and context-aware insights.
               </p>
 
               <h4 className='font-medium mb-2'>Available Actions:</h4>
@@ -56,9 +56,7 @@ function ApiReferencePage() {
                 <li>
                   <code>delete</code> - Delete entire project (requires confirmDelete: true)
                 </li>
-                <li>
-                  <code>get_summary</code> - Get AI-generated project summary
-                </li>
+                
                 <li>
                   <code>suggest_files</code> - Get intelligent file suggestions
                 </li>
@@ -108,7 +106,7 @@ function ApiReferencePage() {
     "totalFiles": 342,
     "sourceFiles": 287,
     "testFiles": 45,
-    "summarizedFiles": 231,
+                
     "totalSize": "2.1MB"
   },
   "activeContext": {
@@ -240,7 +238,7 @@ function ApiReferencePage() {
                 src='/assets/screenshots/project-statistics-overview.webp'
                 alt='Project Statistics'
                 title='Comprehensive Project Insights'
-                description='Get detailed statistics about your project including file counts, token usage, and summarization coverage'
+                description='Get detailed statistics about your project including file counts, token usage, and context coverage'
                 layout='centered'
               />
             </div>
@@ -257,15 +255,15 @@ function ApiReferencePage() {
             </div>
           </section>
 
-          {/* Ticket Manager */}
-          <section id='ticket-manager'>
-            <h2 className='text-3xl font-semibold mb-6'>Ticket Manager</h2>
+          {/* Flow Manager */}
+          <section id='flow-manager'>
+            <h2 className='text-3xl font-semibold mb-6'>Flow Manager</h2>
 
             <GlassCard className='p-6 mb-6'>
               <h3 className='text-xl font-medium mb-3'>Overview</h3>
               <p className='text-muted-foreground mb-4'>
-                Manage tickets with support for batch operations, intelligent task suggestions, and advanced search
-                capabilities.
+                Unify tickets, tasks, and queues under a single flow. Create tickets, enqueue work, and drive processing
+                via the processor actions.
               </p>
 
               <h4 className='font-medium mb-2'>Key Features:</h4>
@@ -279,19 +277,18 @@ function ApiReferencePage() {
 
             <div className='space-y-6'>
               <div>
-                <h4 className='font-medium mb-2'>Example: Create Ticket with Auto-Generated Tasks</h4>
+                <h4 className='font-medium mb-2'>Example: Create Ticket via Flow</h4>
                 <p className='text-sm text-muted-foreground mb-3'>AI Request (Create Ticket):</p>
                 <CodeTerminal
-                  code={`mcp__promptliano__ticket_manager(
-  action: "create",
+                  code={`mcp__promptliano__flow_manager({
+  action: "tickets_create",
   projectId: <PROJECT_ID>,
   data: {
     title: "Implement user authentication",
     overview: "Add login/logout functionality with JWT tokens",
-    priority: "high",
-    status: "open"
+    priority: "high"
   }
-)`}
+})`}
                   language='typescript'
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
@@ -308,14 +305,9 @@ function ApiReferencePage() {
 }`}
                   language='json'
                 />
-                <p className='text-sm text-muted-foreground mt-6 mb-3'>AI Request (Auto-Generate Tasks):</p>
-                <CodeTerminal
-                  code={`mcp__promptliano__ticket_manager(
-  action: "auto_generate_tasks",
-  ticketId: 456
-)`}
-                  language='typescript'
-                />
+                <p className='text-sm text-muted-foreground mt-6 mb-3'>
+                  Next: enqueue work and process via processor_get_next
+                </p>
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
                 <CodeTerminal
                   code={`{
@@ -396,7 +388,7 @@ function ApiReferencePage() {
 
           {/* Task Manager */}
           <section id='task-manager'>
-            <h2 className='text-3xl font-semibold mb-6'>Task Manager</h2>
+            <h2 className='text-3xl font-semibold mb-6'>Flow Manager</h2>
 
             <GlassCard className='p-6 mb-6'>
               <h3 className='text-xl font-medium mb-3'>Overview</h3>
@@ -411,17 +403,11 @@ function ApiReferencePage() {
                 <h4 className='font-medium mb-2'>Example: Batch Task Creation</h4>
                 <p className='text-sm text-muted-foreground mb-3'>AI Request:</p>
                 <CodeTerminal
-                  code={`mcp__promptliano__task_manager(
-  action: "batch_create",
+                  code={`mcp__promptliano__flow_manager({
+  action: "tasks_create",
   ticketId: 456,
-  data: {
-    tasks: [
-      { content: "Create login form component", tags: ["frontend", "ui"] },
-      { content: "Implement JWT token validation", tags: ["backend", "auth"] },
-      { content: "Add password hashing", tags: ["backend", "security"] }
-    ]
-  }
-)`}
+  data: { content: "Create login form component", tags: ["frontend", "ui"] }
+})`}
                   language='typescript'
                 />
                 <p className='text-sm text-muted-foreground mt-3 mb-3'>Response:</p>
@@ -625,16 +611,7 @@ function ApiReferencePage() {
             <h3 className='text-xl font-medium mb-3'>Available Tools</h3>
             <ul className='list-disc list-inside space-y-1 text-muted-foreground'>
               <li>
-                <code>markdown_prompt_manager</code> - Validate/import/export prompts in markdown with frontmatter
-              </li>
-              <li>
-                <code>mcp_setup_validator</code> - Diagnose common MCP setup issues (e.g., connection_failed)
-              </li>
-              <li>
-                <code>mcp_config_generator</code> - Generate configuration templates (Basic, Multi-Project, Dev, Prod)
-              </li>
-              <li>
-                <code>website_demo_runner</code> - Run interactive demo scenarios (getting-started, git-workflow)
+                <code>flow_manager</code> - Unified tickets, tasks, queues, and processor actions
               </li>
               <li>
                 <code>command_manager</code> - Discover and execute project commands with suggestions

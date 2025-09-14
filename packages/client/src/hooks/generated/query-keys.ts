@@ -19,12 +19,11 @@ export const PROJECTS_KEYS: QueryKeyFactory<void> = {
   infinite: () => [...PROJECTS_KEYS.all, 'infinite'] as const
 } as const
 
-// Enhanced project query keys with file/summary variants
+// Enhanced project query keys with file/statistics variants
 export const PROJECT_ENHANCED_KEYS = {
   ...PROJECTS_KEYS,
   files: (projectId: number) => [...PROJECTS_KEYS.all, 'files', projectId] as const,
   filesWithoutContent: (projectId: number) => [...PROJECTS_KEYS.all, 'filesWithoutContent', projectId] as const,
-  summary: (projectId: number) => [...PROJECTS_KEYS.all, 'summary', projectId] as const,
   statistics: (projectId: number) => [...PROJECTS_KEYS.all, 'statistics', projectId] as const,
   fileVersions: (projectId: number, originalFileId: number) =>
     [...PROJECTS_KEYS.all, 'fileVersions', projectId, originalFileId] as const,

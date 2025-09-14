@@ -76,9 +76,9 @@ export interface IntelligenceUseCase {
 const INTELLIGENCE_USE_CASES: IntelligenceUseCase[] = [
   {
     level: 'low',
-    name: 'Summarization',
-    description: 'Quick summaries and basic information extraction',
-    examples: ['File summaries', 'Code overview', 'Quick searches'],
+    name: 'Concise Review',
+    description: 'Quick highlights and basic information extraction',
+    examples: ['Code overview', 'Quick searches', 'Short descriptions'],
     requiredCapabilities: ['basic-reasoning', 'text-extraction']
   },
   {

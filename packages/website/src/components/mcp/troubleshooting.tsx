@@ -73,7 +73,7 @@ npm install -g promptliano`
       steps: [
         'Use the "fast" strategy for large projects',
         'Limit the number of results',
-        'Ensure file summaries are up to date'
+        'Ensure search indices are up to date'
       ],
       code: `// In your MCP request, use:
 {

@@ -50,181 +50,163 @@ const BINARY_EXTENSIONS = new Set([
   '.so',
   '.dylib',
   '.app',
-  // Data
+  // Database
   '.db',
   '.sqlite',
   '.mdb',
-  // Other
-  '.bin',
-  '.dat',
-  '.iso',
-  '.dmg',
-  '.pkg',
-  '.deb',
-  '.rpm',
+  '.accdb',
   // Fonts
   '.ttf',
   '.otf',
   '.woff',
   '.woff2',
-  '.eot',
-  // Models/Data files
-  '.pkl',
-  '.h5',
-  '.model',
-  '.weights',
-  '.onnx'
+  '.eot'
 ])
 
-// File size limit for summarization (from schemas)
-const MAX_FILE_SIZE_FOR_SUMMARY = 1024 * 1024 // 1MB
+// File size limit for processing (1MB)
+const MAX_FILE_SIZE_FOR_PROCESSING = 1024 * 1024
 
 export interface FileCategory {
-  category: 'summarized' | 'pending' | 'binary' | 'too-large' | 'empty' | 'error'
+  category: 'text' | 'binary' | 'too-large' | 'empty' | 'error'
   reason?: string
 }
 
 export interface FileCategorization {
-  summarized: ProjectFile[]
-  pending: ProjectFile[]
+  text: ProjectFile[]
   binary: ProjectFile[]
   tooLarge: ProjectFile[]
   empty: ProjectFile[]
   error: ProjectFile[]
-  summarizable: ProjectFile[] // Files that can be summarized (pending + error)
-  nonSummarizable: ProjectFile[] // Files that cannot be summarized (binary + tooLarge + empty)
+  processable: ProjectFile[] // Files that can be processed (text files)
+  nonProcessable: ProjectFile[] // Files that cannot be processed
 }
 
-export interface SummarizationStats {
+export interface FileStats {
   total: number
-  summarized: number
-  pending: number
+  text: number
   binary: number
   tooLarge: number
   empty: number
   error: number
-  summarizable: number
-  nonSummarizable: number
-  coveragePercentage: number // (summarized / summarizable) * 100
-  totalPercentage: number // (summarized / total) * 100
-}
-
-/**
- * Check if a file is binary based on its extension
- */
-export function isBinaryFile(filePath: string): boolean {
-  const extension = filePath.substring(filePath.lastIndexOf('.')).toLowerCase()
-  return BINARY_EXTENSIONS.has(extension)
+  processable: number
+  nonProcessable: number
+  textPercentage: number // (text / total) * 100
+  processablePercentage: number // (processable / total) * 100
 }
 
 /**
  * Categorize a single file based on its properties
  */
 export function categorizeFile(file: ProjectFile): FileCategory {
-  if (file.summary) {
-    return { category: 'summarized' }
-  }
-
-  // Check if binary
-  if (isBinaryFile(file.path)) {
-    return { category: 'binary', reason: 'Binary file type' }
-  }
-
-  // Check if too large
-  if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
+  // Check if empty
+  if (!file.content || file.content.trim().length === 0) {
     return {
-      category: 'too-large',
-      reason: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 1MB limit`
+      category: 'empty',
+      reason: 'File has no content'
     }
   }
 
-  // Check if empty
-  if (!file.content || file.content.trim().length === 0) {
-    return { category: 'empty', reason: 'File is empty or contains only whitespace' }
+  // Check if binary based on extension
+  const extension = file.extension?.toLowerCase()
+  if (extension && BINARY_EXTENSIONS.has(extension)) {
+    return {
+      category: 'binary',
+      reason: `Binary file type: ${extension}`
+    }
   }
 
-  // If none of the above, it's pending summarization
-  return { category: 'pending', reason: 'Awaiting summarization' }
+  // Check if too large
+  if (file.size && file.size > MAX_FILE_SIZE_FOR_PROCESSING) {
+    return {
+      category: 'too-large',
+      reason: `File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB`
+    }
+  }
+
+  // Default to text file
+  return { category: 'text', reason: 'Text file suitable for processing' }
 }
 
 /**
- * Categorize all files in a project
+ * Categorize an array of files
  */
 export function categorizeProjectFiles(files: ProjectFile[]): FileCategorization {
   const categorization: FileCategorization = {
-    summarized: [],
-    pending: [],
+    text: [],
     binary: [],
     tooLarge: [],
     empty: [],
     error: [],
-    summarizable: [],
-    nonSummarizable: []
+    processable: [],
+    nonProcessable: []
   }
 
-  for (const file of files) {
+  files.forEach((file) => {
     const { category } = categorizeFile(file)
 
     switch (category) {
-      case 'summarized':
-        categorization.summarized.push(file)
-        break
-      case 'pending':
-        categorization.pending.push(file)
-        categorization.summarizable.push(file)
+      case 'text':
+        categorization.text.push(file)
+        categorization.processable.push(file)
         break
       case 'binary':
         categorization.binary.push(file)
-        categorization.nonSummarizable.push(file)
+        categorization.nonProcessable.push(file)
         break
       case 'too-large':
         categorization.tooLarge.push(file)
-        categorization.nonSummarizable.push(file)
+        categorization.nonProcessable.push(file)
         break
       case 'empty':
         categorization.empty.push(file)
-        categorization.nonSummarizable.push(file)
+        categorization.nonProcessable.push(file)
         break
       case 'error':
         categorization.error.push(file)
-        categorization.summarizable.push(file)
+        categorization.processable.push(file) // Errors can potentially be retried
         break
     }
-  }
+  })
 
   return categorization
 }
 
 /**
- * Get summarization statistics for a project
+ * Get file statistics for a project
  */
-export function getSummarizationStats(files: ProjectFile[]): SummarizationStats {
+export function getFileStats(files: ProjectFile[]): FileStats {
   const categorization = categorizeProjectFiles(files)
 
   const total = files.length
-  const summarizable = categorization.summarized.length + categorization.pending.length + categorization.error.length
+  const processable = categorization.processable.length
 
-  const stats: SummarizationStats = {
+  const stats: FileStats = {
     total,
-    summarized: categorization.summarized.length,
-    pending: categorization.pending.length,
+    text: categorization.text.length,
     binary: categorization.binary.length,
     tooLarge: categorization.tooLarge.length,
     empty: categorization.empty.length,
     error: categorization.error.length,
-    summarizable,
-    nonSummarizable: categorization.nonSummarizable.length,
-    coveragePercentage: summarizable > 0 ? (categorization.summarized.length / summarizable) * 100 : 0,
-    totalPercentage: total > 0 ? (categorization.summarized.length / total) * 100 : 0
+    processable,
+    nonProcessable: categorization.nonProcessable.length,
+    textPercentage: total > 0 ? (categorization.text.length / total) * 100 : 0,
+    processablePercentage: total > 0 ? (processable / total) * 100 : 0
   }
 
   return stats
 }
 
 /**
- * Get a human-readable description for file count
+ * Check if a file can be processed based on its properties
  */
-export function getFileCountDescription(count: number, total: number): string {
-  const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0'
-  return `${count} file${count !== 1 ? 's' : ''} (${percentage}%)`
+export function canProcessFile(file: ProjectFile): boolean {
+  const { category } = categorizeFile(file)
+  return category === 'text' || category === 'error'
+}
+
+/**
+ * Filter files that can be processed
+ */
+export function filterProcessableFiles(files: ProjectFile[]): ProjectFile[] {
+  return files.filter(canProcessFile)
 }

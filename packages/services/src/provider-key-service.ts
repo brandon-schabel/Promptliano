@@ -133,6 +133,10 @@ export function createProviderKeyService() {
         return 'together'
       case 'xai':
         return 'xai'
+      case 'copilot':
+      case 'githubcopilot':
+      case 'github':
+        return 'copilot'
       case 'lmstudio':
         return 'lmstudio'
       case 'ollama':
@@ -376,8 +380,13 @@ export function createProviderKeyService() {
       }
 
       // The key is already resolved (from plain text or env var) by getKeyById
-      const apiKey = providerKey.key || ''
-      if (!apiKey) {
+      const providerId = String(providerKey.provider || '').toLowerCase()
+      const isCopilot = providerId === 'copilot' || providerId === 'githubcopilot'
+      const isCustom = providerId === 'custom'
+      const apiKey =
+        providerKey.key ||
+        (isCopilot ? process.env.COPILOT_API_KEY || 'dummy' : isCustom ? process.env.CUSTOM_API_KEY || '' : '')
+      if (!apiKey && !isCopilot) {
         throw ErrorFactory.missingRequired('API key', 'provider')
       }
 
@@ -533,7 +542,8 @@ export function createProviderKeyService() {
   async function performProviderTest(
     request: TestProviderRequest & { provider: string; apiKey: string; url?: string; timeout?: number }
   ): Promise<{ models: ProviderModel[] }> {
-    const { provider, apiKey, url } = request
+    const { provider, url } = request
+    let apiKey = request.apiKey
 
     // Use provider-specific timeout, or fallback to request timeout if specified
     const providerTimeout = getProviderTimeout(provider as APIProviders, 'validation')
@@ -634,13 +644,14 @@ export function createProviderKeyService() {
 
           // Test with OpenAI-compatible /v1/models endpoint
           const customUrl = url.endsWith('/v1') ? url : `${url.replace(/\/$/, '')}/v1`
-          response = await fetch(`${customUrl}/models`, {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            signal: controller.signal
-          })
+          {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+            if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+            response = await fetch(`${customUrl}/models`, {
+              headers,
+              signal: controller.signal
+            })
+          }
 
           if (!response.ok) {
             throw ErrorFactory.operationFailed(
@@ -704,6 +715,33 @@ export function createProviderKeyService() {
               provider: 'openrouter'
             })) || []
           break
+
+        case 'copilot': {
+          if (!apiKey) {
+            apiKey = 'dummy'
+          }
+          // Support OpenAI-compatible proxy by honoring COPILOT_BASE_URL or a stored baseUrl
+          const base = (url || process.env.COPILOT_BASE_URL || 'https://api.githubcopilot.com').replace(/\/$/, '')
+          response = await fetch(`${base}/models`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+          })
+          if (!response.ok) {
+            throw ErrorFactory.operationFailed('Copilot API request', `${response.status}: ${response.statusText}`)
+          }
+          const copilotData = (await response.json()) as { data?: Array<{ id?: string; name?: string }> }
+          models =
+            copilotData.data?.map((m) => ({
+              id: m.id || 'unknown',
+              name: m.name || m.id || 'Unknown Model',
+              provider: 'copilot'
+            })) || []
+          break
+        }
 
         default:
           throw ErrorFactory.invalidParam('provider', 'supported provider type', provider)

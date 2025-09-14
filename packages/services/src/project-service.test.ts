@@ -318,43 +318,4 @@ describe('Project Service (Isolated Database)', () => {
     })
   })
 
-  describe('Summarization', () => {
-    let projectId: number
-
-    beforeEach(async () => {
-      const proj = await projectService.create(
-        TestDataFactory.project({
-          name: 'SummarizeProj',
-          path: '/summarize/test'
-        })
-      )
-      projectId = proj.id
-
-      // Reset mock return for generateStructuredData for each test if specific return values are needed
-      mockGenerateStructuredData.mockImplementation(async ({ schema }: { schema: z.ZodSchema<any> }) => {
-        if (schema.safeParse({ summary: 'Mocked AI summary' }).success) {
-          return { object: { summary: 'Mocked AI summary' } }
-        }
-        return { object: {} }
-      })
-    })
-
-    test('should process multiple files for summarization', async () => {
-      const result = await projectService.summarizeFiles(projectId, ['file1', 'file2'])
-      expect(result.included).toBeGreaterThanOrEqual(0)
-      expect(result.skipped).toBeGreaterThanOrEqual(0)
-    })
-
-    test('should remove summaries from files', async () => {
-      const result = await projectService.removeSummariesFromFiles(projectId, ['file1', 'file2'])
-      expect(result.removedCount).toBeGreaterThanOrEqual(0)
-      expect(result.message).toBeDefined()
-    })
-
-    test('should handle non-existent project for getById', async () => {
-      // Test with a non-existent project to verify error handling
-      const nonExistentId = 999999999999
-      await expect(projectService.getById(nonExistentId)).rejects.toThrow('Project with ID 999999999999 not found')
-    })
-  })
 })

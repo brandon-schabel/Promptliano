@@ -6,7 +6,6 @@ const TAB_MIGRATION_MAP: Record<string, { activeView: string; manageView?: strin
   stats: { activeView: 'manage', manageView: 'statistics' },
   statistics: { activeView: 'manage', manageView: 'statistics' },
   'mcp-analytics': { activeView: 'manage', manageView: 'mcp-analytics' },
-  summarization: { activeView: 'manage', manageView: 'summarization' },
   settings: { activeView: 'manage', manageView: 'project-settings' },
   'project-settings': { activeView: 'manage', manageView: 'project-settings' }
 }
@@ -53,7 +52,6 @@ export function getMigrationMessage(oldView: string): string {
     stats: 'Statistics',
     statistics: 'Statistics',
     'mcp-analytics': 'MCP Analytics',
-    summarization: 'Summarization',
     settings: 'Project Settings',
     'project-settings': 'Project Settings'
   }

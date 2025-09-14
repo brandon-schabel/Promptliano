@@ -13,13 +13,14 @@ import {
   ReadResourceRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
 import { getProjectFiles, getProjectById, suggestFiles, listProjects } from '@promptliano/services'
+import { runMigrations, initializeModelConfigs, getDatabasePath } from '@promptliano/database'
 import { CONSOLIDATED_TOOLS, getConsolidatedToolByName } from './mcp/tools-registry'
 
 // Create MCP server
 const server = new Server(
   {
     name: 'promptliano-mcp',
-    version: '0.10.0'
+    version: '0.11.0'
   },
   {
     capabilities: {
@@ -137,12 +138,6 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 
     const resources = [
       {
-        uri: `promptliano://projects/${projectId}/summary`,
-        name: 'Project Summary',
-        description: `Summary of project "${project.name}"`,
-        mimeType: 'text/plain'
-      },
-      {
         uri: `promptliano://projects/${projectId}/suggest-files`,
         name: 'File Suggestions',
         description: 'AI-powered file suggestions based on prompts',
@@ -201,7 +196,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             {
               uri,
               mimeType: 'text/plain',
-              text: `Promptliano MCP Server v0.10.0
+              text: `Promptliano MCP Server v0.11.0
 
 Promptliano is a powerful project management and AI assistance tool.
 
@@ -233,24 +228,8 @@ For more information, visit: https://github.com/Ejb503/promptliano`
         }
       }
 
-      if (projectId && urlParts[0] === 'projects' && urlParts[1] === projectId.toString()) {
-        if (urlParts[2] === 'summary') {
-          // Project summary resource
-          const project = await getProjectById(projectId)
-          const files = await getProjectFiles(projectId)
-          const fileCount = files?.length || 0
-          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.createdAt).toLocaleString()}`
-
-          return {
-            contents: [
-              {
-                uri,
-                mimeType: 'text/plain',
-                text: summary
-              }
-            ]
-          }
-        } else if (urlParts[2] === 'suggest-files') {
+      if (projectId && urlParts[0] === 'projects' && urlParts[1] === String(projectId)) {
+        if (urlParts[2] === 'suggest-files') {
           // File suggestions resource (requires prompt parameter)
           return {
             contents: [
@@ -320,6 +299,38 @@ For more information, visit: https://github.com/Ejb503/promptliano`
 
 // Start the server
 async function main() {
+  // Ensure database schema is up-to-date before handling any MCP requests
+  try {
+    // Log DB path early to aid debugging without interfering with stdout
+    const earlyDbPath = getDatabasePath()
+    console.error(`Database location (pre-migration): ${earlyDbPath === ':memory:' ? 'in-memory' : earlyDbPath}`)
+
+    await runMigrations()
+    const initResult = await initializeModelConfigs()
+    switch (initResult.status) {
+      case 'seeded':
+        console.error(
+          `Model presets seeded (${initResult.configsInserted} configs, ${initResult.presetsInserted} presets)`
+        )
+        break
+      case 'skipped_existing':
+        console.error('Model presets present; skipping seeding')
+        break
+      case 'skipped_missing_tables':
+        console.error(`Model presets skipped: ${initResult.reason}`)
+        break
+      case 'skipped_error':
+        console.error(`Model presets initialization failed: ${initResult.reason}`)
+        break
+    }
+    const dbPath = getDatabasePath()
+    // Use stderr for logs to avoid interfering with JSON-RPC stdout
+    console.error(`Database ready at ${dbPath === ':memory:' ? 'in-memory' : dbPath}`)
+  } catch (e) {
+    console.error('Database migration failed for MCP stdio server:', e)
+    process.exit(1)
+  }
+
   const transport = new StdioServerTransport()
   await server.connect(transport)
   // Use stderr for logging to avoid interfering with JSON-RPC messages on stdout

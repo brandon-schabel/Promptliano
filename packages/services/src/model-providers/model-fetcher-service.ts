@@ -7,7 +7,8 @@ import {
   OLLAMA_BASE_URL,
   OPENROUTER_BASE_URL,
   OPENAI_BASE_URL,
-  XAI_BASE_URL
+  XAI_BASE_URL,
+  COPILOT_BASE_URL
 } from './provider-defaults'
 
 export type UnifiedModel = {
@@ -162,6 +163,7 @@ export interface ProviderKeysConfig {
   togetherKey?: string
   xaiKey?: string
   openrouterKey?: string
+  copilotKey?: string
 }
 
 export type ListModelsOptions = {
@@ -402,6 +404,39 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
     },
 
     /**
+     * List GitHub Copilot models with caching and error handling
+     */
+    async listCopilotModels(): Promise<OpenAIModelObject[]> {
+      return withErrorContext(
+        async () => {
+          const cacheKey = 'copilot-models'
+          const cached = getCached(cacheKey)
+          if (cached) return cached
+          // Default keyless fallback for Copilot model listing
+          const copilotKey = config.copilotKey || process.env.COPILOT_API_KEY || 'dummy'
+          const response = await fetch(`${COPILOT_BASE_URL}/models`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${copilotKey}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`GitHub Copilot API error: ${response.status} - ${errorText}`)
+          }
+
+          const data = (await response.json()) as OpenAIModelsListResponse
+          setCached(cacheKey, data.data)
+          logger.info('Fetched GitHub Copilot models', { count: data.data.length })
+          return data.data
+        },
+        { entity: 'CopilotModels', action: 'list' }
+      )
+    },
+
+    /**
      * List Anthropic models with caching and error handling
      */
     async listAnthropicModels(): Promise<AnthropicModel[]> {
@@ -597,7 +632,7 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
       apiKey
     }: {
       baseUrl: string
-      apiKey: string
+      apiKey?: string
     }): Promise<UnifiedModel[]> => {
       return withErrorContext(
         async () => {
@@ -611,12 +646,14 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
             normalizedUrl = normalizedUrl.replace(/\/$/, '') + '/v1'
           }
 
-          const response = await fetch(`${normalizedUrl}/models`, {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            }
-          })
+          const allowKeylessCustom = String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true'
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          // Only include Authorization if key provided or keyless enabled
+          if (apiKey || allowKeylessCustom) {
+            headers.Authorization = `Bearer ${apiKey || 'dummy'}`
+          }
+
+          const response = await fetch(`${normalizedUrl}/models`, { headers })
 
           if (!response.ok) {
             const errorText = await response.text()
@@ -710,6 +747,15 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
               }))
             }
 
+            case 'copilot': {
+              const models = await operations.listCopilotModels()
+              return models.map((m) => ({
+                id: m.id,
+                name: m.id,
+                description: `GitHub Copilot model: ${m.id}`
+              }))
+            }
+
             case 'openai':
             default: {
               try {
@@ -792,6 +838,10 @@ export class ModelFetcherServiceClass {
     return this.service.listOpenAiModels()
   }
 
+  async listCopilotModels(): Promise<OpenAIModelObject[]> {
+    return this.service.listCopilotModels()
+  }
+
   async listAnthropicModels(): Promise<AnthropicModel[]> {
     return this.service.listAnthropicModels()
   }
@@ -812,7 +862,7 @@ export class ModelFetcherServiceClass {
     return this.service.listLMStudioModels(options || { baseUrl: LMSTUDIO_BASE_URL })
   }
 
-  async listCustomProviderModels({ baseUrl, apiKey }: { baseUrl: string; apiKey: string }): Promise<UnifiedModel[]> {
+  async listCustomProviderModels({ baseUrl, apiKey }: { baseUrl: string; apiKey?: string }): Promise<UnifiedModel[]> {
     return this.service.listCustomProviderModels({ baseUrl, apiKey })
   }
 

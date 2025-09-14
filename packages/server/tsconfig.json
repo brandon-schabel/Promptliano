@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -13,7 +13,8 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": false,
-    "composite": true,
+    "composite": false,
+    "rootDir": "../..",
 
     // Best practices
     "strict": true,
@@ -27,10 +28,11 @@
     "types": ["bun-types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "~/*": ["../copilot-api/src/*"]
     }
   },
-  "include": ["src", "server.ts", "build.ts"],
+  "include": ["src", "server.ts", "build.ts", "../copilot-api/src"],
   "exclude": [
     "node_modules/**/test/**",
     "node_modules/**/*.test.*",

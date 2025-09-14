@@ -11,8 +11,7 @@ import type {
   Ticket as DatabaseTicket,
   Chat as DatabaseChat,
   Queue as DatabaseQueue,
-  SelectedFile as DatabaseSelectedFile,
-  ActiveTab as DatabaseActiveTab
+  SelectedFile as DatabaseSelectedFile
 } from '@promptliano/database'
 
 // Import the actual schemas for proper type validation (type-only to avoid bundling issues)
@@ -85,7 +84,7 @@ export const ChatMessageListResponseSchema = createListResponseSchema(ChatMessag
 const ChatDataSchema = z
   .object({
     id: z.number(),
-    projectId: z.number(),
+    projectId: z.number().nullable(),
     title: z.string(), // Changed from 'name' to 'title' to match database schema
     createdAt: z.number(),
     updatedAt: z.number()

@@ -9,7 +9,7 @@ async function seedMCPData() {
   console.log('Seeding MCP analytics data...')
 
   const projectId = null // Test without project reference first
-  const tools = ['project_manager', 'ticket_manager', 'queue_processor', 'ai_assistant']
+  const tools = ['project_manager', 'flow_manager', 'ai_assistant']
   const statuses = ['success', 'success', 'success', 'error', 'success', 'timeout'] as const
 
   // Create sample executions

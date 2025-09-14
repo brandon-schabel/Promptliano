@@ -52,7 +52,7 @@ The Promptliano color system is designed to create a modern, accessible, and coh
 
 - **Green-500**: Live/online indicators, success badges
 - **Yellow-500**: Beta badges, development status
-- **Orange-500**: Data visualizations, summaries
+- **Orange-500**: Data visualizations, highlights
 - **Pink-500**: Git-related features, version control
 - **Purple-500**: AI/prompt-related features
 - **Indigo-400**: Community features, Discord integration

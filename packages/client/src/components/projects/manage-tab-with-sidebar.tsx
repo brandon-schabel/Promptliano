@@ -1,6 +1,6 @@
 import React from 'react'
 import { ManageSidebarNav, type ManageView } from './manage-sidebar-nav'
-import { StatisticsView, MCPAnalyticsView, SummarizationView, ProjectSettingsView } from './manage-views'
+import { StatisticsView, MCPAnalyticsView, ProjectSettingsView } from './manage-views'
 import { cn } from '@/lib/utils'
 
 interface ManageTabWithSidebarProps {
@@ -27,7 +27,6 @@ export function ManageTabWithSidebar({
       <div className='flex-1 overflow-y-auto'>
         {manageView === 'statistics' && <StatisticsView projectId={projectId} />}
         {manageView === 'mcp-analytics' && <MCPAnalyticsView projectId={projectId} />}
-        {manageView === 'summarization' && <SummarizationView />}
         {manageView === 'project-settings' && <ProjectSettingsView />}
       </div>
     </div>

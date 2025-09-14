@@ -8,8 +8,6 @@ import ignorePackage, { type Ignore } from 'ignore'
 const filesConfig = getFilesConfig()
 const ALLOWED_FILE_CONFIGS = filesConfig.allowedExtensions
 const DEFAULT_FILE_EXCLUSIONS = filesConfig.defaultExclusions
-const MAX_FILE_SIZE_FOR_SUMMARY = filesConfig.maxFileSizeForSummary
-import { truncateForSummarization } from '@promptliano/shared'
 import { retryOperation } from '../utils/retry-operation'
 import {
   getProjectFiles,
@@ -17,10 +15,8 @@ import {
   bulkUpdateProjectFiles,
   bulkDeleteProjectFiles,
   listProjects,
-  summarizeSingleFile,
   type FileSyncData
 } from '../project-service'
-import { fileIndexingService } from '../file-indexing-service'
 import { resolvePath, normalizePathForDb as normalizePathForDbUtil } from '../utils/path-utils'
 import { analyzeCodeImportsExports } from '../utils/code-analysis'
 import { createLogger } from '../utils/logger'
@@ -532,18 +528,15 @@ export async function syncFileSet(
       // Always compute checksum from the full content for change detection
       checksum = computeChecksum(rawContent)
 
-      // Truncate content for storage and summarization to control AI costs
-      const truncationResult = truncateForSummarization(rawContent)
-      content = truncationResult.content
+      // Store the full content
+      content = rawContent
 
-      if (truncationResult.wasTruncated) {
-        logger.debug(`File truncated for summarization`, {
+      if (rawContent.length > 100000) {
+        logger.debug(`Large file detected`, {
           path: normalizedRelativePath,
           project: `${project.name} (ID: ${project.id})`,
           fileSize: stats.size,
-          originalLength: truncationResult.originalLength,
-          truncatedLength: content.length,
-          reduction: `${Math.round((1 - content.length / truncationResult.originalLength) * 100)}%`
+          contentLength: content.length
         })
       }
 
@@ -553,9 +546,9 @@ export async function syncFileSet(
         extension = fileName // e.g., '.env'
       }
 
-      // Analyze imports/exports for supported file types (skip if truncated)
+      // Analyze imports/exports for supported file types
       let codeAnalysis = null
-      if (['.js', '.jsx', '.ts', '.tsx', '.py'].includes(extension) && !truncationResult.wasTruncated) {
+      if (['.js', '.jsx', '.ts', '.tsx', '.py'].includes(extension)) {
         codeAnalysis = analyzeCodeImportsExports(content, fileName)
       }
 
@@ -662,35 +655,7 @@ export async function syncFileSet(
       `SyncFileSet results - Created: ${createdCount}, Updated: ${updatedCount}, Deleted: ${deletedCount}, Skipped: ${skippedCount}`
     )
 
-    // Index new and updated files immediately
-    if (createdCount > 0 || updatedCount > 0) {
-      const filesToIndex = [...createdFiles, ...updatedFiles]
-
-      // Switch to indexing phase
-      progressTracker?.setPhase('indexing', `Indexing ${filesToIndex.length} files for search...`)
-
-      try {
-        const indexResult = await fileIndexingService.indexFiles(filesToIndex)
-        logger.info(
-          `File indexing completed - Indexed: ${indexResult.indexed}, Skipped: ${indexResult.skipped}, Failed: ${indexResult.failed}`
-        )
-      } catch (error) {
-        logger.error('File indexing failed', error)
-        // Don't throw - let sync complete even if indexing fails
-      }
-    }
-    // Remove deleted files from index
-    if (deletedCount > 0) {
-      try {
-        for (const fileId of fileIdsToDelete) {
-          await fileIndexingService.removeFileFromIndex(fileId)
-        }
-        logger.info(`Removed ${fileIdsToDelete.length} files from search index`)
-      } catch (error) {
-        logger.error('Failed to remove files from index', error)
-        // Don't throw - let sync complete even if index cleanup fails
-      }
-    }
+    // No indexing step required with ripgrep/FTS minimal backends
     return { created: createdCount, updated: updatedCount, deleted: deletedCount, skipped: skippedCount }
   } catch (error) {
     logger.error(`Error during DB batch operations for project ${project.id}`, error)
@@ -926,7 +891,7 @@ export function createFileChangePlugin() {
           const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
 
           if (event === 'deleted') {
-            pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
+            pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No downstream analysis needed.`)
             // Potentially trigger other cleanup actions for deleted files if necessary.
             return
           }
@@ -940,9 +905,7 @@ export function createFileChangePlugin() {
             return
           }
 
-          // Re-summarize the (created or modified) file
-          pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
-          await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
+          // processing ends after sync
           pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
         } catch (err) {
           pluginLogger.error('Error in debounced file change sync', err)
@@ -1099,16 +1062,7 @@ export function createCleanupService(options: CleanupOptions) {
             removedCount = orphanedFiles.length
             cleanupLogger.info(`Removed ${removedCount} orphaned files from project ${project.id}`)
 
-            // Also remove from search index
-            try {
-              for (const fileId of orphanedFiles) {
-                await fileIndexingService.removeFileFromIndex(fileId)
-              }
-              cleanupLogger.debug(`Removed ${orphanedFiles.length} files from search index`)
-            } catch (indexError) {
-              cleanupLogger.warn(`Failed to remove some files from search index`, indexError)
-              // Don't fail the cleanup for index errors
-            }
+            // No index cleanup necessary with ripgrep/FTS minimal backends
           } else {
             cleanupLogger.debug(`No orphaned files found for project ${project.id}`)
           }

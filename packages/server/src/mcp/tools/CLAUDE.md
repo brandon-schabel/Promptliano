@@ -19,8 +19,8 @@ The MCP tools system is organized into categorized modules, each implementing sp
 
 ### `/analysis/`
 
-- **Purpose**: File analysis and summarization tools
-- **Tools**: `file-summarization-manager.tool.ts`
+- **Purpose**: File analysis and metrics tools
+- **Tools**: `file-analysis-manager.tool.ts`
 - **Pattern**: Batch processing, progress tracking, AI-powered analysis
 
 ### `/content/`

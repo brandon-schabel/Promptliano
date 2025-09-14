@@ -489,7 +489,7 @@ export const mcpInstallationRoutes = new OpenAPIHono()
 
       return c.json(
         {
-          success: true,
+          success: true as const,
           data: {
             message: result.message
           }

@@ -17,7 +17,6 @@ export type MCPExecutionQuery = {
   startDate?: number
   endDate?: number
   status?: 'success' | 'error' | 'timeout'
-  userId?: string
   sessionId?: string
   limit?: number
   offset?: number
@@ -44,7 +43,6 @@ export type MCPToolExecution = {
   id: string | number
   toolName: string
   projectId?: number | null
-  userId?: string | null
   sessionId?: string | null
   startedAt: number
   completedAt?: number | null

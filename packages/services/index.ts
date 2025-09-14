@@ -13,9 +13,6 @@ export {
   // File-related functions
   getProjectFiles,
   updateFileContent,
-  summarizeFiles,
-  summarizeSingleFile,
-  removeSummariesFromFiles,
   suggestFiles,
   getProjectFileTree,
   getProjectOverview,
@@ -220,7 +217,6 @@ export {
   startMCPServer as startMCPServerLegacy,
   stopMCPServer as stopMCPServerLegacy
 } from './src/mcp-service'
-export * from './src/active-tab-service'
 
 // Git services - Re-export all git functionality
 export * from './src/git-services'
@@ -280,27 +276,21 @@ export * from './src/utils/logger'
 export * from './src/utils/model-usage-logger'
 
 // server side utils
-export * from './src/utils/project-summary-service'
-export {
-  // Project summary service individual exports
-  optimizeUserInput,
-  getCompactProjectSummary,
-  getProjectSummaryWithOptions
-} from './src/utils/project-summary-service'
+// Removed project summary service exports
 export * from './src/utils/file-importance-scorer'
 export * from './src/utils/json-scribe'
 // path-utils moved to @promptliano/shared
 
 // export * from './src/utils/storage-maintenance' // File not found
 export * from './src/file-search-service'
-export * from './src/file-indexing-service'
 export * from './src/mcp-tracking-service'
 export * from './src/file-relevance-service'
 export * from './src/file-suggestion-strategy-service'
 export * from './src/utils/compact-file-formatter'
 export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
-export * from './src/file-summarization-tracker'
+// Suggestions Service facade
+export * from './src/suggestions/suggestions-service'
 export {
   // Tab Name Generation Service
   createTabNameGenerationService,
@@ -338,6 +328,8 @@ export * from './src/mcp-config-manager'
 export * from './src/mcp-project-config-service'
 export * from './src/mcp-project-server-manager'
 export * from './src/mcp-global-config-service'
+// Process management service (runtime processes per project)
+export * from './src/process-management-service'
 
 // Re-export types from schemas for backward compatibility
 export type { CreateProjectBody, UpdateProjectBody } from '@promptliano/schemas'
@@ -367,11 +359,8 @@ export {
   exportPromptsToMarkdown
 } from './src/markdown-prompt-service'
 
-export * from './src/enhanced-summarization-service'
-
 // V2 Service Aliases for backward compatibility with generated routes
 // Now using properly compatible services
-export { activeTabService as activetabServiceV2 } from './src/active-tab-service'
 export { chatService as chatServiceV2 } from './src/chat-service'
 export { chatService as chatmessageServiceV2 } from './src/chat-service'
 export { fileService as fileServiceV2 } from './src/file-service'
@@ -390,7 +379,6 @@ export { taskService as tickettaskServiceV2 } from './src/task-service'
 export { projectService as projectServiceV2 } from './src/project-service'
 
 // Additional exports for factory routes (using correct names)
-export { activeTabService } from './src/active-tab-service'
 export { chatService as chatMessageService } from './src/chat-service'
 // fileService already exported above (lines 111-117)
 // queueService already exported above (lines 49-79)

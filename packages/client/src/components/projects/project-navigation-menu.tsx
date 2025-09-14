@@ -48,6 +48,7 @@ interface ProjectNavigationMenuProps {
   activeView: ProjectView | undefined
   onViewChange: (view: ProjectView) => void
   assetsEnabled?: boolean
+  processesEnabled?: boolean
   showMenus?: boolean
   showTabs?: boolean
 }
@@ -57,6 +58,7 @@ export function ProjectNavigationMenu({
   activeView,
   onViewChange,
   assetsEnabled,
+  processesEnabled,
   showMenus = true,
   showTabs = true
 }: ProjectNavigationMenuProps) {
@@ -64,10 +66,8 @@ export function ProjectNavigationMenu({
   const client = useApiClient()
   const queryClient = useQueryClient()
   const isCompact = useMediaQuery('(max-width: 768px)')
-  const [{ summarizationEnabledProjectIds = [] }] = useAppSettings()
   const [activeProjectTabState] = useActiveProjectTab()
   const selectedProjectId = activeProjectTabState?.selectedProjectId
-  const isSummarizationEnabled = selectedProjectId ? summarizationEnabledProjectIds.includes(selectedProjectId) : false
   const { copyToClipboard } = useCopyClipboard()
 
   // Check if project has MCP configuration
@@ -201,6 +201,7 @@ export function ProjectNavigationMenu({
         <TabButton view='flow' icon={Workflow} label='Flow' />
         <TabButton view='manage' icon={Sliders} label='Manage' />
         {assetsEnabled && <TabButton view='assets' icon={FolderOpen} label='Assets' />}
+        {processesEnabled && <TabButton view={'processes' as ProjectView} icon={Activity} label='Processes' />}
       </div>
     )
   }
@@ -242,19 +243,6 @@ export function ProjectNavigationMenu({
           <MenubarItem onClick={() => navigateToManageView('statistics')} className='flex items-center gap-2'>
             <BarChart3 className='h-4 w-4' />
             Statistics
-          </MenubarItem>
-          <MenubarItem
-            onClick={() => navigateToManageView('summarization', 'project-summarization-settings')}
-            className='flex items-center gap-2'
-          >
-            <FileText className='h-4 w-4' />
-            <span>Enable Summarization</span>
-            <Circle
-              className={cn(
-                'h-2 w-2 ml-auto',
-                isSummarizationEnabled ? 'fill-green-500 text-green-500' : 'fill-red-500 text-red-500'
-              )}
-            />
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem

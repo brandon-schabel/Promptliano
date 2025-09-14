@@ -3,7 +3,6 @@ import { getProjectById, getProjectFiles } from './project-service'
 import { getTicketsByProject } from './ticket-service'
 import { getPromptsByProject } from './prompt-service'
 import { type Ticket } from '@promptliano/database'
-import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
 export interface ProjectStatistics {
   // File Statistics
@@ -19,10 +18,6 @@ export interface ProjectStatistics {
       config: number
       other: number
     }
-    filesWithSummaries: number
-    averageSummaryLength: number
-    filesExceedingSizeLimit: number
-    largestFileSize: number
   }
 
   // Ticket Statistics
@@ -152,10 +147,7 @@ function calculateFileStats(files: any[]): ProjectStatistics['fileStats'] {
     other: 0
   }
   let totalSize = 0
-  let filesWithSummaries = 0
-  let totalSummaryLength = 0
-  let filesExceedingSizeLimit = 0
-  let largestFileSize = 0
+  // Summaries removed; drop related counters
 
   files.forEach((file) => {
     const ext = file.extension || 'unknown'
@@ -166,20 +158,7 @@ function calculateFileStats(files: any[]): ProjectStatistics['fileStats'] {
     const category = categorizeFile(file.path)
     filesByCategory[category as keyof typeof filesByCategory]++
 
-    if (file.summary && file.summary.length > 0) {
-      filesWithSummaries++
-      totalSummaryLength += file.summary.length
-    }
-
-    // Track files exceeding size limit
-    if (file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
-      filesExceedingSizeLimit++
-    }
-
-    // Track largest file
-    if (file.size > largestFileSize) {
-      largestFileSize = file.size
-    }
+    // Summary-related metrics removed
   })
 
   return {
@@ -187,11 +166,7 @@ function calculateFileStats(files: any[]): ProjectStatistics['fileStats'] {
     totalSize,
     filesByType,
     sizeByType,
-    filesByCategory,
-    filesWithSummaries,
-    averageSummaryLength: filesWithSummaries > 0 ? totalSummaryLength / filesWithSummaries : 0,
-    filesExceedingSizeLimit,
-    largestFileSize
+    filesByCategory
   }
 }
 

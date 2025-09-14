@@ -54,14 +54,15 @@ mcp__Promptliano__project_manager(
 ## Available Tools
 
 ### Project Management
-- **project_manager**: File operations, summaries, search
-  - Actions: overview, get_summary, suggest_files, search, create_file
+- **project_manager**: File operations and search
+  - Actions: overview, suggest_files, search, create_file
 
-### Task Management  
-- **ticket_manager**: Create and manage tickets
-  - Actions: list, create, update, suggest_tasks, auto_generate_tasks
-- **task_manager**: Manage tasks within tickets
-  - Actions: create, update, list, suggest_files
+### Flow Management  
+- **flow_manager**: Unified tickets, tasks, queues, and processing
+  - Tickets: tickets_list, tickets_create, tickets_update
+  - Tasks: tasks_list_by_ticket, tasks_create, tasks_update
+  - Queues: queues_create, queues_list, queues_get_stats
+  - Processor: processor_get_next, processor_complete, processor_fail
 
 ### Knowledge Base
 - **prompt_manager**: Access saved documentation and prompts
@@ -72,8 +73,8 @@ mcp__Promptliano__project_manager(
   - Actions: status, commit, branches, stash, worktree operations
 
 ### AI Assistance
-- **ai_assistant**: Optimize prompts and get project insights
-  - Actions: optimize_prompt, get_compact_summary
+- **ai_assistant**: Optimize prompts
+  - Actions: optimize_prompt
 
 ## Key Features
 

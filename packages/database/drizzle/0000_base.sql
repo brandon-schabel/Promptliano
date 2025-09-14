@@ -28,7 +28,7 @@ CREATE INDEX `chat_messages_role_idx` ON `chat_messages` (`role`);--> statement-
 CREATE INDEX `chat_messages_created_at_idx` ON `chat_messages` (`created_at`);--> statement-breakpoint
 CREATE TABLE `chats` (
 	`id` integer PRIMARY KEY NOT NULL,
-	`project_id` integer NOT NULL,
+	`project_id` integer,
 	`title` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
@@ -90,10 +90,15 @@ CREATE TABLE `files` (
 	`project_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`path` text NOT NULL,
+	`extension` text,
 	`size` integer,
 	`last_modified` integer,
 	`content_type` text,
-	`summary` text,
+	`content` text,
+	`meta` text,
+	`checksum` text,
+	`imports` text,
+	`exports` text,
 	`is_relevant` integer DEFAULT false,
 	`relevance_score` real,
 	`created_at` integer NOT NULL,
@@ -106,6 +111,8 @@ CREATE INDEX `files_path_idx` ON `files` (`path`);--> statement-breakpoint
 CREATE INDEX `files_name_idx` ON `files` (`name`);--> statement-breakpoint
 CREATE INDEX `files_relevant_idx` ON `files` (`is_relevant`);--> statement-breakpoint
 CREATE INDEX `files_score_idx` ON `files` (`relevance_score`);--> statement-breakpoint
+CREATE INDEX `files_extension_idx` ON `files` (`extension`);--> statement-breakpoint
+CREATE INDEX `files_checksum_idx` ON `files` (`checksum`);--> statement-breakpoint
 CREATE TABLE `projects` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -119,7 +126,7 @@ CREATE INDEX `projects_path_idx` ON `projects` (`path`);--> statement-breakpoint
 CREATE INDEX `projects_name_idx` ON `projects` (`name`);--> statement-breakpoint
 CREATE TABLE `prompts` (
 	`id` integer PRIMARY KEY NOT NULL,
-	`project_id` integer NOT NULL,
+	`project_id` integer,
 	`title` text NOT NULL,
 	`content` text NOT NULL,
 	`description` text,
@@ -136,8 +143,17 @@ CREATE TABLE `provider_keys` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`provider` text NOT NULL,
 	`key_name` text NOT NULL,
-	`encrypted_value` text NOT NULL,
+	`name` text,
+	`secret_ref` text,
+	`key` text,
+	`base_url` text,
+	`custom_headers` text DEFAULT '{}',
+	`is_default` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
+	`environment` text DEFAULT 'production' NOT NULL,
+	`description` text,
+	`expires_at` integer,
+	`last_used` integer,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL
 );
@@ -145,6 +161,8 @@ CREATE TABLE `provider_keys` (
 CREATE INDEX `provider_keys_provider_idx` ON `provider_keys` (`provider`);--> statement-breakpoint
 CREATE INDEX `provider_keys_key_name_idx` ON `provider_keys` (`key_name`);--> statement-breakpoint
 CREATE INDEX `provider_keys_active_idx` ON `provider_keys` (`is_active`);--> statement-breakpoint
+CREATE INDEX `provider_keys_default_idx` ON `provider_keys` (`is_default`);--> statement-breakpoint
+CREATE INDEX `provider_keys_environment_idx` ON `provider_keys` (`environment`);--> statement-breakpoint
 CREATE TABLE `queue_items` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`queue_id` integer NOT NULL,
@@ -206,6 +224,7 @@ CREATE TABLE `ticket_tasks` (
 	`description` text,
 	`suggested_file_ids` text DEFAULT '[]' NOT NULL,
 	`done` integer DEFAULT false NOT NULL,
+	`status` text DEFAULT 'pending' NOT NULL,
 	`order_index` integer DEFAULT 0 NOT NULL,
 	`estimated_hours` real,
 	`dependencies` text DEFAULT '[]' NOT NULL,
@@ -231,6 +250,7 @@ CREATE TABLE `ticket_tasks` (
 --> statement-breakpoint
 CREATE INDEX `ticket_tasks_ticket_idx` ON `ticket_tasks` (`ticket_id`);--> statement-breakpoint
 CREATE INDEX `ticket_tasks_done_idx` ON `ticket_tasks` (`done`);--> statement-breakpoint
+CREATE INDEX `ticket_tasks_status_idx` ON `ticket_tasks` (`status`);--> statement-breakpoint
 CREATE INDEX `ticket_tasks_order_idx` ON `ticket_tasks` (`ticket_id`,`order_index`);--> statement-breakpoint
 CREATE INDEX `ticket_tasks_queue_idx` ON `ticket_tasks` (`queue_id`,`queue_position`);--> statement-breakpoint
 CREATE INDEX `ticket_tasks_agent_idx` ON `ticket_tasks` (`agent_id`);--> statement-breakpoint
@@ -602,32 +622,58 @@ CREATE INDEX `relevance_scores_file_idx` ON `relevance_scores` (`file_id`);--> s
 CREATE INDEX `relevance_scores_project_idx` ON `relevance_scores` (`project_id`);--> statement-breakpoint
 CREATE INDEX `relevance_scores_total_score_idx` ON `relevance_scores` (`total_score`);--> statement-breakpoint
 CREATE INDEX `relevance_scores_query_idx` ON `relevance_scores` (`query`);--> statement-breakpoint
-ALTER TABLE `files` ADD `content` text;--> statement-breakpoint
-ALTER TABLE `files` ADD `summary_last_updated` integer;--> statement-breakpoint
-ALTER TABLE `files` ADD `meta` text;--> statement-breakpoint
-ALTER TABLE `files` ADD `checksum` text;--> statement-breakpoint
-ALTER TABLE `files` ADD `imports` text;--> statement-breakpoint
-ALTER TABLE `files` ADD `exports` text;--> statement-breakpoint
-CREATE INDEX `files_checksum_idx` ON `files` (`checksum`);--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `name` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `key` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `encrypted` integer DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `iv` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `tag` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `salt` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `base_url` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `custom_headers` text DEFAULT '{}';--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `is_default` integer DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `environment` text DEFAULT 'production' NOT NULL;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `description` text;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `expires_at` integer;--> statement-breakpoint
-ALTER TABLE `provider_keys` ADD `last_used` integer;--> statement-breakpoint
-CREATE INDEX `provider_keys_name_idx` ON `provider_keys` (`name`);--> statement-breakpoint
-CREATE INDEX `provider_keys_default_idx` ON `provider_keys` (`is_default`);--> statement-breakpoint
-CREATE INDEX `provider_keys_environment_idx` ON `provider_keys` (`environment`);--> statement-breakpoint
-ALTER TABLE `ticket_tasks` ADD `status` text DEFAULT 'pending' NOT NULL;--> statement-breakpoint
-CREATE INDEX `ticket_tasks_status_idx` ON `ticket_tasks` (`status`);ALTER TABLE `files` ADD `extension` text;--> statement-breakpoint
-CREATE INDEX `files_extension_idx` ON `files` (`extension`);CREATE TABLE `mcp_error_patterns` (
+-- Consolidated base migration continues
+CREATE TABLE `model_configs` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`display_name` text,
+	`provider` text NOT NULL,
+	`model` text NOT NULL,
+	`temperature` real DEFAULT 0.7,
+	`max_tokens` integer DEFAULT 4096,
+	`top_p` real DEFAULT 1,
+	`top_k` integer DEFAULT 0,
+	`frequency_penalty` real DEFAULT 0,
+	`presence_penalty` real DEFAULT 0,
+	`response_format` text,
+	`system_prompt` text,
+	`is_system_preset` integer DEFAULT false NOT NULL,
+	`is_default` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`description` text,
+	`preset_category` text,
+	`ui_icon` text,
+	`ui_color` text,
+	`ui_order` integer DEFAULT 0,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `model_configs_name_idx` ON `model_configs` (`name`);--> statement-breakpoint
+CREATE INDEX `model_configs_provider_idx` ON `model_configs` (`provider`);--> statement-breakpoint
+CREATE INDEX `model_configs_is_default_idx` ON `model_configs` (`is_default`);--> statement-breakpoint
+--> statement-breakpoint
+CREATE TABLE `model_presets` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`config_id` integer NOT NULL,
+	`category` text DEFAULT 'general',
+	`is_system_preset` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`usage_count` integer DEFAULT 0 NOT NULL,
+	`last_used_at` integer,
+	`metadata` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`config_id`) REFERENCES `model_configs`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `model_presets_category_idx` ON `model_presets` (`category`);--> statement-breakpoint
+CREATE INDEX `model_presets_config_idx` ON `model_presets` (`config_id`);--> statement-breakpoint
+--> statement-breakpoint
+CREATE INDEX `model_presets_usage_idx` ON `model_presets` (`usage_count`);--> statement-breakpoint
+CREATE TABLE `mcp_error_patterns` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`project_id` integer,
 	`tool_name` text NOT NULL,
@@ -663,7 +709,6 @@ CREATE TABLE `mcp_tool_executions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`tool_name` text NOT NULL,
 	`project_id` integer,
-	`user_id` text,
 	`session_id` text,
 	`started_at` integer NOT NULL,
 	`completed_at` integer,
@@ -716,6 +761,69 @@ CREATE INDEX `mcp_stat_period_idx` ON `mcp_tool_statistics` (`period_start`,`per
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
--- Add secret_ref column to provider_keys for env-based secret references
-ALTER TABLE `provider_keys` ADD COLUMN `secret_ref` text;
+-- provider_keys.secret_ref included in base provider_keys definition above
 
+-- Process Management Tables (squashed from 0001_process_management.sql)
+CREATE TABLE `process_runs` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`project_id` integer NOT NULL,
+	`process_id` text NOT NULL,
+	`pid` integer,
+	`name` text,
+	`command` text NOT NULL,
+	`args` text DEFAULT '[]' NOT NULL,
+	`cwd` text NOT NULL,
+	`env` text,
+	`status` text DEFAULT 'running' NOT NULL,
+	`exit_code` integer,
+	`signal` text,
+	`started_at` integer NOT NULL,
+	`exited_at` integer,
+	`cpu_usage` real,
+	`memory_usage` integer,
+	`script_name` text,
+	`script_type` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `process_runs_process_id_unique` ON `process_runs` (`process_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_project_idx` ON `process_runs` (`project_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_process_id_idx` ON `process_runs` (`process_id`);--> statement-breakpoint
+CREATE INDEX `process_runs_status_idx` ON `process_runs` (`status`);--> statement-breakpoint
+CREATE INDEX `process_runs_started_at_idx` ON `process_runs` (`started_at`);--> statement-breakpoint
+CREATE TABLE `process_logs` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`run_id` integer NOT NULL,
+	`timestamp` integer NOT NULL,
+	`type` text NOT NULL,
+	`content` text NOT NULL,
+	`line_number` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`run_id`) REFERENCES `process_runs`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `process_logs_run_idx` ON `process_logs` (`run_id`);--> statement-breakpoint
+CREATE INDEX `process_logs_timestamp_idx` ON `process_logs` (`timestamp`);--> statement-breakpoint
+CREATE INDEX `process_logs_type_idx` ON `process_logs` (`type`);--> statement-breakpoint
+CREATE TABLE `process_ports` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`project_id` integer NOT NULL,
+	`run_id` integer,
+	`port` integer NOT NULL,
+	`protocol` text DEFAULT 'tcp' NOT NULL,
+	`address` text DEFAULT '0.0.0.0' NOT NULL,
+	`pid` integer,
+	`process_name` text,
+	`state` text DEFAULT 'listening' NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`run_id`) REFERENCES `process_runs`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE INDEX `process_ports_project_idx` ON `process_ports` (`project_id`);--> statement-breakpoint
+CREATE INDEX `process_ports_run_idx` ON `process_ports` (`run_id`);--> statement-breakpoint
+CREATE INDEX `process_ports_port_idx` ON `process_ports` (`port`);--> statement-breakpoint
+CREATE INDEX `process_ports_state_idx` ON `process_ports` (`state`);
