@@ -1,6 +1,6 @@
 /**
  * Enhanced Security Module for Process Management
- * 
+ *
  * This module implements comprehensive security measures for process spawning:
  * - Strict command validation and allow-listing
  * - Script name validation against package.json
@@ -17,6 +17,7 @@ import { constants as fsConstants } from 'node:fs'
 import { createServiceLogger } from '../core/base-service'
 import { ApiError, ErrorFactory } from '@promptliano/shared'
 import type { ProcessConfig } from '../process-management-service'
+export type { ProcessConfig } from '../process-management-service'
 
 // Security constants
 const MAX_PROCESSES_PER_PROJECT = 5
@@ -30,15 +31,15 @@ const MAX_REQUESTS_PER_WINDOW = 10
 // Command patterns
 const SAFE_ARG_PATTERN = /^[\w@.\-+:=\/,\[\]"'\\]*$/
 const DANGEROUS_ARG_PATTERNS = [
-  /\.\./,           // Path traversal
-  /\/etc\//,        // System paths
-  /\/proc\//,       // Process filesystem
-  /\/sys\//,        // System filesystem
-  /\$\(/,          // Command substitution
-  /`/,             // Backticks
-  /&&|;|\|/,       // Command chaining
-  /<script/i,      // Script injection
-  /eval\(/,        // Code evaluation
+  /\.\./, // Path traversal
+  /\/etc\//, // System paths
+  /\/proc\//, // Process filesystem
+  /\/sys\//, // System filesystem
+  /\$\(/, // Command substitution
+  /`/, // Backticks
+  /&&|;|\|/, // Command chaining
+  /<script/i, // Script injection
+  /eval\(/ // Code evaluation
 ]
 
 // Environment variable patterns
@@ -46,14 +47,14 @@ const ALLOWED_ENV_PATTERNS = [
   /^(NODE_|NPM_|YARN_|BUN_|PNPM_)/,
   /^(CI|PORT|HOME|USER|PATH|PWD)$/,
   /^(TERM|LANG|LC_)/, // Terminal/locale
-  /^DEBUG$/,
+  /^DEBUG$/
 ]
 
 const BLOCKED_ENV_PATTERNS = [
-  /^(AWS_|GOOGLE_|AZURE_)/,  // Cloud credentials
-  /^(DB_|DATABASE_)/,         // Database credentials
-  /_SECRET|_KEY|_TOKEN$/,     // Any secrets/keys/tokens
-  /^(ADMIN_|ROOT_)/,         // Admin credentials
+  /^(AWS_|GOOGLE_|AZURE_)/, // Cloud credentials
+  /^(DB_|DATABASE_)/, // Database credentials
+  /_SECRET|_KEY|_TOKEN$/, // Any secrets/keys/tokens
+  /^(ADMIN_|ROOT_)/ // Admin credentials
 ]
 
 export interface SecurityContext {
@@ -65,11 +66,11 @@ export interface SecurityContext {
 }
 
 export interface ProcessLimits {
-  maxMemory: number     // bytes
-  maxCpu: number        // logical CPU cores
-  maxTimeout: number    // milliseconds
-  maxArgs: number       // max command arguments
-  maxEnvVars: number    // max environment variables
+  maxMemory: number // bytes
+  maxCpu: number // logical CPU cores
+  maxTimeout: number // milliseconds
+  maxArgs: number // max command arguments
+  maxEnvVars: number // max environment variables
 }
 
 export interface RateLimitEntry {
@@ -95,27 +96,36 @@ export class ProcessSecurityManager {
 
   // Default limits by role
   private defaultLimits = new Map<string, ProcessLimits>([
-    ['admin', {
-      maxMemory: 1024 * 1024 * 1024, // 1GB
-      maxCpu: 4,
-      maxTimeout: 600_000, // 10 minutes
-      maxArgs: 50,
-      maxEnvVars: 100
-    }],
-    ['user', {
-      maxMemory: DEFAULT_MEMORY_LIMIT,
-      maxCpu: DEFAULT_CPU_LIMIT,
-      maxTimeout: DEFAULT_TIMEOUT_MS,
-      maxArgs: 20,
-      maxEnvVars: 50
-    }],
-    ['system', {
-      maxMemory: 2048 * 1024 * 1024, // 2GB
-      maxCpu: 8,
-      maxTimeout: 1800_000, // 30 minutes
-      maxArgs: 100,
-      maxEnvVars: 200
-    }]
+    [
+      'admin',
+      {
+        maxMemory: 1024 * 1024 * 1024, // 1GB
+        maxCpu: 4,
+        maxTimeout: 600_000, // 10 minutes
+        maxArgs: 50,
+        maxEnvVars: 100
+      }
+    ],
+    [
+      'user',
+      {
+        maxMemory: DEFAULT_MEMORY_LIMIT,
+        maxCpu: DEFAULT_CPU_LIMIT,
+        maxTimeout: DEFAULT_TIMEOUT_MS,
+        maxArgs: 20,
+        maxEnvVars: 50
+      }
+    ],
+    [
+      'system',
+      {
+        maxMemory: 2048 * 1024 * 1024, // 2GB
+        maxCpu: 8,
+        maxTimeout: 1800_000, // 30 minutes
+        maxArgs: 100,
+        maxEnvVars: 200
+      }
+    ]
   ])
 
   constructor(sandboxRoot?: string) {
@@ -126,10 +136,7 @@ export class ProcessSecurityManager {
   /**
    * Comprehensive validation of process configuration
    */
-  async validateProcessConfig(
-    config: ProcessConfig,
-    context: SecurityContext
-  ): Promise<void> {
+  async validateProcessConfig(config: ProcessConfig, context: SecurityContext): Promise<void> {
     const { userRole, userId, projectId } = context
 
     // Step 1: Basic validation
@@ -225,7 +232,7 @@ export class ProcessSecurityManager {
       // Find package.json in the working directory
       const cwd = config.cwd || this.sandboxRoot
       const packageJsonPath = join(cwd, 'package.json')
-      
+
       await access(packageJsonPath, fsConstants.F_OK)
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'))
 
@@ -246,7 +253,6 @@ export class ProcessSecurityManager {
         scriptName,
         scriptCommand
       })
-
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -258,17 +264,12 @@ export class ProcessSecurityManager {
   /**
    * Validate and sanitize environment variables
    */
-  private async validateEnvironment(
-    env: Record<string, string | undefined> = {},
-    userRole: string
-  ): Promise<void> {
+  private async validateEnvironment(env: Record<string, string | undefined> = {}, userRole: string): Promise<void> {
     const limits = this.defaultLimits.get(userRole)!
     const envEntries = Object.entries(env).filter(([, v]) => v !== undefined)
 
     if (envEntries.length > limits.maxEnvVars) {
-      throw ErrorFactory.badRequest(
-        `Too many environment variables: ${envEntries.length} > ${limits.maxEnvVars}`
-      )
+      throw ErrorFactory.badRequest(`Too many environment variables: ${envEntries.length} > ${limits.maxEnvVars}`)
     }
 
     for (const [key, value] of envEntries) {
@@ -282,7 +283,7 @@ export class ProcessSecurityManager {
       }
 
       // Check if allowed
-      const isAllowed = ALLOWED_ENV_PATTERNS.some(pattern => pattern.test(key))
+      const isAllowed = ALLOWED_ENV_PATTERNS.some((pattern) => pattern.test(key))
       if (!isAllowed) {
         throw ErrorFactory.forbidden(`Environment variable "${key}" not in allowed list`)
       }
@@ -291,13 +292,13 @@ export class ProcessSecurityManager {
       if (key.length > 100) {
         throw ErrorFactory.badRequest(`Environment variable name too long: ${key}`)
       }
-      
+
       if (value.length > 10000) {
         throw ErrorFactory.badRequest(`Environment variable value too long: ${key}`)
       }
 
       // Value pattern checks
-      if (DANGEROUS_ARG_PATTERNS.some(pattern => pattern.test(value))) {
+      if (DANGEROUS_ARG_PATTERNS.some((pattern) => pattern.test(value))) {
         throw ErrorFactory.badRequest(`Dangerous pattern in environment variable ${key}`)
       }
     }
@@ -308,7 +309,7 @@ export class ProcessSecurityManager {
    */
   private async validatePaths(config: ProcessConfig, context: SecurityContext): Promise<void> {
     const cwd = config.cwd || this.sandboxRoot
-    
+
     try {
       const resolvedCwd = resolve(cwd)
       const resolvedSandbox = resolve(this.sandboxRoot)
@@ -323,7 +324,6 @@ export class ProcessSecurityManager {
 
       // Update config with resolved path
       config.cwd = resolvedCwd
-
     } catch (error) {
       if (error instanceof ApiError) {
         throw error
@@ -335,10 +335,7 @@ export class ProcessSecurityManager {
   /**
    * Validate resource limits
    */
-  private async validateResourceLimits(
-    config: ProcessConfig,
-    context: SecurityContext
-  ): Promise<void> {
+  private async validateResourceLimits(config: ProcessConfig, context: SecurityContext): Promise<void> {
     const limits = this.defaultLimits.get(context.userRole)!
 
     // Apply default limits if not specified
@@ -348,7 +345,8 @@ export class ProcessSecurityManager {
     config.timeout = Math.min(config.timeout || limits.maxTimeout, limits.maxTimeout)
 
     // Validate maxBuffer (Bun-specific)
-    if (config.maxBuffer && config.maxBuffer > 10 * 1024 * 1024) { // 10MB max
+    if (config.maxBuffer && config.maxBuffer > 10 * 1024 * 1024) {
+      // 10MB max
       throw ErrorFactory.badRequest(`maxBuffer too large: ${config.maxBuffer}`)
     }
   }
@@ -359,7 +357,7 @@ export class ProcessSecurityManager {
   private async checkRateLimit(context: SecurityContext): Promise<void> {
     const now = Date.now()
     const { userId, projectId } = context
-    
+
     // User-based rate limiting
     if (userId) {
       const userKey = `user:${userId}`
@@ -399,10 +397,7 @@ export class ProcessSecurityManager {
   /**
    * Create sanitized environment for process execution
    */
-  createSecureEnvironment(
-    userEnv: Record<string, string | undefined> = {},
-    userRole: string
-  ): Record<string, string> {
+  createSecureEnvironment(userEnv: Record<string, string | undefined> = {}, userRole: string): Record<string, string> {
     const secure: Record<string, string> = {
       PATH: process.env.PATH ?? '',
       NODE_ENV: process.env.NODE_ENV ?? 'production',
@@ -414,8 +409,8 @@ export class ProcessSecurityManager {
     for (const [key, value] of Object.entries(userEnv)) {
       if (!value) continue
 
-      const isAllowed = ALLOWED_ENV_PATTERNS.some(pattern => pattern.test(key))
-      const isBlocked = BLOCKED_ENV_PATTERNS.some(pattern => pattern.test(key))
+      const isAllowed = ALLOWED_ENV_PATTERNS.some((pattern) => pattern.test(key))
+      const isBlocked = BLOCKED_ENV_PATTERNS.some((pattern) => pattern.test(key))
 
       if (isAllowed && !isBlocked) {
         secure[key] = value
@@ -455,7 +450,6 @@ export class ProcessSecurityManager {
 
       // TODO: Persist to database audit table
       // await processAuditRepository.create(auditEvent)
-
     } catch (error) {
       // Audit failures should not block execution
       this.logger.warn('Audit logging failed', { error })
@@ -469,16 +463,10 @@ export class ProcessSecurityManager {
     const { userId, projectId } = context
 
     // Increment counters
-    this.processCountByProject.set(
-      projectId, 
-      (this.processCountByProject.get(projectId) || 0) + 1
-    )
+    this.processCountByProject.set(projectId, (this.processCountByProject.get(projectId) || 0) + 1)
 
     if (userId) {
-      this.processCountByUser.set(
-        userId,
-        (this.processCountByUser.get(userId) || 0) + 1
-      )
+      this.processCountByUser.set(userId, (this.processCountByUser.get(userId) || 0) + 1)
     }
   }
 
@@ -507,11 +495,9 @@ export class ProcessSecurityManager {
    */
   private isWithinRateLimit(key: string, now: number, maxRequests: number): boolean {
     const requests = this.rateLimits.get(key) || []
-    
+
     // Remove expired entries
-    const validRequests = requests.filter(entry => 
-      now - entry.timestamp < RATE_LIMIT_WINDOW_MS
-    )
+    const validRequests = requests.filter((entry) => now - entry.timestamp < RATE_LIMIT_WINDOW_MS)
 
     if (validRequests.length >= maxRequests) {
       return false
@@ -535,7 +521,7 @@ export class ProcessSecurityManager {
     if (cwd.includes('packages/server') || cwd.includes('packages/services')) {
       // Assume we're in a monorepo
       const parts = cwd.split(sep)
-      const packagesIndex = parts.findIndex(part => part === 'packages')
+      const packagesIndex = parts.findIndex((part) => part === 'packages')
       if (packagesIndex > 0) {
         return parts.slice(0, packagesIndex).join(sep)
       }

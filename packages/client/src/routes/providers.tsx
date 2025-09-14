@@ -146,10 +146,9 @@ const providerFormSchema = z
 type ProviderFormValues = z.infer<typeof providerFormSchema>
 
 function ProvidersPage() {
-  const [activeSection, setActiveSection] = useLocalStorage<'overview' | 'api' | 'local' | 'presets' | 'copilot' | 'health'>(
-    'providers.activeSection',
-    'overview'
-  )
+  const [activeSection, setActiveSection] = useLocalStorage<
+    'overview' | 'api' | 'local' | 'presets' | 'copilot' | 'health'
+  >('providers.activeSection', 'overview')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isCustomProviderDialogOpen, setIsCustomProviderDialogOpen] = useState(false)
@@ -387,8 +386,17 @@ function ProvidersPage() {
                     <div className='flex gap-2'>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant='outline' size='icon' onClick={() => refetchHealth()} disabled={isLoadingHealth}>
-                            {isLoadingHealth ? <Loader2 className='h-4 w-4 animate-spin' /> : <RefreshCw className='h-4 w-4' />}
+                          <Button
+                            variant='outline'
+                            size='icon'
+                            onClick={() => refetchHealth()}
+                            disabled={isLoadingHealth}
+                          >
+                            {isLoadingHealth ? (
+                              <Loader2 className='h-4 w-4 animate-spin' />
+                            ) : (
+                              <RefreshCw className='h-4 w-4' />
+                            )}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Refresh provider status</TooltipContent>
@@ -414,8 +422,17 @@ function ProvidersPage() {
                     />
                   </div>
                   {providers.length > 0 && (
-                    <Button variant='outline' onClick={handleTestAllConnections} disabled={batchTestMutation.isPending} className='gap-2'>
-                      {batchTestMutation.isPending ? <Loader2 className='h-4 w-4 animate-spin' /> : <TestTube className='h-4 w-4' />}
+                    <Button
+                      variant='outline'
+                      onClick={handleTestAllConnections}
+                      disabled={batchTestMutation.isPending}
+                      className='gap-2'
+                    >
+                      {batchTestMutation.isPending ? (
+                        <Loader2 className='h-4 w-4 animate-spin' />
+                      ) : (
+                        <TestTube className='h-4 w-4' />
+                      )}
                       Test All
                     </Button>
                   )}
@@ -480,12 +497,13 @@ function ProvidersPage() {
                       <div className='mb-8'>
                         <h2 className='text-xl font-semibold mb-4'>Local Providers</h2>
                         <LocalProviderSection
-                          providers={providers.filter((p: ProviderKey) =>
-                            Boolean(PROVIDERS.find((prov) => prov.id === p.provider)?.isLocal) &&
-                            (searchQuery
-                              ? p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                p.provider.toLowerCase().includes(searchQuery.toLowerCase())
-                              : true)
+                          providers={providers.filter(
+                            (p: ProviderKey) =>
+                              Boolean(PROVIDERS.find((prov) => prov.id === p.provider)?.isLocal) &&
+                              (searchQuery
+                                ? p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                  p.provider.toLowerCase().includes(searchQuery.toLowerCase())
+                                : true)
                           )}
                           onEdit={openEditDialog}
                           isLoading={isLoadingProviders}
@@ -508,12 +526,13 @@ function ProvidersPage() {
                           </div>
                         </div>
                         {renderApiProviders(
-                          providers.filter((p: ProviderKey) =>
-                            !PROVIDERS.find((prov) => prov.id === p.provider)?.isLocal &&
-                            (searchQuery
-                              ? p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                p.provider.toLowerCase().includes(searchQuery.toLowerCase())
-                              : true)
+                          providers.filter(
+                            (p: ProviderKey) =>
+                              !PROVIDERS.find((prov) => prov.id === p.provider)?.isLocal &&
+                              (searchQuery
+                                ? p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                  p.provider.toLowerCase().includes(searchQuery.toLowerCase())
+                                : true)
                           )
                         )}
                       </div>
@@ -525,270 +544,270 @@ function ProvidersPage() {
           />
         </div>
 
-          {/* Add/Edit Dialog */}
-          <Dialog
-            open={isAddDialogOpen}
-            onOpenChange={(open) => {
-              setIsAddDialogOpen(open)
-              if (!open) {
-                setEditingProvider(null)
-                form.reset()
-              }
-            }}
-          >
-            <DialogContent className='sm:max-w-[500px]'>
-              <DialogHeader>
-                <DialogTitle>{editingProvider ? 'Edit Provider' : 'Add Provider'}</DialogTitle>
-                <DialogDescription>
-                  {editingProvider ? 'Update your provider configuration' : 'Configure a new AI provider connection'}
-                </DialogDescription>
-              </DialogHeader>
+        {/* Add/Edit Dialog */}
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (!open) {
+              setEditingProvider(null)
+              form.reset()
+            }
+          }}
+        >
+          <DialogContent className='sm:max-w-[500px]'>
+            <DialogHeader>
+              <DialogTitle>{editingProvider ? 'Edit Provider' : 'Add Provider'}</DialogTitle>
+              <DialogDescription>
+                {editingProvider ? 'Update your provider configuration' : 'Configure a new AI provider connection'}
+              </DialogDescription>
+            </DialogHeader>
 
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
-                  <FormField
-                    control={form.control}
-                    name='name'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+                <FormField
+                  control={form.control}
+                  name='name'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder='My OpenAI Key' {...field} />
+                      </FormControl>
+                      <FormDescription>A friendly name for this provider key</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='provider'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provider</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          if (value === 'custom') {
+                            // Open custom provider dialog instead
+                            setIsAddDialogOpen(false)
+                            setIsCustomProviderDialogOpen(true)
+                            form.reset()
+                            return
+                          }
+                          if (value === 'copilot') {
+                            // Redirect to Copilot integration panel
+                            setIsAddDialogOpen(false)
+                            setActiveSection('copilot')
+                            toast.info('Redirected to GitHub Copilot integration')
+                            form.reset()
+                            return
+                          }
+                          field.onChange(value)
+                        }}
+                        value={field.value}
+                      >
                         <FormControl>
-                          <Input placeholder='My OpenAI Key' {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder='Select a provider' />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormDescription>A friendly name for this provider key</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        <SelectContent>
+                          {PROVIDERS.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.id}>
+                              <div className='flex items-center gap-2'>
+                                {provider.isLocal ? (
+                                  <Monitor className='h-4 w-4' />
+                                ) : provider.isCustom ? (
+                                  <Settings className='h-4 w-4' />
+                                ) : (
+                                  <Cloud className='h-4 w-4' />
+                                )}
+                                {provider.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Select the AI provider for this key</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name='provider'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Provider</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            if (value === 'custom') {
-                              // Open custom provider dialog instead
-                              setIsAddDialogOpen(false)
-                              setIsCustomProviderDialogOpen(true)
-                              form.reset()
-                              return
-                            }
-                            if (value === 'copilot') {
-                              // Redirect to Copilot integration panel
-                              setIsAddDialogOpen(false)
-                              setActiveSection('copilot')
-                              toast.info('Redirected to GitHub Copilot integration')
-                              form.reset()
-                              return
-                            }
-                            field.onChange(value)
-                          }}
-                          value={field.value}
+                {/* Storage Method Selection */}
+                <FormField
+                  control={form.control}
+                  name='storageMethod'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Storage Method</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className='flex flex-row space-x-4'
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder='Select a provider' />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {PROVIDERS.map((provider) => (
-                              <SelectItem key={provider.id} value={provider.id}>
-                                <div className='flex items-center gap-2'>
-                                  {provider.isLocal ? (
-                                    <Monitor className='h-4 w-4' />
-                                  ) : provider.isCustom ? (
-                                    <Settings className='h-4 w-4' />
-                                  ) : (
-                                    <Cloud className='h-4 w-4' />
-                                  )}
-                                  {provider.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>Select the AI provider for this key</FormDescription>
+                          <div className='flex items-center space-x-2'>
+                            <RadioGroupItem value='direct' id='direct' />
+                            <Label htmlFor='direct' className='font-normal cursor-pointer'>
+                              Direct API Key
+                            </Label>
+                          </div>
+                          <div className='flex items-center space-x-2'>
+                            <RadioGroupItem value='env' id='env' />
+                            <Label htmlFor='env' className='font-normal cursor-pointer'>
+                              Environment Variable
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>
+                        Choose how to store the API key - directly or via environment variable
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Conditional Fields based on Storage Method */}
+                {form.watch('storageMethod') === 'direct' ? (
+                  <FormField
+                    control={form.control}
+                    name='key'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>API Key</FormLabel>
+                        <FormControl>
+                          <Input type='password' placeholder='sk-...' {...field} />
+                        </FormControl>
+                        <FormDescription>The actual API key will be stored securely in the database</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {/* Storage Method Selection */}
+                ) : (
                   <FormField
                     control={form.control}
-                    name='storageMethod'
+                    name='secretRef'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Storage Method</FormLabel>
+                        <FormLabel>Environment Variable Name</FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className='flex flex-row space-x-4'
-                          >
-                            <div className='flex items-center space-x-2'>
-                              <RadioGroupItem value='direct' id='direct' />
-                              <Label htmlFor='direct' className='font-normal cursor-pointer'>
-                                Direct API Key
-                              </Label>
-                            </div>
-                            <div className='flex items-center space-x-2'>
-                              <RadioGroupItem value='env' id='env' />
-                              <Label htmlFor='env' className='font-normal cursor-pointer'>
-                                Environment Variable
-                              </Label>
-                            </div>
-                          </RadioGroup>
+                          <Input placeholder='OPENAI_API_KEY' {...field} />
                         </FormControl>
                         <FormDescription>
-                          Choose how to store the API key - directly or via environment variable
+                          Name of the environment variable containing the API key (without $ prefix)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                )}
 
-                  {/* Conditional Fields based on Storage Method */}
-                  {form.watch('storageMethod') === 'direct' ? (
-                    <FormField
-                      control={form.control}
-                      name='key'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>API Key</FormLabel>
-                          <FormControl>
-                            <Input type='password' placeholder='sk-...' {...field} />
-                          </FormControl>
-                          <FormDescription>The actual API key will be stored securely in the database</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name='secretRef'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Environment Variable Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder='OPENAI_API_KEY' {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Name of the environment variable containing the API key (without $ prefix)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <FormField
+                  control={form.control}
+                  name='isDefault'
+                  render={({ field }) => (
+                    <FormItem className='flex flex-row items-center space-x-3 space-y-0'>
+                      <FormControl>
+                        <input type='checkbox' checked={field.value} onChange={field.onChange} className='h-4 w-4' />
+                      </FormControl>
+                      <div className='space-y-1 leading-none'>
+                        <FormLabel>Set as default</FormLabel>
+                        <FormDescription>Use this key as the default for this provider</FormDescription>
+                      </div>
+                    </FormItem>
                   )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name='isDefault'
-                    render={({ field }) => (
-                      <FormItem className='flex flex-row items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <input type='checkbox' checked={field.value} onChange={field.onChange} className='h-4 w-4' />
-                        </FormControl>
-                        <div className='space-y-1 leading-none'>
-                          <FormLabel>Set as default</FormLabel>
-                          <FormDescription>Use this key as the default for this provider</FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                {(() => {
+                  const selectedProviderId = form.watch('provider')
+                  if (!selectedProviderId) return null
 
-                  {(() => {
-                    const selectedProviderId = form.watch('provider')
-                    if (!selectedProviderId) return null
+                  const provider = PROVIDERS.find((p) => p.id === selectedProviderId)
+                  if (!provider) return null
 
-                    const provider = PROVIDERS.find((p) => p.id === selectedProviderId)
-                    if (!provider) return null
+                  return (
+                    <Alert>
+                      <AlertCircle className='h-4 w-4' />
+                      <AlertTitle>Provider Information</AlertTitle>
+                      <AlertDescription>
+                        {provider.description}
+                        {provider.link && (
+                          <a
+                            href={provider.link}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='flex items-center gap-1 text-primary hover:underline mt-2'
+                          >
+                            {provider.linkTitle}
+                            <ExternalLink className='h-3 w-3' />
+                          </a>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )
+                })()}
 
-                    return (
-                      <Alert>
-                        <AlertCircle className='h-4 w-4' />
-                        <AlertTitle>Provider Information</AlertTitle>
-                        <AlertDescription>
-                          {provider.description}
-                          {provider.link && (
-                            <a
-                              href={provider.link}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='flex items-center gap-1 text-primary hover:underline mt-2'
-                            >
-                              {provider.linkTitle}
-                              <ExternalLink className='h-3 w-3' />
-                            </a>
-                          )}
-                        </AlertDescription>
-                      </Alert>
-                    )
-                  })()}
+                <DialogFooter>
+                  <Button type='button' variant='outline' onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type='submit' disabled={createMutation.isPending || updateMutation.isPending}>
+                    {createMutation.isPending || updateMutation.isPending ? (
+                      <Loader2 className='h-4 w-4 animate-spin mr-2' />
+                    ) : null}
+                    {editingProvider ? 'Update' : 'Add'} Provider
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
 
-                  <DialogFooter>
-                    <Button type='button' variant='outline' onClick={() => setIsAddDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type='submit' disabled={createMutation.isPending || updateMutation.isPending}>
-                      {createMutation.isPending || updateMutation.isPending ? (
-                        <Loader2 className='h-4 w-4 animate-spin mr-2' />
-                      ) : null}
-                      {editingProvider ? 'Update' : 'Add'} Provider
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={!!deletingProvider} onOpenChange={(open) => !open && setDeletingProvider(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Provider</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{deletingProvider?.name}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant='outline' onClick={() => setDeletingProvider(null)}>
+                Cancel
+              </Button>
+              <Button variant='destructive' onClick={handleDelete} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending && <Loader2 className='h-4 w-4 animate-spin mr-2' />}
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={!!deletingProvider} onOpenChange={(open) => !open && setDeletingProvider(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete Provider</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete "{deletingProvider?.name}"? This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant='outline' onClick={() => setDeletingProvider(null)}>
-                  Cancel
-                </Button>
-                <Button variant='destructive' onClick={handleDelete} disabled={deleteMutation.isPending}>
-                  {deleteMutation.isPending && <Loader2 className='h-4 w-4 animate-spin mr-2' />}
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Provider Test Dialog */}
-          {testingProvider && (
-            <ProviderTestDialog
-              provider={testingProvider}
-              open={!!testingProvider}
-              onOpenChange={(open) => !open && setTestingProvider(null)}
-            />
-          )}
-
-          {/* Custom Provider Dialog */}
-          <CustomProviderDialog
-            open={isCustomProviderDialogOpen}
-            onOpenChange={setIsCustomProviderDialogOpen}
-            onSuccess={() => {
-              setIsCustomProviderDialogOpen(false)
-              // Refetch providers list to show the new custom provider
-              refetchHealth()
-            }}
+        {/* Provider Test Dialog */}
+        {testingProvider && (
+          <ProviderTestDialog
+            provider={testingProvider}
+            open={!!testingProvider}
+            onOpenChange={(open) => !open && setTestingProvider(null)}
           />
+        )}
 
-          {/* Encryption configuration dialog removed */}
+        {/* Custom Provider Dialog */}
+        <CustomProviderDialog
+          open={isCustomProviderDialogOpen}
+          onOpenChange={setIsCustomProviderDialogOpen}
+          onSuccess={() => {
+            setIsCustomProviderDialogOpen(false)
+            // Refetch providers list to show the new custom provider
+            refetchHealth()
+          }}
+        />
+
+        {/* Encryption configuration dialog removed */}
       </TooltipProvider>
     </ComponentErrorBoundary>
   )

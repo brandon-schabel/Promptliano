@@ -11,8 +11,7 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import { ErrorFactory, ApiError, promptsMap } from '@promptliano/shared'
-import { getFileExtension } from './utils/file-utils'
+import { ErrorFactory } from '@promptliano/shared'
 import { projectRepository } from '@promptliano/database'
 import {
   type Project,
@@ -24,7 +23,6 @@ import {
 } from '@promptliano/database'
 import { z } from 'zod'
 import { generateStructuredData } from './gen-ai-services'
-import { MAX_FILE_SIZE_FOR_SUMMARY } from '@promptliano/config'
 
 // Import file service for delegation
 import { fileService, type FileSyncData } from './file-service'
@@ -32,10 +30,6 @@ import { fileService, type FileSyncData } from './file-service'
 // Re-export FileSyncData type for consumers
 export type { FileSyncData } from './file-service'
 
-// Schema for AI summarization requests
-const FileSummarizationSchema = z.object({
-  summary: z.string()
-})
 
 // Repository returns correct Project type from database - no adapters needed
 
@@ -352,131 +346,6 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
       )
     },
 
-    /**
-     * Summarize multiple files in this project
-     */
-    async summarizeFiles(projectId: number, fileIds: string[], force: boolean = false) {
-      return withErrorContext(
-        async () => {
-          // Verify project exists
-          await baseService.getById(projectId)
-
-          const result = {
-            included: fileIds.length,
-            skipped: 0,
-            updatedFiles: [] as ProjectFile[],
-            skippedReasons: {
-              empty: 0,
-              tooLarge: 0,
-              errors: 0
-            }
-          }
-
-          if (!fileIds || fileIds.length === 0) {
-            return result
-          }
-
-          for (const id of fileIds) {
-            try {
-              const file = await injectedFileService.getById(id)
-              if (!file) {
-                // File missing – count as error skip
-                result.skipped += 1
-                result.skippedReasons.errors += 1
-                continue
-              }
-
-              // Ensure file belongs to project
-              if (file.projectId !== projectId) {
-                result.skipped += 1
-                result.skippedReasons.errors += 1
-                continue
-              }
-
-              // Skip empty content
-              if (!file.content || file.content.trim().length === 0) {
-                result.skipped += 1
-                result.skippedReasons.empty += 1
-                continue
-              }
-
-              // Skip too large files
-              if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
-                result.skipped += 1
-                result.skippedReasons.tooLarge += 1
-                continue
-              }
-
-              // Respect cooldown unless forced
-              // If summary exists and not forced, skip
-              if (file.summary && !force) {
-                result.skipped += 1
-                continue
-              }
-
-              // Summarize
-              const updated = await standaloneExtensions.summarizeSingleFile(file, force)
-              if (updated) {
-                result.updatedFiles.push(updated)
-              } else {
-                // Treat as skipped if summarizer returned null (e.g., re-checks)
-                result.skipped += 1
-              }
-            } catch (error) {
-              // Robust per-file error handling – continue with others
-              logger.error(`Failed to summarize file ${id} in project ${projectId}`, error as any)
-              result.skipped += 1
-              result.skippedReasons.errors += 1
-            }
-          }
-
-          return result
-        },
-        { entity: 'Project', action: 'summarizeFiles', id: projectId }
-      )
-    },
-
-    /**
-     * Remove summaries from files in this project
-     */
-    async removeSummariesFromFiles(projectId: number, fileIds: string[]) {
-      return withErrorContext(
-        async () => {
-          // Verify project exists
-          await baseService.getById(projectId)
-
-          if (!fileIds || fileIds.length === 0) {
-            return { removedCount: 0, message: 'No files provided' }
-          }
-
-          let removedCount = 0
-          for (const id of fileIds) {
-            try {
-              const file = await injectedFileService.getById(id)
-              if (!file) continue
-              if (file.projectId !== projectId) continue
-
-              // Only update if there is a summary present
-              if (file.summary || file.summaryLastUpdated) {
-                await injectedFileService.update(id, {
-                  summary: null as any,
-                  summaryLastUpdated: null as any
-                })
-                removedCount += 1
-              }
-            } catch (error) {
-              logger.error(`Failed to remove summary for file ${id} in project ${projectId}`, error as any)
-            }
-          }
-
-          return {
-            removedCount,
-            message: `Removed summaries from ${removedCount} files`
-          }
-        },
-        { entity: 'Project', action: 'removeSummariesFromFiles', id: projectId }
-      )
-    },
 
     /**
      * Suggest relevant files based on a user prompt using indexed search + relevance scoring
@@ -487,96 +356,33 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
           // Verify project exists
           await baseService.getById(projectId)
 
-          // Normalize prompt (strip common wrappers)
-          const normalized = (prompt || '')
-            .replace(/^\s*please\s+find\s+the\s+relevant\s+files\s+for\s+the\s+following\s+prompt:\s*/i, '')
-            .trim()
+          const userQuery = (prompt || '').trim()
+          if (!userQuery) {
+            return []
+          }
 
-          // Use the file search service with semantic search and relevance scoring
-          const { createFileSearchService } = await import('./file-services/file-search-service')
-          const searchService = createFileSearchService()
-          const { results } = await searchService.search(projectId, {
-            query: normalized || prompt,
-            searchType: 'semantic',
-            scoringMethod: 'relevance',
-            limit: Math.max(limit * 3, limit) // get extra to improve quality before slicing
-          })
-
-          // Map to files and enforce limit
-          const files = results.map((r) => r.file).slice(0, limit)
-          return files
+          // Use semantic search
+          try {
+            const { createFileSearchService } = await import('./file-services/file-search-service')
+            const searchService = createFileSearchService()
+            const { results } = await searchService.search(projectId, {
+              query: userQuery,
+              searchType: 'semantic',
+              scoringMethod: 'relevance',
+              limit
+            })
+            return results.map((r) => r.file).slice(0, limit)
+          } catch (e) {
+            logger.warn('Semantic search failed for suggestFiles', e as any)
+            return []
+          }
         },
         { entity: 'Project', action: 'suggestFiles', id: projectId }
       )
     }
   }
 
-  // Standalone functions for backward compatibility
-  const standaloneExtensions = {
-    /**
-     * Summarize a single file using AI
-     */
-    async summarizeSingleFile(file: ProjectFile, force: boolean = false): Promise<ProjectFile | null> {
-      return withErrorContext(
-        async () => {
-          // Skip empty files
-          if (!file.content || file.content.trim().length === 0) {
-            return null
-          }
-
-          // Skip files that are too large
-          if (file.size && file.size > MAX_FILE_SIZE_FOR_SUMMARY) {
-            return null
-          }
-
-          // Skip if already has summary and not forced
-          if (file.summary && !force) {
-            return file
-          }
-
-          try {
-            // Use AI to generate summary
-            const result = await generateStructuredData({
-              prompt: `Analyze the following ${getFileExtension(file.path) || 'unknown'} file and provide a concise summary of its purpose, key functionality, and important details:\n\n${file.content}`,
-              schema: FileSummarizationSchema,
-              systemMessage:
-                promptsMap.summarizationSteps ||
-                'You are a code analysis expert. Provide clear, concise summaries of source code files.',
-              options: {
-                model: 'gemini-1.5-flash',
-                maxTokens: 500,
-                temperature: 0.3
-              }
-            })
-
-            // Update file with summary
-            const updatedFile = {
-              ...file,
-              summary: result.object.summary,
-              summaryLastUpdated: Date.now()
-            }
-
-            // Update in database using file service
-            await injectedFileService.update(file.id, {
-              summary: result.object.summary,
-              summaryLastUpdated: Date.now()
-            } as any)
-
-            return updatedFile
-          } catch (error) {
-            throw new ApiError(
-              500,
-              `Failed to summarize file ${file.path} in project ${file.projectId}. Reason: ${error instanceof Error ? error.message : String(error)}`,
-              'FILE_SUMMARIZE_FAILED'
-            )
-          }
-        },
-        { entity: 'File', action: 'summarizeSingleFile', id: file.id }
-      )
-    }
-  }
-
-  return extendService(baseService, { ...extensions, ...standaloneExtensions })
+  return extendService(baseService, { ...extensions })
 }
 
 // Export type for consumers
@@ -605,10 +411,7 @@ export const {
   // File operations (project-scoped)
   getProjectFiles,
   updateFileContent,
-  summarizeFiles,
-  removeSummariesFromFiles,
-  suggestFiles,
-  summarizeSingleFile
+  suggestFiles
 } = projectService
 
 /**
@@ -904,11 +707,3 @@ export const getProjectFileTree = async (
   return { tree, meta }
 }
 
-// Legacy function for backward compatibility
-export async function resummarizeAllFiles(projectId: number) {
-  // Get all file IDs for the project and summarize them
-  const projectService = createProjectService()
-  const files = await projectService.getProjectFiles(projectId)
-  const fileIds = files.map((file: ProjectFile) => file.id)
-  return await projectService.summarizeFiles(projectId, fileIds, true)
-}

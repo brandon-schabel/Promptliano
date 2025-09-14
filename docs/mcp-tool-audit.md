@@ -24,7 +24,7 @@ This document evaluates the current MCP tool surface area to identify low‑valu
 
 - project_manager
   - Path: packages/server/src/mcp/tools/project/project-manager.tool.ts (≈623 LOC)
-  - Purpose: Project/file/search/summary operations; most capable entry point.
+  - Purpose: Project/file/search operations; most capable entry point.
   - References: Broadly used in tests (mcp-integration), mcp-client mocks, website docs.
   - Recommendation: Keep. Continue to evolve search/file‑tree actions; avoid scope creep.
 
@@ -55,26 +55,26 @@ This document evaluates the current MCP tool surface area to identify low‑valu
 
 - ai_assistant
   - Path: packages/server/src/mcp/tools/content/ai-assistant.tool.ts (≈106 LOC)
-  - Purpose: Prompt optimization + compact summary; referenced in mocks/docs.
+  - Purpose: Prompt optimization; referenced in mocks/docs.
   - Recommendation: Keep. Small surface, practical value.
 
 ### Workflow Tools (Remove in favor of Flow)
 
 - ticket_manager
   - Path: packages/server/src/mcp/tools/workflow/ticket-manager.tool.ts (≈385 LOC)
-  - Action: Remove. Replace with flow_manager.tickets.*
+  - Action: Remove. Replace with flow_manager.tickets.\*
 
 - task_manager
   - Path: packages/server/src/mcp/tools/workflow/task-manager.tool.ts (≈386 LOC)
-  - Action: Remove. Replace with flow_manager.tasks.*
+  - Action: Remove. Replace with flow_manager.tasks.\*
 
 - queue_manager
   - Path: packages/server/src/mcp/tools/workflow/queue-manager.tool.ts (≈355 LOC)
-  - Action: Remove. Replace with flow_manager.queues.* and flow_manager.queue_ops.*
+  - Action: Remove. Replace with flow_manager.queues._ and flow_manager.queue_ops._
 
 - queue_processor
   - Path: packages/server/src/mcp/tools/workflow/queue-processor.tool.ts (≈271 LOC)
-  - Action: Remove. Replace with flow_manager.processor.*
+  - Action: Remove. Replace with flow_manager.processor.\*
 
 ### Remove (Low‑value / Demo / Setup)
 
@@ -128,12 +128,12 @@ This document evaluates the current MCP tool surface area to identify low‑valu
 
 ## Suggested De‑Scope Plan
 
-1) Remove tools from exports: edit `packages/server/src/mcp/tools/index.ts` to drop removed tools.
-2) Delete tool files in website/ and setup/ groups and markdown_prompt_manager + tab_manager.
-3) Prune docs: update `packages/website/src/routes/docs.mcp-tools.tsx` and any “API” docs pages referencing removed tools.
-4) Update mocks/seeds: adjust `packages/mcp-client` mock lists and `packages/database/seed-mcp-test-data.ts`.
-5) Run `bun run validate` and fix any dangling imports.
-6) Announce in CHANGELOG with migration notes (e.g., use HTTP endpoints or CLI for setup/templates).
+1. Remove tools from exports: edit `packages/server/src/mcp/tools/index.ts` to drop removed tools.
+2. Delete tool files in website/ and setup/ groups and markdown_prompt_manager + tab_manager.
+3. Prune docs: update `packages/website/src/routes/docs.mcp-tools.tsx` and any “API” docs pages referencing removed tools.
+4. Update mocks/seeds: adjust `packages/mcp-client` mock lists and `packages/database/seed-mcp-test-data.ts`.
+5. Run `bun run validate` and fix any dangling imports.
+6. Announce in CHANGELOG with migration notes (e.g., use HTTP endpoints or CLI for setup/templates).
 
 ## Notes & Caveats
 
@@ -205,19 +205,19 @@ Goal: unify tickets, tasks, and queues under a single “flow” domain with con
 
 ### Rollout Strategy (Breaking)
 
-1) Implement Flow service and add new `flow/*` HTTP routes.
-2) Add `flow_manager` MCP tool wired to Flow service only.
-3) Remove `ticket_manager`, `task_manager`, `queue_manager`, `queue_processor` from codebase and exports.
-4) Remove old HTTP endpoints for tickets/tasks/queues; update OpenAPI and generated clients.
-5) Update website docs, examples, and `packages/mcp-client` mocks to use `flow_manager` exclusively.
-6) Bump major version and publish migration guide.
+1. Implement Flow service and add new `flow/*` HTTP routes.
+2. Add `flow_manager` MCP tool wired to Flow service only.
+3. Remove `ticket_manager`, `task_manager`, `queue_manager`, `queue_processor` from codebase and exports.
+4. Remove old HTTP endpoints for tickets/tasks/queues; update OpenAPI and generated clients.
+5. Update website docs, examples, and `packages/mcp-client` mocks to use `flow_manager` exclusively.
+6. Bump major version and publish migration guide.
 
 ### Mapping (Adapters → Flow)
 
-- ticket_manager.list/get/create/update/delete → flow_manager.tickets.*
-- task_manager.list/create/update/delete/reorder → flow_manager.tasks.*
-- queue_manager.create/list/get/update/delete/get_stats/get_all_stats → flow_manager.queues.*
-- queue_manager.enqueue/dequeue, queue_processor.get_next/complete/fail → flow_manager.queue_ops.*, flow_manager.processor.*
+- ticket_manager.list/get/create/update/delete → flow_manager.tickets.\*
+- task_manager.list/create/update/delete/reorder → flow_manager.tasks.\*
+- queue_manager.create/list/get/update/delete/get_stats/get_all_stats → flow_manager.queues.\*
+- queue_manager.enqueue/dequeue, queue_processor.get_next/complete/fail → flow_manager.queue_ops._, flow_manager.processor._
 
 ### Migration Notes
 

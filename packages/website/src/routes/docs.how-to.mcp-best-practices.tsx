@@ -108,7 +108,7 @@ mcp__promptliano__project_manager(
                   <li className='flex items-start gap-2'>
                     <span className='text-primary'>•</span>
                     <span>
-                      <strong>Project Structure:</strong> File counts, summarization coverage, total size
+                      <strong>Project Structure:</strong> File counts, context coverage, total size
                     </span>
                   </li>
                   <li className='flex items-start gap-2'>

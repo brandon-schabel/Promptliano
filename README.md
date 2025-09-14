@@ -256,6 +256,7 @@ Promptliano supports GitHub Copilot through an OpenAI‑compatible proxy (e.g., 
 - In the UI Providers page, add a provider key for `GitHub Copilot` (use the same dummy key if you prefer DB storage over env vars).
 
 Notes
+
 - Rate‑limit the upstream proxy to avoid GitHub abuse detection (`--rate-limit 30` recommended) and prefer manual approval for sensitive ops if supported by the proxy (`--manual`).
 - The upstream exposes OpenAI‑compatible endpoints (`/v1/models`, `/v1/chat/completions`) so you can select Copilot and its models like any other provider.
 

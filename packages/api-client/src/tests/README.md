@@ -220,15 +220,6 @@ const response = await fetch(`${baseUrl}/api/gen-ai/structured`, {
   })
 })
 
-// File summarization
-const response = await fetch(`${baseUrl}/api/gen-ai/summarize-file`, {
-  method: 'POST',
-  body: JSON.stringify({
-    content: codeContent,
-    fileName: 'example.ts',
-    fileType: 'typescript'
-  })
-})
 ```
 
 ## Configuration Reference

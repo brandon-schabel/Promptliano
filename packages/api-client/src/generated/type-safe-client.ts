@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
- * Generated at: 2025-09-08T04:56:24.587Z
- * Generated from: 209 API endpoints
+ * Generated at: 2025-09-14T03:11:09.646Z
+ * Generated from: 212 API endpoints
  *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
@@ -50,50 +50,13 @@ export type UpdateProjectsByIdFilesByFileIdRequest = NonNullable<
 >['content']['application/json']
 export type CreateProjectsByIdRefreshResponse =
   paths['/api/projects/{id}/refresh']['post']['responses']['200']['content']['application/json']
-export type GetProjectsByIdSummaryResponse =
-  paths['/api/projects/{id}/summary']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdSummaryAdvancedResponse =
-  paths['/api/projects/{id}/summary/advanced']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdSummaryAdvancedRequest = NonNullable<
-  paths['/api/projects/{id}/summary/advanced']['post']['requestBody']
->['content']['application/json']
-export type GetProjectsByIdSummaryMetricsResponse =
-  paths['/api/projects/{id}/summary/metrics']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdSummaryInvalidateResponse =
-  paths['/api/projects/{id}/summary/invalidate']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdSuggestFilesResponse =
   paths['/api/projects/{id}/suggest-files']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdSuggestFilesRequest = NonNullable<
   paths['/api/projects/{id}/suggest-files']['post']['requestBody']
 >['content']['application/json']
-export type CreateProjectsByIdFilesSummarizeResponse =
-  paths['/api/projects/{id}/files/summarize']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdFilesSummarizeRequest = NonNullable<
-  paths['/api/projects/{id}/files/summarize']['post']['requestBody']
->['content']['application/json']
-export type CreateProjectsByIdFilesRemoveSummariesResponse =
-  paths['/api/projects/{id}/files/remove-summaries']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdFilesRemoveSummariesRequest = NonNullable<
-  paths['/api/projects/{id}/files/remove-summaries']['post']['requestBody']
->['content']['application/json']
 export type GetProjectsByIdStatisticsResponse =
   paths['/api/projects/{id}/statistics']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdBatchSummarizeResponse =
-  paths['/api/projects/{id}/batch-summarize']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdBatchSummarizeRequest = NonNullable<
-  paths['/api/projects/{id}/batch-summarize']['post']['requestBody']
->['content']['application/json']
-export type GetProjectsByIdBatchSummarizeByBatchIdResponse =
-  paths['/api/projects/{id}/batch-summarize/{batchId}']['get']['responses']['200']['content']['application/json']
-export type DeleteProjectsByIdBatchSummarizeByBatchIdResponse =
-  paths['/api/projects/{id}/batch-summarize/{batchId}']['delete']['responses']['200']['content']['application/json']
-export type GetProjectsByIdSummarizationStatsResponse =
-  paths['/api/projects/{id}/summarization-stats']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdPreviewFileGroupsResponse =
-  paths['/api/projects/{id}/preview-file-groups']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdPreviewFileGroupsRequest = NonNullable<
-  paths['/api/projects/{id}/preview-file-groups']['post']['requestBody']
->['content']['application/json']
 export type GetProjectsByIdTicketsResponse =
   paths['/api/projects/{id}/tickets']['get']['responses']['200']['content']['application/json']
 export type GetProjectsByIdTicketsWithCountResponse =
@@ -142,6 +105,11 @@ export type CreateTicketsByTicketIdSuggestFilesResponse =
   paths['/api/tickets/{ticketId}/suggest-files']['post']['responses']['200']['content']['application/json']
 export type CreateTicketsByTicketIdSuggestFilesRequest = NonNullable<
   paths['/api/tickets/{ticketId}/suggest-files']['post']['requestBody']
+>['content']['application/json']
+export type CreateTicketsByTicketIdSuggestFilesStreamResponse =
+  paths['/api/tickets/{ticketId}/suggest-files/stream']['post']['responses']['200']['content']['application/json']
+export type CreateTicketsByTicketIdSuggestFilesStreamRequest = NonNullable<
+  paths['/api/tickets/{ticketId}/suggest-files/stream']['post']['requestBody']
 >['content']['application/json']
 export type CreateTicketsByTicketIdSuggestTasksResponse =
   paths['/api/tickets/{ticketId}/suggest-tasks']['post']['responses']['200']['content']['application/json']
@@ -209,6 +177,10 @@ export type UpdateChatChatsRequest = NonNullable<
 >['content']['application/json']
 export type DeleteChatChatsResponse =
   paths['/api/chats/{id}']['delete']['responses']['200']['content']['application/json']
+export type CreateAiChatLegacyResponse = { success: boolean; message?: string }
+export type CreateAiChatLegacyRequest = NonNullable<
+  paths['/api/ai/chat/legacy']['post']['requestBody']
+>['content']['application/json']
 export type CreateAiChatResponse = { success: boolean; message?: string }
 export type CreateAiChatRequest = NonNullable<
   paths['/api/ai/chat']['post']['requestBody']
@@ -234,21 +206,24 @@ export type CreatePromptResponse = paths['/api/prompts']['post']['responses']['2
 export type CreatePromptRequest = NonNullable<
   paths['/api/prompts']['post']['requestBody']
 >['content']['application/json']
-export type GetPromptResponse =
-  paths['/api/prompts/{promptId}']['get']['responses']['200']['content']['application/json']
-export type UpdatePromptResponse =
-  paths['/api/prompts/{promptId}']['patch']['responses']['200']['content']['application/json']
+export type GetPromptResponse = paths['/api/prompts/{id}']['get']['responses']['200']['content']['application/json']
+export type UpdatePromptResponse = paths['/api/prompts/{id}']['put']['responses']['200']['content']['application/json']
 export type UpdatePromptRequest = NonNullable<
-  paths['/api/prompts/{promptId}']['patch']['requestBody']
+  paths['/api/prompts/{id}']['put']['requestBody']
+>['content']['application/json']
+export type UpdatePromptPromptsResponse =
+  paths['/api/prompts/{id}']['patch']['responses']['200']['content']['application/json']
+export type UpdatePromptPromptsRequest = NonNullable<
+  paths['/api/prompts/{id}']['patch']['requestBody']
 >['content']['application/json']
 export type DeletePromptResponse =
-  paths['/api/prompts/{promptId}']['delete']['responses']['200']['content']['application/json']
+  paths['/api/prompts/{id}']['delete']['responses']['200']['content']['application/json']
 export type CreatePromptsImportResponse =
   paths['/api/prompts/import']['post']['responses']['200']['content']['application/json']
 export type CreatePromptsImportRequest = NonNullable<
   paths['/api/prompts/import']['post']['requestBody']
 >['content']['multipart/form-data']
-export type ListPromptsByPromptIdExportResponse = { success: boolean; message?: string }
+export type GetPromptsByIdExportResponse = { success: boolean; message?: string }
 export type CreatePromptsExportBatchResponse =
   paths['/api/prompts/export-batch']['post']['responses']['200']['content']['application/json']
 export type CreatePromptsExportBatchRequest = NonNullable<
@@ -259,15 +234,6 @@ export type CreatePromptsValidateMarkdownResponse =
 export type CreatePromptsValidateMarkdownRequest = NonNullable<
   paths['/api/prompts/validate-markdown']['post']['requestBody']
 >['content']['application/json']
-export type GetPromptPromptsResponse =
-  paths['/api/prompts/{id}']['get']['responses']['200']['content']['application/json']
-export type UpdatePromptPromptsResponse =
-  paths['/api/prompts/{id}']['put']['responses']['200']['content']['application/json']
-export type UpdatePromptPromptsRequest = NonNullable<
-  paths['/api/prompts/{id}']['put']['requestBody']
->['content']['application/json']
-export type DeletePromptPromptsResponse =
-  paths['/api/prompts/{id}']['delete']['responses']['200']['content']['application/json']
 export type ListProjectsByProjectIdQueuesResponse =
   paths['/api/projects/:projectId/queues']['get']['responses']['200']['content']['application/json']
 export type CreateProjectsByProjectIdQueuesResponse =
@@ -346,6 +312,42 @@ export type CreateQueuesByQueueIdBatchEnqueueRequest = NonNullable<
 >['content']['application/json']
 export type ListQueuesByQueueIdTimelineResponse =
   paths['/api/queues/:queueId/timeline']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigLocationsResponse =
+  paths['/api/projects/{id}/mcp/config/locations']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigMergedResponse =
+  paths['/api/projects/{id}/mcp/config/merged']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigExpandedResponse =
+  paths['/api/projects/{id}/mcp/config/expanded']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpConfigResponse =
+  paths['/api/projects/{id}/mcp/config']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigSaveToLocationResponse =
+  paths['/api/projects/{id}/mcp/config/save-to-location']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigSaveToLocationRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/config/save-to-location']['post']['requestBody']
+>['content']['application/json']
+export type GetProjectsByIdMcpConfigDefaultForLocationResponse =
+  paths['/api/projects/{id}/mcp/config/default-for-location']['get']['responses']['200']['content']['application/json']
+export type ListProxyCopilot_healthResponse =
+  paths['/api/proxy/copilot/_health']['get']['responses']['200']['content']['application/json']
+export type CreateCopilotEmbedToggleResponse =
+  paths['/api/copilot/embed/toggle']['post']['responses']['200']['content']['application/json']
+export type CreateCopilotEmbedToggleRequest = NonNullable<
+  paths['/api/copilot/embed/toggle']['post']['requestBody']
+>['content']['application/json']
+export type CreateCopilotEmbedSettingsResponse =
+  paths['/api/copilot/embed/settings']['post']['responses']['200']['content']['application/json']
+export type CreateCopilotEmbedSettingsRequest = NonNullable<
+  paths['/api/copilot/embed/settings']['post']['requestBody']
+>['content']['application/json']
+export type CreateCopilotEmbedAuthStartResponse =
+  paths['/api/copilot/embed/auth/start']['post']['responses']['200']['content']['application/json']
+export type CreateCopilotEmbedAuthCompleteResponse =
+  paths['/api/copilot/embed/auth/complete']['post']['responses']['200']['content']['application/json']
+export type CreateCopilotEmbedAuthCompleteRequest = NonNullable<
+  paths['/api/copilot/embed/auth/complete']['post']['requestBody']
+>['content']['application/json']
+export type ListCopilotEmbedStatusResponse =
+  paths['/api/copilot/embed/status']['get']['responses']['200']['content']['application/json']
 export type GetQueueQueuesResponse = paths['/api/queues/{id}']['get']['responses']['200']['content']['application/json']
 export type UpdateQueueQueuesResponse =
   paths['/api/queues/{id}']['put']['responses']['200']['content']['application/json']
@@ -586,6 +588,36 @@ export type CreateMcpSessionsCleanupResponse =
 export type CreateMcpSessionsCleanupRequest = NonNullable<
   paths['/api/mcp/sessions/cleanup']['post']['requestBody']
 >['content']['application/json']
+export type CreateProjectsByIdMcpConfigResponse =
+  paths['/api/projects/{id}/mcp/config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpConfigRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/config']['post']['requestBody']
+>['content']['application/json']
+export type ListMcpInstallationDetectResponse =
+  paths['/api/mcp/installation/detect']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdMcpInstallationStatusResponse =
+  paths['/api/projects/{id}/mcp/installation/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationInstallResponse =
+  paths['/api/projects/{id}/mcp/installation/install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationInstallRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/installation/install']['post']['requestBody']
+>['content']['application/json']
+export type CreateProjectsByIdMcpInstallationUninstallResponse =
+  paths['/api/projects/{id}/mcp/installation/uninstall']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationUninstallRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/installation/uninstall']['post']['requestBody']
+>['content']['application/json']
+export type ListMcpStatusResponse = paths['/api/mcp/status']['get']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationBatchInstallResponse =
+  paths['/api/projects/{id}/mcp/installation/batch-install']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallationBatchInstallRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/installation/batch-install']['post']['requestBody']
+>['content']['application/json']
+export type CreateProjectsByIdMcpInstallProjectConfigResponse =
+  paths['/api/projects/{id}/mcp/install-project-config']['post']['responses']['200']['content']['application/json']
+export type CreateProjectsByIdMcpInstallProjectConfigRequest = NonNullable<
+  paths['/api/projects/{id}/mcp/install-project-config']['post']['requestBody']
+>['content']['application/json']
 export type GetProjectsByIdGitStatusResponse =
   paths['/api/projects/{id}/git/status']['get']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdGitStageResponse =
@@ -730,38 +762,10 @@ export type CreateProjectsByIdAgentFilesCreateResponse =
 export type CreateProjectsByIdAgentFilesCreateRequest = NonNullable<
   paths['/api/projects/{id}/agent-files/create']['post']['requestBody']
 >['content']['application/json']
-export type ListMcpInstallationDetectResponse =
-  paths['/api/mcp/installation/detect']['get']['responses']['200']['content']['application/json']
-export type GetProjectsByIdMcpInstallationStatusResponse =
-  paths['/api/projects/{id}/mcp/installation/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpInstallationInstallResponse =
-  paths['/api/projects/{id}/mcp/installation/install']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpInstallationInstallRequest = NonNullable<
-  paths['/api/projects/{id}/mcp/installation/install']['post']['requestBody']
->['content']['application/json']
-export type CreateProjectsByIdMcpInstallationUninstallResponse =
-  paths['/api/projects/{id}/mcp/installation/uninstall']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpInstallationUninstallRequest = NonNullable<
-  paths['/api/projects/{id}/mcp/installation/uninstall']['post']['requestBody']
->['content']['application/json']
-export type ListMcpStatusResponse = paths['/api/mcp/status']['get']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpConfigResponse =
-  paths['/api/projects/{id}/mcp/config']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpConfigRequest = NonNullable<
-  paths['/api/projects/{id}/mcp/config']['post']['requestBody']
->['content']['application/json']
-export type CreateProjectsByIdMcpInstallationBatchInstallResponse =
-  paths['/api/projects/{id}/mcp/installation/batch-install']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpInstallationBatchInstallRequest = NonNullable<
-  paths['/api/projects/{id}/mcp/installation/batch-install']['post']['requestBody']
->['content']['application/json']
-export type CreateProjectsByIdMcpInstallProjectConfigResponse =
-  paths['/api/projects/{id}/mcp/install-project-config']['post']['responses']['200']['content']['application/json']
-export type CreateProjectsByIdMcpInstallProjectConfigRequest = NonNullable<
-  paths['/api/projects/{id}/mcp/install-project-config']['post']['requestBody']
->['content']['application/json']
 export type GetProjectsByIdProcessesResponse =
   paths['/api/projects/{id}/processes']['get']['responses']['200']['content']['application/json']
+export type GetProjectsByIdProcessesScriptsResponse =
+  paths['/api/projects/{id}/processes/scripts']['get']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdProcessesStartResponse =
   paths['/api/projects/{id}/processes/start']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdProcessesStartRequest = NonNullable<
@@ -852,7 +856,7 @@ export type CreateModelPresetsByIdUseResponse =
  * - Request body validation
  * - Proper HTTP method handling
  * - Error handling with context
- * - Support for all 209 API endpoints
+ * - Support for all 212 API endpoints
  */
 export class TypeSafeApiClient {
   private baseUrl: string
@@ -1177,61 +1181,6 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * Get a combined summary of all files in the project
-   */
-  async getProjectsByIdSummary(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdSummaryResponse> {
-    return this.request<GetProjectsByIdSummaryResponse>('GET', this.buildPath(`/api/projects/{id}/summary`, { id }), {
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * Get an advanced project summary with customizable options
-   */
-  async createProjectsByIdSummaryAdvanced(
-    id: string | number,
-    data: CreateProjectsByIdSummaryAdvancedRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdSummaryAdvancedResponse> {
-    return this.request<CreateProjectsByIdSummaryAdvancedResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/summary/advanced`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Get metrics about project summary generation
-   */
-  async getProjectsByIdSummaryMetrics(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdSummaryMetricsResponse> {
-    return this.request<GetProjectsByIdSummaryMetricsResponse>(
-      'GET',
-      this.buildPath(`/api/projects/{id}/summary/metrics`, { id }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Invalidate the project summary cache
-   */
-  async createProjectsByIdSummaryInvalidate(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdSummaryInvalidateResponse> {
-    return this.request<CreateProjectsByIdSummaryInvalidateResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/summary/invalidate`, { id }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
    * Suggest relevant files based on user input and project context
    */
   async createProjectsByIdSuggestFiles(
@@ -1247,36 +1196,6 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * Summarize specified files in a project
-   */
-  async createProjectsByIdFilesSummarize(
-    id: string | number,
-    data: CreateProjectsByIdFilesSummarizeRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdFilesSummarizeResponse> {
-    return this.request<CreateProjectsByIdFilesSummarizeResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/files/summarize`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Remove summaries from specified files
-   */
-  async createProjectsByIdFilesRemoveSummaries(
-    id: string | number,
-    data: CreateProjectsByIdFilesRemoveSummariesRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdFilesRemoveSummariesResponse> {
-    return this.request<CreateProjectsByIdFilesRemoveSummariesResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/files/remove-summaries`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
    * Get comprehensive statistics for a project
    */
   async getProjectsByIdStatistics(
@@ -1287,80 +1206,6 @@ export class TypeSafeApiClient {
       'GET',
       this.buildPath(`/api/projects/{id}/statistics`, { id }),
       { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Start batch summarization of unsummarized files
-   */
-  async createProjectsByIdBatchSummarize(
-    id: string | number,
-    data: CreateProjectsByIdBatchSummarizeRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdBatchSummarizeResponse> {
-    return this.request<CreateProjectsByIdBatchSummarizeResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/batch-summarize`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Get progress of a batch summarization operation
-   */
-  async getProjectsByIdBatchSummarizeByBatchId(
-    id: string | number,
-    batchId: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdBatchSummarizeByBatchIdResponse> {
-    return this.request<GetProjectsByIdBatchSummarizeByBatchIdResponse>(
-      'GET',
-      this.buildPath(`/api/projects/{id}/batch-summarize/{batchId}`, { id, batchId }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Cancel a running batch summarization
-   */
-  async deleteProjectsByIdBatchSummarizeByBatchId(
-    id: string | number,
-    batchId: string | number,
-    options?: { timeout?: number }
-  ): Promise<DeleteProjectsByIdBatchSummarizeByBatchIdResponse> {
-    return this.request<DeleteProjectsByIdBatchSummarizeByBatchIdResponse>(
-      'DELETE',
-      this.buildPath(`/api/projects/{id}/batch-summarize/{batchId}`, { id, batchId }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Get file summarization statistics for a project
-   */
-  async getProjectsByIdSummarizationStats(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdSummarizationStatsResponse> {
-    return this.request<GetProjectsByIdSummarizationStatsResponse>(
-      'GET',
-      this.buildPath(`/api/projects/{id}/summarization-stats`, { id }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * Preview how files would be grouped for summarization
-   */
-  async createProjectsByIdPreviewFileGroups(
-    id: string | number,
-    data: CreateProjectsByIdPreviewFileGroupsRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdPreviewFileGroupsResponse> {
-    return this.request<CreateProjectsByIdPreviewFileGroupsResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/preview-file-groups`, { id }),
-      { body: data, timeout: options?.timeout }
     )
   }
 
@@ -1576,6 +1421,21 @@ export class TypeSafeApiClient {
     return this.request<CreateTicketsByTicketIdSuggestFilesResponse>(
       'POST',
       this.buildPath(`/api/tickets/{ticketId}/suggest-files`, { ticketId }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * Stream progressive AI suggestions for relevant files
+   */
+  async createTicketsByTicketIdSuggestFilesStream(
+    ticketId: string | number,
+    data: CreateTicketsByTicketIdSuggestFilesStreamRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateTicketsByTicketIdSuggestFilesStreamResponse> {
+    return this.request<CreateTicketsByTicketIdSuggestFilesStreamResponse>(
+      'POST',
+      this.buildPath(`/api/tickets/{ticketId}/suggest-files/stream`, { ticketId }),
       { body: data, timeout: options?.timeout }
     )
   }
@@ -1846,6 +1706,19 @@ export class TypeSafeApiClient {
 
   // AI Operations
   /**
+   * Chat completion (streaming, chat-associated)
+   */
+  async createAiChatLegacy(
+    data: CreateAiChatLegacyRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateAiChatLegacyResponse> {
+    return this.request<CreateAiChatLegacyResponse>('POST', `/api/ai/chat/legacy`, {
+      body: data,
+      timeout: options?.timeout
+    })
+  }
+
+  /**
    * Chat completion (Vercel AI SDK compatible, streaming)
    */
   async createAiChat(data: CreateAiChatRequest, options?: { timeout?: number }): Promise<CreateAiChatResponse> {
@@ -1936,10 +1809,24 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * Get a specific prompt by its ID
+   * Get a prompt by ID (basic)
    */
-  async getPrompt(promptId: string | number, options?: { timeout?: number }): Promise<GetPromptResponse> {
-    return this.request<GetPromptResponse>('GET', this.buildPath(`/api/prompts/{promptId}`, { promptId }), {
+  async getPrompt(id: string | number, options?: { timeout?: number }): Promise<GetPromptResponse> {
+    return this.request<GetPromptResponse>('GET', this.buildPath(`/api/prompts/{id}`, { id }), {
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Update a prompt by ID (basic)
+   */
+  async updatePrompt(
+    id: string | number,
+    data: UpdatePromptRequest,
+    options?: { timeout?: number }
+  ): Promise<UpdatePromptResponse> {
+    return this.request<UpdatePromptResponse>('PUT', this.buildPath(`/api/prompts/{id}`, { id }), {
+      body: data,
       timeout: options?.timeout
     })
   }
@@ -1947,22 +1834,22 @@ export class TypeSafeApiClient {
   /**
    * Update a prompt's details
    */
-  async updatePrompt(
-    promptId: string | number,
-    data: UpdatePromptRequest,
+  async updatePromptPrompts(
+    id: string | number,
+    data: UpdatePromptPromptsRequest,
     options?: { timeout?: number }
-  ): Promise<UpdatePromptResponse> {
-    return this.request<UpdatePromptResponse>('PATCH', this.buildPath(`/api/prompts/{promptId}`, { promptId }), {
+  ): Promise<UpdatePromptPromptsResponse> {
+    return this.request<UpdatePromptPromptsResponse>('PATCH', this.buildPath(`/api/prompts/{id}`, { id }), {
       body: data,
       timeout: options?.timeout
     })
   }
 
   /**
-   * Delete a prompt
+   * Delete a prompt by ID (basic)
    */
-  async deletePrompt(promptId: string | number, options?: { timeout?: number }): Promise<DeletePromptResponse> {
-    return this.request<DeletePromptResponse>('DELETE', this.buildPath(`/api/prompts/{promptId}`, { promptId }), {
+  async deletePrompt(id: string | number, options?: { timeout?: number }): Promise<DeletePromptResponse> {
+    return this.request<DeletePromptResponse>('DELETE', this.buildPath(`/api/prompts/{id}`, { id }), {
       timeout: options?.timeout
     })
   }
@@ -1984,15 +1871,13 @@ export class TypeSafeApiClient {
   /**
    * Export a single prompt as markdown
    */
-  async listPromptsByPromptIdExport(
-    promptId: string | number,
+  async getPromptsByIdExport(
+    id: string | number,
     options?: { timeout?: number }
-  ): Promise<ListPromptsByPromptIdExportResponse> {
-    return this.request<ListPromptsByPromptIdExportResponse>(
-      'GET',
-      this.buildPath(`/api/prompts/{promptId}/export`, { promptId }),
-      { timeout: options?.timeout }
-    )
+  ): Promise<GetPromptsByIdExportResponse> {
+    return this.request<GetPromptsByIdExportResponse>('GET', this.buildPath(`/api/prompts/{id}/export`, { id }), {
+      timeout: options?.timeout
+    })
   }
 
   /**
@@ -2017,38 +1902,6 @@ export class TypeSafeApiClient {
   ): Promise<CreatePromptsValidateMarkdownResponse> {
     return this.request<CreatePromptsValidateMarkdownResponse>('POST', `/api/prompts/validate-markdown`, {
       body: data,
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * Get a prompt by ID (basic)
-   */
-  async getPromptPrompts(id: string | number, options?: { timeout?: number }): Promise<GetPromptPromptsResponse> {
-    return this.request<GetPromptPromptsResponse>('GET', this.buildPath(`/api/prompts/{id}`, { id }), {
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * Update a prompt by ID (basic)
-   */
-  async updatePromptPrompts(
-    id: string | number,
-    data: UpdatePromptPromptsRequest,
-    options?: { timeout?: number }
-  ): Promise<UpdatePromptPromptsResponse> {
-    return this.request<UpdatePromptPromptsResponse>('PUT', this.buildPath(`/api/prompts/{id}`, { id }), {
-      body: data,
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * Delete a prompt by ID (basic)
-   */
-  async deletePromptPrompts(id: string | number, options?: { timeout?: number }): Promise<DeletePromptPromptsResponse> {
-    return this.request<DeletePromptPromptsResponse>('DELETE', this.buildPath(`/api/prompts/{id}`, { id }), {
       timeout: options?.timeout
     })
   }
@@ -2380,6 +2233,158 @@ export class TypeSafeApiClient {
       this.buildPath(`/api/queues/:queueId/timeline`, { queueId }),
       { timeout: options?.timeout }
     )
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/config/locations
+   */
+  async getProjectsByIdMcpConfigLocations(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpConfigLocationsResponse> {
+    return this.request<GetProjectsByIdMcpConfigLocationsResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/config/locations`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/config/merged
+   */
+  async getProjectsByIdMcpConfigMerged(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpConfigMergedResponse> {
+    return this.request<GetProjectsByIdMcpConfigMergedResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/config/merged`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/config/expanded
+   */
+  async getProjectsByIdMcpConfigExpanded(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpConfigExpandedResponse> {
+    return this.request<GetProjectsByIdMcpConfigExpandedResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/config/expanded`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/config
+   */
+  async getProjectsByIdMcpConfig(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpConfigResponse> {
+    return this.request<GetProjectsByIdMcpConfigResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/config`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * POST /api/projects/{id}/mcp/config/save-to-location
+   */
+  async createProjectsByIdMcpConfigSaveToLocation(
+    id: string | number,
+    data: CreateProjectsByIdMcpConfigSaveToLocationRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpConfigSaveToLocationResponse> {
+    return this.request<CreateProjectsByIdMcpConfigSaveToLocationResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/config/save-to-location`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/config/default-for-location
+   */
+  async getProjectsByIdMcpConfigDefaultForLocation(
+    id: string | number,
+    query?: { location?: any },
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpConfigDefaultForLocationResponse> {
+    return this.request<GetProjectsByIdMcpConfigDefaultForLocationResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/config/default-for-location`, { id }),
+      { params: query, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * Copilot proxy health
+   */
+  async listProxyCopilot_health(options?: { timeout?: number }): Promise<ListProxyCopilot_healthResponse> {
+    return this.request<ListProxyCopilot_healthResponse>('GET', `/api/proxy/copilot/_health`, {
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Enable or disable embedded Copilot proxy
+   */
+  async createCopilotEmbedToggle(
+    data: CreateCopilotEmbedToggleRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateCopilotEmbedToggleResponse> {
+    return this.request<CreateCopilotEmbedToggleResponse>('POST', `/api/copilot/embed/toggle`, {
+      body: data,
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Update embedded Copilot runtime settings
+   */
+  async createCopilotEmbedSettings(
+    data: CreateCopilotEmbedSettingsRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateCopilotEmbedSettingsResponse> {
+    return this.request<CreateCopilotEmbedSettingsResponse>('POST', `/api/copilot/embed/settings`, {
+      body: data,
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Start GitHub device authorization flow
+   */
+  async createCopilotEmbedAuthStart(options?: { timeout?: number }): Promise<CreateCopilotEmbedAuthStartResponse> {
+    return this.request<CreateCopilotEmbedAuthStartResponse>('POST', `/api/copilot/embed/auth/start`, {
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Complete device authorization and initialize Copilot tokens
+   */
+  async createCopilotEmbedAuthComplete(
+    data: CreateCopilotEmbedAuthCompleteRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateCopilotEmbedAuthCompleteResponse> {
+    return this.request<CreateCopilotEmbedAuthCompleteResponse>('POST', `/api/copilot/embed/auth/complete`, {
+      body: data,
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * Get embedded Copilot status
+   */
+  async listCopilotEmbedStatus(options?: { timeout?: number }): Promise<ListCopilotEmbedStatusResponse> {
+    return this.request<ListCopilotEmbedStatusResponse>('GET', `/api/copilot/embed/status`, {
+      timeout: options?.timeout
+    })
   }
 
   // Queues Operations
@@ -3346,6 +3351,112 @@ export class TypeSafeApiClient {
     })
   }
 
+  // MCP Installation Operations
+  /**
+   * POST /api/projects/{id}/mcp/config
+   */
+  async createProjectsByIdMcpConfig(
+    id: string | number,
+    data: CreateProjectsByIdMcpConfigRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpConfigResponse> {
+    return this.request<CreateProjectsByIdMcpConfigResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/config`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/mcp/installation/detect
+   */
+  async listMcpInstallationDetect(options?: { timeout?: number }): Promise<ListMcpInstallationDetectResponse> {
+    return this.request<ListMcpInstallationDetectResponse>('GET', `/api/mcp/installation/detect`, {
+      timeout: options?.timeout
+    })
+  }
+
+  /**
+   * GET /api/projects/{id}/mcp/installation/status
+   */
+  async getProjectsByIdMcpInstallationStatus(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdMcpInstallationStatusResponse> {
+    return this.request<GetProjectsByIdMcpInstallationStatusResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/mcp/installation/status`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * POST /api/projects/{id}/mcp/installation/install
+   */
+  async createProjectsByIdMcpInstallationInstall(
+    id: string | number,
+    data: CreateProjectsByIdMcpInstallationInstallRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpInstallationInstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationInstallResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/installation/install`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * POST /api/projects/{id}/mcp/installation/uninstall
+   */
+  async createProjectsByIdMcpInstallationUninstall(
+    id: string | number,
+    data: CreateProjectsByIdMcpInstallationUninstallRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpInstallationUninstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationUninstallResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/installation/uninstall`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * GET /api/mcp/status
+   */
+  async listMcpStatus(options?: { timeout?: number }): Promise<ListMcpStatusResponse> {
+    return this.request<ListMcpStatusResponse>('GET', `/api/mcp/status`, { timeout: options?.timeout })
+  }
+
+  /**
+   * POST /api/projects/{id}/mcp/installation/batch-install
+   */
+  async createProjectsByIdMcpInstallationBatchInstall(
+    id: string | number,
+    data: CreateProjectsByIdMcpInstallationBatchInstallRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpInstallationBatchInstallResponse> {
+    return this.request<CreateProjectsByIdMcpInstallationBatchInstallResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/installation/batch-install`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * POST /api/projects/{id}/mcp/install-project-config
+   */
+  async createProjectsByIdMcpInstallProjectConfig(
+    id: string | number,
+    data: CreateProjectsByIdMcpInstallProjectConfigRequest,
+    options?: { timeout?: number }
+  ): Promise<CreateProjectsByIdMcpInstallProjectConfigResponse> {
+    return this.request<CreateProjectsByIdMcpInstallProjectConfigResponse>(
+      'POST',
+      this.buildPath(`/api/projects/{id}/mcp/install-project-config`, { id }),
+      { body: data, timeout: options?.timeout }
+    )
+  }
+
   // Git Operations
   /**
    * Get git status for a project
@@ -3921,112 +4032,6 @@ export class TypeSafeApiClient {
     )
   }
 
-  // MCP Installation Operations
-  /**
-   * GET /api/mcp/installation/detect
-   */
-  async listMcpInstallationDetect(options?: { timeout?: number }): Promise<ListMcpInstallationDetectResponse> {
-    return this.request<ListMcpInstallationDetectResponse>('GET', `/api/mcp/installation/detect`, {
-      timeout: options?.timeout
-    })
-  }
-
-  /**
-   * GET /api/projects/{id}/mcp/installation/status
-   */
-  async getProjectsByIdMcpInstallationStatus(
-    id: string | number,
-    options?: { timeout?: number }
-  ): Promise<GetProjectsByIdMcpInstallationStatusResponse> {
-    return this.request<GetProjectsByIdMcpInstallationStatusResponse>(
-      'GET',
-      this.buildPath(`/api/projects/{id}/mcp/installation/status`, { id }),
-      { timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * POST /api/projects/{id}/mcp/installation/install
-   */
-  async createProjectsByIdMcpInstallationInstall(
-    id: string | number,
-    data: CreateProjectsByIdMcpInstallationInstallRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdMcpInstallationInstallResponse> {
-    return this.request<CreateProjectsByIdMcpInstallationInstallResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/mcp/installation/install`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * POST /api/projects/{id}/mcp/installation/uninstall
-   */
-  async createProjectsByIdMcpInstallationUninstall(
-    id: string | number,
-    data: CreateProjectsByIdMcpInstallationUninstallRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdMcpInstallationUninstallResponse> {
-    return this.request<CreateProjectsByIdMcpInstallationUninstallResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/mcp/installation/uninstall`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * GET /api/mcp/status
-   */
-  async listMcpStatus(options?: { timeout?: number }): Promise<ListMcpStatusResponse> {
-    return this.request<ListMcpStatusResponse>('GET', `/api/mcp/status`, { timeout: options?.timeout })
-  }
-
-  /**
-   * POST /api/projects/{id}/mcp/config
-   */
-  async createProjectsByIdMcpConfig(
-    id: string | number,
-    data: CreateProjectsByIdMcpConfigRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdMcpConfigResponse> {
-    return this.request<CreateProjectsByIdMcpConfigResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/mcp/config`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * POST /api/projects/{id}/mcp/installation/batch-install
-   */
-  async createProjectsByIdMcpInstallationBatchInstall(
-    id: string | number,
-    data: CreateProjectsByIdMcpInstallationBatchInstallRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdMcpInstallationBatchInstallResponse> {
-    return this.request<CreateProjectsByIdMcpInstallationBatchInstallResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/mcp/installation/batch-install`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
-  /**
-   * POST /api/projects/{id}/mcp/install-project-config
-   */
-  async createProjectsByIdMcpInstallProjectConfig(
-    id: string | number,
-    data: CreateProjectsByIdMcpInstallProjectConfigRequest,
-    options?: { timeout?: number }
-  ): Promise<CreateProjectsByIdMcpInstallProjectConfigResponse> {
-    return this.request<CreateProjectsByIdMcpInstallProjectConfigResponse>(
-      'POST',
-      this.buildPath(`/api/projects/{id}/mcp/install-project-config`, { id }),
-      { body: data, timeout: options?.timeout }
-    )
-  }
-
   // Processes Operations
   /**
    * List processes for a project
@@ -4038,6 +4043,20 @@ export class TypeSafeApiClient {
     return this.request<GetProjectsByIdProcessesResponse>(
       'GET',
       this.buildPath(`/api/projects/{id}/processes`, { id }),
+      { timeout: options?.timeout }
+    )
+  }
+
+  /**
+   * List package.json scripts in the project (root + workspaces)
+   */
+  async getProjectsByIdProcessesScripts(
+    id: string | number,
+    options?: { timeout?: number }
+  ): Promise<GetProjectsByIdProcessesScriptsResponse> {
+    return this.request<GetProjectsByIdProcessesScriptsResponse>(
+      'GET',
+      this.buildPath(`/api/projects/{id}/processes/scripts`, { id }),
       { timeout: options?.timeout }
     )
   }

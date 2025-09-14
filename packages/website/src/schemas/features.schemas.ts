@@ -139,8 +139,7 @@ export const featuresData: FeaturesSection = {
       highlights: [
         'Instant project context',
         'Active tab awareness',
-        'Recent activity tracking',
-        'File summarization status'
+        'Recent activity tracking'
       ],
       codeExample: {
         language: 'typescript',
@@ -212,15 +211,6 @@ export const featuresData: FeaturesSection = {
         'Performance metrics included'
       ],
       badge: { text: 'Game Changer', variant: 'high' }
-    },
-    {
-      id: 'file-summarization',
-      title: 'Intelligent File Summarization',
-      description:
-        'Automatic file summaries that help AI assistants understand your codebase without reading entire files.',
-      category: 'efficiency',
-      icon: { type: 'emoji', value: '📝' },
-      highlights: ['Batch processing', 'Smart grouping strategies', 'Progress tracking', 'Stale summary detection']
     },
     {
       id: 'prompt-library',

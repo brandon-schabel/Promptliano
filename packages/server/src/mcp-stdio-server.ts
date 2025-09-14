@@ -138,12 +138,6 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 
     const resources = [
       {
-        uri: `promptliano://projects/${projectId}/summary`,
-        name: 'Project Summary',
-        description: `Summary of project "${project.name}"`,
-        mimeType: 'text/plain'
-      },
-      {
         uri: `promptliano://projects/${projectId}/suggest-files`,
         name: 'File Suggestions',
         description: 'AI-powered file suggestions based on prompts',
@@ -234,24 +228,8 @@ For more information, visit: https://github.com/Ejb503/promptliano`
         }
       }
 
-      if (projectId && urlParts[0] === 'projects' && urlParts[1] === projectId.toString()) {
-        if (urlParts[2] === 'summary') {
-          // Project summary resource
-          const project = await getProjectById(projectId)
-          const files = await getProjectFiles(projectId)
-          const fileCount = files?.length || 0
-          const summary = `Project: ${project.name}\nPath: ${project.path}\nFiles: ${fileCount}\nCreated: ${new Date(project.createdAt).toLocaleString()}`
-
-          return {
-            contents: [
-              {
-                uri,
-                mimeType: 'text/plain',
-                text: summary
-              }
-            ]
-          }
-        } else if (urlParts[2] === 'suggest-files') {
+      if (projectId && urlParts[0] === 'projects' && urlParts[1] === String(projectId)) {
+        if (urlParts[2] === 'suggest-files') {
           // File suggestions resource (requires prompt parameter)
           return {
             contents: [

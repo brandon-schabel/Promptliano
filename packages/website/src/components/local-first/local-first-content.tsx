@@ -215,7 +215,7 @@ export function LocalFirstContent() {
                     </li>
                     <li className='flex items-center gap-2'>
                       <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
-                      File summaries and search indices
+                      Search indices and cached file metadata
                     </li>
                     <li className='flex items-center gap-2'>
                       <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
@@ -348,7 +348,7 @@ export function LocalFirstContent() {
                 </li>
                 <li className='flex items-start gap-2'>
                   <Zap className='h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5' />
-                  <span>Code summaries and documentation generation</span>
+                  <span>Concise code overviews and documentation generation</span>
                 </li>
                 <li className='flex items-start gap-2'>
                   <Zap className='h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5' />

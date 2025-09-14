@@ -13,9 +13,6 @@ export {
   // File-related functions
   getProjectFiles,
   updateFileContent,
-  summarizeFiles,
-  summarizeSingleFile,
-  removeSummariesFromFiles,
   suggestFiles,
   getProjectFileTree,
   getProjectOverview,
@@ -279,13 +276,7 @@ export * from './src/utils/logger'
 export * from './src/utils/model-usage-logger'
 
 // server side utils
-export * from './src/utils/project-summary-service'
-export {
-  // Project summary service individual exports
-  optimizeUserInput,
-  getCompactProjectSummary,
-  getProjectSummaryWithOptions
-} from './src/utils/project-summary-service'
+// Removed project summary service exports
 export * from './src/utils/file-importance-scorer'
 export * from './src/utils/json-scribe'
 // path-utils moved to @promptliano/shared
@@ -298,7 +289,8 @@ export * from './src/file-suggestion-strategy-service'
 export * from './src/utils/compact-file-formatter'
 export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
-export * from './src/file-summarization-tracker'
+// Suggestions Service facade
+export * from './src/suggestions/suggestions-service'
 export {
   // Tab Name Generation Service
   createTabNameGenerationService,
@@ -366,8 +358,6 @@ export {
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown
 } from './src/markdown-prompt-service'
-
-export * from './src/enhanced-summarization-service'
 
 // V2 Service Aliases for backward compatibility with generated routes
 // Now using properly compatible services

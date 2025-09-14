@@ -21,7 +21,7 @@ type CreatePromptBody = CreatePrompt
 type UpdatePromptBody = UpdatePrompt
 import { PromptSuggestionsZodSchema } from '@promptliano/schemas' // AI generation schema - may remain in schemas package
 import { generateStructuredData } from './gen-ai-services'
-import { getCompactProjectSummary } from './utils/project-summary-service'
+// Project summary removed
 
 // Dependencies interface for dependency injection
 export interface PromptServiceDeps {
@@ -136,7 +136,6 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
     async getSuggestions(projectId: number, userQuery: string): Promise<string[]> {
       return withErrorContext(
         async () => {
-          const projectSummary = await getCompactProjectSummary(projectId)
           const existingPrompts = await this.getByProject(projectId)
 
           const systemPrompt = `You are a prompt engineering assistant. Based on the project context and user query, suggest relevant prompt templates that would be useful for this project.
@@ -146,9 +145,6 @@ Return an array of prompt suggestions that are:
 2. Actionable and practical for development tasks
 3. Different from existing prompts
 4. Tailored to the user's query
-
-Project Summary:
-${projectSummary}
 
 Existing Prompts:
 ${existingPrompts.map((p) => `- ${p.title}: ${p.content.substring(0, 100)}...`).join('\n')}

@@ -370,7 +370,7 @@ function BuildingContextGuide() {
               <li>• Remove large test files unless needed</li>
               <li>• Exclude generated files (build, dist)</li>
               <li>• Skip repetitive code (multiple similar components)</li>
-              <li>• Use summaries for large documentation files</li>
+              <li>• Prefer concise excerpts for large documentation files</li>
             </ul>
           </GlassCard>
         </div>

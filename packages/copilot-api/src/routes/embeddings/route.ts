@@ -1,14 +1,11 @@
-import { Hono } from "hono"
+import { Hono } from 'hono'
 
-import { forwardError } from "~/lib/error"
-import {
-  createEmbeddings,
-  type EmbeddingRequest,
-} from "~/services/copilot/create-embeddings"
+import { forwardError } from '~/lib/error'
+import { createEmbeddings, type EmbeddingRequest } from '~/services/copilot/create-embeddings'
 
 export const embeddingRoutes = new Hono()
 
-embeddingRoutes.post("/", async (c) => {
+embeddingRoutes.post('/', async (c) => {
   try {
     const paylod = await c.req.json<EmbeddingRequest>()
     const response = await createEmbeddings(paylod)

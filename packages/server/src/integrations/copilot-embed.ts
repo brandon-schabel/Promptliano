@@ -1,14 +1,28 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-// Copilot API internals (embedded)
-// We import directly from the workspace package source to reuse its logic
-// and shared state. These paths are stable within this monorepo structure.
-import { PATHS, ensurePaths } from '../../../copilot-api/src/lib/paths'
-import { cacheVSCodeVersion, cacheModels } from '../../../copilot-api/src/lib/utils'
-import { state as copilotState } from '../../../copilot-api/src/lib/state'
-import { setupCopilotToken } from '../../../copilot-api/src/lib/token'
-import { server as copilotHonoApp } from '../../../copilot-api/src/server'
+// Lazy-load copilot-api internals at runtime only to avoid pulling
+// that separate project into our TypeScript program for type checking.
+async function loadCopilot() {
+  const base = '../../../copilot-api/src'
+  const [pathsMod, utilsMod, stateMod, tokenMod, serverMod] = await Promise.all([
+    import(base + '/lib/paths'),
+    import(base + '/lib/utils'),
+    import(base + '/lib/state'),
+    import(base + '/lib/token'),
+    import(base + '/server')
+  ])
+
+  return {
+    PATHS: (pathsMod as any).PATHS as any,
+    ensurePaths: (pathsMod as any).ensurePaths as (...a: any[]) => any,
+    cacheVSCodeVersion: (utilsMod as any).cacheVSCodeVersion as (...a: any[]) => any,
+    cacheModels: (utilsMod as any).cacheModels as (...a: any[]) => any,
+    copilotState: (stateMod as any).state as any,
+    setupCopilotToken: (tokenMod as any).setupCopilotToken as (...a: any[]) => any,
+    copilotHonoApp: (serverMod as any).server as any
+  }
+}
 
 export type CopilotEmbedConfig = {
   enabled: boolean
@@ -54,6 +68,8 @@ export function parseCopilotEmbedConfig(env: Record<string, string | undefined>)
 // This does NOT block on device-flow auth; it will attempt to reuse an existing
 // GitHub token if available and start the Copilot token refresh loop.
 export async function initCopilotEmbed(config: CopilotEmbedConfig) {
+  const { PATHS, ensurePaths, cacheVSCodeVersion, cacheModels, copilotState, setupCopilotToken, copilotHonoApp } =
+    await loadCopilot()
   // Apply flags to shared copilot-api state
   copilotState.accountType = config.accountType
   copilotState.manualApprove = config.manualApprove

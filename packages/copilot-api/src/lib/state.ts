@@ -1,4 +1,4 @@
-import type { ModelsResponse } from "~/services/copilot/get-models"
+import type { ModelsResponse } from '~/services/copilot/get-models'
 
 export interface State {
   githubToken?: string
@@ -18,8 +18,8 @@ export interface State {
 }
 
 export const state: State = {
-  accountType: "individual",
+  accountType: 'individual',
   manualApprove: false,
   rateLimitWait: false,
-  showToken: false,
+  showToken: false
 }

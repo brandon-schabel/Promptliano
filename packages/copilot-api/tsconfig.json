@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -22,13 +22,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "pages/**/*"
-  ],
-  "exclude": [
-    "tests",
-    "**/*.test.ts",
-    "**/*.test.tsx"
-  ]
+  "include": ["src/**/*", "pages/**/*"],
+  "exclude": ["tests", "**/*.test.ts", "**/*.test.tsx"]
 }

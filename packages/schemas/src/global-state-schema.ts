@@ -361,31 +361,6 @@ export const appSettingsSchema = z
           { name: 'Production', url: 'https://api.promptliano.com', isDefault: false }
         ]
       }),
-    summarizationIgnorePatterns: z
-      .array(z.string())
-      .optional()
-      .default([])
-      .openapi({
-        description: 'Glob patterns for files/folders to ignore during automatic summarization.',
-        example: ['**/node_modules/**', '**/*.log']
-      }),
-    summarizationAllowPatterns: z
-      .array(z.string())
-      .optional()
-      .default([])
-      .openapi({
-        description:
-          'Glob patterns for files/folders to explicitly include in summarization (if ignore patterns also match).',
-        example: ['src/**/*.ts']
-      }),
-    summarizationEnabledProjectIds: z
-      .array(z.number())
-      .optional()
-      .default([])
-      .openapi({
-        description: 'List of project IDs for which automatic summarization is enabled.',
-        example: [123, 456]
-      }),
     useSpacebarToSelectAutocomplete: z
       .boolean()
       .optional()
@@ -568,9 +543,6 @@ export const createSafeGlobalState = (): GlobalState => ({
     lmStudioGlobalUrl: 'http://localhost:1234',
     promptlianoServerUrl: 'http://localhost:3147',
     promptlianoServerUrls: [],
-    summarizationIgnorePatterns: [],
-    summarizationAllowPatterns: [],
-    summarizationEnabledProjectIds: [],
     useSpacebarToSelectAutocomplete: true,
     hideInformationalTooltips: false,
     autoScrollEnabled: true,

@@ -12,7 +12,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
@@ -28,7 +27,19 @@ import {
   Badge,
   cn
 } from '@promptliano/ui'
-import { Network, XCircle, RefreshCw, Wifi, WifiOff, Search, Terminal, Activity, Copy, ChevronDown } from 'lucide-react'
+import {
+  Network,
+  XCircle,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  Search,
+  Terminal,
+  Activity,
+  Copy,
+  ChevronDown,
+  ArrowUpDown
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useProcessPorts, useKillByPort, useScanPorts } from '@/hooks/api/processes-hooks'
 import {
@@ -66,6 +77,7 @@ export function PortTable({ projectId, className }: PortTableProps) {
   const [stateFilter, setStateFilter] = useState<'listening' | 'all'>('listening')
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
   const [portToKill, setPortToKill] = useState<number | null>(null)
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
 
@@ -151,7 +163,18 @@ export function PortTable({ projectId, className }: PortTableProps) {
   const columns: ColumnDef<ProcessPort>[] = [
     {
       accessorKey: 'port',
-      header: 'Port',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Port
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
+      // Ensure string-based filtering works for numeric ports
+      filterFn: 'includesString',
       cell: ({ row }) => {
         const port = row.getValue('port') as number
         return (
@@ -176,12 +199,30 @@ export function PortTable({ projectId, className }: PortTableProps) {
     },
     {
       accessorKey: 'protocol',
-      header: 'Protocol',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Protocol
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => <ProtocolBadge protocol={row.getValue('protocol')} />
     },
     {
       accessorKey: 'address',
-      header: 'Address',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Address
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const address = row.getValue('address') as string
         return <code className='text-xs bg-muted px-2 py-1 rounded'>{address}</code>
@@ -189,7 +230,16 @@ export function PortTable({ projectId, className }: PortTableProps) {
     },
     {
       accessorKey: 'processName',
-      header: 'Process',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Process
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const name = row.getValue('processName') as string | undefined
         const pid = row.original.pid
@@ -227,7 +277,16 @@ export function PortTable({ projectId, className }: PortTableProps) {
     },
     {
       accessorKey: 'state',
-      header: 'State',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          State
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => <StateIndicator state={row.getValue('state')} />
     },
     {
@@ -262,13 +321,14 @@ export function PortTable({ projectId, className }: PortTableProps) {
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
-      columnFilters
+      columnFilters,
+      globalFilter
     }
   })
 
@@ -287,12 +347,10 @@ export function PortTable({ projectId, className }: PortTableProps) {
           <div className='flex items-center gap-2'>
             <Search className='h-4 w-4 text-muted-foreground' />
             <Input
-              placeholder='Filter ports...'
-              value={(table.getColumn('port')?.getFilterValue() as string) ?? ''}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                table.getColumn('port')?.setFilterValue(event.target.value)
-              }
-              className='h-8 w-[150px]'
+              placeholder='Search table...'
+              value={globalFilter}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setGlobalFilter(event.target.value)}
+              className='h-8 w-[220px]'
             />
           </div>
 
@@ -405,7 +463,9 @@ export function PortTable({ projectId, className }: PortTableProps) {
                                 <div key={label} className='flex items-start justify-between gap-2'>
                                   <div className='text-sm min-w-[160px] text-muted-foreground'>{label}</div>
                                   <div className='flex-1'>
-                                    <pre className='text-xs bg-background rounded border px-2 py-1 overflow-auto'>{cmd}</pre>
+                                    <pre className='text-xs bg-background rounded border px-2 py-1 overflow-auto'>
+                                      {cmd}
+                                    </pre>
                                   </div>
                                   <Button
                                     variant='outline'
@@ -449,22 +509,9 @@ export function PortTable({ projectId, className }: PortTableProps) {
         </Table>
       </div>
 
-      <div className='flex items-center justify-between'>
+      <div className='flex items-center justify-start'>
         <div className='text-sm text-muted-foreground'>
-          Showing {table.getRowModel().rows.length} of {ports.length} port(s)
-        </div>
-        <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button variant='outline' size='sm' onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Next
-          </Button>
+          Showing {table.getFilteredRowModel().rows.length} of {ports.length} port(s)
         </div>
       </div>
 

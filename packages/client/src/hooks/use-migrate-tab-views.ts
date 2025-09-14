@@ -4,8 +4,8 @@ import { ProjectTabState } from '@promptliano/schemas'
 
 /**
  * Hook to migrate old activeView values in project tabs to new structure
- * This handles the reorganization where stats, mcp-analytics, summarization,
- * and settings are now sub-views under the Manage tab
+ * This handles the reorganization where stats, mcp-analytics, and settings
+ * are now sub-views under the Manage tab
  */
 export function useMigrateTabViews() {
   const [projectTabs] = useGetProjectTabs()
@@ -25,7 +25,6 @@ export function useMigrateTabViews() {
       stats: { activeView: 'manage', manageView: 'statistics' },
       statistics: { activeView: 'manage', manageView: 'statistics' },
       'mcp-analytics': { activeView: 'manage', manageView: 'mcp-analytics' },
-      summarization: { activeView: 'manage', manageView: 'summarization' },
       settings: { activeView: 'manage', manageView: 'project-settings' },
       'project-settings': { activeView: 'manage', manageView: 'project-settings' }
     }

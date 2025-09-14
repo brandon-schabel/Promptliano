@@ -7,4 +7,3 @@ try {
 } catch (e) {
   console.warn('Could not clean dist:', e)
 }
-

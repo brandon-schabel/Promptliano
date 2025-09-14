@@ -220,7 +220,6 @@ export class PromptlianoClient {
     syncProject: (projectId: number) => this.typeSafe.createProjectsByIdSync(projectId),
     refreshProject: (projectId: number, folder?: any) =>
       this.typeSafe.createProjectsByIdRefresh(projectId, folder ? { folder } : undefined),
-    getProjectSummary: (projectId: number) => this.typeSafe.getProjectsByIdSummary(projectId),
     getProjectStatistics: (projectId: number) => this.typeSafe.getProjectsByIdStatistics(projectId),
     getMCPInstallationStatus: (projectId: number) => this.typeSafe.getProjectsByIdMcpInstallationStatus(projectId),
     // Queues with stats via Flow
@@ -235,9 +234,9 @@ export class PromptlianoClient {
       if (!res.ok) throw new Error(`Failed to get queues with stats (${res.status})`)
       return res.json()
     },
-    // File suggestions and summarization
+    // File suggestions
     // Use manual fetch since the generated client currently lacks this route
-    suggestFiles: async (projectId: number, data: { prompt: string; limit?: number }) => {
+    suggestFiles: async (projectId: number, data: { prompt?: string; userInput?: string; limit?: number }) => {
       const res = await fetch(`${this.config.baseUrl}/api/projects/${projectId}/suggest-files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -245,19 +244,6 @@ export class PromptlianoClient {
       })
       if (!res.ok) throw new Error(`Failed to suggest files (${res.status})`)
       return res.json()
-    },
-    summarizeFiles: (projectId: number, data: { fileIds: number[]; force?: boolean }) =>
-      this.typeSafe.createProjectsByIdFilesSummarize(projectId, {
-        ...data,
-        fileIds: data.fileIds.map(String)
-      }),
-    removeSummariesFromFiles: (projectId: number, data: { fileIds: number[] }) => {
-      // Fallback to manual call since generated client may not include this route
-      return fetch(`${this.config.baseUrl}/api/projects/${projectId}/files/remove-summaries`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...this.config.headers },
-        body: JSON.stringify(data)
-      }).then((r) => r.json())
     }
   }
 
@@ -308,7 +294,6 @@ export class PromptlianoClient {
     getProjectPrompts: (projectId: number) => this.typeSafe.getProjectsByIdPrompts(projectId),
     suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
-    exportPromptAsMarkdown: (promptId: number, options?: any) => this.typeSafe.listPromptsByPromptIdExport(promptId),
     validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
     // Connect/disconnect prompts to projects
     addPromptToProject: async (projectId: number, promptId: number) => {

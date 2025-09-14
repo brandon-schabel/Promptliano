@@ -1,12 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Button,
-  Input,
-  Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@promptliano/ui'
+import { Button, Input, Label, Popover, PopoverContent, PopoverTrigger } from '@promptliano/ui'
 import { useStartProcess } from '@/hooks/api/processes-hooks'
 import { Loader2, Play, Check, X } from 'lucide-react'
 
@@ -32,18 +25,18 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
 
   const handleStart = async () => {
     if (!command.trim()) return
-    
+
     const parsedArgs = args.trim()
       ? args.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map((s) => s.replace(/^['"]|['"]$/g, ''))
       : []
-    
+
     try {
       await startMutation.mutateAsync({
         command: command.trim(),
         args: parsedArgs || [],
         name: name.trim() || undefined
       })
-      
+
       setCommand('')
       setArgs('')
       setName('')
@@ -74,11 +67,7 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          onClick={handleOpenPopover}
-          disabled={startMutation.isPending}
-          className={className}
-        >
+        <Button onClick={handleOpenPopover} disabled={startMutation.isPending} className={className}>
           <Play className='h-4 w-4 mr-2' />
           Start Process
         </Button>
@@ -87,11 +76,9 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
         <div className='space-y-4'>
           <div className='space-y-2'>
             <h4 className='font-medium text-sm'>Start New Process</h4>
-            <p className='text-sm text-muted-foreground'>
-              Run a command in the project workspace
-            </p>
+            <p className='text-sm text-muted-foreground'>Run a command in the project workspace</p>
           </div>
-          
+
           <div className='space-y-3'>
             <div className='space-y-1'>
               <Label htmlFor='command-input' className='text-xs'>
@@ -107,7 +94,7 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
                 className='w-full'
               />
             </div>
-            
+
             <div className='space-y-1'>
               <Label htmlFor='args-input' className='text-xs'>
                 Arguments
@@ -121,7 +108,7 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
                 className='w-full'
               />
             </div>
-            
+
             <div className='space-y-1'>
               <Label htmlFor='name-input' className='text-xs'>
                 Name (optional)
@@ -136,7 +123,7 @@ export function StartProcessPopover({ projectId, onProcessStarted, className }: 
               />
             </div>
           </div>
-          
+
           <div className='flex items-center justify-end gap-2'>
             <Button variant='ghost' size='sm' onClick={handleCancel} className='h-8'>
               <X className='h-3 w-3 mr-1' />

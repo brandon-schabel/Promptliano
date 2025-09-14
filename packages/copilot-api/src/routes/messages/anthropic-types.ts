@@ -15,66 +15,60 @@ export interface AnthropicMessagesPayload {
   top_k?: number
   tools?: Array<AnthropicTool>
   tool_choice?: {
-    type: "auto" | "any" | "tool" | "none"
+    type: 'auto' | 'any' | 'tool' | 'none'
     name?: string
   }
   thinking?: {
-    type: "enabled"
+    type: 'enabled'
     budget_tokens?: number
   }
-  service_tier?: "auto" | "standard_only"
+  service_tier?: 'auto' | 'standard_only'
 }
 
 export interface AnthropicTextBlock {
-  type: "text"
+  type: 'text'
   text: string
 }
 
 export interface AnthropicImageBlock {
-  type: "image"
+  type: 'image'
   source: {
-    type: "base64"
-    media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp"
+    type: 'base64'
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
     data: string
   }
 }
 
 export interface AnthropicToolResultBlock {
-  type: "tool_result"
+  type: 'tool_result'
   tool_use_id: string
   content: string
   is_error?: boolean
 }
 
 export interface AnthropicToolUseBlock {
-  type: "tool_use"
+  type: 'tool_use'
   id: string
   name: string
   input: Record<string, unknown>
 }
 
 export interface AnthropicThinkingBlock {
-  type: "thinking"
+  type: 'thinking'
   thinking: string
 }
 
-export type AnthropicUserContentBlock =
-  | AnthropicTextBlock
-  | AnthropicImageBlock
-  | AnthropicToolResultBlock
+export type AnthropicUserContentBlock = AnthropicTextBlock | AnthropicImageBlock | AnthropicToolResultBlock
 
-export type AnthropicAssistantContentBlock =
-  | AnthropicTextBlock
-  | AnthropicToolUseBlock
-  | AnthropicThinkingBlock
+export type AnthropicAssistantContentBlock = AnthropicTextBlock | AnthropicToolUseBlock | AnthropicThinkingBlock
 
 export interface AnthropicUserMessage {
-  role: "user"
+  role: 'user'
   content: string | Array<AnthropicUserContentBlock>
 }
 
 export interface AnthropicAssistantMessage {
-  role: "assistant"
+  role: 'assistant'
   content: string | Array<AnthropicAssistantContentBlock>
 }
 
@@ -88,25 +82,18 @@ export interface AnthropicTool {
 
 export interface AnthropicResponse {
   id: string
-  type: "message"
-  role: "assistant"
+  type: 'message'
+  role: 'assistant'
   content: Array<AnthropicAssistantContentBlock>
   model: string
-  stop_reason:
-    | "end_turn"
-    | "max_tokens"
-    | "stop_sequence"
-    | "tool_use"
-    | "pause_turn"
-    | "refusal"
-    | null
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | 'pause_turn' | 'refusal' | null
   stop_sequence: string | null
   usage: {
     input_tokens: number
     output_tokens: number
     cache_creation_input_tokens?: number
     cache_read_input_tokens?: number
-    service_tier?: "standard" | "priority" | "batch"
+    service_tier?: 'standard' | 'priority' | 'batch'
   }
 }
 
@@ -114,11 +101,8 @@ export type AnthropicResponseContentBlock = AnthropicAssistantContentBlock
 
 // Anthropic Stream Event Types
 export interface AnthropicMessageStartEvent {
-  type: "message_start"
-  message: Omit<
-    AnthropicResponse,
-    "content" | "stop_reason" | "stop_sequence"
-  > & {
+  type: 'message_start'
+  message: Omit<AnthropicResponse, 'content' | 'stop_reason' | 'stop_sequence'> & {
     content: []
     stop_reason: null
     stop_sequence: null
@@ -126,35 +110,35 @@ export interface AnthropicMessageStartEvent {
 }
 
 export interface AnthropicContentBlockStartEvent {
-  type: "content_block_start"
+  type: 'content_block_start'
   index: number
   content_block:
-    | { type: "text"; text: string }
-    | (Omit<AnthropicToolUseBlock, "input"> & {
+    | { type: 'text'; text: string }
+    | (Omit<AnthropicToolUseBlock, 'input'> & {
         input: Record<string, unknown>
       })
-    | { type: "thinking"; thinking: string }
+    | { type: 'thinking'; thinking: string }
 }
 
 export interface AnthropicContentBlockDeltaEvent {
-  type: "content_block_delta"
+  type: 'content_block_delta'
   index: number
   delta:
-    | { type: "text_delta"; text: string }
-    | { type: "input_json_delta"; partial_json: string }
-    | { type: "thinking_delta"; thinking: string }
-    | { type: "signature_delta"; signature: string }
+    | { type: 'text_delta'; text: string }
+    | { type: 'input_json_delta'; partial_json: string }
+    | { type: 'thinking_delta'; thinking: string }
+    | { type: 'signature_delta'; signature: string }
 }
 
 export interface AnthropicContentBlockStopEvent {
-  type: "content_block_stop"
+  type: 'content_block_stop'
   index: number
 }
 
 export interface AnthropicMessageDeltaEvent {
-  type: "message_delta"
+  type: 'message_delta'
   delta: {
-    stop_reason?: AnthropicResponse["stop_reason"]
+    stop_reason?: AnthropicResponse['stop_reason']
     stop_sequence?: string | null
   }
   usage?: {
@@ -166,15 +150,15 @@ export interface AnthropicMessageDeltaEvent {
 }
 
 export interface AnthropicMessageStopEvent {
-  type: "message_stop"
+  type: 'message_stop'
 }
 
 export interface AnthropicPingEvent {
-  type: "ping"
+  type: 'ping'
 }
 
 export interface AnthropicErrorEvent {
-  type: "error"
+  type: 'error'
   error: {
     type: string
     message: string

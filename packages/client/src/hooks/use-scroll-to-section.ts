@@ -75,8 +75,6 @@ export function useScrollToSection(options: UseScrollToSectionOptions = {}) {
       // Map section IDs to their actual element IDs
       if (sectionId === 'mcp-config') {
         element = document.getElementById('mcp-config-section')
-      } else if (sectionId === 'project-summarization-settings') {
-        element = document.getElementById('project-summarization-settings-section')
       } else {
         // For other sections, use the sectionId directly
         element = document.getElementById(sectionId)

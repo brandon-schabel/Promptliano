@@ -157,7 +157,6 @@ async function ensureSchemaUpgrades() {
     // Ensure new file columns added after initial deployments
     const fileColumns: Array<{ name: string; ddl: string }> = [
       { name: 'content', ddl: 'ALTER TABLE `files` ADD `content` text' },
-      { name: 'summary_last_updated', ddl: 'ALTER TABLE `files` ADD `summary_last_updated` integer' },
       { name: 'meta', ddl: 'ALTER TABLE `files` ADD `meta` text' },
       { name: 'checksum', ddl: 'ALTER TABLE `files` ADD `checksum` text' },
       { name: 'imports', ddl: 'ALTER TABLE `files` ADD `imports` text' },
@@ -245,7 +244,7 @@ async function ensureSchemaUpgrades() {
         .get('process_ports_project_port_unique') as { name?: string } | undefined
       if (!portsIndex?.name) {
         rawDb.exec(
-          'CREATE UNIQUE INDEX IF NOT EXISTS `process_ports_project_port_unique` ON `process_ports` (`project_id`, `port`)' 
+          'CREATE UNIQUE INDEX IF NOT EXISTS `process_ports_project_port_unique` ON `process_ports` (`project_id`, `port`)'
         )
         console.log('✅ Created unique index process_ports_project_port_unique')
       }

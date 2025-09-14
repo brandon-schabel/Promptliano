@@ -259,7 +259,7 @@ const longContent = \`${'x'.repeat(1000)}\`;`
 
         const result = SmartTruncation.truncate(content, { maxTokens: 50 })
 
-        expect(result.content).toContain('// ... additional content truncated for summarization ...')
+        expect(result.content).toContain('// ... additional content truncated for context limits ...')
       })
     })
 

@@ -91,7 +91,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
     try {
       db.prepare('SELECT 1 FROM file_search_fts LIMIT 0').get()
       return 'fts'
-    } catch { }
+    } catch {}
     return 'like'
   }
 
@@ -113,7 +113,7 @@ export function createFileSearchService(deps: FileSearchServiceDeps = {}) {
       try {
         const res = spawnSync(bin, ['--version'], { stdio: 'ignore' })
         if (res.status === 0) return true
-      } catch { }
+      } catch {}
     }
     return false
   }

@@ -461,7 +461,7 @@ test.describe('User Input Panel Testing', () => {
       }
     })
 
-    test('should generate project summaries', async () => {
+    test('should display project overview', async () => {
       const testProject = await TestProjectHelpers.createWebAppProject()
       testProjects.push(testProject)
 
@@ -469,7 +469,7 @@ test.describe('User Input Panel Testing', () => {
       await TestProjectHelpers.loadProjectIntoApp(appPage.page, testProject)
       await TestProjectHelpers.openProjectInApp(appPage.page, testProject)
 
-      // Look for generate summary button
+      // Look for project overview elements
       const generateSummaryButton = appPage.page.locator(
         ['[data-testid="generate-summary"]', 'button:has-text("Generate")', 'button:has-text("Summary")'].join(', ')
       )

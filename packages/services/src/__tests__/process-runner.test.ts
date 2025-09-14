@@ -1,6 +1,6 @@
 /**
  * Unit Tests for ProcessRunner and ScriptRunner
- * 
+ *
  * Tests process spawning, log streaming, and lifecycle management
  */
 
@@ -19,7 +19,7 @@ describe('ProcessRunner', () => {
     // Create temporary directory for testing
     tempDir = await mkdtemp(join(tmpdir(), 'process-runner-test-'))
     processRunner = new ProcessRunner()
-    
+
     // Create a test package.json with safe scripts
     packageJsonPath = join(tempDir, 'package.json')
     await writeFile(
@@ -75,7 +75,7 @@ describe('ProcessRunner', () => {
       expect(process!.projectId).toBe(1)
 
       // Wait for process to complete
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -100,7 +100,7 @@ describe('ProcessRunner', () => {
       const processId = await processRunner.startProcess(config)
 
       // Wait for process to complete
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -115,7 +115,7 @@ describe('ProcessRunner', () => {
 
     test('should capture stdout and stderr logs', async () => {
       const logs: Array<{ type: string; line: string }> = []
-      
+
       processRunner.on('log', (logEvent) => {
         logs.push({
           type: logEvent.type,
@@ -133,7 +133,7 @@ describe('ProcessRunner', () => {
       const processId = await processRunner.startProcess(config)
 
       // Wait for process completion and logs
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             // Give logs time to arrive
@@ -143,14 +143,14 @@ describe('ProcessRunner', () => {
       })
 
       // Should have captured the "Hello World" output
-      const stdoutLogs = logs.filter(log => log.type === 'stdout')
+      const stdoutLogs = logs.filter((log) => log.type === 'stdout')
       expect(stdoutLogs.length).toBeGreaterThan(0)
-      expect(stdoutLogs.some(log => log.line.includes('Hello World'))).toBe(true)
+      expect(stdoutLogs.some((log) => log.line.includes('Hello World'))).toBe(true)
     })
 
     test('should handle environment variables', async () => {
       const logs: Array<{ type: string; line: string }> = []
-      
+
       processRunner.on('log', (logEvent) => {
         logs.push({
           type: logEvent.type,
@@ -169,7 +169,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             setTimeout(resolve, 100)
@@ -177,13 +177,13 @@ describe('ProcessRunner', () => {
         })
       })
 
-      const stdoutLogs = logs.filter(log => log.type === 'stdout')
-      expect(stdoutLogs.some(log => log.line.includes('test-environment'))).toBe(true)
+      const stdoutLogs = logs.filter((log) => log.type === 'stdout')
+      expect(stdoutLogs.some((log) => log.line.includes('test-environment'))).toBe(true)
     })
 
     test('should respect working directory', async () => {
       const logs: Array<{ type: string; line: string }> = []
-      
+
       processRunner.on('log', (logEvent) => {
         logs.push({
           type: logEvent.type,
@@ -199,7 +199,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             setTimeout(resolve, 100)
@@ -207,8 +207,8 @@ describe('ProcessRunner', () => {
         })
       })
 
-      const stdoutLogs = logs.filter(log => log.type === 'stdout')
-      expect(stdoutLogs.some(log => log.line.includes(tempDir))).toBe(true)
+      const stdoutLogs = logs.filter((log) => log.type === 'stdout')
+      expect(stdoutLogs.some((log) => log.line.includes(tempDir))).toBe(true)
     })
   })
 
@@ -221,15 +221,15 @@ describe('ProcessRunner', () => {
       }
 
       const processId = await processRunner.startProcess(config)
-      
+
       // Wait a moment for process to start
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const success = await processRunner.stopProcess(processId, 'SIGTERM')
       expect(success).toBe(true)
 
       // Wait for exit event
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -253,7 +253,7 @@ describe('ProcessRunner', () => {
       const processId = await processRunner.startProcess(config)
 
       // Wait for timeout
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -275,7 +275,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -310,8 +310,8 @@ describe('ProcessRunner', () => {
       const allProcesses = processRunner.getAllProcesses()
       expect(allProcesses.length).toBe(2)
 
-      const process1 = allProcesses.find(p => p.id === processId1)
-      const process2 = allProcesses.find(p => p.id === processId2)
+      const process1 = allProcesses.find((p) => p.id === processId1)
+      const process2 = allProcesses.find((p) => p.id === processId2)
 
       expect(process1).toBeDefined()
       expect(process2).toBeDefined()
@@ -320,12 +320,12 @@ describe('ProcessRunner', () => {
 
       // Wait for completion
       await Promise.all([
-        new Promise(resolve => {
+        new Promise((resolve) => {
           processRunner.on('exit', (data) => {
             if (data.processId === processId1) resolve(data)
           })
         }),
-        new Promise(resolve => {
+        new Promise((resolve) => {
           processRunner.on('exit', (data) => {
             if (data.processId === processId2) resolve(data)
           })
@@ -374,7 +374,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             setTimeout(resolve, 100) // Allow logs to be processed
@@ -384,7 +384,7 @@ describe('ProcessRunner', () => {
 
       const process = processRunner.getProcess(processId)
       const logs = process!.logBuffer.getAll()
-      
+
       expect(logs.length).toBeGreaterThan(0)
       expect(logs[0]).toMatchObject({
         timestamp: expect.any(Number),
@@ -421,9 +421,7 @@ describe('ProcessRunner', () => {
         cwd: tempDir
       }
 
-      await expect(processRunner.startProcess(config))
-        .rejects
-        .toThrow()
+      await expect(processRunner.startProcess(config)).rejects.toThrow()
     })
 
     test('should handle invalid working directory', async () => {
@@ -433,9 +431,7 @@ describe('ProcessRunner', () => {
         cwd: '/nonexistent/directory'
       }
 
-      await expect(processRunner.startProcess(config))
-        .rejects
-        .toThrow()
+      await expect(processRunner.startProcess(config)).rejects.toThrow()
     })
 
     test('should not throw when stopping non-existent process', async () => {
@@ -452,7 +448,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)
@@ -469,7 +465,7 @@ describe('ProcessRunner', () => {
   describe('Event Emission', () => {
     test('should emit log events', async () => {
       const logEvents: Array<any> = []
-      
+
       processRunner.on('log', (event) => {
         logEvents.push(event)
       })
@@ -482,7 +478,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             setTimeout(resolve, 100)
@@ -491,12 +487,9 @@ describe('ProcessRunner', () => {
       })
 
       expect(logEvents.length).toBeGreaterThan(0)
-      
-      const testLog = logEvents.find(event => 
-        event.processId === processId && 
-        event.line.includes('test-log-event')
-      )
-      
+
+      const testLog = logEvents.find((event) => event.processId === processId && event.line.includes('test-log-event'))
+
       expect(testLog).toBeDefined()
       expect(testLog.type).toBe('stdout')
       expect(testLog.timestamp).toBeTypeOf('number')
@@ -517,7 +510,7 @@ describe('ProcessRunner', () => {
 
       const processId = await processRunner.startProcess(config)
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         processRunner.on('exit', (data) => {
           if (data.processId === processId) {
             resolve(data)

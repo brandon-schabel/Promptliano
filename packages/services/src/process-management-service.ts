@@ -33,7 +33,11 @@ import type {
   InsertProcessLog,
   InsertProcessPort
 } from '@promptliano/database'
-import { processRunsRepository, processLogsRepository, processPortsRepository } from '@promptliano/database'
+import {
+  processRunsRepository as defaultProcessRunsRepository,
+  processLogsRepository as defaultProcessLogsRepository,
+  processPortsRepository as defaultProcessPortsRepository
+} from '@promptliano/database'
 import { projectService } from './project-service'
 
 // =============================================================================
@@ -84,6 +88,7 @@ export interface ManagedProcess {
   resourceUsage?: ReturnType<Subprocess['resourceUsage']>
   logBuffer: RingBuffer
   monitorInterval?: ReturnType<typeof setInterval>
+  context?: any
 }
 
 type LogEvent = {
@@ -145,6 +150,94 @@ class RingBuffer {
 export class ScriptRunner extends EventEmitter {
   private processes = new Map<string, ManagedProcess>()
   private logger = createLogger('ScriptRunner')
+  private processRunsRepo = defaultProcessRunsRepository
+  private processLogsRepo = defaultProcessLogsRepository
+
+  constructor(deps?: {
+    processRepository?: typeof defaultProcessRunsRepository
+    logRepository?: typeof defaultProcessLogsRepository
+  }) {
+    super()
+    if (deps?.processRepository) this.processRunsRepo = deps.processRepository
+    if (deps?.logRepository) this.processLogsRepo = deps.logRepository
+  }
+
+  // Determine a friendly script type based on the executable (limited set supported by DB schema)
+  private getScriptType(exec?: string): 'custom' | 'npm' | 'bun' | 'yarn' | 'pnpm' | undefined {
+    if (!exec) return undefined
+    if (exec === 'bun' || exec === 'npm' || exec === 'pnpm' || exec === 'yarn')
+      return exec as 'bun' | 'npm' | 'pnpm' | 'yarn'
+    return 'custom'
+  }
+
+  // Run an arbitrary command (respects requested binary/args)
+  async runCommand(
+    config: ProcessConfig,
+    options?: { killSignal?: NodeJS.Signals | number }
+  ): Promise<{ processId: string; pid: number | null }> {
+    // Validate project exists
+    const project = await projectService.getById(config.projectId)
+    if (!project) {
+      throw ErrorFactory.notFound('Project', config.projectId)
+    }
+
+    const processId = `proc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    const logBuffer = new RingBuffer()
+    const startTime = Date.now()
+
+    const finalConfig: ProcessConfig = {
+      ...config,
+      cwd: config.cwd ?? project.path,
+      env: { ...process.env, ...(config.env || {}) },
+      timeout: config.timeout ?? 300_000,
+      type: config.type ?? 'short-lived',
+      name:
+        config.name ||
+        (config.command[0] === 'bun' && config.command[1] === 'run' && config.command[2]
+          ? config.command[2]
+          : config.command[0])
+    }
+
+    // Spawn child process
+    const proc = Bun.spawn({
+      cmd: finalConfig.command,
+      cwd: finalConfig.cwd,
+      env: finalConfig.env as Record<string, string>,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      timeout: finalConfig.timeout,
+      killSignal: options?.killSignal ?? 'SIGTERM',
+      maxBuffer: finalConfig.maxBuffer,
+      onExit: (sub, exitCode, signalCode, error) => {
+        this.handleProcessExit(processId, sub, exitCode, signalCode, error)
+      }
+    })
+
+    // Create managed process
+    const managed: ManagedProcess = {
+      id: processId,
+      projectId: finalConfig.projectId,
+      process: proc,
+      config: finalConfig,
+      startTime,
+      status: 'running',
+      logBuffer
+    }
+
+    this.processes.set(processId, managed)
+
+    // Start log streaming
+    this.startLogStreaming(processId, proc, 'stdout')
+    this.startLogStreaming(processId, proc, 'stderr')
+
+    // Persist to database
+    await this.persistProcessRun(managed)
+
+    this.emit('started', { processId, pid: proc.pid, config: finalConfig })
+    this.logger.info('Started process', { processId, pid: proc.pid, command: finalConfig.command[0] })
+
+    return { processId, pid: proc.pid }
+  }
 
   async runPackageScript(
     scriptName: string,
@@ -369,12 +462,12 @@ export class ScriptRunner extends EventEmitter {
         status: managed.status === 'failed' ? 'error' : managed.status === 'completed' ? 'exited' : managed.status,
         startedAt: managed.startTime,
         scriptName: managed.config.name || null,
-        scriptType: 'bun',
+        scriptType: this.getScriptType(managed.config.command[0]),
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
 
-      await processRunsRepository.create(insertData)
+      await this.processRunsRepo.create(insertData)
     } catch (error) {
       this.logger.error('Failed to persist process run', { processId: managed.id, error })
     }
@@ -382,7 +475,7 @@ export class ScriptRunner extends EventEmitter {
 
   private async updateProcessRun(managed: ManagedProcess): Promise<void> {
     try {
-      await processRunsRepository.updateByProcessId(managed.id, {
+      await this.processRunsRepo.updateByProcessId(managed.id, {
         status: managed.status === 'failed' ? 'error' : managed.status === 'completed' ? 'exited' : managed.status,
         exitCode: managed.exitCode || null,
         signal: managed.signalCode ? String(managed.signalCode) : null,
@@ -399,7 +492,7 @@ export class ScriptRunner extends EventEmitter {
   private async persistProcessLog(logEvent: LogEvent, lineNumber: number): Promise<void> {
     try {
       // Get run ID from database
-      const run = await processRunsRepository.getByProcessId(logEvent.processId)
+      const run = await this.processRunsRepo.getByProcessId(logEvent.processId)
       if (!run) return
 
       const insertData: InsertProcessLog = {
@@ -411,7 +504,7 @@ export class ScriptRunner extends EventEmitter {
         createdAt: Date.now()
       }
 
-      await processLogsRepository.create(insertData)
+      await this.processLogsRepo.create(insertData)
     } catch (error) {
       // Log persistence failures are non-fatal
     }
@@ -530,8 +623,13 @@ export class SecurityManager {
 // PORT MANAGEMENT AND SCANNING
 // =============================================================================
 
-  export class PortManager {
-    private logger = createLogger('PortManager')
+export class PortManager {
+  private logger = createLogger('PortManager')
+  private processPortsRepo = defaultProcessPortsRepository
+
+  constructor(deps?: { portRepository?: typeof defaultProcessPortsRepository }) {
+    if (deps?.portRepository) this.processPortsRepo = deps.portRepository
+  }
 
   async scanOpenPorts(): Promise<ProcessPort[]> {
     try {
@@ -573,12 +671,20 @@ export class SecurityManager {
         `
         let output = ''
         try {
-          const pwsh = Bun.spawn({ cmd: ['powershell', '-NoProfile', '-Command', psScript], stdout: 'pipe', stderr: 'pipe' })
+          const pwsh = Bun.spawn({
+            cmd: ['powershell', '-NoProfile', '-Command', psScript],
+            stdout: 'pipe',
+            stderr: 'pipe'
+          })
           output = await new Response(pwsh.stdout!).text()
           await pwsh.exited
         } catch {
           try {
-            const pwshCore = Bun.spawn({ cmd: ['pwsh', '-NoProfile', '-Command', psScript], stdout: 'pipe', stderr: 'pipe' })
+            const pwshCore = Bun.spawn({
+              cmd: ['pwsh', '-NoProfile', '-Command', psScript],
+              stdout: 'pipe',
+              stderr: 'pipe'
+            })
             output = await new Response(pwshCore.stdout!).text()
             await pwshCore.exited
           } catch {}
@@ -588,16 +694,19 @@ export class SecurityManager {
           if (!Array.isArray(arr)) arr = [arr]
           ports = arr
             .filter((x: any) => x && typeof x.Port === 'number')
-            .map((x: any) => ({
-              port: x.Port,
-              address: x.Address === '::' ? '::' : x.Address || '0.0.0.0',
-              protocol: 'tcp',
-              pid: typeof x.Pid === 'number' ? x.Pid : null,
-              processName: x.ProcessName || null,
-              state: 'listening',
-              createdAt: Date.now(),
-              updatedAt: Date.now()
-            } as ProcessPort))
+            .map(
+              (x: any) =>
+                ({
+                  port: x.Port,
+                  address: x.Address === '::' ? '::' : x.Address || '0.0.0.0',
+                  protocol: 'tcp',
+                  pid: typeof x.Pid === 'number' ? x.Pid : null,
+                  processName: x.ProcessName || null,
+                  state: 'listening',
+                  createdAt: Date.now(),
+                  updatedAt: Date.now()
+                }) as ProcessPort
+            )
         } catch (e) {
           this.logger.warn('Failed to parse PowerShell port list', { error: e })
           ports = []
@@ -743,7 +852,7 @@ export class SecurityManager {
 
   async trackProcessPort(processId: string, projectId: number, port: number): Promise<void> {
     try {
-      const run = await processRunsRepository.getByProcessId(processId)
+      const run = await defaultProcessRunsRepository.getByProcessId(processId)
       if (!run) return
 
       const insertData: InsertProcessPort = {
@@ -759,7 +868,9 @@ export class SecurityManager {
         updatedAt: Date.now()
       }
 
-      await processPortsRepository.create(insertData)
+      if ((this.processPortsRepo as any).create) {
+        await (this.processPortsRepo as any).create(insertData)
+      }
     } catch (error) {
       this.logger.warn('Failed to track process port', { processId, port, error })
     }
@@ -767,7 +878,7 @@ export class SecurityManager {
 
   async getPortsForProject(projectId: number): Promise<ProcessPort[]> {
     try {
-      return await processPortsRepository.getByProject(projectId)
+      return await this.processPortsRepo.getByProject(projectId)
     } catch (error) {
       this.logger.error('Failed to get ports for project', { projectId, error })
       return []
@@ -784,8 +895,13 @@ export class SecurityManager {
         processName: (p as any).processName ?? null,
         runId: (p as any).runId ?? undefined
       }))
-      await processPortsRepository.updateProjectPorts(projectId, values)
-      return await processPortsRepository.getByState(projectId, 'listening')
+      if ((this.processPortsRepo as any).updateProjectPorts) {
+        await (this.processPortsRepo as any).updateProjectPorts(projectId, values)
+      }
+      if ((this.processPortsRepo as any).getByState) {
+        return await (this.processPortsRepo as any).getByState(projectId, 'listening')
+      }
+      return ports
     } catch (error) {
       this.logger.warn('Failed to persist scanned ports', { projectId, error })
       return ports
@@ -799,30 +915,43 @@ export class SecurityManager {
 
 export class ProcessManager {
   private active = new Map<string, ManagedProcess>()
-  private queue: ProcessConfig[] = []
+  private queue: { config: ProcessConfig; resolve: (id: string) => void; reject: (err: any) => void; context?: any }[] =
+    []
   private maxConcurrent: number = 5
   private acceptingNew = true
   private metricsInterval?: ReturnType<typeof setInterval>
   private scriptRunner: ScriptRunner
-  private securityManager: SecurityManager
+  public security: any
   private portManager: PortManager
   private logger = createLogger('ProcessManager')
   private sandboxRoot: string
+  private contexts = new Map<string, any>()
 
   constructor(
-    options: {
-      maxConcurrent?: number
-      sandboxRoot?: string
-      scriptRunner?: ScriptRunner
-      securityManager?: SecurityManager
-      portManager?: PortManager
-    } = {}
+    options:
+      | {
+          maxConcurrent?: number
+          sandboxRoot?: string
+          scriptRunner?: ScriptRunner
+          securityManager?: SecurityManager | any
+          portManager?: PortManager
+        }
+      | string = {},
+    legacyMaxConcurrent?: number
   ) {
-    this.maxConcurrent = options.maxConcurrent || 5
-    this.sandboxRoot = options.sandboxRoot || resolve('./sandbox')
-    this.scriptRunner = options.scriptRunner || new ScriptRunner()
-    this.securityManager = options.securityManager || new SecurityManager()
-    this.portManager = options.portManager || new PortManager()
+    if (typeof options === 'string') {
+      this.sandboxRoot = options
+      this.maxConcurrent = legacyMaxConcurrent || 5
+      this.scriptRunner = new ScriptRunner()
+      this.security = new SecurityManager()
+      this.portManager = new PortManager()
+    } else {
+      this.maxConcurrent = options.maxConcurrent || 5
+      this.sandboxRoot = options.sandboxRoot || resolve('./sandbox')
+      this.scriptRunner = options.scriptRunner || new ScriptRunner()
+      this.security = options.securityManager || new SecurityManager()
+      this.portManager = options.portManager || new PortManager()
+    }
 
     this.setupEventHandlers()
     this.startMetricsCollection()
@@ -830,84 +959,112 @@ export class ProcessManager {
   }
 
   private setupEventHandlers(): void {
-    this.scriptRunner.on(
-      'started',
-      ({ processId, config }: { processId: string; config: ProcessConfig }) => {
-        const managed = this.scriptRunner.getProcess(processId)
-        if (managed) {
-          this.active.set(processId, managed)
-          this.startResourceMonitoring(managed)
-        }
+    this.scriptRunner.on('started', ({ processId, config }: { processId: string; config: ProcessConfig }) => {
+      const managed = this.scriptRunner.getProcess(processId)
+      if (managed) {
+        this.active.set(processId, managed)
+        this.startResourceMonitoring(managed)
       }
-    )
+    })
 
     this.scriptRunner.on('exit', ({ processId }: { processId: string }) => {
+      const ctx = this.contexts.get(processId)
+      try {
+        if (ctx && this.security?.trackProcessEnd) this.security.trackProcessEnd(ctx)
+      } catch {}
       this.active.delete(processId)
       this.processNext()
     })
   }
 
-  async executeProcess(config: ProcessConfig, options: { userRole?: string; userId?: string } = {}): Promise<string> {
-    return safeAsync(
-      async () => {
-        if (!this.acceptingNew) {
-          throw ErrorFactory.serviceUnavailable('Server shutting down')
+  async executeProcess(
+    config: ProcessConfig,
+    context: { userId?: string; userRole?: string; projectId?: number } = {}
+  ): Promise<string> {
+    if (!this.acceptingNew) {
+      throw ErrorFactory.serviceUnavailable('Server shutting down')
+    }
+
+    const secContext = {
+      userId: context.userId,
+      userRole: (context.userRole as any) || 'user',
+      projectId: config.projectId
+    }
+
+    try {
+      if (this.security?.validateProcessConfig) {
+        await this.security.validateProcessConfig(config, secContext)
+      }
+
+      if (this.active.size >= this.maxConcurrent) {
+        return await this.queueProcess(config, secContext)
+      }
+
+      if (this.security?.checkRateLimit && context.userId && !this.security.checkRateLimit(context.userId)) {
+        throw ErrorFactory.badRequest('Too many process requests')
+      }
+
+      if (this.security?.auditProcessExecution) {
+        await this.security.auditProcessExecution(config, secContext, 'allowed')
+      }
+
+      if (this.security?.trackProcessStart) {
+        this.security.trackProcessStart(secContext)
+      }
+
+      const cleanedEnv = this.security?.createSecureEnvironment
+        ? this.security.createSecureEnvironment(config.env || {}, secContext.userRole)
+        : this.security?.createCleanEnvironment
+          ? this.security.createCleanEnvironment(config.env)
+          : config.env
+
+      const immediateConfig: ProcessConfig = { ...config, env: cleanedEnv }
+      const { processId } = await this.scriptRunner.runCommand(immediateConfig)
+      this.contexts.set(processId, secContext)
+      const managed = this.scriptRunner.getProcess(processId)
+      if (managed) managed.context = secContext
+      return processId
+    } catch (error: any) {
+      try {
+        if (this.security?.auditProcessExecution) {
+          await this.security.auditProcessExecution(config, secContext, 'blocked', String(error?.message || error))
         }
-
-        // Security validation
-        this.securityManager.validateProcessConfig(config, options.userRole)
-
-        // Rate limiting
-        if (options.userId && !this.securityManager.checkRateLimit(options.userId)) {
-          throw ErrorFactory.badRequest('Too many process requests')
-        }
-
-        // Queue if at capacity
-        if (this.active.size >= this.maxConcurrent) {
-          return this.queueProcess(config)
-        }
-
-        // Audit logging
-        await this.securityManager.auditProcessStart(config, options.userId)
-
-        // Execute immediately
-        const { processId } = await this.scriptRunner.runPackageScript(
-          config.command[2] || config.command[0] || 'unknown', // script name is 3rd arg for "bun run script"
-          config.command.slice(3),
-          {
-            projectId: config.projectId,
-            cwd: config.cwd,
-            env: this.securityManager.createCleanEnvironment(config.env),
-            timeout: config.timeout,
-            maxBuffer: config.maxBuffer,
-            name: config.name,
-            type: config.type
-          }
-        )
-
-        return processId
-      },
-      { entityName: 'Process', action: 'execute' }
-    )
+      } catch {}
+      throw error
+    }
   }
 
-  private queueProcess(config: ProcessConfig): string {
-    this.queue.push(config)
-    const queueId = `queued_${this.queue.length}_${Date.now()}`
-    this.logger.info('Process queued', { queueId, queueLength: this.queue.length })
-    return queueId
+  private queueProcess(config: ProcessConfig, context?: any): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      this.queue.push({ config, resolve, reject, context })
+      this.logger.info('Process queued', { queueLength: this.queue.length })
+      // Try to start immediately if capacity is available (race-safe)
+      this.processNext()
+    })
   }
 
   private processNext(): void {
-    if (this.queue.length === 0) return
     if (this.active.size >= this.maxConcurrent) return
+    const nextItem = this.queue.shift()
+    if (!nextItem) return
 
-    const next = this.queue.shift()
-    if (next) {
-      this.executeProcess(next).catch((error) => {
-        this.logger.error('Failed to execute queued process', { error })
+    const { config, resolve, reject, context } = nextItem
+    const cleanedEnv = this.security?.createSecureEnvironment
+      ? this.security.createSecureEnvironment(config.env || {}, context?.userRole || 'user')
+      : this.security?.createCleanEnvironment
+        ? this.security.createCleanEnvironment(config.env)
+        : config.env
+    const spawnConfig: ProcessConfig = { ...config, env: cleanedEnv }
+
+    this.scriptRunner
+      .runCommand(spawnConfig)
+      .then(({ processId }) => {
+        resolve(processId)
       })
-    }
+      .catch((error) => {
+        this.logger.error('Failed to execute queued process', { error })
+        reject(error)
+      })
   }
 
   private startResourceMonitoring(managed: ManagedProcess): void {
@@ -985,18 +1142,7 @@ export class ProcessManager {
     if (processId) {
       return this.active.get(processId) || this.scriptRunner.getProcess(processId)
     }
-
-    return {
-      active: Array.from(this.active.entries()).map(([id, managed]) => ({
-        id,
-        status: managed.status,
-        config: managed.config,
-        startTime: managed.startTime
-      })),
-      queued: this.queue.length,
-      capacity: this.maxConcurrent,
-      accepting: this.acceptingNew
-    }
+    return this.scriptRunner.getAllProcesses()
   }
 
   async stopProcess(processId: string, signal: NodeJS.Signals | number = 'SIGTERM'): Promise<boolean> {
@@ -1010,6 +1156,34 @@ export class ProcessManager {
         return success
       },
       { entityName: 'Process', action: 'stop' }
+    )
+  }
+
+  async terminateProcess(processId: string, signal: NodeJS.Signals | number = 'SIGTERM'): Promise<boolean> {
+    return this.stopProcess(processId, signal)
+  }
+
+  getQueueStatus(): Array<{ config: ProcessConfig }> {
+    return this.queue.map((q) => ({ config: q.config }))
+  }
+
+  async cleanupCompletedProcesses(): Promise<void> {
+    for (const [id, managed] of this.active.entries()) {
+      if (managed.status === 'completed' || managed.status === 'failed' || managed.status === 'stopped') {
+        this.active.delete(id)
+      }
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    this.acceptingNew = false
+    const procs = Array.from(this.active.values())
+    await Promise.allSettled(
+      procs.map(async (p) => {
+        try {
+          await this.stopProcess(p.id, 'SIGTERM')
+        } catch {}
+      })
     )
   }
 
@@ -1118,6 +1292,9 @@ export interface ProcessServiceDependencies {
   maxConcurrent?: number
   sandboxRoot?: string
   logBufferSize?: number
+  processRepository?: typeof defaultProcessRunsRepository
+  logRepository?: typeof defaultProcessLogsRepository
+  portRepository?: typeof defaultProcessPortsRepository
 }
 
 // =============================================================================
@@ -1130,9 +1307,17 @@ export interface ProcessServiceDependencies {
  */
 export function createProcessManagementService(deps: ProcessServiceDependencies = {}) {
   const logger = deps.logger || createServiceLogger('ProcessManagementService')
-  const scriptRunner = deps.scriptRunner || new ScriptRunner()
+  const processRepository = deps.processRepository || defaultProcessRunsRepository
+  const logRepository = deps.logRepository || defaultProcessLogsRepository
+  const portRepository = deps.portRepository || defaultProcessPortsRepository
+  const scriptRunner =
+    deps.scriptRunner ||
+    new ScriptRunner({
+      processRepository,
+      logRepository
+    })
   const securityManager = deps.securityManager || new SecurityManager(deps.sandboxRoot || inferDefaultSandboxRoot())
-  const portManager = deps.portManager || new PortManager()
+  const portManager = deps.portManager || new PortManager({ portRepository })
 
   const processManager =
     deps.processManager ||
@@ -1214,7 +1399,9 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
 
           for (const pkgJsonPath of candidatePackageJsons) {
             const dir = dirname(pkgJsonPath)
-            const pkg = await Bun.file(pkgJsonPath).json().catch(() => null as any)
+            const pkg = await Bun.file(pkgJsonPath)
+              .json()
+              .catch(() => null as any)
             if (!pkg || typeof pkg !== 'object') continue
             const pkgName = (pkg as any).name || dir
             const pkgPm = parsePackageManager((pkg as any).packageManager) || pm
@@ -1390,7 +1577,7 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
     async getProcessHistory(projectId: number, options?: { limit?: number; offset?: number }): Promise<ProcessRun[]> {
       return withErrorContext(
         async () => {
-          return await processRunsRepository.getByProject(projectId, options)
+          return await processRepository.getByProject(projectId, options)
         },
         { entity: 'Process', action: 'getHistory', id: projectId }
       )
@@ -1399,12 +1586,12 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
     async getProcessLogs(processId: string, options?: { limit?: number; since?: number }): Promise<ProcessLog[]> {
       return withErrorContext(
         async () => {
-          const run = await processRunsRepository.getByProcessId(processId)
+          const run = await processRepository.getByProcessId(processId)
           if (!run) {
             throw ErrorFactory.notFound('ProcessRun', processId)
           }
 
-          return await processLogsRepository.getByRun(run.id, options)
+          return await logRepository.getByRun(run.id, options)
         },
         { entity: 'ProcessLogs', action: 'get' }
       )
@@ -1419,6 +1606,11 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
       )
     },
 
+    // Compatibility alias for tests
+    async getPortsByProject(projectId: number): Promise<ProcessPort[]> {
+      return this.getProcessPorts(projectId)
+    },
+
     // Utility functions
     getProcessStatus: (processId?: string) => processManager.getStatus(processId),
     scanPorts: async (projectId?: number) => {
@@ -1427,6 +1619,48 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
         return await portManager.persistScan(projectId, ports)
       }
       return ports
+    },
+
+    // Script execution helper expected by tests
+    async runScript(
+      projectId: number,
+      opts: { scriptName: string; packageManager: 'bun' | 'npm' | 'yarn' | 'pnpm'; packagePath?: string }
+    ): Promise<{ id: string; pid: number | null; status: 'running'; name: string }> {
+      const { scriptName, packageManager, packagePath } = opts
+      const project = await projectService.getById(projectId)
+      if (!project) throw ErrorFactory.notFound('Project', projectId)
+
+      const cwd = packagePath || project.path
+      // Validate script exists in package.json
+      const pkg = await Bun.file(resolve(cwd, 'package.json'))
+        .json()
+        .catch(() => null)
+      if (!pkg?.scripts?.[scriptName]) {
+        throw ErrorFactory.badRequest(`Script "${scriptName}" not found in package.json`)
+      }
+
+      const { processId, pid } = await scriptRunner.runCommand({
+        command: [packageManager, 'run', scriptName],
+        cwd,
+        projectId,
+        name: scriptName
+      })
+      return { id: processId, pid, status: 'running', name: scriptName }
+    },
+
+    async killByPort(projectId: number, port: number): Promise<{ success: boolean; pid?: number }> {
+      const listening = await portRepository.getByState(projectId, 'listening')
+      const entry = listening.find((p: any) => p.port === port)
+      if (!entry) {
+        throw ErrorFactory.notFound('Port', port)
+      }
+      if (entry.pid) {
+        try {
+          process.kill(entry.pid)
+        } catch {}
+      }
+      await portRepository.releasePort(projectId, port)
+      return { success: true, pid: entry.pid || undefined }
     },
 
     // Event access for WebSocket integration
@@ -1458,3 +1692,6 @@ export const {
   getProcessLogs,
   getProcessPorts
 } = processManagementService
+
+// Test compatibility re-export
+export { ProcessSecurityManager } from './process/security'

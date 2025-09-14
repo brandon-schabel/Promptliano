@@ -15,62 +15,9 @@ export const promptsMap = {
   - Reasoning (concise): ...
   </response>
   `,
-  summarizationSteps: `
-  ## Summarization Actions
-
-1. **Purpose & Context**
-
-   - In 1–2 bullets, describe what the code/file primarily does or represents.
-
-2. **Key Exports & Main Functions**
-
-   - List each exported or major function/class/constant by name.
-   - Summarize arguments, return type, and core logic in a single bullet per item.
-   - Briefly note possible usage scenarios.
-
-3. **Important Internal Logic or Data Flow**
-
-   - Mention critical internal steps, data transformations, or state management.
-   - Note any side effects (e.g. API calls, file I/O, database interactions).
-
-4. **Dependencies & Integration Details**
-   - List direct dependencies or significant external modules.
-   - If relevant, describe how the code integrates with or extends other parts of the system.
-
-**Goals & Guidelines:**
-
-- Use **concise bullet points**—omit minor details such as style or minor helper functions.
-- Emphasize **why** and **how** key exports are used.
-- Keep summaries **as short as possible**, but ensure enough clarity for an LLM to reason about usage and functionality.
-- Do **not** repeat information unnecessarily.
-
-  `,
   promptlianoPlanningMetaPrompt: `
   #Backend
   bun, hono
-  `,
-  compactProjectSummary: `
-Create a strategic project overview (max 200 words).
-Format: Architecture|Stack|DataFlow|KeyFiles|DevContext
-Use abbreviations. Prioritize actionable dev info.
-
-Focus:
-- Tech stack & patterns
-- Core logic locations  
-- Critical files/paths
-- Unique conventions
-
-Style: Technical, direct, specific paths
-  `,
-  minimalProjectSummary: `
-Ultra-concise overview (max 100 words).
-Include: stack, purpose, entry points.
-Use heavy abbreviations.
-  `,
-  detailedProjectSummary: `
-Comprehensive project analysis (max 400 words).
-Include: architecture decisions, all components, dependencies, patterns.
-Provide full context for complex development tasks.
   `,
   suggestPrompts: `
 ## Suggest Relevant Prompts
@@ -85,7 +32,7 @@ You are an expert at understanding user intent and matching it with available pr
 
 ## Context You'll Receive:
 1. **User Input**: The user's query or description of what they want to accomplish
-2. **Project Summary**: A compact overview of the project structure and technologies
+2. **Project Context**: Basic information about the project structure and technologies
 3. **Available Prompts**: A list of prompts with:
    - ID (unique identifier)
    - Name (title of the prompt)
@@ -116,7 +63,7 @@ Understand what the user is trying to do:
 - Planning tasks → match architecture guides, design patterns
 
 ### 4. Context-Aware Matching
-Use the project summary to enhance relevance:
+Use the project context to enhance relevance:
 - If project uses specific technologies, prioritize prompts about those
 - If project has certain patterns, suggest prompts that follow them
 - Consider project domain when interpreting ambiguous requests

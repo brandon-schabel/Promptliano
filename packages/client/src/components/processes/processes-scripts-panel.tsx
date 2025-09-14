@@ -25,7 +25,16 @@ export function ProcessesScriptsPanel({ projectId, projectName, className }: Pro
   const runScriptMutation = useRunScript(projectId)
 
   const groupedScripts = useMemo(() => {
-    const groups: Record<string, { packageName: string; packagePath: string; packageManager: string; workspace: boolean; scripts: { scriptName: string; command: string }[] }> = {}
+    const groups: Record<
+      string,
+      {
+        packageName: string
+        packagePath: string
+        packageManager: string
+        workspace: boolean
+        scripts: { scriptName: string; command: string }[]
+      }
+    > = {}
     for (const s of scripts as any[]) {
       if (!groups[s.packagePath]) {
         groups[s.packagePath] = {

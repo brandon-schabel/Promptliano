@@ -457,6 +457,8 @@ Select the ${maxResults} most relevant file IDs from the above list.`
     batchSuggestFiles,
     recommendStrategy,
     progressiveSuggestion,
+    // Expose for project-level AI reranker reuse
+    aiRefineSuggestions,
 
     // Service metadata
     serviceName: service.serviceName,
@@ -477,4 +479,5 @@ export type FileSuggestionStrategyService = ReturnType<typeof createFileSuggesti
 export const fileSuggestionStrategyService = createFileSuggestionStrategyService()
 
 // Export individual functions for tree-shaking
-export const { suggestFiles, batchSuggestFiles, recommendStrategy } = fileSuggestionStrategyService
+export const { suggestFiles, batchSuggestFiles, recommendStrategy, aiRefineSuggestions } =
+  fileSuggestionStrategyService

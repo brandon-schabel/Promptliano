@@ -68,8 +68,6 @@ export interface ProviderConfig {
 export interface FilesConfig {
   allowedExtensions: string[]
   defaultExclusions: string[]
-  maxFileSizeForSummary: number
-  maxTokensForSummary: number
   charsPerTokenEstimate: number
   optimalTokensForBatch?: number
   promptOverheadTokens?: number
@@ -160,7 +158,6 @@ export interface RuntimeConfig {
     mcp: boolean
     websocket: boolean
     jobQueue: boolean
-    aiSummarization: boolean
   }
 }
 

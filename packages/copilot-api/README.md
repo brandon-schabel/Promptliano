@@ -98,12 +98,12 @@ docker run -p 4141:4141 -e GH_TOKEN=your_token copilot-api start --verbose --por
 ### Docker Compose Example
 
 ```yaml
-version: "3.8"
+version: '3.8'
 services:
   copilot-api:
     build: .
     ports:
-      - "4141:4141"
+      - '4141:4141'
     environment:
       - GH_TOKEN=your_github_token_here
     restart: unless-stopped

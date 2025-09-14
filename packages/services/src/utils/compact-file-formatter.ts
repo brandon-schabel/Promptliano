@@ -40,8 +40,7 @@ export class CompactFileFormatter {
   static compact(files: File[]): string {
     const data = files.map((f) => ({
       i: f.id,
-      p: this.truncatePath(f.path, 50),
-      s: this.truncateSummary(f.summary ?? undefined, 40)
+      p: this.truncatePath(f.path, 50)
     }))
     return JSON.stringify(data)
   }
@@ -54,7 +53,6 @@ export class CompactFileFormatter {
     const data = files.map((f) => ({
       i: f.id,
       p: this.truncatePath(f.path, 60),
-      s: this.truncateSummary(f.summary ?? undefined, 50),
       t: this.getFileExtension(f.path),
       m: f.updatedAt
     }))
@@ -78,7 +76,6 @@ export class CompactFileFormatter {
         formattedFiles = files.map((f) => ({
           i: f.id,
           p: this.truncatePath(f.path, 60),
-          s: this.truncateSummary(f.summary ?? undefined, 50),
           t: this.getFileExtension(f.path),
           m: f.updatedAt
         }))
@@ -87,8 +84,7 @@ export class CompactFileFormatter {
       default:
         formattedFiles = files.map((f) => ({
           i: f.id,
-          p: this.truncatePath(f.path, 50),
-          s: this.truncateSummary(f.summary ?? undefined, 40)
+          p: this.truncatePath(f.path, 50)
         }))
     }
 
@@ -109,7 +105,7 @@ export class CompactFileFormatter {
 
     for (const file of summary.files) {
       prompt += `[${file.i}] ${file.p}`
-      if (file.s) prompt += ` - ${file.s}`
+      // no summary snippet
       prompt += '\n'
     }
 
@@ -137,9 +133,7 @@ export class CompactFileFormatter {
       for (const file of categoryFiles.slice(0, 5)) {
         // Show max 5 per category
         summary += `- [${file.id}] ${this.getFileName(file.path)}`
-        if (file.summary) {
-          summary += `: ${this.truncateSummary(file.summary, 30)}`
-        }
+        // no summary snippet
         summary += '\n'
       }
       if (categoryFiles.length > 5) {

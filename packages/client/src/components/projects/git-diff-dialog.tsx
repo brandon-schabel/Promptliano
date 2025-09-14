@@ -156,9 +156,7 @@ export function GitDiffDialog({
                   </div>
                 ) : (
                   <div className='max-h-[400px] overflow-auto'>
-                    <pre className='text-xs p-2 bg-muted rounded font-mono'>
-                      {getDiffString(diffData)}
-                    </pre>
+                    <pre className='text-xs p-2 bg-muted rounded font-mono'>{getDiffString(diffData)}</pre>
                   </div>
                 )}
               </>

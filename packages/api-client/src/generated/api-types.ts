@@ -698,8 +698,6 @@ export interface paths {
                 size: number | null
                 lastModified: number | null
                 contentType: string | null
-                summary: string | null
-                summaryLastUpdated: number | null
                 meta: string | null
                 checksum: string | null
                 imports:
@@ -1030,325 +1028,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/projects/{id}/summary': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get a combined summary of all files in the project */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ProjectSummaryResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/summary/advanced': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Get an advanced project summary with customizable options */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      /** @description Summary generation options */
-      requestBody?: {
-        content: {
-          'application/json': {
-            /** @enum {string} */
-            depth?: 'minimal' | 'standard' | 'detailed'
-            /** @enum {string} */
-            format?: 'xml' | 'json' | 'markdown'
-            /** @enum {string} */
-            strategy?: 'fast' | 'balanced' | 'thorough'
-            focus?: string[]
-            includeImports?: boolean
-            includeExports?: boolean
-            maxTokens?: number
-            progressive?: boolean
-            expand?: string[]
-            includeMetrics?: boolean
-          }
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': unknown
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/summary/metrics': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get metrics about project summary generation */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': unknown
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/summary/invalidate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Invalidate the project summary cache */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['OperationSuccessResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/projects/{id}/suggest-files': {
     parameters: {
       query?: never
@@ -1373,7 +1052,9 @@ export interface paths {
         content: {
           'application/json': {
             /** @description The prompt to analyze for file suggestions */
-            prompt: string
+            prompt?: string
+            /** @description Alias for prompt for backward compatibility */
+            userInput?: string
             /**
              * @description Maximum number of files to suggest
              * @default 10
@@ -1389,200 +1070,7 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: components['schemas']['File'][]
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/files/summarize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Summarize specified files in a project */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': {
-            /** @description Array of file IDs to summarize */
-            fileIds: string[]
-            /**
-             * @description Force re-summarization of already summarized files
-             * @default false
-             */
-            force?: boolean
-          }
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                included: number
-                skipped: number
-                updatedFiles: components['schemas']['File'][]
-                skippedReasons?: {
-                  empty: number
-                  tooLarge: number
-                  errors: number
-                }
-              }
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/files/remove-summaries': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Remove summaries from specified files */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': {
-            /** @description Array of file IDs to remove summaries from */
-            fileIds: string[]
-          }
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                removedCount: number
-                message: string
-              }
-            }
+            'application/json': components['schemas']['SuggestFilesResponse']
           }
         }
         /** @description Bad Request */
@@ -1675,8 +1163,6 @@ export interface paths {
                     config: number
                     other: number
                   }
-                  filesWithSummaries: number
-                  averageSummaryLength: number
                 }
                 ticketStats: {
                   totalTickets: number
@@ -1765,461 +1251,6 @@ export interface paths {
     }
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/batch-summarize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Start batch summarization of unsummarized files */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': {
-            /**
-             * @default mixed
-             * @enum {string}
-             */
-            strategy?: 'imports' | 'directory' | 'semantic' | 'mixed'
-            options?: {
-              maxGroupSize?: number
-              maxTokensPerGroup?: number
-              priorityThreshold?: number
-              maxConcurrentGroups?: number
-              staleThresholdDays?: number
-              includeStaleFiles?: boolean
-              retryFailedFiles?: boolean
-            }
-          }
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                batchId: string
-                currentGroup: string
-                groupIndex: number
-                totalGroups: number
-                filesProcessed: number
-                totalFiles: number
-                tokensUsed: number
-                errors: string[]
-              }
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/batch-summarize/{batchId}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get progress of a batch summarization operation */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-          batchId: string
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                batchId: string
-                currentGroup: string
-                groupIndex: number
-                totalGroups: number
-                filesProcessed: number
-                totalFiles: number
-                tokensUsed: number
-                errors: string[]
-              }
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    put?: never
-    post?: never
-    /** Cancel a running batch summarization */
-    delete: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-          batchId: string
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['OperationSuccessResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/summarization-stats': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get file summarization statistics for a project */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                projectId: number
-                totalFiles: number
-                summarizedFiles: number
-                unsummarizedFiles: number
-                staleFiles: number
-                failedFiles: number
-                averageTokensPerFile: number
-                lastBatchRun?: number
-                filesByStatus: {
-                  pending: number
-                  in_progress: number
-                  completed: number
-                  failed: number
-                  skipped: number
-                }
-              }
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/projects/{id}/preview-file-groups': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Preview how files would be grouped for summarization */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': {
-            /**
-             * @default mixed
-             * @enum {string}
-             */
-            strategy?: 'imports' | 'directory' | 'semantic' | 'mixed'
-            maxGroupSize?: number
-            includeStaleFiles?: boolean
-          }
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              /** @enum {boolean} */
-              success: true
-              data: {
-                groups: {
-                  id: string
-                  name: string
-                  /** @enum {string} */
-                  strategy: 'imports' | 'directory' | 'semantic' | 'mixed'
-                  fileIds: string[]
-                  estimatedTokens?: number
-                  priority: number
-                }[]
-                totalFiles: number
-                totalGroups: number
-                estimatedTotalTokens: number
-              }
-            }
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
     delete?: never
     options?: never
     head?: never
@@ -2685,7 +1716,86 @@ export interface paths {
             [name: string]: unknown
           }
           content: {
-            'application/json': components['schemas']['SuggestedFilesResponse']
+            'application/json': components['schemas']['SuggestFilesResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tickets/{ticketId}/suggest-files/stream': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Stream progressive AI suggestions for relevant files */
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Ticket identifier */
+          ticketId: string
+        }
+        cookie?: never
+      }
+      requestBody?: {
+        content: {
+          'application/json': components['schemas']['SuggestFilesBody']
+        }
+      }
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': unknown
           }
         }
         /** @description Bad Request */
@@ -3952,7 +3062,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/ai/chat': {
+  '/api/ai/chat/legacy': {
     parameters: {
       query?: never
       header?: never
@@ -3961,7 +3071,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Chat completion (Vercel AI SDK compatible, streaming) */
+    /**
+     * Chat completion (streaming, chat-associated)
+     * @description Continues a chat session identified by chatId, streams response using Vercel AI SDK via UnifiedProviderService.
+     */
     post: {
       parameters: {
         query?: never
@@ -3969,9 +3082,10 @@ export interface paths {
         path?: never
         cookie?: never
       }
+      /** @description Chat ID, user message, provider, model, and options for the streaming AI chat completion. */
       requestBody: {
         content: {
-          'application/json': components['schemas']['AiSdkChatRequest']
+          'application/json': components['schemas']['AiChatStreamRequest']
         }
       }
       responses: {
@@ -3984,7 +3098,7 @@ export interface paths {
             'text/event-stream': string
           }
         }
-        /** @description Bad request - invalid chat request parameters. */
+        /** @description Bad Request */
         400: {
           headers: {
             [name: string]: unknown
@@ -3993,7 +3107,25 @@ export interface paths {
             'application/json': components['schemas']['ApiErrorResponse']
           }
         }
-        /** @description Internal server error. */
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
         500: {
           headers: {
             [name: string]: unknown
@@ -5000,21 +4132,20 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/prompts/{promptId}': {
+  '/api/prompts/{id}': {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Get a specific prompt by its ID */
+    /** Get a prompt by ID (basic) */
     get: {
       parameters: {
         query?: never
         header?: never
         path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
+          id: string
         }
         cookie?: never
       }
@@ -5067,16 +4198,77 @@ export interface paths {
         }
       }
     }
-    put?: never
+    /** Update a prompt by ID (basic) */
+    put: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          id: string
+        }
+        cookie?: never
+      }
+      requestBody?: {
+        content: {
+          'application/json': components['schemas']['UpdatePromptRequestBody']
+        }
+      }
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['PromptResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
     post?: never
-    /** Delete a prompt */
+    /** Delete a prompt by ID (basic) */
     delete: {
       parameters: {
         query?: never
         header?: never
         path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
+          id: string
         }
         cookie?: never
       }
@@ -5295,7 +4487,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/prompts/{promptId}/export': {
+  '/api/prompts/{id}/export': {
     parameters: {
       query?: never
       header?: never
@@ -5701,200 +4893,6 @@ export interface paths {
       }
     }
     delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/prompts/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get a prompt by ID (basic) */
-    get: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          id: string
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['PromptResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    /** Update a prompt by ID (basic) */
-    put: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          id: string
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': components['schemas']['UpdatePromptRequestBody']
-        }
-      }
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['PromptResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
-    post?: never
-    /** Delete a prompt by ID (basic) */
-    delete: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          id: string
-        }
-        cookie?: never
-      }
-      requestBody?: never
-      responses: {
-        /** @description Success */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['OperationSuccessResponse']
-          }
-        }
-        /** @description Bad Request */
-        400: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Resource Not Found */
-        404: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Validation Error */
-        422: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-        /** @description Internal Server Error */
-        500: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': components['schemas']['ApiErrorResponse']
-          }
-        }
-      }
-    }
     options?: never
     head?: never
     patch?: never
@@ -8916,6 +7914,64 @@ export interface paths {
           }
         }
         /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/ai/chat': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Chat completion (Vercel AI SDK compatible, streaming) */
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody: {
+        content: {
+          'application/json': components['schemas']['AiSdkChatRequest']
+        }
+      }
+      responses: {
+        /** @description Successfully initiated AI response stream. */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'text/event-stream': string
+          }
+        }
+        /** @description Bad request - invalid chat request parameters. */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal server error. */
         500: {
           headers: {
             [name: string]: unknown
@@ -14435,6 +13491,525 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/projects/{id}/mcp/config/locations': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ConfigLocationsResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/mcp/config/merged': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['MergedConfigResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/mcp/config/expanded': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['MergedConfigResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/mcp/config': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ProjectConfigResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    put?: never
+    /** @description Update project MCP configuration */
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: {
+        content: {
+          'application/json': {
+            mcpEnabled?: boolean
+            customInstructions?: string
+          }
+        }
+      }
+      responses: {
+        /** @description Updated config */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': {
+              success: boolean
+              data: {
+                projectConfig: {
+                  projectId: number
+                  projectName: string
+                  mcpEnabled: boolean
+                  installedTools: unknown[]
+                  customInstructions?: string
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/mcp/config/save-to-location': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: {
+      parameters: {
+        query?: never
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: {
+        content: {
+          'application/json': {
+            config: {
+              mcpServers?: {
+                [key: string]: {
+                  /**
+                   * @default stdio
+                   * @enum {string}
+                   */
+                  type?: 'stdio' | 'http'
+                  command: string
+                  args?: string[]
+                  env?: {
+                    [key: string]: string
+                  }
+                  timeout?: number
+                }
+              }
+              inputs?: {
+                /** @enum {string} */
+                type: 'promptString' | 'promptNumber' | 'promptBoolean'
+                id: string
+                description: string
+                default?: unknown
+                password?: boolean
+              }[]
+              extends?: string | string[]
+            }
+            location: string
+          }
+        }
+      }
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['OperationSuccessResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/mcp/config/default-for-location': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query: {
+          location: string
+        }
+        header?: never
+        path: {
+          /** @description Entity ID - coerces strings to positive integers for URL parameters */
+          id: number
+        }
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description Success */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['MergedConfigResponse']
+          }
+        }
+        /** @description Bad Request */
+        400: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Resource Not Found */
+        404: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Validation Error */
+        422: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+        /** @description Internal Server Error */
+        500: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'application/json': components['schemas']['ApiErrorResponse']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/projects/{id}/git/status': {
     parameters: {
       query?: never
@@ -17856,63 +17431,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/projects/{id}/mcp/config': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** @description Update project MCP configuration */
-    post: {
-      parameters: {
-        query?: never
-        header?: never
-        path: {
-          /** @description Entity ID - coerces strings to positive integers for URL parameters */
-          id: number
-        }
-        cookie?: never
-      }
-      requestBody?: {
-        content: {
-          'application/json': {
-            mcpEnabled?: boolean
-            customInstructions?: string
-          }
-        }
-      }
-      responses: {
-        /** @description Updated config */
-        200: {
-          headers: {
-            [name: string]: unknown
-          }
-          content: {
-            'application/json': {
-              success: boolean
-              data: {
-                projectConfig: {
-                  projectId: number
-                  projectName: string
-                  mcpEnabled: boolean
-                  installedTools: unknown[]
-                  customInstructions?: string
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/projects/{id}/mcp/installation/batch-install': {
     parameters: {
       query?: never
@@ -18039,6 +17557,23 @@ export interface paths {
     }
     /** List processes for a project */
     get: operations['listProjectProcesses']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/projects/{id}/processes/scripts': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List package.json scripts in the project (root + workspaces) */
+    get: operations['listProjectScripts']
     put?: never
     post?: never
     delete?: never
@@ -18177,6 +17712,111 @@ export interface paths {
     put?: never
     /** Run a package.json script */
     post: operations['runProjectScript']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/proxy/copilot/_health': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Copilot proxy health
+     * @description Returns basic health and configuration info and attempts a lightweight GET to the upstream /models endpoint.
+     */
+    get: operations['getCopilotProxyHealth']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/copilot/embed/toggle': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Enable or disable embedded Copilot proxy */
+    post: operations['postCopilotEmbedToggle']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/copilot/embed/settings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Update embedded Copilot runtime settings */
+    post: operations['postCopilotEmbedSettings']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/copilot/embed/auth/start': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Start GitHub device authorization flow */
+    post: operations['postCopilotEmbedAuthStart']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/copilot/embed/auth/complete': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Complete device authorization and initialize Copilot tokens */
+    post: operations['postCopilotEmbedAuthComplete']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/copilot/embed/status': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get embedded Copilot status */
+    get: operations['getCopilotEmbedStatus']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -19755,8 +19395,6 @@ export interface components {
       lastModified: number | null
       contentType: string | null
       content: string | null
-      summary: string | null
-      summaryLastUpdated: number | null
       meta: string | null
       checksum: string | null
       imports:
@@ -19782,10 +19420,19 @@ export interface components {
       createdAt: number
       updatedAt: number
     }
-    ProjectSummaryResponse: {
+    SuggestFilesResponse: {
       /** @enum {boolean} */
       success: true
-      summary: string
+      data: {
+        suggestedFiles: {
+          path: string
+          relevance: number
+          reason: string
+          fileType: string
+        }[]
+        totalFiles: number
+        processingTime: number
+      }
     }
     Ticket: {
       id: number
@@ -19962,15 +19609,6 @@ export interface components {
     LinkFilesBody: {
       fileIds: string[]
     }
-    SuggestedFilesResponse: {
-      /** @enum {boolean} */
-      success: true
-      data: {
-        recommendedFileIds: string[]
-        combinedSummaries?: string
-        message?: string
-      }
-    }
     SuggestFilesBody: {
       extraUserInput?: string
     }
@@ -20064,7 +19702,7 @@ export interface components {
       success: true
       data: {
         id: number
-        projectId: number
+        projectId: number | null
         title: string
         createdAt: number
         updatedAt: number
@@ -20076,7 +19714,7 @@ export interface components {
       /** @description Chat */
       data: {
         id: number
-        projectId: number
+        projectId: number | null
         title: string
         createdAt: number
         updatedAt: number
@@ -20084,7 +19722,7 @@ export interface components {
     }
     CreateChatBody: {
       title: string
-      projectId: number
+      projectId?: number
       copyExisting?: boolean
       currentChatId?: number
     }
@@ -21370,13 +21008,13 @@ export interface components {
       /**
        * Format: int64
        * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-       * @example 1757304789797
+       * @example 1757819441667
        */
       created: number
       /**
        * Format: int64
        * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-       * @example 1757304789797
+       * @example 1757819441667
        */
       updated: number
     }
@@ -21457,13 +21095,13 @@ export interface components {
       /**
        * Format: int64
        * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-       * @example 1757304789797
+       * @example 1757819441667
        */
       startedAt: number
       /**
        * Format: int64
        * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-       * @example 1757304789797
+       * @example 1757819441667
        */
       completedAt: number
     }
@@ -21514,6 +21152,85 @@ export interface components {
     MCPResourceListResponse: {
       success: boolean
       data: components['schemas']['MCPResource'][]
+    }
+    ConfigLocationsData: {
+      locations: {
+        path: string
+        exists: boolean
+        priority: number
+      }[]
+    }
+    ConfigLocationsResponse: {
+      /** @enum {boolean} */
+      success: true
+      data: components['schemas']['ConfigLocationsData']
+    }
+    MergedConfigData: {
+      config: {
+        mcpServers?: {
+          [key: string]: {
+            /**
+             * @default stdio
+             * @enum {string}
+             */
+            type: 'stdio' | 'http'
+            command: string
+            args?: string[]
+            env?: {
+              [key: string]: string
+            }
+            timeout?: number
+          }
+        }
+        inputs?: {
+          /** @enum {string} */
+          type: 'promptString' | 'promptNumber' | 'promptBoolean'
+          id: string
+          description: string
+          default?: unknown
+          password?: boolean
+        }[]
+        extends?: string | string[]
+      }
+    }
+    MergedConfigResponse: {
+      /** @enum {boolean} */
+      success: true
+      data: components['schemas']['MergedConfigData']
+    }
+    ProjectConfigData: {
+      config: {
+        mcpServers?: {
+          [key: string]: {
+            /**
+             * @default stdio
+             * @enum {string}
+             */
+            type: 'stdio' | 'http'
+            command: string
+            args?: string[]
+            env?: {
+              [key: string]: string
+            }
+            timeout?: number
+          }
+        }
+        inputs?: {
+          /** @enum {string} */
+          type: 'promptString' | 'promptNumber' | 'promptBoolean'
+          id: string
+          description: string
+          default?: unknown
+          password?: boolean
+        }[]
+        extends?: string | string[]
+      } | null
+      source?: string
+    }
+    ProjectConfigResponse: {
+      /** @enum {boolean} */
+      success: true
+      data: components['schemas']['ProjectConfigData']
     }
     GitFileStatus: {
       /** @description The file path relative to the repository root */
@@ -22019,6 +21736,28 @@ export interface components {
       success: true
       data: components['schemas']['ProcessInfo'][]
     }
+    ProjectScript: {
+      /** @description Name from the package.json */
+      packageName: string
+      /** @description Absolute path to the package directory */
+      packagePath: string
+      /** @description Script key in package.json */
+      scriptName: string
+      /** @description Script command content */
+      command: string
+      /**
+       * @description Inferred package manager
+       * @enum {string}
+       */
+      packageManager: 'npm' | 'bun' | 'yarn' | 'pnpm'
+      /** @description True if located under a workspace directory like packages/* */
+      workspace: boolean
+    }
+    ProjectScriptListResponse: {
+      /** @enum {boolean} */
+      success: true
+      data: components['schemas']['ProjectScript'][]
+    }
     ProcessDetailResponse: {
       /** @enum {boolean} */
       success: true
@@ -22107,6 +21846,13 @@ export interface components {
         /** @enum {string} */
         state: 'listening' | 'established' | 'closed'
       }[]
+    }
+    CopilotProxyHealth: {
+      success: boolean
+      upstream: string
+      checked?: boolean
+      status?: number
+      error?: string
     }
     ModelConfig: {
       id: number
@@ -22438,6 +22184,64 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ProcessListResponse']
+        }
+      }
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApiErrorResponse']
+        }
+      }
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApiErrorResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApiErrorResponse']
+        }
+      }
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ApiErrorResponse']
+        }
+      }
+    }
+  }
+  listProjectScripts: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProjectScriptListResponse']
         }
       }
       /** @description Bad Request */
@@ -22918,6 +22722,7 @@ export interface operations {
            * @enum {string}
            */
           packageManager?: 'npm' | 'bun' | 'yarn' | 'pnpm'
+          packagePath?: string
         }
       }
     }
@@ -22965,6 +22770,196 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ApiErrorResponse']
+        }
+      }
+    }
+  }
+  getCopilotProxyHealth: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CopilotProxyHealth']
+        }
+      }
+    }
+  }
+  postCopilotEmbedToggle: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          enabled: boolean
+        }
+      }
+    }
+    responses: {
+      /** @description Applied */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {boolean} */
+            success: true
+            enabled: boolean
+          }
+        }
+      }
+    }
+  }
+  postCopilotEmbedSettings: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          accountType?: 'individual' | 'business' | 'enterprise'
+          rateLimitSeconds?: number
+          rateLimitWait?: boolean
+          manualApprove?: boolean
+          showTokens?: boolean
+        }
+      }
+    }
+    responses: {
+      /** @description Applied */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {boolean} */
+            success: true
+            applied: {
+              /** @enum {string} */
+              accountType: 'individual' | 'business' | 'enterprise'
+              rateLimitSeconds: number | null
+              rateLimitWait: boolean
+              manualApprove: boolean
+              showTokens: boolean
+            }
+          }
+        }
+      }
+    }
+  }
+  postCopilotEmbedAuthStart: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {boolean} */
+            success: true
+            userCode: string
+            verificationUri: string
+            expiresIn: number
+            interval: number
+            device?: {
+              device_code: string
+              user_code: string
+              verification_uri: string
+              expires_in: number
+              interval: number
+            }
+          }
+        }
+      }
+    }
+  }
+  postCopilotEmbedAuthComplete: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          device: {
+            device_code: string
+            user_code: string
+            verification_uri: string
+            expires_in: number
+            interval: number
+          }
+        }
+      }
+    }
+    responses: {
+      /** @description Authorized */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {boolean} */
+            success: true
+            authorized: boolean
+          }
+        }
+      }
+    }
+  }
+  getCopilotEmbedStatus: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {boolean} */
+            success: true
+            authorized: boolean
+            /** @enum {string} */
+            accountType: 'individual' | 'business' | 'enterprise'
+            modelsCount?: number
+            lastRefreshed?: number
+          }
         }
       }
     }

@@ -9,7 +9,12 @@ interface ProvidersTabWithSidebarProps {
   className?: string
 }
 
-export function ProvidersTabWithSidebar({ activeView, onViewChange, renderView, className }: ProvidersTabWithSidebarProps) {
+export function ProvidersTabWithSidebar({
+  activeView,
+  onViewChange,
+  renderView,
+  className
+}: ProvidersTabWithSidebarProps) {
   return (
     <div className={cn('flex h-full', className)}>
       {/* Left Sidebar */}
@@ -22,4 +27,3 @@ export function ProvidersTabWithSidebar({ activeView, onViewChange, renderView, 
     </div>
   )
 }
-

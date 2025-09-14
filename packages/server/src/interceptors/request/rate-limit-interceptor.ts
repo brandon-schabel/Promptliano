@@ -324,7 +324,6 @@ export const aiRateLimiter = createRateLimitInterceptor({
   perUserLimit: 100, // Higher limit for authenticated users
   perRouteLimit: {
     '/api/ai/*': 20,
-    '/api/summarize/*': 10,
     '/api/analyze/*': 15
   }
 })

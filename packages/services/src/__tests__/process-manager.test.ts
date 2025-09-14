@@ -1,6 +1,6 @@
 /**
  * Unit Tests for ProcessManager - Concurrency Control and Queueing
- * 
+ *
  * Tests process management, concurrency limits, queueing, and lifecycle
  */
 
@@ -8,11 +8,11 @@ import { describe, beforeEach, afterEach, test, expect, mock, spyOn } from 'bun:
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
-import { 
-  ProcessManager, 
-  type ProcessConfig, 
+import {
+  ProcessManager,
+  type ProcessConfig,
   type ManagedProcess,
-  ProcessSecurityManager 
+  ProcessSecurityManager
 } from '../process-management-service'
 import { ProcessSecurityManager as SecurityManager } from '../process/security'
 
@@ -24,7 +24,7 @@ describe('ProcessManager', () => {
   beforeEach(async () => {
     // Create temporary directory for testing
     tempDir = await mkdtemp(join(tmpdir(), 'process-manager-test-'))
-    
+
     // Mock security manager
     mockSecurity = {
       validateProcessConfig: mock(async () => {}),
@@ -32,11 +32,11 @@ describe('ProcessManager', () => {
       trackProcessEnd: mock(),
       auditProcessExecution: mock()
     }
-    
+
     processManager = new ProcessManager(tempDir, 3) // Max 3 concurrent processes
     // @ts-ignore - Replace security manager
     processManager['security'] = mockSecurity
-    
+
     // Create a test package.json
     await writeFile(
       join(tempDir, 'package.json'),
@@ -54,7 +54,7 @@ describe('ProcessManager', () => {
   afterEach(async () => {
     // Clean up all processes
     await processManager.shutdown()
-    
+
     // Clean up temporary directory
     await rm(tempDir, { recursive: true, force: true })
   })
@@ -74,18 +74,14 @@ describe('ProcessManager', () => {
       }
 
       const processId = await processManager.executeProcess(config, context)
-      
+
       expect(processId).toMatch(/^p_/)
       expect(mockSecurity.validateProcessConfig).toHaveBeenCalledWith(config, context)
       expect(mockSecurity.trackProcessStart).toHaveBeenCalledWith(context)
-      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(
-        config, 
-        context, 
-        'allowed'
-      )
+      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(config, context, 'allowed')
 
       // Wait for completion
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const info = processManager.getStatus(processId)
       expect(info?.status).toBe('completed')
@@ -105,20 +101,11 @@ describe('ProcessManager', () => {
       }
 
       // Mock security to reject
-      mockSecurity.validateProcessConfig.mockRejectedValueOnce(
-        new Error('Command not allowed')
-      )
+      mockSecurity.validateProcessConfig.mockRejectedValueOnce(new Error('Command not allowed'))
 
-      await expect(processManager.executeProcess(config, context))
-        .rejects
-        .toThrow('Command not allowed')
+      await expect(processManager.executeProcess(config, context)).rejects.toThrow('Command not allowed')
 
-      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(
-        config,
-        context,
-        'blocked',
-        'Command not allowed'
-      )
+      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(config, context, 'blocked', 'Command not allowed')
     })
 
     test('should apply resource limits from config', async () => {
@@ -141,7 +128,7 @@ describe('ProcessManager', () => {
 
       const processId = await processManager.executeProcess(config, context)
       const info = processManager.getStatus(processId)
-      
+
       expect(info?.config.limits?.maxMemory).toBe(100 * 1024 * 1024)
       expect(info?.config.limits?.maxCpu).toBe(1)
       expect(info?.config.timeout).toBe(5000)
@@ -150,12 +137,14 @@ describe('ProcessManager', () => {
 
   describe('Concurrency Control', () => {
     test('should enforce maximum concurrent processes', async () => {
-      const configs = Array(4).fill(null).map((_, i) => ({
-        command: ['bun', 'run', 'slow'],
-        projectId: 1,
-        cwd: tempDir,
-        name: `process-${i}`
-      }))
+      const configs = Array(4)
+        .fill(null)
+        .map((_, i) => ({
+          command: ['bun', 'run', 'slow'],
+          projectId: 1,
+          cwd: tempDir,
+          name: `process-${i}`
+        }))
 
       const context = {
         userId: 'user1',
@@ -163,38 +152,36 @@ describe('ProcessManager', () => {
         projectId: 1
       }
 
-      const promises = configs.map(config => 
-        processManager.executeProcess(config, context)
-      )
+      const promises = configs.map((config) => processManager.executeProcess(config, context))
 
       const results = await Promise.allSettled(promises)
 
       // First 3 should succeed (within limit)
-      expect(results.slice(0, 3).every(r => r.status === 'fulfilled')).toBe(true)
-      
+      expect(results.slice(0, 3).every((r) => r.status === 'fulfilled')).toBe(true)
+
       // 4th should be queued
-      const processIds = results
-        .filter(r => r.status === 'fulfilled')
-        .map(r => (r as any).value)
+      const processIds = results.filter((r) => r.status === 'fulfilled').map((r) => (r as any).value)
 
       expect(processIds.length).toBe(3)
 
       // Check that processes are running
       const runningCount = processIds
-        .map(id => processManager.getStatus(id))
-        .filter(info => info?.status === 'running').length
+        .map((id) => processManager.getStatus(id))
+        .filter((info) => info?.status === 'running').length
 
       expect(runningCount).toBeLessThanOrEqual(3)
     })
 
     test('should queue processes when at capacity', async () => {
       // Fill capacity with long-running processes
-      const longConfigs = Array(3).fill(null).map((_, i) => ({
-        command: ['bun', 'run', 'slow'],
-        projectId: 1,
-        cwd: tempDir,
-        name: `long-${i}`
-      }))
+      const longConfigs = Array(3)
+        .fill(null)
+        .map((_, i) => ({
+          command: ['bun', 'run', 'slow'],
+          projectId: 1,
+          cwd: tempDir,
+          name: `long-${i}`
+        }))
 
       const context = {
         userId: 'user1',
@@ -204,7 +191,7 @@ describe('ProcessManager', () => {
 
       // Start capacity-filling processes
       const longProcesses = await Promise.all(
-        longConfigs.map(config => processManager.executeProcess(config, context))
+        longConfigs.map((config) => processManager.executeProcess(config, context))
       )
 
       // Try to add another process - should be queued
@@ -225,11 +212,13 @@ describe('ProcessManager', () => {
 
     test('should process queued items when capacity becomes available', async () => {
       // Fill capacity
-      const quickConfigs = Array(3).fill(null).map((_, i) => ({
-        command: ['echo', `quick-${i}`],
-        projectId: 1,
-        cwd: tempDir
-      }))
+      const quickConfigs = Array(3)
+        .fill(null)
+        .map((_, i) => ({
+          command: ['echo', `quick-${i}`],
+          projectId: 1,
+          cwd: tempDir
+        }))
 
       const context = {
         userId: 'user1',
@@ -238,9 +227,7 @@ describe('ProcessManager', () => {
       }
 
       // Start processes that complete quickly
-      const quickPromises = quickConfigs.map(config => 
-        processManager.executeProcess(config, context)
-      )
+      const quickPromises = quickConfigs.map((config) => processManager.executeProcess(config, context))
 
       // Add a queued process
       const queuedConfig: ProcessConfig = {
@@ -253,7 +240,7 @@ describe('ProcessManager', () => {
 
       // Wait for quick processes to complete and queued to start
       await Promise.all(quickPromises)
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Queued process should eventually run
       const queuedInfo = processManager.getStatus(queuedId)
@@ -276,7 +263,7 @@ describe('ProcessManager', () => {
       }
 
       const processId = await processManager.executeProcess(config, context)
-      
+
       // Initial state
       let info = processManager.getStatus(processId)
       expect(info?.status).toBe('running')
@@ -284,7 +271,7 @@ describe('ProcessManager', () => {
       expect(info?.process.pid).toBeTypeOf('number')
 
       // Wait for completion
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Final state
       info = processManager.getStatus(processId)
@@ -309,7 +296,7 @@ describe('ProcessManager', () => {
       const processId = await processManager.executeProcess(config, context)
 
       // Wait for failure
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       const info = processManager.getStatus(processId)
       expect(info?.status).toBe('failed')
@@ -330,16 +317,16 @@ describe('ProcessManager', () => {
       }
 
       const processId = await processManager.executeProcess(config, context)
-      
+
       // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Terminate process
       const success = await processManager.terminateProcess(processId, 'SIGTERM')
       expect(success).toBe(true)
 
       // Wait for termination
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const info = processManager.getStatus(processId)
       expect(info?.status).toBe('stopped')
@@ -363,7 +350,7 @@ describe('ProcessManager', () => {
       const processId = await processManager.executeProcess(config, context)
 
       // Wait for timeout
-      await new Promise(resolve => setTimeout(resolve, 600))
+      await new Promise((resolve) => setTimeout(resolve, 600))
 
       const info = processManager.getStatus(processId)
       expect(info?.status).toBe('failed')
@@ -373,11 +360,13 @@ describe('ProcessManager', () => {
 
   describe('Process Status and Querying', () => {
     test('should return all active processes', async () => {
-      const configs = Array(2).fill(null).map((_, i) => ({
-        command: ['echo', `test-${i}`],
-        projectId: i + 1,
-        cwd: tempDir
-      }))
+      const configs = Array(2)
+        .fill(null)
+        .map((_, i) => ({
+          command: ['echo', `test-${i}`],
+          projectId: i + 1,
+          cwd: tempDir
+        }))
 
       const context1 = { userId: 'user1', userRole: 'user' as const, projectId: 1 }
       const context2 = { userId: 'user2', userRole: 'user' as const, projectId: 2 }
@@ -389,7 +378,7 @@ describe('ProcessManager', () => {
       expect(Array.isArray(allProcesses)).toBe(true)
       expect(allProcesses.length).toBeGreaterThanOrEqual(2)
 
-      const projectIds = allProcesses.map(p => p.config.projectId)
+      const projectIds = allProcesses.map((p) => p.config.projectId)
       expect(projectIds).toContain(1)
       expect(projectIds).toContain(2)
     })
@@ -437,9 +426,9 @@ describe('ProcessManager', () => {
       }
 
       const processId = await processManager.executeProcess(config, context)
-      
+
       // Wait for completion
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Process should exist initially
       expect(processManager.getStatus(processId)).toBeDefined()
@@ -450,10 +439,8 @@ describe('ProcessManager', () => {
 
       // Process should be cleaned up
       const allProcesses = processManager.getStatus()
-      const hasProcess = Array.isArray(allProcesses) 
-        ? allProcesses.some(p => p.id === processId)
-        : false
-      
+      const hasProcess = Array.isArray(allProcesses) ? allProcesses.some((p) => p.id === processId) : false
+
       // Note: In real implementation, cleanup has a delay
       // For unit testing, we just verify the method exists and can be called
       expect(typeof processManager.cleanupCompletedProcesses).toBe('function')
@@ -475,11 +462,11 @@ describe('ProcessManager', () => {
       const processId = await processManager.executeProcess(config, context)
 
       // Wait for completion
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const info = processManager.getStatus(processId)
       expect(info?.resourceUsage).toBeDefined()
-      
+
       if (info?.resourceUsage) {
         expect(typeof info.resourceUsage.cpuTime.user).toBe('number')
         expect(typeof info.resourceUsage.maxRSS).toBe('number')
@@ -501,16 +488,9 @@ describe('ProcessManager', () => {
         projectId: 1
       }
 
-      await expect(processManager.executeProcess(config, context))
-        .rejects
-        .toThrow()
+      await expect(processManager.executeProcess(config, context)).rejects.toThrow()
 
-      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(
-        config,
-        context,
-        'blocked',
-        expect.any(String)
-      )
+      expect(mockSecurity.auditProcessExecution).toHaveBeenCalledWith(config, context, 'blocked', expect.any(String))
     })
 
     test('should handle invalid working directory', async () => {
@@ -526,9 +506,7 @@ describe('ProcessManager', () => {
         projectId: 1
       }
 
-      await expect(processManager.executeProcess(config, context))
-        .rejects
-        .toThrow()
+      await expect(processManager.executeProcess(config, context)).rejects.toThrow()
     })
 
     test('should handle termination of non-existent process', async () => {
@@ -539,12 +517,14 @@ describe('ProcessManager', () => {
 
   describe('Shutdown and Cleanup', () => {
     test('should gracefully shutdown all processes', async () => {
-      const configs = Array(2).fill(null).map((_, i) => ({
-        command: ['bun', 'run', 'slow'],
-        projectId: 1,
-        cwd: tempDir,
-        name: `shutdown-test-${i}`
-      }))
+      const configs = Array(2)
+        .fill(null)
+        .map((_, i) => ({
+          command: ['bun', 'run', 'slow'],
+          projectId: 1,
+          cwd: tempDir,
+          name: `shutdown-test-${i}`
+        }))
 
       const context = {
         userId: 'user1',
@@ -553,17 +533,15 @@ describe('ProcessManager', () => {
       }
 
       // Start processes
-      const processIds = await Promise.all(
-        configs.map(config => processManager.executeProcess(config, context))
-      )
+      const processIds = await Promise.all(configs.map((config) => processManager.executeProcess(config, context)))
 
       // Wait for processes to start
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Verify processes are running
       const runningCount = processIds
-        .map(id => processManager.getStatus(id))
-        .filter(info => info?.status === 'running').length
+        .map((id) => processManager.getStatus(id))
+        .filter((info) => info?.status === 'running').length
 
       expect(runningCount).toBeGreaterThan(0)
 
@@ -571,9 +549,9 @@ describe('ProcessManager', () => {
       await processManager.shutdown()
 
       // All processes should be terminated
-      const finalStates = processIds.map(id => processManager.getStatus(id))
-      const stillRunning = finalStates.filter(info => info?.status === 'running')
-      
+      const finalStates = processIds.map((id) => processManager.getStatus(id))
+      const stillRunning = finalStates.filter((info) => info?.status === 'running')
+
       expect(stillRunning.length).toBe(0)
     })
 
@@ -594,9 +572,7 @@ describe('ProcessManager', () => {
       }
 
       // Try to start process during shutdown
-      await expect(processManager.executeProcess(config, context))
-        .rejects
-        .toThrow(/shutdown/)
+      await expect(processManager.executeProcess(config, context)).rejects.toThrow(/shutdown/)
 
       await shutdownPromise
     })

@@ -226,7 +226,6 @@ export const UpdateSelectedFileSchema = CreateSelectedFileSchema.partial()
 export type CreateSelectedFile = InferSchema<typeof CreateSelectedFileSchema>
 export type UpdateSelectedFile = InferSchema<typeof UpdateSelectedFileSchema>
 
-// Export test utilities
-export * from './src/test-utils'
-export * from './src/test-utils/test-db'
-export { createTestDatabase } from './src/test-utils/test-db'
+// Note: test utilities are intentionally not re-exported here to avoid pulling
+// test-only code into consumer projects' type-checking.
+// They can still be imported directly from '@promptliano/database/src/test-utils/*' if needed.

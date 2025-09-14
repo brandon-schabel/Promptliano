@@ -54,7 +54,13 @@ async function buildProject() {
   // Build a simple binary for the current platform (for development)
   console.log('Building binary for current platform...')
   const currentPlatformExt = process.platform === 'win32' ? '.exe' : ''
-  await runBun(serverDir, ['build', '--compile', './server.ts', '--outfile', join(distDir, `promptliano-bundle${currentPlatformExt}`)])
+  await runBun(serverDir, [
+    'build',
+    '--compile',
+    './server.ts',
+    '--outfile',
+    join(distDir, `promptliano-bundle${currentPlatformExt}`)
+  ])
 
   // Define targets with proper executable extensions
   const bundleNamePrefix = `promptliano-${pkg.version}`
@@ -114,7 +120,14 @@ async function buildProject() {
 
     // Build the standalone binary with version in the name
     const executableName = `promptliano${executableExt}`
-    await runBun(serverDir, ['build', '--compile', `--target=${target}`, './server.ts', '--outfile', join(platformDir, executableName)])
+    await runBun(serverDir, [
+      'build',
+      '--compile',
+      `--target=${target}`,
+      './server.ts',
+      '--outfile',
+      join(platformDir, executableName)
+    ])
 
     // Fix permissions for all executables (including Windows .exe files on Linux)
     try {

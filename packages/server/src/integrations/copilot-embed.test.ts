@@ -48,4 +48,3 @@ describe('getEmbeddedUpstreamBase', () => {
     expect(url).toBe('http://127.0.0.1:4242/api/upstream/copilot/v1')
   })
 })
-

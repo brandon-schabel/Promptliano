@@ -39,7 +39,7 @@ export function ProjectSettingsTab() {
   useScrollToSection({ search })
 
   const updateActiveProjectTab = useUpdateActiveProjectTab()
-  const [{ summarizationEnabledProjectIds = [] }, updateSettings] = useAppSettings()
+  const [, updateSettings] = useAppSettings()
   const { data: resolveImports } = useProjectTabField('resolveImports')
   const { data: preferredEditor } = useProjectTabField('preferredEditor')
   const { data: projectId } = useProjectTabField('selectedProjectId')

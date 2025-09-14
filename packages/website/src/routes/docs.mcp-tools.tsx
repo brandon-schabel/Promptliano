@@ -113,7 +113,6 @@ function MCPToolsOverviewPage() {
                 <code>create_file</code>, <code>delete_file</code>
               </li>
               <li>
-                <code>get_summary</code>, <code>get_summary_advanced</code>, <code>get_summary_metrics</code>,{' '}
                 <code>overview</code>
               </li>
               <li>
@@ -236,7 +235,7 @@ function MCPToolsOverviewPage() {
           <GlassCard className='p-6'>
             <ul className='list-disc list-inside text-muted-foreground'>
               <li>
-                <code>ai_assistant</code> — <code>get_compact_summary</code> (project context summary)
+                <code>ai_assistant</code> — <code>optimize_prompt</code>
               </li>
             </ul>
           </GlassCard>

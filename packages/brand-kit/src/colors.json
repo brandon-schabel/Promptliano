@@ -110,8 +110,8 @@
       "hex": "#f97316",
       "rgb": "rgb(249, 115, 22)",
       "hsl": "hsl(25, 95%, 53%)",
-      "usage": "Summary visualizations, highlights, attention",
-      "contexts": ["data visualization", "file summaries", "analytics"]
+      "usage": "Highlights and attention cues",
+      "contexts": ["data visualization", "file analytics", "analytics"]
     },
     "pink-500": {
       "name": "Pink",

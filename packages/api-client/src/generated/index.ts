@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED API CLIENT
- * Generated at: 2025-09-08T04:56:24.588Z
+ * Generated at: 2025-09-14T03:11:09.647Z
  *
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */

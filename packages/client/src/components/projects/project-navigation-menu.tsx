@@ -66,10 +66,8 @@ export function ProjectNavigationMenu({
   const client = useApiClient()
   const queryClient = useQueryClient()
   const isCompact = useMediaQuery('(max-width: 768px)')
-  const [{ summarizationEnabledProjectIds = [] }] = useAppSettings()
   const [activeProjectTabState] = useActiveProjectTab()
   const selectedProjectId = activeProjectTabState?.selectedProjectId
-  const isSummarizationEnabled = selectedProjectId ? summarizationEnabledProjectIds.includes(selectedProjectId) : false
   const { copyToClipboard } = useCopyClipboard()
 
   // Check if project has MCP configuration
@@ -245,19 +243,6 @@ export function ProjectNavigationMenu({
           <MenubarItem onClick={() => navigateToManageView('statistics')} className='flex items-center gap-2'>
             <BarChart3 className='h-4 w-4' />
             Statistics
-          </MenubarItem>
-          <MenubarItem
-            onClick={() => navigateToManageView('summarization', 'project-summarization-settings')}
-            className='flex items-center gap-2'
-          >
-            <FileText className='h-4 w-4' />
-            <span>Enable Summarization</span>
-            <Circle
-              className={cn(
-                'h-2 w-2 ml-auto',
-                isSummarizationEnabled ? 'fill-green-500 text-green-500' : 'fill-red-500 text-red-500'
-              )}
-            />
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem

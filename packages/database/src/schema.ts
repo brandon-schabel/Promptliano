@@ -316,8 +316,6 @@ export const files = sqliteTable('files', {
   lastModified: integer('last_modified'),
   contentType: text('content_type'),
   content: text('content'),
-  summary: text('summary'),
-  summaryLastUpdated: integer('summary_last_updated'),
   meta: text('meta'),
   checksum: text('checksum'),
   imports: text('imports', { mode: 'json' }).$type<ImportInfo[]>(),

@@ -9,9 +9,7 @@ import {
   ProjectResponseSchema,
   ProjectListResponseSchema,
   ProjectResponseMultiStatusSchema,
-  ProjectSummaryResponseSchema,
-  SummaryOptionsSchema,
-  BatchSummaryOptionsSchema
+  SuggestFilesResponseSchema as ProjectSuggestFilesResponseSchema
 } from '@promptliano/schemas'
 import { selectFileSchema as DbFileSchema } from '@promptliano/database'
 
@@ -30,22 +28,14 @@ import { ErrorFactory, ApiError } from '@promptliano/shared'
 import { stream } from 'hono/streaming'
 import { createSyncProgressTracker } from '@promptliano/services/src/utils/sync-progress-tracker'
 import {
-  getFullProjectSummary,
   getProjectStatistics,
   syncProject,
   syncProjectFolder,
   watchersManager,
-  getProjectSummaryWithOptions,
-  invalidateProjectSummaryCache,
-  enhancedSummarizationService,
-  fileSummarizationTracker,
-  fileGroupingService,
   getProjectFiles,
-  updateFileContent,
-  summarizeFiles,
-  removeSummariesFromFiles
+  updateFileContent
 } from '@promptliano/services'
-import { createFileSearchService } from '@promptliano/services'
+import { createFileSearchService, createSuggestionsService } from '@promptliano/services'
 // Note: projectServiceV2 is now exported from @promptliano/services
 // and contains all necessary methods for generated routes
 
@@ -74,12 +64,21 @@ const DbFileResponseSchema = z.object({ success: z.literal(true), data: DbFileSc
 const DbFileListResponseSchema = z.object({ success: z.literal(true), data: z.array(DbFileSchema as any) })
 const BulkFilesResponseSchema = DbFileListResponseSchema
 
-const SuggestFilesBodySchema = z.object({
-  prompt: z.string().min(1).describe('The prompt to analyze for file suggestions'),
-  limit: z.number().int().positive().optional().default(10).describe('Maximum number of files to suggest')
-})
-
-const SuggestFilesResponseSchema = DbFileListResponseSchema
+const SuggestFilesBodySchema = z
+  .object({
+    prompt: z.string().min(1).optional().describe('The prompt to analyze for file suggestions'),
+    userInput: z.string().min(1).optional().describe('Alias for prompt for backward compatibility'),
+    limit: z.number().int().positive().optional().default(10).describe('Maximum number of files to suggest'),
+    strategy: z
+      .enum(['fast', 'balanced', 'thorough'])
+      .optional()
+      .describe('Suggestion strategy: fast (no AI), balanced (default), thorough (more AI)'),
+    includeScores: z.boolean().optional().describe('Include per-file scores in suggestion pipeline output'),
+    userContext: z.string().optional().describe('Additional context to improve suggestions')
+  })
+  .refine((v) => !!(v.prompt?.trim() || v.userInput?.trim()), {
+    message: 'Either prompt or userInput is required'
+  })
 
 // File search schemas
 const FileSearchRequestSchema = z.object({
@@ -125,56 +124,6 @@ const RevertToVersionBodySchema = z.object({
   versionNumber: z.number().int().positive()
 })
 
-// Batch summarization schemas
-const StartBatchSummarizationBodySchema = z.object({
-  strategy: z.enum(['imports', 'directory', 'semantic', 'mixed']).default('mixed'),
-  options: z
-    .object({
-      maxGroupSize: z.number().min(1).max(50).optional(),
-      maxTokensPerGroup: z.number().min(1000).max(100000).optional(),
-      priorityThreshold: z.number().min(0).max(10).optional(),
-      maxConcurrentGroups: z.number().min(1).max(10).optional(),
-      staleThresholdDays: z.number().min(1).max(365).optional(),
-      includeStaleFiles: z.boolean().optional(),
-      retryFailedFiles: z.boolean().optional()
-    })
-    .optional()
-})
-
-const BatchProgressResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    batchId: z.string(),
-    currentGroup: z.string(),
-    groupIndex: z.number(),
-    totalGroups: z.number(),
-    filesProcessed: z.number(),
-    totalFiles: z.number(),
-    tokensUsed: z.number(),
-    errors: z.array(z.string())
-  })
-})
-
-const FileSummarizationStatsResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    projectId: z.number(),
-    totalFiles: z.number(),
-    summarizedFiles: z.number(),
-    unsummarizedFiles: z.number(),
-    staleFiles: z.number(),
-    failedFiles: z.number(),
-    averageTokensPerFile: z.number(),
-    lastBatchRun: z.number().optional(),
-    filesByStatus: z.object({
-      pending: z.number(),
-      in_progress: z.number(),
-      completed: z.number(),
-      failed: z.number(),
-      skipped: z.number()
-    })
-  })
-})
 
 const FileGroupsResponseSchema = z.object({
   success: z.literal(true),
@@ -368,62 +317,7 @@ const refreshProjectRoute = createRoute({
   responses: createStandardResponses(DbFileListResponseSchema)
 })
 
-const getProjectSummaryRoute = createRoute({
-  method: 'get',
-  path: '/api/projects/{id}/summary',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Get a combined summary of all files in the project',
-  request: { params: IDParamsSchema },
-  responses: createStandardResponses(ProjectSummaryResponseSchema)
-})
-
-const getProjectSummaryAdvancedRoute = createRoute({
-  method: 'post',
-  path: '/api/projects/{id}/summary/advanced',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Get an advanced project summary with customizable options',
-  request: {
-    params: IDParamsSchema,
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            depth: z.enum(['minimal', 'standard', 'detailed']).optional(),
-            format: z.enum(['xml', 'json', 'markdown']).optional(),
-            strategy: z.enum(['fast', 'balanced', 'thorough']).optional(),
-            focus: z.array(z.string()).optional(),
-            includeImports: z.boolean().optional(),
-            includeExports: z.boolean().optional(),
-            maxTokens: z.number().min(100).max(100000).optional(),
-            progressive: z.boolean().optional(),
-            expand: z.array(z.string()).optional(),
-            includeMetrics: z.boolean().optional()
-          })
-        }
-      },
-      description: 'Summary generation options'
-    }
-  },
-  responses: createStandardResponses(z.any())
-})
-
-const getProjectSummaryMetricsRoute = createRoute({
-  method: 'get',
-  path: '/api/projects/{id}/summary/metrics',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Get metrics about project summary generation',
-  request: { params: IDParamsSchema },
-  responses: createStandardResponses(z.any())
-})
-
-const invalidateProjectSummaryCacheRoute = createRoute({
-  method: 'post',
-  path: '/api/projects/{id}/summary/invalidate',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Invalidate the project summary cache',
-  request: { params: IDParamsSchema },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
-})
+// Removed: project summary routes and schemas
 
 const suggestFilesRoute = createRoute({
   method: 'post',
@@ -434,7 +328,7 @@ const suggestFilesRoute = createRoute({
     params: IDParamsSchema,
     body: { content: { 'application/json': { schema: SuggestFilesBodySchema } } }
   },
-  responses: createStandardResponses(SuggestFilesResponseSchema)
+  responses: createStandardResponses(ProjectSuggestFilesResponseSchema)
 })
 
 // Optimize endpoint not implemented - commenting out
@@ -453,79 +347,6 @@ const suggestFilesRoute = createRoute({
 //   responses: createStandardResponses(z.object({ success: z.literal(true), data: z.object({ optimizedPrompt: z.string() }) }))
 // })
 
-// Batch summarization routes
-const startBatchSummarizationRoute = createRoute({
-  method: 'post',
-  path: '/api/projects/{id}/batch-summarize',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Start batch summarization of unsummarized files',
-  request: {
-    params: IDParamsSchema,
-    body: { content: { 'application/json': { schema: StartBatchSummarizationBodySchema } } }
-  },
-  responses: createStandardResponses(BatchProgressResponseSchema)
-})
-
-const getBatchProgressRoute = createRoute({
-  method: 'get',
-  path: '/api/projects/{id}/batch-summarize/{batchId}',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Get progress of a batch summarization operation',
-  request: {
-    params: z.object({
-      id: IDParamsSchema.shape.id,
-      batchId: z.string()
-    })
-  },
-  responses: createStandardResponses(BatchProgressResponseSchema)
-})
-
-const cancelBatchSummarizationRoute = createRoute({
-  method: 'delete',
-  path: '/api/projects/{id}/batch-summarize/{batchId}',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Cancel a running batch summarization',
-  request: {
-    params: z.object({
-      id: IDParamsSchema.shape.id,
-      batchId: z.string()
-    })
-  },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
-})
-
-const getSummarizationStatsRoute = createRoute({
-  method: 'get',
-  path: '/api/projects/{id}/summarization-stats',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Get file summarization statistics for a project',
-  request: {
-    params: IDParamsSchema
-  },
-  responses: createStandardResponses(FileSummarizationStatsResponseSchema)
-})
-
-const previewFileGroupsRoute = createRoute({
-  method: 'post',
-  path: '/api/projects/{id}/preview-file-groups',
-  tags: ['Projects', 'Files', 'AI'],
-  summary: 'Preview how files would be grouped for summarization',
-  request: {
-    params: IDParamsSchema,
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            strategy: z.enum(['imports', 'directory', 'semantic', 'mixed']).default('mixed'),
-            maxGroupSize: z.number().min(1).max(50).optional(),
-            includeStaleFiles: z.boolean().optional()
-          })
-        }
-      }
-    }
-  },
-  responses: createStandardResponses(FileGroupsResponseSchema)
-})
 
 const getProjectStatisticsRoute = createRoute({
   method: 'get',
@@ -550,9 +371,7 @@ const getProjectStatisticsRoute = createRoute({
             docs: z.number(),
             config: z.number(),
             other: z.number()
-          }),
-          filesWithSummaries: z.number(),
-          averageSummaryLength: z.number()
+          })
         }),
         ticketStats: z.object({
           totalTickets: z.number(),
@@ -886,120 +705,7 @@ export const projectRoutes = new OpenAPIHono()
     }
   })
 
-  .openapi(getProjectSummaryRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-
-    try {
-      const summary = await getFullProjectSummary(projectId)
-
-      const payload: z.infer<typeof ProjectSummaryResponseSchema> = {
-        success: true,
-        summary: summary
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to generate project summary: ${error instanceof Error ? error.message : String(error)}`,
-        'AI_SUMMARY_ERROR'
-      )
-    }
-  })
-
-  .openapi(getProjectSummaryAdvancedRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-    const options = c.req.valid('json')
-
-    try {
-      // Validate options
-      const validatedOptions = SummaryOptionsSchema.parse(options)
-
-      // Get summary with options
-      const result = await getProjectSummaryWithOptions(projectId, validatedOptions)
-
-      return c.json(result, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to generate advanced project summary: ${error instanceof Error ? error.message : String(error)}`,
-        'AI_SUMMARY_ERROR'
-      )
-    }
-  })
-
-  .openapi(getProjectSummaryMetricsRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-
-    try {
-      // Get summary with metrics enabled
-      const result = await getProjectSummaryWithOptions(projectId, {
-        depth: 'standard',
-        format: 'xml',
-        strategy: 'balanced',
-        includeImports: true,
-        includeExports: true,
-        progressive: false,
-        includeMetrics: true,
-        groupAware: false,
-        includeRelationships: false,
-        contextWindow: 4000
-      })
-
-      if (!result.metrics) {
-        throw new ApiError(500, 'Failed to generate metrics', 'METRICS_GENERATION_ERROR')
-      }
-
-      const payload = {
-        success: true,
-        data: {
-          metrics: result.metrics,
-          version: result.version
-        }
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to retrieve summary metrics: ${error instanceof Error ? error.message : String(error)}`,
-        'AI_METRICS_ERROR'
-      )
-    }
-  })
-
-  .openapi(invalidateProjectSummaryCacheRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-
-    try {
-      // Service factory includes automatic existence check with proper error handling
-      await projectService.getById(projectId)
-
-      invalidateProjectSummaryCache(projectId)
-
-      const payload: z.infer<typeof OperationSuccessResponseSchema> = {
-        success: true,
-        message: 'Project summary cache invalidated successfully'
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      // ErrorFactory integration - if not already an API error, wrap it
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw ErrorFactory.operationFailed('cache invalidation', error instanceof Error ? error.message : String(error))
-    }
-  })
+  // Removed project summary endpoints
 
   // Optimize endpoint not implemented
   // .openapi(optimizeUserInputRoute, async (c) => {
@@ -1010,122 +716,74 @@ export const projectRoutes = new OpenAPIHono()
   // })
   .openapi(suggestFilesRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
-    const { prompt, limit = 10 } = c.req.valid('json')
+    const body = c.req.valid('json')
+    const limit = (body as any).limit ?? 10
+    const prompt = (body as any).prompt ?? (body as any).userInput
+    const strategy = (body as any).strategy ?? 'balanced'
+    const includeScores = (body as any).includeScores ?? true
+    const userContext = (body as any).userContext
 
+    const start = Date.now()
     await projectService.getById(projectId)
-    const files = await projectService.suggestFiles(projectId, prompt, limit)
-    return c.json({ success: true as const, data: files }, 200)
+
+    // Unified Suggestions Service
+    const sugg = createSuggestionsService()
+    const result = await sugg.suggestFilesForProject(projectId, String(prompt || ''), {
+      strategy: strategy as any,
+      maxResults: limit,
+      includeScores,
+      userContext
+    })
+
+    const files = await getProjectFiles(projectId)
+    const byId = new Map((files || []).map((f: any) => [String(f.id), f]))
+
+    // Build relevance map from scores if available
+    const relevanceMap = new Map<string, number>()
+    if (Array.isArray(result.scores)) {
+      for (const s of result.scores as any[]) {
+        relevanceMap.set(String(s.fileId), Number(s.totalScore || 0))
+      }
+    }
+
+    // Optional semantic enrichment
+    let semanticScores = new Map<string, number>()
+    try {
+      const searchService = createFileSearchService()
+      const { results } = await searchService.search(projectId, {
+        query: String(prompt || ''),
+        searchType: 'semantic',
+        scoringMethod: 'relevance',
+        limit: Math.max(limit * 5, 25)
+      })
+      semanticScores = new Map(results.map((r: any) => [String((r.file as any).id), Number(r.score || 0)]))
+    } catch { }
+
+    const suggestedFiles = (result.suggestions || []).map((id: string) => {
+      const f = byId.get(String(id))
+      const score = relevanceMap.get(String(id))
+      const sem = semanticScores.get(String(id))
+      const relevance = typeof score === 'number' ? Math.max(0, Math.min(1, score)) : (sem ?? 0.9)
+      const reason = typeof score === 'number' ? 'Relevance scoring match' : 'Selected by AI (project context)'
+      return {
+        path: f?.path || String(id),
+        relevance,
+        reason,
+        fileType: (f?.extension as string) || ''
+      }
+    })
+
+    const payload: z.infer<typeof ProjectSuggestFilesResponseSchema> = {
+      success: true,
+      data: {
+        suggestedFiles,
+        totalFiles: suggestedFiles.length,
+        processingTime: Date.now() - start
+      }
+    }
+
+    return c.json(payload, 200)
   })
-  .openapi(
-    createRoute({
-      method: 'post',
-      path: '/api/projects/{id}/files/summarize',
-      tags: ['Projects', 'Files', 'AI'],
-      summary: 'Summarize specified files in a project',
-      request: {
-        params: IDParamsSchema,
-        body: {
-          content: {
-            'application/json': {
-              schema: z.object({
-                fileIds: z.array(z.string()).min(1).describe('Array of file IDs to summarize'),
-                force: z
-                  .boolean()
-                  .optional()
-                  .default(false)
-                  .describe('Force re-summarization of already summarized files')
-              })
-            }
-          }
-        }
-      },
-      responses: createStandardResponses(
-        z.object({
-          success: z.literal(true),
-          data: z.object({
-            included: z.number(),
-            skipped: z.number(),
-            updatedFiles: z.array(DbFileSchema as any),
-            skippedReasons: z
-              .object({
-                empty: z.number(),
-                tooLarge: z.number(),
-                errors: z.number()
-              })
-              .optional()
-          })
-        })
-      )
-    }),
-    async (c) => {
-      const { id: projectId } = c.req.valid('param')
-      const { fileIds, force = false } = c.req.valid('json')
-
-      const project = await projectService.getById(projectId)
-      if (!project) {
-        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
-      }
-
-      // Pass the force parameter to summarizeFiles
-      const result = await summarizeFiles(projectId, fileIds, force)
-
-      return c.json(
-        {
-          success: true as const,
-          data: result
-        },
-        200
-      )
-    }
-  )
-  .openapi(
-    createRoute({
-      method: 'post',
-      path: '/api/projects/{id}/files/remove-summaries',
-      tags: ['Projects', 'Files'],
-      summary: 'Remove summaries from specified files',
-      request: {
-        params: IDParamsSchema,
-        body: {
-          content: {
-            'application/json': {
-              schema: z.object({
-                fileIds: z.array(z.string()).min(1).describe('Array of file IDs to remove summaries from')
-              })
-            }
-          }
-        }
-      },
-      responses: createStandardResponses(
-        z.object({
-          success: z.literal(true),
-          data: z.object({
-            removedCount: z.number(),
-            message: z.string()
-          })
-        })
-      )
-    }),
-    async (c) => {
-      const { id: projectId } = c.req.valid('param')
-      const { fileIds } = c.req.valid('json')
-
-      const project = await projectService.getById(projectId)
-      if (!project) {
-        throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
-      }
-
-      const result = await removeSummariesFromFiles(projectId, fileIds)
-
-      return c.json(
-        {
-          success: true as const,
-          data: result
-        },
-        200
-      )
-    }
-  )
   .openapi(getProjectStatisticsRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
 
@@ -1138,235 +796,6 @@ export const projectRoutes = new OpenAPIHono()
       },
       200
     )
-  })
-  .openapi(startBatchSummarizationRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-    const { strategy, options } = c.req.valid('json')
-
-    const project = await projectService.getById(projectId)
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
-    }
-
-    try {
-      // Prepare batch options
-      const batchOptions = BatchSummaryOptionsSchema.parse({
-        strategy,
-        ...options
-      })
-
-      // Start batch summarization (async iterator)
-      const progressIterator = enhancedSummarizationService.batchSummarizeWithProgress(projectId, batchOptions)
-
-      // Get first progress update
-      const firstProgress = await progressIterator.next()
-      if (firstProgress.done || !firstProgress.value) {
-        throw new ApiError(500, 'Failed to start batch summarization', 'BATCH_START_ERROR')
-      }
-
-      // Store iterator for streaming updates (would need WebSocket or SSE for real-time)
-      // For now, just return initial progress
-      const payload = {
-        success: true as const,
-        data: firstProgress.value
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to start batch summarization: ${error instanceof Error ? error.message : String(error)}`,
-        'BATCH_SUMMARIZATION_ERROR'
-      )
-    }
-  })
-  .openapi(getBatchProgressRoute, async (c) => {
-    const { id: projectId, batchId } = c.req.valid('param')
-
-    try {
-      const progress = fileSummarizationTracker.getSummarizationProgress(projectId)
-
-      if (!progress || progress.batchId !== batchId) {
-        throw new ApiError(404, `Batch ${batchId} not found`, 'BATCH_NOT_FOUND')
-      }
-
-      const payload = {
-        success: true as const,
-        data: {
-          batchId: progress.batchId,
-          currentGroup: progress.currentGroup || 'Initializing',
-          groupIndex: progress.processedGroups,
-          totalGroups: progress.totalGroups,
-          filesProcessed: progress.processedFiles,
-          totalFiles: progress.totalFiles,
-          tokensUsed: progress.estimatedTokensUsed,
-          errors: progress.errors || []
-        }
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to get batch progress: ${error instanceof Error ? error.message : String(error)}`,
-        'GET_PROGRESS_ERROR'
-      )
-    }
-  })
-  .openapi(cancelBatchSummarizationRoute, async (c) => {
-    const { id: projectId, batchId } = c.req.valid('param')
-
-    try {
-      // Cancel in tracker
-      const cancelledInTracker = fileSummarizationTracker.cancelBatch(batchId)
-
-      // Cancel in service
-      const cancelledInService = enhancedSummarizationService.cancelBatch(batchId)
-
-      if (!cancelledInTracker && !cancelledInService) {
-        throw new ApiError(404, `Batch ${batchId} not found or already completed`, 'BATCH_NOT_FOUND')
-      }
-
-      const payload: z.infer<typeof OperationSuccessResponseSchema> = {
-        success: true,
-        message: 'Batch summarization cancelled successfully'
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to cancel batch: ${error instanceof Error ? error.message : String(error)}`,
-        'CANCEL_BATCH_ERROR'
-      )
-    }
-  })
-  .openapi(getSummarizationStatsRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-
-    const project = await projectService.getById(projectId)
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
-    }
-
-    try {
-      const stats = await fileSummarizationTracker.getSummarizationStats(projectId)
-
-      const normalized = {
-        projectId: stats.projectId,
-        totalFiles: stats.totalFiles,
-        summarizedFiles: stats.summarizedFiles,
-        unsummarizedFiles: stats.unsummarizedFiles,
-        staleFiles: stats.staleFiles,
-        failedFiles: stats.failedFiles,
-        averageTokensPerFile: stats.averageTokensPerFile,
-        lastBatchRun: stats.lastBatchRun,
-        filesByStatus: {
-          pending: (stats.filesByStatus as any).pending ?? 0,
-          in_progress: (stats.filesByStatus as any).in_progress ?? 0,
-          completed: (stats.filesByStatus as any).completed ?? 0,
-          failed: (stats.filesByStatus as any).failed ?? 0,
-          skipped: (stats.filesByStatus as any).skipped ?? 0
-        }
-      }
-
-      const payload = {
-        success: true as const,
-        data: normalized
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to get summarization stats: ${error instanceof Error ? error.message : String(error)}`,
-        'GET_STATS_ERROR'
-      )
-    }
-  })
-  .openapi(previewFileGroupsRoute, async (c) => {
-    const { id: projectId } = c.req.valid('param')
-    const { strategy, maxGroupSize, includeStaleFiles } = c.req.valid('json')
-
-    const project = await projectService.getById(projectId)
-    if (!project) {
-      throw new ApiError(404, `Project not found: ${projectId}`, 'PROJECT_NOT_FOUND')
-    }
-
-    try {
-      // Get files to group
-      const unsummarizedFiles = await fileSummarizationTracker.getUnsummarizedFiles(projectId)
-      const staleFiles = includeStaleFiles ? await fileSummarizationTracker.getStaleFiles(projectId) : []
-
-      // Combine and deduplicate
-      const fileMap = new Map()
-      const allFilesToGroup = [...unsummarizedFiles, ...staleFiles]
-      allFilesToGroup.forEach((f) => fileMap.set(f.id, f))
-      const filesToGroup = Array.from(fileMap.values())
-
-      if (filesToGroup.length === 0) {
-        const payload = {
-          success: true as const,
-          data: {
-            groups: [],
-            totalFiles: 0,
-            totalGroups: 0,
-            estimatedTotalTokens: 0
-          }
-        }
-        return c.json(payload, 200)
-      }
-
-      // Group files
-      const groups = await fileGroupingService.groupFilesByStrategy(filesToGroup, strategy, projectId, { maxGroupSize })
-
-      // Estimate tokens
-      let totalTokens = 0
-      const groupsWithTokens = groups.map((group) => {
-        const estimatedTokens = group.fileIds.reduce((sum, fileId) => {
-          const file = fileMap.get(fileId)
-          return sum + Math.ceil((file?.content?.length || 0) / 4)
-        }, 0)
-        totalTokens += estimatedTokens
-        return {
-          ...group,
-          estimatedTokens
-        }
-      })
-
-      const payload = {
-        success: true as const,
-        data: {
-          groups: groupsWithTokens,
-          totalFiles: filesToGroup.length,
-          totalGroups: groups.length,
-          estimatedTotalTokens: totalTokens
-        }
-      }
-
-      return c.json(payload, 200)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      throw new ApiError(
-        500,
-        `Failed to preview file groups: ${error instanceof Error ? error.message : String(error)}`,
-        'PREVIEW_GROUPS_ERROR'
-      )
-    }
   })
 
 export type ProjectRouteTypes = typeof projectRoutes

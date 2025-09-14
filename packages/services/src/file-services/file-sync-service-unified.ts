@@ -8,8 +8,6 @@ import ignorePackage, { type Ignore } from 'ignore'
 const filesConfig = getFilesConfig()
 const ALLOWED_FILE_CONFIGS = filesConfig.allowedExtensions
 const DEFAULT_FILE_EXCLUSIONS = filesConfig.defaultExclusions
-const MAX_FILE_SIZE_FOR_SUMMARY = filesConfig.maxFileSizeForSummary
-import { truncateForSummarization } from '@promptliano/shared'
 import { retryOperation } from '../utils/retry-operation'
 import {
   getProjectFiles,
@@ -17,7 +15,6 @@ import {
   bulkUpdateProjectFiles,
   bulkDeleteProjectFiles,
   listProjects,
-  summarizeSingleFile,
   type FileSyncData
 } from '../project-service'
 import { resolvePath, normalizePathForDb as normalizePathForDbUtil } from '../utils/path-utils'
@@ -531,18 +528,15 @@ export async function syncFileSet(
       // Always compute checksum from the full content for change detection
       checksum = computeChecksum(rawContent)
 
-      // Truncate content for storage and summarization to control AI costs
-      const truncationResult = truncateForSummarization(rawContent)
-      content = truncationResult.content
+      // Store the full content
+      content = rawContent
 
-      if (truncationResult.wasTruncated) {
-        logger.debug(`File truncated for summarization`, {
+      if (rawContent.length > 100000) {
+        logger.debug(`Large file detected`, {
           path: normalizedRelativePath,
           project: `${project.name} (ID: ${project.id})`,
           fileSize: stats.size,
-          originalLength: truncationResult.originalLength,
-          truncatedLength: content.length,
-          reduction: `${Math.round((1 - content.length / truncationResult.originalLength) * 100)}%`
+          contentLength: content.length
         })
       }
 
@@ -552,9 +546,9 @@ export async function syncFileSet(
         extension = fileName // e.g., '.env'
       }
 
-      // Analyze imports/exports for supported file types (skip if truncated)
+      // Analyze imports/exports for supported file types
       let codeAnalysis = null
-      if (['.js', '.jsx', '.ts', '.tsx', '.py'].includes(extension) && !truncationResult.wasTruncated) {
+      if (['.js', '.jsx', '.ts', '.tsx', '.py'].includes(extension)) {
         codeAnalysis = analyzeCodeImportsExports(content, fileName)
       }
 
@@ -897,7 +891,7 @@ export function createFileChangePlugin() {
           const updatedFile = allFiles.find((f) => normalizePathForDbUtil(f.path) === relativeChangedPath)
 
           if (event === 'deleted') {
-            pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No summarization needed.`)
+            pluginLogger.verbose(`File ${relativeChangedPath} was deleted. No downstream analysis needed.`)
             // Potentially trigger other cleanup actions for deleted files if necessary.
             return
           }
@@ -911,9 +905,7 @@ export function createFileChangePlugin() {
             return
           }
 
-          // Re-summarize the (created or modified) file
-          pluginLogger.verbose(`Summarizing ${updatedFile.path}...`)
-          await summarizeSingleFile(updatedFile, true) // From summarize-files-agent - force=true for new/updated files
+          // processing ends after sync
           pluginLogger.verbose(`Finished processing ${event} for ${changedFilePath}`)
         } catch (err) {
           pluginLogger.error('Error in debounced file change sync', err)

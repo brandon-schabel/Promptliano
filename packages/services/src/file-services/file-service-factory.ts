@@ -444,9 +444,7 @@ export function createTokenEstimator() {
       tokens += this.estimateTokens(file.path + file.name)
 
       // Summary
-      if (file.summary) {
-        tokens += this.estimateTokens(file.summary)
-      }
+      // Summary removed; no additional tokens for summary
 
       // Content (cap at 1000 chars for estimation)
       if (file.content) {

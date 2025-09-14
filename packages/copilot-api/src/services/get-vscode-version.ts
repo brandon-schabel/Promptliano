@@ -1,4 +1,4 @@
-const FALLBACK = "1.98.1"
+const FALLBACK = '1.98.1'
 
 export async function getVSCodeVersion() {
   const controller = new AbortController()
@@ -7,12 +7,9 @@ export async function getVSCodeVersion() {
   }, 5000)
 
   try {
-    const response = await fetch(
-      "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=visual-studio-code-bin",
-      {
-        signal: controller.signal,
-      },
-    )
+    const response = await fetch('https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=visual-studio-code-bin', {
+      signal: controller.signal
+    })
 
     const pkgbuild = await response.text()
     const pkgverRegex = /pkgver=([0-9.]+)/

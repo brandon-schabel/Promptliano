@@ -48,8 +48,6 @@ export const providerConfigSchema = z.object({
 export const filesConfigSchema = z.object({
   allowedExtensions: z.array(z.string()),
   defaultExclusions: z.array(z.string()),
-  maxFileSizeForSummary: z.number().positive(),
-  maxTokensForSummary: z.number().positive(),
   charsPerTokenEstimate: z.number().positive()
 })
 

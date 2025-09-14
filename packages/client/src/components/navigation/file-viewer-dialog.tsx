@@ -396,7 +396,8 @@ export function FileViewerDialog({
                                 modified: modified.join('\n')
                               }
                             }
-                            const diff = getDiffString(diffData) ||
+                            const diff =
+                              getDiffString(diffData) ||
                               (typeof diffData === 'string' ? diffData : JSON.stringify(diffData))
                             const { original, modified } = parseDiff(diff || '')
                             return (

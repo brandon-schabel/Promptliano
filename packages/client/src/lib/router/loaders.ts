@@ -30,11 +30,6 @@ export async function projectLoader({
       queryKey: ['projectFiles', projectId],
       queryFn: () => client.projects.getProjectFiles(projectId),
       staleTime: 2 * 60 * 1000 // 2 minutes
-    }),
-    context.queryClient.prefetchQuery({
-      queryKey: ['projectSummary', projectId],
-      queryFn: () => client.projects.getProjectSummary(projectId),
-      staleTime: 10 * 60 * 1000 // 10 minutes
     })
   ])
 

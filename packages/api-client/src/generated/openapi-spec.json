@@ -195,14 +195,6 @@
           "content": {
             "type": ["string", "null"]
           },
-          "summary": {
-            "type": ["string", "null"]
-          },
-          "summaryLastUpdated": {
-            "type": ["integer", "null"],
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
           "meta": {
             "type": ["string", "null"]
           },
@@ -292,8 +284,6 @@
           "lastModified",
           "contentType",
           "content",
-          "summary",
-          "summaryLastUpdated",
           "meta",
           "checksum",
           "imports",
@@ -304,18 +294,50 @@
           "updatedAt"
         ]
       },
-      "ProjectSummaryResponse": {
+      "SuggestFilesResponse": {
         "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
             "enum": [true]
           },
-          "summary": {
-            "type": "string"
+          "data": {
+            "type": "object",
+            "properties": {
+              "suggestedFiles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "fileType": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["path", "relevance", "reason", "fileType"]
+                }
+              },
+              "totalFiles": {
+                "type": "number"
+              },
+              "processingTime": {
+                "type": "number"
+              }
+            },
+            "required": ["suggestedFiles", "totalFiles", "processingTime"]
           }
         },
-        "required": ["success", "summary"]
+        "required": ["success", "data"]
       },
       "Ticket": {
         "type": "object",
@@ -912,34 +934,6 @@
         },
         "required": ["fileIds"]
       },
-      "SuggestedFilesResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [true]
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "recommendedFileIds": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "combinedSummaries": {
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              }
-            },
-            "required": ["recommendedFileIds"]
-          }
-        },
-        "required": ["success", "data"]
-      },
       "SuggestFilesBody": {
         "type": "object",
         "properties": {
@@ -1249,7 +1243,7 @@
                   "type": "number"
                 },
                 "projectId": {
-                  "type": "number"
+                  "type": ["number", "null"]
                 },
                 "title": {
                   "type": "string"
@@ -1282,7 +1276,7 @@
                 "type": "number"
               },
               "projectId": {
-                "type": "number"
+                "type": ["number", "null"]
               },
               "title": {
                 "type": "string"
@@ -1320,7 +1314,7 @@
             "exclusiveMinimum": 0
           }
         },
-        "required": ["title", "projectId"]
+        "required": ["title"]
       },
       "MessageListResponse": {
         "type": "object",
@@ -4362,13 +4356,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757304789797
+            "example": 1757819441667
           },
           "updated": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757304789797
+            "example": 1757819441667
           }
         },
         "required": ["id", "projectId", "name", "command", "created", "updated"]
@@ -4487,13 +4481,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757304789797
+            "example": 1757819441667
           },
           "completedAt": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757304789797
+            "example": 1757819441667
           }
         },
         "required": ["id", "toolId", "serverId", "status", "error", "startedAt", "completedAt"]
@@ -4576,6 +4570,230 @@
             "items": {
               "$ref": "#/components/schemas/MCPResource"
             }
+          }
+        },
+        "required": ["success", "data"]
+      },
+      "ConfigLocationsData": {
+        "type": "object",
+        "properties": {
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "exists": {
+                  "type": "boolean"
+                },
+                "priority": {
+                  "type": "number"
+                }
+              },
+              "required": ["path", "exists", "priority"]
+            }
+          }
+        },
+        "required": ["locations"]
+      },
+      "ConfigLocationsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConfigLocationsData"
+          }
+        },
+        "required": ["success", "data"]
+      },
+      "MergedConfigData": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": "object",
+            "properties": {
+              "mcpServers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["stdio", "http"],
+                      "default": "stdio"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "env": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "timeout": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["command"]
+                }
+              },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["promptString", "promptNumber", "promptBoolean"]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "default": {},
+                    "password": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["type", "id", "description"]
+                }
+              },
+              "extends": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "required": ["config"]
+      },
+      "MergedConfigResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MergedConfigData"
+          }
+        },
+        "required": ["success", "data"]
+      },
+      "ProjectConfigData": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": ["object", "null"],
+            "properties": {
+              "mcpServers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["stdio", "http"],
+                      "default": "stdio"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "env": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "timeout": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["command"]
+                }
+              },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["promptString", "promptNumber", "promptBoolean"]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "default": {},
+                    "password": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["type", "id", "description"]
+                }
+              },
+              "extends": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": ["config"]
+      },
+      "ProjectConfigResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProjectConfigData"
           }
         },
         "required": ["success", "data"]
@@ -5900,6 +6118,53 @@
         },
         "required": ["success", "data"]
       },
+      "ProjectScript": {
+        "type": "object",
+        "properties": {
+          "packageName": {
+            "type": "string",
+            "description": "Name from the package.json"
+          },
+          "packagePath": {
+            "type": "string",
+            "description": "Absolute path to the package directory"
+          },
+          "scriptName": {
+            "type": "string",
+            "description": "Script key in package.json"
+          },
+          "command": {
+            "type": "string",
+            "description": "Script command content"
+          },
+          "packageManager": {
+            "type": "string",
+            "enum": ["npm", "bun", "yarn", "pnpm"],
+            "description": "Inferred package manager"
+          },
+          "workspace": {
+            "type": "boolean",
+            "description": "True if located under a workspace directory like packages/*"
+          }
+        },
+        "required": ["packageName", "packagePath", "scriptName", "command", "packageManager", "workspace"]
+      },
+      "ProjectScriptListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectScript"
+            }
+          }
+        },
+        "required": ["success", "data"]
+      },
       "ProcessDetailResponse": {
         "type": "object",
         "properties": {
@@ -6147,6 +6412,27 @@
           }
         },
         "required": ["success", "data"]
+      },
+      "CopilotProxyHealth": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "upstream": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success", "upstream"]
       },
       "ModelConfig": {
         "type": "object",
@@ -7795,14 +8081,6 @@
                           "contentType": {
                             "type": ["string", "null"]
                           },
-                          "summary": {
-                            "type": ["string", "null"]
-                          },
-                          "summaryLastUpdated": {
-                            "type": ["integer", "null"],
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "meta": {
                             "type": ["string", "null"]
                           },
@@ -7891,8 +8169,6 @@
                           "size",
                           "lastModified",
                           "contentType",
-                          "summary",
-                          "summaryLastUpdated",
                           "meta",
                           "checksum",
                           "imports",
@@ -8268,343 +8544,6 @@
         }
       }
     },
-    "/api/projects/{id}/summary": {
-      "get": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Get a combined summary of all files in the project",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectSummaryResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/summary/advanced": {
-      "post": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Get an advanced project summary with customizable options",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "description": "Summary generation options",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "depth": {
-                    "type": "string",
-                    "enum": ["minimal", "standard", "detailed"]
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": ["xml", "json", "markdown"]
-                  },
-                  "strategy": {
-                    "type": "string",
-                    "enum": ["fast", "balanced", "thorough"]
-                  },
-                  "focus": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "includeImports": {
-                    "type": "boolean"
-                  },
-                  "includeExports": {
-                    "type": "boolean"
-                  },
-                  "maxTokens": {
-                    "type": "number",
-                    "minimum": 100,
-                    "maximum": 100000
-                  },
-                  "progressive": {
-                    "type": "boolean"
-                  },
-                  "expand": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "includeMetrics": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/summary/metrics": {
-      "get": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Get metrics about project summary generation",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/summary/invalidate": {
-      "post": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Invalidate the project summary cache",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/projects/{id}/suggest-files": {
       "post": {
         "tags": ["Projects", "Files", "AI"],
@@ -8634,14 +8573,18 @@
                     "minLength": 1,
                     "description": "The prompt to analyze for file suggestions"
                   },
+                  "userInput": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Alias for prompt for backward compatibility"
+                  },
                   "limit": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "default": 10,
                     "description": "Maximum number of files to suggest"
                   }
-                },
-                "required": ["prompt"]
+                }
               }
             }
           }
@@ -8652,268 +8595,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/File"
-                      }
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/files/summarize": {
-      "post": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Summarize specified files in a project",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fileIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "description": "Array of file IDs to summarize"
-                  },
-                  "force": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Force re-summarization of already summarized files"
-                  }
-                },
-                "required": ["fileIds"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "included": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "updatedFiles": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/File"
-                          }
-                        },
-                        "skippedReasons": {
-                          "type": "object",
-                          "properties": {
-                            "empty": {
-                              "type": "number"
-                            },
-                            "tooLarge": {
-                              "type": "number"
-                            },
-                            "errors": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["empty", "tooLarge", "errors"]
-                        }
-                      },
-                      "required": ["included", "skipped", "updatedFiles"]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/files/remove-summaries": {
-      "post": {
-        "tags": ["Projects", "Files"],
-        "summary": "Remove summaries from specified files",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fileIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "description": "Array of file IDs to remove summaries from"
-                  }
-                },
-                "required": ["fileIds"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "removedCount": {
-                          "type": "number"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["removedCount", "message"]
-                    }
-                  },
-                  "required": ["success", "data"]
+                  "$ref": "#/components/schemas/SuggestFilesResponse"
                 }
               }
             }
@@ -9035,23 +8717,9 @@
                                 }
                               },
                               "required": ["source", "tests", "docs", "config", "other"]
-                            },
-                            "filesWithSummaries": {
-                              "type": "number"
-                            },
-                            "averageSummaryLength": {
-                              "type": "number"
                             }
                           },
-                          "required": [
-                            "totalFiles",
-                            "totalSize",
-                            "filesByType",
-                            "sizeByType",
-                            "filesByCategory",
-                            "filesWithSummaries",
-                            "averageSummaryLength"
-                          ]
+                          "required": ["totalFiles", "totalSize", "filesByType", "sizeByType", "filesByCategory"]
                         },
                         "ticketStats": {
                           "type": "object",
@@ -9187,674 +8855,6 @@
                         }
                       },
                       "required": ["fileStats", "ticketStats", "taskStats", "promptStats", "activityStats"]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/batch-summarize": {
-      "post": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Start batch summarization of unsummarized files",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "strategy": {
-                    "type": "string",
-                    "enum": ["imports", "directory", "semantic", "mixed"],
-                    "default": "mixed"
-                  },
-                  "options": {
-                    "type": "object",
-                    "properties": {
-                      "maxGroupSize": {
-                        "type": "number",
-                        "minimum": 1,
-                        "maximum": 50
-                      },
-                      "maxTokensPerGroup": {
-                        "type": "number",
-                        "minimum": 1000,
-                        "maximum": 100000
-                      },
-                      "priorityThreshold": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 10
-                      },
-                      "maxConcurrentGroups": {
-                        "type": "number",
-                        "minimum": 1,
-                        "maximum": 10
-                      },
-                      "staleThresholdDays": {
-                        "type": "number",
-                        "minimum": 1,
-                        "maximum": 365
-                      },
-                      "includeStaleFiles": {
-                        "type": "boolean"
-                      },
-                      "retryFailedFiles": {
-                        "type": "boolean"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "batchId": {
-                          "type": "string"
-                        },
-                        "currentGroup": {
-                          "type": "string"
-                        },
-                        "groupIndex": {
-                          "type": "number"
-                        },
-                        "totalGroups": {
-                          "type": "number"
-                        },
-                        "filesProcessed": {
-                          "type": "number"
-                        },
-                        "totalFiles": {
-                          "type": "number"
-                        },
-                        "tokensUsed": {
-                          "type": "number"
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "batchId",
-                        "currentGroup",
-                        "groupIndex",
-                        "totalGroups",
-                        "filesProcessed",
-                        "totalFiles",
-                        "tokensUsed",
-                        "errors"
-                      ]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/batch-summarize/{batchId}": {
-      "get": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Get progress of a batch summarization operation",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "batchId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "batchId": {
-                          "type": "string"
-                        },
-                        "currentGroup": {
-                          "type": "string"
-                        },
-                        "groupIndex": {
-                          "type": "number"
-                        },
-                        "totalGroups": {
-                          "type": "number"
-                        },
-                        "filesProcessed": {
-                          "type": "number"
-                        },
-                        "totalFiles": {
-                          "type": "number"
-                        },
-                        "tokensUsed": {
-                          "type": "number"
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "batchId",
-                        "currentGroup",
-                        "groupIndex",
-                        "totalGroups",
-                        "filesProcessed",
-                        "totalFiles",
-                        "tokensUsed",
-                        "errors"
-                      ]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Cancel a running batch summarization",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "batchId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/summarization-stats": {
-      "get": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Get file summarization statistics for a project",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "projectId": {
-                          "type": "number"
-                        },
-                        "totalFiles": {
-                          "type": "number"
-                        },
-                        "summarizedFiles": {
-                          "type": "number"
-                        },
-                        "unsummarizedFiles": {
-                          "type": "number"
-                        },
-                        "staleFiles": {
-                          "type": "number"
-                        },
-                        "failedFiles": {
-                          "type": "number"
-                        },
-                        "averageTokensPerFile": {
-                          "type": "number"
-                        },
-                        "lastBatchRun": {
-                          "type": "number"
-                        },
-                        "filesByStatus": {
-                          "type": "object",
-                          "properties": {
-                            "pending": {
-                              "type": "number"
-                            },
-                            "in_progress": {
-                              "type": "number"
-                            },
-                            "completed": {
-                              "type": "number"
-                            },
-                            "failed": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["pending", "in_progress", "completed", "failed", "skipped"]
-                        }
-                      },
-                      "required": [
-                        "projectId",
-                        "totalFiles",
-                        "summarizedFiles",
-                        "unsummarizedFiles",
-                        "staleFiles",
-                        "failedFiles",
-                        "averageTokensPerFile",
-                        "filesByStatus"
-                      ]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/preview-file-groups": {
-      "post": {
-        "tags": ["Projects", "Files", "AI"],
-        "summary": "Preview how files would be grouped for summarization",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "strategy": {
-                    "type": "string",
-                    "enum": ["imports", "directory", "semantic", "mixed"],
-                    "default": "mixed"
-                  },
-                  "maxGroupSize": {
-                    "type": "number",
-                    "minimum": 1,
-                    "maximum": 50
-                  },
-                  "includeStaleFiles": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [true]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "groups": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "strategy": {
-                                "type": "string",
-                                "enum": ["imports", "directory", "semantic", "mixed"]
-                              },
-                              "fileIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "estimatedTokens": {
-                                "type": "number"
-                              },
-                              "priority": {
-                                "type": "number"
-                              }
-                            },
-                            "required": ["id", "name", "strategy", "fileIds", "priority"]
-                          }
-                        },
-                        "totalFiles": {
-                          "type": "number"
-                        },
-                        "totalGroups": {
-                          "type": "number"
-                        },
-                        "estimatedTotalTokens": {
-                          "type": "number"
-                        }
-                      },
-                      "required": ["groups", "totalFiles", "totalGroups", "estimatedTotalTokens"]
                     }
                   },
                   "required": ["success", "data"]
@@ -10367,8 +9367,85 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuggestedFilesResponse"
+                  "$ref": "#/components/schemas/SuggestFilesResponse"
                 }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{ticketId}/suggest-files/stream": {
+      "post": {
+        "tags": ["Tickets", "Files", "AI"],
+        "summary": "Stream progressive AI suggestions for relevant files",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Ticket identifier"
+            },
+            "required": true,
+            "description": "Ticket identifier",
+            "name": "ticketId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestFilesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -11672,16 +10749,18 @@
         }
       }
     },
-    "/api/ai/chat": {
+    "/api/ai/chat/legacy": {
       "post": {
         "tags": ["AI"],
-        "summary": "Chat completion (Vercel AI SDK compatible, streaming)",
+        "summary": "Chat completion (streaming, chat-associated)",
+        "description": "Continues a chat session identified by chatId, streams response using Vercel AI SDK via UnifiedProviderService.",
         "requestBody": {
           "required": true,
+          "description": "Chat ID, user message, provider, model, and options for the streaming AI chat completion.",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AiSdkChatRequest"
+                "$ref": "#/components/schemas/AiChatStreamRequest"
               }
             }
           }
@@ -11699,7 +10778,27 @@
             }
           },
           "400": {
-            "description": "Bad request - invalid chat request parameters.",
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -11709,7 +10808,7 @@
             }
           },
           "500": {
-            "description": "Internal server error.",
+            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -12762,20 +11861,18 @@
         }
       }
     },
-    "/api/prompts/{promptId}": {
+    "/api/prompts/{id}": {
       "get": {
         "tags": ["Prompts"],
-        "summary": "Get a specific prompt by its ID",
+        "summary": "Get a prompt by ID (basic)",
         "parameters": [
           {
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+              "type": "string",
+              "pattern": "^\\d+$",
+              "example": "1"
             },
             "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           }
@@ -12915,17 +12012,15 @@
       },
       "delete": {
         "tags": ["Prompts"],
-        "summary": "Delete a prompt",
+        "summary": "Delete a prompt by ID (basic)",
         "parameters": [
           {
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+              "type": "string",
+              "pattern": "^\\d+$",
+              "example": "1"
             },
             "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           }
@@ -12937,6 +12032,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Prompts"],
+        "summary": "Update a prompt by ID (basic)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "example": "1"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromptRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptResponse"
                 }
               }
             }
@@ -13094,7 +12266,7 @@
         }
       }
     },
-    "/api/prompts/{promptId}/export": {
+    "/api/prompts/{id}/export": {
       "get": {
         "tags": ["Prompts", "Import/Export"],
         "summary": "Export a single prompt as markdown",
@@ -13500,221 +12672,6 @@
                     }
                   },
                   "required": ["success", "data"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/prompts/{id}": {
-      "get": {
-        "tags": ["Prompts"],
-        "summary": "Get a prompt by ID (basic)",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d+$",
-              "example": "1"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromptResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": ["Prompts"],
-        "summary": "Update a prompt by ID (basic)",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d+$",
-              "example": "1"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromptRequestBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromptResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Prompts"],
-        "summary": "Delete a prompt by ID (basic)",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d+$",
-              "example": "1"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
                 }
               }
             }
@@ -17701,6 +16658,55 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/chat": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Chat completion (Vercel AI SDK compatible, streaming)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSdkChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully initiated AI response stream.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Stream of response tokens (Vercel AI SDK format)"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid chat request parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
             "content": {
               "application/json": {
                 "schema": {
@@ -24262,6 +23268,603 @@
         }
       }
     },
+    "/api/projects/{id}/mcp/config/locations": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigLocationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config/merged": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergedConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config/expanded": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergedConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config": {
+      "post": {
+        "tags": ["MCP Installation"],
+        "description": "Update project MCP configuration",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mcpEnabled": {
+                    "type": "boolean"
+                  },
+                  "customInstructions": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "projectConfig": {
+                          "type": "object",
+                          "properties": {
+                            "projectId": {
+                              "type": "number"
+                            },
+                            "projectName": {
+                              "type": "string"
+                            },
+                            "mcpEnabled": {
+                              "type": "boolean"
+                            },
+                            "installedTools": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "customInstructions": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["projectId", "projectName", "mcpEnabled", "installedTools"]
+                        }
+                      },
+                      "required": ["projectConfig"]
+                    }
+                  },
+                  "required": ["success", "data"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config/save-to-location": {
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "mcpServers": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["stdio", "http"],
+                              "default": "stdio"
+                            },
+                            "command": {
+                              "type": "string"
+                            },
+                            "args": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "env": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "timeout": {
+                              "type": "number"
+                            }
+                          },
+                          "required": ["command"]
+                        }
+                      },
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["promptString", "promptNumber", "promptBoolean"]
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "default": {},
+                            "password": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["type", "id", "description"]
+                        }
+                      },
+                      "extends": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "location": {
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "location"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/mcp/config/default-for-location": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "location",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergedConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects/{id}/git/status": {
       "get": {
         "tags": ["Git", "Status"],
@@ -28149,89 +27752,6 @@
         }
       }
     },
-    "/api/projects/{id}/mcp/config": {
-      "post": {
-        "tags": ["MCP Installation"],
-        "description": "Update project MCP configuration",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1716537600000,
-              "description": "Entity ID - coerces strings to positive integers for URL parameters"
-            },
-            "required": true,
-            "description": "Entity ID - coerces strings to positive integers for URL parameters",
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mcpEnabled": {
-                    "type": "boolean"
-                  },
-                  "customInstructions": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated config",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "projectConfig": {
-                          "type": "object",
-                          "properties": {
-                            "projectId": {
-                              "type": "number"
-                            },
-                            "projectName": {
-                              "type": "string"
-                            },
-                            "mcpEnabled": {
-                              "type": "boolean"
-                            },
-                            "installedTools": {
-                              "type": "array",
-                              "items": {}
-                            },
-                            "customInstructions": {
-                              "type": "string"
-                            }
-                          },
-                          "required": ["projectId", "projectName", "mcpEnabled", "installedTools"]
-                        }
-                      },
-                      "required": ["projectConfig"]
-                    }
-                  },
-                  "required": ["success", "data"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/projects/{id}/mcp/installation/batch-install": {
       "post": {
         "tags": ["MCP Installation"],
@@ -28435,6 +27955,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProcessListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/processes/scripts": {
+      "get": {
+        "tags": ["Processes"],
+        "operationId": "listProjectScripts",
+        "summary": "List package.json scripts in the project (root + workspaces)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectScriptListResponse"
                 }
               }
             }
@@ -29082,6 +28671,9 @@
                     "type": "string",
                     "enum": ["npm", "bun", "yarn", "pnpm"],
                     "default": "bun"
+                  },
+                  "packagePath": {
+                    "type": "string"
                   }
                 },
                 "required": ["scriptName"]
@@ -29136,6 +28728,304 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/proxy/copilot/_health": {
+      "get": {
+        "operationId": "getCopilotProxyHealth",
+        "summary": "Copilot proxy health",
+        "description": "Returns basic health and configuration info and attempts a lightweight GET to the upstream /models endpoint.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopilotProxyHealth"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/embed/toggle": {
+      "post": {
+        "operationId": "postCopilotEmbedToggle",
+        "summary": "Enable or disable embedded Copilot proxy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["enabled"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["success", "enabled"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/embed/settings": {
+      "post": {
+        "operationId": "postCopilotEmbedSettings",
+        "summary": "Update embedded Copilot runtime settings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountType": {
+                    "type": "string",
+                    "enum": ["individual", "business", "enterprise"]
+                  },
+                  "rateLimitSeconds": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "rateLimitWait": {
+                    "type": "boolean"
+                  },
+                  "manualApprove": {
+                    "type": "boolean"
+                  },
+                  "showTokens": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "applied": {
+                      "type": "object",
+                      "properties": {
+                        "accountType": {
+                          "type": "string",
+                          "enum": ["individual", "business", "enterprise"]
+                        },
+                        "rateLimitSeconds": {
+                          "type": ["integer", "null"],
+                          "minimum": 0
+                        },
+                        "rateLimitWait": {
+                          "type": "boolean"
+                        },
+                        "manualApprove": {
+                          "type": "boolean"
+                        },
+                        "showTokens": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["accountType", "rateLimitSeconds", "rateLimitWait", "manualApprove", "showTokens"]
+                    }
+                  },
+                  "required": ["success", "applied"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/embed/auth/start": {
+      "post": {
+        "operationId": "postCopilotEmbedAuthStart",
+        "summary": "Start GitHub device authorization flow",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "userCode": {
+                      "type": "string"
+                    },
+                    "verificationUri": {
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "type": "number"
+                    },
+                    "interval": {
+                      "type": "number"
+                    },
+                    "device": {
+                      "type": "object",
+                      "properties": {
+                        "device_code": {
+                          "type": "string"
+                        },
+                        "user_code": {
+                          "type": "string"
+                        },
+                        "verification_uri": {
+                          "type": "string"
+                        },
+                        "expires_in": {
+                          "type": "number"
+                        },
+                        "interval": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["device_code", "user_code", "verification_uri", "expires_in", "interval"]
+                    }
+                  },
+                  "required": ["success", "userCode", "verificationUri", "expiresIn", "interval"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/embed/auth/complete": {
+      "post": {
+        "operationId": "postCopilotEmbedAuthComplete",
+        "summary": "Complete device authorization and initialize Copilot tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device": {
+                    "type": "object",
+                    "properties": {
+                      "device_code": {
+                        "type": "string"
+                      },
+                      "user_code": {
+                        "type": "string"
+                      },
+                      "verification_uri": {
+                        "type": "string"
+                      },
+                      "expires_in": {
+                        "type": "number"
+                      },
+                      "interval": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["device_code", "user_code", "verification_uri", "expires_in", "interval"]
+                  }
+                },
+                "required": ["device"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "authorized": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["success", "authorized"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/copilot/embed/status": {
+      "get": {
+        "operationId": "getCopilotEmbedStatus",
+        "summary": "Get embedded Copilot status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "authorized": {
+                      "type": "boolean"
+                    },
+                    "accountType": {
+                      "type": "string",
+                      "enum": ["individual", "business", "enterprise"]
+                    },
+                    "modelsCount": {
+                      "type": "number"
+                    },
+                    "lastRefreshed": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["success", "authorized", "accountType"]
                 }
               }
             }
@@ -30693,6 +30583,9 @@
     "mcpRoutes": {
       "ok": true
     },
+    "mcpProjectConfigRoutes": {
+      "ok": true
+    },
     "gitRoutes": {
       "ok": true
     },
@@ -30709,6 +30602,12 @@
       "ok": true
     },
     "processManagementRoutes": {
+      "ok": true
+    },
+    "copilotProxyRoutes": {
+      "ok": true
+    },
+    "copilotEmbedRoutes": {
       "ok": true
     },
     "modelConfigRoutes": {

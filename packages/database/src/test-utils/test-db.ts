@@ -477,8 +477,6 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       last_modified INTEGER,
       content_type TEXT,
       content TEXT,
-      summary TEXT,
-      summary_last_updated INTEGER,
       meta TEXT,
       checksum TEXT,
       imports TEXT,

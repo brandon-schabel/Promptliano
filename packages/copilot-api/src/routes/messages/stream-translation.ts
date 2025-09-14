@@ -1,25 +1,20 @@
-import { type ChatCompletionChunk } from "~/services/copilot/create-chat-completions"
+import { type ChatCompletionChunk } from '~/services/copilot/create-chat-completions'
 
-import {
-  type AnthropicStreamEventData,
-  type AnthropicStreamState,
-} from "./anthropic-types"
-import { mapOpenAIStopReasonToAnthropic } from "./utils"
+import { type AnthropicStreamEventData, type AnthropicStreamState } from './anthropic-types'
+import { mapOpenAIStopReasonToAnthropic } from './utils'
 
 function isToolBlockOpen(state: AnthropicStreamState): boolean {
   if (!state.contentBlockOpen) {
     return false
   }
   // Check if the current block index corresponds to any known tool call
-  return Object.values(state.toolCalls).some(
-    (tc) => tc.anthropicBlockIndex === state.contentBlockIndex,
-  )
+  return Object.values(state.toolCalls).some((tc) => tc.anthropicBlockIndex === state.contentBlockIndex)
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity
 export function translateChunkToAnthropicEvents(
   chunk: ChatCompletionChunk,
-  state: AnthropicStreamState,
+  state: AnthropicStreamState
 ): Array<AnthropicStreamEventData> {
   const events: Array<AnthropicStreamEventData> = []
 
@@ -32,20 +27,20 @@ export function translateChunkToAnthropicEvents(
 
   if (!state.messageStartSent) {
     events.push({
-      type: "message_start",
+      type: 'message_start',
       message: {
         id: chunk.id,
-        type: "message",
-        role: "assistant",
+        type: 'message',
+        role: 'assistant',
         content: [],
         model: chunk.model,
         stop_reason: null,
         stop_sequence: null,
         usage: {
           input_tokens: chunk.usage?.prompt_tokens ?? 0,
-          output_tokens: 0, // Will be updated in message_delta when finished
-        },
-      },
+          output_tokens: 0 // Will be updated in message_delta when finished
+        }
+      }
     })
     state.messageStartSent = true
   }
@@ -54,8 +49,8 @@ export function translateChunkToAnthropicEvents(
     if (isToolBlockOpen(state)) {
       // A tool block was open, so close it before starting a text block.
       events.push({
-        type: "content_block_stop",
-        index: state.contentBlockIndex,
+        type: 'content_block_stop',
+        index: state.contentBlockIndex
       })
       state.contentBlockIndex++
       state.contentBlockOpen = false
@@ -63,23 +58,23 @@ export function translateChunkToAnthropicEvents(
 
     if (!state.contentBlockOpen) {
       events.push({
-        type: "content_block_start",
+        type: 'content_block_start',
         index: state.contentBlockIndex,
         content_block: {
-          type: "text",
-          text: "",
-        },
+          type: 'text',
+          text: ''
+        }
       })
       state.contentBlockOpen = true
     }
 
     events.push({
-      type: "content_block_delta",
+      type: 'content_block_delta',
       index: state.contentBlockIndex,
       delta: {
-        type: "text_delta",
-        text: delta.content,
-      },
+        type: 'text_delta',
+        text: delta.content
+      }
     })
   }
 
@@ -90,8 +85,8 @@ export function translateChunkToAnthropicEvents(
         if (state.contentBlockOpen) {
           // Close any previously open block.
           events.push({
-            type: "content_block_stop",
-            index: state.contentBlockIndex,
+            type: 'content_block_stop',
+            index: state.contentBlockIndex
           })
           state.contentBlockIndex++
           state.contentBlockOpen = false
@@ -101,18 +96,18 @@ export function translateChunkToAnthropicEvents(
         state.toolCalls[toolCall.index] = {
           id: toolCall.id,
           name: toolCall.function.name,
-          anthropicBlockIndex,
+          anthropicBlockIndex
         }
 
         events.push({
-          type: "content_block_start",
+          type: 'content_block_start',
           index: anthropicBlockIndex,
           content_block: {
-            type: "tool_use",
+            type: 'tool_use',
             id: toolCall.id,
             name: toolCall.function.name,
-            input: {},
-          },
+            input: {}
+          }
         })
         state.contentBlockOpen = true
       }
@@ -123,12 +118,12 @@ export function translateChunkToAnthropicEvents(
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (toolCallInfo) {
           events.push({
-            type: "content_block_delta",
+            type: 'content_block_delta',
             index: toolCallInfo.anthropicBlockIndex,
             delta: {
-              type: "input_json_delta",
-              partial_json: toolCall.function.arguments,
-            },
+              type: 'input_json_delta',
+              partial_json: toolCall.function.arguments
+            }
           })
         }
       }
@@ -138,32 +133,30 @@ export function translateChunkToAnthropicEvents(
   if (choice.finish_reason) {
     if (state.contentBlockOpen) {
       events.push({
-        type: "content_block_stop",
-        index: state.contentBlockIndex,
+        type: 'content_block_stop',
+        index: state.contentBlockIndex
       })
       state.contentBlockOpen = false
     }
 
     events.push(
       {
-        type: "message_delta",
+        type: 'message_delta',
         delta: {
           stop_reason: mapOpenAIStopReasonToAnthropic(choice.finish_reason),
-          stop_sequence: null,
+          stop_sequence: null
         },
         usage: {
           input_tokens: chunk.usage?.prompt_tokens ?? 0,
           output_tokens: chunk.usage?.completion_tokens ?? 0,
-          ...(chunk.usage?.prompt_tokens_details?.cached_tokens
-            !== undefined && {
-            cache_read_input_tokens:
-              chunk.usage.prompt_tokens_details.cached_tokens,
-          }),
-        },
+          ...(chunk.usage?.prompt_tokens_details?.cached_tokens !== undefined && {
+            cache_read_input_tokens: chunk.usage.prompt_tokens_details.cached_tokens
+          })
+        }
       },
       {
-        type: "message_stop",
-      },
+        type: 'message_stop'
+      }
     )
   }
 
@@ -172,10 +165,10 @@ export function translateChunkToAnthropicEvents(
 
 export function translateErrorToAnthropicErrorEvent(): AnthropicStreamEventData {
   return {
-    type: "error",
+    type: 'error',
     error: {
-      type: "api_error",
-      message: "An unexpected error occurred during streaming.",
-    },
+      type: 'api_error',
+      message: 'An unexpected error occurred during streaming.'
+    }
   }
 }

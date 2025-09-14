@@ -366,8 +366,8 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
 const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
   // Intelligence-based presets
   {
-    name: 'Quick Summary',
-    description: 'Fast summarization using low intelligence model',
+    name: 'Concise Review',
+    description: 'Fast, concise analysis using a lightweight model',
     category: 'productivity',
     metadata: {
       intelligenceLevel: 'low',
@@ -376,7 +376,7 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
       topP: 0.9,
       frequencyPenalty: 0,
       presencePenalty: 0,
-      systemPrompt: 'Provide concise, clear summaries focusing on key points.'
+      systemPrompt: 'Provide concise, clear highlights focusing on key points.'
     },
     isSystemPreset: true,
     usageCount: 0
@@ -491,8 +491,8 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
     usageCount: 0
   },
   {
-    name: 'Summarization',
-    description: 'Concise and focused summaries',
+    name: 'Executive Overview',
+    description: 'Concise, focused overview of content',
     category: 'productivity',
     metadata: {
       temperature: 0.3,
@@ -500,7 +500,7 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
       topP: 0.9,
       frequencyPenalty: 0,
       presencePenalty: 0,
-      systemPrompt: 'You are a summarization expert. Provide concise, accurate summaries that capture key points.'
+      systemPrompt: 'Provide concise, accurate highlights that capture key points.'
     },
     isSystemPreset: true,
     usageCount: 0

@@ -1,15 +1,12 @@
-import consola from "consola"
+import consola from 'consola'
 
-import { HTTPError } from "./error"
+import { HTTPError } from './error'
 
 export const awaitApproval = async () => {
   const response = await consola.prompt(`Accept incoming request?`, {
-    type: "confirm",
+    type: 'confirm'
   })
 
   if (!response)
-    throw new HTTPError(
-      "Request rejected",
-      Response.json({ message: "Request rejected" }, { status: 403 }),
-    )
+    throw new HTTPError('Request rejected', Response.json({ message: 'Request rejected' }, { status: 403 }))
 }

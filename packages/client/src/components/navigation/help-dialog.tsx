@@ -446,20 +446,7 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                       Files
                     </span>
                     button (located directly beneath the "User Input" area). The AI will analyze your input and your
-                    project's file summaries (if available) to suggest relevant files. Add these suggestions to your
-                    "Selected Files" list.
-                    <em>
-                      (Note: This feature requires project file summarization to be enabled for your project, which in
-                      turn needs an API key to be configured on the
-                      <Link
-                        to='/providers'
-                        className='text-blue-500 hover:underline'
-                        onClick={() => onOpenChange?.(false)}
-                      >
-                        Providers
-                      </Link>
-                      page).
-                    </em>
+                    project context to suggest relevant files. Add these suggestions to your "Selected Files" list.
                   </li>
                 </ul>
                 <p className='mt-2'>
@@ -527,7 +514,7 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                   </li>
                 </ul>
 
-                <h4 className='font-semibold mt-3 mb-1'>6. Project Syncing & File Summarization (Optional)</h4>
+                <h4 className='font-semibold mt-3 mb-1'>6. Project Syncing</h4>
                 <p>
                   Promptliano automatically syncs files when you add or open a project. This allows the application to
                   understand your project's structure and content for search and AI operations.
@@ -537,19 +524,13 @@ export function HelpDialog({ open = false, onOpenChange }: HelpDialogProps) {
                   <Link to='/providers' className='text-blue-500 hover:underline' onClick={() => onOpenChange?.(false)}>
                     Providers
                   </Link>
-                  page), and you enable file summaries for your project (usually in the project's settings or a
-                  dedicated "Summary" page after creation), Promptliano will begin to create summaries of your project
-                  files. These summaries are then used as context for various AI operations, such as:
+                  page), Promptliano will use project context and smart file selection to power AI operations, such as:
                 </p>
                 <ul className='list-disc list-inside space-y-1 pl-4'>
                   <li>Providing better context to the agent when generating task plans.</li>
                   <li>Generating task lists for tickets or issues.</li>
                   <li>Improving the relevance of AI-assisted file suggestions.</li>
                 </ul>
-                <p className='mt-2'>
-                  You can typically manage summarization settings on the project's dedicated "Summary" page after the
-                  project is created.
-                </p>
 
                 <p className='mt-4'>
                   That's it! You're ready to start exploring and working with your codebase using Promptliano's

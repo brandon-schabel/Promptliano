@@ -108,19 +108,18 @@ const healthRoute = createRoute({
   }
 })
 
-export const copilotProxyRoutes = new OpenAPIHono()
-  .openapi(healthRoute, async (c) => {
-    try {
-      // Probe upstream /models to validate reachability
-      const res = await fetch(`${getUpstreamBase()}/models`, {
-        method: 'GET',
-        headers: buildProxyHeaders(c)
-      })
-      return c.json({ success: true, upstream: getUpstreamBase(), checked: true, status: res.status })
-    } catch (e: any) {
-      return c.json({ success: true, upstream: getUpstreamBase(), checked: false, error: String(e?.message || e) })
-    }
-  })
+export const copilotProxyRoutes = new OpenAPIHono().openapi(healthRoute, async (c) => {
+  try {
+    // Probe upstream /models to validate reachability
+    const res = await fetch(`${getUpstreamBase()}/models`, {
+      method: 'GET',
+      headers: buildProxyHeaders(c)
+    })
+    return c.json({ success: true, upstream: getUpstreamBase(), checked: true, status: res.status })
+  } catch (e: any) {
+    return c.json({ success: true, upstream: getUpstreamBase(), checked: false, error: String(e?.message || e) })
+  }
+})
 
 // Explicit model list passthrough for documentation clarity
 copilotProxyRoutes.get('/api/proxy/copilot/v1/models', async (c) => {

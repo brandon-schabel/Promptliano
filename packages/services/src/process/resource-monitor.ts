@@ -1,9 +1,9 @@
 /**
  * Process Resource Monitoring and Enforcement
- * 
+ *
  * This module provides real-time monitoring of process resource usage
  * and automatic enforcement of resource limits to prevent system abuse.
- * 
+ *
  * Features:
  * - Real-time CPU and memory monitoring
  * - Configurable resource limits per process
@@ -36,10 +36,10 @@ export interface ProcessResourceUsage {
 }
 
 export interface ResourceLimits {
-  maxMemoryMB: number      // Maximum memory in MB
-  maxCpuPercent: number    // Maximum CPU percentage (100% = 1 core)
-  maxThreads?: number      // Maximum number of threads
-  maxOpenFiles?: number    // Maximum open file descriptors
+  maxMemoryMB: number // Maximum memory in MB
+  maxCpuPercent: number // Maximum CPU percentage (100% = 1 core)
+  maxThreads?: number // Maximum number of threads
+  maxOpenFiles?: number // Maximum open file descriptors
   maxNetworkConnections?: number // Maximum network connections
 }
 
@@ -70,29 +70,28 @@ export class ProcessResourceMonitor extends EventEmitter {
   private monitorInterval?: ReturnType<typeof setInterval>
   private isRunning = false
   private prevWindowsCpu = new Map<number, { cpuSeconds: number; timestampMs: number }>()
-  
+
   // Configuration
   private readonly checkIntervalMs: number
   private readonly violationThreshold: number
   private readonly criticalThreshold: number
-  
-  constructor(options: {
-    checkIntervalMs?: number      // How often to check (default: 5000ms)
-    violationThreshold?: number   // Consecutive violations before action (default: 3)
-    criticalThreshold?: number    // Violations before immediate termination (default: 5)
-  } = {}) {
+
+  constructor(
+    options: {
+      checkIntervalMs?: number // How often to check (default: 5000ms)
+      violationThreshold?: number // Consecutive violations before action (default: 3)
+      criticalThreshold?: number // Violations before immediate termination (default: 5)
+    } = {}
+  ) {
     super()
-    
+
     this.checkIntervalMs = options.checkIntervalMs || 5000
     this.violationThreshold = options.violationThreshold || 3
     this.criticalThreshold = options.criticalThreshold || 5
   }
 
   // Typed event helpers limited to this monitor instance
-  override on<K extends keyof ResourceMonitorEvents>(
-    event: K,
-    listener: ResourceMonitorEvents[K]
-  ): this {
+  override on<K extends keyof ResourceMonitorEvents>(event: K, listener: ResourceMonitorEvents[K]): this {
     return super.on(event as string, listener as any)
   }
 
@@ -114,7 +113,7 @@ export class ProcessResourceMonitor extends EventEmitter {
 
     this.isRunning = true
     this.monitorInterval = setInterval(() => {
-      this.checkAllProcesses().catch(error => {
+      this.checkAllProcesses().catch((error) => {
         this.logger.error('Error during resource monitoring cycle', { error })
       })
     }, this.checkIntervalMs)
@@ -138,7 +137,7 @@ export class ProcessResourceMonitor extends EventEmitter {
 
     this.isRunning = false
     this.monitoredProcesses.clear()
-    
+
     this.logger.info('Resource monitoring stopped')
   }
 
@@ -158,7 +157,7 @@ export class ProcessResourceMonitor extends EventEmitter {
     }
 
     this.monitoredProcesses.set(processId, monitoredProcess)
-    
+
     this.logger.debug('Process added to monitoring', {
       processId,
       pid,
@@ -173,7 +172,7 @@ export class ProcessResourceMonitor extends EventEmitter {
    */
   stopMonitoringProcess(processId: string): void {
     const removed = this.monitoredProcesses.delete(processId)
-    
+
     if (removed) {
       this.logger.debug('Process removed from monitoring', { processId })
       this.emit('process-unmonitored', { processId })
@@ -209,8 +208,8 @@ export class ProcessResourceMonitor extends EventEmitter {
     monitoringDuration: number
   }> {
     const now = Date.now()
-    
-    return Array.from(this.monitoredProcesses.values()).map(process => ({
+
+    return Array.from(this.monitoredProcesses.values()).map((process) => ({
       processId: process.processId,
       pid: process.pid,
       limits: process.limits,
@@ -235,7 +234,7 @@ export class ProcessResourceMonitor extends EventEmitter {
           pid: process.pid,
           error
         })
-        
+
         // If process is not found, remove it from monitoring
         if (this.isProcessNotFoundError(error)) {
           this.stopMonitoringProcess(process.processId)
@@ -252,20 +251,20 @@ export class ProcessResourceMonitor extends EventEmitter {
   private async checkProcess(monitored: MonitoredProcess): Promise<void> {
     const usage = await this.gatherProcessStats(monitored.pid, monitored.processId)
     const now = Date.now()
-    
+
     monitored.lastCheck = now
 
     // Check for violations
     const violations = this.detectViolations(usage, monitored.limits)
-    
+
     if (violations.length > 0) {
       monitored.consecutiveViolations++
       monitored.totalViolations += violations.length
-      
+
       // Emit violation events
       for (const violation of violations) {
         this.emit('resource-violation', violation)
-        
+
         this.logger.warn('Resource violation detected', {
           processId: monitored.processId,
           pid: monitored.pid,
@@ -275,7 +274,6 @@ export class ProcessResourceMonitor extends EventEmitter {
 
       // Take action based on violation severity and count
       await this.handleViolations(monitored, violations)
-      
     } else {
       // Reset consecutive violations on normal usage
       monitored.consecutiveViolations = Math.max(0, monitored.consecutiveViolations - 1)
@@ -303,7 +301,11 @@ export class ProcessResourceMonitor extends EventEmitter {
     try {
       // Use ps command to get detailed process information
       const psOutput = await this.executeCommand([
-        'ps', '-o', 'pid,ppid,%cpu,%mem,rss,vsz,time,nlwp,comm', '-p', pid.toString()
+        'ps',
+        '-o',
+        'pid,ppid,%cpu,%mem,rss,vsz,time,nlwp,comm',
+        '-p',
+        pid.toString()
       ])
 
       const lines = psOutput.trim().split('\n')
@@ -313,7 +315,7 @@ export class ProcessResourceMonitor extends EventEmitter {
 
       const dataLine = lines[1]!
       const data = dataLine.trim().split(/\s+/)
-      
+
       // Parse ps output
       const cpuPercent = parseFloat(data[2] ?? '0') || 0
       const memPercent = parseFloat(data[3] ?? '0') || 0
@@ -342,7 +344,7 @@ export class ProcessResourceMonitor extends EventEmitter {
     } catch (error) {
       // Fallback to basic process information
       this.logger.debug('Failed to get detailed process stats, using fallback', { pid, error })
-      
+
       return {
         pid,
         processId,
@@ -392,7 +394,7 @@ export class ProcessResourceMonitor extends EventEmitter {
         const deltaWall = (now - prev.timestampMs) / 1000
         if (deltaWall > 0) {
           const cores = Math.max(1, cpus()?.length || 1)
-          cpuPercent = (deltaCpu / deltaWall) * 100 / cores
+          cpuPercent = ((deltaCpu / deltaWall) * 100) / cores
         }
       }
       this.prevWindowsCpu.set(pid, { cpuSeconds, timestampMs: now })
@@ -518,11 +520,8 @@ export class ProcessResourceMonitor extends EventEmitter {
   /**
    * Handle resource violations with appropriate actions
    */
-  private async handleViolations(
-    monitored: MonitoredProcess,
-    violations: ResourceViolation[]
-  ): Promise<void> {
-    const criticalViolations = violations.filter(v => v.severity === 'critical')
+  private async handleViolations(monitored: MonitoredProcess, violations: ResourceViolation[]): Promise<void> {
+    const criticalViolations = violations.filter((v) => v.severity === 'critical')
     const hasConsecutiveViolations = monitored.consecutiveViolations >= this.violationThreshold
     const hasCriticalViolations = criticalViolations.length > 0
     const shouldTerminate = monitored.consecutiveViolations >= this.criticalThreshold
@@ -545,7 +544,6 @@ export class ProcessResourceMonitor extends EventEmitter {
         totalViolations: monitored.totalViolations,
         violations
       })
-
     } else if (hasConsecutiveViolations) {
       // Emit warning for consecutive violations
       this.emit('resource-warning', {
@@ -568,9 +566,7 @@ export class ProcessResourceMonitor extends EventEmitter {
    */
   private isProcessNotFoundError(error: any): boolean {
     const message = error?.message?.toLowerCase() || ''
-    return message.includes('not found') || 
-           message.includes('no such process') ||
-           message.includes('access denied')
+    return message.includes('not found') || message.includes('no such process') || message.includes('access denied')
   }
 
   /**
@@ -584,7 +580,7 @@ export class ProcessResourceMonitor extends EventEmitter {
     monitoringUptime: number
   } {
     const processes = Array.from(this.monitoredProcesses.values())
-    const violatingProcesses = processes.filter(p => p.totalViolations > 0)
+    const violatingProcesses = processes.filter((p) => p.totalViolations > 0)
     const totalViolations = processes.reduce((sum, p) => sum + p.totalViolations, 0)
 
     return {
@@ -606,8 +602,13 @@ export interface ResourceMonitorEvents {
   'process-unmonitored': (data: { processId: string }) => void
   'resource-usage': (usage: ProcessResourceUsage) => void
   'resource-violation': (violation: ResourceViolation) => void
-  'resource-warning': (data: { processId: string; pid: number; consecutiveViolations: number; violations: ResourceViolation[] }) => void
-  'resource-termination-required': (data: { 
+  'resource-warning': (data: {
+    processId: string
+    pid: number
+    consecutiveViolations: number
+    violations: ResourceViolation[]
+  }) => void
+  'resource-termination-required': (data: {
     processId: string
     pid: number
     reason: string

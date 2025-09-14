@@ -1,16 +1,30 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { Context } from 'hono'
 import { parseCopilotEmbedConfig } from '../integrations/copilot-embed'
-
-// Copilot internals
-import { PATHS, ensurePaths } from '../../../copilot-api/src/lib/paths'
-import { state as copilotState } from '../../../copilot-api/src/lib/state'
-import { setupCopilotToken } from '../../../copilot-api/src/lib/token'
-import { cacheModels } from '../../../copilot-api/src/lib/utils'
-import { getDeviceCode, type DeviceCodeResponse } from '../../../copilot-api/src/services/github/get-device-code'
-import { pollAccessToken } from '../../../copilot-api/src/services/github/poll-access-token'
 import fs from 'node:fs/promises'
 import { providerKeyService } from '@promptliano/services'
+
+// Lazy-load copilot internals to keep them out of the server's TS program
+async function loadCopilot() {
+  const base = '../../../copilot-api/src'
+  const [pathsMod, utilsMod, stateMod, tokenMod, deviceMod, pollMod] = await Promise.all([
+    import(base + '/lib/paths'),
+    import(base + '/lib/utils'),
+    import(base + '/lib/state'),
+    import(base + '/lib/token'),
+    import(base + '/services/github/get-device-code'),
+    import(base + '/services/github/poll-access-token')
+  ])
+  return {
+    PATHS: (pathsMod as any).PATHS as any,
+    ensurePaths: (pathsMod as any).ensurePaths as (...a: any[]) => any,
+    copilotState: (stateMod as any).state as any,
+    setupCopilotToken: (tokenMod as any).setupCopilotToken as (...a: any[]) => any,
+    cacheModels: (utilsMod as any).cacheModels as (...a: any[]) => any,
+    getDeviceCode: (deviceMod as any).getDeviceCode as (...a: any[]) => Promise<any>,
+    pollAccessToken: (pollMod as any).pollAccessToken as (...a: any[]) => Promise<any>
+  }
+}
 
 const booleanSchema = z.boolean()
 const accountTypeSchema = z.enum(['individual', 'business', 'enterprise'])
@@ -97,7 +111,13 @@ const authStartRoute = createRoute({
             expiresIn: z.number(),
             interval: z.number(),
             device: z
-              .object({ device_code: z.string(), user_code: z.string(), verification_uri: z.string(), expires_in: z.number(), interval: z.number() })
+              .object({
+                device_code: z.string(),
+                user_code: z.string(),
+                verification_uri: z.string(),
+                expires_in: z.number(),
+                interval: z.number()
+              })
               .optional()
           })
         }
@@ -116,7 +136,13 @@ const authCompleteRoute = createRoute({
       content: {
         'application/json': {
           schema: z.object({
-            device: z.object({ device_code: z.string(), user_code: z.string(), verification_uri: z.string(), expires_in: z.number(), interval: z.number() })
+            device: z.object({
+              device_code: z.string(),
+              user_code: z.string(),
+              verification_uri: z.string(),
+              expires_in: z.number(),
+              interval: z.number()
+            })
           })
         }
       },
@@ -161,6 +187,7 @@ export const copilotEmbedRoutes = new OpenAPIHono()
     return c.json({ success: true as const, enabled })
   })
   .openapi(settingsRoute, async (c) => {
+    const { copilotState } = await loadCopilot()
     const body = c.req.valid('json')
     const applied = {
       accountType: (body.accountType || copilotState.accountType) as 'individual' | 'business' | 'enterprise',
@@ -180,6 +207,7 @@ export const copilotEmbedRoutes = new OpenAPIHono()
   })
   .openapi(authStartRoute, async (c) => {
     // Make sure paths exist prior to auth flow
+    const { ensurePaths, getDeviceCode } = await loadCopilot()
     await ensurePaths()
     const device = await getDeviceCode()
     return c.json({
@@ -192,9 +220,10 @@ export const copilotEmbedRoutes = new OpenAPIHono()
     })
   })
   .openapi(authCompleteRoute, async (c) => {
-    const { device } = c.req.valid('json') as { device: DeviceCodeResponse }
+    const { device } = c.req.valid('json') as { device: any }
 
     // Poll until GitHub returns an access token (device flow)
+    const { PATHS, ensurePaths, copilotState, setupCopilotToken, cacheModels, pollAccessToken } = await loadCopilot()
     const githubToken = await pollAccessToken(device)
 
     // Persist token and initialize Copilot token refresh
@@ -217,6 +246,7 @@ export const copilotEmbedRoutes = new OpenAPIHono()
           provider: 'copilot',
           name: 'GitHub Copilot',
           keyName: 'GitHub Copilot (keyless)',
+          customHeaders: {},
           isDefault: true,
           isActive: true,
           environment: 'production'
@@ -230,6 +260,7 @@ export const copilotEmbedRoutes = new OpenAPIHono()
     return c.json({ success: true as const, authorized: true })
   })
   .openapi(statusRoute, async (c) => {
+    const { copilotState } = await loadCopilot()
     const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
     const authorized = !!copilotState.githubToken && !!copilotState.copilotToken
     const modelsCount = copilotState.models?.data?.length

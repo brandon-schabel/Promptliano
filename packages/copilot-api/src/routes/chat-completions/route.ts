@@ -1,12 +1,12 @@
-import { Hono } from "hono"
+import { Hono } from 'hono'
 
-import { forwardError } from "~/lib/error"
+import { forwardError } from '~/lib/error'
 
-import { handleCompletion } from "./handler"
+import { handleCompletion } from './handler'
 
 export const completionRoutes = new Hono()
 
-completionRoutes.post("/", async (c) => {
+completionRoutes.post('/', async (c) => {
   try {
     return await handleCompletion(c)
   } catch (error) {

@@ -1,6 +1,6 @@
 /**
  * Integration Tests for Process Management Service
- * 
+ *
  * Tests the complete service integration including security, database persistence,
  * and service factory patterns
  */
@@ -18,12 +18,12 @@ const mockProcessRepository = {
     id: Date.now(),
     ...data
   })),
-  
+
   updateByProcessId: mock(async (processId: string, data: any) => ({
     processId,
     ...data
   })),
-  
+
   getByProcessId: mock(async (processId: string) => ({
     id: 1,
     processId,
@@ -32,8 +32,8 @@ const mockProcessRepository = {
     createdAt: Date.now(),
     updatedAt: Date.now()
   })),
-  
-  getHistory: mock(async (projectId: number, limit: number, offset: number) => ([
+
+  getHistory: mock(async (projectId: number, limit: number, offset: number) => [
     {
       id: 1,
       processId: 'proc_1',
@@ -43,7 +43,7 @@ const mockProcessRepository = {
       createdAt: Date.now() - 1000,
       updatedAt: Date.now()
     }
-  ]))
+  ])
 }
 
 const mockLogRepository = {
@@ -51,8 +51,8 @@ const mockLogRepository = {
     id: Date.now(),
     ...data
   })),
-  
-  getByRunId: mock(async (runId: number, limit?: number, offset?: number) => ([
+
+  getByRunId: mock(async (runId: number, limit?: number, offset?: number) => [
     {
       id: 1,
       runId,
@@ -61,9 +61,9 @@ const mockLogRepository = {
       content: 'Test log line',
       lineNumber: 1
     }
-  ])),
-  
-  getByType: mock(async (runId: number, type: string) => ([]))
+  ]),
+
+  getByType: mock(async (runId: number, type: string) => [])
 }
 
 const mockPortRepository = {
@@ -71,8 +71,8 @@ const mockPortRepository = {
     id: Date.now(),
     ...data
   })),
-  
-  getByProject: mock(async (projectId: number) => ([
+
+  getByProject: mock(async (projectId: number) => [
     {
       id: 1,
       projectId,
@@ -83,10 +83,10 @@ const mockPortRepository = {
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
-  ])),
-  
-  getByState: mock(async (projectId: number, state: string) => ([])),
-  
+  ]),
+
+  getByState: mock(async (projectId: number, state: string) => []),
+
   releasePort: mock(async (projectId: number, port: number) => true)
 }
 
@@ -97,7 +97,7 @@ describe('Process Management Service Integration', () => {
   beforeEach(async () => {
     // Create temporary directory for testing
     tempDir = await mkdtemp(join(tmpdir(), 'process-service-test-'))
-    
+
     // Create service with mocked dependencies
     service = createProcessManagementService({
       processRepository: mockProcessRepository,
@@ -105,7 +105,7 @@ describe('Process Management Service Integration', () => {
       portRepository: mockPortRepository,
       sandboxRoot: tempDir
     })
-    
+
     // Create a test package.json
     await writeFile(
       join(tempDir, 'package.json'),
@@ -120,9 +120,9 @@ describe('Process Management Service Integration', () => {
     )
 
     // Reset all mocks
-    Object.values(mockProcessRepository).forEach(mock => mock.mockClear())
-    Object.values(mockLogRepository).forEach(mock => mock.mockClear())
-    Object.values(mockPortRepository).forEach(mock => mock.mockClear())
+    Object.values(mockProcessRepository).forEach((mock) => mock.mockClear())
+    Object.values(mockLogRepository).forEach((mock) => mock.mockClear())
+    Object.values(mockPortRepository).forEach((mock) => mock.mockClear())
   })
 
   afterEach(async () => {
@@ -202,15 +202,15 @@ describe('Process Management Service Integration', () => {
       const result = await service.startProcess(1, processData)
 
       // Wait for process to complete and logs to be written
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Should have written logs to database
       expect(mockLogRepository.create).toHaveBeenCalled()
-      
-      const logCall = mockLogRepository.create.mock.calls.find((call: any) => 
-        call[0].content && call[0].content.includes('Hello Database')
+
+      const logCall = mockLogRepository.create.mock.calls.find(
+        (call: any) => call[0].content && call[0].content.includes('Hello Database')
       )
-      
+
       expect(logCall).toBeDefined()
     })
 
@@ -225,7 +225,7 @@ describe('Process Management Service Integration', () => {
       const result = await service.startProcess(1, processData)
 
       // Wait for completion
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Should have updated process status
       expect(mockProcessRepository.updateByProcessId).toHaveBeenCalledWith(
@@ -277,9 +277,7 @@ describe('Process Management Service Integration', () => {
     test('should handle non-existent process logs', async () => {
       mockProcessRepository.getByProcessId.mockResolvedValueOnce(null)
 
-      await expect(service.getProcessLogs('nonexistent'))
-        .rejects
-        .toThrow(/Process.*not found/)
+      await expect(service.getProcessLogs('nonexistent')).rejects.toThrow(/Process.*not found/)
     })
   })
 
@@ -319,9 +317,7 @@ describe('Process Management Service Integration', () => {
     test('should handle kill by port when port not found', async () => {
       mockPortRepository.getByState.mockResolvedValueOnce([])
 
-      await expect(service.killByPort(1, 9999))
-        .rejects
-        .toThrow(/Port.*not found/)
+      await expect(service.killByPort(1, 9999)).rejects.toThrow(/Port.*not found/)
     })
   })
 
@@ -352,7 +348,7 @@ describe('Process Management Service Integration', () => {
 
       for (const manager of managers) {
         mockProcessRepository.create.mockClear()
-        
+
         await service.runScript(1, {
           scriptName: 'build',
           packageManager: manager as any
@@ -369,9 +365,12 @@ describe('Process Management Service Integration', () => {
 
     test('should handle script in subdirectory', async () => {
       const subdir = join(tempDir, 'subproject')
-      await writeFile(join(subdir, 'package.json'), JSON.stringify({
-        scripts: { 'subtest': 'echo "sub"' }
-      }))
+      await writeFile(
+        join(subdir, 'package.json'),
+        JSON.stringify({
+          scripts: { subtest: 'echo "sub"' }
+        })
+      )
 
       const result = await service.runScript(1, {
         scriptName: 'subtest',
@@ -390,9 +389,7 @@ describe('Process Management Service Integration', () => {
 
   describe('Error Handling', () => {
     test('should handle database persistence failures gracefully', async () => {
-      mockProcessRepository.create.mockRejectedValueOnce(
-        new Error('Database connection failed')
-      )
+      mockProcessRepository.create.mockRejectedValueOnce(new Error('Database connection failed'))
 
       // Process should still start even if DB fails
       const processData = {
@@ -407,9 +404,7 @@ describe('Process Management Service Integration', () => {
     })
 
     test('should handle log persistence failures gracefully', async () => {
-      mockLogRepository.create.mockRejectedValue(
-        new Error('Log write failed')
-      )
+      mockLogRepository.create.mockRejectedValue(new Error('Log write failed'))
 
       const processData = {
         command: 'echo',
@@ -422,24 +417,28 @@ describe('Process Management Service Integration', () => {
       const result = await service.startProcess(1, processData)
       expect(result.id).toBeDefined()
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       // Process should complete normally
     })
 
     test('should validate script names against package.json', async () => {
-      await expect(service.runScript(1, {
-        scriptName: 'nonexistent',
-        packageManager: 'bun'
-      })).rejects.toThrow(/script.*not found/i)
+      await expect(
+        service.runScript(1, {
+          scriptName: 'nonexistent',
+          packageManager: 'bun'
+        })
+      ).rejects.toThrow(/script.*not found/i)
     })
 
     test('should handle invalid package.json', async () => {
       await writeFile(join(tempDir, 'package.json'), 'invalid json{')
 
-      await expect(service.runScript(1, {
-        scriptName: 'test',
-        packageManager: 'bun'
-      })).rejects.toThrow()
+      await expect(
+        service.runScript(1, {
+          scriptName: 'test',
+          packageManager: 'bun'
+        })
+      ).rejects.toThrow()
     })
   })
 
@@ -455,9 +454,7 @@ describe('Process Management Service Integration', () => {
 
       // Security layer should prevent this (tested in security tests)
       // Here we just verify the service would call security validation
-      await expect(service.startProcess(1, dangerousProcess))
-        .rejects
-        .toThrow() // Security layer would throw
+      await expect(service.startProcess(1, dangerousProcess)).rejects.toThrow() // Security layer would throw
     })
 
     test('should enforce working directory restrictions', async () => {
@@ -468,32 +465,30 @@ describe('Process Management Service Integration', () => {
         cwd: '/etc' // Outside sandbox
       }
 
-      await expect(service.startProcess(1, outsideProcess))
-        .rejects
-        .toThrow()
+      await expect(service.startProcess(1, outsideProcess)).rejects.toThrow()
     })
   })
 
   describe('Concurrent Process Handling', () => {
     test('should handle multiple simultaneous process starts', async () => {
-      const processes = Array(5).fill(null).map((_, i) => ({
-        command: 'echo',
-        args: [`Process ${i}`],
-        name: `concurrent-${i}`,
-        cwd: tempDir
-      }))
+      const processes = Array(5)
+        .fill(null)
+        .map((_, i) => ({
+          command: 'echo',
+          args: [`Process ${i}`],
+          name: `concurrent-${i}`,
+          cwd: tempDir
+        }))
 
-      const promises = processes.map(proc => 
-        service.startProcess(1, proc)
-      )
+      const promises = processes.map((proc) => service.startProcess(1, proc))
 
       const results = await Promise.allSettled(promises)
-      
-      const successful = results.filter(r => r.status === 'fulfilled')
+
+      const successful = results.filter((r) => r.status === 'fulfilled')
       expect(successful.length).toBeGreaterThan(0)
 
       // All successful processes should have unique IDs
-      const ids = successful.map(r => (r as any).value.id)
+      const ids = successful.map((r) => (r as any).value.id)
       const uniqueIds = new Set(ids)
       expect(uniqueIds.size).toBe(ids.length)
     })
@@ -507,17 +502,17 @@ describe('Process Management Service Integration', () => {
       }
 
       const result = await service.startProcess(1, longProcess)
-      
+
       // Wait a moment for process to start
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Stop the process
       const stopped = await service.stopProcess(1, result.id)
       expect(stopped.success).toBe(true)
 
       // Should update database with stopped status
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
       expect(mockProcessRepository.updateByProcessId).toHaveBeenCalledWith(
         result.id,
         expect.objectContaining({
@@ -537,10 +532,10 @@ describe('Process Management Service Integration', () => {
       }
 
       await service.startProcess(1, processData)
-      
+
       // Shutdown should clean up all processes
       await service.shutdown?.()
-      
+
       // Verify cleanup occurred (implementation specific)
       expect(true).toBe(true) // Placeholder - actual cleanup verification would depend on implementation
     })

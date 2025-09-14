@@ -290,8 +290,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.body(readableStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
+      'Cache-Control': 'no-cache'
     })
   })
   .openapi(getProvidersRoute, async (c) => {
@@ -346,8 +345,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     return c.body(aiSDKStream.toDataStream(), 200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
+      'Cache-Control': 'no-cache'
     })
   })
   .openapi(generateTextRoute, async (c) => {

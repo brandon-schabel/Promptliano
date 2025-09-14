@@ -20,10 +20,9 @@ describe('Copilot Proxy Routes', () => {
       capturedUrl = url
       const h = new Headers(init?.headers)
       capturedAuth = h.get('authorization')
-      return new Response(
-        JSON.stringify({ data: [{ id: 'copilot-code', name: 'Copilot Code' }] }),
-        { headers: { 'content-type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ data: [{ id: 'copilot-code', name: 'Copilot Code' }] }), {
+        headers: { 'content-type': 'application/json' }
+      })
     }
 
     const mod = await import('./copilot-proxy-routes')
@@ -54,4 +53,3 @@ describe('Copilot Proxy Routes', () => {
     expect(typeof json.status).toBe('number')
   })
 })
-

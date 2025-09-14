@@ -17,10 +17,6 @@ let BASE_URL: string
 let testEnv: TestEnvironment
 
 // Schemas for direct validation of client responses' `data` part
-const SpecificProjectSummaryResponseSchema = z.object({
-  success: z.literal(true),
-  summary: z.string()
-})
 
 describe('Project API Tests', () => {
   let client: PromptlianoClient
@@ -300,14 +296,7 @@ describe('Project API Tests', () => {
     expect(Array.isArray(result.data)).toBe(true)
   })
 
-  test('GET /api/projects/{projectId}/summary - Get project summary', async () => {
-    const project = testProjects[0]
-    if (!project) return
-
-    const result = await client.projects.getProjectSummary(project.id)
-    expect(SpecificProjectSummaryResponseSchema.parse(result).success).toBe(true)
-    expect(typeof result.summary).toBe('string')
-  })
+  // Removed: project summary endpoint test (feature deprecated)
 
   test('DELETE /api/projects/{projectId} - Delete all test projects and verify', async () => {
     const projectsToDelete = [...testProjects]

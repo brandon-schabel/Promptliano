@@ -1,5 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Separator, Badge } from '@promptliano/ui'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+  Separator,
+  Badge
+} from '@promptliano/ui'
 import { usePromptlianoClient } from '@/context/promptliano-client-context'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { toast } from 'sonner'
@@ -224,7 +240,9 @@ export function CopilotEmbedPanel() {
 
           <div className='flex gap-2'>
             <Button onClick={saveSettings}>Save Settings</Button>
-            <Button variant='outline' onClick={listModels}>List Models</Button>
+            <Button variant='outline' onClick={listModels}>
+              List Models
+            </Button>
             <Button
               variant='outline'
               onClick={async () => {
@@ -245,8 +263,8 @@ export function CopilotEmbedPanel() {
           )}
           {modelsCount === 0 && (
             <div className='text-sm text-amber-500'>
-              No models returned. Set COPILOT_API_KEY (e.g., 'dummy') or add a GitHub Copilot provider key with secretRef
-              COPILOT_API_KEY.
+              No models returned. Set COPILOT_API_KEY (e.g., 'dummy') or add a GitHub Copilot provider key with
+              secretRef COPILOT_API_KEY.
             </div>
           )}
           {health && (
@@ -267,7 +285,12 @@ export function CopilotEmbedPanel() {
               <div className='space-y-2'>
                 <div className='text-sm'>Code: {auth.userCode}</div>
                 <div className='flex items-center gap-2 text-sm'>
-                  <a className='text-primary underline' href={auth.verificationUri} target='_blank' rel='noopener noreferrer'>
+                  <a
+                    className='text-primary underline'
+                    href={auth.verificationUri}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
                     {auth.verificationUri}
                   </a>
                   <Button
@@ -280,7 +303,9 @@ export function CopilotEmbedPanel() {
                 </div>
                 <div className='flex gap-2'>
                   <Button onClick={completeLogin}>I’ve Completed Verification</Button>
-                  <Button variant='outline' onClick={() => setAuth(null)}>Cancel</Button>
+                  <Button variant='outline' onClick={() => setAuth(null)}>
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}

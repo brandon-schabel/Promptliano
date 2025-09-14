@@ -17,8 +17,7 @@ export {
   MarkdownPromptManagerAction,
   AgentManagerAction,
   AIAssistantAction,
-  GitManagerAction,
-  FileSummarizationManagerAction
+  GitManagerAction
 } from './tools/shared'
 
 // Re-export error codes for backward compatibility

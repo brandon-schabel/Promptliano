@@ -46,4 +46,3 @@ export function ProcessesSidebarNav({ activeView, onViewChange, className }: Pro
     </div>
   )
 }
-

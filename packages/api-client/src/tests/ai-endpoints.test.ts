@@ -213,69 +213,6 @@ describe('AI Endpoints Integration Tests', () => {
     )
   })
 
-  describe('File Summarization', () => {
-    test.skipIf(skipAITests)(
-      'should summarize a code file',
-      async () => {
-        try {
-          const sampleCode = `
-export function calculateTotal(items: Array<{price: number, quantity: number}>): number {
-  return items.reduce((total, item) => total + (item.price * item.quantity), 0)
-}
-
-export class ShoppingCart {
-  private items: Array<{price: number, quantity: number}> = []
-  
-  addItem(price: number, quantity: number): void {
-    this.items.push({ price, quantity })
-  }
-  
-  getTotal(): number {
-    return calculateTotal(this.items)
-  }
-}
-        `
-
-          const response = await fetch(`${testEnv.baseUrl}/api/gen-ai/summarize-file`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              content: sampleCode,
-              fileName: 'shopping-cart.ts',
-              fileType: 'typescript'
-            })
-          })
-
-          expect(response.ok).toBe(true)
-          const data = await response.json()
-          expect(data.success).toBe(true)
-          expect(data.data).toBeDefined()
-          expect(data.data.summary).toBeDefined()
-          expect(typeof data.data.summary).toBe('string')
-          expect(data.data.summary.length).toBeGreaterThan(20)
-
-          // Check that summary mentions key concepts
-          const summary = data.data.summary.toLowerCase()
-          expect(
-            summary.includes('shopping') ||
-              summary.includes('cart') ||
-              summary.includes('calculate') ||
-              summary.includes('total')
-          ).toBe(true)
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
-            console.warn('LMStudio connection failed during file summarization test:', error.message)
-            expect(testEnv.config.ai.useMockWhenUnavailable).toBe(true)
-          } else {
-            throw error
-          }
-        }
-      },
-      45000
-    ) // Longer timeout for file analysis
-  })
 
   describe('Error Handling', () => {
     test('should handle invalid requests gracefully', async () => {

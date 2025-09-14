@@ -45,7 +45,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
   const { data: projectFilesData, isLoading, error } = useGetProjectFilesWithoutContent(projectId)
   const files: ProjectFileWithoutContent[] = Array.isArray(projectFilesData)
-    ? ((projectFilesData as unknown) as ProjectFileWithoutContent[])
+    ? (projectFilesData as unknown as ProjectFileWithoutContent[])
     : []
 
   const stats = React.useMemo(() => {
@@ -54,18 +54,14 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
     const fileTypeCounts: { [key: string]: number } = {}
     const fileSizeByType: { [key: string]: number } = {}
     let totalProjectSize = 0
-    let filesWithSummaries = 0
-    const summaryLengths: number[] = []
+    // Summaries removed
 
     files.forEach((file) => {
       const ext = file.extension || 'unknown'
       fileTypeCounts[ext] = (fileTypeCounts[ext] || 0) + 1
       fileSizeByType[ext] = (fileSizeByType[ext] || 0) + (file.size || 0)
       totalProjectSize += file.size || 0
-      if (file.summary && file.summary.length > 0) {
-        filesWithSummaries++
-        summaryLengths.push(file.summary.length)
-      }
+      // No summary stats
     })
 
     const popularExtensions = Object.entries(fileTypeCounts)
@@ -95,33 +91,11 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
         fill: CHART_COLORS_HSL[i % CHART_COLORS_HSL.length]
       }))
 
-    const summaryLengthBuckets = [
-      { range: '0-50', min: 0, max: 50, count: 0 },
-      { range: '51-150', min: 51, max: 150, count: 0 },
-      { range: '151-300', min: 151, max: 300, count: 0 },
-      { range: '301-500', min: 301, max: 500, count: 0 },
-      { range: '501+', min: 501, max: Infinity, count: 0 }
-    ]
-    summaryLengths.forEach((len) => {
-      const bucket = summaryLengthBuckets.find((b) => len >= b.min && len <= b.max)
-      if (bucket) bucket.count++
-    })
-    const summaryLengthChartData = summaryLengthBuckets.map((b, i) => ({
-      name: b.range,
-      count: b.count,
-      fill: CHART_COLORS_HSL[i % CHART_COLORS_HSL.length]
-    }))
-    const averageSummaryLength =
-      summaryLengths.length > 0 ? summaryLengths.reduce((a, b) => a + b, 0) / summaryLengths.length : 0
-
     return {
       fileTypeChartData,
       fileSizeChartData,
-      summaryLengthChartData,
       totalFiles: files.length,
-      totalProjectSize,
-      filesWithSummaries,
-      averageSummaryLength
+      totalProjectSize
     }
   }, [files])
 
@@ -146,10 +120,7 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
     return acc
   }, {} as ChartConfig)
 
-  const summaryLengthConfig = stats.summaryLengthChartData.reduce((acc, item) => {
-    acc[item.name] = { label: item.name, color: item.fill }
-    return acc
-  }, {} as ChartConfig)
+  // No summary length chart
 
   return (
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -202,28 +173,7 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Summary Length Distribution</CardTitle>
-          <CardDescription>Character count distribution for file summaries.</CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <ChartContainer config={summaryLengthConfig} className='min-h-[250px] w-full'>
-            <BarChart data={stats.summaryLengthChartData} margin={{ right: 20 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey='name' tickLine={false} tickMargin={10} axisLine={false} />
-              <YAxis />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey='count' radius={4}>
-                {stats.summaryLengthChartData.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      {/* Summary length charts removed */}
 
       <Card>
         <CardHeader>
@@ -239,18 +189,7 @@ export function ProjectStatsDisplay({ projectId }: ProjectStatsDisplayProps) {
             <strong>Total Project Size:</strong> {formatBytes(stats.totalProjectSize)}
           </p>
 
-          <p>
-            <strong>Files with Summaries:</strong> {stats.filesWithSummaries.toLocaleString()} (
-            {((stats.filesWithSummaries / stats.totalFiles) * 100 || 0).toFixed(1)}%)
-          </p>
-
-          <p>
-            <strong>Avg. Summary Length:</strong> {stats.averageSummaryLength.toFixed(0)} characters
-          </p>
-          <p className='text-xs text-muted-foreground pt-2'>
-            Note: "Line counts" and "Token counts" are not explicitly calculated. File sizes are in bytes. Summary
-            lengths are in characters.
-          </p>
+          {/* Summary metrics removed */}
         </CardContent>
       </Card>
     </div>

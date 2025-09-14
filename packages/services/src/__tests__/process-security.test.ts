@@ -1,6 +1,6 @@
 /**
  * Comprehensive Unit Tests for Process Security Manager
- * 
+ *
  * Tests all security validation, rate limiting, and audit functionality
  */
 
@@ -21,19 +21,26 @@ describe('ProcessSecurityManager', () => {
     // Create temporary directory for testing
     tempDir = await mkdtemp(join(tmpdir(), 'process-security-test-'))
     securityManager = new ProcessSecurityManager(tempDir)
-    
+
     // Create a test package.json
     packageJsonPath = join(tempDir, 'package.json')
-    await writeFile(packageJsonPath, JSON.stringify({
-      name: 'test-package',
-      scripts: {
-        'test': 'echo "test"',
-        'build': 'bun build',
-        'start': 'node index.js',
-        'dangerous': 'rm -rf /',
-        'injection': 'echo $(whoami)'
-      }
-    }, null, 2))
+    await writeFile(
+      packageJsonPath,
+      JSON.stringify(
+        {
+          name: 'test-package',
+          scripts: {
+            test: 'echo "test"',
+            build: 'bun build',
+            start: 'node index.js',
+            dangerous: 'rm -rf /',
+            injection: 'echo $(whoami)'
+          }
+        },
+        null,
+        2
+      )
+    )
   })
 
   afterEach(async () => {
@@ -55,9 +62,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
     })
 
     test('should block unauthorized commands for user role', async () => {
@@ -73,9 +78,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Command "git" not allowed/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/Command "git" not allowed/)
     })
 
     test('should allow more commands for admin role', async () => {
@@ -91,9 +94,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
     })
 
     test('should block dangerous arguments', async () => {
@@ -117,9 +118,7 @@ describe('ProcessSecurityManager', () => {
           projectId: 1
         }
 
-        await expect(securityManager.validateProcessConfig(config, context))
-          .rejects
-          .toThrow()
+        await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow()
       }
     })
 
@@ -138,9 +137,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Too many arguments/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/Too many arguments/)
     })
 
     test('should block overly long arguments', async () => {
@@ -157,9 +154,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Argument too long/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/Argument too long/)
     })
   })
 
@@ -177,9 +172,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
     })
 
     test('should block non-existent scripts', async () => {
@@ -195,9 +188,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Script "nonexistent" not found/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Script "nonexistent" not found/
+      )
     })
 
     test('should block scripts with dangerous patterns', async () => {
@@ -213,9 +206,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Dangerous pattern in script/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Dangerous pattern in script/
+      )
     })
 
     test('should block scripts with command injection', async () => {
@@ -231,9 +224,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Dangerous pattern in script/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Dangerous pattern in script/
+      )
     })
   })
 
@@ -241,7 +234,7 @@ describe('ProcessSecurityManager', () => {
     test('should allow paths within sandbox', async () => {
       const subdir = join(tempDir, 'subproject')
       await mkdir(subdir)
-      
+
       const config: ProcessConfig = {
         command: ['bun', 'run', 'test'],
         projectId: 1,
@@ -254,10 +247,8 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
-      
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
+
       expect(config.cwd).toContain(subdir)
     })
 
@@ -274,9 +265,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Working directory outside sandbox/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Working directory outside sandbox/
+      )
     })
 
     test('should block path traversal attempts', async () => {
@@ -292,9 +283,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Working directory outside sandbox/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Working directory outside sandbox/
+      )
     })
 
     test('should block non-existent directories', async () => {
@@ -310,9 +301,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Invalid working directory/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/Invalid working directory/)
     })
   })
 
@@ -336,9 +325,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
     })
 
     test('should block dangerous environment variables', async () => {
@@ -363,9 +350,7 @@ describe('ProcessSecurityManager', () => {
           projectId: 1
         }
 
-        await expect(securityManager.validateProcessConfig(config, context))
-          .rejects
-          .toThrow(/not allowed/)
+        await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/not allowed/)
       }
     })
 
@@ -389,9 +374,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Too many environment variables/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Too many environment variables/
+      )
     })
 
     test('should block env vars with dangerous values', async () => {
@@ -410,9 +395,9 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Dangerous pattern in environment variable/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(
+        /Dangerous pattern in environment variable/
+      )
     })
   })
 
@@ -471,9 +456,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/maxBuffer too large/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/maxBuffer too large/)
     })
   })
 
@@ -493,9 +476,7 @@ describe('ProcessSecurityManager', () => {
 
       // Should allow up to 10 requests per minute
       for (let i = 0; i < 10; i++) {
-        await expect(securityManager.validateProcessConfig(config, context))
-          .resolves
-          .toBeUndefined()
+        await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
       }
     })
 
@@ -518,9 +499,7 @@ describe('ProcessSecurityManager', () => {
       }
 
       // 11th request should be blocked
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/Too many process requests/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/Too many process requests/)
     })
 
     test('should have separate rate limits for different users', async () => {
@@ -548,14 +527,12 @@ describe('ProcessSecurityManager', () => {
       }
 
       // user1 should be blocked
-      await expect(securityManager.validateProcessConfig(config, context1))
-        .rejects
-        .toThrow(/Too many process requests from user user1/)
+      await expect(securityManager.validateProcessConfig(config, context1)).rejects.toThrow(
+        /Too many process requests from user user1/
+      )
 
       // user2 should still work
-      await expect(securityManager.validateProcessConfig(config, context2))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context2)).resolves.toBeUndefined()
     })
   })
 
@@ -565,8 +542,8 @@ describe('ProcessSecurityManager', () => {
         NODE_ENV: 'test',
         BUN_ENV: 'development',
         CUSTOM_VAR: 'value', // Not allowed
-        AWS_KEY: 'secret',   // Blocked
-        DEBUG: '1',          // Allowed
+        AWS_KEY: 'secret', // Blocked
+        DEBUG: '1', // Allowed
         PATH: '/custom/path' // Allowed
       }
 
@@ -605,17 +582,13 @@ describe('ProcessSecurityManager', () => {
       }
 
       // 6th process should be blocked
-      await expect(securityManager.validateProcessConfig(config, context))
-        .rejects
-        .toThrow(/too many running processes/)
+      await expect(securityManager.validateProcessConfig(config, context)).rejects.toThrow(/too many running processes/)
 
       // End one process
       securityManager.trackProcessEnd(context)
 
       // Now should be allowed again
-      await expect(securityManager.validateProcessConfig(config, context))
-        .resolves
-        .toBeUndefined()
+      await expect(securityManager.validateProcessConfig(config, context)).resolves.toBeUndefined()
     })
 
     test('should track concurrent processes per user', async () => {
@@ -640,10 +613,12 @@ describe('ProcessSecurityManager', () => {
       }
 
       // 11th process should be blocked
-      await expect(securityManager.validateProcessConfig(config, {
-        ...context,
-        projectId: 11
-      })).rejects.toThrow(/too many running processes/)
+      await expect(
+        securityManager.validateProcessConfig(config, {
+          ...context,
+          projectId: 11
+        })
+      ).rejects.toThrow(/too many running processes/)
     })
   })
 
@@ -712,12 +687,7 @@ describe('ProcessSecurityManager', () => {
         projectId: 1
       }
 
-      await securityManager.auditProcessExecution(
-        config, 
-        context, 
-        'blocked', 
-        'Unauthorized command'
-      )
+      await securityManager.auditProcessExecution(config, context, 'blocked', 'Unauthorized command')
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Process execution audit',

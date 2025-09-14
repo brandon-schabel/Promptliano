@@ -80,12 +80,6 @@ const showcaseCategories = {
         alt: 'Project Statistics',
         title: 'Project Analytics',
         description: 'Monitor project health and progress'
-      },
-      {
-        src: '/assets/screenshots/summarization-coverage-overview.webp',
-        alt: 'Summarization Coverage',
-        title: 'Code Understanding',
-        description: 'Track AI understanding of your codebase'
       }
     ]
   },

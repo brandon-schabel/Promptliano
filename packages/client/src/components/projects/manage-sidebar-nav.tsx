@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { SectionedSidebarNav } from '@promptliano/ui'
 import { BarChart3, Activity, FileText, Settings } from 'lucide-react'
 
-export type ManageView = 'statistics' | 'mcp-analytics' | 'summarization' | 'project-settings'
+export type ManageView = 'statistics' | 'mcp-analytics' | 'project-settings'
 
 interface ManageSidebarNavProps {
   activeView: ManageView
@@ -37,14 +37,6 @@ export function ManageSidebarNav({ activeView, onViewChange, className }: Manage
     {
       title: 'Configuration',
       items: [
-        {
-          id: 'summarization',
-          title: 'Summarization',
-          href: '#summarization',
-          icon: FileText,
-          description: 'File summary generation',
-          isActive: activeView === 'summarization'
-        },
         {
           id: 'project-settings',
           title: 'Project Settings',

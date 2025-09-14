@@ -13,7 +13,6 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ProjectSummarizationRouteImport } from './routes/project-summarization'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DevSwaggerRouteImport } from './routes/dev-swagger'
 import { Route as DevMcpRouteImport } from './routes/dev-mcp'
@@ -41,11 +40,6 @@ const PromptsRoute = PromptsRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectSummarizationRoute = ProjectSummarizationRouteImport.update({
-  id: '/project-summarization',
-  path: '/project-summarization',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -97,7 +91,6 @@ export interface FileRoutesByFullPath {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
-  '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
@@ -112,7 +105,6 @@ export interface FileRoutesByTo {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
-  '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
@@ -128,7 +120,6 @@ export interface FileRoutesById {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
-  '/project-summarization': typeof ProjectSummarizationRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
@@ -145,7 +136,6 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
-    | '/project-summarization'
     | '/projects'
     | '/prompts'
     | '/providers'
@@ -160,7 +150,6 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
-    | '/project-summarization'
     | '/projects'
     | '/prompts'
     | '/providers'
@@ -175,7 +164,6 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
-    | '/project-summarization'
     | '/projects'
     | '/prompts'
     | '/providers'
@@ -191,7 +179,6 @@ export interface RootRouteChildren {
   DevMcpRoute: typeof DevMcpRoute
   DevSwaggerRoute: typeof DevSwaggerRoute
   HealthRoute: typeof HealthRoute
-  ProjectSummarizationRoute: typeof ProjectSummarizationRoute
   ProjectsRoute: typeof ProjectsRoute
   PromptsRoute: typeof PromptsRoute
   ProvidersRoute: typeof ProvidersRoute
@@ -227,13 +214,6 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/project-summarization': {
-      id: '/project-summarization'
-      path: '/project-summarization'
-      fullPath: '/project-summarization'
-      preLoaderRoute: typeof ProjectSummarizationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -303,7 +283,6 @@ const rootRouteChildren: RootRouteChildren = {
   DevMcpRoute: DevMcpRoute,
   DevSwaggerRoute: DevSwaggerRoute,
   HealthRoute: HealthRoute,
-  ProjectSummarizationRoute: ProjectSummarizationRoute,
   ProjectsRoute: ProjectsRoute,
   PromptsRoute: PromptsRoute,
   ProvidersRoute: ProvidersRoute,

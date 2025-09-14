@@ -1,9 +1,9 @@
 /**
  * Process Audit Logging System
- * 
+ *
  * Comprehensive audit logging for all process management operations,
  * security events, and compliance tracking.
- * 
+ *
  * Features:
  * - Structured audit logging with standardized format
  * - Security event categorization and severity levels
@@ -17,7 +17,7 @@ import { ErrorFactory } from '@promptliano/shared'
 import type { SecurityContext } from './security'
 import type { ProcessConfig } from '../process-management-service'
 
-export type AuditEventType = 
+export type AuditEventType =
   | 'PROCESS_START'
   | 'PROCESS_STOP'
   | 'PROCESS_KILL'
@@ -41,7 +41,7 @@ export interface AuditEvent {
   timestamp: number
   eventType: AuditEventType
   severity: AuditSeverity
-  
+
   // Context information
   userId?: string
   userRole?: string
@@ -49,29 +49,29 @@ export interface AuditEvent {
   sessionId?: string
   clientIp?: string
   userAgent?: string
-  
+
   // Process information
   processId?: string
   pid?: number
   command?: string[]
   workingDirectory?: string
-  
+
   // Security context
   securityCheck?: string
   violationReason?: string
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-  
+
   // Resource information
   resourceUsage?: {
     memoryMB?: number
     cpuPercent?: number
     executionTimeMs?: number
   }
-  
+
   // Additional metadata
   metadata?: Record<string, any>
   tags?: string[]
-  
+
   // Outcome
   success: boolean
   errorMessage?: string
@@ -127,17 +127,19 @@ export class ProcessAuditLogger {
     failedOperations: 0
   }
 
-  constructor(options: {
-    bufferSize?: number
-    flushIntervalMs?: number
-    persistenceEnabled?: boolean
-  } = {}) {
+  constructor(
+    options: {
+      bufferSize?: number
+      flushIntervalMs?: number
+      persistenceEnabled?: boolean
+    } = {}
+  ) {
     this.bufferSize = options.bufferSize || 1000
-    
+
     // Auto-flush buffer periodically
     if (options.flushIntervalMs) {
       this.flushInterval = setInterval(() => {
-        this.flushBuffer().catch(error => {
+        this.flushBuffer().catch((error) => {
           this.logger.error('Failed to flush audit buffer', { error })
         })
       }, options.flushIntervalMs)
@@ -147,11 +149,13 @@ export class ProcessAuditLogger {
   /**
    * Log a process audit event
    */
-  async logEvent(event: Partial<AuditEvent> & {
-    eventType: AuditEventType
-    projectId: number
-    success: boolean
-  }): Promise<void> {
+  async logEvent(
+    event: Partial<AuditEvent> & {
+      eventType: AuditEventType
+      projectId: number
+      success: boolean
+    }
+  ): Promise<void> {
     const auditEvent: AuditEvent = {
       id: this.generateEventId(),
       timestamp: Date.now(),
@@ -167,7 +171,7 @@ export class ProcessAuditLogger {
     // Add to buffer or persist immediately based on configuration
     if (this.isBuffering) {
       this.eventBuffer.push(auditEvent)
-      
+
       if (this.eventBuffer.length >= this.bufferSize) {
         await this.flushBuffer()
       }
@@ -228,7 +232,7 @@ export class ProcessAuditLogger {
     resourceUsage?: any
   ): Promise<void> {
     const eventType = signal ? 'PROCESS_KILL' : 'PROCESS_STOP'
-    
+
     await this.logEvent({
       eventType,
       processId,
@@ -236,10 +240,12 @@ export class ProcessAuditLogger {
       userId: context.userId,
       userRole: context.userRole,
       success: true,
-      resourceUsage: resourceUsage ? {
-        memoryMB: resourceUsage.maxRSS ? resourceUsage.maxRSS / 1024 : undefined,
-        executionTimeMs: resourceUsage.cpuTime?.user
-      } : undefined,
+      resourceUsage: resourceUsage
+        ? {
+            memoryMB: resourceUsage.maxRSS ? resourceUsage.maxRSS / 1024 : undefined,
+            executionTimeMs: resourceUsage.cpuTime?.user
+          }
+        : undefined,
       metadata: {
         exitCode,
         signal,
@@ -295,7 +301,7 @@ export class ProcessAuditLogger {
     actionTaken: string
   ): Promise<void> {
     const severity = actionTaken === 'TERMINATED' ? 'CRITICAL' : 'WARN'
-    
+
     await this.logEvent({
       eventType: 'RESOURCE_VIOLATION',
       severity,
@@ -364,46 +370,44 @@ export class ProcessAuditLogger {
 
     // Apply filters
     if (query.startTime) {
-      filteredEvents = filteredEvents.filter(e => e.timestamp >= query.startTime!)
+      filteredEvents = filteredEvents.filter((e) => e.timestamp >= query.startTime!)
     }
-    
+
     if (query.endTime) {
-      filteredEvents = filteredEvents.filter(e => e.timestamp <= query.endTime!)
+      filteredEvents = filteredEvents.filter((e) => e.timestamp <= query.endTime!)
     }
-    
+
     if (query.userId) {
-      filteredEvents = filteredEvents.filter(e => e.userId === query.userId)
+      filteredEvents = filteredEvents.filter((e) => e.userId === query.userId)
     }
-    
+
     if (query.projectId) {
-      filteredEvents = filteredEvents.filter(e => e.projectId === query.projectId)
+      filteredEvents = filteredEvents.filter((e) => e.projectId === query.projectId)
     }
-    
+
     if (query.eventType) {
-      filteredEvents = filteredEvents.filter(e => query.eventType!.includes(e.eventType))
+      filteredEvents = filteredEvents.filter((e) => query.eventType!.includes(e.eventType))
     }
-    
+
     if (query.severity) {
-      filteredEvents = filteredEvents.filter(e => query.severity!.includes(e.severity))
+      filteredEvents = filteredEvents.filter((e) => query.severity!.includes(e.severity))
     }
-    
+
     if (query.success !== undefined) {
-      filteredEvents = filteredEvents.filter(e => e.success === query.success)
+      filteredEvents = filteredEvents.filter((e) => e.success === query.success)
     }
-    
+
     if (query.riskLevel) {
-      filteredEvents = filteredEvents.filter(e => 
-        e.riskLevel && query.riskLevel!.includes(e.riskLevel)
-      )
+      filteredEvents = filteredEvents.filter((e) => e.riskLevel && query.riskLevel!.includes(e.riskLevel))
     }
 
     // Sort
     const sortBy = query.sortBy || 'timestamp'
     const sortOrder = query.sortOrder || 'desc'
-    
+
     filteredEvents.sort((a, b) => {
       let aVal: any, bVal: any
-      
+
       switch (sortBy) {
         case 'timestamp':
           aVal = a.timestamp
@@ -422,10 +426,8 @@ export class ProcessAuditLogger {
           aVal = a.timestamp
           bVal = b.timestamp
       }
-      
-      return sortOrder === 'asc' ? 
-        (aVal > bVal ? 1 : -1) : 
-        (aVal < bVal ? 1 : -1)
+
+      return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : aVal < bVal ? 1 : -1
     })
 
     // Pagination
@@ -443,11 +445,9 @@ export class ProcessAuditLogger {
    */
   getStatistics(timeRange?: { start: number; end: number }): AuditStatistics {
     let events = this.eventBuffer
-    
+
     if (timeRange) {
-      events = events.filter(e => 
-        e.timestamp >= timeRange.start && e.timestamp <= timeRange.end
-      )
+      events = events.filter((e) => e.timestamp >= timeRange.start && e.timestamp <= timeRange.end)
     }
 
     const eventsByType: Record<AuditEventType, number> = {} as any
@@ -462,28 +462,28 @@ export class ProcessAuditLogger {
     for (const event of events) {
       // Event type counts
       eventsByType[event.eventType] = (eventsByType[event.eventType] || 0) + 1
-      
+
       // Severity counts
       eventsBySeverity[event.severity] = (eventsBySeverity[event.severity] || 0) + 1
-      
+
       // User counts
       if (event.userId) {
         userCounts.set(event.userId, (userCounts.get(event.userId) || 0) + 1)
       }
-      
+
       // Project counts
       projectCounts.set(event.projectId, (projectCounts.get(event.projectId) || 0) + 1)
-      
+
       // Risk level counts
       if (event.riskLevel) {
         riskCounts.set(event.riskLevel, (riskCounts.get(event.riskLevel) || 0) + 1)
       }
-      
+
       // Security violations
       if (event.tags?.includes('security') || event.tags?.includes('violation')) {
         securityViolations++
       }
-      
+
       // Failed operations
       if (!event.success) {
         failedOperations++
@@ -504,8 +504,8 @@ export class ProcessAuditLogger {
     const riskDistribution = Object.fromEntries(riskCounts)
 
     const timeRangeResult = timeRange || {
-      start: Math.min(...events.map(e => e.timestamp)),
-      end: Math.max(...events.map(e => e.timestamp))
+      start: Math.min(...events.map((e) => e.timestamp)),
+      end: Math.max(...events.map((e) => e.timestamp))
     }
 
     return {
@@ -545,33 +545,32 @@ export class ProcessAuditLogger {
     }
 
     const { events } = await this.queryEvents(query)
-    
+
     const totalOperations = events.length
-    const securityViolations = events.filter(e => 
-      e.tags?.includes('security') || e.tags?.includes('violation')
+    const securityViolations = events.filter(
+      (e) => e.tags?.includes('security') || e.tags?.includes('violation')
     ).length
-    
-    const complianceScore = totalOperations > 0 ? 
-      ((totalOperations - securityViolations) / totalOperations) * 100 : 100
-    
+
+    const complianceScore = totalOperations > 0 ? ((totalOperations - securityViolations) / totalOperations) * 100 : 100
+
     let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW'
     if (complianceScore < 50) riskLevel = 'CRITICAL'
     else if (complianceScore < 70) riskLevel = 'HIGH'
     else if (complianceScore < 90) riskLevel = 'MEDIUM'
 
-    const violations = events.filter(e => !e.success || e.severity === 'CRITICAL')
+    const violations = events.filter((e) => !e.success || e.severity === 'CRITICAL')
 
     const recommendations: string[] = []
-    
+
     if (securityViolations > totalOperations * 0.1) {
       recommendations.push('Review and strengthen security policies')
     }
-    
-    if (violations.some(v => v.eventType === 'COMMAND_BLOCKED')) {
+
+    if (violations.some((v) => v.eventType === 'COMMAND_BLOCKED')) {
       recommendations.push('Provide user training on allowed commands')
     }
-    
-    if (violations.some(v => v.eventType === 'RATE_LIMIT_EXCEEDED')) {
+
+    if (violations.some((v) => v.eventType === 'RATE_LIMIT_EXCEEDED')) {
       recommendations.push('Consider adjusting rate limits or user quotas')
     }
 
@@ -594,7 +593,7 @@ export class ProcessAuditLogger {
     if (this.eventBuffer.length === 0) return
 
     const eventsToFlush = this.eventBuffer.splice(0)
-    
+
     try {
       await this.persistEvents(eventsToFlush)
       this.logger.debug('Flushed audit events', { count: eventsToFlush.length })
@@ -622,14 +621,12 @@ export class ProcessAuditLogger {
   private async persistEvents(events: AuditEvent[]): Promise<void> {
     // In production, this would batch write to database
     // For now, ensure critical events are logged
-    const criticalEvents = events.filter(e => 
-      e.severity === 'CRITICAL' || e.riskLevel === 'CRITICAL'
-    )
-    
+    const criticalEvents = events.filter((e) => e.severity === 'CRITICAL' || e.riskLevel === 'CRITICAL')
+
     if (criticalEvents.length > 0) {
-      this.logger.error('Critical audit events in batch', { 
+      this.logger.error('Critical audit events in batch', {
         count: criticalEvents.length,
-        events: criticalEvents 
+        events: criticalEvents
       })
     }
   }
@@ -639,7 +636,7 @@ export class ProcessAuditLogger {
    */
   private async handleCriticalEvent(event: AuditEvent): Promise<void> {
     this.logger.error('Critical audit event requires immediate attention', event)
-    
+
     // In production, this might:
     // - Send alerts to security team
     // - Trigger automated responses
@@ -657,13 +654,13 @@ export class ProcessAuditLogger {
         case 'PATH_TRAVERSAL_ATTEMPT':
         case 'COMMAND_BLOCKED':
           return 'CRITICAL'
-        
+
         case 'RESOURCE_VIOLATION':
         case 'RATE_LIMIT_EXCEEDED':
         case 'AUTHENTICATION_FAILURE':
         case 'AUTHORIZATION_FAILURE':
           return 'ERROR'
-        
+
         default:
           return 'WARN'
       }
@@ -673,7 +670,7 @@ export class ProcessAuditLogger {
       case 'PROCESS_KILL':
       case 'PROCESS_TIMEOUT':
         return 'WARN'
-      
+
       default:
         return 'INFO'
     }
@@ -684,17 +681,17 @@ export class ProcessAuditLogger {
    */
   private updateStatistics(event: AuditEvent): void {
     this.stats.totalEvents++
-    
+
     const typeCount = this.stats.eventsByType.get(event.eventType) || 0
     this.stats.eventsByType.set(event.eventType, typeCount + 1)
-    
+
     const severityCount = this.stats.eventsBySeverity.get(event.severity) || 0
     this.stats.eventsBySeverity.set(event.severity, severityCount + 1)
-    
+
     if (event.tags?.includes('security') || event.tags?.includes('violation')) {
       this.stats.securityViolations++
     }
-    
+
     if (!event.success) {
       this.stats.failedOperations++
     }
@@ -742,10 +739,10 @@ export class ProcessAuditLogger {
     if (this.flushInterval) {
       clearInterval(this.flushInterval)
     }
-    
+
     // Flush remaining events
     await this.flushBuffer()
-    
+
     this.logger.info('Audit logger shutdown complete')
   }
 }

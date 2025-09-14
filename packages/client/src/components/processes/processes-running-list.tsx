@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react'
-import { 
-  Button, 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
   CardTitle,
   Accordion,
   AccordionContent,
@@ -32,14 +32,14 @@ export function ProcessesRunningList({ projectId, projectName, className }: Proc
   // Process filtering and deduplication
   const { runningProcesses, completedProcesses } = useMemo(() => {
     const running = processes.filter((p: any) => p.status === 'running')
-    
+
     // Get completed processes from current list and historical data
     const currentCompleted = processes.filter((p: any) => p.status !== 'running')
-    
+
     // Combine and deduplicate completed processes (prefer current over historical)
     const allCompleted = [...currentCompleted]
     const currentIds = new Set(currentCompleted.map((p: any) => p.id))
-    
+
     // Add historical processes that aren't already in current completed
     historicalProcesses.forEach((p: any) => {
       if (!currentIds.has(p.id) && p.status !== 'running') {
@@ -62,7 +62,7 @@ export function ProcessesRunningList({ projectId, projectName, className }: Proc
       const outputText = [...(process.lastOutput.stderr || []), ...(process.lastOutput.stdout || [])]
         .slice(-20)
         .join('\n')
-      
+
       copyToClipboard(outputText, {
         successMessage: 'Process output copied to clipboard',
         errorMessage: 'Failed to copy output'
@@ -116,9 +116,7 @@ export function ProcessesRunningList({ projectId, projectName, className }: Proc
           {p.exitCode !== undefined && p.exitCode !== null && (
             <>
               <div className='text-xs'>•</div>
-              <div className={`text-xs ${p.exitCode === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                Exit {p.exitCode}
-              </div>
+              <div className={`text-xs ${p.exitCode === 0 ? 'text-green-600' : 'text-red-600'}`}>Exit {p.exitCode}</div>
             </>
           )}
           {p.exitedAt && (
@@ -187,9 +185,7 @@ export function ProcessesRunningList({ projectId, projectName, className }: Proc
           ) : runningProcesses.length === 0 ? (
             <div className='text-sm text-muted-foreground'>No running processes. Start one using the button above.</div>
           ) : (
-            <div className='space-y-3'>
-              {runningProcesses.map((p: any) => renderProcess(p, true))}
-            </div>
+            <div className='space-y-3'>{runningProcesses.map((p: any) => renderProcess(p, true))}</div>
           )}
 
           {/* Completed Processes Accordion */}
@@ -208,9 +204,7 @@ export function ProcessesRunningList({ projectId, projectName, className }: Proc
                       <Loader2 className='h-4 w-4 animate-spin' /> Loading completed processes...
                     </div>
                   ) : (
-                    <div className='space-y-3'>
-                      {completedProcesses.map((p: any) => renderProcess(p, false))}
-                    </div>
+                    <div className='space-y-3'>{completedProcesses.map((p: any) => renderProcess(p, false))}</div>
                   )}
                 </AccordionContent>
               </AccordionItem>

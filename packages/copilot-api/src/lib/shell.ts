@@ -1,34 +1,34 @@
-import { execSync } from "node:child_process"
-import process from "node:process"
+import { execSync } from 'node:child_process'
+import process from 'node:process'
 
-type ShellName = "bash" | "zsh" | "fish" | "powershell" | "cmd" | "sh"
+type ShellName = 'bash' | 'zsh' | 'fish' | 'powershell' | 'cmd' | 'sh'
 type EnvVars = Record<string, string | undefined>
 
 function getShell(): ShellName {
   const { platform, ppid, env } = process
 
-  if (platform === "win32") {
+  if (platform === 'win32') {
     try {
       const command = `wmic process get ParentProcessId,Name | findstr "${ppid}"`
-      const parentProcess = execSync(command, { stdio: "pipe" }).toString()
+      const parentProcess = execSync(command, { stdio: 'pipe' }).toString()
 
-      if (parentProcess.toLowerCase().includes("powershell.exe")) {
-        return "powershell"
+      if (parentProcess.toLowerCase().includes('powershell.exe')) {
+        return 'powershell'
       }
     } catch {
-      return "cmd"
+      return 'cmd'
     }
 
-    return "cmd"
+    return 'cmd'
   } else {
     const shellPath = env.SHELL
     if (shellPath) {
-      if (shellPath.endsWith("zsh")) return "zsh"
-      if (shellPath.endsWith("fish")) return "fish"
-      if (shellPath.endsWith("bash")) return "bash"
+      if (shellPath.endsWith('zsh')) return 'zsh'
+      if (shellPath.endsWith('fish')) return 'fish'
+      if (shellPath.endsWith('bash')) return 'bash'
     }
 
-    return "sh"
+    return 'sh'
   }
 }
 
@@ -39,48 +39,35 @@ function getShell(): ShellName {
  * @param {string} commandToRun - The command to run after setting the variables.
  * @returns {string} The formatted script string.
  */
-export function generateEnvScript(
-  envVars: EnvVars,
-  commandToRun: string = "",
-): string {
+export function generateEnvScript(envVars: EnvVars, commandToRun: string = ''): string {
   const shell = getShell()
-  const filteredEnvVars = Object.entries(envVars).filter(
-    ([, value]) => value !== undefined,
-  ) as Array<[string, string]>
+  const filteredEnvVars = Object.entries(envVars).filter(([, value]) => value !== undefined) as Array<[string, string]>
 
   let commandBlock: string
 
   switch (shell) {
-    case "powershell": {
-      commandBlock = filteredEnvVars
-        .map(([key, value]) => `$env:${key} = ${value}`)
-        .join("; ")
+    case 'powershell': {
+      commandBlock = filteredEnvVars.map(([key, value]) => `$env:${key} = ${value}`).join('; ')
       break
     }
-    case "cmd": {
-      commandBlock = filteredEnvVars
-        .map(([key, value]) => `set ${key}=${value}`)
-        .join(" & ")
+    case 'cmd': {
+      commandBlock = filteredEnvVars.map(([key, value]) => `set ${key}=${value}`).join(' & ')
       break
     }
-    case "fish": {
-      commandBlock = filteredEnvVars
-        .map(([key, value]) => `set -gx ${key} ${value}`)
-        .join("; ")
+    case 'fish': {
+      commandBlock = filteredEnvVars.map(([key, value]) => `set -gx ${key} ${value}`).join('; ')
       break
     }
     default: {
       // bash, zsh, sh
-      const assignments = filteredEnvVars
-        .map(([key, value]) => `${key}=${value}`)
-        .join(" ")
-      commandBlock = filteredEnvVars.length > 0 ? `export ${assignments}` : ""
+      const assignments = filteredEnvVars.map(([key, value]) => `${key}=${value}`).join(' ')
+      commandBlock = filteredEnvVars.length > 0 ? `export ${assignments}` : ''
       break
     }
   }
 
   if (commandBlock && commandToRun) {
-    const separator = shell === "cmd" ? " & " : " && "
+    const separator = shell === 'cmd' ? ' & ' : ' && '
     return `${commandBlock}${separator}${commandToRun}`
   }
 

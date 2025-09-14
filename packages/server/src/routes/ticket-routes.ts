@@ -27,7 +27,9 @@ import {
   autoGenerateTasksFromOverview,
   getTasksForTickets,
   listTicketsWithTasks,
-  suggestFilesForTicket
+  suggestFilesForTicket,
+  getProjectFiles,
+  createFileSearchService
 } from '@promptliano/services'
 
 // Error factory and context handling from shared package
@@ -41,6 +43,7 @@ import {
 // Import API-specific validation from schemas
 import { ticketsApiValidation } from '@promptliano/schemas'
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { stream } from 'hono/streaming'
 
 // Schemas now come from @promptliano/database as single source of truth
 const TaskSchema = TicketTaskSchema // Alias for consistency with existing code
@@ -94,16 +97,7 @@ const SuggestedTasksResponseSchema = z
   })
   .openapi('SuggestedTasksResponse')
 
-const SuggestedFilesResponseSchema = z
-  .object({
-    success: z.literal(true),
-    data: z.object({
-      recommendedFileIds: z.array(z.string()),
-      combinedSummaries: z.string().optional(),
-      message: z.string().optional()
-    })
-  })
-  .openapi('SuggestedFilesResponse')
+import { SuggestFilesResponseSchema as ProjectSuggestFilesResponseSchema } from '@promptliano/schemas'
 
 const TicketWithTaskCountSchema = z
   .object({
@@ -314,7 +308,19 @@ const suggestFilesRoute = createRoute({
     params: TicketIdParamsSchema,
     body: { content: { 'application/json': { schema: SuggestFilesBodySchema } } }
   },
-  responses: createStandardResponses(SuggestedFilesResponseSchema)
+  responses: createStandardResponses(ProjectSuggestFilesResponseSchema)
+})
+
+const suggestFilesStreamRoute = createRoute({
+  method: 'post',
+  path: '/api/tickets/{ticketId}/suggest-files/stream',
+  tags: ['Tickets', 'Files', 'AI'],
+  summary: 'Stream progressive AI suggestions for relevant files',
+  request: {
+    params: TicketIdParamsSchema,
+    body: { content: { 'application/json': { schema: SuggestFilesBodySchema } } }
+  },
+  responses: createStandardResponses(z.any())
 })
 
 const listTicketsByProjectRoute = createRoute({
@@ -559,19 +565,99 @@ export const ticketRoutes = new OpenAPIHono()
   .openapi(suggestFilesRoute, async (c) => {
     const { ticketId } = c.req.valid('param')
     const { extraUserInput } = c.req.valid('json')
-    const result = await suggestFilesForTicket(parseNumericId(ticketId))
+    const start = Date.now()
 
-    // Handle placeholder response from service
-    const payload: z.infer<typeof SuggestedFilesResponseSchema> = {
+    const ticket = await getTicketById(parseNumericId(ticketId))
+    const files = await getProjectFiles(ticket.projectId)
+    const byId = new Map((files || []).map((f: any) => [String(f.id), f]))
+
+    const { createSuggestionsService } = await import('@promptliano/services')
+    const sugg = createSuggestionsService()
+    const result = await sugg.suggestFilesForTicket(parseNumericId(ticketId), {
+      strategy: 'balanced',
+      maxResults: 10,
+      userContext: extraUserInput
+    })
+
+    const relevanceMap = new Map<string, number>()
+    if (Array.isArray(result.scores)) {
+      for (const s of result.scores as any[]) {
+        relevanceMap.set(String(s.fileId), Number(s.totalScore || 0))
+      }
+    }
+
+    // Optional semantic enrichment
+    let semanticScores = new Map<string, number>()
+    try {
+      const searchService = createFileSearchService()
+      const { results } = await searchService.search(ticket.projectId, {
+        query: extraUserInput || ticket.title || '',
+        searchType: 'semantic',
+        scoringMethod: 'relevance',
+        limit: 50
+      })
+      semanticScores = new Map(results.map((r: any) => [String((r.file as any).id), Number(r.score || 0)]))
+    } catch {}
+
+    const suggestedFiles = (result.suggestions || []).map((id: string) => {
+      const f = byId.get(String(id))
+      const score = relevanceMap.get(String(id))
+      const sem = semanticScores.get(String(id))
+      const relevance = typeof score === 'number' ? Math.max(0, Math.min(1, score)) : (sem ?? 0.9)
+      const reason = typeof score === 'number' ? 'Relevance scoring match' : 'Selected by AI (ticket context)'
+      return {
+        path: f?.path || String(id),
+        relevance,
+        reason,
+        fileType: (f?.extension as string) || ''
+      }
+    })
+
+    const recommendedFileIds = (result.suggestions || []).map(String)
+    const payload: any = {
       success: true,
       data: {
-        recommendedFileIds: Array.isArray(result) ? result.map(String) : [],
-        combinedSummaries: 'No summary available',
-        message: 'File suggestions not implemented yet'
+        suggestedFiles,
+        totalFiles: suggestedFiles.length,
+        processingTime: Date.now() - start,
+        recommendedFileIds
       }
     }
     return c.json(payload, 200)
   })
+
+  .openapi(suggestFilesStreamRoute, (async (c: any) => {
+    const { ticketId } = c.req.valid('param')
+    const { extraUserInput } = c.req.valid('json')
+
+    const ticket = await getTicketById(parseNumericId(ticketId))
+
+    // SSE headers
+    c.header('Content-Type', 'text/event-stream')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    return stream(c, async (s) => {
+      try {
+        const { createFileSuggestionStrategyService } = await import('@promptliano/services')
+        const strategy = createFileSuggestionStrategyService()
+
+        for await (const update of strategy.progressiveSuggestion(ticket as any, 10, extraUserInput) as any) {
+          const payload = {
+            stage: update.stage,
+            suggestions: update.suggestions.map(String),
+            progress: update.progress
+          }
+          await s.writeln(`data: ${JSON.stringify(payload)}`)
+          await s.writeln('')
+        }
+      } catch (error: any) {
+        const errPayload = { stage: 'error', message: error?.message || 'suggestion stream failed' }
+        await s.writeln(`data: ${JSON.stringify(errPayload)}`)
+        await s.writeln('')
+      }
+    })
+  }) as any)
 
   .openapi(suggestTasksRoute, async (c) => {
     const { ticketId } = c.req.valid('param')

@@ -205,7 +205,7 @@ export function createFileRelevanceService(deps: FileRelevanceServiceDeps = {}) 
     if (keywords.length === 0) return 0
 
     let matchCount = 0
-    const fileText = `${file.name} ${file.summary || ''} ${file.content || ''}`.toLowerCase()
+    const fileText = `${file.name} ${file.content || ''}`.toLowerCase()
 
     // Direct keyword matches
     for (const keyword of keywords) {

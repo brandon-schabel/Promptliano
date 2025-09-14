@@ -18,10 +18,10 @@ function main() {
   let violations: string[] = []
 
   try {
-    const files = walk(srcDir)
-      .filter((f) => ['.ts', '.tsx'].includes(extname(f).toLowerCase()))
+    const files = walk(srcDir).filter((f) => ['.ts', '.tsx'].includes(extname(f).toLowerCase()))
 
-    const importRe = /import\s+(?!type\b)[^;]*from\s+['"]@promptliano\/database['"];?|import\s+['"]@promptliano\/database['"]/g
+    const importRe =
+      /import\s+(?!type\b)[^;]*from\s+['"]@promptliano\/database['"];?|import\s+['"]@promptliano\/database['"]/g
 
     for (const f of files) {
       const text = readFileSync(f, 'utf-8')
@@ -42,4 +42,3 @@ function main() {
 }
 
 main()
-

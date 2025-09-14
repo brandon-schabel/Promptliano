@@ -1,7 +1,7 @@
-import type { Context } from "hono"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
+import type { Context } from 'hono'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 
-import consola from "consola"
+import consola from 'consola'
 
 export class HTTPError extends Error {
   response: Response
@@ -13,7 +13,7 @@ export class HTTPError extends Error {
 }
 
 export async function forwardError(c: Context, error: unknown) {
-  consola.error("Error occurred:", error)
+  consola.error('Error occurred:', error)
 
   if (error instanceof HTTPError) {
     const errorText = await error.response.text()
@@ -23,15 +23,15 @@ export async function forwardError(c: Context, error: unknown) {
     } catch {
       errorJson = errorText
     }
-    consola.error("HTTP error:", errorJson)
+    consola.error('HTTP error:', errorJson)
     return c.json(
       {
         error: {
           message: errorText,
-          type: "error",
-        },
+          type: 'error'
+        }
       },
-      error.response.status as ContentfulStatusCode,
+      error.response.status as ContentfulStatusCode
     )
   }
 
@@ -39,9 +39,9 @@ export async function forwardError(c: Context, error: unknown) {
     {
       error: {
         message: (error as Error).message,
-        type: "error",
-      },
+        type: 'error'
+      }
     },
-    500,
+    500
   )
 }

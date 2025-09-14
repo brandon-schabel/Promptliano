@@ -29,7 +29,6 @@ export const runtimeConfig: RuntimeConfig = {
   features: {
     mcp: getEnvVar('MCP_ENABLED', 'true') === 'true',
     websocket: getEnvVar('WEBSOCKET_ENABLED', 'true') === 'true',
-    jobQueue: getEnvVar('JOB_QUEUE_ENABLED', 'true') === 'true',
-    aiSummarization: getEnvVar('AI_SUMMARIZATION_ENABLED', 'true') === 'true'
+    jobQueue: getEnvVar('JOB_QUEUE_ENABLED', 'true') === 'true'
   }
 }

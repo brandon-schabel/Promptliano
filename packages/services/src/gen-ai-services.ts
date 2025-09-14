@@ -510,9 +510,7 @@ async function getProviderLanguageModelInterface(
 
       const allowKeylessCustom = String(process.env.ALLOW_KEYLESS_CUSTOM || '').toLowerCase() === 'true'
       const apiKey =
-        (await getKey('custom', debug)) ||
-        process.env.CUSTOM_API_KEY ||
-        (allowKeylessCustom ? 'dummy' : undefined)
+        (await getKey('custom', debug)) || process.env.CUSTOM_API_KEY || (allowKeylessCustom ? 'dummy' : undefined)
       if (!apiKey && !allowKeylessCustom) {
         throw ErrorFactory.missingRequired('API key', 'custom provider')
       }

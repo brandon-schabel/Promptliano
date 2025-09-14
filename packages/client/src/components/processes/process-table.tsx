@@ -42,7 +42,8 @@ import {
   Activity,
   Clock,
   Cpu,
-  HardDrive
+  HardDrive,
+  ArrowUpDown
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
@@ -81,6 +82,7 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
+  const [globalFilter, setGlobalFilter] = useState('')
   // Using fetch-based calls; generated client hooks exist elsewhere
 
   // Fetch processes
@@ -171,12 +173,30 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
   const columns: ColumnDef<ProcessRun>[] = [
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Status
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => <StatusBadge status={row.getValue('status')} />
     },
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Name
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const name = row.getValue('name') as string | undefined
         const scriptName = row.original.scriptName
@@ -192,7 +212,16 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     },
     {
       accessorKey: 'command',
-      header: 'Command',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Command
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const command = row.getValue('command') as string
         const args = row.original.args
@@ -206,7 +235,17 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     },
     {
       accessorKey: 'pid',
-      header: 'PID',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          PID
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
+      filterFn: 'includesString',
       cell: ({ row }) => {
         const pid = row.getValue('pid') as number | undefined
         return pid ? (
@@ -218,7 +257,16 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     },
     {
       accessorKey: 'startedAt',
-      header: 'Started',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Started
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const startedAt = row.getValue('startedAt') as number
         return (
@@ -233,7 +281,16 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     },
     {
       accessorKey: 'cpuUsage',
-      header: 'CPU',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          CPU
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const cpu = row.getValue('cpuUsage') as number | undefined
         return cpu !== undefined ? (
@@ -248,7 +305,16 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     },
     {
       accessorKey: 'memoryUsage',
-      header: 'Memory',
+      header: ({ column }) => (
+        <Button
+          variant='ghost'
+          className='h-8 -ml-2'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Memory
+          <ArrowUpDown className='ml-2 h-4 w-4' />
+        </Button>
+      ),
       cell: ({ row }) => {
         const memory = row.getValue('memoryUsage') as number | undefined
         return memory !== undefined ? (
@@ -306,6 +372,7 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -315,7 +382,8 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection
+      rowSelection,
+      globalFilter
     }
   })
 
@@ -324,12 +392,10 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <Input
-            placeholder='Filter processes...'
-            value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              table.getColumn('name')?.setFilterValue(event.target.value)
-            }
-            className='h-8 w-[150px] lg:w-[250px]'
+            placeholder='Search processes...'
+            value={globalFilter}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setGlobalFilter(event.target.value)}
+            className='h-8 w-[220px] lg:w-[280px]'
           />
         </div>
         <div className='flex items-center gap-2'>

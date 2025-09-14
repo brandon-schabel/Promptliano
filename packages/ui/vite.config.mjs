@@ -60,7 +60,10 @@ export default defineConfig({
         'zod',
         'framer-motion',
         'react-markdown',
-        'react-syntax-highlighter',
+        // Externalize react-syntax-highlighter and all subpath imports
+        /^react-syntax-highlighter(\/.*)?$/,
+        // Also externalize highlight.js subpaths referenced by react-syntax-highlighter
+        /^highlight\.js(\/.*)?$/,
         'remark-gfm',
         '@monaco-editor/react',
         'monaco-editor',

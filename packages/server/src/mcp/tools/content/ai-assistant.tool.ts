@@ -1,28 +1,19 @@
 import { z } from '@hono/zod-openapi'
 import { validateDataField, createTrackedHandler, type MCPToolDefinition, type MCPToolResponse } from '../shared'
-import { optimizeUserInput, getCompactProjectSummary, getProjectSummaryWithOptions } from '@promptliano/services'
-import { SummaryOptionsSchema } from '@promptliano/schemas'
 
 export enum AIAssistantAction {
-  OPTIMIZE_PROMPT = 'optimize_prompt',
-  GET_COMPACT_SUMMARY = 'get_compact_summary',
-  GET_COMPACT_SUMMARY_WITH_OPTIONS = 'get_compact_summary_with_options'
+  OPTIMIZE_PROMPT = 'optimize_prompt'
 }
 
 const AIAssistantSchema = z.object({
-  action: z.enum([
-    AIAssistantAction.OPTIMIZE_PROMPT,
-    AIAssistantAction.GET_COMPACT_SUMMARY,
-    AIAssistantAction.GET_COMPACT_SUMMARY_WITH_OPTIONS
-  ]),
+  action: z.enum([AIAssistantAction.OPTIMIZE_PROMPT]),
   projectId: z.number(),
   data: z.any().optional()
 })
 
 export const aiAssistantTool: MCPToolDefinition = {
   name: 'ai_assistant',
-  description:
-    'AI-powered utilities for prompt optimization and project insights. Actions: optimize_prompt, get_compact_summary, get_compact_summary_with_options (supports depth/format/strategy options)',
+  description: 'AI-powered utilities for prompt optimization.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -37,8 +28,7 @@ export const aiAssistantTool: MCPToolDefinition = {
       },
       data: {
         type: 'object',
-        description:
-          'Action-specific data. For optimize_prompt: { prompt: "help me fix the authentication" }. For get_compact_summary_with_options: { depth: "minimal" | "standard" | "detailed", format: "xml" | "json" | "markdown", strategy: "fast" | "balanced" | "thorough", includeMetrics: true }'
+        description: 'Action-specific data. For optimize_prompt: { prompt: "help me fix the authentication" }'
       }
     },
     required: ['action', 'projectId']
@@ -51,40 +41,10 @@ export const aiAssistantTool: MCPToolDefinition = {
         switch (action) {
           case AIAssistantAction.OPTIMIZE_PROMPT: {
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"help me fix the authentication flow"')
-            const optimizedPrompt = await optimizeUserInput(prompt, projectId)
+            // Simple passthrough optimizer (feature minimized)
+            const optimizedPrompt = String(prompt || '').trim()
             return {
               content: [{ type: 'text', text: optimizedPrompt }]
-            }
-          }
-          case AIAssistantAction.GET_COMPACT_SUMMARY: {
-            const summary = await getCompactProjectSummary(projectId)
-            return {
-              content: [{ type: 'text', text: summary }]
-            }
-          }
-          case AIAssistantAction.GET_COMPACT_SUMMARY_WITH_OPTIONS: {
-            // Parse and validate options, setting defaults for compact summary
-            const options = SummaryOptionsSchema.parse({
-              ...data,
-              strategy: data?.strategy || 'balanced' // Default to balanced for AI summaries
-            })
-            const result = await getProjectSummaryWithOptions(projectId, options)
-            // Format response based on whether metrics were requested
-            if (options.includeMetrics && result.metrics) {
-              const metricsText = `
-Compact Summary Metrics:
-- Generation Time: ${result.metrics.generationTime}ms
-- Files Processed: ${result.metrics.filesProcessed}
-- Compression Ratio: ${(result.metrics.compressionRatio * 100).toFixed(1)}%
-- Tokens Saved: ~${result.metrics.tokensSaved}
-Summary:
-${result.summary}`
-              return {
-                content: [{ type: 'text', text: metricsText }]
-              }
-            }
-            return {
-              content: [{ type: 'text', text: result.summary }]
             }
           }
           default:

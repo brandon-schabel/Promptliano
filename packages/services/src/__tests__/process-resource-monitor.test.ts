@@ -1,6 +1,6 @@
 /**
  * Unit Tests for Process Resource Monitoring
- * 
+ *
  * Tests memory and CPU monitoring, resource limits enforcement,
  * and automatic process termination on resource exhaustion
  */
@@ -21,7 +21,7 @@ class ProcessResourceMonitor {
 
   startMonitoring(): void {
     if (this.isMonitoring) return
-    
+
     this.isMonitoring = true
     this.monitorInterval = setInterval(() => {
       this.checkAllProcesses()
@@ -36,10 +36,14 @@ class ProcessResourceMonitor {
     this.processes.clear()
   }
 
-  trackProcess(processId: string, pid: number, limits: {
-    maxMemory?: number
-    maxCpu?: number
-  }): void {
+  trackProcess(
+    processId: string,
+    pid: number,
+    limits: {
+      maxMemory?: number
+      maxCpu?: number
+    }
+  ): void {
     this.processes.set(processId, {
       pid,
       limits,
@@ -71,10 +75,10 @@ class ProcessResourceMonitor {
     try {
       // Mock getting process stats
       const stats = await this.getSystemStats(processInfo.pid)
-      
+
       if (this.isResourceViolation(stats, processInfo.limits)) {
         processInfo.violations++
-        
+
         if (processInfo.violations >= 3) {
           const callback = this.resourceCallbacks.get(processId)
           if (callback) {
@@ -109,11 +113,12 @@ class ProcessResourceMonitor {
     if (limits.maxMemory && stats.memoryMB * 1024 * 1024 > limits.maxMemory) {
       return true
     }
-    
-    if (limits.maxCpu && stats.cpuPercent > limits.maxCpu * 50) { // 50% per CPU core
+
+    if (limits.maxCpu && stats.cpuPercent > limits.maxCpu * 50) {
+      // 50% per CPU core
       return true
     }
-    
+
     return false
   }
 }
@@ -135,10 +140,10 @@ describe('ProcessResourceMonitor', () => {
   describe('Monitoring Lifecycle', () => {
     test('should start and stop monitoring', () => {
       expect(monitor.isMonitoring).toBe(false)
-      
+
       monitor.startMonitoring()
       expect(monitor.isMonitoring).toBe(true)
-      
+
       monitor.stopMonitoring()
       expect(monitor.isMonitoring).toBe(false)
     })
@@ -146,7 +151,7 @@ describe('ProcessResourceMonitor', () => {
     test('should not start monitoring twice', () => {
       monitor.startMonitoring()
       const firstState = monitor.isMonitoring
-      
+
       monitor.startMonitoring() // Should be no-op
       expect(monitor.isMonitoring).toBe(firstState)
     })
@@ -168,7 +173,7 @@ describe('ProcessResourceMonitor', () => {
       }
 
       monitor.trackProcess('proc1', 12345, limits)
-      
+
       const stats = monitor.getProcessStats('proc1')
       expect(stats).toBeDefined()
       expect(stats.pid).toBe(12345)
@@ -179,7 +184,7 @@ describe('ProcessResourceMonitor', () => {
     test('should untrack process', () => {
       monitor.trackProcess('proc1', 12345, { maxMemory: 1024 })
       expect(monitor.getProcessStats('proc1')).toBeDefined()
-      
+
       monitor.untrackProcess('proc1')
       expect(monitor.getProcessStats('proc1')).toBeUndefined()
     })
@@ -202,7 +207,7 @@ describe('ProcessResourceMonitor', () => {
 
     test('should detect memory violations', async () => {
       const violations: any[] = []
-      
+
       monitor.trackProcess('proc1', 12345, {
         maxMemory: 100 * 1024 * 1024 // 100MB limit
       })
@@ -221,7 +226,7 @@ describe('ProcessResourceMonitor', () => {
       }))
 
       // Wait for multiple monitoring cycles to trigger violation
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
 
       expect(violations.length).toBeGreaterThan(0)
       expect(violations[0].violation).toBe('resource_limit')
@@ -230,7 +235,7 @@ describe('ProcessResourceMonitor', () => {
 
     test('should detect CPU violations', async () => {
       const violations: any[] = []
-      
+
       monitor.trackProcess('proc1', 12345, {
         maxCpu: 1 // 1 CPU core limit
       })
@@ -248,7 +253,7 @@ describe('ProcessResourceMonitor', () => {
       }))
 
       // Wait for violations to be detected
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
 
       expect(violations.length).toBeGreaterThan(0)
       expect(violations[0].stats.cpuPercent).toBe(150)
@@ -256,7 +261,7 @@ describe('ProcessResourceMonitor', () => {
 
     test('should require multiple violations before triggering callback', async () => {
       const violations: any[] = []
-      
+
       monitor.trackProcess('proc1', 12345, {
         maxMemory: 100 * 1024 * 1024
       })
@@ -277,7 +282,7 @@ describe('ProcessResourceMonitor', () => {
       })
 
       // Wait for multiple checks
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
 
       // Should not trigger callback until 3rd violation
       expect(violations.length).toBe(0)
@@ -290,13 +295,13 @@ describe('ProcessResourceMonitor', () => {
         timestamp: Date.now()
       }))
 
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
       expect(violations.length).toBeGreaterThan(0)
     })
 
     test('should reset violation count when resource usage is normal', async () => {
       const violations: any[] = []
-      
+
       monitor.trackProcess('proc1', 12345, {
         maxMemory: 100 * 1024 * 1024
       })
@@ -317,7 +322,7 @@ describe('ProcessResourceMonitor', () => {
         }
       })
 
-      await new Promise(resolve => setTimeout(resolve, 800))
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
       // Should not trigger callback due to alternating usage
       expect(violations.length).toBe(0)
@@ -330,7 +335,7 @@ describe('ProcessResourceMonitor', () => {
   describe('Resource Limit Enforcement Integration', () => {
     test('should integrate with process manager for automatic termination', async () => {
       const killedProcesses: string[] = []
-      
+
       // Mock process manager that kills processes
       const mockProcessManager = {
         terminateProcess: mock((processId: string, signal = 'SIGTERM') => {
@@ -358,7 +363,7 @@ describe('ProcessResourceMonitor', () => {
         timestamp: Date.now()
       }))
 
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
 
       expect(killedProcesses).toContain('proc1')
       expect(mockProcessManager.terminateProcess).toHaveBeenCalledWith('proc1', 'SIGKILL')
@@ -378,7 +383,7 @@ describe('ProcessResourceMonitor', () => {
       policies.forEach((policy, i) => {
         const processId = `proc${i + 1}`
         monitor.trackProcess(processId, 12345 + i, policy)
-        
+
         monitor.onResourceViolation(processId, (stats) => {
           actions.push({
             processId,
@@ -396,12 +401,12 @@ describe('ProcessResourceMonitor', () => {
         timestamp: Date.now()
       }))
 
-      await new Promise(resolve => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, 400))
 
       expect(actions.length).toBeGreaterThan(0)
-      
+
       // Each process should have triggered its policy
-      const processIds = actions.map(a => a.processId)
+      const processIds = actions.map((a) => a.processId)
       expect(processIds).toContain('proc1')
       expect(processIds).toContain('proc2')
       expect(processIds).toContain('proc3')
@@ -415,15 +420,13 @@ describe('ProcessResourceMonitor', () => {
 
     test('should handle process that no longer exists', async () => {
       monitor.trackProcess('proc1', 99999, { maxMemory: 100 * 1024 * 1024 })
-      
+
       // Mock getSystemStats to throw error (process not found)
-      spyOn(monitor as any, 'getSystemStats').mockRejectedValue(
-        new Error('Process not found')
-      )
+      spyOn(monitor as any, 'getSystemStats').mockRejectedValue(new Error('Process not found'))
 
       expect(monitor.getProcessStats('proc1')).toBeDefined()
 
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Process should be automatically untracked
       expect(monitor.getProcessStats('proc1')).toBeUndefined()
@@ -447,7 +450,7 @@ describe('ProcessResourceMonitor', () => {
         }
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // proc1 should be untracked, proc2 should remain
       expect(monitor.getProcessStats('proc1')).toBeUndefined()
@@ -457,7 +460,7 @@ describe('ProcessResourceMonitor', () => {
 
     test('should not crash on malformed resource stats', async () => {
       const violations: any[] = []
-      
+
       monitor.trackProcess('proc1', 12345, {
         maxMemory: 100 * 1024 * 1024,
         maxCpu: 2
@@ -476,7 +479,7 @@ describe('ProcessResourceMonitor', () => {
         timestamp: Date.now()
       }))
 
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Should not crash, but also should not trigger violations
       expect(violations.length).toBe(0)
@@ -507,7 +510,7 @@ describe('ProcessResourceMonitor', () => {
         }
       })
 
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, 300))
 
       // Should have called getSystemStats for all processes
       expect(statsCalls).toBeGreaterThan(100)

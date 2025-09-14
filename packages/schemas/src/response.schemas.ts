@@ -84,7 +84,7 @@ export const ChatMessageListResponseSchema = createListResponseSchema(ChatMessag
 const ChatDataSchema = z
   .object({
     id: z.number(),
-    projectId: z.number(),
+    projectId: z.number().nullable(),
     title: z.string(), // Changed from 'name' to 'title' to match database schema
     createdAt: z.number(),
     updatedAt: z.number()

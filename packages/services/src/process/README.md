@@ -48,10 +48,10 @@ const SAFE_ARG_PATTERN = /^[\w@.\-+:=\/,\[\]"'\\]*$/
 
 // Blocked dangerous patterns
 const DANGEROUS_PATTERNS = [
-  /\.\./,           // Path traversal
-  /\/etc\//,        // System paths
-  /\$\(/,          // Command substitution
-  /&&|;|\|/,       // Command chaining
+  /\.\./, // Path traversal
+  /\/etc\//, // System paths
+  /\$\(/, // Command substitution
+  /&&|;|\|/ // Command chaining
 ]
 ```
 
@@ -74,17 +74,13 @@ Environment variables are strictly filtered:
 
 ```typescript
 // Allowed patterns
-const ALLOWED_ENV_PATTERNS = [
-  /^(NODE_|NPM_|YARN_|BUN_|PNPM_)/,
-  /^(CI|PORT|HOME|USER|PATH|PWD)$/,
-  /^(TERM|LANG|LC_)/
-]
+const ALLOWED_ENV_PATTERNS = [/^(NODE_|NPM_|YARN_|BUN_|PNPM_)/, /^(CI|PORT|HOME|USER|PATH|PWD)$/, /^(TERM|LANG|LC_)/]
 
 // Blocked patterns (security-sensitive)
 const BLOCKED_ENV_PATTERNS = [
-  /^(AWS_|GOOGLE_|AZURE_)/,  // Cloud credentials
-  /^(DB_|DATABASE_)/,         // Database credentials
-  /_SECRET|_KEY|_TOKEN$/,     // Any secrets/keys/tokens
+  /^(AWS_|GOOGLE_|AZURE_)/, // Cloud credentials
+  /^(DB_|DATABASE_)/, // Database credentials
+  /_SECRET|_KEY|_TOKEN$/ // Any secrets/keys/tokens
 ]
 ```
 
@@ -93,7 +89,7 @@ const BLOCKED_ENV_PATTERNS = [
 ### Default Limits by Role
 
 | Role   | Memory | CPU Cores | Timeout | Max Args | Max Env Vars |
-|--------|--------|-----------|---------|----------|--------------|
+| ------ | ------ | --------- | ------- | -------- | ------------ |
 | User   | 512MB  | 2         | 5 min   | 20       | 50           |
 | Admin  | 1GB    | 4         | 10 min  | 50       | 100          |
 | System | 2GB    | 8         | 30 min  | 100      | 200          |
@@ -103,7 +99,7 @@ const BLOCKED_ENV_PATTERNS = [
 The system continuously monitors:
 
 - **Memory Usage** - RSS and virtual memory
-- **CPU Usage** - Per-core utilization percentage  
+- **CPU Usage** - Per-core utilization percentage
 - **Process Count** - Number of threads and child processes
 - **File Handles** - Open file descriptors
 - **Network Connections** - Active network sockets
@@ -134,9 +130,9 @@ Resource violations trigger escalating responses:
 
 ```typescript
 interface RateLimitConfig {
-  windowMs: number      // Time window (default: 60000ms)
-  maxRequests: number   // Max requests per window (default: 10)
-  burstSize?: number    // Allow burst above limit (default: 2)
+  windowMs: number // Time window (default: 60000ms)
+  maxRequests: number // Max requests per window (default: 10)
+  burstSize?: number // Allow burst above limit (default: 2)
 }
 ```
 
@@ -156,25 +152,25 @@ The system logs all security-relevant events:
 
 ```typescript
 interface AuditEvent {
-  id: string                    // Unique event ID
-  timestamp: number             // Unix timestamp
-  eventType: AuditEventType     // Event category
+  id: string // Unique event ID
+  timestamp: number // Unix timestamp
+  eventType: AuditEventType // Event category
   severity: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL'
-  
+
   // Context
   userId?: string
   userRole?: string
   projectId: number
   clientIp?: string
-  
+
   // Process details
   processId?: string
   command?: string[]
-  
+
   // Security context
   violationReason?: string
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-  
+
   // Outcome
   success: boolean
   actionTaken?: string
@@ -186,10 +182,7 @@ interface AuditEvent {
 Generate compliance reports with:
 
 ```typescript
-const report = await auditLogger.generateComplianceReport(
-  projectId,
-  { start: Date.now() - 86400000, end: Date.now() }
-)
+const report = await auditLogger.generateComplianceReport(projectId, { start: Date.now() - 86400000, end: Date.now() })
 
 // Returns:
 // - Compliance score (0-100%)
@@ -230,14 +223,12 @@ AUDIT_PERSISTENCE_ENABLED=true                # Enable database persistence
 ```typescript
 // Customize role permissions
 const customSecurity = new ProcessSecurityManager()
-customSecurity.setRolePermissions('developer', new Set([
-  'bun', 'npm', 'yarn', 'node', 'python3', 'git'
-]))
+customSecurity.setRolePermissions('developer', new Set(['bun', 'npm', 'yarn', 'node', 'python3', 'git']))
 
 customSecurity.setRoleLimits('developer', {
   maxMemoryMB: 1024,
-  maxCpuPercent: 300,  // 3 CPU cores
-  maxTimeout: 600000,  // 10 minutes
+  maxCpuPercent: 300, // 3 CPU cores
+  maxTimeout: 600000, // 10 minutes
   maxArgs: 30,
   maxEnvVars: 75
 })
@@ -287,12 +278,7 @@ try {
   // Proceed with execution
 } catch (error) {
   // Handle security violation
-  await processSecurityManager.auditProcessExecution(
-    config, 
-    securityContext, 
-    'blocked', 
-    error.message
-  )
+  await processSecurityManager.auditProcessExecution(config, securityContext, 'blocked', error.message)
 }
 ```
 
@@ -307,17 +293,17 @@ processResourceMonitor.startMonitoring()
 // Monitor a process
 processResourceMonitor.monitorProcess('proc123', 12345, {
   maxMemoryMB: 512,
-  maxCpuPercent: 200,  // 2 CPU cores
+  maxCpuPercent: 200, // 2 CPU cores
   maxThreads: 50
 })
 
 // Handle violations
 processResourceMonitor.on('resource-termination-required', async (event) => {
   console.log(`Terminating process ${event.processId} due to ${event.reason}`)
-  
+
   // Terminate the process
   await processService.stopProcess(event.projectId, event.processId)
-  
+
   // Log the action
   await auditLogger.logResourceViolation(
     event.processId,
@@ -341,7 +327,7 @@ const { events } = await processAuditLogger.queryEvents({
   projectId: 1,
   eventType: ['SECURITY_VIOLATION', 'COMMAND_BLOCKED'],
   severity: ['ERROR', 'CRITICAL'],
-  startTime: Date.now() - 86400000,  // Last 24 hours
+  startTime: Date.now() - 86400000, // Last 24 hours
   limit: 100
 })
 
@@ -349,7 +335,7 @@ console.log(`Found ${events.length} security violations`)
 
 // Generate compliance report
 const report = await processAuditLogger.generateComplianceReport(1, {
-  start: Date.now() - 30 * 86400000,  // Last 30 days
+  start: Date.now() - 30 * 86400000, // Last 30 days
   end: Date.now()
 })
 
@@ -364,23 +350,28 @@ console.log(`Risk level: ${report.summary.riskLevel}`)
 
 ```typescript
 // Server-side WebSocket handler
-app.get('/ws/processes/:processId', websocket({
-  message: (ws, message) => {
-    const data = JSON.parse(message)
-    
-    if (data.type === 'subscribe-logs') {
-      // Subscribe to process logs
-      processService.on('log', (logEvent) => {
-        if (logEvent.processId === data.processId) {
-          ws.send(JSON.stringify({
-            type: 'log',
-            data: logEvent
-          }))
-        }
-      })
+app.get(
+  '/ws/processes/:processId',
+  websocket({
+    message: (ws, message) => {
+      const data = JSON.parse(message)
+
+      if (data.type === 'subscribe-logs') {
+        // Subscribe to process logs
+        processService.on('log', (logEvent) => {
+          if (logEvent.processId === data.processId) {
+            ws.send(
+              JSON.stringify({
+                type: 'log',
+                data: logEvent
+              })
+            )
+          }
+        })
+      }
     }
-  }
-}))
+  })
+)
 ```
 
 ### Process Status Updates
@@ -475,21 +466,27 @@ CREATE TABLE process_audit (
 ### Common Issues
 
 1. **Command Blocked**
+
    ```
    Error: Command "git" not allowed for role user
    ```
+
    **Solution**: Grant appropriate role permissions or use allowed commands
 
 2. **Sandbox Violation**
+
    ```
    Error: Working directory outside sandbox
    ```
+
    **Solution**: Ensure process cwd is within PROCESS_SANDBOX_ROOT
 
 3. **Resource Limit Exceeded**
+
    ```
    Error: Process terminated due to memory violation
    ```
+
    **Solution**: Optimize process memory usage or request higher limits
 
 4. **Rate Limit Hit**
@@ -532,7 +529,7 @@ grep "RATE_LIMIT_EXCEEDED\|Too many" logs/app.log
 ### Security
 
 1. **Principle of Least Privilege** - Grant minimal necessary permissions
-2. **Input Validation** - Validate all user inputs before processing  
+2. **Input Validation** - Validate all user inputs before processing
 3. **Audit Everything** - Log all security-relevant events
 4. **Regular Review** - Periodically review audit logs and compliance reports
 5. **Environment Isolation** - Use strict sandboxing and environment filtering
@@ -565,7 +562,7 @@ bun test packages/services/src/__tests__/process-management-service.test.ts
 # Security tests
 bun test packages/services/src/__tests__/process-security.test.ts
 
-# Resource monitoring tests  
+# Resource monitoring tests
 bun test packages/services/src/__tests__/process-resource-monitor.test.ts
 ```
 
@@ -574,15 +571,17 @@ bun test packages/services/src/__tests__/process-resource-monitor.test.ts
 ### From Legacy Process Management
 
 1. **Update Dependencies**
+
    ```typescript
    // Old
    import { processManager } from './old-process-manager'
-   
+
    // New
    import { createProcessManagementService } from '@promptliano/services'
    ```
 
 2. **Security Configuration**
+
    ```typescript
    // Configure security policies
    const processService = createProcessManagementService({

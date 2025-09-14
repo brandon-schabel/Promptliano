@@ -34,6 +34,7 @@ import {
   removePromptFromProject,
   updatePrompt,
   suggestPrompts,
+  createSuggestionsService,
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
   promptToMarkdown,
@@ -361,7 +362,7 @@ export const promptRoutes = new OpenAPIHono()
   .openapi(suggestPromptsRoute, (async (c: any) => {
     const { id: projectId } = (c.req as any).valid('param')
     const { userInput, limit } = (c.req as any).valid('json')
-    const suggestions = await suggestPrompts(projectId, userInput)
+    const suggestions = await createSuggestionsService().suggestPromptsForProject(projectId, userInput, limit)
     // suggestions may be array of strings like "Prompt ID: {id}"; map to Prompt[] if possible
     let prompts: any[] = []
     try {

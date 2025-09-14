@@ -21,10 +21,7 @@ export const projectViewSchema = z
   .optional()
 
 // Processes view sub-tabs enum
-export const processViewSchema = z
-  .enum(['processes', 'ports'])
-  .catch('processes')
-  .optional()
+export const processViewSchema = z.enum(['processes', 'ports']).catch('processes').optional()
 
 // Git view sub-tabs enum
 export const gitViewSchema = z
@@ -52,7 +49,7 @@ export const claudeCodeViewSchema = z
 
 // Manage view sub-tabs enum
 export const manageViewSchema = z
-  .enum(['statistics', 'mcp-analytics', 'summarization', 'project-settings'])
+  .enum(['statistics', 'mcp-analytics', 'project-settings'])
   .catch('statistics')
   .optional()
 

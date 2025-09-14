@@ -28,34 +28,20 @@ export function ProcessesTab({ projectId, projectName }: ProcessesTabProps) {
               Manage scripts and running processes{projectName ? ` for ${projectName}` : ''}
             </p>
           </div>
-          <StartProcessPopover
-            projectId={projectId}
-            onProcessStarted={handleProcessStarted}
-          />
+          <StartProcessPopover projectId={projectId} onProcessStarted={handleProcessStarted} />
         </div>
       </div>
 
       {/* Vertical Split Layout */}
       <div className='flex-1 flex min-h-0'>
         {/* Left Panel - Scripts */}
-        <div className={cn(
-          'w-2/5 border-r bg-muted/30 flex-shrink-0 overflow-y-auto',
-          'p-4'
-        )}>
-          <ProcessesScriptsPanel 
-            projectId={projectId} 
-            projectName={projectName}
-            className='h-full'
-          />
+        <div className={cn('w-2/5 border-r bg-muted/30 flex-shrink-0 overflow-y-auto', 'p-4')}>
+          <ProcessesScriptsPanel projectId={projectId} projectName={projectName} className='h-full' />
         </div>
 
         {/* Right Panel - Running Processes */}
         <div className='flex-1 overflow-y-auto p-4'>
-          <ProcessesRunningList 
-            projectId={projectId} 
-            projectName={projectName}
-            className='h-full'
-          />
+          <ProcessesRunningList projectId={projectId} projectName={projectName} className='h-full' />
         </div>
       </div>
     </div>

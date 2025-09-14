@@ -17,8 +17,7 @@ import {
   startMCPToolExecution,
   completeMCPToolExecution,
   ensureProjectServersInitialized,
-  listProjects,
-  getProjectCompactSummary
+  listProjects
 } from '@promptliano/services'
 import { CONSOLIDATED_TOOLS, getConsolidatedToolByName } from './tools-registry'
 
@@ -558,13 +557,6 @@ async function handleResourcesList(
       // Add resources for each project
       for (const project of projects) {
         mcpResources.push({
-          uri: `promptliano://projects/${project.id}/summary`,
-          name: `${project.name} Summary`,
-          description: `Compact summary of project "${project.name}"`,
-          mimeType: 'text/plain'
-        })
-
-        mcpResources.push({
           uri: `promptliano://projects/${project.id}/files`,
           name: `${project.name} Files`,
           description: `List of files in project "${project.name}"`,
@@ -741,24 +733,7 @@ async function handleResourcesRead(
       if (urlParts[0] === 'projects' && urlParts[1]) {
         const resourceProjectId = urlParts[1]
 
-        if (urlParts[2] === 'summary') {
-          // Project summary resource - use compact summary
-          const summary = await getProjectCompactSummary(parseInt(resourceProjectId))
-
-          return {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              contents: [
-                {
-                  uri,
-                  mimeType: 'text/plain',
-                  text: summary
-                }
-              ]
-            }
-          }
-        } else if (urlParts[2] === 'files' && !urlParts[3]) {
+        if (urlParts[2] === 'files' && !urlParts[3]) {
           // Project files list
           const files = await getProjectFiles(parseInt(resourceProjectId))
           return {
@@ -1011,13 +986,13 @@ async function handlePOSTRequest(c: Context): Promise<Response> {
       const parsed = JSON.parse(body)
       messages = Array.isArray(parsed) ? parsed : [parsed]
     } catch {
-      return Response.json(
-        {
+      return new Response(
+        JSON.stringify({
           jsonrpc: '2.0',
           id: null,
           error: JSON_RPC_ERRORS.PARSE_ERROR
-        },
-        { status: 400 }
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
@@ -1078,16 +1053,16 @@ async function handlePOSTRequest(c: Context): Promise<Response> {
     return new Response(JSON.stringify(result), { headers })
   } catch (error) {
     console.error('[MCP] POST request error:', error)
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         jsonrpc: '2.0',
         id: null,
         error: {
           ...JSON_RPC_ERRORS.INTERNAL_ERROR,
           data: error instanceof Error ? error.message : 'Unknown error'
         }
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 }

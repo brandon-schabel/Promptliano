@@ -7,9 +7,6 @@ export enum ProjectManagerAction {
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
-  GET_SUMMARY = 'get_summary',
-  GET_SUMMARY_ADVANCED = 'get_summary_advanced',
-  GET_SUMMARY_METRICS = 'get_summary_metrics',
   BROWSE_FILES = 'browse_files',
   GET_FILE_CONTENT = 'get_file_content',
   UPDATE_FILE_CONTENT = 'update_file_content',
@@ -176,27 +173,9 @@ export const GitManagerSchema = z.object({
   data: z.any().optional()
 })
 
-// File Summarization Manager Types
-export enum FileSummarizationManagerAction {
-  IDENTIFY_UNSUMMARIZED = 'identify_unsummarized',
-  GROUP_FILES = 'group_files',
-  SUMMARIZE_BATCH = 'summarize_batch',
-  GET_PROGRESS = 'get_progress',
-  CANCEL_BATCH = 'cancel_batch',
-  GET_SUMMARY_STATS = 'get_summary_stats'
-}
-
-export const FileSummarizationManagerSchema = z.object({
-  action: z.nativeEnum(FileSummarizationManagerAction),
-  projectId: z.number(),
-  data: z.any().optional()
-})
-
 // AI Assistant Types (already migrated but included for completeness)
 export enum AIAssistantAction {
-  OPTIMIZE_PROMPT = 'optimize_prompt',
-  GET_COMPACT_SUMMARY = 'get_compact_summary',
-  GET_COMPACT_SUMMARY_WITH_OPTIONS = 'get_compact_summary_with_options'
+  OPTIMIZE_PROMPT = 'optimize_prompt'
 }
 
 export const AIAssistantSchema = z.object({

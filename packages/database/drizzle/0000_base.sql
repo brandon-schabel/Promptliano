@@ -95,8 +95,6 @@ CREATE TABLE `files` (
 	`last_modified` integer,
 	`content_type` text,
 	`content` text,
-	`summary` text,
-	`summary_last_updated` integer,
 	`meta` text,
 	`checksum` text,
 	`imports` text,

@@ -39,8 +39,6 @@ const mockProjectFiles: ProjectFile[] = [
     created: Date.now(),
     updated: Date.now(),
     checksum: 'checksum1',
-    summary: 'Summary of App.tsx',
-    summaryLastUpdated: Date.now(),
     meta: ''
   },
   {
@@ -54,8 +52,6 @@ const mockProjectFiles: ProjectFile[] = [
     created: Date.now(),
     updated: Date.now(),
     checksum: 'checksum2',
-    summary: 'Summary of helper.ts',
-    summaryLastUpdated: Date.now(),
     meta: ''
   },
   {
@@ -69,8 +65,6 @@ const mockProjectFiles: ProjectFile[] = [
     created: Date.now(),
     updated: Date.now(),
     checksum: 'checksum3',
-    summary: 'Summary of index.ts',
-    summaryLastUpdated: Date.now(),
     meta: ''
   }
 ]
@@ -268,8 +262,6 @@ describe('buildFileTree', () => {
         created: Date.now(),
         updated: Date.now(),
         checksum: 'checksum4',
-        summary: 'Summary of file.ts',
-        summaryLastUpdated: Date.now(),
         meta: ''
       }
     ]
