@@ -71,11 +71,15 @@ export function extractKeywords(text: string): string[] {
     'list'
   ])
 
-  const typos: Record<string, string> = { improvments: 'improvements' }
+  const typos: Record<string, string> = { improvements: 'improvements' }
 
   const rawTokens = cleaned
     .split(/\s+/)
-    .map((t) => typos[t] || t.trim())
+    .map((token) => {
+      const trimmed = token.trim()
+      const correctionKey = trimmed === 'improvments' ? 'improvements' : trimmed
+      return typos[correctionKey] || correctionKey
+    })
     .filter((t) => t.length > 1 && !stop.has(t))
 
   const seen = new Set<string>()

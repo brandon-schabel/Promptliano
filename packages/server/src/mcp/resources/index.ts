@@ -664,7 +664,7 @@ export async function readResource(uri: string, projectId: number | null): Promi
             break
           }
 
-          const fileId = rest[2]
+          const fileId = rest.slice(2).join('/')
           const files = await getProjectFiles(scopedProjectId)
           const file = files?.find((item: any) => item.id === fileId)
 
