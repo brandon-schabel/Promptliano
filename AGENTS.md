@@ -79,10 +79,12 @@ This guide aligns contributors and AI agents on how to work in this monorepo. Th
 ## MCP Tools Quick Reference
 
 ### project_manager tool
+
 - Manages project metadata, file system access, search, and document overview. Supported actions include `list`, `get`, `browse_files`, `get_file_content`, `update_file_content`, `create_file`, `get_file_tree`, `suggest_files`, `search`, and `overview`.
 - `suggest_files` ranks repository paths for a natural-language prompt. Provide `projectId`, `data.prompt`, and optional `data.limit` (default 10). The tool returns a text block of newline-separated paths or `No file suggestions found` when nothing matches.
 - Quick test: `bun scripts/run-mcp-suggest-files.mjs "refactor auth flow" 15`. The script spins up an in-memory MCP client/server, resolves the project automatically (or honors `PROMPTLIANO_PROJECT_ID`), and prints the raw MCP response.
 - Direct MCP payload shape:
+
   ```json
   {
     "name": "project_manager",
@@ -98,9 +100,9 @@ This guide aligns contributors and AI agents on how to work in this monorepo. Th
   ```
 
 ### flow_manager tool
+
 - Central hub for tickets, tasks, and queues. Actions are grouped by prefix: `tickets_*`, `tasks_*`, `queues_*`, queue mutations (`enqueue_*`, `dequeue_*`), and processor operations.
 - Tickets: use `tickets_list` (requires `projectId`), `tickets_get`, `tickets_create`, `tickets_update`, `tickets_delete`. Payloads accept fields such as `title`, `overview`, and `priority`.
 - Tasks: `tasks_list_by_ticket` (needs `ticketId`), `tasks_create`, `tasks_update`, `tasks_delete`, `tasks_reorder`. Supply `data.content` (and optional description/status) when creating tasks.
 - Queues: `queues_create`, `queues_list`, `queues_get`, `queues_update`, `queues_delete`, plus stats via `queues_get_stats` and `queues_get_all_stats`.
 - Queue flow: `enqueue_ticket`, `enqueue_task`, `dequeue_ticket`, `dequeue_task` manage work-in-progress. Processor consumers call `processor_get_next`, then either `processor_complete` or `processor_fail` with the queue item id and result payload.
-
