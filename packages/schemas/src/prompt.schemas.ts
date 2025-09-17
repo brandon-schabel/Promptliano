@@ -154,7 +154,44 @@ export const SuggestPromptsResponseSchema = z
     data: z.object({
       prompts: z.array(PromptSchema).openapi({
         description: 'Array of suggested prompts ordered by relevance (most relevant first)'
-      })
+      }),
+      debug: z
+        .object({
+          scores: z
+            .array(
+              z.object({
+                promptId: z.string(),
+                totalScore: z.number(),
+                titleScore: z.number(),
+                contentScore: z.number(),
+                tagScore: z.number(),
+                recencyScore: z.number(),
+                usageScore: z.number().optional(),
+                aiConfidence: z.number().min(0).max(1).optional(),
+                aiReasons: z.array(z.string()).optional()
+              })
+            )
+            .optional(),
+          metadata: z
+            .object({
+              totalPrompts: z.number(),
+              analyzedPrompts: z.number(),
+              strategy: z.enum(['fast', 'balanced', 'thorough']),
+              processingTime: z.number(),
+              tokensSaved: z.number(),
+              aiSelections: z
+                .array(
+                  z.object({
+                    id: z.string(),
+                    confidence: z.number().min(0).max(1),
+                    reasons: z.array(z.string())
+                  })
+                )
+                .optional()
+            })
+            .optional()
+        })
+        .optional()
     })
   })
   .openapi('SuggestPromptsResponse')

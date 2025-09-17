@@ -292,7 +292,7 @@ export class PromptlianoClient {
     deletePrompt: (promptId: number) => this.typeSafe.deletePrompt(promptId),
     // Project prompt management
     getProjectPrompts: (projectId: number) => this.typeSafe.getProjectsByIdPrompts(projectId),
-    suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
+    suggestPrompts: (projectId: number, data: { userInput: string; limit?: number; includeScores?: boolean }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
     // Connect/disconnect prompts to projects

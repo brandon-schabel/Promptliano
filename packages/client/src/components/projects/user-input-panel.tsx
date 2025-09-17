@@ -17,19 +17,21 @@ import {
 } from '@/hooks/use-kv-local-storage'
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { SuggestedFilesDialog } from '../suggest-files-dialog'
-import { SuggestedPromptsDialog } from '../suggest-prompts-dialog'
+import { SuggestedPromptsDialog, type SuggestedPromptWithScore } from '../suggest-prompts-dialog'
 import { useCreateChat } from '@/hooks/generated'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { Binoculars, Bot, Copy, Check, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
-import { useSuggestFiles } from '@/hooks/api-hooks'
-import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api-hooks'
-// Import the correct Prompt type from database schema
-import type { PromptSchema } from '@promptliano/database'
-type Prompt = typeof PromptSchema._type
+import {
+  useSuggestFiles,
+  useGetProjectPrompts,
+  useSuggestPrompts,
+  type SuggestPromptsHookResult,
+  type SuggestPromptsScoreDebug
+} from '@/hooks/api-hooks'
 import { useProjectFileTree } from '@/hooks/use-project-file-tree'
 import { buildTreeStructure } from './file-panel/file-tree/file-tree'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import { ProjectFile } from '@promptliano/schemas'
+import { ProjectFile, type Prompt } from '@promptliano/schemas'
 import { buildPromptContent, calculateTotalTokens } from '@promptliano/shared/src/utils/projects-utils'
 
 export type UserInputPanelRef = {
@@ -62,7 +64,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const { data: selectedPrompts = [] } = useProjectTabField('selectedPrompts', activeProjectTabId ?? -1)
   const { data: globalUserPrompt = '' } = useProjectTabField('userPrompt', activeProjectTabId ?? -1)
   const [suggestedFiles, setSuggestedFiles] = useState<ProjectFile[]>([])
-  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]) // Matches API return type
+  const [suggestedPrompts, setSuggestedPrompts] = useState<SuggestedPromptWithScore[]>([])
 
   // Keep a local copy of userPrompt so that typing is instantly reflected in the textarea
   const [localUserPrompt, setLocalUserPrompt] = useState(globalUserPrompt)
@@ -81,6 +83,13 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
 
   // Load the project's prompts
   const { data: promptData } = useGetProjectPrompts(activeProjectTabState?.selectedProjectId ?? -1)
+
+  const projectPromptMap = useMemo(() => {
+    if (!promptData) {
+      return new Map<number, Prompt>()
+    }
+    return new Map<number, Prompt>(promptData.map((prompt) => [prompt.id, prompt]))
+  }, [promptData])
 
   // Read selected files
   const { selectedFiles, projectFileMap } = useSelectedFiles()
@@ -201,38 +210,114 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
       {
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
         userInput: localUserPrompt,
-        limit: 5
+        limit: 5,
+        includeScores: true
       },
       {
-        onSuccess: (recommendedPrompts) => {
-          if (recommendedPrompts && recommendedPrompts.length > 0) {
-            // Convert HookPrompt objects to Prompt objects
-            // Type the recommendedPrompts parameter properly
-            type HookPrompt = {
-              id: number
-              name: string
-              content: string
-              projectId?: number
-              created?: number
-              updated?: number
-            }
-            const convertedPrompts: Prompt[] = (recommendedPrompts as HookPrompt[]).map(
-              (hookPrompt): Prompt => ({
-                id: hookPrompt.id,
-                title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
-                content: hookPrompt.content,
-                description: null, // HookPrompt doesn't have description
-                projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
-                tags: [], // HookPrompt doesn't have tags
-                createdAt: hookPrompt.created || Date.now(),
-                updatedAt: hookPrompt.updated || Date.now()
-              })
-            )
-            setSuggestedPrompts(convertedPrompts)
-            setShowPromptSuggestions(true)
-          } else {
+        onSuccess: (result: SuggestPromptsHookResult) => {
+          const promptEntries = Array.isArray(result?.prompts) ? result?.prompts : []
+
+          if (!promptEntries.length) {
             toast.info('No relevant prompts found for your input')
+            return
           }
+
+          const scores = result?.debug?.scores || []
+          const scoreMap = new Map<string, SuggestPromptsScoreDebug>()
+          scores.forEach((score) => {
+            if (!score) return
+            scoreMap.set(String(score.promptId), score)
+          })
+
+          const suggestions: SuggestedPromptWithScore[] = []
+          const missingPromptIds: number[] = []
+
+          const coercePromptFromRemote = (remotePrompt: any): Prompt | undefined => {
+            if (!remotePrompt || typeof remotePrompt !== 'object') return undefined
+            const rawId = (remotePrompt as any).id ?? (remotePrompt as any).promptId
+            const promptId = Number(rawId)
+            if (!Number.isFinite(promptId)) return undefined
+
+            const fallbackProjectId = activeProjectTabState?.selectedProjectId ?? -1
+            const title =
+              typeof (remotePrompt as any).title === 'string'
+                ? (remotePrompt as any).title
+                : typeof (remotePrompt as any).name === 'string'
+                  ? (remotePrompt as any).name
+                  : `Prompt ${promptId}`
+
+            return {
+              id: promptId,
+              title,
+              content: typeof (remotePrompt as any).content === 'string' ? (remotePrompt as any).content : '',
+              description:
+                typeof (remotePrompt as any).description === 'string' ? (remotePrompt as any).description : null,
+              projectId:
+                typeof (remotePrompt as any).projectId === 'number'
+                  ? (remotePrompt as any).projectId
+                  : fallbackProjectId,
+              tags: Array.isArray((remotePrompt as any).tags)
+                ? (remotePrompt as any).tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+                : [],
+              createdAt:
+                typeof (remotePrompt as any).createdAt === 'number'
+                  ? (remotePrompt as any).createdAt
+                  : typeof (remotePrompt as any).created === 'number'
+                    ? (remotePrompt as any).created
+                    : Date.now(),
+              updatedAt:
+                typeof (remotePrompt as any).updatedAt === 'number'
+                  ? (remotePrompt as any).updatedAt
+                  : typeof (remotePrompt as any).updated === 'number'
+                    ? (remotePrompt as any).updated
+                    : Date.now()
+            }
+          }
+
+          for (const entry of promptEntries) {
+            let promptId: number | undefined
+            let promptDetails: Prompt | undefined
+
+            if (typeof entry === 'number') {
+              promptId = entry
+            } else if (typeof entry === 'string') {
+              const parsed = Number(entry)
+              if (Number.isFinite(parsed)) {
+                promptId = parsed
+              }
+            } else if (entry && typeof entry === 'object') {
+              promptDetails = coercePromptFromRemote(entry)
+              promptId = promptDetails?.id ?? undefined
+            }
+
+            if (promptId !== undefined && !promptDetails) {
+              promptDetails = projectPromptMap.get(promptId) ?? coercePromptFromRemote(entry)
+            }
+
+            if (!promptDetails || typeof promptId !== 'number') {
+              if (typeof promptId === 'number') {
+                missingPromptIds.push(promptId)
+              }
+              continue
+            }
+
+            suggestions.push({
+              prompt: promptDetails,
+              score: scoreMap.get(String(promptId))
+            })
+          }
+
+          if (suggestions.length === 0) {
+            toast.info('No relevant prompts found for your input')
+            return
+          }
+
+          if (missingPromptIds.length > 0) {
+            console.warn('Missing prompt details for suggested prompts', missingPromptIds)
+          }
+
+          setSuggestedPrompts(suggestions)
+          setShowPromptSuggestions(true)
         }
       }
     )

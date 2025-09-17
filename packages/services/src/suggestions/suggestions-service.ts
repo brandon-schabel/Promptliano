@@ -1,6 +1,7 @@
 import type { FileSuggestionStrategy } from '@promptliano/database'
 import { createFileRelevanceService, type RelevanceScoreResult } from '../file-services/file-relevance-service'
 import { createFileSuggestionStrategyService } from '../file-services/file-suggestion-strategy-service'
+import { createPromptSuggestionStrategyService } from '../prompt-services/prompt-suggestion-strategy-service'
 import { getProjectFiles } from '../project-service'
 import { createFileSearchService } from '../file-services/file-search-service'
 import { getTicketById } from '../ticket-service'
@@ -41,6 +42,7 @@ export interface SuggestionsServiceDeps {}
 export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
   const relevanceService = createFileRelevanceService()
   const strategyService = createFileSuggestionStrategyService()
+  const promptStrategyService = createPromptSuggestionStrategyService()
 
   async function suggestFilesForProject(
     projectId: number,
@@ -279,7 +281,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     projectId: number,
     userInput: string,
     options: {
-      strategy?: 'fast' | 'balanced' | 'thorough'
+      strategy?: FileSuggestionStrategy
       maxResults?: number
       includeScores?: boolean
       userContext?: string
@@ -293,136 +295,33 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
       contentScore: number
       tagScore: number
       recencyScore: number
+      usageScore: number
+      aiConfidence?: number
+      aiReasons?: string[]
     }>
     metadata: {
       totalPrompts: number
       analyzedPrompts: number
-      strategy: string
+      strategy: FileSuggestionStrategy
       processingTime: number
+      tokensSaved: number
+      aiSelections?: Array<{ id: string; confidence: number; reasons: string[] }>
     }
   }> {
-    const start = Date.now()
-    const strategy = options.strategy || 'balanced'
+    const strategy = options.strategy ?? 'balanced'
     const maxResults = options.maxResults ?? 10
+    const result = await promptStrategyService.suggestPrompts(projectId, userInput, strategy, maxResults, options.userContext)
 
-    try {
-      // Import prompt services dynamically to avoid circular dependencies
-      const { createPromptRelevanceService } = await import('../prompt-services/prompt-relevance-service')
-      const { createPromptSearchService } = await import('../prompt-services/prompt-search-service')
-      const { promptRepository } = await import('@promptliano/database')
-
-      const relevanceService = createPromptRelevanceService()
-      const searchService = createPromptSearchService()
-
-      // Get all prompts for the project
-      const allPrompts = await promptRepository.getByProject(projectId)
-
-      if (allPrompts.length === 0) {
-        return {
-          suggestions: [],
-          scores: options.includeScores ? [] : undefined,
-          metadata: {
-            totalPrompts: 0,
-            analyzedPrompts: 0,
-            strategy,
-            processingTime: Date.now() - start
-          }
-        }
-      }
-
-      // 1) Relevance scoring (content-based)
-      const relevanceScores = await relevanceService.scorePromptsForText(userInput, projectId)
-      const relMap = new Map(relevanceScores.map(s => [s.promptId, s]))
-
-      // 2) Fuzzy search for title and content matching
-      const tokens = extractKeywords(userInput)
-      const fuzzyQuery = buildFuzzyQuery(tokens)
-
-      let fuzzyResults: Array<{ promptId: string; score: number }> = []
-      if (fuzzyQuery) {
-        try {
-          const { results } = await searchService.search(projectId, {
-            query: fuzzyQuery,
-            searchType: 'fuzzy',
-            limit: Math.max(maxResults * 5, 25)
-          })
-          fuzzyResults = results.map(r => ({
-            promptId: r.prompt.id.toString(),
-            score: clamp01(r.score)
-          }))
-        } catch (error) {
-          const msg = (error as any)?.message || String(error)
-          console.warn('Fuzzy search failed for prompts:', msg)
-        }
-      }
-
-      // 3) Union candidates from relevance and fuzzy
-      const candidateIds = new Set<string>([
-        ...relevanceScores.slice(0, Math.max(100, maxResults * 5)).map(s => s.promptId),
-        ...fuzzyResults.map(f => f.promptId)
-      ])
-
-      // Build fuzzy score map
-      const fuzzyMap = new Map<string, number>()
-      for (const f of fuzzyResults) {
-        const prev = fuzzyMap.get(f.promptId) || 0
-        if (f.score > prev) fuzzyMap.set(f.promptId, f.score)
-      }
-
-      // 4) Composite scoring with category boosts
-      let composite = Array.from(candidateIds)
-        .map(id => {
-          const base = relMap.get(id) || createZeroPromptScore(id)
-          const fuzzy = fuzzyMap.get(id) || 0
-          const categoryBoost = computePromptCategoryBoost(
-            allPrompts.find(p => p.id.toString() === id),
-            tokens
-          )
-
-          // Blend scores similar to file suggestions
-          const blended = clamp01(
-            0.5 * base.totalScore +
-            0.3 * fuzzy +
-            0.2 * categoryBoost
-          )
-
-          return {
-            promptId: id,
-            totalScore: blended,
-            titleScore: (base as any).titleScore ?? 0,
-            contentScore: (base as any).contentScore ?? 0,
-            tagScore: (base as any).tagScore ?? 0,
-            recencyScore: (base as any).recencyScore ?? 0
-          }
-        })
-        .sort((a, b) => b.totalScore - a.totalScore)
-
-      // 5) Optionally rerank with AI: disabled in this implementation to avoid schema coupling
-
-      const top = composite.slice(0, maxResults)
-      const suggestions = top.map(s => s.promptId)
-
-      return {
-        suggestions,
-        scores: options.includeScores ? top : undefined,
-        metadata: {
-          totalPrompts: allPrompts.length,
-          analyzedPrompts: composite.length,
-          strategy,
-          processingTime: Date.now() - start
-        }
-      }
-    } catch (error) {
-      const msg = (error as any)?.message || String(error)
-      console.error('Error in prompt suggestions:', msg)
-      return {
-        suggestions: [],
-        metadata: {
-          totalPrompts: 0,
-          analyzedPrompts: 0,
-          strategy: 'error',
-          processingTime: Date.now() - start
-        }
+    return {
+      suggestions: result.suggestions,
+      scores: options.includeScores ? (result.scores as any) : undefined,
+      metadata: {
+        totalPrompts: result.metadata.totalPrompts,
+        analyzedPrompts: result.metadata.analyzedPrompts,
+        strategy: result.metadata.strategy,
+        processingTime: result.metadata.processingTime,
+        tokensSaved: result.metadata.tokensSaved,
+        aiSelections: result.metadata.aiSelections ?? []
       }
     }
   }
@@ -441,58 +340,6 @@ export const suggestionsService = createSuggestionsService()
 export const { suggestFilesForProject, suggestFilesForTicket, suggestPromptsForProject } = suggestionsService
 
 // ---------- Local helpers (scoped to project-level suggestions) ----------
-
-// Helper functions for prompt suggestions
-function createZeroPromptScore(promptId: string) {
-  return {
-    promptId,
-    totalScore: 0,
-    titleScore: 0,
-    contentScore: 0,
-    tagScore: 0,
-    recencyScore: 0,
-    usageScore: 0
-  }
-}
-
-function computePromptCategoryBoost(prompt: any, tokens: string[]): number {
-  if (!prompt) return 0
-
-  const title = prompt.title?.toLowerCase() || ''
-  const content = prompt.content?.toLowerCase() || ''
-
-  let boost = 0
-
-  // Boost for specific prompt categories
-  if (hasAnyTokens(tokens, ['code', 'review', 'refactor', 'optimize']) &&
-      (title.includes('code') || content.includes('review'))) {
-    boost += 0.3
-  }
-
-  if (hasAnyTokens(tokens, ['test', 'testing', 'unit', 'integration']) &&
-      (title.includes('test') || content.includes('testing'))) {
-    boost += 0.3
-  }
-
-  if (hasAnyTokens(tokens, ['documentation', 'docs', 'readme', 'guide']) &&
-      (title.includes('doc') || content.includes('documentation'))) {
-    boost += 0.2
-  }
-
-  if (hasAnyTokens(tokens, ['bug', 'fix', 'error', 'debug']) &&
-      (title.includes('bug') || content.includes('fix'))) {
-    boost += 0.3
-  }
-
-  return Math.min(0.4, boost) // Cap boost
-}
-
-function hasAnyTokens(tokens: string[], terms: string[]): boolean {
-  const set = new Set(tokens)
-  for (const t of terms) if (set.has(t)) return true
-  return false
-}
-
 
 // ---------- File suggestions helpers (existing) ----------
 
