@@ -106,9 +106,50 @@ export const UpdateProjectBodySchema = CreateProjectBodySchema.partial()
   .openapi('UpdateProjectRequestBody')
 
 
+const FileSuggestionStrategyEnum = z.enum(['fast', 'balanced', 'thorough']).openapi({
+  description: 'Preset strategy controlling scoring, AI usage, and performance'
+})
+
 export const SuggestFilesBodySchema = z
   .object({
-    userInput: z.string().min(1).openapi({ example: 'Implement authentication using JWT' })
+    userInput: z
+      .string()
+      .min(1)
+      .optional()
+      .openapi({ example: 'Implement authentication using JWT' }),
+    prompt: z
+      .string()
+      .min(1)
+      .optional()
+      .openapi({
+        example: 'Implement authentication using JWT',
+        description: 'Alias for userInput maintained for backward compatibility'
+      }),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .default(25)
+      .openapi({ example: 25, description: 'Maximum number of files to return' }),
+    strategy: FileSuggestionStrategyEnum.default('balanced'),
+    includeScores: z.boolean().default(true).openapi({
+      example: true,
+      description: 'Return per-file relevance scores when available'
+    }),
+    userContext: z
+      .string()
+      .min(1)
+      .optional()
+      .openapi({
+        example: 'Focus on MCP transport tools and remove unused prompts',
+        description: 'Additional context used to bias relevance scoring'
+      })
+  })
+  .superRefine((data, ctx) => {
+    if (!data.userInput && !data.prompt) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'userInput or prompt is required' })
+    }
   })
   .openapi('SuggestFilesRequestBody')
 
@@ -121,11 +162,26 @@ export const SuggestFilesResponseSchema = z
           path: z.string(),
           relevance: z.number().min(0).max(1),
           reason: z.string(),
-          fileType: z.string()
+          fileType: z.string(),
+          aiConfidence: z.number().min(0).max(1).optional(),
+          aiReasons: z.array(z.string()).optional()
         })
       ),
       totalFiles: z.number(),
-      processingTime: z.number()
+      analyzedFiles: z.number(),
+      strategy: FileSuggestionStrategyEnum,
+      tokensSaved: z.number().min(0).optional(),
+      processingTime: z.number(),
+      recommendedFileIds: z.array(z.string()).optional(),
+      aiSelections: z
+        .array(
+          z.object({
+            id: z.string(),
+            confidence: z.number().min(0).max(1),
+            reasons: z.array(z.string())
+          })
+        )
+        .optional()
     })
   })
   .openapi('SuggestFilesResponse')

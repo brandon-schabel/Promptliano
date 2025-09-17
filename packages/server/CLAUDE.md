@@ -6,6 +6,8 @@ This guide covers the Promptliano server architecture built on **Drizzle → Zod
 
 The server follows a **Drizzle-first** approach where the database schema is the single source of truth that generates everything else:
 
+➡️ Looking for deeper design docs? See `dev-docs/` in the repo root for engineering-focused notes (MCP evaluations, file search plans, UI consolidation, etc.). End-user setup guides remain under `docs/`.
+
 **🔄 Data Flow Pipeline:**
 
 ```
@@ -29,9 +31,9 @@ packages/server/
 │   ├── app.ts             # Hono app configuration & middleware
 │   ├── routes/            # API route definitions by domain
 │   ├── mcp/               # Model Context Protocol implementation
-│   │   ├── server.ts      # MCP server setup
-│   │   ├── tools/         # MCP tool implementations by category
-│   │   └── consolidated-tools.ts
+│   │   ├── server.ts      # MCP server factory
+│   │   ├── resources/     # Resource descriptors and readers
+│   │   └── tools/         # MCP tool implementations by category
 │   └── services/          # WebSocket and other services
 ├── mcp-*.ts              # MCP standalone servers
 └── data/                 # Runtime data storage

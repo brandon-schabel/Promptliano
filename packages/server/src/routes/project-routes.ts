@@ -9,7 +9,8 @@ import {
   ProjectResponseSchema,
   ProjectListResponseSchema,
   ProjectResponseMultiStatusSchema,
-  SuggestFilesResponseSchema as ProjectSuggestFilesResponseSchema
+  SuggestFilesResponseSchema as ProjectSuggestFilesResponseSchema,
+  SuggestFilesBodySchema as ProjectSuggestFilesBodySchema
 } from '@promptliano/schemas'
 import { selectFileSchema as DbFileSchema } from '@promptliano/database'
 
@@ -63,22 +64,6 @@ const BulkUpdateFilesBodySchema = z.object({
 const DbFileResponseSchema = z.object({ success: z.literal(true), data: DbFileSchema as any })
 const DbFileListResponseSchema = z.object({ success: z.literal(true), data: z.array(DbFileSchema as any) })
 const BulkFilesResponseSchema = DbFileListResponseSchema
-
-const SuggestFilesBodySchema = z
-  .object({
-    prompt: z.string().min(1).optional().describe('The prompt to analyze for file suggestions'),
-    userInput: z.string().min(1).optional().describe('Alias for prompt for backward compatibility'),
-    limit: z.number().int().positive().optional().default(10).describe('Maximum number of files to suggest'),
-    strategy: z
-      .enum(['fast', 'balanced', 'thorough'])
-      .optional()
-      .describe('Suggestion strategy: fast (no AI), balanced (default), thorough (more AI)'),
-    includeScores: z.boolean().optional().describe('Include per-file scores in suggestion pipeline output'),
-    userContext: z.string().optional().describe('Additional context to improve suggestions')
-  })
-  .refine((v) => !!(v.prompt?.trim() || v.userInput?.trim()), {
-    message: 'Either prompt or userInput is required'
-  })
 
 // File search schemas
 const FileSearchRequestSchema = z.object({
@@ -326,7 +311,7 @@ const suggestFilesRoute = createRoute({
   summary: 'Suggest relevant files based on user input and project context',
   request: {
     params: IDParamsSchema,
-    body: { content: { 'application/json': { schema: SuggestFilesBodySchema } } }
+    body: { content: { 'application/json': { schema: ProjectSuggestFilesBodySchema } } }
   },
   responses: createStandardResponses(ProjectSuggestFilesResponseSchema)
 })
@@ -716,12 +701,12 @@ export const projectRoutes = new OpenAPIHono()
   // })
   .openapi(suggestFilesRoute, async (c) => {
     const { id: projectId } = c.req.valid('param')
-    const body = c.req.valid('json')
-    const limit = (body as any).limit ?? 10
-    const prompt = (body as any).prompt ?? (body as any).userInput
-    const strategy = (body as any).strategy ?? 'balanced'
-    const includeScores = (body as any).includeScores ?? true
-    const userContext = (body as any).userContext
+    const body = c.req.valid('json') as z.infer<typeof ProjectSuggestFilesBodySchema>
+    const limit = body.limit ?? 25
+    const prompt = body.userInput ?? body.prompt ?? ''
+    const strategy = body.strategy ?? 'balanced'
+    const includeScores = body.includeScores ?? true
+    const userContext = body.userContext
 
     const start = Date.now()
     await projectService.getById(projectId)
@@ -759,17 +744,35 @@ export const projectRoutes = new OpenAPIHono()
       semanticScores = new Map(results.map((r: any) => [String((r.file as any).id), Number(r.score || 0)]))
     } catch { }
 
+    const scoreDetails = new Map(
+      Array.isArray(result.scores) ? (result.scores as any[]).map((s) => [String(s.fileId), s]) : []
+    )
+    const aiSelectionMap = new Map(
+      Array.isArray(result.metadata.aiSelections)
+        ? result.metadata.aiSelections.map((selection) => [String(selection.id), selection])
+        : []
+    )
+
     const suggestedFiles = (result.suggestions || []).map((id: string) => {
-      const f = byId.get(String(id))
-      const score = relevanceMap.get(String(id))
-      const sem = semanticScores.get(String(id))
-      const relevance = typeof score === 'number' ? Math.max(0, Math.min(1, score)) : (sem ?? 0.9)
-      const reason = typeof score === 'number' ? 'Relevance scoring match' : 'Selected by AI (project context)'
+      const fileId = String(id)
+      const file = byId.get(fileId)
+      const blendedScore = relevanceMap.get(fileId)
+      const semanticScore = semanticScores.get(fileId)
+      const detail: any = scoreDetails.get(fileId)
+      const selection = aiSelectionMap.get(fileId)
+      const relevance = typeof blendedScore === 'number' ? Math.max(0, Math.min(1, blendedScore)) : semanticScore ?? 0.9
+      const aiReasons = Array.isArray(detail?.aiReasons) ? detail.aiReasons : selection?.reasons
+      const joinedReasons = aiReasons && aiReasons.length > 0 ? aiReasons.join(', ') : undefined
+      const reason = joinedReasons ? `AI reranker: ${joinedReasons}` : 'Relevance scoring match'
+      const aiConfidenceCandidate = typeof detail?.aiConfidence === 'number' ? detail.aiConfidence : selection?.confidence
+      const aiConfidence = typeof aiConfidenceCandidate === 'number' ? Math.max(0, Math.min(1, aiConfidenceCandidate)) : undefined
       return {
-        path: f?.path || String(id),
+        path: file?.path || fileId,
         relevance,
         reason,
-        fileType: (f?.extension as string) || ''
+        fileType: (file?.extension as string) || '',
+        aiConfidence,
+        aiReasons: aiReasons && aiReasons.length > 0 ? [...aiReasons] : undefined
       }
     })
 
@@ -777,8 +780,13 @@ export const projectRoutes = new OpenAPIHono()
       success: true,
       data: {
         suggestedFiles,
-        totalFiles: suggestedFiles.length,
-        processingTime: Date.now() - start
+        totalFiles: result.metadata.totalFiles,
+        analyzedFiles: result.metadata.analyzedFiles,
+        strategy: result.metadata.strategy,
+        tokensSaved: result.metadata.tokensSaved,
+        processingTime: Date.now() - start,
+        recommendedFileIds: result.suggestions?.map(String),
+        aiSelections: result.metadata.aiSelections ?? []
       }
     }
 

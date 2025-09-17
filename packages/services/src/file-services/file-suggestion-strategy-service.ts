@@ -1,7 +1,5 @@
 import type { Ticket, File, FileSuggestionStrategy, RelevanceConfig } from '@promptliano/database'
-import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/error-factory'
 import { createFileRelevanceService, type RelevanceScoreResult } from './file-relevance-service'
-import { CompactFileFormatter } from '../utils/compact-file-formatter'
 import { generateStructuredData } from '../gen-ai-services'
 import { modelConfigService } from '../model-config-service'
 import type { ModelOptionsWithProvider } from '@promptliano/config'
@@ -12,16 +10,19 @@ import { createFileService, createFileCache, type FileServiceConfig } from './fi
 
 export interface FileSuggestionResponse {
   suggestions: string[] // File IDs
-  scores?: RelevanceScoreResult[]
+  scores?: Array<RelevanceScoreResult & { aiConfidence?: number; aiReasons?: string[] }>
   metadata: {
     totalFiles: number
     analyzedFiles: number
     strategy: FileSuggestionStrategy
     processingTime: number
     tokensSaved: number
+    aiSelections?: AiRerankSelection[]
   }
   error?: string
 }
+
+type RerankStrategy = 'ai-sdk' | 'cohere' | 'contextual' | 'hybrid'
 
 export interface StrategyConfig {
   maxPreFilterFiles: number
@@ -29,6 +30,7 @@ export interface StrategyConfig {
   useAI: boolean
   aiModel: 'high' | 'medium'
   compactLevel: 'ultra' | 'compact' | 'standard'
+  rerankStrategy?: RerankStrategy
 }
 
 export interface FileSuggestionServiceDeps {
@@ -37,28 +39,300 @@ export interface FileSuggestionServiceDeps {
   cache?: ReturnType<typeof createFileCache>
 }
 
+interface AiRerankSelection {
+  id: string
+  confidence: number
+  reasons: string[]
+}
+
+interface AiRerankOverrides {
+  strategy?: RerankStrategy
+  topK?: number
+  maxCandidates?: number
+}
+
+const DEFAULT_RERANK_STRATEGY: RerankStrategy = 'ai-sdk'
+const MAX_RERANK_CANDIDATES = 40
+
+const RERANK_REASON_TAGS = [
+  'DirectMatch',
+  'PathMatch',
+  'API',
+  'UI',
+  'Auth',
+  'Test',
+  'Config',
+  'Schema',
+  'Dependency',
+  'Recency'
+] as const
+
+const RERANK_REASON_ENUM = z.enum(RERANK_REASON_TAGS)
+
+const FILE_RERANK_SCHEMA = z.object({
+  selections: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        confidence: z.number().min(0).max(1),
+        reasons: z.array(RERANK_REASON_ENUM).min(1).max(3)
+      })
+    )
+    .max(10)
+})
+
+const AI_RERANK_SYSTEM_PROMPT =
+  'You are a senior engineer helping choose the most relevant repository files for a ticket. ' +
+  'Study the structured descriptors, prioritise true matches, and return the best candidates with confidences and reason tags.'
+
 const STRATEGY_CONFIGS: Record<FileSuggestionStrategy, StrategyConfig> = {
   fast: {
     maxPreFilterFiles: 30,
     maxAIFiles: 0,
     useAI: false,
     aiModel: 'medium',
-    compactLevel: 'ultra'
+    compactLevel: 'ultra',
+    rerankStrategy: DEFAULT_RERANK_STRATEGY
   },
   balanced: {
     maxPreFilterFiles: 50,
     maxAIFiles: 50,
     useAI: true,
     aiModel: 'medium',
-    compactLevel: 'compact'
+    compactLevel: 'compact',
+    rerankStrategy: DEFAULT_RERANK_STRATEGY
   },
   thorough: {
     maxPreFilterFiles: 100,
     maxAIFiles: 100,
     useAI: true,
     aiModel: 'high',
-    compactLevel: 'standard'
+    compactLevel: 'standard',
+    rerankStrategy: DEFAULT_RERANK_STRATEGY
   }
+}
+
+async function resolveModelOptions(tier: StrategyConfig['aiModel']): Promise<ModelOptionsWithProvider> {
+  const presetConfig = await modelConfigService.getPresetConfig(tier === 'high' ? 'high' : 'medium')
+  return {
+    provider: presetConfig.provider as ModelOptionsWithProvider['provider'],
+    model: presetConfig.model,
+    frequencyPenalty: nullToUndefined(presetConfig.frequencyPenalty),
+    presencePenalty: nullToUndefined(presetConfig.presencePenalty),
+    maxTokens: nullToUndefined(presetConfig.maxTokens),
+    temperature: nullToUndefined(presetConfig.temperature),
+    topP: nullToUndefined(presetConfig.topP),
+    topK: nullToUndefined(presetConfig.topK)
+  }
+}
+
+function buildRerankPrompt({
+  ticket,
+  userContext,
+  descriptors,
+  topK
+}: {
+  ticket: Ticket
+  userContext?: string
+  descriptors: string[]
+  topK: number
+}): string {
+  const lines: string[] = [
+    `Ticket: ${ticket.title}`,
+    `Overview: ${ticket.overview?.trim() || 'No overview provided.'}`
+  ]
+  if (userContext) {
+    lines.push(`Context: ${userContext}`)
+  }
+  lines.push(
+    '',
+    'Candidates (one per file):',
+    '<fileId>|<path>|<category>|rank:<n>|score:<0-1>|rec:<0-1>|exp:[sym...]|imp:[module:sym...]|hints:[signal]',
+    ...descriptors,
+    '',
+    `Select up to ${topK} files most relevant to the ticket.`,
+    'Ranking rubric (descending priority):',
+    '1) Direct references to ticket keywords or feature names',
+    '2) Domain alignment (UI/API/Test/Config/etc.)',
+    '3) Dependency proximity and importance signals',
+    '4) Recency when the task implies active work or bug fixes',
+    `Valid reasons: ${RERANK_REASON_TAGS.join(', ')}.`
+  )
+  lines.push('Return JSON that follows selections[{id, confidence, reasons[]}] (no extra text).')
+  return lines.join('\n')
+}
+
+function buildCandidateDescriptor(
+  file: File,
+  score: RelevanceScoreResult,
+  index: number,
+  level: StrategyConfig['compactLevel'],
+  keywords: string[]
+): string {
+  const parts: string[] = []
+  parts.push(sanitizeDescriptorPart(file.id))
+  parts.push(sanitizeDescriptorPart(truncateForDescriptor(file.path, level === 'ultra' ? 72 : 96)))
+  parts.push(inferFileDomain(file))
+  parts.push(`rank:${index + 1}`)
+  parts.push(`score:${formatScore(score.totalScore, 2, 0.35)}`)
+  parts.push(`rec:${computeRecencySignal(score, file)}`)
+
+  const exportLimit = level === 'standard' ? 3 : 2
+  const importLimit = level === 'standard' ? 3 : 2
+  const exportsList = extractTopExports(file, exportLimit)
+  const importsList = extractTopImports(file, importLimit)
+  const hints = deriveSignalHints(file, keywords, score)
+
+  if (level !== 'ultra' && exportsList.length > 0) {
+    parts.push(`exp:[${exportsList.join(',')}]`)
+  }
+  if (level !== 'ultra' && importsList.length > 0) {
+    parts.push(`imp:[${importsList.join(',')}]`)
+  }
+  if (level === 'standard') {
+    parts.push(`kw:${formatScore(score.keywordScore)}`)
+    parts.push(`path:${formatScore(score.pathScore)}`)
+  }
+  if (hints.length > 0) {
+    parts.push(`hints:[${hints.join(',')}]`)
+  }
+
+  return parts.map(sanitizeDescriptorPart).join('|')
+}
+
+function extractTopExports(file: File, limit: number): string[] {
+  const result: string[] = []
+  if (!file.exports) return result
+  for (const exp of file.exports) {
+    if (result.length >= limit) break
+    if (exp.specifiers && exp.specifiers.length > 0) {
+      for (const spec of exp.specifiers) {
+        if (result.length >= limit) break
+        const name = spec.exported || spec.local
+        if (name) {
+          result.push(cleanSymbolName(name))
+        }
+      }
+    } else if (exp.type === 'default') {
+      result.push('default')
+    } else if (exp.type === 'all') {
+      result.push('*')
+    }
+  }
+  return result
+}
+
+function extractTopImports(file: File, limit: number): string[] {
+  const result: string[] = []
+  if (!file.imports) return result
+  for (const imp of file.imports) {
+    if (result.length >= limit) break
+    const sourceHint = sanitizeDescriptorPart(imp.source.split('/').pop() || imp.source)
+    if (imp.specifiers && imp.specifiers.length > 0) {
+      for (const spec of imp.specifiers) {
+        if (result.length >= limit) break
+        const local = spec.local || spec.imported
+        if (local) {
+          result.push(`${sourceHint}:${cleanSymbolName(local)}`)
+        }
+      }
+    } else {
+      result.push(sourceHint)
+    }
+  }
+  return result
+}
+
+function cleanSymbolName(value: string): string {
+  return sanitizeDescriptorPart(value.replace(/[{}()*]/g, '')).slice(0, 24)
+}
+
+function truncateForDescriptor(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  const headLength = Math.max(0, Math.floor(maxLength * 0.6))
+  const tailLength = Math.max(0, maxLength - headLength - 3)
+  const head = value.slice(0, headLength)
+  const tail = tailLength > 0 ? value.slice(-tailLength) : ''
+  return `${head}...${tail}`
+}
+
+function sanitizeDescriptorPart(value: string): string {
+  return value.replace(/[|\r\n]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function formatScore(value?: number, decimals = 2, fallback = 0): string {
+  const num = typeof value === 'number' && isFinite(value) ? Math.min(Math.max(value, 0), 1) : fallback
+  return num.toFixed(decimals)
+}
+
+function computeRecencySignal(score: RelevanceScoreResult | undefined, file: File): string {
+  if (typeof score?.recencyScore === 'number') {
+    return formatScore(score.recencyScore, 2, 0.5)
+  }
+  if (!file.updatedAt) return '0.50'
+  const ageDays = (Date.now() - file.updatedAt) / (24 * 60 * 60 * 1000)
+  if (ageDays <= 1) return '1.00'
+  if (ageDays <= 7) return '0.85'
+  if (ageDays <= 30) return '0.70'
+  if (ageDays <= 90) return '0.50'
+  return '0.30'
+}
+
+function inferFileDomain(file: File): string {
+  const path = file.path.toLowerCase()
+  if (/[\\/](tests?|__tests__|e2e)[\\/]/.test(path) || path.includes('.test.') || path.includes('.spec.')) return 'test'
+  if (path.includes('/routes/') || path.includes('/api/') || path.includes('/server/')) return 'api'
+  if (path.includes('/components/') || path.endsWith('.tsx') || path.endsWith('.jsx')) return 'ui'
+  if (path.includes('/hooks/')) return 'hook'
+  if (path.includes('/services/') || path.includes('service')) return 'service'
+  if (path.includes('/schemas/') || path.includes('schema')) return 'schema'
+  if (path.includes('config') || path.endsWith('.json')) return 'config'
+  if (path.includes('/docs/') || path.endsWith('.md') || path.endsWith('.mdx')) return 'doc'
+  return 'code'
+}
+
+function deriveSignalHints(file: File, keywords: string[], score?: RelevanceScoreResult): string[] {
+  const hints: string[] = []
+  const lowerPath = file.path.toLowerCase()
+  const directMatch = keywords.find((kw) => kw.length >= 3 && lowerPath.includes(kw))
+  if (directMatch) hints.push(`kw:${directMatch.slice(0, 12)}`)
+  if (lowerPath.includes('chat')) hints.push('chat')
+  if (lowerPath.includes('socket') || lowerPath.includes('ws')) hints.push('realtime')
+  if (lowerPath.includes('auth')) hints.push('auth')
+  if (lowerPath.includes('/routes/') || lowerPath.includes('router')) hints.push('route')
+  if (lowerPath.includes('service')) hints.push('service')
+  if (lowerPath.includes('test') || lowerPath.includes('__tests__')) hints.push('test')
+  if (typeof score?.importScore === 'number' && score.importScore > 0.45) hints.push('dependency')
+  if (typeof score?.recencyScore === 'number' && score.recencyScore > 0.7) hints.push('recent')
+  return Array.from(new Set(hints)).slice(0, 3)
+}
+
+function buildTicketKeywords(ticket: Ticket, userContext?: string): string[] {
+  const text = `${ticket.title || ''} ${ticket.overview || ''} ${userContext || ''}`
+  const tokens = text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3)
+  const unique: string[] = []
+  for (const token of tokens) {
+    if (!unique.includes(token)) {
+      unique.push(token)
+    }
+  }
+  return unique.slice(0, 12)
+}
+
+function dedupeCandidates(files: File[]): File[] {
+  const seen = new Set<string>()
+  const result: File[] = []
+  for (const file of files) {
+    if (!file) continue
+    if (seen.has(file.id)) continue
+    seen.add(file.id)
+    result.push(file)
+  }
+  return result
 }
 
 export function createFileSuggestionStrategyService(deps: FileSuggestionServiceDeps = {}) {
@@ -101,26 +375,40 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
         )
 
         let finalSuggestions: string[]
-        let scores: RelevanceScoreResult[] | undefined
+        let scores: Array<RelevanceScoreResult & { aiConfidence?: number; aiReasons?: string[] }> | undefined
+        let aiSelections: AiRerankSelection[] | undefined
 
         if (strategyConfig.useAI && relevanceScores.length > 0) {
           // Step 2: Use AI to refine suggestions from pre-filtered set
-          const candidateFiles = await getFilesByScores(
-            ticket.projectId,
-            relevanceScores.slice(0, strategyConfig.maxAIFiles)
+          const aiCandidateScores = relevanceScores.slice(0, strategyConfig.maxAIFiles)
+          const candidateFiles = await getFilesByScores(ticket.projectId, aiCandidateScores)
+
+          const aiResult = await aiRefineSuggestions(
+            ticket,
+            candidateFiles,
+            aiCandidateScores,
+            maxResults,
+            strategyConfig,
+            userContext
           )
 
-          finalSuggestions = await aiRefineSuggestions(ticket, candidateFiles, maxResults, strategyConfig, userContext)
+          finalSuggestions = aiResult.fileIds
+          aiSelections = aiResult.selections
+          const selectionMap = new Map(aiResult.selections.map((selection) => [selection.id, selection]))
 
-          // Map AI suggestions back to relevance scores
+          // Map AI suggestions back to relevance scores and attach debug metadata
           scores = finalSuggestions.map((fileId) => {
-            const score = relevanceScores.find((s) => s.fileId === fileId)
-            return score || createDefaultScore(fileId)
+            const baseScore = relevanceScores.find((s) => s.fileId === fileId) || createDefaultScore(fileId)
+            const selection = selectionMap.get(fileId)
+            return selection
+              ? { ...baseScore, aiConfidence: selection.confidence, aiReasons: selection.reasons }
+              : baseScore
           })
         } else {
           // Fast mode: Use only pre-filtering results
           finalSuggestions = relevanceScores.slice(0, maxResults).map((score) => score.fileId)
           scores = relevanceScores.slice(0, maxResults)
+          aiSelections = []
         }
 
         // Calculate token savings
@@ -134,7 +422,8 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
             analyzedFiles: relevanceScores.length,
             strategy,
             processingTime: Date.now() - startTime,
-            tokensSaved
+            tokensSaved,
+            aiSelections: aiSelections ?? []
           }
         }
 
@@ -180,64 +469,92 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
   async function aiRefineSuggestions(
     ticket: Ticket,
     candidateFiles: File[],
+    candidateScores: RelevanceScoreResult[],
     maxResults: number,
     config: StrategyConfig,
-    userContext?: string
-  ): Promise<string[]> {
+    userContext?: string,
+    overrides?: AiRerankOverrides
+  ): Promise<{ fileIds: string[]; selections: AiRerankSelection[] }> {
     return service.withErrorContext(
       async () => {
-        if (candidateFiles.length === 0) return []
+        if (candidateFiles.length === 0) return { fileIds: [], selections: [] }
 
-        // Format files in compact representation
-        const compactSummary = CompactFileFormatter.format(candidateFiles, config.compactLevel)
+        const keywords = buildTicketKeywords(ticket, userContext)
+        const dedupedCandidates = dedupeCandidates(candidateFiles)
+        const maxCandidates = Math.max(1, overrides?.maxCandidates ?? MAX_RERANK_CANDIDATES)
+        const trimmedCandidates = dedupedCandidates.slice(0, maxCandidates)
 
-        const systemPrompt = `You are a code assistant that selects the most relevant files for a ticket.
-Given a ticket and a pre-filtered list of potentially relevant files, select the ${maxResults} most relevant files.
+        const scoreMap = new Map(candidateScores.map((score) => [score.fileId, score]))
+        const descriptors = trimmedCandidates
+          .map((file, index) =>
+            buildCandidateDescriptor(
+              file,
+              scoreMap.get(file.id) ?? createDefaultScore(file.id),
+              index,
+              config.compactLevel,
+              keywords
+            )
+          )
+          .filter((line) => line.length > 0)
 
-Consider:
-1. Files directly related to the ticket's functionality
-2. Test files that need to be updated
-3. Configuration files that might need changes
-4. Related components or modules
-
-Return only file IDs as strings in order of relevance.`
-
-        const userPrompt = `Ticket: ${ticket.title}
-Overview: ${ticket.overview || 'No overview'}
-${userContext ? `Context: ${userContext}` : ''}
-
-Pre-filtered files (${compactSummary.total} files):
-${CompactFileFormatter.toAIPrompt(candidateFiles, config.compactLevel)}
-
-Select the ${maxResults} most relevant file IDs from the above list.`
-
-        const FileSuggestionsSchema = z.object({
-          fileIds: z.array(z.string()).max(maxResults)
-        })
-
-        // Get dynamic preset config based on AI model setting
-        const presetConfig = await modelConfigService.getPresetConfig(config.aiModel === 'high' ? 'high' : 'medium')
-
-        // Convert ModelConfig (with null values) to ModelOptionsWithProvider (with undefined values)
-        const modelConfig: ModelOptionsWithProvider = {
-          provider: presetConfig.provider as ModelOptionsWithProvider['provider'],
-          model: presetConfig.model,
-          frequencyPenalty: nullToUndefined(presetConfig.frequencyPenalty),
-          presencePenalty: nullToUndefined(presetConfig.presencePenalty),
-          maxTokens: nullToUndefined(presetConfig.maxTokens),
-          temperature: nullToUndefined(presetConfig.temperature),
-          topP: nullToUndefined(presetConfig.topP),
-          topK: nullToUndefined(presetConfig.topK)
+        if (descriptors.length === 0) {
+          return { fileIds: trimmedCandidates.slice(0, maxResults).map((file) => file.id), selections: [] }
         }
 
-        const result = await generateStructuredData({
-          prompt: userPrompt,
-          systemMessage: systemPrompt,
-          schema: FileSuggestionsSchema,
-          options: modelConfig
+        const strategy = overrides?.strategy ?? config.rerankStrategy ?? DEFAULT_RERANK_STRATEGY
+        if (strategy !== 'ai-sdk') {
+          console.warn(
+            `[FileSuggestionStrategy] Rerank strategy "${strategy}" not implemented; falling back to ai-sdk listwise reranker.`
+          )
+        }
+
+        const topK = Math.max(1, Math.min(maxResults, overrides?.topK ?? maxResults, 10))
+        const candidateIdSet = new Set(trimmedCandidates.map((file) => file.id))
+        const prompt = buildRerankPrompt({
+          ticket,
+          userContext,
+          descriptors: descriptors.slice(0, maxCandidates),
+          topK
         })
 
-        return result.object.fileIds
+        try {
+          const modelOptions = await resolveModelOptions(config.aiModel)
+          const result = await generateStructuredData({
+            prompt,
+            systemMessage: AI_RERANK_SYSTEM_PROMPT,
+            schema: FILE_RERANK_SCHEMA,
+            options: modelOptions
+          })
+
+          const selections = (result.object.selections || []).map((selection) => ({
+            id: selection.id,
+            confidence: selection.confidence,
+            reasons: selection.reasons
+          }))
+
+          const rankedIds: string[] = []
+          const seen = new Set<string>()
+          for (const selection of selections) {
+            if (!candidateIdSet.has(selection.id) || seen.has(selection.id)) continue
+            rankedIds.push(selection.id)
+            seen.add(selection.id)
+            if (rankedIds.length >= maxResults) break
+          }
+
+          const fallbackOrder = trimmedCandidates.map((file) => file.id)
+          for (const id of fallbackOrder) {
+            if (!seen.has(id)) {
+              rankedIds.push(id)
+              seen.add(id)
+            }
+            if (rankedIds.length >= maxResults) break
+          }
+
+          return { fileIds: rankedIds.slice(0, maxResults), selections }
+        } catch (error) {
+          console.error(`[FileSuggestionStrategy] AI reranker failed for ticket ${ticket.id}:`, error)
+          return { fileIds: trimmedCandidates.slice(0, maxResults).map((file) => file.id), selections: [] }
+        }
       },
       { action: 'ai-refine-suggestions', id: `${ticket.id}:${candidateFiles.length}` }
     )
@@ -405,30 +722,36 @@ Select the ${maxResults} most relevant file IDs from the above list.`
       }
 
       try {
-        const candidateFiles = await getFilesByScores(ticket.projectId, prefilterResults.slice(0, 50))
-        const aiSuggestions = await aiRefineSuggestions(
+        const candidateScores = prefilterResults.slice(0, 50)
+        const candidateFiles = await getFilesByScores(ticket.projectId, candidateScores)
+        const aiResult = await aiRefineSuggestions(
           ticket,
           candidateFiles,
+          candidateScores,
           maxResults,
           STRATEGY_CONFIGS.balanced,
           userContext
         )
 
-        const finalScores = aiSuggestions.map((fileId) => {
-          const score = prefilterResults.find((s) => s.fileId === fileId)
-          return score || createDefaultScore(fileId)
+        const selectionMap = new Map(aiResult.selections.map((selection) => [selection.id, selection]))
+        const finalScores = aiResult.fileIds.map((fileId) => {
+          const score = prefilterResults.find((s) => s.fileId === fileId) || createDefaultScore(fileId)
+          const selection = selectionMap.get(fileId)
+          return selection
+            ? { ...score, aiConfidence: selection.confidence, aiReasons: selection.reasons }
+            : score
         })
 
         yield {
           stage: 'ai-refine',
-          suggestions: aiSuggestions,
+          suggestions: aiResult.fileIds,
           scores: finalScores,
           progress: 0.9
         }
 
         yield {
           stage: 'complete',
-          suggestions: aiSuggestions,
+          suggestions: aiResult.fileIds,
           scores: finalScores,
           progress: 1.0
         }

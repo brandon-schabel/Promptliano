@@ -6,66 +6,53 @@ This guide covers the MCP implementation in Promptliano, providing patterns and 
 
 The MCP implementation follows a modular, consolidated architecture:
 
+> Developer docs related to MCP live under `dev-docs/` (e.g., evaluations, tool audits). End-user setup stays in `docs/`.
+
 ```
 packages/server/src/mcp/
-├── server.ts                    # Main MCP server (stdio transport)
-├── transport.ts                 # HTTP transport layer with JSON-RPC 2.0
-├── tools-registry.ts            # Tool type definitions and registry
-├── consolidated-tools.ts        # Tool aggregation and exports
-├── mcp-errors.ts               # Enhanced error handling system
+├── server.ts                    # Main MCP server factory (stdio transport)
+├── resources/                  # Resource catalogue + read handlers
+├── tools/                      # MCP tool implementations
+│   ├── index.ts                # Static tool registry
+│   ├── shared/                 # Shared utilities and types
+│   ├── project/                # Project management tools
+│   ├── workflow/               # Queue and ticket tools
+│   ├── content/                # AI/content helpers
+│   └── git/                    # Git integration tools
+├── tools-registry.ts           # Tool type definitions
+├── mcp-errors.ts               # Lightweight error helpers
 ├── mcp-transaction.ts          # Transaction wrapper for complex operations
-├── hook-manager-tool.ts        # Hook management tool
-└── tools/                      # Modular tool organization
-    ├── index.ts                # Main tool aggregator
-    ├── shared/                 # Shared utilities and types
-    │   ├── types.ts           # Action enums and schemas
-    │   ├── utils.ts           # Validation and tracking helpers
-    │   └── index.ts           # Shared exports
-    ├── project/               # Project management tools
-    ├── workflow/              # Workflow and task tools
-    ├── content/               # Content and AI tools
-    ├── analysis/              # File analysis tools
-    ├── git/                   # Git integration tools
-    ├── ui/                    # UI state management tools
-    ├── setup/                 # MCP setup and validation tools
-    └── website/               # Website and documentation tools
+├── hook-manager-tool.ts        # Hook management tool (legacy shim)
+└── test-utils/                 # In-memory client/server harness
 ```
 
 ## Core Concepts
 
 ### 1. Transport Layer
 
-The MCP implementation supports two transport methods:
-
-#### STDIO Transport (server.ts)
-
-- Used for direct CLI integration
-- Singleton server instance
-- Handles tools and resources registration
-- Simple request/response flow
-
-#### HTTP Transport (transport.ts)
-
-- JSON-RPC 2.0 over HTTP/SSE
-- Session management with cleanup
-- CORS support for web clients
-- Notification handling for requests without responses
+Promptliano now standardises on the SDK stdio transport. `createMCPServer()` produces a server instance that tests and the CLI connect to via `StdioServerTransport` (or the in-memory transport during tests). If browser access is needed in the future, add an SDK-provided SSE transport rather than reintroducing custom HTTP plumbing.
 
 ### 2. Tool Registration
 
 Tools are registered through a consolidated system:
 
 ```typescript
-// All tools are aggregated in tools/index.ts
-export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = [
-  projectManagerTool,
-  ticketManagerTool
-  // ... other tools
-] as const
+// tools/index.ts
+import { projectManagerTool } from './project'
+import { flowManagerTool } from './workflow'
+import { aiAssistantTool } from './content'
+import { gitManagerTool } from './git'
 
-// Helper functions for tool access
-export function getConsolidatedToolByName(name: string): MCPToolDefinition | undefined
-export function getAllConsolidatedToolNames(): string[]
+export const CONSOLIDATED_TOOLS = Object.freeze([
+  projectManagerTool,
+  flowManagerTool,
+  aiAssistantTool,
+  gitManagerTool
+])
+
+export function getConsolidatedToolByName(name: string) {
+  return CONSOLIDATED_TOOLS.find((tool) => tool.name === name)
+}
 ```
 
 ### 3. Error Handling System
@@ -74,17 +61,23 @@ Enhanced error handling with structured details:
 
 ```typescript
 export enum MCPErrorCode {
-  INVALID_PARAMS = 'INVALID_PARAMS',
-  PROJECT_NOT_FOUND = 'PROJECT_NOT_FOUND',
-  SERVICE_ERROR = 'SERVICE_ERROR'
-  // ... more specific codes
+  MISSING_REQUIRED_PARAM = 'MISSING_REQUIRED_PARAM',
+  VALIDATION_FAILED = 'VALIDATION_FAILED',
+  FILE_NOT_FOUND = 'FILE_NOT_FOUND',
+  SERVICE_ERROR = 'SERVICE_ERROR',
+  OPERATION_FAILED = 'OPERATION_FAILED',
+  UNKNOWN_ACTION = 'UNKNOWN_ACTION'
 }
 
-// Structured error with recovery suggestions
-export class MCPError extends ApiError {
-  public readonly mcpCode: MCPErrorCode
-  public readonly suggestion: string
-  public readonly context?: MCPErrorDetails['context']
+export class MCPError extends Error {
+  constructor(
+    readonly code: MCPErrorCode,
+    message: string,
+    readonly options: { suggestion?: string; context?: Record<string, unknown> } = {}
+  ) {
+    super(message)
+    this.name = 'MCPError'
+  }
 }
 ```
 
@@ -362,22 +355,21 @@ describe('MyTool', () => {
 
 ```typescript
 // Test with actual MCP client
-import { getMCPServer } from '../server'
+import { createInMemoryMCPContext } from './test-utils/inmemory-client'
 
 describe('MCP Integration', () => {
   it('should execute tools through MCP protocol', async () => {
-    const server = getMCPServer()
+    const { client, close } = await createInMemoryMCPContext()
 
-    const result = await server.request({
-      method: 'tools/call',
-      params: {
-        name: 'my_tool',
-        arguments: {
-          action: 'list',
-          projectId: 1
-        }
+    const result = await client.callTool({
+      name: 'my_tool',
+      arguments: {
+        action: 'list',
+        projectId: 1
       }
     })
+
+    await close()
 
     expect(result.content).toBeDefined()
   })
@@ -457,3 +449,49 @@ For HTTP transport, sessions are automatically managed:
 7. **Update Documentation**: Update tool descriptions and examples
 
 This architecture provides a scalable, maintainable foundation for MCP tool development in Promptliano.
+
+## MCP Resources Catalog
+
+The stdio server exposes machine-readable resources to give agents immediate context without calling tools first.
+
+- Global
+  - `promptliano://info` — Human-friendly MCP server info (text)
+  - `promptliano://tools` — All MCP tools with input schemas (JSON)
+  - `promptliano://projects` — Project list (JSON)
+  - `promptliano://mcp/usage` — Global MCP usage overview (JSON)
+  - `promptliano://providers` — Provider keys status (censored) (JSON)
+  - `promptliano://health` — Basic OK + version/time (JSON)
+
+- Per-project (requires `PROMPTLIANO_PROJECT_ID`)
+  - `promptliano://projects/{id}/overview` — Human-readable overview (text)
+  - `promptliano://projects/{id}/stats` — Ticket/task/queue/prompt/chat counts (JSON)
+  - `promptliano://projects/{id}/file-tree` — Compact file tree + meta (JSON)
+  - Tickets
+    - `.../tickets/summary` — Counts by status + recent tickets (JSON)
+    - `.../tickets/open` — Top open tickets (JSON)
+    - `.../tickets/{ticketId}` — Ticket detail + tasks (JSON)
+  - Queues
+    - `.../queues` — Queues with stats (JSON)
+    - `.../queues/timeline` — Recent queue events/timeline (JSON)
+    - `.../queues/{queueId}` — Queue detail + items (JSON)
+  - MCP analytics
+    - `.../mcp/usage` — Per-tool usage, success/error, execution trend (JSON)
+    - `.../mcp/errors` — Top error patterns (JSON)
+  - Git
+    - `.../git/status` — Branch + working tree (JSON)
+    - `.../git/log` — Recent commits (JSON)
+    - `.../git/branches` — Branch list (JSON)
+  - Config/Env
+    - `.../config/mcp` — Merged project MCP config (JSON)
+    - `.../mcp/servers` — Configured MCP servers (JSON)
+    - `.../search/config` — File search backend + tool paths (JSON)
+  - Processes
+    - `.../processes` — Active processes managed by Promptliano (JSON)
+  - Files
+    - `.../files/{fileId}` — File contents with mimeType (JSON/text)
+    - `.../suggest-files` — Guidance stub to use suggest_files tool (JSON)
+
+Notes
+- Payloads are intentionally small and summarized; drill-down URIs provide details.
+- Secrets are never exposed; provider keys are masked and may show `ENV: VAR_NAME` only.
+- Listings are capped (e.g., commits 20, tickets 10–15) for performance.

@@ -79,10 +79,17 @@ export function getDatabasePath(): string {
     return join(dataDir, 'promptliano.db')
   }
 
+  const repoDbPath = join(repoRoot, 'data', 'promptliano.db')
+
   // 3) Development defaults to local repo data dir for convenience
   //    Treat DEV=true the same as development to align with server dev script.
   if (process.env.NODE_ENV === 'development' || process.env.DEV === 'true') {
-    return join(repoRoot, 'data', 'promptliano.db')
+    return repoDbPath
+  }
+
+  // 3b) Fallback: if running inside the repo and a local database exists, prefer it
+  if (existsSync(repoDbPath)) {
+    return repoDbPath
   }
 
   // 4) Production: platform-appropriate app data directory
@@ -148,10 +155,10 @@ try {
   if (missingCoreTables.length > 0) {
     if (process.env.NODE_ENV === 'test') {
       // In test mode, don't auto-create tables - tests should use createTestDatabase()
-      console.log('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
+      console.error('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
       console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
     } else {
-      console.log(
+      console.error(
         `📋 Creating database tables (initial bootstrap for missing tables: ${missingCoreTables.join(', ')})...`
       )
       const migrationPath = join(drizzleDir, '0000_base.sql')
@@ -176,7 +183,7 @@ try {
           if (!/already exists/i.test(msg)) throw e
         }
       }
-      console.log('✅ Core tables ensured successfully')
+      console.error('✅ Core tables ensured successfully')
     }
   }
 

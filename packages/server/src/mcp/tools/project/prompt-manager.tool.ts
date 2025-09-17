@@ -36,7 +36,7 @@ export const promptManagerTool: MCPToolDefinition = {
       action: {
         type: 'string',
         description: 'The action to perform',
-        enum: Object.values(PromptManagerAction)
+        enum: ['list', 'get', 'create', 'update', 'delete', 'list_by_project', 'add_to_project', 'remove_from_project', 'suggest_prompts']
       },
       projectId: {
         type: 'number',

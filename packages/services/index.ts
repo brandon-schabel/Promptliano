@@ -10,6 +10,7 @@ export {
   deleteProject,
   projectExists,
   listProjects,
+  getProjectStats,
   // File-related functions
   getProjectFiles,
   updateFileContent,
@@ -291,6 +292,9 @@ export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
 // Suggestions Service facade
 export * from './src/suggestions/suggestions-service'
+// New shared suggestion utilities and prompt services (scaffold)
+// Internal prompt suggestion modules are intentionally not exported to avoid name collisions
+// with existing file suggestion utilities. They are used via suggestions-service and tests.
 export {
   // Tab Name Generation Service
   createTabNameGenerationService,

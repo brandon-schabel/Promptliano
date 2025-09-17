@@ -19,7 +19,6 @@ import { type Prompt, type CreatePrompt, type UpdatePrompt, PromptSchema } from 
 
 type CreatePromptBody = CreatePrompt
 type UpdatePromptBody = UpdatePrompt
-import { PromptSuggestionsZodSchema } from '@promptliano/schemas' // AI generation schema - may remain in schemas package
 import { generateStructuredData } from './gen-ai-services'
 // Project summary removed
 
@@ -136,28 +135,11 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
     async getSuggestions(projectId: number, userQuery: string): Promise<string[]> {
       return withErrorContext(
         async () => {
-          const existingPrompts = await this.getByProject(projectId)
-
-          const systemPrompt = `You are a prompt engineering assistant. Based on the project context and user query, suggest relevant prompt templates that would be useful for this project.
-
-Return an array of prompt suggestions that are:
-1. Specific to the project's domain and technology stack
-2. Actionable and practical for development tasks
-3. Different from existing prompts
-4. Tailored to the user's query
-
-Existing Prompts:
-${existingPrompts.map((p) => `- ${p.title}: ${p.content.substring(0, 100)}...`).join('\n')}
-
-User Query: ${userQuery}`
-
-          const result = await generateStructuredData({
-            prompt: userQuery,
-            systemMessage: systemPrompt,
-            schema: PromptSuggestionsZodSchema
-          })
-
-          return result.object.promptIds.map((id) => `Prompt ID: ${id}`)
+          // Use new prompt suggestion pipeline to get relevant prompt IDs
+          const { createPromptSuggestionStrategyService } = await import('./prompt-services/prompt-suggestion-strategy-service')
+          const strat = createPromptSuggestionStrategyService()
+          const { suggestions } = await strat.suggestPrompts(projectId, userQuery, 'balanced', 5)
+          return suggestions.map((id) => `Prompt ID: ${id}`)
         },
         { entity: 'Prompt', action: 'getSuggestions' }
       )

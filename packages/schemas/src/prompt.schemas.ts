@@ -132,6 +132,18 @@ export const SuggestPromptsRequestSchema = z
     limit: z.number().int().positive().max(10).optional().default(5).openapi({
       example: 5,
       description: 'Maximum number of prompts to suggest (default: 5, max: 10)'
+    }),
+    strategy: z.enum(['fast', 'balanced', 'thorough']).optional().openapi({
+      example: 'balanced',
+      description: 'Suggestion strategy controlling AI rerank and candidate breadth'
+    }),
+    includeScores: z.boolean().optional().openapi({
+      example: false,
+      description: 'When true, include debug scores (server may ignore)'
+    }),
+    userContext: z.string().optional().openapi({
+      example: 'working on routes/services layer',
+      description: 'Optional extra context to improve relevance'
     })
   })
   .openapi('SuggestPromptsRequest')

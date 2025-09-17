@@ -1,10 +1,9 @@
 import type { FileSuggestionStrategy } from '@promptliano/database'
-import { createFileRelevanceService } from '../file-services/file-relevance-service'
+import { createFileRelevanceService, type RelevanceScoreResult } from '../file-services/file-relevance-service'
 import { createFileSuggestionStrategyService } from '../file-services/file-suggestion-strategy-service'
 import { getProjectFiles } from '../project-service'
 import { createFileSearchService } from '../file-services/file-search-service'
 import { getTicketById } from '../ticket-service'
-import { suggestPrompts as coreSuggestPrompts } from '../prompt-service'
 
 export interface SuggestFilesForProjectOptions {
   strategy?: FileSuggestionStrategy
@@ -23,6 +22,8 @@ export interface SuggestFilesResult {
     typeScore: number
     recencyScore: number
     importScore: number
+    aiConfidence?: number
+    aiReasons?: string[]
   }>
   metadata: {
     totalFiles: number
@@ -30,6 +31,7 @@ export interface SuggestFilesResult {
     strategy: FileSuggestionStrategy
     processingTime: number
     tokensSaved?: number
+    aiSelections?: Array<{ id: string; confidence: number; reasons: string[] }>
   }
   error?: string
 }
@@ -48,6 +50,13 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     const start = Date.now()
     const strategy: FileSuggestionStrategy = options.strategy || 'balanced'
     const maxResults = options.maxResults ?? 10
+    const debugFlag = (() => {
+      const raw = process.env.DEBUG_SUGGEST_FILES
+      if (!raw) return false
+      const normalized = raw.toLowerCase()
+      return normalized === '1' || normalized === 'true' || normalized === 'yes'
+    })()
+    const trace: Record<string, number> = {}
 
     // Get all files once for path-based heuristics and ID mapping
     const allFiles = (await getProjectFiles(projectId)) || []
@@ -55,6 +64,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
 
     // 1) Relevance scoring (uses content + path and metadata)
     const relevanceScores = await relevanceService.scoreFilesForText(userInput || '', projectId)
+    trace.relevanceCandidates = relevanceScores.length
     const relMap = new Map(relevanceScores.map((s) => [String(s.fileId), s]))
 
     // 2) Path-oriented fuzzy search to catch obvious route/feature files
@@ -89,11 +99,14 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
       } catch {}
     }
 
+    trace.fuzzyMatches = fuzzyResults.length
+
     // 4) Union candidates from relevance and fuzzy
     const candidateIds = new Set<string>([
       ...relevanceScores.slice(0, Math.max(200, maxResults * 10)).map((s) => String(s.fileId)),
       ...fuzzyResults.map((f) => f.fileId)
     ])
+    trace.candidateSet = candidateIds.size
 
     // Build a quick index for fuzzy scores
     const fuzzyMap = new Map<string, number>()
@@ -106,60 +119,103 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     const queryHints = new Set(tokens)
     let composite = Array.from(candidateIds)
       .map((id) => {
-        const base = relMap.get(id) || createZeroScore(id)
         const file = byId.get(id)
+        if (!file || shouldIgnoreFilePath(file.path)) {
+          return null
+        }
+
+        if (shouldSuppressFileForQuery(file.path || '', tokens)) {
+          return null
+        }
+
+        const base = relMap.get(id) || createZeroScore(id)
         const fuzzy = fuzzyMap.get(id) || 0
-        const pathBoost = scorePathTokens(file?.path || '', tokens)
-        const penalty = computePenalties(file?.path || '', queryHints)
-        const codeBoost = codeLocationBoost(file?.path || '', tokens)
+        const pathBoost = scorePathTokens(file.path || '', tokens)
+        const penalty = computePenalties(file.path || '', queryHints)
+        const codeBoost = codeLocationBoost(file.path || '', tokens)
+        const domainBoost = domainSpecificBoost(file.path || '', tokens)
 
-        // Adjusted blend: more weight to relevance, more to path signals, slightly lower fuzzy; stronger penalty
-        const blended = clamp01(0.6 * base.totalScore + 0.2 * fuzzy + 0.2 * pathBoost + 0.1 * codeBoost - 1.25 * penalty)
+        const blended = clamp01(
+          0.55 * base.totalScore +
+            0.15 * fuzzy +
+            0.2 * pathBoost +
+            0.15 * codeBoost +
+            domainBoost -
+            1.1 * penalty
+        )
 
-        // Map back to the standard score shape
-        const mapped = {
+        return {
           fileId: id,
           totalScore: blended,
           keywordScore: base.keywordScore,
           pathScore: Math.max(base.pathScore, (fuzzy + pathBoost) / 2),
-          typeScore: Math.max(0, base.typeScore - penalty * 0.5),
+          typeScore: Math.max(0, base.typeScore - penalty * 0.4),
           recencyScore: base.recencyScore,
           importScore: base.importScore
         }
-
-        return mapped
       })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .sort((a, b) => b.totalScore - a.totalScore)
+    trace.filteredCandidates = composite.length
 
     // AI-assisted reranker for project-level (no flag): apply when strategy != 'fast' and candidates > maxResults
     if ((options.strategy ?? 'balanced') !== 'fast' && composite.length > maxResults) {
       try {
-        const strategySvc = createFileSuggestionStrategyService()
         const topForAi = composite.slice(0, Math.max(50, maxResults * 5))
+        const idToComposite = new Map(topForAi.map((entry) => [String(entry.fileId), entry]))
         const candidateFiles = topForAi
           .map((c) => byId.get(String(c.fileId)))
           .filter(Boolean) as any[]
+
         if (candidateFiles.length > 0) {
-          const fauxTicket = {
-            id: -1,
-            projectId,
-            title: userInput || '',
-            overview: options.userContext || ''
-          } as any
-          const aiIds = await (strategySvc as any).aiRefineSuggestions(
-            fauxTicket,
-            candidateFiles,
-            maxResults,
-            { maxPreFilterFiles: 50, maxAIFiles: 50, useAI: true, aiModel: 'medium', compactLevel: 'compact' },
-            options.userContext
-          )
-          if (Array.isArray(aiIds) && aiIds.length) {
-            const aiTop = aiIds
-              .map((id) => composite.find((c) => String(c.fileId) === String(id)))
-              .filter(Boolean) as typeof composite
-            const aiSet = new Set(aiIds.map(String))
-            const rest = composite.filter((c) => !aiSet.has(String(c.fileId)))
-            composite = [...aiTop, ...rest]
+          const aiScoreInputs: RelevanceScoreResult[] = candidateFiles.map((file: any) => {
+            const entry = idToComposite.get(String(file.id))
+            return {
+              fileId: String(file.id),
+              totalScore: entry?.totalScore ?? 0.5,
+              keywordScore: entry?.keywordScore ?? 0,
+              pathScore: entry?.pathScore ?? 0,
+              typeScore: entry?.typeScore ?? 0,
+              recencyScore: entry?.recencyScore ?? 0,
+              importScore: entry?.importScore ?? 0
+            }
+          })
+
+          if (aiScoreInputs.length > 0) {
+            const fauxTicket = {
+              id: -1,
+              projectId,
+              title: userInput || '',
+              overview: options.userContext || ''
+            } as any
+
+            const aiResult = await (strategyService as any).aiRefineSuggestions(
+              fauxTicket,
+              candidateFiles,
+              aiScoreInputs,
+              maxResults,
+              {
+                maxPreFilterFiles: 50,
+                maxAIFiles: 50,
+                useAI: true,
+                aiModel: 'medium',
+                compactLevel: 'compact',
+                rerankStrategy: 'ai-sdk'
+              },
+              options.userContext
+            )
+
+            const aiIds = Array.isArray(aiResult?.fileIds) ? aiResult.fileIds : []
+            if (aiIds.length) {
+              const aiTop = aiIds
+                .map((id: string) => composite.find((c) => String(c.fileId) === String(id)))
+                .filter(Boolean) as typeof composite
+              const aiSet = new Set(aiIds.map((id: string) => String(id)))
+              const rest = composite.filter((c) => !aiSet.has(String(c.fileId)))
+              composite = [...aiTop, ...rest]
+              trace.aiRerank = aiIds.length
+              trace.aiSelections = (aiResult?.selections || []).length
+            }
           }
         }
       } catch {}
@@ -167,6 +223,20 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
 
     const top = composite.slice(0, maxResults)
     const suggestions = top.map((s) => s.fileId)
+    const duration = Date.now() - start
+
+    trace.returned = suggestions.length
+
+    if (debugFlag) {
+      console.debug('[SuggestionsService] suggestFilesForProject', {
+        projectId,
+        strategy,
+        maxResults,
+        promptPreview: (userInput || '').slice(0, 120),
+        metrics: trace,
+        duration
+      })
+    }
 
     return {
       suggestions,
@@ -175,7 +245,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
         totalFiles: allFiles.length,
         analyzedFiles: composite.length,
         strategy,
-        processingTime: Date.now() - start,
+        processingTime: duration,
         tokensSaved: 0
       }
     }
@@ -205,10 +275,156 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     }
   }
 
-  async function suggestPromptsForProject(projectId: number, userInput: string, limit?: number) {
-    // Delegate to existing prompt service for now (2-arg signature)
-    const suggestions = await coreSuggestPrompts(projectId, userInput)
-    return typeof limit === 'number' ? (suggestions as any[]).slice(0, limit) : suggestions
+  async function suggestPromptsForProject(
+    projectId: number,
+    userInput: string,
+    options: {
+      strategy?: 'fast' | 'balanced' | 'thorough'
+      maxResults?: number
+      includeScores?: boolean
+      userContext?: string
+    } = {}
+  ): Promise<{
+    suggestions: string[]
+    scores?: Array<{
+      promptId: string
+      totalScore: number
+      titleScore: number
+      contentScore: number
+      tagScore: number
+      recencyScore: number
+    }>
+    metadata: {
+      totalPrompts: number
+      analyzedPrompts: number
+      strategy: string
+      processingTime: number
+    }
+  }> {
+    const start = Date.now()
+    const strategy = options.strategy || 'balanced'
+    const maxResults = options.maxResults ?? 10
+
+    try {
+      // Import prompt services dynamically to avoid circular dependencies
+      const { createPromptRelevanceService } = await import('../prompt-services/prompt-relevance-service')
+      const { createPromptSearchService } = await import('../prompt-services/prompt-search-service')
+      const { promptRepository } = await import('@promptliano/database')
+
+      const relevanceService = createPromptRelevanceService()
+      const searchService = createPromptSearchService()
+
+      // Get all prompts for the project
+      const allPrompts = await promptRepository.getByProject(projectId)
+
+      if (allPrompts.length === 0) {
+        return {
+          suggestions: [],
+          scores: options.includeScores ? [] : undefined,
+          metadata: {
+            totalPrompts: 0,
+            analyzedPrompts: 0,
+            strategy,
+            processingTime: Date.now() - start
+          }
+        }
+      }
+
+      // 1) Relevance scoring (content-based)
+      const relevanceScores = await relevanceService.scorePromptsForText(userInput, projectId)
+      const relMap = new Map(relevanceScores.map(s => [s.promptId, s]))
+
+      // 2) Fuzzy search for title and content matching
+      const tokens = extractKeywords(userInput)
+      const fuzzyQuery = buildFuzzyQuery(tokens)
+
+      let fuzzyResults: Array<{ promptId: string; score: number }> = []
+      if (fuzzyQuery) {
+        try {
+          const { results } = await searchService.search(projectId, {
+            query: fuzzyQuery,
+            searchType: 'fuzzy',
+            limit: Math.max(maxResults * 5, 25)
+          })
+          fuzzyResults = results.map(r => ({
+            promptId: r.prompt.id.toString(),
+            score: clamp01(r.score)
+          }))
+        } catch (error) {
+          const msg = (error as any)?.message || String(error)
+          console.warn('Fuzzy search failed for prompts:', msg)
+        }
+      }
+
+      // 3) Union candidates from relevance and fuzzy
+      const candidateIds = new Set<string>([
+        ...relevanceScores.slice(0, Math.max(100, maxResults * 5)).map(s => s.promptId),
+        ...fuzzyResults.map(f => f.promptId)
+      ])
+
+      // Build fuzzy score map
+      const fuzzyMap = new Map<string, number>()
+      for (const f of fuzzyResults) {
+        const prev = fuzzyMap.get(f.promptId) || 0
+        if (f.score > prev) fuzzyMap.set(f.promptId, f.score)
+      }
+
+      // 4) Composite scoring with category boosts
+      let composite = Array.from(candidateIds)
+        .map(id => {
+          const base = relMap.get(id) || createZeroPromptScore(id)
+          const fuzzy = fuzzyMap.get(id) || 0
+          const categoryBoost = computePromptCategoryBoost(
+            allPrompts.find(p => p.id.toString() === id),
+            tokens
+          )
+
+          // Blend scores similar to file suggestions
+          const blended = clamp01(
+            0.5 * base.totalScore +
+            0.3 * fuzzy +
+            0.2 * categoryBoost
+          )
+
+          return {
+            promptId: id,
+            totalScore: blended,
+            titleScore: (base as any).titleScore ?? 0,
+            contentScore: (base as any).contentScore ?? 0,
+            tagScore: (base as any).tagScore ?? 0,
+            recencyScore: (base as any).recencyScore ?? 0
+          }
+        })
+        .sort((a, b) => b.totalScore - a.totalScore)
+
+      // 5) Optionally rerank with AI: disabled in this implementation to avoid schema coupling
+
+      const top = composite.slice(0, maxResults)
+      const suggestions = top.map(s => s.promptId)
+
+      return {
+        suggestions,
+        scores: options.includeScores ? top : undefined,
+        metadata: {
+          totalPrompts: allPrompts.length,
+          analyzedPrompts: composite.length,
+          strategy,
+          processingTime: Date.now() - start
+        }
+      }
+    } catch (error) {
+      const msg = (error as any)?.message || String(error)
+      console.error('Error in prompt suggestions:', msg)
+      return {
+        suggestions: [],
+        metadata: {
+          totalPrompts: 0,
+          analyzedPrompts: 0,
+          strategy: 'error',
+          processingTime: Date.now() - start
+        }
+      }
+    }
   }
 
   return {
@@ -225,6 +441,60 @@ export const suggestionsService = createSuggestionsService()
 export const { suggestFilesForProject, suggestFilesForTicket, suggestPromptsForProject } = suggestionsService
 
 // ---------- Local helpers (scoped to project-level suggestions) ----------
+
+// Helper functions for prompt suggestions
+function createZeroPromptScore(promptId: string) {
+  return {
+    promptId,
+    totalScore: 0,
+    titleScore: 0,
+    contentScore: 0,
+    tagScore: 0,
+    recencyScore: 0,
+    usageScore: 0
+  }
+}
+
+function computePromptCategoryBoost(prompt: any, tokens: string[]): number {
+  if (!prompt) return 0
+
+  const title = prompt.title?.toLowerCase() || ''
+  const content = prompt.content?.toLowerCase() || ''
+
+  let boost = 0
+
+  // Boost for specific prompt categories
+  if (hasAnyTokens(tokens, ['code', 'review', 'refactor', 'optimize']) &&
+      (title.includes('code') || content.includes('review'))) {
+    boost += 0.3
+  }
+
+  if (hasAnyTokens(tokens, ['test', 'testing', 'unit', 'integration']) &&
+      (title.includes('test') || content.includes('testing'))) {
+    boost += 0.3
+  }
+
+  if (hasAnyTokens(tokens, ['documentation', 'docs', 'readme', 'guide']) &&
+      (title.includes('doc') || content.includes('documentation'))) {
+    boost += 0.2
+  }
+
+  if (hasAnyTokens(tokens, ['bug', 'fix', 'error', 'debug']) &&
+      (title.includes('bug') || content.includes('fix'))) {
+    boost += 0.3
+  }
+
+  return Math.min(0.4, boost) // Cap boost
+}
+
+function hasAnyTokens(tokens: string[], terms: string[]): boolean {
+  const set = new Set(tokens)
+  for (const t of terms) if (set.has(t)) return true
+  return false
+}
+
+
+// ---------- File suggestions helpers (existing) ----------
 
 function clamp01(n: number): number {
   if (!isFinite(n)) return 0
@@ -332,7 +602,7 @@ function extractKeywords(text: string): string[] {
       if (!seen.has('files')) ordered.push('files')
     }
   }
-  return ordered.slice(0, 12)
+  return ordered.slice(0, 15)
 }
 
 function buildFuzzyQuery(tokens: string[]): string {
@@ -371,6 +641,12 @@ function buildVariantQueries(tokens: string[]): string[] {
     variants.add('service')
   }
 
+  if (tokens.includes('mcp')) {
+    variants.add('mcp')
+    variants.add('mcp tools')
+    variants.add('mcp transport')
+  }
+
   return Array.from(variants)
 }
 
@@ -386,10 +662,13 @@ function scorePathTokens(path: string, tokens: string[]): number {
         hits += 1
         break
       }
-      if (p.includes(t) || t.includes(p)) {
-        hits += 0.5
+
+      const partialScore = partialTokenOverlapScore(p, t)
+      if (partialScore > 0) {
+        hits += partialScore
         break
       }
+
       // Special boost for suggest-related tokens
       if ((t === 'suggest' || t === 'suggestion') && p.includes('suggest')) {
         hits += 1
@@ -411,6 +690,11 @@ function computePenalties(path: string, queryHints: Set<string>): number {
   if (isTest && !hasAny(queryHints, ['test', 'tests', 'spec', 'e2e'])) penalty += 0.4
   if (isSqlOrMigration && !hasAny(queryHints, ['db', 'sql', 'migration', 'database'])) penalty += 0.35
   if (isDocs && !hasAny(queryHints, ['doc', 'docs', 'readme'])) penalty += 0.2
+
+  const isGithubWorkflow = p.startsWith('.github/workflows/') || p.includes('/.github/workflows/')
+  if (isGithubWorkflow && !hasAny(queryHints, ['workflow', 'ci', 'deploy', 'release', 'action', 'github'])) {
+    penalty += 0.45
+  }
 
   const codeIntent = hasAny(queryHints, [
     'feature',
@@ -451,6 +735,60 @@ function createZeroScore(fileId: string) {
   }
 }
 
+function shouldIgnoreFilePath(path: string): boolean {
+  if (!path) return false
+  const normalized = path.toLowerCase()
+  if (normalized.includes('/node_modules/') || normalized.startsWith('node_modules/')) return true
+  if (normalized.startsWith('.claude/') || normalized.includes('/.claude/')) return true
+  if (normalized.startsWith('.cursor/') || normalized.includes('/.cursor/')) return true
+  if (normalized.startsWith('dist/') || normalized.includes('/dist/')) return true
+  if (normalized.startsWith('build/') || normalized.includes('/build/')) return true
+  if (normalized.includes('/coverage/')) return true
+  if (normalized.endsWith('.log') || normalized.endsWith('.tmp')) return true
+  return false
+}
+
+function shouldSuppressFileForQuery(path: string, tokens: string[]): boolean {
+  if (!path) return false
+  const normalized = path.toLowerCase()
+  const tokenSet = new Set(tokens)
+
+  const suppressGithubWorkflows =
+    (normalized.startsWith('.github/workflows/') || normalized.includes('/.github/workflows/')) &&
+    !hasAny(tokenSet, ['workflow', 'ci', 'deploy', 'release', 'action', 'github'])
+
+  return suppressGithubWorkflows
+}
+
+function domainSpecificBoost(path: string, tokens: string[]): number {
+  if (!path || tokens.length === 0) return 0
+  const normalized = path.toLowerCase()
+  const set = new Set(tokens)
+  let boost = 0
+
+  if (set.has('mcp') || set.has('provider')) {
+    if (normalized.includes('/mcp/') || normalized.includes('mcp-')) {
+      boost += 0.25
+    }
+  }
+
+  if (set.has('prompt') || set.has('prompts')) {
+    if (normalized.includes('/prompt') || normalized.includes('prompt-')) {
+      boost += 0.15
+    }
+  }
+
+  if ((set.has('workflow') || set.has('flow')) && normalized.includes('workflow')) {
+    boost += 0.1
+  }
+
+  if (set.has('simplify') && normalized.includes('simpl')) {
+    boost += 0.1
+  }
+
+  return Math.min(0.35, boost)
+}
+
 // Prefer key code locations for feature-like queries
 function codeLocationBoost(path: string, tokens: string[]): number {
   if (!path) return 0
@@ -472,4 +810,26 @@ function codeLocationBoost(path: string, tokens: string[]): number {
   ].some((seg) => p.includes(seg))
 
   return matches ? 1 : 0
+}
+
+function partialTokenOverlapScore(part: string, token: string): number {
+  if (!part || !token) return 0
+  if (part === token) return 1
+
+  const lowerPart = part.toLowerCase()
+  const lowerToken = token.toLowerCase()
+  let ratio = 0
+
+  if (lowerPart.includes(lowerToken)) {
+    ratio = lowerToken.length / lowerPart.length
+  } else if (lowerToken.includes(lowerPart)) {
+    ratio = lowerPart.length / lowerToken.length
+  } else {
+    return 0
+  }
+
+  if (ratio >= 0.9) return 0.8
+  if (ratio >= 0.6) return 0.4
+  if (ratio >= 0.4) return 0.2
+  return 0
 }

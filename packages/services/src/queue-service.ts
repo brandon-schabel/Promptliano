@@ -186,11 +186,11 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     async getQueuesWithStats(projectId: number) {
       return withErrorContext(
         async () => {
-          const queues = await this.getByProject(projectId)
+          const queues = await extensions.getByProject(projectId)
 
-          return await Promise.all(
+          return Promise.all(
             queues.map(async (queue) => {
-              const { stats } = await this.getWithStats(queue.id)
+              const { stats } = await extensions.getWithStats(queue.id)
               return { queue, stats }
             })
           )

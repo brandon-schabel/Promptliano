@@ -176,7 +176,8 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     findSuggestedFilesMutation.mutate(
       {
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
-        prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`
+        prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`,
+        limit: 15
       },
       {
         onSuccess: (recommendedFiles) => {
@@ -299,7 +300,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     }
     return outputLines.join('\n')
   }, [fileTree])
-
 
   return (
     <ErrorBoundary>
@@ -435,7 +435,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                     </p>
                   </TooltipContent>
                 </Tooltip>
-
               </div>
             </div>
           </div>

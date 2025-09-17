@@ -44,7 +44,7 @@ import {
   getAllConsolidatedToolNames,
   getAllConsolidatedTools,
   type ConsolidatedToolNames
-} from './consolidated-tools'
+} from './tools'
 
 export {
   CONSOLIDATED_TOOLS,

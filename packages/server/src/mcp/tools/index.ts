@@ -1,28 +1,17 @@
-// Main aggregator for all tools
-
-// Import all tool groups
-import { flowManagerTool } from './workflow'
-import { aiAssistantTool } from './content'
-import { projectManagerTool, promptManagerTool } from './project'
-import { gitManagerTool } from './git'
-
-// Import types
 import type { MCPToolDefinition } from '../tools-registry'
+import { aiAssistantTool } from './content'
+import { gitManagerTool } from './git'
+import { projectManagerTool, promptManagerTool } from './project'
+import { flowManagerTool } from './workflow'
 
-// Export the consolidated tools array
-export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = [
-  // Project tools
+export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = Object.freeze([
   projectManagerTool,
   promptManagerTool,
-  // Workflow (unified)
   flowManagerTool,
-  // Content tools
   aiAssistantTool,
-  // Git tool
   gitManagerTool
-] as const
+])
 
-// Helper functions
 export type ConsolidatedToolNames = (typeof CONSOLIDATED_TOOLS)[number]['name']
 
 export function getConsolidatedToolByName(name: string): MCPToolDefinition | undefined {
