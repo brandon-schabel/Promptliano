@@ -13,7 +13,9 @@ export interface PromptSearchResult {
   score: number
 }
 
-export function createPromptSearchService(deps: { repository?: { getByProject: (projectId: number) => Promise<Prompt[]> } } = {}) {
+export function createPromptSearchService(
+  deps: { repository?: { getByProject: (projectId: number) => Promise<Prompt[]> } } = {}
+) {
   const repository = deps.repository || defaultPromptRepository
   async function search(projectId: number, options: PromptSearchOptions): Promise<{ results: PromptSearchResult[] }> {
     const all = await repository.getByProject(projectId)
@@ -39,7 +41,9 @@ function calculateFuzzyScore(query: string, p: Prompt): number {
 
   const title = String(p.title || '').toLowerCase()
   const tags = (Array.isArray(p.tags) ? p.tags : []).map((t) => String(t).toLowerCase())
-  const content = String(p.content || '').toLowerCase().slice(0, 240)
+  const content = String(p.content || '')
+    .toLowerCase()
+    .slice(0, 240)
 
   let score = 0
   for (const t of qTokens) {

@@ -317,5 +317,4 @@ describe('Project Service (Isolated Database)', () => {
       )
     })
   })
-
 })

@@ -162,11 +162,11 @@ export class ProcessRunner extends EventEmitter {
     if (typeof signal === 'number') return signal
     if (!signal) return null
     const signalMap: Record<string, number> = {
-      'SIGTERM': 15,
-      'SIGKILL': 9,
-      'SIGINT': 2,
-      'SIGUSR1': 10,
-      'SIGUSR2': 12
+      SIGTERM: 15,
+      SIGKILL: 9,
+      SIGINT: 2,
+      SIGUSR1: 10,
+      SIGUSR2: 12
     }
     return signalMap[signal] || null
   }

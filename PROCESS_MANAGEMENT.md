@@ -261,7 +261,6 @@ export class ScriptRunner extends EventEmitter {
         // Reader iteration via for-await compatible helper:
       }
     })()
-
     ;(async () => {
       const reader = text.pipeThrough(splitter).getReader()
       while (true) {

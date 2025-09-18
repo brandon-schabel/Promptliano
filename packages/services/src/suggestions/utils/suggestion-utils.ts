@@ -136,4 +136,3 @@ export function hasAny(set: Set<string>, terms: string[]): boolean {
   for (const t of terms) if (set.has(t)) return true
   return false
 }
-

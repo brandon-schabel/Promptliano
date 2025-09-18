@@ -122,13 +122,7 @@ function applyJitter(delay: number, jitter: number): number {
   return Math.max(0, Math.round(delay + jitterOffset))
 }
 
-function defaultLogger(
-  message: string,
-  error: unknown,
-  _attempt: number,
-  _delay: number,
-  _maxAttempts: number
-): void {
+function defaultLogger(message: string, error: unknown, _attempt: number, _delay: number, _maxAttempts: number): void {
   const errorMessage = error instanceof Error ? error.message : String(error)
   console.warn(`${message}: ${errorMessage}`)
 }

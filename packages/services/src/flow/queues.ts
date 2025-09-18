@@ -1,11 +1,7 @@
 import { withErrorContext } from '../core/base-service'
 import { ErrorFactory } from '@promptliano/shared'
 import { eq, and, isNull } from 'drizzle-orm'
-import {
-  tickets,
-  ticketTasks,
-  type QueueItem
-} from '@promptliano/database'
+import { tickets, ticketTasks, type QueueItem } from '@promptliano/database'
 import type { FlowRuntimeContext, FlowData, FlowItem, FlowTicket, FlowTask } from './types'
 import type { TaskModule } from './tasks'
 import type { HelperModule } from './helpers'
@@ -448,20 +444,18 @@ export function createQueueModule(ctx: FlowRuntimeContext, deps: QueueModuleDeps
         const items = entries.map((entry) => {
           const queueItem = entry.queueItem
           const estimatedStartTime = queueItem.startedAt ?? queueItem.createdAt
-          const estimatedProcessingTime =
-            queueItem.estimatedProcessingTime ?? queueItem.actualProcessingTime ?? 0
+          const estimatedProcessingTime = queueItem.estimatedProcessingTime ?? queueItem.actualProcessingTime ?? 0
           const estimatedEndTime =
             queueItem.completedAt ??
-            (queueItem.startedAt ? queueItem.startedAt + estimatedProcessingTime : estimatedStartTime + estimatedProcessingTime)
+            (queueItem.startedAt
+              ? queueItem.startedAt + estimatedProcessingTime
+              : estimatedStartTime + estimatedProcessingTime)
 
           return {
             itemId: queueItem.id,
             ticketId: queueItem.itemType === 'ticket' ? queueItem.itemId : null,
             taskId: queueItem.itemType === 'task' ? queueItem.itemId : null,
-            title:
-              entry.ticket?.title ||
-              entry.task?.content ||
-              `${queueItem.itemType} ${queueItem.itemId}`,
+            title: entry.ticket?.title || entry.task?.content || `${queueItem.itemType} ${queueItem.itemId}`,
             estimatedStartTime,
             estimatedEndTime,
             estimatedProcessingTime,
@@ -470,10 +464,7 @@ export function createQueueModule(ctx: FlowRuntimeContext, deps: QueueModuleDeps
         })
 
         const totalEstimatedTime = items.reduce((sum, item) => sum + item.estimatedProcessingTime, 0)
-        const estimatedCompletionTime = items.reduce(
-          (latest, item) => Math.max(latest, item.estimatedEndTime),
-          now
-        )
+        const estimatedCompletionTime = items.reduce((latest, item) => Math.max(latest, item.estimatedEndTime), now)
 
         return {
           queueId,
@@ -534,9 +525,7 @@ export function createQueueModule(ctx: FlowRuntimeContext, deps: QueueModuleDeps
       return this.dequeueTicket(ticketId)
     },
     dequeueTask: tasks.dequeueTask,
-    createQueue(
-      data: { projectId: number; name: string; description?: string; maxParallelItems?: number }
-    ) {
+    createQueue(data: { projectId: number; name: string; description?: string; maxParallelItems?: number }) {
       return withErrorContext(
         async () => {
           const now = Date.now()
@@ -555,7 +544,10 @@ export function createQueueModule(ctx: FlowRuntimeContext, deps: QueueModuleDeps
     },
     listQueues,
     getQueuesWithStats,
-    updateQueue(queueId: number, data: Partial<{ name: string; description?: string; maxParallelItems?: number; isActive?: boolean }>) {
+    updateQueue(
+      queueId: number,
+      data: Partial<{ name: string; description?: string; maxParallelItems?: number; isActive?: boolean }>
+    ) {
       return withErrorContext(
         async () => {
           const existing = await queueRepo.getById(queueId)

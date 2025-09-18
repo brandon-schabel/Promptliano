@@ -425,8 +425,7 @@ export class InterceptorChain {
    * Get performance metrics for the chain
    */
   getMetrics(): { totalExecutions: number; averageExecutionTime: number } {
-    const averageExecutionTime =
-      this.totalExecutions === 0 ? 0 : this.totalExecutionTime / this.totalExecutions
+    const averageExecutionTime = this.totalExecutions === 0 ? 0 : this.totalExecutionTime / this.totalExecutions
     return {
       totalExecutions: this.totalExecutions,
       averageExecutionTime

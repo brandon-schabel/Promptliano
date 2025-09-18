@@ -109,7 +109,6 @@ const RevertToVersionBodySchema = z.object({
   versionNumber: z.number().int().positive()
 })
 
-
 const FileGroupsResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
@@ -331,7 +330,6 @@ const suggestFilesRoute = createRoute({
 //   },
 //   responses: createStandardResponses(z.object({ success: z.literal(true), data: z.object({ optimizedPrompt: z.string() }) }))
 // })
-
 
 const getProjectStatisticsRoute = createRoute({
   method: 'get',
@@ -742,7 +740,7 @@ export const projectRoutes = new OpenAPIHono()
         limit: Math.max(limit * 5, 25)
       })
       semanticScores = new Map(results.map((r: any) => [String((r.file as any).id), Number(r.score || 0)]))
-    } catch { }
+    } catch {}
 
     const scoreDetails = new Map(
       Array.isArray(result.scores) ? (result.scores as any[]).map((s) => [String(s.fileId), s]) : []
@@ -760,12 +758,15 @@ export const projectRoutes = new OpenAPIHono()
       const semanticScore = semanticScores.get(fileId)
       const detail: any = scoreDetails.get(fileId)
       const selection = aiSelectionMap.get(fileId)
-      const relevance = typeof blendedScore === 'number' ? Math.max(0, Math.min(1, blendedScore)) : semanticScore ?? 0.9
+      const relevance =
+        typeof blendedScore === 'number' ? Math.max(0, Math.min(1, blendedScore)) : (semanticScore ?? 0.9)
       const aiReasons = Array.isArray(detail?.aiReasons) ? detail.aiReasons : selection?.reasons
       const joinedReasons = aiReasons && aiReasons.length > 0 ? aiReasons.join(', ') : undefined
       const reason = joinedReasons ? `AI reranker: ${joinedReasons}` : 'Relevance scoring match'
-      const aiConfidenceCandidate = typeof detail?.aiConfidence === 'number' ? detail.aiConfidence : selection?.confidence
-      const aiConfidence = typeof aiConfidenceCandidate === 'number' ? Math.max(0, Math.min(1, aiConfidenceCandidate)) : undefined
+      const aiConfidenceCandidate =
+        typeof detail?.aiConfidence === 'number' ? detail.aiConfidence : selection?.confidence
+      const aiConfidence =
+        typeof aiConfidenceCandidate === 'number' ? Math.max(0, Math.min(1, aiConfidenceCandidate)) : undefined
       return {
         path: file?.path || fileId,
         relevance,

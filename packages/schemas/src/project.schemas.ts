@@ -105,26 +105,17 @@ export const UpdateProjectBodySchema = CreateProjectBodySchema.partial()
   })
   .openapi('UpdateProjectRequestBody')
 
-
 const FileSuggestionStrategyEnum = z.enum(['fast', 'balanced', 'thorough']).openapi({
   description: 'Preset strategy controlling scoring, AI usage, and performance'
 })
 
 export const SuggestFilesBodySchema = z
   .object({
-    userInput: z
-      .string()
-      .min(1)
-      .optional()
-      .openapi({ example: 'Implement authentication using JWT' }),
-    prompt: z
-      .string()
-      .min(1)
-      .optional()
-      .openapi({
-        example: 'Implement authentication using JWT',
-        description: 'Alias for userInput maintained for backward compatibility'
-      }),
+    userInput: z.string().min(1).optional().openapi({ example: 'Implement authentication using JWT' }),
+    prompt: z.string().min(1).optional().openapi({
+      example: 'Implement authentication using JWT',
+      description: 'Alias for userInput maintained for backward compatibility'
+    }),
     limit: z
       .number()
       .int()
@@ -137,14 +128,10 @@ export const SuggestFilesBodySchema = z
       example: true,
       description: 'Return per-file relevance scores when available'
     }),
-    userContext: z
-      .string()
-      .min(1)
-      .optional()
-      .openapi({
-        example: 'Focus on MCP transport tools and remove unused prompts',
-        description: 'Additional context used to bias relevance scoring'
-      })
+    userContext: z.string().min(1).optional().openapi({
+      example: 'Focus on MCP transport tools and remove unused prompts',
+      description: 'Additional context used to bias relevance scoring'
+    })
   })
   .superRefine((data, ctx) => {
     if (!data.userInput && !data.prompt) {

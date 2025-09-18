@@ -35,4 +35,3 @@ describe('prompt-relevance-service', () => {
     expect(scores[0].totalScore).toBeGreaterThanOrEqual(scores[1].totalScore)
   })
 })
-

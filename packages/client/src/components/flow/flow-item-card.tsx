@@ -54,7 +54,9 @@ export function FlowItemCard({ item, queueName, meta, trailing, isSelected, onSe
                 {item.type === 'ticket' ? 'Ticket' : 'Task'}
               </Badge>
               {isQuickBucket && (
-                <Badge variant='secondary' className='text-xs'>Quick Bucket</Badge>
+                <Badge variant='secondary' className='text-xs'>
+                  Quick Bucket
+                </Badge>
               )}
               {statusLabel && (
                 <Badge variant='secondary' className='text-xs capitalize'>
@@ -71,9 +73,7 @@ export function FlowItemCard({ item, queueName, meta, trailing, isSelected, onSe
             {item.type === 'task' && item.task?.ticketId && (
               <p className='text-xs text-muted-foreground'>Ticket #{item.task.ticketId}</p>
             )}
-            {item.description && (
-              <p className='line-clamp-2 text-xs text-muted-foreground'>{item.description}</p>
-            )}
+            {item.description && <p className='line-clamp-2 text-xs text-muted-foreground'>{item.description}</p>}
             {meta}
           </div>
         </div>
@@ -86,4 +86,5 @@ export function FlowItemCard({ item, queueName, meta, trailing, isSelected, onSe
         </div>
       </div>
     </button>
-  )}
+  )
+}

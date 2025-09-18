@@ -29,4 +29,3 @@ describe('prompt-search-service', () => {
     expect(results[0].prompt.id).toBe(1)
   })
 })
-

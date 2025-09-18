@@ -172,7 +172,10 @@ async function syncVersions() {
   ])
 
   await updateTypeScriptFile(join(ROOT_DIR, 'packages/promptliano/src/tests/lib/system-checker.test.ts'), [
-    { search: /expect\(result\.version\)\.toBe\(['"`]\d+\.\d+\.\d+['"`]\)/g, replace: `expect(result.version).toBe('${VERSION}')` }
+    {
+      search: /expect\(result\.version\)\.toBe\(['"`]\d+\.\d+\.\d+['"`]\)/g,
+      replace: `expect(result.version).toBe('${VERSION}')`
+    }
   ])
 
   console.log('\n✨ Version sync complete!')

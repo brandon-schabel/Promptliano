@@ -219,7 +219,6 @@ const response = await fetch(`${baseUrl}/api/gen-ai/structured`, {
     }
   })
 })
-
 ```
 
 ## Configuration Reference

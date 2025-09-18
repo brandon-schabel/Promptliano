@@ -27,9 +27,7 @@ describe('SuggestPromptsResponseSchema', () => {
             strategy: 'balanced',
             processingTime: 320,
             tokensSaved: 0,
-            aiSelections: [
-              { id: '42', confidence: 0.88, reasons: ['DirectMatch', 'Dependency'] }
-            ]
+            aiSelections: [{ id: '42', confidence: 0.88, reasons: ['DirectMatch', 'Dependency'] }]
           }
         }
       }

@@ -23,13 +23,7 @@ import {
 } from '@promptliano/ui'
 import { Loader2, Bot, Inbox, ListTodo, ListPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  useCreateTicket,
-  useCreateTask,
-  useEnqueueTask,
-  useAutoGenerateTasks,
-  useGetFlowData
-} from '@/hooks/api-hooks'
+import { useCreateTicket, useCreateTask, useEnqueueTask, useAutoGenerateTasks, useGetFlowData } from '@/hooks/api-hooks'
 import { useTickets } from '@/hooks/generated'
 import type { Ticket } from '@/hooks/generated/types'
 import { FLOW_QUICK_TICKET_MARKER, isQuickBucketOverview, extractQuickBucketQueueId } from '@/constants/flow'
@@ -257,7 +251,8 @@ export function TaskQuickCreateDialog({
             Quick Add Task
           </DialogTitle>
           <DialogDescription>
-            Create a lightweight task {queueName ? `for ${queueName}` : ticketTitle ? `for ${ticketTitle}` : 'for this project'}.
+            Create a lightweight task{' '}
+            {queueName ? `for ${queueName}` : ticketTitle ? `for ${ticketTitle}` : 'for this project'}.
           </DialogDescription>
         </DialogHeader>
 
@@ -364,7 +359,9 @@ export function TaskQuickCreateDialog({
               <div className='space-y-2 text-xs text-muted-foreground'>
                 <div className='flex items-center justify-between'>
                   <span>Priority</span>
-                  <span>{priority >= 8 ? 'High' : priority >= 4 ? 'Normal' : 'Low'} · {priority}</span>
+                  <span>
+                    {priority >= 8 ? 'High' : priority >= 4 ? 'Normal' : 'Low'} · {priority}
+                  </span>
                 </div>
                 <Slider
                   min={PRIORITY_MIN}

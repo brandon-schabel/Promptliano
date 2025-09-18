@@ -9,9 +9,7 @@ import { mcpConfigRoutes } from './config-routes'
 import { mcpExecutionRoutes } from './execution-routes'
 
 // Create consolidated MCP routes
-export const mcpRoutes = new OpenAPIHono()
-  .route('/', mcpConfigRoutes)
-  .route('/', mcpExecutionRoutes)
+export const mcpRoutes = new OpenAPIHono().route('/', mcpConfigRoutes).route('/', mcpExecutionRoutes)
 
 export type MCPRoutesType = typeof mcpRoutes
 

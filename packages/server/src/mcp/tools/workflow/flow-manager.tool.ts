@@ -93,7 +93,32 @@ export const flowManagerTool: MCPToolDefinition = {
       action: {
         type: 'string',
         description: 'Action to perform (e.g., tickets_list, tasks_create, queues_get_stats, processor_get_next)',
-        enum: ['tickets_list', 'tickets_get', 'tickets_create', 'tickets_update', 'tickets_delete', 'tasks_list_by_ticket', 'tasks_create', 'tasks_update', 'tasks_delete', 'tasks_reorder', 'queues_create', 'queues_list', 'queues_get', 'queues_update', 'queues_delete', 'queues_get_stats', 'queues_get_all_stats', 'enqueue_ticket', 'enqueue_task', 'dequeue_ticket', 'dequeue_task', 'processor_get_next', 'processor_complete', 'processor_fail']
+        enum: [
+          'tickets_list',
+          'tickets_get',
+          'tickets_create',
+          'tickets_update',
+          'tickets_delete',
+          'tasks_list_by_ticket',
+          'tasks_create',
+          'tasks_update',
+          'tasks_delete',
+          'tasks_reorder',
+          'queues_create',
+          'queues_list',
+          'queues_get',
+          'queues_update',
+          'queues_delete',
+          'queues_get_stats',
+          'queues_get_all_stats',
+          'enqueue_ticket',
+          'enqueue_task',
+          'dequeue_ticket',
+          'dequeue_task',
+          'processor_get_next',
+          'processor_complete',
+          'processor_fail'
+        ]
       },
       projectId: { type: 'number', description: 'Project ID for project-scoped actions' },
       ticketId: { type: 'number', description: 'Ticket ID for task or ticket-specific actions' },

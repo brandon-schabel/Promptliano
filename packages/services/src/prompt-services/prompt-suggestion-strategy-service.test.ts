@@ -30,4 +30,3 @@ describe('prompt-suggestion-strategy-service', () => {
     expect(res.suggestions).toContain('1')
   })
 })
-

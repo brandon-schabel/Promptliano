@@ -38,7 +38,12 @@ const DEFAULT_PROMPT_RELEVANCE_CONFIG: PromptRelevanceConfig = {
   contentSample: 400
 }
 
-export function createPromptRelevanceService(deps: { config?: Partial<PromptRelevanceConfig>; repository?: { getByProject: (projectId: number) => Promise<Prompt[]> } } = {}) {
+export function createPromptRelevanceService(
+  deps: {
+    config?: Partial<PromptRelevanceConfig>
+    repository?: { getByProject: (projectId: number) => Promise<Prompt[]> }
+  } = {}
+) {
   let cfg: PromptRelevanceConfig = { ...DEFAULT_PROMPT_RELEVANCE_CONFIG, ...(deps.config || {}) }
   const repository = deps.repository || defaultPromptRepository
 

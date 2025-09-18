@@ -275,7 +275,6 @@ export function useSuggestFiles() {
   })
 }
 
-
 /**
  * Advanced Prompt Operations
  */
@@ -312,15 +311,15 @@ export function useGetProjectPrompts(projectId: number) {
       // Ensure data matches expected Prompt schema format
       return Array.isArray(data)
         ? data.map((item: any) => ({
-          id: item.id,
-          projectId: item.projectId || projectId,
-          title: item.title || item.name || '',
-          content: item.content || '',
-          description: item.description || null,
-          tags: Array.isArray(item.tags) ? item.tags : [],
-          createdAt: item.createdAt || item.created || Date.now(),
-          updatedAt: item.updatedAt || item.updated || Date.now()
-        }))
+            id: item.id,
+            projectId: item.projectId || projectId,
+            title: item.title || item.name || '',
+            content: item.content || '',
+            description: item.description || null,
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            createdAt: item.createdAt || item.created || Date.now(),
+            updatedAt: item.updatedAt || item.updated || Date.now()
+          }))
         : []
     },
     enabled: !!client && !!projectId && projectId !== -1,

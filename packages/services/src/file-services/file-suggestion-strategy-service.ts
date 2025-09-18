@@ -137,10 +137,7 @@ function buildRerankPrompt({
   descriptors: string[]
   topK: number
 }): string {
-  const lines: string[] = [
-    `Ticket: ${ticket.title}`,
-    `Overview: ${ticket.overview?.trim() || 'No overview provided.'}`
-  ]
+  const lines: string[] = [`Ticket: ${ticket.title}`, `Overview: ${ticket.overview?.trim() || 'No overview provided.'}`]
   if (userContext) {
     lines.push(`Context: ${userContext}`)
   }
@@ -257,7 +254,10 @@ function truncateForDescriptor(value: string, maxLength: number): string {
 }
 
 function sanitizeDescriptorPart(value: string): string {
-  return value.replace(/[|\r\n]/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/[|\r\n]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function formatScore(value?: number, decimals = 2, fallback = 0): string {
@@ -737,9 +737,7 @@ export function createFileSuggestionStrategyService(deps: FileSuggestionServiceD
         const finalScores = aiResult.fileIds.map((fileId) => {
           const score = prefilterResults.find((s) => s.fileId === fileId) || createDefaultScore(fileId)
           const selection = selectionMap.get(fileId)
-          return selection
-            ? { ...score, aiConfidence: selection.confidence, aiReasons: selection.reasons }
-            : score
+          return selection ? { ...score, aiConfidence: selection.confidence, aiReasons: selection.reasons } : score
         })
 
         yield {
@@ -802,5 +800,4 @@ export type FileSuggestionStrategyService = ReturnType<typeof createFileSuggesti
 export const fileSuggestionStrategyService = createFileSuggestionStrategyService()
 
 // Export individual functions for tree-shaking
-export const { suggestFiles, batchSuggestFiles, recommendStrategy, aiRefineSuggestions } =
-  fileSuggestionStrategyService
+export const { suggestFiles, batchSuggestFiles, recommendStrategy, aiRefineSuggestions } = fileSuggestionStrategyService

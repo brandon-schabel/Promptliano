@@ -1,5 +1,10 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js'
+import {
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+  type Tool
+} from '@modelcontextprotocol/sdk/types.js'
 import { CONSOLIDATED_TOOLS, getConsolidatedToolByName } from './tools'
 import { listResources, readResource } from './resources'
 import { createMCPError, formatMCPErrorResponse, MCPError, MCPErrorCode } from './mcp-errors'

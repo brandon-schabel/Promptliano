@@ -249,15 +249,10 @@ export function ProjectsPage() {
   }
 
   const isProjectsInitializing =
-    (projectsLoading && projects.length === 0) ||
-    (!projectsQuerySuccess && (projectsLoading || projectsFetching))
+    (projectsLoading && projects.length === 0) || (!projectsQuerySuccess && (projectsLoading || projectsFetching))
 
   const preparing =
-    isConnecting ||
-    (!isConnected && !hasError) ||
-    !hasInitializedFromUrl ||
-    !initDelayDone ||
-    isProjectsInitializing
+    isConnecting || (!isConnected && !hasError) || !hasInitializedFromUrl || !initDelayDone || isProjectsInitializing
 
   let content
   if (preparing) {

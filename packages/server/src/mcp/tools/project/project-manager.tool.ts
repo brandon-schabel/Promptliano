@@ -538,10 +538,10 @@ export const projectManagerTool: MCPToolDefinition = {
           error instanceof MCPError
             ? error
             : MCPError.fromError(error, {
-              tool: 'project_manager',
-              action: args.action,
-              projectId: args.projectId
-            })
+                tool: 'project_manager',
+                action: args.action,
+                projectId: args.projectId
+              })
 
         // Return formatted error response with recovery suggestions
         return await formatMCPErrorResponse(mcpError)

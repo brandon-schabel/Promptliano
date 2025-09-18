@@ -3,12 +3,7 @@ import type { Prompt } from '@promptliano/database'
 import { promptRepository as defaultPromptRepository } from '@promptliano/database'
 import { createPromptRelevanceService, type PromptRelevanceScoreResult } from './prompt-relevance-service'
 import { createPromptSearchService } from './prompt-search-service'
-import {
-  buildFuzzyQuery,
-  buildVariantQueries,
-  extractKeywords,
-  clamp01
-} from '../suggestions/utils/suggestion-utils'
+import { buildFuzzyQuery, buildVariantQueries, extractKeywords, clamp01 } from '../suggestions/utils/suggestion-utils'
 import { generateStructuredData } from '../gen-ai-services'
 import { modelConfigService } from '../model-config-service'
 import type { ModelOptionsWithProvider } from '@promptliano/config'
@@ -41,9 +36,30 @@ export interface StrategyConfig {
 }
 
 const STRATEGIES: Record<FileSuggestionStrategy, StrategyConfig> = {
-  fast: { maxPreFilterItems: 30, maxAIItems: 0, useAI: false, aiModel: 'medium', compactLevel: 'ultra', rerankStrategy: 'ai-sdk' },
-  balanced: { maxPreFilterItems: 50, maxAIItems: 50, useAI: true, aiModel: 'medium', compactLevel: 'compact', rerankStrategy: 'ai-sdk' },
-  thorough: { maxPreFilterItems: 100, maxAIItems: 100, useAI: true, aiModel: 'high', compactLevel: 'standard', rerankStrategy: 'ai-sdk' }
+  fast: {
+    maxPreFilterItems: 30,
+    maxAIItems: 0,
+    useAI: false,
+    aiModel: 'medium',
+    compactLevel: 'ultra',
+    rerankStrategy: 'ai-sdk'
+  },
+  balanced: {
+    maxPreFilterItems: 50,
+    maxAIItems: 50,
+    useAI: true,
+    aiModel: 'medium',
+    compactLevel: 'compact',
+    rerankStrategy: 'ai-sdk'
+  },
+  thorough: {
+    maxPreFilterItems: 100,
+    maxAIItems: 100,
+    useAI: true,
+    aiModel: 'high',
+    compactLevel: 'standard',
+    rerankStrategy: 'ai-sdk'
+  }
 }
 
 interface AiRerankSelection {
@@ -93,11 +109,13 @@ const AI_RERANK_SYSTEM_PROMPT =
   'You are a product engineer selecting the most relevant reusable prompts for a coding task. ' +
   'Review each candidate descriptor carefully and return the strongest matches along with confidence scores and succinct reason tags.'
 
-export function createPromptSuggestionStrategyService(deps: {
-  repository?: { getByProject: (projectId: number) => Promise<Prompt[]> }
-  relevance?: ReturnType<typeof createPromptRelevanceService>
-  search?: ReturnType<typeof createPromptSearchService>
-} = {}) {
+export function createPromptSuggestionStrategyService(
+  deps: {
+    repository?: { getByProject: (projectId: number) => Promise<Prompt[]> }
+    relevance?: ReturnType<typeof createPromptRelevanceService>
+    search?: ReturnType<typeof createPromptSearchService>
+  } = {}
+) {
   const repository = deps.repository || defaultPromptRepository
   const relevance = deps.relevance || createPromptRelevanceService({ repository })
   const search = deps.search || createPromptSearchService({ repository })
@@ -166,7 +184,9 @@ export function createPromptSuggestionStrategyService(deps: {
     }
 
     const candidateIds = new Set<string>([
-      ...relevanceScores.slice(0, Math.max(strategyConfig.maxPreFilterItems * 4, maxResults * 10)).map((s) => String(s.promptId)),
+      ...relevanceScores
+        .slice(0, Math.max(strategyConfig.maxPreFilterItems * 4, maxResults * 10))
+        .map((s) => String(s.promptId)),
       ...fuzzyResults.map((f) => f.promptId)
     ])
 
@@ -262,9 +282,7 @@ export function createPromptSuggestionStrategyService(deps: {
     debugScores = finalIds.map((id) => {
       const base = compositeMap.get(id) || createZeroScore(id)
       const selection = selectionMap.get(id)
-      return selection
-        ? { ...base, aiConfidence: selection.confidence, aiReasons: selection.reasons }
-        : base
+      return selection ? { ...base, aiConfidence: selection.confidence, aiReasons: selection.reasons } : base
     })
 
     if (!debugScores.length) {
@@ -319,7 +337,13 @@ async function aiRefinePrompts({
   const scoreMap = new Map(scores.map((s) => [String(s.promptId), s]))
   const descriptors = trimmed
     .map((prompt, index) =>
-      buildCandidateDescriptor(prompt, scoreMap.get(String(prompt.id)) ?? createZeroScore(String(prompt.id)), index, config.compactLevel, keywords)
+      buildCandidateDescriptor(
+        prompt,
+        scoreMap.get(String(prompt.id)) ?? createZeroScore(String(prompt.id)),
+        index,
+        config.compactLevel,
+        keywords
+      )
     )
     .filter(Boolean) as string[]
 
@@ -442,7 +466,9 @@ function buildCandidateDescriptor(
   parts.push(`score:${formatScore(score.totalScore)}`)
   parts.push(`rec:${computeRecencySignal(prompt, score)}`)
 
-  const tags = Array.isArray(prompt.tags) ? prompt.tags.map((tag) => sanitizeDescriptorPart(String(tag))).slice(0, 4) : []
+  const tags = Array.isArray(prompt.tags)
+    ? prompt.tags.map((tag) => sanitizeDescriptorPart(String(tag))).slice(0, 4)
+    : []
   if (tags.length > 0) {
     parts.push(`tags:[${tags.join(',')}]`)
   }
@@ -510,7 +536,10 @@ function truncate(value: string, maxLength: number): string {
 }
 
 function sanitizeDescriptorPart(value: string): string {
-  return value.replace(/[|\r\n]/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/[|\r\n]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function formatScore(value?: number, decimals = 2): string {
@@ -591,4 +620,3 @@ function computeContentHint(prompt: Prompt | undefined, tokens: string[]): numbe
   }
   return clamp01(hits / tokens.length)
 }
-

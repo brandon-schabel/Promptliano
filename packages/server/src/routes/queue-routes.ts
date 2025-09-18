@@ -346,9 +346,7 @@ queueRoutesApp.openapi(getQueueStatsRoute, async (c) => {
     currentAgents: stats.currentAgents ?? [],
     ticketCount: items.filter((entry) => entry.queueItem.itemType === 'ticket').length,
     taskCount: items.filter((entry) => entry.queueItem.itemType === 'task').length,
-    uniqueTickets: items
-      .filter((entry) => entry.queueItem.itemType === 'ticket')
-      .map((entry) => entry.queueItem.itemId)
+    uniqueTickets: items.filter((entry) => entry.queueItem.itemType === 'ticket').map((entry) => entry.queueItem.itemId)
       .length
   }
   return c.json(successResponse(normalized), 200)

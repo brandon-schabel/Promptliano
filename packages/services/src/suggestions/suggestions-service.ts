@@ -148,12 +148,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
         const domainBoost = domainSpecificBoost(file.path || '', tokens)
 
         const blended = clamp01(
-          0.55 * base.totalScore +
-            0.15 * fuzzy +
-            0.2 * pathBoost +
-            0.15 * codeBoost +
-            domainBoost -
-            1.1 * penalty
+          0.55 * base.totalScore + 0.15 * fuzzy + 0.2 * pathBoost + 0.15 * codeBoost + domainBoost - 1.1 * penalty
         )
 
         return {
@@ -175,9 +170,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
       try {
         const topForAi = composite.slice(0, Math.max(50, maxResults * 5))
         const idToComposite = new Map(topForAi.map((entry) => [String(entry.fileId), entry]))
-        const candidateFiles = topForAi
-          .map((c) => byId.get(String(c.fileId)))
-          .filter(Boolean) as any[]
+        const candidateFiles = topForAi.map((c) => byId.get(String(c.fileId))).filter(Boolean) as any[]
 
         if (candidateFiles.length > 0) {
           const aiScoreInputs: RelevanceScoreResult[] = candidateFiles.map((file: any) => {
@@ -320,7 +313,13 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
   }> {
     const strategy = options.strategy ?? 'balanced'
     const maxResults = options.maxResults ?? 10
-    const result = await promptStrategyService.suggestPrompts(projectId, userInput, strategy, maxResults, options.userContext)
+    const result = await promptStrategyService.suggestPrompts(
+      projectId,
+      userInput,
+      strategy,
+      maxResults,
+      options.userContext
+    )
 
     return {
       suggestions: result.suggestions,
@@ -655,20 +654,26 @@ function codeLocationBoost(path: string, tokens: string[]): number {
   if (!path) return 0
   const p = path.toLowerCase()
   const codeIntent = tokens.some((t) =>
-    ['feature', 'route', 'routes', 'api', 'service', 'server', 'tools', 'tool', 'mcp', 'hook', 'hooks', 'suggest'].includes(
-      t
-    )
+    [
+      'feature',
+      'route',
+      'routes',
+      'api',
+      'service',
+      'server',
+      'tools',
+      'tool',
+      'mcp',
+      'hook',
+      'hooks',
+      'suggest'
+    ].includes(t)
   )
   if (!codeIntent) return 0
 
-  const matches = [
-    '/routes/',
-    '/services/',
-    '/mcp/',
-    '/tools/',
-    '/hooks/',
-    '/suggestions/'
-  ].some((seg) => p.includes(seg))
+  const matches = ['/routes/', '/services/', '/mcp/', '/tools/', '/hooks/', '/suggestions/'].some((seg) =>
+    p.includes(seg)
+  )
 
   return matches ? 1 : 0
 }

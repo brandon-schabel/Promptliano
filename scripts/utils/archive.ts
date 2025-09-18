@@ -2,10 +2,7 @@ import { createWriteStream } from 'node:fs'
 import type archiver from 'archiver'
 import archiverFactory from 'archiver'
 
-export async function createZip(
-  outputPath: string,
-  configure: (archive: archiver.Archiver) => void
-): Promise<void> {
+export async function createZip(outputPath: string, configure: (archive: archiver.Archiver) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const output = createWriteStream(outputPath)
     const archive = archiverFactory('zip', {

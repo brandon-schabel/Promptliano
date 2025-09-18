@@ -64,10 +64,12 @@ export class MCPError extends Error {
   static fromError(error: unknown, context?: MCPErrorContext): MCPError {
     if (error instanceof MCPError) {
       const merged = mergeContext(error.context, context)
-      return merged === error.context ? error : new MCPError(error.code, error.message, {
-        suggestion: error.suggestion,
-        context: merged
-      })
+      return merged === error.context
+        ? error
+        : new MCPError(error.code, error.message, {
+            suggestion: error.suggestion,
+            context: merged
+          })
     }
 
     if (error instanceof ApiError) {
@@ -106,9 +108,10 @@ export function isMCPError(error: unknown): error is MCPError {
 export async function formatMCPErrorResponse(error: MCPError | unknown): Promise<MCPToolResponse> {
   const normalized = error instanceof MCPError ? error : MCPError.fromError(error)
   const suggestion = normalized.suggestion || DEFAULT_SUGGESTIONS[normalized.code]
-  const contextText = normalized.context && Object.keys(normalized.context).length > 0
-    ? `\n\nDetails: ${JSON.stringify(normalized.context, null, 2)}`
-    : ''
+  const contextText =
+    normalized.context && Object.keys(normalized.context).length > 0
+      ? `\n\nDetails: ${JSON.stringify(normalized.context, null, 2)}`
+      : ''
   const suggestionText = suggestion ? `\n\nSuggestion: ${suggestion}` : ''
   const text = `Error (${normalized.code}): ${normalized.message}${suggestionText}${contextText}`
 

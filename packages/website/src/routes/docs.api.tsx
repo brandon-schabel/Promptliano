@@ -35,8 +35,8 @@ function ApiReferencePage() {
             <GlassCard className='p-6 mb-6'>
               <h3 className='text-xl font-medium mb-3'>Overview</h3>
               <p className='text-muted-foreground mb-4'>
-                The Project Manager API provides comprehensive project operations including creation, updates,
-                file management, and context-aware insights.
+                The Project Manager API provides comprehensive project operations including creation, updates, file
+                management, and context-aware insights.
               </p>
 
               <h4 className='font-medium mb-2'>Available Actions:</h4>
@@ -56,7 +56,7 @@ function ApiReferencePage() {
                 <li>
                   <code>delete</code> - Delete entire project (requires confirmDelete: true)
                 </li>
-                
+
                 <li>
                   <code>suggest_files</code> - Get intelligent file suggestions
                 </li>

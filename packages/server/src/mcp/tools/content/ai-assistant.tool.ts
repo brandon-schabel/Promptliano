@@ -30,7 +30,8 @@ const AIAssistantSchema = z.object({
 
 export const aiAssistantTool: MCPToolDefinition = {
   name: 'ai_assistant',
-  description: 'Comprehensive AI-powered assistant for development tasks. Actions: optimize_prompt, generate_prompt, analyze_code, suggest_improvements, explain_concept, generate_documentation, code_review, refactor_suggestions',
+  description:
+    'Comprehensive AI-powered assistant for development tasks. Actions: optimize_prompt, generate_prompt, analyze_code, suggest_improvements, explain_concept, generate_documentation, code_review, refactor_suggestions',
   inputSchema: {
     type: 'object',
     properties: {
@@ -45,7 +46,8 @@ export const aiAssistantTool: MCPToolDefinition = {
       },
       data: {
         type: 'object',
-        description: 'Action-specific data. For optimize_prompt: { prompt: "original prompt", context?: "additional context" }. For analyze_code: { code: "code to analyze", language?: "typescript" }. For explain_concept: { concept: "concept to explain", level?: "beginner|intermediate|advanced" }'
+        description:
+          'Action-specific data. For optimize_prompt: { prompt: "original prompt", context?: "additional context" }. For analyze_code: { code: "code to analyze", language?: "typescript" }. For explain_concept: { concept: "concept to explain", level?: "beginner|intermediate|advanced" }'
       }
     },
     required: ['action']
@@ -95,7 +97,7 @@ Provide the optimized prompt directly without explanations.`
 
           case AIAssistantAction.GENERATE_PROMPT: {
             const task = validateDataField<string>(data, 'task', 'string', '"code review for React component"')
-            const type = data?.type as string | undefined || 'general'
+            const type = (data?.type as string | undefined) || 'general'
             const context = data?.context as string | undefined
 
             const systemPrompt = `You are a prompt engineering expert. Generate an effective prompt for the specified task.
@@ -130,8 +132,8 @@ Return only the generated prompt without explanations.`
 
           case AIAssistantAction.ANALYZE_CODE: {
             const code = validateDataField<string>(data, 'code', 'string', '"function example() { return true; }"')
-            const language = data?.language as string | undefined || 'auto-detect'
-            const focus = data?.focus as string | undefined || 'general analysis'
+            const language = (data?.language as string | undefined) || 'auto-detect'
+            const focus = (data?.focus as string | undefined) || 'general analysis'
 
             const systemPrompt = `You are a senior software engineer conducting a code analysis.
 
@@ -179,7 +181,7 @@ Be specific and actionable in your feedback.`
 
           case AIAssistantAction.EXPLAIN_CONCEPT: {
             const concept = validateDataField<string>(data, 'concept', 'string', '"React hooks"')
-            const level = data?.level as string | undefined || 'intermediate'
+            const level = (data?.level as string | undefined) || 'intermediate'
             const context = data?.context as string | undefined
 
             const systemPrompt = `You are an expert technical educator. Explain the given concept clearly and effectively.
@@ -214,8 +216,8 @@ Make it engaging and easy to understand.`
 
           case AIAssistantAction.GENERATE_DOCUMENTATION: {
             const code = validateDataField<string>(data, 'code', 'string', '"function calculateTotal() { ... }"')
-            const type = data?.type as string | undefined || 'api'
-            const style = data?.style as string | undefined || 'comprehensive'
+            const type = (data?.type as string | undefined) || 'api'
+            const style = (data?.style as string | undefined) || 'comprehensive'
 
             const systemPrompt = `You are a technical writer creating high-quality documentation.
 
@@ -255,7 +257,7 @@ Provide complete, professional documentation.`
           case AIAssistantAction.CODE_REVIEW: {
             const code = validateDataField<string>(data, 'code', 'string', '"function example() { ... }"')
             const context = data?.context as string | undefined
-            const focus = data?.focus as string | undefined || 'comprehensive'
+            const focus = (data?.focus as string | undefined) || 'comprehensive'
 
             const systemPrompt = `You are a senior engineer conducting a thorough code review.
 
@@ -280,7 +282,10 @@ Be constructive and specific in your feedback.`
 
             const schema = z.object({
               review: z.string().describe('Comprehensive code review'),
-              rating: z.enum(['excellent', 'good', 'needs_improvement', 'major_issues']).optional().describe('Overall quality rating')
+              rating: z
+                .enum(['excellent', 'good', 'needs_improvement', 'major_issues'])
+                .optional()
+                .describe('Overall quality rating')
             })
 
             const result = await generateStructuredData({
@@ -301,7 +306,7 @@ Be constructive and specific in your feedback.`
 
           case AIAssistantAction.REFACTOR_SUGGESTIONS: {
             const code = validateDataField<string>(data, 'code', 'string', '"function example() { ... }"')
-            const goals = data?.goals as string | undefined || 'improve readability and maintainability'
+            const goals = (data?.goals as string | undefined) || 'improve readability and maintainability'
             const constraints = data?.constraints as string | undefined
 
             const systemPrompt = `You are a senior engineer providing refactoring guidance.
@@ -342,9 +347,9 @@ Focus on actionable, specific improvements.`
             })
 
             const suggestions = result.object.suggestions || []
-            const response = suggestions.map((s, i) =>
-              `${i + 1}. **${s.title}** (Priority: ${s.priority})\n   ${s.description}`
-            ).join('\n\n')
+            const response = suggestions
+              .map((s, i) => `${i + 1}. **${s.title}** (Priority: ${s.priority})\n   ${s.description}`)
+              .join('\n\n')
 
             return {
               content: [{ type: 'text', text: response || 'No specific refactoring suggestions identified.' }]

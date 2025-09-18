@@ -136,7 +136,9 @@ export function createPromptService(deps: PromptServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Use new prompt suggestion pipeline to get relevant prompt IDs
-          const { createPromptSuggestionStrategyService } = await import('./prompt-services/prompt-suggestion-strategy-service')
+          const { createPromptSuggestionStrategyService } = await import(
+            './prompt-services/prompt-suggestion-strategy-service'
+          )
           const strat = createPromptSuggestionStrategyService()
           const { suggestions } = await strat.suggestPrompts(projectId, userQuery, 'balanced', 5)
           return suggestions.map((id) => `Prompt ID: ${id}`)

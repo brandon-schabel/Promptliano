@@ -125,10 +125,7 @@ export function SuggestedPromptsDialog({ open, onClose, suggestedPrompts }: Sugg
                           {breakdown.map(({ label, value }) => {
                             const formattedScore = formatScore(value) ?? '0%'
                             return (
-                              <span
-                                key={label}
-                                className='rounded-full bg-muted px-2 py-0.5 uppercase tracking-wide'
-                              >
+                              <span key={label} className='rounded-full bg-muted px-2 py-0.5 uppercase tracking-wide'>
                                 {label}: {formattedScore}
                               </span>
                             )

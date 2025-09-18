@@ -43,12 +43,7 @@ import { flowManagerTool } from './workflow'
 import { aiAssistantTool } from './content'
 import { gitManagerTool } from './git'
 
-export const CONSOLIDATED_TOOLS = Object.freeze([
-  projectManagerTool,
-  flowManagerTool,
-  aiAssistantTool,
-  gitManagerTool
-])
+export const CONSOLIDATED_TOOLS = Object.freeze([projectManagerTool, flowManagerTool, aiAssistantTool, gitManagerTool])
 
 export function getConsolidatedToolByName(name: string) {
   return CONSOLIDATED_TOOLS.find((tool) => tool.name === name)
@@ -307,7 +302,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
       name: 'All Projects',
       description: 'List of available projects',
       mimeType: 'application/json'
-    },
+    }
     // Removed legacy project summary resource
   ]
 
@@ -492,6 +487,7 @@ The stdio server exposes machine-readable resources to give agents immediate con
     - `.../suggest-files` — Guidance stub to use suggest_files tool (JSON)
 
 Notes
+
 - Payloads are intentionally small and summarized; drill-down URIs provide details.
 - Secrets are never exposed; provider keys are masked and may show `ENV: VAR_NAME` only.
 - Listings are capped (e.g., commits 20, tickets 10–15) for performance.

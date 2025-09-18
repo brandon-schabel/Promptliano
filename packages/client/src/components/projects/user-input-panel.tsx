@@ -327,9 +327,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
         )
 
         fetchedPromptMap = new Map(
-          fetched
-            .filter((prompt): prompt is Prompt => Boolean(prompt))
-            .map((prompt) => [prompt.id, prompt])
+          fetched.filter((prompt): prompt is Prompt => Boolean(prompt)).map((prompt) => [prompt.id, prompt])
         )
       }
 
@@ -353,10 +351,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
       setSuggestedPrompts(suggestions)
       setShowPromptSuggestions(true)
 
-      if (
-        missingPromptIds.size > 0 &&
-        (!apiClient || fetchedPromptMap.size < missingPromptIds.size)
-      ) {
+      if (missingPromptIds.size > 0 && (!apiClient || fetchedPromptMap.size < missingPromptIds.size)) {
         console.warn(
           'Missing prompt details for suggested prompts',
           [...missingPromptIds].filter((id) => !projectPromptMap.has(id) && !fetchedPromptMap.has(id))

@@ -161,4 +161,3 @@ async function createBunBundleZip(sourceDir: string, outputPath: string): Promis
 }
 
 await buildProject()
-

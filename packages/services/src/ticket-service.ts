@@ -337,7 +337,7 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
                     agentId: taskSuggestion.suggestedAgentId || null,
                     suggestedFileIds: dedupeStrings([
                       ...(taskSuggestion.suggestedFileIds || []),
-                      ...((perTaskFileSuggestions[index]?.ids || []).slice(0, 5))
+                      ...(perTaskFileSuggestions[index]?.ids || []).slice(0, 5)
                     ]).slice(0, 5),
                     suggestedPromptIds: [],
                     createdAt: Date.now(),
@@ -706,11 +706,7 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
           typeof (file as any).summary === 'string' && (file as any).summary.trim().length > 0
             ? (file as any).summary.trim()
             : typeof file.content === 'string' && file.content.trim().length > 0
-              ? file.content
-                  .split('\n')
-                  .slice(0, 12)
-                  .join(' ')
-                  .replace(/\s+/g, ' ')
+              ? file.content.split('\n').slice(0, 12).join(' ').replace(/\s+/g, ' ')
               : ''
 
         const summary = baseSummary.length > 0 ? baseSummary.slice(0, 280) : 'No summary available.'
@@ -761,7 +757,9 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       promptParts.push('\nRepository guidelines (AGENTS.md excerpt):')
       promptParts.push(guidelineSnippet)
       if (agentGuidelines?.scope === 'global') {
-        promptParts.push('Note: These guidelines are global; reconcile them with repository-specific conventions as needed.')
+        promptParts.push(
+          'Note: These guidelines are global; reconcile them with repository-specific conventions as needed.'
+        )
       }
       if (agentGuidelines && agentGuidelines.full.length > guidelineSnippet.length) {
         promptParts.push('(Excerpt truncated for brevity; consult AGENTS.md for full details.)')
@@ -776,7 +774,9 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       promptParts.push('\nExisting tasks (avoid duplicates):')
       promptParts.push(listed)
     }
-    promptParts.push('\nGenerate 5–10 concrete implementation tasks with clear deliverables that follow these guidelines and reference relevant files when helpful.')
+    promptParts.push(
+      '\nGenerate 5–10 concrete implementation tasks with clear deliverables that follow these guidelines and reference relevant files when helpful.'
+    )
     if (fileCatalog) {
       promptParts.push('\nAvailable project files (use IDs in suggestedFileIds):')
       promptParts.push(fileCatalog)
@@ -970,9 +970,7 @@ function normalizeTaskSuggestion(raw: any): GeneratedTaskSummary {
 
   const tags = Array.isArray(raw.tags)
     ? dedupeStrings(
-        raw.tags
-          .map((tag: any) => (typeof tag === 'string' ? tag.trim() : ''))
-          .filter((tag: string) => tag.length > 0)
+        raw.tags.map((tag: any) => (typeof tag === 'string' ? tag.trim() : '')).filter((tag: string) => tag.length > 0)
       )
     : []
 
@@ -1102,7 +1100,10 @@ function extractJsonFromText(text: string): any | null {
     if (fenceEnd !== -1) {
       candidate = candidate.slice(3, fenceEnd).trim()
     } else {
-      candidate = candidate.replace(/^```json\s*/i, '').replace(/```$/, '').trim()
+      candidate = candidate
+        .replace(/^```json\s*/i, '')
+        .replace(/```$/, '')
+        .trim()
     }
   }
 

@@ -52,10 +52,7 @@ function normalizeQueueStatus(value: unknown): (typeof queueStatusValues)[number
 const safeSelectTicketSchema = selectTicketSchema.extend({
   priority: z.preprocess((value) => normalizeTicketPriority(value), z.enum(ticketPriorityValues)),
   status: z.preprocess((value) => normalizeTicketStatus(value), z.enum(ticketStatusValues)),
-  queueStatus: z.preprocess(
-    (value) => normalizeQueueStatus(value),
-    z.union([z.enum(queueStatusValues), z.null()])
-  )
+  queueStatus: z.preprocess((value) => normalizeQueueStatus(value), z.union([z.enum(queueStatusValues), z.null()]))
 })
 
 // Helper functions to convert JSON fields from database to proper types
@@ -233,10 +230,7 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Delete all tickets for a project (optimized batch operation)
    */
   async deleteByProject(projectId: number): Promise<number> {
-    const ticketIds = await db
-      .select({ id: tickets.id })
-      .from(tickets)
-      .where(eq(tickets.projectId, projectId))
+    const ticketIds = await db.select({ id: tickets.id }).from(tickets).where(eq(tickets.projectId, projectId))
     if (ticketIds.length === 0) return 0
     return baseTicketRepository.deleteMany(ticketIds.map((t) => t.id))
   },

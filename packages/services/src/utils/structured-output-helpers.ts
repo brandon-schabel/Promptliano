@@ -64,10 +64,7 @@ export function extractJsonStringFromResponse(rawText: string): string {
 
   jsonCandidate = jsonCandidate.trim()
 
-  const jsonPatterns = [
-    /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s,
-    /\[[\s\S]*\]/s
-  ]
+  const jsonPatterns = [/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s, /\[[\s\S]*\]/s]
 
   for (const pattern of jsonPatterns) {
     const matches = jsonCandidate.match(pattern)
@@ -89,11 +86,7 @@ export function extractJsonStringFromResponse(rawText: string): string {
 /**
  * Build a strict instruction prompt for JSON-only responses.
  */
-export function createJsonOnlyPrompt(
-  prompt: string,
-  schema: z.ZodTypeAny,
-  systemMessage?: string
-): string {
+export function createJsonOnlyPrompt(prompt: string, schema: z.ZodTypeAny, systemMessage?: string): string {
   const exampleStructure = JSON.stringify(buildExampleJsonStructure(schema), null, 2)
 
   const instructions = `IMPORTANT: Return ONLY valid JSON matching this exact structure, nothing else:\n${exampleStructure}\n\nYour entire response must be a single JSON object. Do not explain, do not add any text before or after.\nStart your response with { and end with }`

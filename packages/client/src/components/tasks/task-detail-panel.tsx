@@ -15,7 +15,14 @@ interface TaskDetailPanelProps {
   onRefresh?: () => void
 }
 
-export function TaskDetailPanel({ task, projectId, queueName, ticketTitle, onOpenTicket, onRefresh }: TaskDetailPanelProps) {
+export function TaskDetailPanel({
+  task,
+  projectId,
+  queueName,
+  ticketTitle,
+  onOpenTicket,
+  onRefresh
+}: TaskDetailPanelProps) {
   const [isQueueDialogOpen, setIsQueueDialogOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -77,7 +84,13 @@ export function TaskDetailPanel({ task, projectId, queueName, ticketTitle, onOpe
           </div>
           <div className='flex flex-col gap-2'>
             <Button variant='outline' size='sm' onClick={handleToggleDone} disabled={isUpdating}>
-              {isUpdating ? <Loader2 className='h-4 w-4 animate-spin' /> : task.done ? 'Mark as Pending' : 'Mark Complete'}
+              {isUpdating ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : task.done ? (
+                'Mark as Pending'
+              ) : (
+                'Mark Complete'
+              )}
             </Button>
             {onOpenTicket && (
               <Button variant='ghost' size='sm' className='gap-1' onClick={() => onOpenTicket(task.ticketId)}>
@@ -111,7 +124,9 @@ export function TaskDetailPanel({ task, projectId, queueName, ticketTitle, onOpe
             )}
             {typeof task.queuePriority === 'number' && (
               <div>
-                <p className='font-medium uppercase tracking-wide text-[0.65rem] text-muted-foreground'>Queue Priority</p>
+                <p className='font-medium uppercase tracking-wide text-[0.65rem] text-muted-foreground'>
+                  Queue Priority
+                </p>
                 <p>{task.queuePriority}</p>
               </div>
             )}
@@ -136,7 +151,9 @@ export function TaskDetailPanel({ task, projectId, queueName, ticketTitle, onOpe
 
           {task.suggestedFileIds && task.suggestedFileIds.length > 0 && (
             <div className='space-y-1 text-xs text-muted-foreground'>
-              <p className='font-medium uppercase tracking-wide text-[0.65rem] text-muted-foreground'>Suggested Files</p>
+              <p className='font-medium uppercase tracking-wide text-[0.65rem] text-muted-foreground'>
+                Suggested Files
+              </p>
               <ul className='list-disc pl-5 space-y-1'>
                 {task.suggestedFileIds.map((fileId: string) => (
                   <li key={fileId}>{fileId}</li>
