@@ -39,6 +39,16 @@ export interface SuggestFilesResult {
 
 export interface SuggestionsServiceDeps {}
 
+type CompositeScore = {
+  fileId: string
+  totalScore: number
+  keywordScore: number
+  pathScore: number
+  typeScore: number
+  recencyScore: number
+  importScore: number
+}
+
 export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
   const relevanceService = createFileRelevanceService()
   const strategyService = createFileSuggestionStrategyService()
@@ -67,7 +77,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     // 1) Relevance scoring (uses content + path and metadata)
     const relevanceScores = await relevanceService.scoreFilesForText(userInput || '', projectId)
     trace.relevanceCandidates = relevanceScores.length
-    const relMap = new Map(relevanceScores.map((s) => [String(s.fileId), s]))
+    const relMap = new Map(relevanceScores.map((score) => [String(score.fileId), score]))
 
     // 2) Path-oriented fuzzy search to catch obvious route/feature files
     const search = createFileSearchService()
@@ -119,8 +129,8 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
 
     // 5) Re-rank with simple, understandable heuristics
     const queryHints = new Set(tokens)
-    let composite = Array.from(candidateIds)
-      .map((id) => {
+    const preparedComposite = Array.from(candidateIds)
+      .map<CompositeScore | null>((id) => {
         const file = byId.get(id)
         if (!file || shouldIgnoreFilePath(file.path)) {
           return null
@@ -156,8 +166,8 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
           importScore: base.importScore
         }
       })
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-      .sort((a, b) => b.totalScore - a.totalScore)
+      .filter(isCompositeScore)
+    let composite: CompositeScore[] = preparedComposite.sort((a, b) => b.totalScore - a.totalScore)
     trace.filteredCandidates = composite.length
 
     // AI-assisted reranker for project-level (no flag): apply when strategy != 'fast' and candidates > maxResults
@@ -570,7 +580,7 @@ function hasAny(set: Set<string>, terms: string[]): boolean {
   return false
 }
 
-function createZeroScore(fileId: string) {
+function createZeroScore(fileId: string): CompositeScore {
   return {
     fileId,
     totalScore: 0,
@@ -580,6 +590,10 @@ function createZeroScore(fileId: string) {
     recencyScore: 0,
     importScore: 0
   }
+}
+
+function isCompositeScore(entry: CompositeScore | null): entry is CompositeScore {
+  return entry !== null
 }
 
 function shouldIgnoreFilePath(path: string): boolean {

@@ -67,7 +67,7 @@ export function createTrackedHandler(
 
     try {
       // Use the tracking service to wrap the handler
-      return await trackMCPToolExecution(toolName, projectId, args, () => handler(args))
+      return await trackMCPToolExecution(toolName, projectId, args, async () => await handler(args))
     } catch (trackingError: any) {
       // If telemetry fails, log the error and execute the handler directly
       console.warn(

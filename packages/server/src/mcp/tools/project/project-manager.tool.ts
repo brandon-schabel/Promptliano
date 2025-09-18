@@ -41,7 +41,7 @@ export const projectManagerTool: MCPToolDefinition = {
       action: {
         type: 'string',
         description: 'The action to perform',
-        enum: ['list', 'get', 'create', 'update', 'delete', 'browse_files', 'get_file_content', 'update_file_content', 'suggest_files', 'search', 'create_file', 'get_file_content_partial', 'delete_file', 'get_file_tree', 'overview']
+        enum: Object.values(ProjectManagerAction)
       },
       projectId: {
         type: 'number',
