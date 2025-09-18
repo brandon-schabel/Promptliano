@@ -21,31 +21,30 @@ import {
 } from '@promptliano/schemas'
 import {
   createQueue,
+  listQueues,
   getQueueById,
-  listQueuesByProject,
   updateQueue,
   deleteQueue,
   pauseQueue,
   resumeQueue,
   enqueueTicket,
   enqueueTask,
-  enqueueTicketWithAllTasks,
+  enqueueTicketWithTasks,
+  getTicketById,
   dequeueTicket,
   dequeueTask,
-  getNextTaskFromQueue,
-  getQueueStats,
+  getNextQueueItem,
+  getQueueWithStats,
   getQueuesWithStats,
+  getQueueEntries,
   getUnqueuedItems,
-  moveItemToQueue,
+  moveItem,
   completeQueueItem,
   failQueueItem,
-  getQueueItems,
   batchEnqueueItems,
   getQueueTimeline
-} from '@promptliano/services'
+} from '@promptliano/services/src/flow/core'
 import type { Context } from 'hono'
-// Ensure dequeue returns full Ticket data
-import { dequeueTicket as flowDequeueTicket } from '@promptliano/services/src/flow-service'
 import { ApiError } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 
@@ -106,7 +105,7 @@ const listQueuesRoute = createRoute({
 
 queueRoutesApp.openapi(listQueuesRoute, async (c) => {
   const { projectId } = c.req.valid('param')
-  const queues = await listQueuesByProject(projectId)
+  const queues = await listQueues(projectId)
   return c.json(successResponse(queues), 200)
 })
 
@@ -217,17 +216,19 @@ const enqueueTicketRoute = createRoute({
 
 queueRoutesApp.openapi(enqueueTicketRoute, (async (c: any) => {
   const { ticketId } = c.req.valid('param')
-  const { queueId, priority, includeTasks } = c.req.valid('json')
+  const { queueId, priority = 0, includeTasks } = c.req.valid('json')
 
   if (includeTasks) {
-    const tasksCount = await enqueueTicketWithAllTasks(ticketId, queueId, priority)
-    // Since enqueueTicketWithAllTasks returns a number, we need to get the ticket separately
-    const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
-    return c.json(successResponse(ticket), 200)
-  } else {
-    const ticket = await enqueueTicket(ticketId, queueId, priority || 0)
+    await enqueueTicketWithTasks(ticketId, queueId, priority)
+    const ticket = await getTicketById(ticketId)
+    if (!ticket) {
+      throw new ApiError(404, `Ticket ${ticketId} not found`, 'TICKET_NOT_FOUND')
+    }
     return c.json(successResponse(ticket), 200)
   }
+
+  const ticket = await enqueueTicket(ticketId, queueId, priority)
+  return c.json(successResponse(ticket), 200)
 }) as any)
 
 // Enqueue task
@@ -284,7 +285,7 @@ const dequeueTicketRoute = createRoute({
 
 queueRoutesApp.openapi(dequeueTicketRoute, async (c) => {
   const { ticketId } = c.req.valid('param')
-  const ticket = await flowDequeueTicket(ticketId)
+  const ticket = await dequeueTicket(ticketId)
   return c.json(successResponse(ticket), 200)
 })
 
@@ -331,24 +332,22 @@ const getQueueStatsRoute = createRoute({
 
 queueRoutesApp.openapi(getQueueStatsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
-  const result = await getQueueStats(queueId)
-  const queue = (result as any).queue
-  const items = (result as any).items || []
-  const s = (result as any).stats || result
+  const { queue, items, stats } = await getQueueWithStats(queueId)
   const normalized = {
-    queueId: queue?.id ?? queueId,
-    queueName: queue?.name ?? 'Queue',
-    totalItems: s.totalItems ?? items.length,
-    queuedItems: s.queuedItems ?? items.filter((i: any) => i.status === 'queued').length,
-    inProgressItems: s.inProgressItems ?? items.filter((i: any) => i.status === 'in_progress').length,
-    completedItems: s.completedItems ?? items.filter((i: any) => i.status === 'completed').length,
-    failedItems: s.failedItems ?? items.filter((i: any) => i.status === 'failed').length,
-    cancelledItems: items.filter((i: any) => i.status === 'cancelled').length,
-    averageProcessingTime: s.averageProcessingTime ?? null,
-    currentAgents: s.currentAgents ?? [],
-    ticketCount: s.ticketCount,
-    taskCount: s.taskCount,
-    uniqueTickets: s.uniqueTickets
+    queueId: queue.id,
+    queueName: queue.name,
+    totalItems: stats.totalItems,
+    queuedItems: stats.queuedItems,
+    inProgressItems: stats.inProgressItems,
+    completedItems: stats.completedItems,
+    failedItems: stats.failedItems,
+    cancelledItems: stats.cancelledItems,
+    averageProcessingTime: stats.averageProcessingTime ?? null,
+    currentAgents: stats.currentAgents ?? [],
+    ticketCount: items.filter((entry) => entry.queueItem.itemType === 'ticket').length,
+    taskCount: items.filter((entry) => entry.queueItem.itemType === 'task').length,
+    uniqueTickets: items.filter((entry) => entry.queueItem.itemType === 'ticket').map((entry) => entry.queueItem.itemId)
+      .length
   }
   return c.json(successResponse(normalized), 200)
 })
@@ -373,24 +372,21 @@ const getQueuesWithStatsRoute = createRoute({
 queueRoutesApp.openapi(getQueuesWithStatsRoute, async (c) => {
   const { projectId } = c.req.valid('param')
   const result = await getQueuesWithStats(projectId)
-  const normalized = (result as any[]).map((entry) => {
-    const queue = entry.queue || entry
-    const items = (entry as any).items || []
-    const s = entry.stats || {}
-    const stats = {
-      queueId: queue?.id ?? 0,
-      queueName: queue?.name ?? 'Queue',
-      totalItems: s.totalItems ?? items.length ?? 0,
-      queuedItems: s.queuedItems ?? items.filter((i: any) => i.status === 'queued').length ?? 0,
-      inProgressItems: s.inProgressItems ?? items.filter((i: any) => i.status === 'in_progress').length ?? 0,
-      completedItems: s.completedItems ?? items.filter((i: any) => i.status === 'completed').length ?? 0,
-      failedItems: s.failedItems ?? items.filter((i: any) => i.status === 'failed').length ?? 0,
-      cancelledItems: items.filter((i: any) => i.status === 'cancelled').length ?? 0,
-      averageProcessingTime: s.averageProcessingTime ?? null,
-      currentAgents: s.currentAgents ?? []
+  const normalized = result.map(({ queue, stats }) => ({
+    queue,
+    stats: {
+      queueId: queue.id,
+      queueName: queue.name,
+      totalItems: stats.totalItems,
+      queuedItems: stats.queuedItems,
+      inProgressItems: stats.inProgressItems,
+      completedItems: stats.completedItems,
+      failedItems: stats.failedItems,
+      cancelledItems: stats.cancelledItems,
+      averageProcessingTime: stats.averageProcessingTime,
+      currentAgents: stats.currentAgents ?? []
     }
-    return { queue, stats }
-  })
+  }))
   return c.json(successResponse(normalized), 200)
 })
 
@@ -423,8 +419,23 @@ const getNextTaskRoute = createRoute({
 queueRoutesApp.openapi(getNextTaskRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { agentId } = c.req.valid('json')
-  const nextTask = await getNextTaskFromQueue(queueId, agentId)
-  return c.json(successResponse({ queueItem: nextTask, ticket: null, task: null }), 200)
+  const nextItem = await getNextQueueItem(queueId, agentId || 'mcp-agent')
+
+  if (!nextItem) {
+    return c.json(successResponse({ queueItem: null, ticket: null, task: null }), 200)
+  }
+
+  const entries = await getQueueEntries(queueId)
+  const entry = entries.find((candidate) => candidate.queueItem.id === nextItem.id)
+
+  return c.json(
+    successResponse({
+      queueItem: nextItem,
+      ticket: entry?.ticket ?? null,
+      task: entry?.task ?? null
+    }),
+    200
+  )
 })
 
 // Get unqueued items
@@ -599,7 +610,7 @@ const moveItemToQueueRoute = createRoute({
 queueRoutesApp.openapi(moveItemToQueueRoute, async (c) => {
   const { itemType, itemId } = c.req.valid('param')
   const { targetQueueId, ticketId } = c.req.valid('json')
-  await moveItemToQueue(itemType, itemId, targetQueueId, ticketId)
+  await moveItem(itemType, itemId, targetQueueId, 0, !!ticketId)
   return c.json(successResponse({ moved: true }), 200)
 })
 
@@ -640,8 +651,8 @@ queueRoutesApp.openapi(enqueueTicketToQueueRoute, async (c) => {
   await enqueueTicket(ticketId, queueId, priority || 0)
 
   // Return the queue items to show the result
-  const queueItems = await getQueueItems(queueId)
-  return c.json(successResponse(queueItems.map((item) => item.queueItem)), 200)
+  const queueEntries = await getQueueEntries(queueId)
+  return c.json(successResponse(queueEntries.map((entry) => entry.queueItem)), 200)
 })
 
 // Get queue items with enriched data
@@ -674,7 +685,7 @@ queueRoutesApp.openapi(getQueueItemsRoute, async (c) => {
   const { queueId } = c.req.valid('param')
   const { status } = c.req.valid('query')
 
-  const queueItems = await getQueueItems(queueId, status)
+  const queueItems = await getQueueEntries(queueId, status)
   return c.json(successResponse(queueItems), 200)
 })
 
@@ -728,41 +739,21 @@ queueRoutesApp.openapi(enqueueItemsRoute, async (c) => {
   if (ticketId) {
     await enqueueTicket(ticketId, queueId, priority ?? 0)
   } else if (taskId) {
-    // Need the ticket ID for the existing service function
-    // For now, throw an error - will need to enhance service layer
-    throw new ApiError(400, 'Task enqueuing requires ticketId parameter', 'MISSING_TICKET_ID')
+    await enqueueTask(taskId, queueId, priority ?? 0)
+  } else {
+    throw new ApiError(400, 'Either ticketId or taskId is required', 'MISSING_REFERENCE_ID')
   }
 
-  // Try to find the created queue item
-  const items = await getQueueItems(queueId)
-  const found = items.find((it) =>
+  const entries = await getQueueEntries(queueId)
+  const found = entries.find((entry) =>
     ticketId
-      ? it.queueItem.itemType === 'ticket' && it.queueItem.itemId === ticketId
-      : it.queueItem.itemType === 'task' && it.queueItem.itemId === taskId
+      ? entry.queueItem.itemType === 'ticket' && entry.queueItem.itemId === ticketId
+      : entry.queueItem.itemType === 'task' && entry.queueItem.itemId === taskId
   )
   if (found) {
     return c.json(successResponse(found.queueItem), 200)
   }
-  const now = Date.now()
-  return c.json(
-    successResponse({
-      id: 0,
-      queueId,
-      itemType: (ticketId ? 'ticket' : 'task') as 'ticket' | 'task',
-      itemId: (ticketId || taskId) ?? 0,
-      priority: priority || 0,
-      status: 'queued' as 'queued',
-      agentId: null,
-      errorMessage: null,
-      estimatedProcessingTime: null,
-      actualProcessingTime: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: now,
-      updatedAt: now
-    }),
-    200
-  )
+  throw new ApiError(500, 'Failed to enqueue item', 'QUEUE_ITEM_NOT_FOUND')
 })
 
 // Batch enqueue items

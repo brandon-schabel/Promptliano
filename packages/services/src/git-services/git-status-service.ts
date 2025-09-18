@@ -4,6 +4,29 @@ import ErrorFactory, { withErrorContext } from '@promptliano/shared/src/error/er
 import { createGitServiceFactory, createGitUtils, type GitServiceDependencies } from '../core/service-factory-base'
 import { retryOperation } from '../utils/retry-operation'
 
+interface ErrorDetails {
+  message: string
+  code?: string
+}
+
+function extractErrorDetails(error: unknown): ErrorDetails {
+  if (error instanceof Error) {
+    const code = typeof (error as any).code === 'string' ? (error as any).code : undefined
+    return { message: error.message, code }
+  }
+
+  if (error && typeof error === 'object') {
+    const maybeMessage = (error as any).message
+    const maybeCode = (error as any).code
+    return {
+      message: typeof maybeMessage === 'string' ? maybeMessage : String(error),
+      code: typeof maybeCode === 'string' ? maybeCode : undefined
+    }
+  }
+
+  return { message: typeof error === 'string' ? error : String(error) }
+}
+
 // Cache interface
 interface GitStatusCache {
   status: GitStatus
@@ -86,11 +109,12 @@ export function createGitStatusService(dependencies?: GitStatusServiceDeps) {
             // Check if it's a git repository
             const isRepo = await retryOperation(() => git.checkIsRepo(), {
               maxAttempts: 2,
-              shouldRetry: (error) => {
-                return (
-                  error.message?.includes('ENOENT') === false &&
-                  (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-                )
+              shouldRetry: (error: unknown) => {
+                const { message, code } = extractErrorDetails(error)
+                if (message && message.includes('ENOENT')) {
+                  return false
+                }
+                return code === 'ENOTFOUND' || code === 'ETIMEDOUT'
               }
             })
 
@@ -107,12 +131,11 @@ export function createGitStatusService(dependencies?: GitStatusServiceDeps) {
             // Get the status with retry for network issues
             const status = await retryOperation(() => git.status(), {
               maxAttempts: 3,
-              shouldRetry: (error) => {
-                return (
-                  error.code === 'ENOTFOUND' ||
-                  error.code === 'ETIMEDOUT' ||
-                  error.message?.includes('Could not read from remote repository')
-                )
+              shouldRetry: (error: unknown) => {
+                const { code, message } = extractErrorDetails(error)
+                const messageIndicatesRemoteIssue =
+                  !!message && message.includes('Could not read from remote repository')
+                return code === 'ENOTFOUND' || code === 'ETIMEDOUT' || messageIndicatesRemoteIssue
               }
             })
 

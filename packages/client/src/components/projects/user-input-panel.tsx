@@ -17,19 +17,22 @@ import {
 } from '@/hooks/use-kv-local-storage'
 import { useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { SuggestedFilesDialog } from '../suggest-files-dialog'
-import { SuggestedPromptsDialog } from '../suggest-prompts-dialog'
+import { SuggestedPromptsDialog, type SuggestedPromptWithScore } from '../suggest-prompts-dialog'
 import { useCreateChat } from '@/hooks/generated'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
 import { Binoculars, Bot, Copy, Check, MessageCircleCode, Search, Lightbulb } from 'lucide-react'
-import { useSuggestFiles } from '@/hooks/api-hooks'
-import { useGetProjectPrompts, useSuggestPrompts } from '@/hooks/api-hooks'
-// Import the correct Prompt type from database schema
-import type { PromptSchema } from '@promptliano/database'
-type Prompt = typeof PromptSchema._type
+import {
+  useSuggestFiles,
+  useGetProjectPrompts,
+  useSuggestPrompts,
+  type SuggestPromptsHookResult,
+  type SuggestPromptsScoreDebug
+} from '@/hooks/api-hooks'
+import { useApiClient } from '@/hooks/api/use-api-client'
 import { useProjectFileTree } from '@/hooks/use-project-file-tree'
 import { buildTreeStructure } from './file-panel/file-tree/file-tree'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
-import { ProjectFile } from '@promptliano/schemas'
+import { ProjectFile, type Prompt } from '@promptliano/schemas'
 import { buildPromptContent, calculateTotalTokens } from '@promptliano/shared/src/utils/projects-utils'
 
 export type UserInputPanelRef = {
@@ -62,7 +65,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const { data: selectedPrompts = [] } = useProjectTabField('selectedPrompts', activeProjectTabId ?? -1)
   const { data: globalUserPrompt = '' } = useProjectTabField('userPrompt', activeProjectTabId ?? -1)
   const [suggestedFiles, setSuggestedFiles] = useState<ProjectFile[]>([])
-  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]) // Matches API return type
+  const [suggestedPrompts, setSuggestedPrompts] = useState<SuggestedPromptWithScore[]>([])
 
   // Keep a local copy of userPrompt so that typing is instantly reflected in the textarea
   const [localUserPrompt, setLocalUserPrompt] = useState(globalUserPrompt)
@@ -75,12 +78,20 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const findSuggestedFilesMutation = useSuggestFiles()
   const findSuggestedPromptsMutation = useSuggestPrompts()
+  const apiClient = useApiClient()
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showPromptSuggestions, setShowPromptSuggestions] = useState(false)
   const [copyAllStatus, setCopyAllStatus] = useState<'idle' | 'copying' | 'success'>('idle')
 
   // Load the project's prompts
   const { data: promptData } = useGetProjectPrompts(activeProjectTabState?.selectedProjectId ?? -1)
+
+  const projectPromptMap = useMemo(() => {
+    if (!promptData) {
+      return new Map<number, Prompt>()
+    }
+    return new Map<number, Prompt>(promptData.map((prompt) => [prompt.id, prompt]))
+  }, [promptData])
 
   // Read selected files
   const { selectedFiles, projectFileMap } = useSelectedFiles()
@@ -176,7 +187,8 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     findSuggestedFilesMutation.mutate(
       {
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
-        prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`
+        prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`,
+        limit: 15
       },
       {
         onSuccess: (recommendedFiles) => {
@@ -190,51 +202,166 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     )
   }
 
-  const handleFindPromptSuggestions = () => {
-    // If localUserPrompt is empty, ask user to type something
+  const handleFindPromptSuggestions = async () => {
     if (!localUserPrompt.trim()) {
       alert('Please enter a prompt!')
       return
     }
-    findSuggestedPromptsMutation.mutate(
-      {
+
+    try {
+      const result: SuggestPromptsHookResult = await findSuggestedPromptsMutation.mutateAsync({
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
         userInput: localUserPrompt,
-        limit: 5
-      },
-      {
-        onSuccess: (recommendedPrompts) => {
-          if (recommendedPrompts && recommendedPrompts.length > 0) {
-            // Convert HookPrompt objects to Prompt objects
-            // Type the recommendedPrompts parameter properly
-            type HookPrompt = {
-              id: number
-              name: string
-              content: string
-              projectId?: number
-              created?: number
-              updated?: number
-            }
-            const convertedPrompts: Prompt[] = (recommendedPrompts as HookPrompt[]).map(
-              (hookPrompt): Prompt => ({
-                id: hookPrompt.id,
-                title: hookPrompt.name, // HookPrompt uses 'name' but Prompt uses 'title'
-                content: hookPrompt.content,
-                description: null, // HookPrompt doesn't have description
-                projectId: hookPrompt.projectId || activeProjectTabState?.selectedProjectId || -1,
-                tags: [], // HookPrompt doesn't have tags
-                createdAt: hookPrompt.created || Date.now(),
-                updatedAt: hookPrompt.updated || Date.now()
-              })
-            )
-            setSuggestedPrompts(convertedPrompts)
-            setShowPromptSuggestions(true)
-          } else {
-            toast.info('No relevant prompts found for your input')
-          }
+        limit: 5,
+        includeScores: true
+      })
+
+      const promptEntries = Array.isArray(result?.prompts) ? result.prompts : []
+
+      if (!promptEntries.length) {
+        toast.info('No relevant prompts found for your input')
+        return
+      }
+
+      const fallbackProjectId = activeProjectTabState?.selectedProjectId ?? -1
+
+      const normalizePromptFromRemote = (raw: any): Prompt | undefined => {
+        if (!raw || typeof raw !== 'object') return undefined
+        const payload = (raw as any).data ?? raw
+        const rawId = payload.id ?? payload.promptId
+        const promptId = Number(rawId)
+        if (!Number.isFinite(promptId)) return undefined
+
+        return {
+          id: promptId,
+          title:
+            typeof payload.title === 'string'
+              ? payload.title
+              : typeof payload.name === 'string'
+                ? payload.name
+                : `Prompt ${promptId}`,
+          content: typeof payload.content === 'string' ? payload.content : '',
+          description: typeof payload.description === 'string' ? payload.description : null,
+          projectId: typeof payload.projectId === 'number' ? payload.projectId : fallbackProjectId,
+          tags: Array.isArray(payload.tags)
+            ? payload.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+            : [],
+          createdAt:
+            typeof payload.createdAt === 'number'
+              ? payload.createdAt
+              : typeof payload.created === 'number'
+                ? payload.created
+                : Date.now(),
+          updatedAt:
+            typeof payload.updatedAt === 'number'
+              ? payload.updatedAt
+              : typeof payload.updated === 'number'
+                ? payload.updated
+                : Date.now()
         }
       }
-    )
+
+      const scores = result?.debug?.scores || []
+      const scoreMap = new Map<string, SuggestPromptsScoreDebug>()
+      scores.forEach((score) => {
+        if (!score) return
+        scoreMap.set(String(score.promptId), score)
+      })
+
+      const parsedEntries: Array<{
+        id: number | null
+        prompt?: Prompt
+        score?: SuggestPromptsScoreDebug
+      }> = []
+      const missingPromptIds = new Set<number>()
+
+      for (const entry of promptEntries) {
+        let promptId: number | null = null
+        let promptDetails: Prompt | undefined
+
+        if (typeof entry === 'number') {
+          promptId = entry
+        } else if (typeof entry === 'string') {
+          const parsed = Number(entry)
+          if (Number.isFinite(parsed)) {
+            promptId = parsed
+          }
+        } else if (entry && typeof entry === 'object') {
+          promptDetails = normalizePromptFromRemote(entry)
+          const rawId = (entry as any).id ?? (entry as any).promptId
+          const parsed = Number(rawId)
+          if (Number.isFinite(parsed)) {
+            promptId = parsed
+          } else if (promptDetails) {
+            promptId = promptDetails.id
+          }
+        }
+
+        if (promptId !== null && !promptDetails) {
+          promptDetails = projectPromptMap.get(promptId) ?? undefined
+        }
+
+        if (promptId !== null && !promptDetails) {
+          missingPromptIds.add(promptId)
+        }
+
+        parsedEntries.push({
+          id: promptId,
+          prompt: promptDetails,
+          score: promptId !== null ? scoreMap.get(String(promptId)) : undefined
+        })
+      }
+
+      let fetchedPromptMap = new Map<number, Prompt>()
+      if (missingPromptIds.size > 0 && apiClient) {
+        const fetched = await Promise.all(
+          [...missingPromptIds].map(async (id) => {
+            try {
+              const response = await apiClient.prompts.getPrompt(id)
+              return normalizePromptFromRemote(response?.data ?? response)
+            } catch (error) {
+              console.warn('Failed to fetch prompt details for suggestion', id, error)
+              return undefined
+            }
+          })
+        )
+
+        fetchedPromptMap = new Map(
+          fetched.filter((prompt): prompt is Prompt => Boolean(prompt)).map((prompt) => [prompt.id, prompt])
+        )
+      }
+
+      const suggestions = parsedEntries
+        .map(({ id, prompt, score }) => {
+          if (typeof id !== 'number') return null
+          const resolvedPrompt = prompt ?? fetchedPromptMap.get(id) ?? projectPromptMap.get(id)
+          if (!resolvedPrompt) return null
+          return {
+            prompt: resolvedPrompt,
+            score
+          }
+        })
+        .filter(Boolean) as SuggestedPromptWithScore[]
+
+      if (!suggestions.length) {
+        toast.info('No relevant prompts found for your input')
+        return
+      }
+
+      setSuggestedPrompts(suggestions)
+      setShowPromptSuggestions(true)
+
+      if (missingPromptIds.size > 0 && (!apiClient || fetchedPromptMap.size < missingPromptIds.size)) {
+        console.warn(
+          'Missing prompt details for suggested prompts',
+          [...missingPromptIds].filter((id) => !projectPromptMap.has(id) && !fetchedPromptMap.has(id))
+        )
+      }
+    } catch (error) {
+      if ((error as Error)?.name !== 'AbortError') {
+        console.error('Failed to suggest prompts', error)
+      }
+    }
   }
 
   async function handleChatWithContext() {
@@ -299,7 +426,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     }
     return outputLines.join('\n')
   }, [fileTree])
-
 
   return (
     <ErrorBoundary>
@@ -435,7 +561,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                     </p>
                   </TooltipContent>
                 </Tooltip>
-
               </div>
             </div>
           </div>

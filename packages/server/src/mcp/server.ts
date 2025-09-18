@@ -1,56 +1,58 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
-  CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
-  type Tool,
-  type Resource,
-  type CallToolResult,
-  type ReadResourceResult
+  type Tool
 } from '@modelcontextprotocol/sdk/types.js'
-import { listProjects } from '@promptliano/services'
-import { CONSOLIDATED_TOOLS } from './consolidated-tools'
+import { CONSOLIDATED_TOOLS, getConsolidatedToolByName } from './tools'
+import { listResources, readResource } from './resources'
+import { createMCPError, formatMCPErrorResponse, MCPError, MCPErrorCode } from './mcp-errors'
+import type { MCPToolDefinition } from './tools-registry'
+import { z } from 'zod'
 
-// MCP Server instance - singleton
-let mcpServer: Server | null = null
+const LooseCallToolRequestSchema = z
+  .object({
+    method: z.literal('tools/call'),
+    params: z
+      .object({
+        name: z.string(),
+        arguments: z.any().optional()
+      })
+      .passthrough()
+  })
+  .passthrough()
 
-/**
- * Initialize and return the MCP server instance
- */
-export function getMCPServer(): Server {
-  if (!mcpServer) {
-    mcpServer = new Server(
-      {
-        name: 'promptliano-mcp',
-        version: '1.0.0'
-      },
-      {
-        capabilities: {
-          tools: {},
-          resources: {}
-        }
-      }
-    )
-
-    // Register tools
-    registerTools(mcpServer)
-
-    // Register resources
-    registerResources(mcpServer)
-  }
-
-  return mcpServer
+function parseProjectScope(): number | null {
+  const raw = process.env.PROMPTLIANO_PROJECT_ID
+  if (!raw) return null
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isNaN(parsed) ? null : parsed
 }
 
-/**
- * Register all MCP tools
- */
-function registerTools(server: Server) {
+function resolveProjectIdArg(args: Record<string, unknown> | undefined, fallback: number | null): number | undefined {
+  if (args && typeof args.projectId === 'number') {
+    return args.projectId
+  }
+  return fallback ?? undefined
+}
+
+export function createMCPServer(): Server {
+  const server = new Server(
+    {
+      name: 'promptliano-mcp',
+      version: '0.11.0'
+    },
+    {
+      capabilities: {
+        tools: {},
+        resources: {}
+      }
+    }
+  )
+
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    // Use consolidated tools only
-    const tools: Tool[] = CONSOLIDATED_TOOLS.map((tool) => ({
+    const tools: Tool[] = CONSOLIDATED_TOOLS.map((tool: MCPToolDefinition) => ({
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema
@@ -59,64 +61,42 @@ function registerTools(server: Server) {
     return { tools }
   })
 
-  // Handle tool execution
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+  server.setRequestHandler(LooseCallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params
+    console.error('[MCP] Received tools/call request', { name, args })
+    const tool = getConsolidatedToolByName(name)
+
+    if (!tool) {
+      const error = createMCPError(MCPErrorCode.UNKNOWN_ACTION, `Unknown tool: ${name}`, { tool: name })
+      return await formatMCPErrorResponse(error)
+    }
+
+    const scopeProjectId = parseProjectScope()
+    const effectiveProjectId = resolveProjectIdArg(args as Record<string, unknown> | undefined, scopeProjectId)
+    const normalizedArgs = ((args as Record<string, unknown>) || {}) as Record<string, unknown>
+    if (effectiveProjectId !== undefined && normalizedArgs.projectId === undefined) {
+      normalizedArgs.projectId = effectiveProjectId
+    }
+    const start = Date.now()
+    console.error(`[MCP] → tools/call ${name}`)
 
     try {
-      // Find and execute consolidated tool
-      const consolidatedTool = CONSOLIDATED_TOOLS.find((tool) => tool.name === name)
-      if (consolidatedTool) {
-        const result = await consolidatedTool.handler(args as any)
-        // Return the result as-is since it should already match CallToolResult
-        return result as any
-      }
-
-      throw new Error(`Unknown tool: ${name}`)
+      const result = await tool.handler(normalizedArgs, effectiveProjectId)
+      console.error(`[MCP] ← tools/call ${name} (${Date.now() - start}ms)`)
+      return result
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      // Return proper CallToolResult format
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `Error: ${errorMessage}`
-          }
-        ],
-        isError: true
-      } as any
+      console.error(`[MCP] ✕ tools/call ${name}:`, error)
+      const formatted = await formatMCPErrorResponse(
+        error instanceof MCPError ? error : MCPError.fromError(error, { tool: name, projectId: effectiveProjectId })
+      )
+      return formatted
     }
   })
-}
 
-/**
- * Register all MCP resources
- */
-function registerResources(server: Server) {
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
     try {
-      const projects = await listProjects()
-      const resources: Resource[] = []
-
-      // Add a general projects list resource
-      resources.push({
-        uri: 'promptliano://projects',
-        name: 'All Projects',
-        description: 'List of all available projects in Promptliano',
-        mimeType: 'application/json'
-      })
-
-      // Add individual project resources
-      for (const project of projects) {
-        // Project files resource
-        resources.push({
-          uri: `promptliano://project/${project.id}/files`,
-          name: `${project.name} Files`,
-          description: `List of files in ${project.name} project`,
-          mimeType: 'application/json'
-        })
-      }
-
+      const projectId = parseProjectScope()
+      const resources = await listResources(projectId)
       return { resources }
     } catch (error) {
       console.error('[MCP] Error listing resources:', error)
@@ -125,56 +105,14 @@ function registerResources(server: Server) {
   })
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const { uri } = request.params
-
+    const projectId = parseProjectScope()
     try {
-      // Handle projects list
-      if (uri === 'promptliano://projects') {
-        const projects = await listProjects()
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(projects, null, 2)
-            }
-          ]
-        } as ReadResourceResult
-      }
-
-      // Handle project files list
-      const filesMatch = uri.match(/^promptliano:\/\/project\/(\d+)\/files$/)
-      if (filesMatch) {
-        const projectId = parseInt(filesMatch[1], 10)
-        const { getProjectFiles } = await import('@promptliano/services')
-        const files = await getProjectFiles(projectId)
-
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(files || [], null, 2)
-            }
-          ]
-        } as ReadResourceResult
-      }
-
-      throw new Error(`Invalid resource URI: ${uri}`)
+      return await readResource(request.params.uri, projectId)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      throw new Error(`Failed to read resource: ${errorMessage}`)
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Resource read failed: ${message}`)
     }
   })
-}
 
-/**
- * Start the MCP server with stdio transport
- */
-export async function startStdioMCPServer() {
-  const server = getMCPServer()
-  const transport = new StdioServerTransport()
-
-  await server.connect(transport)
-  console.error('MCP Server started on stdio')
+  return server
 }

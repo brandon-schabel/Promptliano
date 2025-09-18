@@ -70,7 +70,7 @@ This document evaluates the current MCP tool surface area to identify low‑valu
 
 - queue_manager
   - Path: packages/server/src/mcp/tools/workflow/queue-manager.tool.ts (≈355 LOC)
-  - Action: Remove. Replace with flow_manager.queues._ and flow_manager.queue_ops._
+  - Action: Remove. Replace with flow*manager.queues.* and flow*manager.queue_ops.*
 
 - queue_processor
   - Path: packages/server/src/mcp/tools/workflow/queue-processor.tool.ts (≈271 LOC)
@@ -217,7 +217,7 @@ Goal: unify tickets, tasks, and queues under a single “flow” domain with con
 - ticket_manager.list/get/create/update/delete → flow_manager.tickets.\*
 - task_manager.list/create/update/delete/reorder → flow_manager.tasks.\*
 - queue_manager.create/list/get/update/delete/get_stats/get_all_stats → flow_manager.queues.\*
-- queue_manager.enqueue/dequeue, queue_processor.get_next/complete/fail → flow_manager.queue_ops._, flow_manager.processor._
+- queue*manager.enqueue/dequeue, queue_processor.get_next/complete/fail → flow_manager.queue_ops.*, flow*manager.processor.*
 
 ### Migration Notes
 

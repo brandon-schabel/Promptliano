@@ -55,7 +55,7 @@ export function validateDataField<T>(data: any, fieldName: string, fieldType: st
  * Creates a tracked handler that wraps tool execution with telemetry
  * @param toolName The name of the tool for tracking
  * @param handler The actual handler function
- * @returns A wrapped handler that includes tracking
+ * @returns A wrapped handler that includes tracking with graceful fallback
  */
 export function createTrackedHandler(
   toolName: string,
@@ -65,7 +65,23 @@ export function createTrackedHandler(
     // Extract projectId if available
     const projectId = args.projectId as number | undefined
 
-    // Use the tracking service to wrap the handler
-    return trackMCPToolExecution(toolName, projectId, args, () => handler(args))
+    try {
+      // Use the tracking service to wrap the handler
+      return await trackMCPToolExecution(toolName, projectId, args, async () => await handler(args))
+    } catch (trackingError: any) {
+      // If telemetry fails, log the error and execute the handler directly
+      console.warn(
+        `[MCP] Telemetry tracking failed for tool ${toolName}:`,
+        (trackingError && trackingError.message) || String(trackingError)
+      )
+
+      // Execute the handler directly without tracking
+      try {
+        return await handler(args)
+      } catch (handlerError) {
+        // If the handler also fails, re-throw the handler error (not the tracking error)
+        throw handlerError
+      }
+    }
   }
 }

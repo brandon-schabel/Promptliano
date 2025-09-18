@@ -482,8 +482,8 @@ app.get('/doc', async (c) => {
         title: packageJson.name
       }
     })
-      // Attach diagnostics under an extension field
-      ; (doc as any)['x-doc-build'] = buildLog
+    // Attach diagnostics under an extension field
+    ;(doc as any)['x-doc-build'] = buildLog
     return c.json(doc)
   } catch (err: any) {
     const message = typeof err?.message === 'string' ? err.message : String(err)
@@ -514,24 +514,24 @@ app.get('/doc', async (c) => {
   }
 })
 
-  // Manual routes are registered directly above, no async registration needed
+// Manual routes are registered directly above, no async registration needed
 
-  // Initialize and mount the embedded Copilot upstream app (skip in test env)
-  ; (async () => {
-    const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test'
-    if (isTest) {
-      console.log('[Copilot Embed] Skipping embedded initialization in test environment')
-      return
-    }
-    try {
-      const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
-      // Mount the embedded app under /api/upstream/copilot regardless of enabled flag
-      // (proxy selection will determine whether it is used).
-      const copilotApp = await initCopilotEmbed(cfg)
-      // Hono's route composition: attach mounted app
-      app.route('/api/upstream/copilot', copilotApp as any)
-      console.log('[Copilot Embed] Initialized embedded Copilot API under /api/upstream/copilot')
-    } catch (e) {
-      console.warn('[Copilot Embed] Failed to initialize embedded Copilot API:', e)
-    }
-  })()
+// Initialize and mount the embedded Copilot upstream app (skip in test env)
+;(async () => {
+  const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test'
+  if (isTest) {
+    console.log('[Copilot Embed] Skipping embedded initialization in test environment')
+    return
+  }
+  try {
+    const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
+    // Mount the embedded app under /api/upstream/copilot regardless of enabled flag
+    // (proxy selection will determine whether it is used).
+    const copilotApp = await initCopilotEmbed(cfg)
+    // Hono's route composition: attach mounted app
+    app.route('/api/upstream/copilot', copilotApp as any)
+    console.log('[Copilot Embed] Initialized embedded Copilot API under /api/upstream/copilot')
+  } catch (e) {
+    console.warn('[Copilot Embed] Failed to initialize embedded Copilot API:', e)
+  }
+})()

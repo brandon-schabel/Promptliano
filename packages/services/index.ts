@@ -10,6 +10,7 @@ export {
   deleteProject,
   projectExists,
   listProjects,
+  getProjectStats,
   // File-related functions
   getProjectFiles,
   updateFileContent,
@@ -142,13 +143,7 @@ export {
   type TaskStatus
 } from './src/task-service'
 
-export {
-  // Flow Service
-  createFlowService,
-  flowService,
-  enqueueTicket,
-  type FlowService
-} from './src/flow-service'
+export * from './src/flow/core'
 
 // Legacy services have been removed as part of architecture revamp
 // All functionality now available through modern functional factory patterns above
@@ -184,7 +179,6 @@ export {
   type QueueTimeoutDeps,
   type QueueTimeoutConfig
 } from './src/queue-timeout-service'
-export * from './src/flow-service'
 export * from './src/queue-state-machine'
 export {
   mcpService,
@@ -291,6 +285,9 @@ export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
 // Suggestions Service facade
 export * from './src/suggestions/suggestions-service'
+// New shared suggestion utilities and prompt services (scaffold)
+// Internal prompt suggestion modules are intentionally not exported to avoid name collisions
+// with existing file suggestion utilities. They are used via suggestions-service and tests.
 export {
   // Tab Name Generation Service
   createTabNameGenerationService,

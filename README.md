@@ -95,6 +95,13 @@ For manual setup instructions, see [docs/manual-mcp-setup.md](./docs/manual-mcp-
 
 ![promptliano-0-5-0-project-overview](https://github.com/user-attachments/assets/f92680e4-2877-488a-b336-79533c3999d4)
 
+### MCP Testing & Debugging
+
+- Use the bundled smoke tests to confirm MCP behaviour:
+- `bun test-mcp-resources.js` — exercises the base MCP server (`createMCPServer`) via an in-memory client transport.
+  - `bun test-mcp-stdio-resources.js` — validates the richer stdio server surface used by the CLI/Inspector.
+- The MCP SDK requires an active transport before calling `server.request(...)`. Use the provided in-memory harness (`packages/server/src/mcp/test-utils/inmemory-client.ts`) in scripts and tests instead of invoking request handlers directly on an unconnected server.
+
 ## Development Setup
 
 ```bash
@@ -326,6 +333,7 @@ Then, run the executable:
 - [MCP Integration](https://promptliano.com/integrations)
 - [API Reference](https://promptliano.com/docs/api)
 - [View all docs](https://promptliano.com/docs)
+- Local guides: `docs/` for usage/setup notes, `dev-docs/` for deep-dive engineering docs
 
 ### API Documentation
 

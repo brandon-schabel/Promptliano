@@ -41,14 +41,87 @@ import {
 type CreateTicketBody = CreateTicket
 type UpdateTicketBody = UpdateTicket
 import { z } from 'zod'
-import { generateStructuredData } from './gen-ai-services'
 import { createFileSuggestionStrategyService } from './file-services/file-suggestion-strategy-service'
+import { agentFileDetectionService } from './file-services/agent-file-detection-service'
+import { fileService } from './file-service'
+import { getProjectById } from './project-service'
 // Removed project summary usage
 import { modelConfigService } from './model-config-service'
 
 // Use transformed types for service returns
 type Ticket = z.infer<typeof TicketSchema>
 type TicketTask = z.infer<typeof TaskSchema>
+
+const MAX_GUIDELINE_SNIPPET_CHARS = 2000
+const fileSuggestionServiceSingleton = createFileSuggestionStrategyService()
+const taskGenerationLogger = createServiceLogger('TicketTaskGeneration')
+
+interface GeneratedTaskForSuggestion {
+  title?: string | null
+  description?: string | null
+  estimatedHours: number | null
+  tags: string[]
+}
+
+async function suggestFilesForGeneratedTasks({
+  ticket,
+  tasks,
+  guidelinesSnippet
+}: {
+  ticket: Ticket
+  tasks: GeneratedTaskForSuggestion[]
+  guidelinesSnippet?: string | null
+}) {
+  try {
+    const suggestionResponse = (await fileSuggestionServiceSingleton.suggestFiles(
+      {
+        ticketId: ticket.id,
+        title: ticket.title,
+        overview: ticket.overview,
+        projectId: ticket.projectId,
+        generatedTasks: tasks,
+        agentGuidelines: guidelinesSnippet
+      } as any,
+      'balanced',
+      tasks.length > 0 ? Math.min(tasks.length, 5) : 5
+    )) as any
+
+    if (Array.isArray(suggestionResponse?.suggestions)) {
+      return tasks.map((_, index) => {
+        const entry: any = suggestionResponse.suggestions[index]
+        const ids = Array.isArray(entry?.ids) ? entry.ids : []
+        return { ids }
+      })
+    }
+  } catch (error) {
+    taskGenerationLogger.warn('Failed to suggest files for generated tasks', {
+      ticketId: ticket.id,
+      error
+    })
+  }
+
+  return tasks.map(() => ({ ids: [] }))
+}
+
+let genAiModulePromise: Promise<typeof import('./gen-ai-services')> | null = null
+let lastMonotonicTimestamp = 0
+
+async function getGenAiModule() {
+  if (!genAiModulePromise) {
+    genAiModulePromise = import('./gen-ai-services')
+  }
+  return genAiModulePromise
+}
+
+function getMonotonicTimestamp(): number {
+  const now = Date.now()
+  if (now > lastMonotonicTimestamp) {
+    lastMonotonicTimestamp = now
+  } else {
+    lastMonotonicTimestamp += 1
+  }
+  return lastMonotonicTimestamp
+}
 
 // Transform functions to convert raw database entities to proper types
 function transformTicket(rawTicket: any): Ticket {
@@ -114,7 +187,12 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
   const baseService = {
     async create(data: CreateTicketBody): Promise<Ticket> {
       const ticket = await repo.create(data as any)
-      return transformTicket(ticket)
+      const normalized = transformTicket(ticket)
+      const referenceTimestamp = normalized.updatedAt ?? normalized.createdAt ?? Date.now()
+      if (referenceTimestamp > lastMonotonicTimestamp) {
+        lastMonotonicTimestamp = referenceTimestamp
+      }
+      return normalized
     },
 
     async getById(id: string | number): Promise<Ticket> {
@@ -131,9 +209,11 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
       if (isNaN(numericId) || numericId <= 0) throw safeErrorFactory.invalidInput('id', 'valid number', id)
 
       // Ensure updatedAt is always set during updates
-      const updateData = { ...data, updatedAt: Date.now() }
+      const updatedAt = getMonotonicTimestamp()
+      const updateData = { ...data, updatedAt }
       const ticket = await repo.update(numericId, updateData as any)
-      return transformTicket(ticket)
+      const normalized = transformTicket({ ...ticket, updatedAt })
+      return normalized
     },
 
     async delete(id: string | number): Promise<boolean> {
@@ -218,15 +298,32 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
           // Generate tasks if requested and AI service is available
           if (data.generateTasks && deps.aiService) {
             try {
+              const agentGuidelines = await loadAgentGuidelines(ticket.projectId)
+              const guidelineSnippet = agentGuidelines?.snippet
+
               const suggestions = await deps.aiService.generateTaskSuggestions({
                 title: ticket.title,
                 overview: ticket.overview,
-                projectId: ticket.projectId
+                projectId: ticket.projectId,
+                agentGuidelines: guidelineSnippet,
+                agentGuidelineSource: agentGuidelines?.sourcePath
+              })
+
+              const aiGeneratedTasks: any[] = Array.isArray(suggestions.tasks) ? suggestions.tasks : []
+              const perTaskFileSuggestions = await suggestFilesForGeneratedTasks({
+                ticket,
+                tasks: aiGeneratedTasks.map((task) => ({
+                  title: task?.title,
+                  description: task?.description,
+                  estimatedHours: task?.estimatedHours ?? null,
+                  tags: Array.isArray(task?.tags) ? task.tags : []
+                })),
+                guidelinesSnippet: guidelineSnippet
               })
 
               // Create tasks from suggestions
               tasks = await Promise.all(
-                suggestions.tasks.map((taskSuggestion: any, index: number) =>
+                aiGeneratedTasks.map((taskSuggestion: any, index: number) =>
                   taskRepo.create({
                     ticketId: ticket.id,
                     content: taskSuggestion.title,
@@ -238,7 +335,10 @@ export function createTicketService(deps: TicketServiceDeps = {}) {
                     dependencies: [],
                     tags: taskSuggestion.tags || [],
                     agentId: taskSuggestion.suggestedAgentId || null,
-                    suggestedFileIds: taskSuggestion.suggestedFileIds || [],
+                    suggestedFileIds: dedupeStrings([
+                      ...(taskSuggestion.suggestedFileIds || []),
+                      ...(perTaskFileSuggestions[index]?.ids || []).slice(0, 5)
+                    ]).slice(0, 5),
                     suggestedPromptIds: [],
                     createdAt: Date.now(),
                     updatedAt: Date.now()
@@ -584,8 +684,36 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
     const ticketOverview = (overview && overview.trim()) || ticket.overview || ticket.title
     if (!ticketOverview || ticketOverview.trim() === '') return []
 
-    // Project summaries removed; proceed without project-level summary context
-    const projectSummary = ''
+    const project = await getProjectById(ticket.projectId)
+    const agentGuidelines = await loadAgentGuidelines(ticket.projectId)
+    const guidelineSnippet = agentGuidelines?.snippet
+
+    const projectFiles = await fileService.getByProject(ticket.projectId, { limit: 150 })
+    const fileIdMap = new Map<string, string>()
+    const filePathMap = new Map<string, string>()
+    const fileNameMap = new Map<string, string>()
+
+    const fileCatalog = projectFiles
+      .map((file) => {
+        fileIdMap.set(file.id, file.id)
+        filePathMap.set(file.path.toLowerCase(), file.id)
+        const baseName = file.path.split('/').pop()
+        if (baseName) {
+          fileNameMap.set(baseName.toLowerCase(), file.id)
+        }
+
+        const baseSummary =
+          typeof (file as any).summary === 'string' && (file as any).summary.trim().length > 0
+            ? (file as any).summary.trim()
+            : typeof file.content === 'string' && file.content.trim().length > 0
+              ? file.content.split('\n').slice(0, 12).join(' ').replace(/\s+/g, ' ')
+              : ''
+
+        const summary = baseSummary.length > 0 ? baseSummary.slice(0, 280) : 'No summary available.'
+
+        return [`ID: ${file.id}`, `Path: ${file.path}`, `Summary: ${summary}`].join('\n')
+      })
+      .join('\n\n---\n\n')
 
     // Define structured output schema for tasks
     const TaskSuggestionSchema = z
@@ -593,29 +721,51 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
         title: z.string().min(3).max(160),
         description: z.string().min(5).max(1200),
         estimatedHours: z.number().min(0.25).max(40).nullable().optional(),
-        tags: z.array(z.string().min(1).max(32)).max(8).optional().default([])
+        tags: z.array(z.string().min(1).max(32)).max(8).optional().default([]),
+        suggestedFileIds: z.array(z.string().min(1)).max(8).optional()
       })
-      .strict()
+      .passthrough()
+      .transform((value) => normalizeTaskSuggestion(value))
     const TaskSuggestionListSchema = z
       .object({
         tasks: z.array(TaskSuggestionSchema).min(1).max(15)
       })
-      .strict()
+      .passthrough()
 
     // Compose prompt with clear instruction + context
     const systemPrompt = [
       'You are a senior software project planner.',
       'Break down the ticket into small, code-focused tasks (1–3h each).',
+      'Follow the repository guidelines (AGENTS.md excerpt) provided in the prompt to keep work aligned with project architecture.',
+      'Reference concrete project modules, services, or components where appropriate so follow-up file suggestions can be precise.',
       'Write specific titles and actionable descriptions referencing code areas when possible.',
       'Avoid duplicates and generic tasks. Focus on implementation steps.',
-      'Return only structured results that match the JSON schema.'
+      'Return only structured results that match the JSON schema.',
+      'Each task must include `suggestedFileIds` referencing the provided file catalog. Choose 2-5 of the most relevant IDs per task. Prefer production code, schemas, and utilities over tests unless tests are explicitly needed.'
     ].join(' ')
 
     const promptParts: string[] = []
     promptParts.push(`Ticket #${ticket.id}: ${ticket.title}`)
     promptParts.push('Overview:')
     promptParts.push(ticketOverview)
+    if (project?.description) {
+      promptParts.push('\nProject description:')
+      promptParts.push(project.description)
+    }
     // No project summary included
+    if (guidelineSnippet) {
+      promptParts.push('\nRepository guidelines (AGENTS.md excerpt):')
+      promptParts.push(guidelineSnippet)
+      if (agentGuidelines?.scope === 'global') {
+        promptParts.push(
+          'Note: These guidelines are global; reconcile them with repository-specific conventions as needed.'
+        )
+      }
+      if (agentGuidelines && agentGuidelines.full.length > guidelineSnippet.length) {
+        promptParts.push('(Excerpt truncated for brevity; consult AGENTS.md for full details.)')
+      }
+    }
+
     if (existingTasks.length > 0) {
       const listed = existingTasks
         .slice(0, 20)
@@ -624,11 +774,19 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       promptParts.push('\nExisting tasks (avoid duplicates):')
       promptParts.push(listed)
     }
-    promptParts.push('\nGenerate 5–10 concrete implementation tasks with clear deliverables.')
+    promptParts.push(
+      '\nGenerate 5–10 concrete implementation tasks with clear deliverables that follow these guidelines and reference relevant files when helpful.'
+    )
+    if (fileCatalog) {
+      promptParts.push('\nAvailable project files (use IDs in suggestedFileIds):')
+      promptParts.push(fileCatalog)
+    }
 
     // Ask the model for structured task suggestions with provider/model fallbacks
     let suggestions: z.infer<typeof TaskSuggestionListSchema>['tasks'] = []
     const promptCombined = promptParts.join('\n')
+
+    const { generateStructuredData } = await getGenAiModule()
 
     // Get dynamic model configs with fallback order
     const modelFallbacks = await Promise.all([
@@ -638,7 +796,6 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
       modelConfigService.getPresetConfig('low')
     ])
 
-    let lastError: any = null
     for (const modelOptions of modelFallbacks) {
       try {
         const { object } = await generateStructuredData({
@@ -649,8 +806,19 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
         })
         suggestions = object.tasks || []
         break
-      } catch (err) {
-        lastError = err
+      } catch (err: any) {
+        if (err?.code === 'PROVIDER_JSON_PARSE_ERROR' || err?.details?.fallbackToText) {
+          const fallbackTasks = await attemptTaskSuggestionTextFallback({
+            prompt: promptCombined,
+            systemPrompt,
+            modelOptions,
+            schema: TaskSuggestionListSchema
+          })
+          if (fallbackTasks && fallbackTasks.length > 0) {
+            suggestions = fallbackTasks
+            break
+          }
+        }
         // try next model
       }
     }
@@ -674,56 +842,52 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
 
     if (filtered.length === 0) return []
 
-    // Optionally get suggested files for the ticket using HIGH model (thorough strategy)
-    let ticketSuggestedFiles: string[] = []
-    try {
-      const contextForFiles = filtered
-        .map((t, idx) => `${idx + 1}. ${t.title} — ${t.description?.slice(0, 120) || ''}`)
-        .join('\n')
-      // Try thorough (HIGH), then balanced (MEDIUM), then fast (no AI)
-      const tryOrders: Array<'thorough' | 'balanced' | 'fast'> = ['thorough', 'balanced', 'fast']
-      for (const strategy of tryOrders) {
-        try {
-          const max = strategy === 'thorough' ? Math.max(10, filtered.length * 2) : 10
-          const suggestionService = createFileSuggestionStrategyService()
-          const fileResp = await suggestionService.suggestFiles(ticket as any, strategy, max, contextForFiles)
-          const list = Array.isArray(fileResp?.suggestions) ? (fileResp.suggestions as string[]) : []
-          if (list.length > 0) {
-            ticketSuggestedFiles = list.slice(0, 15)
-            break
-          }
-        } catch {
-          // try next strategy
-        }
-      }
-    } catch {
-      ticketSuggestedFiles = []
-    }
-
-    // Create tasks in DB in order
     const created: TicketTask[] = []
-    for (let i = 0; i < filtered.length; i++) {
-      const s = filtered[i]
-      if (!s) continue
+    for (const suggestion of filtered) {
+      if (!suggestion) continue
       try {
+        const normalizedFileIds = (suggestion.suggestedFileIds || [])
+          .map((identifier) => {
+            const trimmed = identifier.trim()
+            if (fileIdMap.has(trimmed)) return trimmed
+            const lower = trimmed.toLowerCase()
+            if (filePathMap.has(lower)) return filePathMap.get(lower)!
+            if (fileNameMap.has(lower)) return fileNameMap.get(lower)!
+            return null
+          })
+          .filter((id): id is string => Boolean(id))
+
+        const uniqueFileIds = Array.from(new Set(normalizedFileIds)).slice(0, 5)
+
+        if ((suggestion.suggestedFileIds?.length ?? 0) > 0 && uniqueFileIds.length === 0) {
+          taskGenerationLogger.warn('Generated task referenced unknown files', {
+            ticketId,
+            taskTitle: suggestion.title,
+            provided: suggestion.suggestedFileIds
+          })
+        }
+
         const task = await taskService.create({
           ticketId,
-          content: s.title,
-          description: s.description || null,
+          content: suggestion.title,
+          description: suggestion.description || null,
           done: false,
           status: 'pending',
-          orderIndex: existingTasks.length + i, // append after existing
-          estimatedHours: s.estimatedHours ?? null,
-          dependencies: [],
-          tags: Array.isArray(s.tags) ? s.tags : [],
+          orderIndex: existingTasks.length + created.length,
+          estimatedHours: suggestion.estimatedHours ?? null,
+          dependencies: Array.isArray(suggestion.dependencies) ? suggestion.dependencies : [],
+          tags: Array.isArray(suggestion.tags) ? suggestion.tags.slice(0, 8) : [],
           agentId: null,
-          // Attach top-N ticket-level suggestions to each task (high-model refined)
-          suggestedFileIds: ticketSuggestedFiles.slice(0, 5),
+          suggestedFileIds: uniqueFileIds,
           suggestedPromptIds: []
         })
         created.push(task)
       } catch (createErr) {
-        // Continue creating remaining tasks if one fails
+        taskGenerationLogger.warn('Failed to create generated task', {
+          ticketId,
+          taskTitle: suggestion.title,
+          error: createErr
+        })
       }
     }
 
@@ -731,6 +895,225 @@ export const autoGenerateTasksFromOverview = async (ticketId: number, overview: 
   } catch (error) {
     // If anything unexpected fails, don’t block the UI – return empty
     return []
+  }
+}
+
+type AgentGuidelineContext = {
+  snippet: string
+  full: string
+  sourcePath?: string
+  scope: 'project' | 'global'
+}
+
+async function loadAgentGuidelines(projectId: number): Promise<AgentGuidelineContext | null> {
+  try {
+    const project = await getProjectById(projectId)
+    if (project?.path) {
+      const projectFiles = await agentFileDetectionService.detectProjectFiles(project.path)
+      const agentFile = projectFiles.find((file) => file.type === 'agents' && file.exists && file.content?.trim())
+      if (agentFile?.content) {
+        const cleaned = agentFile.content.trim()
+        return {
+          snippet: cleaned.slice(0, MAX_GUIDELINE_SNIPPET_CHARS),
+          full: cleaned,
+          sourcePath: agentFile.path,
+          scope: 'project'
+        }
+      }
+    }
+  } catch (error) {
+    // Ignore project guideline lookup failures and fall back to global or default context
+  }
+
+  try {
+    const globalFiles = await agentFileDetectionService.detectGlobalFiles()
+    const agentFile = globalFiles.find((file) => file.type === 'agents' && file.exists && file.content?.trim())
+    if (agentFile?.content) {
+      const cleaned = agentFile.content.trim()
+      return {
+        snippet: cleaned.slice(0, MAX_GUIDELINE_SNIPPET_CHARS),
+        full: cleaned,
+        sourcePath: agentFile.path,
+        scope: 'global'
+      }
+    }
+  } catch (error) {
+    // Optional global fallback; ignore errors to keep task generation resilient
+  }
+
+  return null
+}
+
+interface GeneratedTaskSummary {
+  title: string
+  description?: string | null
+  estimatedHours?: number | null
+  tags?: string[]
+  dependencies?: number[]
+  suggestedFileIds?: string[]
+}
+
+function normalizeTaskSuggestion(raw: any): GeneratedTaskSummary {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      title: '',
+      description: '',
+      estimatedHours: null,
+      tags: [],
+      dependencies: [],
+      suggestedFileIds: []
+    }
+  }
+
+  const title = typeof raw.title === 'string' ? raw.title.trim() : ''
+  const description = typeof raw.description === 'string' ? raw.description.trim() : ''
+
+  const tags = Array.isArray(raw.tags)
+    ? dedupeStrings(
+        raw.tags.map((tag: any) => (typeof tag === 'string' ? tag.trim() : '')).filter((tag: string) => tag.length > 0)
+      )
+    : []
+
+  const estimatedCandidates = [
+    raw.estimatedHours,
+    raw.estimated_hours,
+    raw.estimation_hours,
+    raw.estimateHours,
+    raw.estimate_hours
+  ]
+  let estimatedHours: number | null = null
+  for (const candidate of estimatedCandidates) {
+    if (candidate == null) continue
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      estimatedHours = candidate
+      break
+    }
+    if (typeof candidate === 'string') {
+      const parsed = parseFloat(candidate)
+      if (Number.isFinite(parsed)) {
+        estimatedHours = parsed
+        break
+      }
+    }
+  }
+
+  if (estimatedHours !== null) {
+    if (estimatedHours < 0.25) estimatedHours = 0.25
+    if (estimatedHours > 40) estimatedHours = 40
+  }
+
+  const dependsSource = Array.isArray(raw.dependencies) ? raw.dependencies : raw.depends_on
+  const dependencies = Array.isArray(dependsSource)
+    ? dependsSource
+        .map((value: any) => {
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            return value
+          }
+          if (typeof value === 'string') {
+            const parsed = parseInt(value, 10)
+            return Number.isFinite(parsed) ? parsed : null
+          }
+          return null
+        })
+        .filter((value): value is number => value !== null)
+    : []
+
+  const suggestedFileIds = Array.isArray(raw.suggestedFileIds)
+    ? dedupeStrings(
+        raw.suggestedFileIds
+          .map((value: any) => (typeof value === 'string' ? value.trim() : String(value).trim()))
+          .filter((value: string) => value.length > 0)
+      )
+    : []
+
+  return {
+    title,
+    description,
+    estimatedHours,
+    tags,
+    dependencies,
+    suggestedFileIds
+  }
+}
+
+async function attemptTaskSuggestionTextFallback({
+  prompt,
+  systemPrompt,
+  modelOptions,
+  schema
+}: {
+  prompt: string
+  systemPrompt: string
+  modelOptions: any
+  schema: z.ZodTypeAny
+}): Promise<any[] | null> {
+  try {
+    const fallbackPrompt = [
+      prompt,
+      '',
+      'Return ONLY a JSON object that matches this shape exactly:',
+      '{ "tasks": [{ "title": string, "description": string, "estimatedHours": number|null, "tags": string[], "suggestedFileIds": string[] }] }'
+    ].join('\n')
+
+    const { generateSingleText } = await getGenAiModule()
+
+    const text = await generateSingleText({
+      prompt: fallbackPrompt,
+      systemMessage: systemPrompt,
+      options: modelOptions
+    })
+
+    const parsed = extractJsonFromText(text)
+    if (!parsed) return null
+
+    const validated = schema.safeParse(parsed)
+    if (validated.success && Array.isArray((validated.data as any).tasks)) {
+      return (validated.data as any).tasks
+    }
+  } catch (error) {
+    // Swallow fallback errors and allow caller to continue
+  }
+  return null
+}
+
+function dedupeStrings(values: string[]): string[] {
+  if (!values || values.length === 0) {
+    return []
+  }
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const value of values) {
+    if (!value) continue
+    if (!seen.has(value)) {
+      seen.add(value)
+      result.push(value)
+    }
+  }
+  return result
+}
+
+function extractJsonFromText(text: string): any | null {
+  if (!text) return null
+  let candidate = text.trim()
+  if (candidate.startsWith('```')) {
+    const fenceEnd = candidate.indexOf('```', 3)
+    if (fenceEnd !== -1) {
+      candidate = candidate.slice(3, fenceEnd).trim()
+    } else {
+      candidate = candidate
+        .replace(/^```json\s*/i, '')
+        .replace(/```$/, '')
+        .trim()
+    }
+  }
+
+  const objectMatch = candidate.match(/\{[\s\S]*\}/)
+  const jsonText = objectMatch ? objectMatch[0] : candidate
+
+  try {
+    return JSON.parse(jsonText)
+  } catch {
+    return null
   }
 }
 
@@ -762,8 +1145,7 @@ export const suggestFilesForTicket = async (ticketId: number) => {
     const ticket = transformTicket(rawTicket)
 
     // Use balanced strategy by default
-    const service = createFileSuggestionStrategyService()
-    const resp = await service.suggestFiles(ticket as any, 'balanced', 10)
+    const resp = await fileSuggestionServiceSingleton.suggestFiles(ticket as any, 'balanced', 10)
     return Array.isArray(resp?.suggestions) ? resp.suggestions : []
   } catch (e) {
     return []

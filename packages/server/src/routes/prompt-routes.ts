@@ -361,35 +361,31 @@ export const promptRoutes = new OpenAPIHono()
   }) as any)
   .openapi(suggestPromptsRoute, (async (c: any) => {
     const { id: projectId } = (c.req as any).valid('param')
-    const { userInput, limit } = (c.req as any).valid('json')
-    const suggestions = await createSuggestionsService().suggestPromptsForProject(projectId, userInput, limit)
-    // suggestions may be array of strings like "Prompt ID: {id}"; map to Prompt[] if possible
-    let prompts: any[] = []
-    try {
-      const ids = (suggestions as any[])
-        .map((s) => {
-          if (typeof s === 'number') return s
-          if (typeof s === 'string') {
-            const m = s.match(/(\d+)/)
-            return m ? Number(m[1]) : undefined
-          }
-          return undefined
-        })
-        .filter((v) => typeof v === 'number') as number[]
-      if (ids.length > 0) {
-        const { getPromptsByIds } = await import('@promptliano/services')
-        prompts = await getPromptsByIds(ids)
-      }
-    } catch {
-      // ignore mapping errors and fall back below
-    }
-    if (!prompts || prompts.length === 0) {
-      // Fallback: return empty list to satisfy schema
-      prompts = []
-    }
-    return c.json(successResponse({ prompts }), 200)
-  }) as any)
+    const { userInput, limit, strategy, includeScores, userContext } = (c.req as any).valid('json')
 
+    const suggestionService = createSuggestionsService()
+    const suggestionResult = await suggestionService.suggestPromptsForProject(projectId, userInput, {
+      strategy,
+      maxResults: limit,
+      includeScores,
+      userContext
+    })
+
+    const suggestionIds = suggestionResult.suggestions || []
+
+    const responseData: any = {
+      prompts: suggestionIds,
+      debug: {
+        metadata: suggestionResult.metadata
+      }
+    }
+
+    if (includeScores) {
+      responseData.debug.scores = suggestionResult.scores || []
+    }
+
+    return c.json(successResponse(responseData), 200)
+  }) as any)
   .openapi(addPromptToProjectRoute, (async (c: any) => {
     const { promptId, id: projectId } = (c.req as any).valid('param')
     await addPromptToProject(promptId, projectId)

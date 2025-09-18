@@ -613,7 +613,6 @@ const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(functio
         {/* Folder-specific context menu items */}
         {isFolder && (
           <>
-
             <ContextMenuItem /* Copy Folder Tree */
               onClick={async () => {
                 await copyToClipboard(tree, {

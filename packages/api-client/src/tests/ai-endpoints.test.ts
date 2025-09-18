@@ -213,7 +213,6 @@ describe('AI Endpoints Integration Tests', () => {
     )
   })
 
-
   describe('Error Handling', () => {
     test('should handle invalid requests gracefully', async () => {
       const response = await fetch(`${testEnv.baseUrl}/api/gen-ai/completion`, {

@@ -9,7 +9,6 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as os from 'os'
 import { z } from 'zod'
-import { getActiveSessions } from '../../server/src/mcp/transport'
 import { mcpProjectConfigService, type ProjectMCPConfig } from './mcp-project-config-service'
 
 export const MCPStatusSchema = z.object({
@@ -142,26 +141,6 @@ export class MCPConfigManager {
   }
 
   async getProjectStatus(projectId: number): Promise<MCPStatus> {
-    // Get active sessions from the transport
-    const activeSessions = getActiveSessions()
-
-    // Find sessions for this project
-    const projectSessions = activeSessions.filter((session) => session.projectId === projectId)
-
-    if (projectSessions.length > 0) {
-      // Get the most recent session
-      const latestSession = projectSessions.reduce((latest, current) =>
-        current.lastActivity > latest.lastActivity ? current : latest
-      )
-
-      return {
-        connected: true,
-        sessionId: latestSession.id,
-        lastActivity: latestSession.lastActivity,
-        projectId
-      }
-    }
-
     return {
       connected: false,
       projectId
@@ -169,35 +148,13 @@ export class MCPConfigManager {
   }
 
   async getAllProjectStatuses(): Promise<Map<number, MCPStatus>> {
-    const statuses = new Map<number, MCPStatus>()
-    const activeSessions = getActiveSessions()
-
-    // Group sessions by project
-    for (const session of activeSessions) {
-      if (session.projectId) {
-        const existing = statuses.get(session.projectId)
-
-        if (!existing || session.lastActivity > (existing.lastActivity || 0)) {
-          statuses.set(session.projectId, {
-            connected: true,
-            sessionId: session.id,
-            lastActivity: session.lastActivity,
-            projectId: session.projectId
-          })
-        }
-      }
-    }
-
-    return statuses
+    return new Map<number, MCPStatus>()
   }
 
   async getGlobalStatus(): Promise<{ totalSessions: number; projectSessions: number }> {
-    const activeSessions = getActiveSessions()
-    const projectSessions = activeSessions.filter((s) => s.projectId !== undefined).length
-
     return {
-      totalSessions: activeSessions.length,
-      projectSessions
+      totalSessions: 0,
+      projectSessions: 0
     }
   }
 

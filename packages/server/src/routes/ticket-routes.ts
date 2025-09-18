@@ -614,11 +614,14 @@ export const ticketRoutes = new OpenAPIHono()
     })
 
     const recommendedFileIds = (result.suggestions || []).map(String)
-    const payload: any = {
+    const payload: z.infer<typeof ProjectSuggestFilesResponseSchema> = {
       success: true,
       data: {
         suggestedFiles,
-        totalFiles: suggestedFiles.length,
+        totalFiles: result.metadata.totalFiles,
+        analyzedFiles: result.metadata.analyzedFiles,
+        strategy: result.metadata.strategy,
+        tokensSaved: result.metadata.tokensSaved,
         processingTime: Date.now() - start,
         recommendedFileIds
       }

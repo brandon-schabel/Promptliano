@@ -23,6 +23,8 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
 
   const DEFAULT_MAX_GROUP_SIZE = 10
   const DEFAULT_MIN_RELATIONSHIP_STRENGTH = 0.3
+  const CONFIG_FILE_EXTENSIONS = new Set(['json', 'yaml', 'yml', 'toml', 'env'])
+  const CONFIG_FILE_SUFFIXES = ['config.js', 'config.ts', 'config.cjs', 'config.mjs', 'config.json']
 
   function createFileGroup(
     id: string,
@@ -60,24 +62,87 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
         // Build nodes map
         files.forEach((file) => nodes.set(file.id, file))
 
+        const normalizedEntries = files.map((file) => ({
+          file,
+          normalizedPath: normalizeImportPath(file.path)
+        }))
+
+        const normalizedPathMap = new Map<string, File>()
+        const pathWithoutExtMap = new Map<string, File[]>()
+        const basenameMap = new Map<string, File[]>()
+
+        for (const { file, normalizedPath } of normalizedEntries) {
+          normalizedPathMap.set(normalizedPath, file)
+
+          const withoutExt = stripImportExtension(normalizedPath)
+          const withoutExtMatches = pathWithoutExtMap.get(withoutExt)
+          if (withoutExtMatches) {
+            withoutExtMatches.push(file)
+          } else {
+            pathWithoutExtMap.set(withoutExt, [file])
+          }
+
+          const baseName = getImportBasename(withoutExt)
+          const baseMatches = basenameMap.get(baseName)
+          if (baseMatches) {
+            baseMatches.push(file)
+          } else {
+            basenameMap.set(baseName, [file])
+          }
+        }
+
+        const findImportTarget = (source: string): File | undefined => {
+          if (!source) return undefined
+
+          const normalizedSource = normalizeImportPath(source)
+          const directMatch = normalizedPathMap.get(normalizedSource)
+          if (directMatch) return directMatch
+
+          const withoutExt = stripImportExtension(normalizedSource)
+          const withoutExtMatches = pathWithoutExtMap.get(withoutExt)
+          if (withoutExtMatches && withoutExtMatches.length > 0) {
+            return withoutExtMatches[0]
+          }
+
+          const baseName = getImportBasename(withoutExt || normalizedSource)
+          const baseMatches = basenameMap.get(baseName)
+          if (baseMatches && baseMatches.length > 0) {
+            const exact = baseMatches.find((candidate) => {
+              const candidatePath = normalizeImportPath(candidate.path)
+              return (
+                candidatePath === normalizedSource ||
+                candidatePath.endsWith(`/${baseName}`) ||
+                candidatePath.endsWith(normalizedSource)
+              )
+            })
+            return exact ?? baseMatches[0]
+          }
+
+          const fallbackKey = normalizedSource.replace(/\.\//g, '')
+          for (const { file, normalizedPath } of normalizedEntries) {
+            if (normalizedPath.endsWith(normalizedSource) || normalizedPath.includes(fallbackKey)) {
+              return file
+            }
+          }
+
+          return undefined
+        }
+
         // Detect import/export relationships
         for (const file of files) {
-          if (file.imports && file.imports.length > 0) {
-            for (const imp of file.imports) {
-              // Find files that match the import source
-              const targetFile = files.find(
-                (f) => f.path.endsWith(imp.source) || f.path.includes(imp.source.replace(/\.\//g, ''))
-              )
+          if (!file.imports || file.imports.length === 0) continue
 
-              if (targetFile) {
-                edges.push({
-                  sourceFileId: file.id,
-                  targetFileId: targetFile.id,
-                  type: 'imports' as FileRelationshipType,
-                  strength: 0.9,
-                  metadata: { importPath: imp.source }
-                })
-              }
+          for (const imp of file.imports) {
+            const targetFile = findImportTarget(imp.source)
+
+            if (targetFile && targetFile.id !== file.id) {
+              edges.push({
+                sourceFileId: file.id,
+                targetFileId: targetFile.id,
+                type: 'imports' as FileRelationshipType,
+                strength: 0.9,
+                metadata: { importPath: imp.source }
+              })
             }
           }
         }
@@ -460,6 +525,26 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
   }
 
   // Helper functions
+  function normalizeImportPath(path: string): string {
+    return path.replace(/\\/g, '/').replace(/^\.\/+/, '')
+  }
+
+  function stripImportExtension(path: string): string {
+    const normalized = normalizeImportPath(path)
+    const lastSlash = normalized.lastIndexOf('/')
+    const lastDot = normalized.lastIndexOf('.')
+    if (lastDot > lastSlash) {
+      return normalized.slice(0, lastDot)
+    }
+    return normalized
+  }
+
+  function getImportBasename(path: string): string {
+    const normalized = normalizeImportPath(path)
+    const lastSlash = normalized.lastIndexOf('/')
+    return lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized
+  }
+
   function groupFilesByDirectory(files: File[]): Map<string, File[]> {
     const groups = new Map<string, File[]>()
 
@@ -517,9 +602,12 @@ export function createFileGroupingService(deps: FileGroupingServiceDeps = {}) {
     }
 
     // Configuration files are important
-    const configExtensions = ['json', 'yaml', 'yml', 'toml', 'env', 'config.js', 'config.ts']
     const ext = file.path.split('.').pop()?.toLowerCase()
-    if (ext && configExtensions.includes(ext)) {
+    const normalizedPathLower = file.path.toLowerCase()
+    if (
+      (ext && CONFIG_FILE_EXTENSIONS.has(ext)) ||
+      CONFIG_FILE_SUFFIXES.some((suffix) => normalizedPathLower.endsWith(suffix))
+    ) {
       score += 1
       reasons.push('configuration file')
     }

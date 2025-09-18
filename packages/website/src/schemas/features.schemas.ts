@@ -136,11 +136,7 @@ export const featuresData: FeaturesSection = {
         'Get instant context about your project with a single command. Shows active files, recent tickets, prompts, and project structure.',
       category: 'core-tools',
       icon: { type: 'emoji', value: '🔍' },
-      highlights: [
-        'Instant project context',
-        'Active tab awareness',
-        'Recent activity tracking'
-      ],
+      highlights: ['Instant project context', 'Active tab awareness', 'Recent activity tracking'],
       codeExample: {
         language: 'typescript',
         code: 'mcp__promptliano__project_manager(\n  action: "overview",\n  projectId: 1234567890\n)',

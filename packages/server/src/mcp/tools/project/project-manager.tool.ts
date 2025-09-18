@@ -21,7 +21,7 @@ import {
   deleteProject,
   getProjectFiles,
   updateFileContent,
-  suggestFiles,
+  suggestFilesForProject,
   syncProject,
   getProjectFileTree,
   getProjectOverview
@@ -34,7 +34,7 @@ import { ApiError } from '@promptliano/shared'
 export const projectManagerTool: MCPToolDefinition = {
   name: 'project_manager',
   description:
-    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (⚠️ DELETES ENTIRE PROJECT - requires confirmDelete:true), delete_file (delete single file), browse_files, get_file_content, update_file_content, suggest_files, search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
+    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (requires confirmDelete:true), delete_file (delete single file), browse_files, get_file_content, update_file_content, suggest_files, search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -287,8 +287,17 @@ export const projectManagerTool: MCPToolDefinition = {
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"authentication flow"')
             const limit = (data?.limit as number) || 10
 
-            const suggestions = await suggestFiles(validProjectId, prompt, limit)
-            const suggestionText = suggestions.map((f) => `${f.path}`).join('\n')
+            const result = await suggestFilesForProject(validProjectId, prompt, {
+              maxResults: limit
+            })
+            const files = (await getProjectFiles(validProjectId)) ?? []
+            const fileById = new Map(files.map((file) => [String(file.id), file]))
+            const suggestionText = (result.suggestions || [])
+              .map((fileId) => {
+                const file = fileById.get(String(fileId))
+                return file?.path ?? String(fileId)
+              })
+              .join('\n')
             return {
               content: [{ type: 'text', text: suggestionText || 'No file suggestions found' }]
             }

@@ -32,7 +32,8 @@ import type {
   MarkdownExportRequest,
   BatchExportRequest,
   MarkdownContentValidation,
-  ProjectFile
+  ProjectFile,
+  Prompt
 } from '@promptliano/schemas'
 
 // ============================================================================
@@ -274,10 +275,29 @@ export function useSuggestFiles() {
   })
 }
 
-
 /**
  * Advanced Prompt Operations
  */
+
+export type SuggestPromptsScoreDebug = {
+  promptId: string
+  totalScore: number
+  titleScore?: number
+  contentScore?: number
+  tagScore?: number
+  recencyScore?: number
+  usageScore?: number
+  aiConfidence?: number
+  aiReasons?: string[]
+}
+
+export type SuggestPromptsHookResult = {
+  prompts: Array<Prompt | number | string>
+  debug?: {
+    scores?: SuggestPromptsScoreDebug[]
+    metadata?: Record<string, unknown>
+  }
+}
 
 export function useGetProjectPrompts(projectId: number) {
   const client = useApiClient()
@@ -291,15 +311,15 @@ export function useGetProjectPrompts(projectId: number) {
       // Ensure data matches expected Prompt schema format
       return Array.isArray(data)
         ? data.map((item: any) => ({
-          id: item.id,
-          projectId: item.projectId || projectId,
-          title: item.title || item.name || '',
-          content: item.content || '',
-          description: item.description || null,
-          tags: Array.isArray(item.tags) ? item.tags : [],
-          createdAt: item.createdAt || item.created || Date.now(),
-          updatedAt: item.updatedAt || item.updated || Date.now()
-        }))
+            id: item.id,
+            projectId: item.projectId || projectId,
+            title: item.title || item.name || '',
+            content: item.content || '',
+            description: item.description || null,
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            createdAt: item.createdAt || item.created || Date.now(),
+            updatedAt: item.updatedAt || item.updated || Date.now()
+          }))
         : []
     },
     enabled: !!client && !!projectId && projectId !== -1,
@@ -377,15 +397,44 @@ export function useSuggestPrompts() {
     mutationFn: async ({
       projectId,
       userInput,
-      limit = 5
+      limit = 5,
+      includeScores = false
     }: {
       projectId: number
       userInput: string
       limit?: number
-    }): Promise<any[]> => {
+      includeScores?: boolean
+    }): Promise<SuggestPromptsHookResult> => {
       if (!client) throw new Error('API client not initialized')
-      const response = await client.prompts.suggestPrompts(projectId, { userInput, limit })
-      return response?.data?.prompts || response || []
+      const response = await client.prompts.suggestPrompts(projectId, { userInput, limit, includeScores })
+
+      const primaryPayload = (response as any)?.data ?? response
+
+      if (primaryPayload && typeof primaryPayload === 'object') {
+        if (Array.isArray((primaryPayload as any).prompts)) {
+          return {
+            prompts: (primaryPayload as any).prompts,
+            debug: (primaryPayload as any).debug
+          }
+        }
+
+        if ((primaryPayload as any).data && Array.isArray((primaryPayload as any).data?.prompts)) {
+          return {
+            prompts: (primaryPayload as any).data.prompts,
+            debug: (primaryPayload as any).data?.debug ?? (primaryPayload as any).debug
+          }
+        }
+      }
+
+      if (Array.isArray(primaryPayload)) {
+        return {
+          prompts: primaryPayload
+        }
+      }
+
+      return {
+        prompts: []
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to suggest prompts')

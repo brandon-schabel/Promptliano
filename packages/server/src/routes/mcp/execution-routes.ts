@@ -1,24 +1,15 @@
 /**
  * MCP Execution Routes
- * Handles MCP tool and resource execution
+ * Provides minimal endpoints for listing and invoking MCP tools/resources.
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import {
-  ApiErrorResponseSchema,
-  OperationSuccessResponseSchema,
   MCPToolExecutionRequestSchema,
   MCPToolExecutionResultResponseSchema,
   MCPResourceListResponseSchema
 } from '@promptliano/schemas'
-import {
-  listMCPTools,
-  executeMCPTool,
-  listMCPResources,
-  readMCPResource,
-  startMCPServer,
-  stopMCPServer
-} from '@promptliano/services'
+import { listMCPTools, executeMCPTool, listMCPResources, readMCPResource } from '@promptliano/services'
 import { createStandardResponses, successResponse } from '../../utils/route-helpers'
 
 // List MCP tools
@@ -108,59 +99,9 @@ const readMCPResourceRoute = createRoute({
   )
 })
 
-// Get builtin tools
-const getBuiltinToolsRoute = createRoute({
-  method: 'get',
-  path: '/api/mcp/builtin-tools',
-  tags: ['MCP', 'Tools'],
-  summary: 'Get list of built-in MCP tools',
-  responses: createStandardResponses(
-    z.object({
-      success: z.literal(true),
-      data: z.array(
-        z.object({
-          name: z.string(),
-          description: z.string(),
-          category: z.string()
-        })
-      )
-    })
-  )
-})
-
-// Start MCP server
-const startMCPServerRoute = createRoute({
-  method: 'post',
-  path: '/api/mcp/servers/{serverId}/start',
-  tags: ['MCP', 'Execution'],
-  summary: 'Start an MCP server',
-  request: {
-    params: z.object({
-      serverId: z.string()
-    })
-  },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
-})
-
-// Stop MCP server
-const stopMCPServerRoute = createRoute({
-  method: 'post',
-  path: '/api/mcp/servers/{serverId}/stop',
-  tags: ['MCP', 'Execution'],
-  summary: 'Stop an MCP server',
-  request: {
-    params: z.object({
-      serverId: z.string()
-    })
-  },
-  responses: createStandardResponses(OperationSuccessResponseSchema)
-})
-
-// Export routes
 export const mcpExecutionRoutes = new OpenAPIHono()
   .openapi(listMCPToolsRoute, async (c): Promise<any> => {
-    const { serverId } = c.req.valid('query')
-    // TODO: Need projectId
+    c.req.valid('query')
     const tools = await listMCPTools(1)
     return c.json(successResponse(tools))
   })
@@ -168,13 +109,12 @@ export const mcpExecutionRoutes = new OpenAPIHono()
     const body = c.req.valid('json')
     const result = await executeMCPTool(
       1, // TODO: projectId
-      body // Pass the entire validated request body
+      body
     )
     return c.json(successResponse(result))
   })
   .openapi(listMCPResourcesRoute, async (c): Promise<any> => {
-    const { serverId } = c.req.valid('query')
-    // TODO: Need projectId
+    c.req.valid('query')
     const resources = await listMCPResources(1)
     return c.json(successResponse(resources))
   })
@@ -187,21 +127,5 @@ export const mcpExecutionRoutes = new OpenAPIHono()
     )
     return c.json(successResponse(content))
   })
-  .openapi(getBuiltinToolsRoute, async (c): Promise<any> => {
-    // TODO: Implement getBuiltinTools
-    const tools: any[] = []
-    return c.json(successResponse(tools))
-  })
-  .openapi(startMCPServerRoute, async (c): Promise<any> => {
-    const { serverId } = c.req.valid('param')
-    await startMCPServer(parseInt(serverId))
-    return c.json({ success: true, message: 'MCP server started successfully' })
-  })
-  .openapi(stopMCPServerRoute, async (c): Promise<any> => {
-    const { serverId } = c.req.valid('param')
-    await stopMCPServer(parseInt(serverId))
-    return c.json({ success: true, message: 'MCP server stopped successfully' })
-  }) as any
 
-// Type export
 export type MCPExecutionRouteTypes = typeof mcpExecutionRoutes

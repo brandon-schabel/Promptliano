@@ -113,7 +113,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           const queue = await baseService.getById(queueId)
 
           // Use flow service to get actual queue items (tickets and tasks)
-          const { createFlowService } = await import('./flow-service')
+          const { createFlowService } = await import('./flow/core')
           const flowService = createFlowService()
           const queueItems = await flowService.getQueueItems(queueId)
 
@@ -186,11 +186,11 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
     async getQueuesWithStats(projectId: number) {
       return withErrorContext(
         async () => {
-          const queues = await this.getByProject(projectId)
+          const queues = await extensions.getByProject(projectId)
 
-          return await Promise.all(
+          return Promise.all(
             queues.map(async (queue) => {
-              const { stats } = await this.getWithStats(queue.id)
+              const { stats } = await extensions.getWithStats(queue.id)
               return { queue, stats }
             })
           )
@@ -247,7 +247,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
 
           // Also update the ticket/task record directly for consistency with flow service
           if (item.referenceId && (item.type === 'ticket' || item.type === 'task')) {
-            const { createFlowService } = await import('./flow-service')
+            const { createFlowService } = await import('./flow/core')
             const flowService = createFlowService()
 
             if (item.type === 'ticket') {
@@ -297,7 +297,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
           // If no items in queueItems table, check for items in tickets/tasks with queue fields
           // and synchronize them to queueItems table
           if (queuedItems.length === 0) {
-            const { createFlowService } = await import('./flow-service')
+            const { createFlowService } = await import('./flow/core')
             const flowService = createFlowService()
             const queueItems = await flowService.getQueueItems(queueId)
 
@@ -362,7 +362,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
 
           // Also update the ticket/task record for consistency with flow service
           if (nextItem.itemId && (nextItem.itemType === 'ticket' || nextItem.itemType === 'task')) {
-            const { createFlowService } = await import('./flow-service')
+            const { createFlowService } = await import('./flow/core')
             const flowService = createFlowService()
             await flowService.startProcessingItem(nextItem.itemType, nextItem.itemId, agentId)
           }
@@ -411,7 +411,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
 
           // Also update the ticket/task record for consistency with flow service
           if (item.itemId && (item.itemType === 'ticket' || item.itemType === 'task')) {
-            const { createFlowService } = await import('./flow-service')
+            const { createFlowService } = await import('./flow/core')
             const flowService = createFlowService()
 
             if (result.success) {
@@ -634,7 +634,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Import the flow service here to avoid circular dependencies
-          const { createFlowService } = await import('./flow-service')
+          const { createFlowService } = await import('./flow/core')
           const flowService = createFlowService()
 
           // Skip the queue item cleanup since we use flow service directly
@@ -778,7 +778,7 @@ export function createQueueService(deps: QueueServiceDeps = {}) {
       return withErrorContext(
         async () => {
           // Import the flow service here to avoid circular dependencies
-          const { createFlowService } = await import('./flow-service')
+          const { createFlowService } = await import('./flow/core')
           const flowService = createFlowService()
 
           // Use the flow service's getUnqueuedItems method which has the real implementation
@@ -891,4 +891,4 @@ export {
   enqueueTask,
   dequeueTask,
   enqueueTicketWithTasks as enqueueTicketWithAllTasks
-} from './flow-service'
+} from './flow/core'

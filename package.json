@@ -15,7 +15,7 @@
     "validate": "bun run typecheck && bun run test",
     "format": "prettier --write .",
     "update-version": "bun run scripts/update-version.ts",
-    "db:migrate": "bun run -C packages/database migrate",
+    "db:migrate": "bun --cwd packages/database run migrate",
     "db:studio": "bun run --cwd packages/database studio",
     "drizzle:studio": "bun run --cwd packages/database studio"
   },

@@ -21,6 +21,8 @@ export class InterceptorChain {
   private readonly registry: InterceptorRegistry
   private readonly config: InterceptorChainConfig
   private readonly lifecycleHooks: InterceptorLifecycleHooks
+  private totalExecutions = 0
+  private totalExecutionTime = 0
 
   constructor(
     registry: InterceptorRegistry,
@@ -75,6 +77,7 @@ export class InterceptorChain {
 
       const totalTime = Date.now() - startTime
       interceptorContext.metrics.totalTime = totalTime
+      this.recordExecution(totalTime)
 
       const result: InterceptorChainResult = {
         success: true,
@@ -94,6 +97,8 @@ export class InterceptorChain {
       return result
     } catch (error) {
       const totalTime = Date.now() - startTime
+      interceptorContext.metrics.totalTime = totalTime
+      this.recordExecution(totalTime)
 
       const result: InterceptorChainResult = {
         success: false,
@@ -218,6 +223,8 @@ export class InterceptorChain {
   ): Promise<void> {
     const { requestContext, interceptorContext } = executionContext
     const startTime = Date.now()
+    const timeoutMs = this.config.timeoutMs ?? 0
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     try {
       // Call before execution hook
@@ -229,18 +236,23 @@ export class InterceptorChain {
         console.log(`[InterceptorChain] Executing interceptor '${interceptor.name}'`)
       }
 
-      // Create a timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new InterceptorTimeoutError(interceptor.name, this.config.timeoutMs!))
-        }, this.config.timeoutMs)
-      })
-
-      // Create execution promise
       const executionPromise = this.executeWithNextHandler(interceptor, requestContext, interceptorContext)
+      const promises: Array<Promise<unknown>> = [executionPromise]
 
-      // Race between execution and timeout
-      const result = await Promise.race([executionPromise, timeoutPromise])
+      if (timeoutMs > 0) {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new InterceptorTimeoutError(interceptor.name, timeoutMs))
+          }, timeoutMs)
+        })
+        promises.push(timeoutPromise)
+      }
+
+      const result = await Promise.race(promises)
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
 
       const executionTime = Date.now() - startTime
       if (this.config.enableMetrics) {
@@ -256,6 +268,10 @@ export class InterceptorChain {
         console.log(`[InterceptorChain] Completed interceptor '${interceptor.name}' in ${executionTime}ms`)
       }
     } catch (error) {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
       const executionTime = Date.now() - startTime
       if (this.config.enableMetrics) {
         interceptorContext.metrics.interceptorTimings[interceptor.name] = executionTime
@@ -372,6 +388,11 @@ export class InterceptorChain {
     }
   }
 
+  private recordExecution(durationMs: number): void {
+    this.totalExecutions += 1
+    this.totalExecutionTime += durationMs
+  }
+
   /**
    * Generate a unique request ID
    */
@@ -404,10 +425,10 @@ export class InterceptorChain {
    * Get performance metrics for the chain
    */
   getMetrics(): { totalExecutions: number; averageExecutionTime: number } {
-    // This could be enhanced with proper metrics storage
+    const averageExecutionTime = this.totalExecutions === 0 ? 0 : this.totalExecutionTime / this.totalExecutions
     return {
-      totalExecutions: 0,
-      averageExecutionTime: 0
+      totalExecutions: this.totalExecutions,
+      averageExecutionTime
     }
   }
 }

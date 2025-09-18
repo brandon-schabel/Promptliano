@@ -49,6 +49,8 @@ import type { ApiConfig } from './base-client'
  * 3. Access all 228 methods via client.typeSafe.*
  */
 export class PromptlianoClient {
+  private static readonly LONG_AI_REQUEST_TIMEOUT = 180000 // 3 minutes
+
   private typeSafe: TypeSafeApiClient
   private config: ApiConfig
   private http: BaseApiClient
@@ -276,10 +278,14 @@ export class PromptlianoClient {
       this.typeSafe.deleteTicketsByTicketIdTasksByTaskId(ticketId, taskId),
     reorderTasks: (ticketId: number, data: any) => this.typeSafe.createFlowReorder(data),
     // Pass empty body to avoid JSON parse errors when server expects optional JSON with Content-Type set
-    autoGenerateTasks: (ticketId: number) =>
-      (this.typeSafe as any).createTicketsByTicketIdAutoGenerateTasks?.(ticketId, {}) ??
-      // Fallback: if signature changed to no-body, call without data
-      (this.typeSafe as any).createTicketsByTicketIdAutoGenerateTasks?.(ticketId)
+    autoGenerateTasks: (ticketId: number) => {
+      const timeoutOptions = { timeout: PromptlianoClient.LONG_AI_REQUEST_TIMEOUT }
+      const method = (this.typeSafe as any).createTicketsByTicketIdAutoGenerateTasks
+      if (typeof method === 'function') {
+        return method.call(this.typeSafe, ticketId, timeoutOptions)
+      }
+      throw new Error('createTicketsByTicketIdAutoGenerateTasks method is unavailable on the API client')
+    }
   }
 
   public readonly prompts = {
@@ -292,7 +298,7 @@ export class PromptlianoClient {
     deletePrompt: (promptId: number) => this.typeSafe.deletePrompt(promptId),
     // Project prompt management
     getProjectPrompts: (projectId: number) => this.typeSafe.getProjectsByIdPrompts(projectId),
-    suggestPrompts: (projectId: number, data: { userInput: string; limit?: number }) =>
+    suggestPrompts: (projectId: number, data: { userInput: string; limit?: number; includeScores?: boolean }) =>
       this.typeSafe.createProjectsByIdSuggestPrompts(projectId, { ...data, limit: data.limit || 10 }),
     validateMarkdown: (file: any) => this.typeSafe.createPromptsValidateMarkdown(file),
     // Connect/disconnect prompts to projects

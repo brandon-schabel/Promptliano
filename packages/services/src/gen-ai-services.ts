@@ -21,6 +21,11 @@ import { getProviderUrl } from './provider-settings-service'
 import { LMStudioProvider } from './providers/lmstudio-provider'
 import { mergeHeaders } from './utils/header-sanitizer'
 import { nullToUndefined } from './utils/file-utils'
+import {
+  buildExampleJsonStructure,
+  createJsonOnlyPrompt,
+  extractJsonStringFromResponse
+} from './utils/structured-output-helpers'
 import { logModelUsage, logModelError, logModelCompletion } from './utils/model-usage-logger'
 
 const providersConfig = getProvidersConfig()
@@ -120,6 +125,68 @@ function convertDbOptionsToAiSdk(dbOptions: AiSdkCompatibleOptions): {
   }
 
   return result
+}
+
+async function generateStructuredDataViaTextFallback<T extends z.ZodTypeAny>({
+  prompt,
+  schema,
+  systemMessage,
+  finalOptions,
+  provider,
+  debug
+}: {
+  prompt: string
+  schema: T
+  systemMessage?: string
+  finalOptions: AiSdkCompatibleOptions
+  provider: string
+  debug?: boolean
+}): Promise<{
+  object: z.infer<T>
+  usage: { completionTokens: number; promptTokens: number; totalTokens: number }
+  finishReason: string
+}> {
+  const jsonPrompt = createJsonOnlyPrompt(prompt, schema, systemMessage)
+
+  const textResult = await generateSingleText({
+    prompt: jsonPrompt,
+    options: finalOptions,
+    debug
+  })
+
+  if (debug) {
+    console.log(`[UnifiedProviderService] Raw text response from ${provider}:`, textResult)
+  }
+
+  const sanitized = extractJsonStringFromResponse(textResult)
+
+  let parsedObject: any
+  try {
+    parsedObject = JSON.parse(sanitized)
+  } catch (parseError) {
+    console.error(`[UnifiedProviderService] Failed to parse JSON from ${provider} response:`, sanitized)
+
+    if (provider === 'lmstudio' || provider === 'ollama') {
+      throw ErrorFactory.operationFailed(
+        `${provider} JSON generation`,
+        'Model did not return valid JSON. This may happen with smaller models (< 7B parameters). Try using a larger model or a different provider.'
+      )
+    }
+
+    throw ErrorFactory.operationFailed(`${provider} JSON generation`, 'Model did not return valid JSON response.')
+  }
+
+  const validatedObject = schema.parse(parsedObject)
+
+  return {
+    object: validatedObject,
+    usage: {
+      completionTokens: 0,
+      promptTokens: 0,
+      totalTokens: 0
+    },
+    finishReason: 'stop'
+  }
 }
 
 // Helper function to get provider key configuration
@@ -805,141 +872,17 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
     }
 
     try {
-      // Create a prompt that instructs the model to output JSON
-      // Get example structure from the schema using a safer approach
-      const exampleStructure: any = {}
-      try {
-        // Try to parse a minimal example to understand the structure
-        const testObj = schema.safeParse({})
-        if (!testObj.success && testObj.error) {
-          // Extract field names from error messages
-          for (const issue of testObj.error.issues) {
-            if (issue.path.length > 0 && issue.path[0] !== undefined) {
-              const fieldName = issue.path[0].toString()
-              if (issue.code === 'invalid_type') {
-                if (issue.expected === 'string') {
-                  exampleStructure[fieldName] = 'string value here'
-                } else if (issue.expected === 'number') {
-                  exampleStructure[fieldName] = 0
-                } else if (issue.expected === 'boolean') {
-                  exampleStructure[fieldName] = false
-                } else if (issue.expected === 'array') {
-                  exampleStructure[fieldName] = []
-                } else if (issue.expected === 'object') {
-                  exampleStructure[fieldName] = {}
-                } else {
-                  exampleStructure[fieldName] = null
-                }
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // Fallback to empty object if schema introspection fails
-        console.warn('Could not introspect schema for example structure')
-      }
-
-      const jsonPrompt = `${systemMessage ? systemMessage + '\n\n' : ''}${prompt}
-
-IMPORTANT: Return ONLY valid JSON matching this exact structure, nothing else:
-${JSON.stringify(exampleStructure, null, 2)}
-
-Your entire response must be a single JSON object. Do not explain, do not add any text before or after.
-Start your response with { and end with }`
-
-      // Use text generation
-      const textResult = await generateSingleText({
-        prompt: jsonPrompt,
-        options: finalOptions,
+      return await generateStructuredDataViaTextFallback({
+        prompt,
+        schema,
+        systemMessage,
+        finalOptions,
+        provider,
         debug
       })
-
-      if (debug) {
-        console.log(`[UnifiedProviderService] Raw text response from ${provider}:`, textResult)
-      }
-
-      // Try to extract JSON from the response
-      let jsonStr = textResult.trim()
-
-      // Remove markdown code blocks if present
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.slice(7)
-      }
-      if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.slice(3)
-      }
-      if (jsonStr.endsWith('```')) {
-        jsonStr = jsonStr.slice(0, -3)
-      }
-      jsonStr = jsonStr.trim()
-
-      // Try to extract JSON from the response - handle various formats
-      // Some models include extra text before/after the JSON
-      const jsonPatterns = [
-        /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/, // Match complete JSON object with nested objects
-        /\[[\s\S]*\]/ // Match first complete JSON array
-      ]
-
-      let extractedJson: string | null = null
-      for (const pattern of jsonPatterns) {
-        const matches = jsonStr.match(pattern)
-        if (matches) {
-          // Try to parse each match to find valid JSON
-          for (const match of matches) {
-            try {
-              JSON.parse(match)
-              extractedJson = match
-              break
-            } catch {
-              // Continue to next match
-            }
-          }
-          if (extractedJson) break
-        }
-      }
-
-      if (extractedJson) {
-        jsonStr = extractedJson
-      }
-
-      // Parse and validate the JSON
-      let parsedObject: any
-      try {
-        parsedObject = JSON.parse(jsonStr)
-      } catch (parseError) {
-        console.error(`[UnifiedProviderService] Failed to parse JSON from ${provider} response:`, jsonStr)
-
-        // For local models, provide a more helpful error message
-        if (provider === 'lmstudio' || provider === 'ollama') {
-          throw ErrorFactory.operationFailed(
-            `${provider} JSON generation`,
-            'Model did not return valid JSON. This may happen with smaller models (< 7B parameters). Try using a larger model or a different provider.'
-          )
-        }
-
-        throw ErrorFactory.operationFailed(`${provider} JSON generation`, 'Model did not return valid JSON response.')
-      }
-
-      // Validate against schema
-      const validatedObject = schema.parse(parsedObject)
-
-      // Return in the same format as generateObject
-      return {
-        object: validatedObject,
-        usage: {
-          completionTokens: 0, // We don't have exact token counts from generateSingleText
-          promptTokens: 0,
-          totalTokens: 0
-        },
-        finishReason: 'stop'
-      }
     } catch (error: any) {
       if (error instanceof ApiError) throw error
       logModelError(provider, model || '', error)
-      console.error(
-        `[UnifiedProviderService - generateStructuredData] Text generation fallback error for ${provider}:`,
-        error
-      )
       throw mapProviderErrorToApiError(error, provider, 'generateStructuredData')
     }
   }
@@ -990,9 +933,33 @@ Start your response with { and end with }`
       finishReason: result.finishReason
     }
   } catch (error: any) {
-    if (error instanceof ApiError) throw error
-    logModelError(provider, model || '', error)
-    throw mapProviderErrorToApiError(error, provider, 'generateStructuredData')
+    const mappedError =
+      error instanceof ApiError ? error : mapProviderErrorToApiError(error, provider, 'generateStructuredData')
+
+    if (mappedError.code === 'PROVIDER_JSON_PARSE_ERROR') {
+      try {
+        return await generateStructuredDataViaTextFallback({
+          prompt,
+          schema,
+          systemMessage,
+          finalOptions,
+          provider,
+          debug
+        })
+      } catch (fallbackError: any) {
+        const fallbackMapped =
+          fallbackError instanceof ApiError
+            ? fallbackError
+            : mapProviderErrorToApiError(fallbackError, provider, 'generateStructuredData')
+        logModelError(provider, model || '', fallbackError)
+        throw fallbackMapped
+      }
+    }
+
+    if (!(error instanceof ApiError)) {
+      logModelError(provider, model || '', error)
+    }
+    throw mappedError
   }
 }
 

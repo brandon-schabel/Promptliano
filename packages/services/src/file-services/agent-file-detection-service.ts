@@ -57,6 +57,14 @@ export function createAgentFileDetectionService(deps: AgentFileDetectionServiceD
       }
     },
     {
+      type: 'agents',
+      name: 'Agents',
+      patterns: {
+        global: [path.join(os.homedir(), '.agents', 'AGENTS.md'), path.join(os.homedir(), 'AGENTS.md')],
+        project: ['AGENTS.md', '.agents/AGENTS.md']
+      }
+    },
+    {
       type: 'copilot',
       name: 'GitHub Copilot',
       patterns: {

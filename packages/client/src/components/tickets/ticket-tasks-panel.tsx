@@ -35,7 +35,7 @@ function formatTasks(mode: 'markdown' | 'bulleted' | 'comma', tasks: TicketTask[
 }
 
 export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) {
-  const { data, isLoading } = useGetTasks(Number(ticketId))
+  const { data, isLoading, isFetching } = useGetTasks(Number(ticketId))
   const createTaskMut = useCreateTask()
   const updateTaskMut = useUpdateTask()
   const deleteTaskMut = useDeleteTask()
@@ -46,6 +46,9 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   const tasks = data ?? []
+  const showInitialLoading = isLoading && tasks.length === 0
+  const showEmptyState = !showInitialLoading && tasks.length === 0
+  const showRefreshing = !showInitialLoading && isFetching
 
   const handleCreateTask = async (e?: React.MouseEvent | React.KeyboardEvent) => {
     e?.preventDefault()
@@ -194,8 +197,9 @@ export function TicketTasksPanel({ ticketId, overview }: TicketTasksPanelProps) 
 
       {/* Tasks List */}
       <div className='space-y-2 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800'>
-        {isLoading && <p className='text-sm text-muted-foreground'>Loading tasks...</p>}
-        {!isLoading && tasks.length === 0 && (
+        {showInitialLoading && <p className='text-sm text-muted-foreground'>Loading tasks...</p>}
+        {showRefreshing && <p className='text-xs text-muted-foreground'>Refreshing tasks...</p>}
+        {showEmptyState && (
           <TaskEmptyState
             onAddTask={() => inputRef.current?.focus()}
             onAutoGenerate={handleAutoGenerateTasks}

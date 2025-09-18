@@ -132,7 +132,15 @@ export class MCPTestHelpers {
   static async testTicketManagerTool(page: Page, action: string, data?: any) {
     // Map legacy ticket_manager calls to flow_manager actions
     const map: Record<string, { action: string; transform?: (d: any) => any }> = {
-      create: { action: 'tickets_create', transform: (d) => ({ title: d?.ticket?.title || d?.title, overview: d?.ticket?.overview || d?.overview, priority: d?.ticket?.priority || d?.priority, projectId: d?.projectId })) },
+      create: {
+        action: 'tickets_create',
+        transform: (d) => ({
+          title: d?.ticket?.title ?? d?.title,
+          overview: d?.ticket?.overview ?? d?.overview,
+          priority: d?.ticket?.priority ?? d?.priority,
+          projectId: d?.projectId
+        })
+      },
       list: { action: 'tickets_list' },
       update_status: { action: 'tickets_update' },
       get_status: { action: 'tickets_get' }
@@ -148,11 +156,31 @@ export class MCPTestHelpers {
   static async testQueueProcessorTool(page: Page, action: string, data?: any) {
     // Map legacy queue_processor calls to flow_manager
     const map: Record<string, { action: string; transform?: (d: any) => any }> = {
-      create_queue: { action: 'queues_create', transform: (d) => ({ name: d?.queue?.name || d?.name, description: d?.queue?.description || d?.description, projectId: d?.queue?.projectId || d?.projectId, maxParallelItems: d?.queue?.maxParallelItems })) },
-      add_item: { action: 'enqueue_ticket', transform: (d) => ({ queueId: d?.queueId, ticketId: d?.itemId, priority: d?.priority })) },
-      start_processing: { action: 'processor_get_next', transform: (d) => ({ queueId: d?.queueId, agentId: d?.agentId || 'test-agent' })) },
-      get_queue_status: { action: 'queues_get_stats', transform: (d) => ({ queueId: d?.queueId })) },
-      get_status: { action: 'queues_get_stats', transform: (d) => ({ queueId: d?.queueId }))
+      create_queue: {
+        action: 'queues_create',
+        transform: (d) => ({
+          name: d?.queue?.name ?? d?.name,
+          description: d?.queue?.description ?? d?.description,
+          projectId: d?.queue?.projectId ?? d?.projectId,
+          maxParallelItems: d?.queue?.maxParallelItems
+        })
+      },
+      add_item: {
+        action: 'enqueue_ticket',
+        transform: (d) => ({ queueId: d?.queueId, ticketId: d?.itemId, priority: d?.priority })
+      },
+      start_processing: {
+        action: 'processor_get_next',
+        transform: (d) => ({ queueId: d?.queueId, agentId: d?.agentId ?? 'test-agent' })
+      },
+      get_queue_status: {
+        action: 'queues_get_stats',
+        transform: (d) => ({ queueId: d?.queueId })
+      },
+      get_status: {
+        action: 'queues_get_stats',
+        transform: (d) => ({ queueId: d?.queueId })
+      }
     }
     const mapped = map[action] || { action }
     const payload = mapped.transform ? mapped.transform(data) : data

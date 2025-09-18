@@ -108,9 +108,6 @@ async function syncVersions() {
   // Update MCP Client
   await updateTypeScriptFile(join(ROOT_DIR, 'packages/mcp-client/src/mcp-client.ts'), versionPatterns)
 
-  // Update MCP HTTP Bridge
-  await updateTypeScriptFile(join(ROOT_DIR, 'packages/server/mcp-http-bridge.ts'), versionPatterns)
-
   // Update MCP STDIO Server
   await updateTypeScriptFile(join(ROOT_DIR, 'packages/server/src/mcp-stdio-server.ts'), [
     ...versionPatterns,
@@ -175,7 +172,10 @@ async function syncVersions() {
   ])
 
   await updateTypeScriptFile(join(ROOT_DIR, 'packages/promptliano/src/tests/lib/system-checker.test.ts'), [
-    { search: /expect\(result\.version\)\.toBe\(['"`]\d+\.\d+\.\d+['"`]\)/g, replace: `expect(result.version).toBe('${VERSION}')` }
+    {
+      search: /expect\(result\.version\)\.toBe\(['"`]\d+\.\d+\.\d+['"`]\)/g,
+      replace: `expect(result.version).toBe('${VERSION}')`
+    }
   ])
 
   console.log('\n✨ Version sync complete!')

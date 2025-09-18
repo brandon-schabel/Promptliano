@@ -125,7 +125,6 @@ export function buildNodeContent(node: FileNode, isFolder: boolean): string {
   return contentToCopy.trimEnd() // Remove trailing newline
 }
 
-
 export const buildProjectFileMap = (files: ProjectFile[]): ProjectFileMap => {
   return new Map(files.map((file) => [file.id, file]))
 }

@@ -1,8 +1,8 @@
 import { mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
-import { createWriteStream } from 'node:fs'
-import archiver from 'archiver'
 import { rm, cp, readFile, writeFile } from 'node:fs/promises'
+import { runBun } from './utils/run-bun'
+import { createZip, zipDirectory } from './utils/archive'
 
 async function buildProject() {
   const startTime = performance.now()
@@ -11,7 +11,6 @@ async function buildProject() {
   const clientDir = join(rootDir, 'packages', 'client')
   // this is set in vite.config.ts
   const clientBuildOutputDir = join(rootDir, 'packages', 'server', 'client-dist')
-  const sharedDir = join(rootDir, 'packages', 'shared')
   const distDir = join(rootDir, 'dist')
 
   // clear dist (cross-platform)
@@ -139,7 +138,7 @@ async function buildProject() {
     // Create a zip archive with the versioned name
     console.log(`Creating zip archive for ${outputDirName}...`)
     try {
-      await createZipArchive(platformDir, `${join(distDir, outputDirName)}.zip`)
+      await zipDirectory(platformDir, `${join(distDir, outputDirName)}.zip`)
     } catch (error) {
       console.error(`Failed to create zip archive for ${outputDirName}:`, error)
       process.exit(1)
@@ -154,57 +153,11 @@ async function buildProject() {
 }
 
 async function createBunBundleZip(sourceDir: string, outputPath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const output = createWriteStream(outputPath)
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    })
-
-    output.on('close', () => {
-      console.log(`Bun bundle zip archive created successfully: ${archive.pointer()} total bytes`)
-      resolve()
-    })
-
-    archive.on('error', (err) => {
-      reject(err)
-    })
-
-    archive.pipe(output)
-    // Add specific files and folders for the Bun bundle
+  await createZip(outputPath, (archive) => {
     archive.file(join(sourceDir, 'server.js'), { name: 'server.js' })
     archive.file(join(sourceDir, 'package.json'), { name: 'package.json' })
     archive.directory(join(sourceDir, 'client-dist'), 'client-dist')
-    archive.finalize()
-  })
-}
-
-function createZipArchive(sourceDir: string, outputPath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const output = createWriteStream(outputPath)
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    })
-
-    output.on('close', () => {
-      console.log(`Zip archive created successfully: ${archive.pointer()} total bytes`)
-      resolve()
-    })
-
-    archive.on('error', (err) => {
-      reject(err)
-    })
-
-    archive.pipe(output)
-    archive.directory(sourceDir, false)
-    archive.finalize()
   })
 }
 
 await buildProject()
-
-// helper: run bun with cwd and inherit stdio
-async function runBun(cwd: string, args: string[]) {
-  const proc = Bun.spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
-  const code = await proc.exited
-  if (code !== 0) throw new Error(`bun ${args.join(' ')} failed with code ${code}`)
-}

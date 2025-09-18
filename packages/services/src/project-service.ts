@@ -30,7 +30,6 @@ import { fileService, type FileSyncData } from './file-service'
 // Re-export FileSyncData type for consumers
 export type { FileSyncData } from './file-service'
 
-
 // Repository returns correct Project type from database - no adapters needed
 
 // Dependencies interface for dependency injection
@@ -345,7 +344,6 @@ export function createProjectService(deps: ProjectServiceDeps = {}) {
         { entity: 'Project', action: 'updateFileContent', id: projectId }
       )
     },
-
 
     /**
      * Suggest relevant files based on a user prompt using indexed search + relevance scoring
@@ -706,4 +704,3 @@ export const getProjectFileTree = async (
 
   return { tree, meta }
 }
-

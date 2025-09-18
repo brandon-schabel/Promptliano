@@ -14,7 +14,7 @@ import { dirname } from 'node:path'
  */
 export async function runMigrations() {
   try {
-    console.log('Running Drizzle migrations...')
+    console.error('Running Drizzle migrations...')
 
     // Resolve the migrations directory robustly (independent of process.cwd)
     const __filename = fileURLToPath(import.meta.url)
@@ -47,7 +47,7 @@ export async function runMigrations() {
 
     // Apply safety fixes for existing databases that predate new columns
     await ensureSchemaUpgrades()
-    console.log('✅ Migrations completed successfully')
+    console.error('✅ Migrations completed successfully')
   } catch (error) {
     console.error('❌ Migration failed:', error)
     throw error
@@ -58,7 +58,7 @@ export async function runMigrations() {
  * Create initial schema if tables don't exist
  */
 export async function createInitialSchema() {
-  console.log('Creating initial Drizzle schema...')
+  console.error('Creating initial Drizzle schema...')
 
   // The schema creation will be handled by drizzle-kit generate
   // This is a placeholder for any custom initialization logic
@@ -89,7 +89,7 @@ export async function createInitialSchema() {
       }
     }
 
-    console.log('✅ All tables created successfully')
+    console.error('✅ All tables created successfully')
 
     // Create any custom indexes for performance
     await createPerformanceIndexes()
@@ -120,7 +120,7 @@ async function createPerformanceIndexes() {
   for (const indexSql of indexes) {
     try {
       rawDb.exec(indexSql)
-      console.log(`✅ Created index: ${indexSql.split(' ')[5]}`)
+      console.error(`✅ Created index: ${indexSql.split(' ')[5]}`)
     } catch (error) {
       console.warn(`⚠️ Index creation failed: ${indexSql}`, error)
     }
@@ -168,7 +168,7 @@ async function ensureSchemaUpgrades() {
       if (!hasColumn('files', col.name)) {
         try {
           rawDb.exec(col.ddl)
-          console.log(`✅ Added missing column files.${col.name}`)
+          console.error(`✅ Added missing column files.${col.name}`)
         } catch (e) {
           console.warn(`⚠️ Failed to add column files.${col.name}:`, e)
         }
@@ -179,7 +179,7 @@ async function ensureSchemaUpgrades() {
     if (!hasColumn('provider_keys', 'secret_ref')) {
       try {
         rawDb.exec('ALTER TABLE `provider_keys` ADD `secret_ref` text')
-        console.log('✅ Added missing column provider_keys.secret_ref')
+        console.error('✅ Added missing column provider_keys.secret_ref')
       } catch (e) {
         console.warn('⚠️ Failed to add column provider_keys.secret_ref:', e)
       }
@@ -189,7 +189,7 @@ async function ensureSchemaUpgrades() {
     if (!hasIndex('files_extension_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_extension_idx` ON `files` (`extension`)')
-        console.log('✅ Created index files_extension_idx')
+        console.error('✅ Created index files_extension_idx')
       } catch (e) {
         console.warn('⚠️ Failed to create index files_extension_idx:', e)
       }
@@ -200,7 +200,7 @@ async function ensureSchemaUpgrades() {
       const chatCols = rawDb.query(`PRAGMA table_info(chats)`).all() as Array<{ name: string; notnull: number }>
       const projectCol = chatCols.find((c) => c.name === 'project_id')
       if (projectCol && projectCol.notnull === 1) {
-        console.log('🔧 Updating chats.project_id to be NULLABLE (decouple from projects)')
+        console.error('🔧 Updating chats.project_id to be NULLABLE (decouple from projects)')
         rawDb.exec('PRAGMA foreign_keys=off')
         rawDb.exec('BEGIN TRANSACTION')
         rawDb.exec(
@@ -222,7 +222,7 @@ async function ensureSchemaUpgrades() {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `chats_project_idx` ON `chats` (`project_id`)')
         rawDb.exec('COMMIT')
         rawDb.exec('PRAGMA foreign_keys=on')
-        console.log('✅ chats.project_id is now nullable')
+        console.error('✅ chats.project_id is now nullable')
       }
     } catch (e) {
       console.warn('⚠️ Failed to ensure chats.project_id nullability:', e)
@@ -231,7 +231,7 @@ async function ensureSchemaUpgrades() {
     if (!hasIndex('files_checksum_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_checksum_idx` ON `files` (`checksum`)')
-        console.log('✅ Created index files_checksum_idx')
+        console.error('✅ Created index files_checksum_idx')
       } catch (e) {
         console.warn('⚠️ Failed to create index files_checksum_idx:', e)
       }
@@ -246,7 +246,7 @@ async function ensureSchemaUpgrades() {
         rawDb.exec(
           'CREATE UNIQUE INDEX IF NOT EXISTS `process_ports_project_port_unique` ON `process_ports` (`project_id`, `port`)'
         )
-        console.log('✅ Created unique index process_ports_project_port_unique')
+        console.error('✅ Created unique index process_ports_project_port_unique')
       }
     } catch (e) {
       console.warn('⚠️ Failed to ensure unique index on process_ports(project_id, port):', e)
@@ -256,7 +256,7 @@ async function ensureSchemaUpgrades() {
     if (tableExists('active_tabs')) {
       try {
         rawDb.exec('DROP TABLE IF EXISTS `active_tabs`')
-        console.log('🧹 Dropped legacy table active_tabs')
+        console.error('🧹 Dropped legacy table active_tabs')
       } catch (e) {
         console.warn('⚠️ Failed to drop legacy table active_tabs:', e)
       }
@@ -264,7 +264,7 @@ async function ensureSchemaUpgrades() {
     if (tableExists('project_tab_state')) {
       try {
         rawDb.exec('DROP TABLE IF EXISTS `project_tab_state`')
-        console.log('🧹 Dropped legacy table project_tab_state')
+        console.error('🧹 Dropped legacy table project_tab_state')
       } catch (e) {
         console.warn('⚠️ Failed to drop legacy table project_tab_state:', e)
       }
@@ -392,7 +392,7 @@ async function ensureModelConfigTables() {
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_provider_idx\` ON \`model_configs\` (\`provider\`)')
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_is_default_idx\` ON \`model_configs\` (\`is_default\`)')
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_configs_user_idx\` ON \`model_configs\` (\`user_id\`)')
-        console.log('✅ Ensured table model_configs')
+        console.error('✅ Ensured table model_configs')
       } catch (e) {
         console.warn('⚠️ Failed to ensure model_configs:', e)
       }
@@ -421,7 +421,7 @@ async function ensureModelConfigTables() {
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_config_idx\` ON \`model_presets\` (\`config_id\`)')
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_user_idx\` ON \`model_presets\` (\`user_id\`)')
         rawDb.exec('CREATE INDEX IF NOT EXISTS \`model_presets_usage_idx\` ON \`model_presets\` (\`usage_count\`)')
-        console.log('✅ Ensured table model_presets')
+        console.error('✅ Ensured table model_presets')
       } catch (e) {
         console.warn('⚠️ Failed to ensure model_presets:', e)
       }
@@ -497,7 +497,7 @@ async function seedBaselineIfAlreadyBootstrapped(migrationsPath: string) {
           | undefined
         if (!existing) {
           rawDb.exec(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('${hash}', ${when})`)
-          console.log('✅ Seeded __drizzle_migrations with baseline entry')
+          console.error('✅ Seeded __drizzle_migrations with baseline entry')
         }
       } catch (e) {
         // If unique constraints or similar, ignore
@@ -518,10 +518,10 @@ export function generateId(): number {
 
 // Run migrations when executed directly
 if (import.meta.main) {
-  console.log('📋 Creating database tables...')
+  console.error('📋 Creating database tables...')
   createInitialSchema()
     .then(() => {
-      console.log('✅ Database migration completed successfully')
+      console.error('✅ Database migration completed successfully')
       process.exit(0)
     })
     .catch((error) => {

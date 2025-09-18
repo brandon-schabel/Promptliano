@@ -259,7 +259,17 @@ export class MCPClient {
             type: 'string',
             description: 'The action to perform',
             required: true,
-            enum: ['list', 'get', 'create', 'update', 'delete', 'browse_files', 'get_file_content', 'update_file_content', 'suggest_files']
+            enum: [
+              'list',
+              'get',
+              'create',
+              'update',
+              'delete',
+              'browse_files',
+              'get_file_content',
+              'update_file_content',
+              'suggest_files'
+            ]
           },
           {
             name: 'projectId',
@@ -280,7 +290,17 @@ export class MCPClient {
             action: {
               type: 'string',
               description: 'The action to perform',
-              enum: ['list', 'get', 'create', 'update', 'delete', 'browse_files', 'get_file_content', 'update_file_content', 'suggest_files']
+              enum: [
+                'list',
+                'get',
+                'create',
+                'update',
+                'delete',
+                'browse_files',
+                'get_file_content',
+                'update_file_content',
+                'suggest_files'
+              ]
             },
             projectId: {
               type: 'number',

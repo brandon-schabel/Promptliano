@@ -162,11 +162,11 @@ export class ProcessRunner extends EventEmitter {
     if (typeof signal === 'number') return signal
     if (!signal) return null
     const signalMap: Record<string, number> = {
-      'SIGTERM': 15,
-      'SIGKILL': 9,
-      'SIGINT': 2,
-      'SIGUSR1': 10,
-      'SIGUSR2': 12
+      SIGTERM: 15,
+      SIGKILL: 9,
+      SIGINT: 2,
+      SIGUSR1: 10,
+      SIGUSR2: 12
     }
     return signalMap[signal] || null
   }
@@ -1927,20 +1927,51 @@ export function createProcessManagementService(deps: ProcessServiceDependencies 
 // Export type for consumers
 export type ProcessManagementService = ReturnType<typeof createProcessManagementService>
 
-// Export singleton for backward compatibility
-export const processManagementService = createProcessManagementService()
+// Lazily create the default instance so importing this module has no side effects
+let processManagementServiceSingleton: ProcessManagementService | null = null
 
-// Export individual functions for backward compatibility
-export const {
-  startProcess: startProjectProcess,
-  stopProcess: stopProjectProcess,
-  listProcesses: listProjectProcesses,
-  listProjectScripts,
-  getProcess: getProjectProcess,
-  getProcessHistory,
-  getProcessLogs,
-  getProcessPorts
-} = processManagementService
+export function getProcessManagementService(): ProcessManagementService {
+  if (!processManagementServiceSingleton) {
+    processManagementServiceSingleton = createProcessManagementService()
+  }
+  return processManagementServiceSingleton
+}
+
+export function resetProcessManagementService(): void {
+  processManagementServiceSingleton = null
+}
+
+export const processManagementService = new Proxy({} as ProcessManagementService, {
+  get(_target, prop, receiver) {
+    const instance = getProcessManagementService()
+    const value = Reflect.get(instance as unknown as object, prop, receiver)
+    return typeof value === 'function' ? value.bind(instance) : value
+  }
+})
+
+export const startProjectProcess: ProcessManagementService['startProcess'] = (projectId, request) =>
+  getProcessManagementService().startProcess(projectId, request)
+
+export const stopProjectProcess: ProcessManagementService['stopProcess'] = (projectId, processId) =>
+  getProcessManagementService().stopProcess(projectId, processId)
+
+export const listProjectProcesses: ProcessManagementService['listProcesses'] = (projectId) =>
+  getProcessManagementService().listProcesses(projectId)
+
+export const listProjectScripts: ProcessManagementService['listProjectScripts'] = (projectId) =>
+  getProcessManagementService().listProjectScripts(projectId)
+
+export const getProjectProcess: ProcessManagementService['getProcess'] = (projectId, processId) =>
+  getProcessManagementService().getProcess(projectId, processId)
+
+export const getProcessHistory: ProcessManagementService['getProcessHistory'] = (projectId, options) =>
+  getProcessManagementService().getProcessHistory(projectId, options)
+
+export const getProcessLogs: ProcessManagementService['getProcessLogs'] = (processId, options) =>
+  getProcessManagementService().getProcessLogs(processId, options)
+
+export const getProcessPorts: ProcessManagementService['getProcessPorts'] = (projectId) =>
+  getProcessManagementService().getProcessPorts(projectId)
 
 // Test compatibility re-export
 export { ProcessSecurityManager } from './process/security'

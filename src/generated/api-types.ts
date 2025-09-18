@@ -1656,12 +1656,12 @@ export interface paths {
                 role: 'user' | 'assistant' | 'system'
                 content: string
                 metadata:
-                | string
-                | {
-                  [key: string]: unknown
-                }
-                | unknown
-                | unknown
+                  | string
+                  | {
+                      [key: string]: unknown
+                    }
+                  | unknown
+                  | unknown
                 createdAt: number
               }[]
             }
@@ -7077,12 +7077,12 @@ export interface paths {
                 salt: string | null
                 baseUrl: string | null
                 customHeaders:
-                | string
-                | {
-                  [key: string]: unknown
-                }
-                | unknown
-                | unknown
+                  | string
+                  | {
+                      [key: string]: unknown
+                    }
+                  | unknown
+                  | unknown
                 isDefault: boolean
                 isActive: boolean
                 environment: string
@@ -7150,12 +7150,12 @@ export interface paths {
             salt?: string | null
             baseUrl?: string | null
             customHeaders?:
-            | string
-            | {
-              [key: string]: unknown
-            }
-            | unknown
-            | unknown
+              | string
+              | {
+                  [key: string]: unknown
+                }
+              | unknown
+              | unknown
             isDefault?: boolean
             isActive?: boolean
             environment?: string
@@ -7188,12 +7188,12 @@ export interface paths {
                 salt: string | null
                 baseUrl: string | null
                 customHeaders:
-                | string
-                | {
-                  [key: string]: unknown
-                }
-                | unknown
-                | unknown
+                  | string
+                  | {
+                      [key: string]: unknown
+                    }
+                  | unknown
+                  | unknown
                 isDefault: boolean
                 isActive: boolean
                 environment: string
@@ -7300,12 +7300,12 @@ export interface paths {
                 salt: string | null
                 baseUrl: string | null
                 customHeaders:
-                | string
-                | {
-                  [key: string]: unknown
-                }
-                | unknown
-                | unknown
+                  | string
+                  | {
+                      [key: string]: unknown
+                    }
+                  | unknown
+                  | unknown
                 isDefault: boolean
                 isActive: boolean
                 environment: string
@@ -7389,12 +7389,12 @@ export interface paths {
             salt?: string | null
             baseUrl?: string | null
             customHeaders?:
-            | string
-            | {
-              [key: string]: unknown
-            }
-            | unknown
-            | unknown
+              | string
+              | {
+                  [key: string]: unknown
+                }
+              | unknown
+              | unknown
             isDefault?: boolean
             isActive?: boolean
             environment?: string
@@ -7427,12 +7427,12 @@ export interface paths {
                 salt: string | null
                 baseUrl: string | null
                 customHeaders:
-                | string
-                | {
-                  [key: string]: unknown
-                }
-                | unknown
-                | unknown
+                  | string
+                  | {
+                      [key: string]: unknown
+                    }
+                  | unknown
+                  | unknown
                 isDefault: boolean
                 isActive: boolean
                 environment: string
@@ -7774,12 +7774,12 @@ export interface paths {
             salt?: string | null
             baseUrl?: string | null
             customHeaders?:
-            | string
-            | {
-              [key: string]: unknown
-            }
-            | unknown
-            | unknown
+              | string
+              | {
+                  [key: string]: unknown
+                }
+              | unknown
+              | unknown
             isDefault?: boolean
             isActive?: boolean
             environment?: string
@@ -7996,12 +7996,12 @@ export interface paths {
             salt?: string | null
             baseUrl?: string | null
             customHeaders?:
-            | string
-            | {
-              [key: string]: unknown
-            }
-            | unknown
-            | unknown
+              | string
+              | {
+                  [key: string]: unknown
+                }
+              | unknown
+              | unknown
             isDefault?: boolean
             isActive?: boolean
             environment?: string
@@ -22845,12 +22845,12 @@ export interface components {
         salt: string | null
         baseUrl: string | null
         customHeaders:
-        | string
-        | {
-          [key: string]: unknown
-        }
-        | unknown
-        | unknown
+          | string
+          | {
+              [key: string]: unknown
+            }
+          | unknown
+          | unknown
         isDefault: boolean
         isActive: boolean
         environment: string
@@ -22877,12 +22877,12 @@ export interface components {
         salt: string | null
         baseUrl: string | null
         customHeaders:
-        | string
-        | {
-          [key: string]: unknown
-        }
-        | unknown
-        | unknown
+          | string
+          | {
+              [key: string]: unknown
+            }
+          | unknown
+          | unknown
         isDefault: boolean
         isActive: boolean
         environment: string
@@ -23630,16 +23630,16 @@ export interface components {
       /** @enum {boolean} */
       success: true
       data:
-      | components['schemas']['GitStatusResultResponse']
-      | {
-        /** @enum {boolean} */
-        success: false
-        error: {
-          /** @enum {string} */
-          type: 'not_a_repo' | 'git_not_installed' | 'permission_denied' | 'unknown'
-          message: string
-        }
-      }
+        | components['schemas']['GitStatusResultResponse']
+        | {
+            /** @enum {boolean} */
+            success: false
+            error: {
+              /** @enum {string} */
+              type: 'not_a_repo' | 'git_not_installed' | 'permission_denied' | 'unknown'
+              message: string
+            }
+          }
     }
     CommitLogResponse: {
       /** @enum {boolean} */
@@ -24126,40 +24126,40 @@ export interface components {
           /** @enum {string} */
           role: 'user' | 'assistant' | 'system'
           content:
-          | string
-          | (
-            | {
-              /** @enum {string} */
-              type: 'text'
-              text: string
-            }
-            | {
-              /** @enum {string} */
-              type: 'image'
-              source: {
-                /** @enum {string} */
-                type: 'base64'
-                media_type: string
-                data: string
-              }
-            }
-            | {
-              /** @enum {string} */
-              type: 'tool_result'
-              tool_use_id: string
-              content: string | unknown[]
-            }
-            | {
-              /** @enum {string} */
-              type: 'tool_use'
-              id: string
-              name: string
-              input?: unknown
-            }
             | string
-          )[]
-          | unknown
-          | unknown
+            | (
+                | {
+                    /** @enum {string} */
+                    type: 'text'
+                    text: string
+                  }
+                | {
+                    /** @enum {string} */
+                    type: 'image'
+                    source: {
+                      /** @enum {string} */
+                      type: 'base64'
+                      media_type: string
+                      data: string
+                    }
+                  }
+                | {
+                    /** @enum {string} */
+                    type: 'tool_result'
+                    tool_use_id: string
+                    content: string | unknown[]
+                  }
+                | {
+                    /** @enum {string} */
+                    type: 'tool_use'
+                    id: string
+                    name: string
+                    input?: unknown
+                  }
+                | string
+              )[]
+            | unknown
+            | unknown
           id?: string | null
           model?: string | null
           stop_reason?: string | null
@@ -24183,49 +24183,49 @@ export interface components {
         version?: string | null
         gitBranch?: string | null
         toolUseResult?:
-        | {
-          oldTodos?: unknown[]
-          newTodos?: unknown[]
-        }
-        | string
-        | unknown[]
-        | unknown
-        | unknown
-        content?:
-        | string
-        | (
           | {
-            /** @enum {string} */
-            type: 'text'
-            text: string
-          }
-          | {
-            /** @enum {string} */
-            type: 'image'
-            source: {
-              /** @enum {string} */
-              type: 'base64'
-              media_type: string
-              data: string
+              oldTodos?: unknown[]
+              newTodos?: unknown[]
             }
-          }
-          | {
-            /** @enum {string} */
-            type: 'tool_result'
-            tool_use_id: string
-            content: string | unknown[]
-          }
-          | {
-            /** @enum {string} */
-            type: 'tool_use'
-            id: string
-            name: string
-            input?: unknown
-          }
           | string
-        )[]
-        | unknown
-        | unknown
+          | unknown[]
+          | unknown
+          | unknown
+        content?:
+          | string
+          | (
+              | {
+                  /** @enum {string} */
+                  type: 'text'
+                  text: string
+                }
+              | {
+                  /** @enum {string} */
+                  type: 'image'
+                  source: {
+                    /** @enum {string} */
+                    type: 'base64'
+                    media_type: string
+                    data: string
+                  }
+                }
+              | {
+                  /** @enum {string} */
+                  type: 'tool_result'
+                  tool_use_id: string
+                  content: string | unknown[]
+                }
+              | {
+                  /** @enum {string} */
+                  type: 'tool_use'
+                  id: string
+                  name: string
+                  input?: unknown
+                }
+              | string
+            )[]
+          | unknown
+          | unknown
         isMeta?: boolean
         toolUseID?: string | null
         level?: string
