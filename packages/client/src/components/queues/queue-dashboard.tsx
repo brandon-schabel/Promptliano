@@ -53,13 +53,15 @@ import {
   Filter,
   Download,
   ChevronRight,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { toast } from 'sonner'
 import { useQueue, useUpdateQueue, useDeleteQueue } from '@/hooks/generated'
 import { useGetFlowData } from '@/hooks/api-hooks'
 import type { TaskQueue, QueueStats, QueueItem } from '@/hooks/generated/types'
+import { TaskQuickCreateDialog } from '../tasks/task-quick-create-dialog'
 
 interface QueueDashboardProps {
   queueId: number
@@ -72,10 +74,11 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
+  const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false)
 
   // Fetch queue data
   const { data: queue, isLoading: isLoadingQueue } = useQueue(queueId)
-  const { data: flowData } = useGetFlowData(projectId)
+  const { data: flowData, refetch: refetchFlow } = useGetFlowData(projectId)
 
   // Extract queue stats and items from flow data
   const stats: QueueStats | undefined = useMemo(() => {
@@ -220,6 +223,9 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
           </div>
         </div>
         <div className='flex items-center gap-2'>
+          <Button size='sm' className='gap-2' onClick={() => setIsQuickTaskDialogOpen(true)}>
+            <Plus className='h-4 w-4' /> Add Task
+          </Button>
           <Button variant='outline' size='sm' onClick={handleToggleStatus} disabled={updateQueueMutation.isPending}>
             {updateQueueMutation.isPending ? (
               <Loader2 className='h-4 w-4 animate-spin' />
@@ -437,6 +443,18 @@ export function QueueDashboard({ queueId, projectId, onClose }: QueueDashboardPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TaskQuickCreateDialog
+        open={isQuickTaskDialogOpen}
+        onClose={() => setIsQuickTaskDialogOpen(false)}
+        projectId={projectId}
+        queueId={queueId}
+        queueName={queue?.name}
+        onCreated={() => {
+          setIsQuickTaskDialogOpen(false)
+          refetchFlow()
+        }}
+      />
     </div>
   )
 }

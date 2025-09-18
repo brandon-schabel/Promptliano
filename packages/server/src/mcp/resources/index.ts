@@ -188,11 +188,19 @@ function buildProjectResources(projectId: number): Resource[] {
   ]
 }
 
-function buildFileResources(projectId: number, files: Array<{ id: string; name: string; path: string; size: number; extension?: string | null }>): Resource[] {
+type MinimalProjectFile = {
+  id: string
+  name: string
+  path: string
+  size?: number | null
+  extension?: string | null
+}
+
+function buildFileResources(projectId: number, files: MinimalProjectFile[]): Resource[] {
   return files.map((file) => ({
     uri: `promptliano://projects/${projectId}/files/${file.id}`,
     name: file.name,
-    description: `File: ${file.path} (${file.size} bytes)`,
+    description: `File: ${file.path} (${typeof file.size === 'number' ? file.size : 'unknown'} bytes)`,
     mimeType: toMimeType(file.path, file.extension ?? undefined)
   }))
 }

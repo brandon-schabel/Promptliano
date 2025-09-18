@@ -28,6 +28,7 @@ import {
   type SuggestPromptsHookResult,
   type SuggestPromptsScoreDebug
 } from '@/hooks/api-hooks'
+import { useApiClient } from '@/hooks/api/use-api-client'
 import { useProjectFileTree } from '@/hooks/use-project-file-tree'
 import { buildTreeStructure } from './file-panel/file-tree/file-tree'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
@@ -77,6 +78,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const findSuggestedFilesMutation = useSuggestFiles()
   const findSuggestedPromptsMutation = useSuggestPrompts()
+  const apiClient = useApiClient()
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showPromptSuggestions, setShowPromptSuggestions] = useState(false)
   const [copyAllStatus, setCopyAllStatus] = useState<'idle' | 'copying' | 'success'>('idle')
@@ -200,127 +202,171 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
     )
   }
 
-  const handleFindPromptSuggestions = () => {
-    // If localUserPrompt is empty, ask user to type something
+  const handleFindPromptSuggestions = async () => {
     if (!localUserPrompt.trim()) {
       alert('Please enter a prompt!')
       return
     }
-    findSuggestedPromptsMutation.mutate(
-      {
+
+    try {
+      const result: SuggestPromptsHookResult = await findSuggestedPromptsMutation.mutateAsync({
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
         userInput: localUserPrompt,
         limit: 5,
         includeScores: true
-      },
-      {
-        onSuccess: (result: SuggestPromptsHookResult) => {
-          const promptEntries = Array.isArray(result?.prompts) ? result?.prompts : []
+      })
 
-          if (!promptEntries.length) {
-            toast.info('No relevant prompts found for your input')
-            return
-          }
+      const promptEntries = Array.isArray(result?.prompts) ? result.prompts : []
 
-          const scores = result?.debug?.scores || []
-          const scoreMap = new Map<string, SuggestPromptsScoreDebug>()
-          scores.forEach((score) => {
-            if (!score) return
-            scoreMap.set(String(score.promptId), score)
-          })
+      if (!promptEntries.length) {
+        toast.info('No relevant prompts found for your input')
+        return
+      }
 
-          const suggestions: SuggestedPromptWithScore[] = []
-          const missingPromptIds: number[] = []
+      const fallbackProjectId = activeProjectTabState?.selectedProjectId ?? -1
 
-          const coercePromptFromRemote = (remotePrompt: any): Prompt | undefined => {
-            if (!remotePrompt || typeof remotePrompt !== 'object') return undefined
-            const rawId = (remotePrompt as any).id ?? (remotePrompt as any).promptId
-            const promptId = Number(rawId)
-            if (!Number.isFinite(promptId)) return undefined
+      const normalizePromptFromRemote = (raw: any): Prompt | undefined => {
+        if (!raw || typeof raw !== 'object') return undefined
+        const payload = (raw as any).data ?? raw
+        const rawId = payload.id ?? payload.promptId
+        const promptId = Number(rawId)
+        if (!Number.isFinite(promptId)) return undefined
 
-            const fallbackProjectId = activeProjectTabState?.selectedProjectId ?? -1
-            const title =
-              typeof (remotePrompt as any).title === 'string'
-                ? (remotePrompt as any).title
-                : typeof (remotePrompt as any).name === 'string'
-                  ? (remotePrompt as any).name
-                  : `Prompt ${promptId}`
-
-            return {
-              id: promptId,
-              title,
-              content: typeof (remotePrompt as any).content === 'string' ? (remotePrompt as any).content : '',
-              description:
-                typeof (remotePrompt as any).description === 'string' ? (remotePrompt as any).description : null,
-              projectId:
-                typeof (remotePrompt as any).projectId === 'number'
-                  ? (remotePrompt as any).projectId
-                  : fallbackProjectId,
-              tags: Array.isArray((remotePrompt as any).tags)
-                ? (remotePrompt as any).tags.filter((tag: unknown): tag is string => typeof tag === 'string')
-                : [],
-              createdAt:
-                typeof (remotePrompt as any).createdAt === 'number'
-                  ? (remotePrompt as any).createdAt
-                  : typeof (remotePrompt as any).created === 'number'
-                    ? (remotePrompt as any).created
-                    : Date.now(),
-              updatedAt:
-                typeof (remotePrompt as any).updatedAt === 'number'
-                  ? (remotePrompt as any).updatedAt
-                  : typeof (remotePrompt as any).updated === 'number'
-                    ? (remotePrompt as any).updated
-                    : Date.now()
-            }
-          }
-
-          for (const entry of promptEntries) {
-            let promptId: number | undefined
-            let promptDetails: Prompt | undefined
-
-            if (typeof entry === 'number') {
-              promptId = entry
-            } else if (typeof entry === 'string') {
-              const parsed = Number(entry)
-              if (Number.isFinite(parsed)) {
-                promptId = parsed
-              }
-            } else if (entry && typeof entry === 'object') {
-              promptDetails = coercePromptFromRemote(entry)
-              promptId = promptDetails?.id ?? undefined
-            }
-
-            if (promptId !== undefined && !promptDetails) {
-              promptDetails = projectPromptMap.get(promptId) ?? coercePromptFromRemote(entry)
-            }
-
-            if (!promptDetails || typeof promptId !== 'number') {
-              if (typeof promptId === 'number') {
-                missingPromptIds.push(promptId)
-              }
-              continue
-            }
-
-            suggestions.push({
-              prompt: promptDetails,
-              score: scoreMap.get(String(promptId))
-            })
-          }
-
-          if (suggestions.length === 0) {
-            toast.info('No relevant prompts found for your input')
-            return
-          }
-
-          if (missingPromptIds.length > 0) {
-            console.warn('Missing prompt details for suggested prompts', missingPromptIds)
-          }
-
-          setSuggestedPrompts(suggestions)
-          setShowPromptSuggestions(true)
+        return {
+          id: promptId,
+          title:
+            typeof payload.title === 'string'
+              ? payload.title
+              : typeof payload.name === 'string'
+                ? payload.name
+                : `Prompt ${promptId}`,
+          content: typeof payload.content === 'string' ? payload.content : '',
+          description: typeof payload.description === 'string' ? payload.description : null,
+          projectId: typeof payload.projectId === 'number' ? payload.projectId : fallbackProjectId,
+          tags: Array.isArray(payload.tags)
+            ? payload.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+            : [],
+          createdAt:
+            typeof payload.createdAt === 'number'
+              ? payload.createdAt
+              : typeof payload.created === 'number'
+                ? payload.created
+                : Date.now(),
+          updatedAt:
+            typeof payload.updatedAt === 'number'
+              ? payload.updatedAt
+              : typeof payload.updated === 'number'
+                ? payload.updated
+                : Date.now()
         }
       }
-    )
+
+      const scores = result?.debug?.scores || []
+      const scoreMap = new Map<string, SuggestPromptsScoreDebug>()
+      scores.forEach((score) => {
+        if (!score) return
+        scoreMap.set(String(score.promptId), score)
+      })
+
+      const parsedEntries: Array<{
+        id: number | null
+        prompt?: Prompt
+        score?: SuggestPromptsScoreDebug
+      }> = []
+      const missingPromptIds = new Set<number>()
+
+      for (const entry of promptEntries) {
+        let promptId: number | null = null
+        let promptDetails: Prompt | undefined
+
+        if (typeof entry === 'number') {
+          promptId = entry
+        } else if (typeof entry === 'string') {
+          const parsed = Number(entry)
+          if (Number.isFinite(parsed)) {
+            promptId = parsed
+          }
+        } else if (entry && typeof entry === 'object') {
+          promptDetails = normalizePromptFromRemote(entry)
+          const rawId = (entry as any).id ?? (entry as any).promptId
+          const parsed = Number(rawId)
+          if (Number.isFinite(parsed)) {
+            promptId = parsed
+          } else if (promptDetails) {
+            promptId = promptDetails.id
+          }
+        }
+
+        if (promptId !== null && !promptDetails) {
+          promptDetails = projectPromptMap.get(promptId) ?? undefined
+        }
+
+        if (promptId !== null && !promptDetails) {
+          missingPromptIds.add(promptId)
+        }
+
+        parsedEntries.push({
+          id: promptId,
+          prompt: promptDetails,
+          score: promptId !== null ? scoreMap.get(String(promptId)) : undefined
+        })
+      }
+
+      let fetchedPromptMap = new Map<number, Prompt>()
+      if (missingPromptIds.size > 0 && apiClient) {
+        const fetched = await Promise.all(
+          [...missingPromptIds].map(async (id) => {
+            try {
+              const response = await apiClient.prompts.getPrompt(id)
+              return normalizePromptFromRemote(response?.data ?? response)
+            } catch (error) {
+              console.warn('Failed to fetch prompt details for suggestion', id, error)
+              return undefined
+            }
+          })
+        )
+
+        fetchedPromptMap = new Map(
+          fetched
+            .filter((prompt): prompt is Prompt => Boolean(prompt))
+            .map((prompt) => [prompt.id, prompt])
+        )
+      }
+
+      const suggestions = parsedEntries
+        .map(({ id, prompt, score }) => {
+          if (typeof id !== 'number') return null
+          const resolvedPrompt = prompt ?? fetchedPromptMap.get(id) ?? projectPromptMap.get(id)
+          if (!resolvedPrompt) return null
+          return {
+            prompt: resolvedPrompt,
+            score
+          }
+        })
+        .filter(Boolean) as SuggestedPromptWithScore[]
+
+      if (!suggestions.length) {
+        toast.info('No relevant prompts found for your input')
+        return
+      }
+
+      setSuggestedPrompts(suggestions)
+      setShowPromptSuggestions(true)
+
+      if (
+        missingPromptIds.size > 0 &&
+        (!apiClient || fetchedPromptMap.size < missingPromptIds.size)
+      ) {
+        console.warn(
+          'Missing prompt details for suggested prompts',
+          [...missingPromptIds].filter((id) => !projectPromptMap.has(id) && !fetchedPromptMap.has(id))
+        )
+      }
+    } catch (error) {
+      if ((error as Error)?.name !== 'AbortError') {
+        console.error('Failed to suggest prompts', error)
+      }
+    }
   }
 
   async function handleChatWithContext() {

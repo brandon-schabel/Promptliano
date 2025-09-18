@@ -106,8 +106,10 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
   )
 
   // Load tickets with their tasks from the server
-  const { data, isLoading, error } = useGetTicketsWithTasks(Number(projectId))
+  const { data, isLoading, isFetching, error } = useGetTicketsWithTasks(Number(projectId))
   const tickets = (data ?? []) as TicketWithTasks[]
+  const showInitialLoading = isLoading && tickets.length === 0
+  const showRefreshing = !showInitialLoading && isFetching
 
   // Apply client-side filtering for status and queue
   const ticketsFiltered = useMemo(() => {
@@ -189,6 +191,8 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
         return arr
     }
   }, [filtered, ticketSort])
+
+  const showEmptyState = !showInitialLoading && !error && sorted.length === 0
 
   // Copy function
   const copyOverview = useCallback((e: React.MouseEvent, overview: string) => {
@@ -289,9 +293,10 @@ export function TicketListPanel({ projectTabId, onSelectTicket, onCreateTicket }
 
       {/* Main scroll area */}
       <ScrollArea className='flex-1 p-3'>
-        {isLoading && <p className='text-sm text-muted-foreground'>Loading tickets...</p>}
+        {showInitialLoading && <p className='text-sm text-muted-foreground'>Loading tickets...</p>}
+        {showRefreshing && <p className='text-xs text-muted-foreground'>Refreshing tickets...</p>}
         {error && <p className='text-sm text-red-500'>Error loading tickets</p>}
-        {!isLoading && !error && sorted.length === 0 && (
+        {showEmptyState && (
           <TicketListEmptyState
             hasFilters={
               !!ticketSearch || (ticketStatus !== 'all' && ticketStatus !== 'non_closed') || ticketQueueFilter !== 'all'

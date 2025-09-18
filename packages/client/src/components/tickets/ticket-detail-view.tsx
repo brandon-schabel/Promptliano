@@ -46,8 +46,6 @@ import {
   useUpdateTicket,
   useDeleteTicket,
   useCompleteTicket,
-  useTicketTasks,
-  useCreateTask,
   useUpdateTask,
   useDeleteTask,
   useAutoGenerateTasks,
@@ -67,6 +65,7 @@ import { toast } from 'sonner'
 import { TicketDialog } from './ticket-dialog'
 import { AddToQueueDialog } from './add-to-queue-dialog'
 import { AddTaskToQueueDialog } from './add-task-to-queue-dialog'
+import { TaskQuickCreateDialog } from '../tasks/task-quick-create-dialog'
 // import { TaskEditDialog } from './task-edit-dialog'
 // import { AgentSelectorPopover } from './agent-selector-popover'
 // import { PromptSelectorPopover } from './prompt-selector-popover'
@@ -94,7 +93,8 @@ const PRIORITY_COLORS = {
 } as const
 
 export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDetailViewProps) {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false)
+  const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false)
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false)
   const [isAddToQueueDialogOpen, setIsAddToQueueDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -341,7 +341,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                   Reopen Ticket
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+              <DropdownMenuItem onClick={() => setIsTicketDialogOpen(true)}>
                 <Edit className='h-4 w-4 mr-2' />
                 Edit Ticket
               </DropdownMenuItem>
@@ -492,7 +492,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
               <CardTitle className='text-lg'>Tasks</CardTitle>
               <CardDescription>Track progress on individual tasks</CardDescription>
             </div>
-            <Button size='sm' onClick={() => setIsEditDialogOpen(true)}>
+            <Button size='sm' onClick={() => setIsQuickTaskDialogOpen(true)}>
               <Plus className='h-4 w-4 mr-1' />
               Add Task
             </Button>
@@ -552,7 +552,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                               toast.error('Please add an overview to the ticket first to enable AI task generation', {
                                 action: {
                                   label: 'Edit Ticket',
-                                  onClick: () => setIsEditDialogOpen(true)
+                                  onClick: () => setIsTicketDialogOpen(true)
                                 }
                               })
                             }
@@ -579,7 +579,7 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
                     <Button
                       size='sm'
                       variant='outline'
-                      onClick={() => setIsEditDialogOpen(true)}
+                      onClick={() => setIsQuickTaskDialogOpen(true)}
                       aria-label='Add tasks manually'
                     >
                       <Plus className='h-4 w-4 mr-1' />
@@ -834,13 +834,28 @@ export function TicketDetailView({ ticket, projectId, onTicketUpdate }: TicketDe
       </div>
 
       <TicketDialog
-        isOpen={isEditDialogOpen}
+        isOpen={isTicketDialogOpen}
         onClose={() => {
-          setIsEditDialogOpen(false)
+          setIsTicketDialogOpen(false)
           onTicketUpdate?.()
         }}
         ticketWithTasks={ticket}
         projectId={projectId.toString()}
+      />
+
+      <TaskQuickCreateDialog
+        open={isQuickTaskDialogOpen}
+        onClose={() => setIsQuickTaskDialogOpen(false)}
+        projectId={projectId}
+        ticketId={ticket?.ticket.id}
+        ticketTitle={ticket?.ticket.title}
+        ticketOverview={ticket?.ticket.overview ?? null}
+        onCreated={() => {
+          setIsQuickTaskDialogOpen(false)
+          refetchTasks()
+          refetchTicket()
+          onTicketUpdate?.()
+        }}
       />
 
       <AlertDialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>

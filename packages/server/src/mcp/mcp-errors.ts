@@ -7,7 +7,9 @@ export enum MCPErrorCode {
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
   SERVICE_ERROR = 'SERVICE_ERROR',
   OPERATION_FAILED = 'OPERATION_FAILED',
-  UNKNOWN_ACTION = 'UNKNOWN_ACTION'
+  UNKNOWN_ACTION = 'UNKNOWN_ACTION',
+  INVALID_PARAMS = 'INVALID_PARAMS',
+  PATH_TRAVERSAL_DENIED = 'PATH_TRAVERSAL_DENIED'
 }
 
 export type MCPErrorContext = Record<string, unknown>
@@ -16,7 +18,9 @@ const DEFAULT_SUGGESTIONS: Partial<Record<MCPErrorCode, string>> = {
   [MCPErrorCode.MISSING_REQUIRED_PARAM]: 'Provide the required parameters and try again.',
   [MCPErrorCode.VALIDATION_FAILED]: 'Review the input payload and fix the validation errors.',
   [MCPErrorCode.FILE_NOT_FOUND]: 'Verify the path or identifier and retry with an existing resource.',
-  [MCPErrorCode.UNKNOWN_ACTION]: 'Use one of the documented actions for this tool.'
+  [MCPErrorCode.UNKNOWN_ACTION]: 'Use one of the documented actions for this tool.',
+  [MCPErrorCode.INVALID_PARAMS]: 'Double-check parameter names and value types before retrying.',
+  [MCPErrorCode.PATH_TRAVERSAL_DENIED]: 'Use a project-relative path without `..` segments or absolute roots.'
 }
 
 function mergeContext(base?: MCPErrorContext, extra?: MCPErrorContext): MCPErrorContext | undefined {

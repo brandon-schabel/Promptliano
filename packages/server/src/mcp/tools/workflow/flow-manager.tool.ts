@@ -10,36 +10,33 @@ import {
   formatMCPErrorResponse
 } from '../shared'
 import {
-  // Flow (tickets + tasks orchestration)
-  createFlowService,
-  // Tickets
   listTicketsByProject,
   createTicket,
   getTicketById,
   updateTicket,
   deleteTicket,
-  // Tasks
   getTasks,
   createTask,
   updateTask,
   deleteTask,
   reorderTasks,
-  // Queues
   createQueue,
+  listQueues,
   getQueueById,
   updateQueue,
   deleteQueue,
-  listQueuesByProject,
-  getQueueStats,
+  getQueueWithStats,
   getQueuesWithStats,
-  enqueueItem,
+  getQueueEntries,
+  enqueueTicket,
+  enqueueTask,
+  enqueueTicketWithTasks,
+  dequeueTicket,
+  dequeueTask,
   getNextQueueItem,
   completeQueueItem,
-  failQueueItem,
-  // Flow-specific enqueue/dequeue
-  enqueueTicket,
-  dequeueTask
-} from '@promptliano/services'
+  failQueueItem
+} from '@promptliano/services/src/flow/core'
 
 export enum FlowManagerAction {
   // Tickets
@@ -155,8 +152,7 @@ export const flowManagerTool: MCPToolDefinition = {
           case FlowManagerAction.TASKS_CREATE: {
             const tid = validateRequiredParam(ticketId, 'ticketId', 'number', '123')
             const content = validateDataField<string>(data, 'content', 'string', '"Implement login form"')
-            const task = await createTask({
-              ticketId: tid,
+            const task = await createTask(tid, {
               content,
               description: data?.description,
               status: data?.status
@@ -199,7 +195,7 @@ export const flowManagerTool: MCPToolDefinition = {
           }
           case FlowManagerAction.QUEUES_LIST: {
             const pid = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
-            const queues = await listQueuesByProject(pid)
+            const queues = await listQueues(pid)
             return { content: [{ type: 'text', text: JSON.stringify({ queues }, null, 2) }] }
           }
           case FlowManagerAction.QUEUES_GET: {
@@ -219,8 +215,8 @@ export const flowManagerTool: MCPToolDefinition = {
           }
           case FlowManagerAction.QUEUES_GET_STATS: {
             const qid = validateRequiredParam(queueId, 'queueId', 'number', '1')
-            const stats = await getQueueStats(qid)
-            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] }
+            const detail = await getQueueWithStats(qid)
+            return { content: [{ type: 'text', text: JSON.stringify(detail, null, 2) }] }
           }
           case FlowManagerAction.QUEUES_GET_ALL_STATS: {
             const pid = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
@@ -233,6 +229,12 @@ export const flowManagerTool: MCPToolDefinition = {
             const qid = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const tid = validateDataField<number>(data, 'ticketId', 'number', '123')
             const priority = (data?.priority as number | undefined) ?? 5
+            if (data?.includeTasks) {
+              await enqueueTicketWithTasks(tid, qid, priority)
+              const ticket = await getTicketById(tid)
+              return { content: [{ type: 'text', text: JSON.stringify({ ticket }, null, 2) }] }
+            }
+
             const ticket = await enqueueTicket(tid, qid, priority)
             return { content: [{ type: 'text', text: JSON.stringify({ ticket }, null, 2) }] }
           }
@@ -240,14 +242,8 @@ export const flowManagerTool: MCPToolDefinition = {
             const qid = validateRequiredParam(queueId, 'queueId', 'number', '1')
             const tskId = validateDataField<number>(data, 'taskId', 'number', '456')
             const priority = (data?.priority as number | undefined) ?? 5
-            // Enqueue via generic queue op
-            const queueItem = await enqueueItem(qid, {
-              type: 'task',
-              referenceId: tskId,
-              title: `Task ${tskId}`,
-              priority
-            })
-            return { content: [{ type: 'text', text: JSON.stringify({ queueItem }, null, 2) }] }
+            const task = await enqueueTask(tskId, qid, priority)
+            return { content: [{ type: 'text', text: JSON.stringify({ task }, null, 2) }] }
           }
           case FlowManagerAction.DEQUEUE_TICKET: {
             const tid = validateRequiredParam(
@@ -256,8 +252,7 @@ export const flowManagerTool: MCPToolDefinition = {
               'number',
               '123'
             )
-            const flow = createFlowService()
-            const ticket = await flow.dequeueTicket(tid)
+            const ticket = await dequeueTicket(tid)
             return { content: [{ type: 'text', text: JSON.stringify({ ticket }, null, 2) }] }
           }
           case FlowManagerAction.DEQUEUE_TASK: {
@@ -277,7 +272,16 @@ export const flowManagerTool: MCPToolDefinition = {
             const agentId = (data?.agentId as string) || 'mcp-agent'
             const item = await getNextQueueItem(qid, agentId)
             if (!item) return { content: [{ type: 'text', text: 'No items available' }] }
-            return { content: [{ type: 'text', text: JSON.stringify({ item }, null, 2) }] }
+            const entries = await getQueueEntries(qid)
+            const entry = entries.find((candidate) => candidate.queueItem.id === item.id)
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ queueItem: item, ticket: entry?.ticket, task: entry?.task }, null, 2)
+                }
+              ]
+            }
           }
           case FlowManagerAction.PROCESSOR_COMPLETE: {
             const queueItemId = validateDataField<number>(data, 'queueItemId', 'number', '1001')

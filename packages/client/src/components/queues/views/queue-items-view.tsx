@@ -30,8 +30,10 @@ import {
   Trash2,
   ChevronRight,
   FileIcon,
-  Bot
+  Bot,
+  Plus
 } from 'lucide-react'
+import { TaskQuickCreateDialog } from '../../tasks/task-quick-create-dialog'
 import { cn } from '@/lib/utils'
 import { QueueItemDetailsDialog } from '../queue-item-details-dialog'
 
@@ -45,9 +47,10 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
   const [statusFilter, setStatusFilter] = useState<string | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
+  const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false)
 
   const { data: queues } = (useQueues as any)({ projectId })
-  const { data: flowData, isLoading } = useGetFlowData(projectId)
+  const { data: flowData, isLoading, refetch: refetchFlow } = useGetFlowData(projectId)
   const { data: ticketsWithTasks } = (useTickets as any)({ projectId })
 
   // Extract queue items from flow data
@@ -343,22 +346,31 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
             </p>
           </div>
 
-          {/* Queue selector */}
-          <Select
-            value={selectedQueueId?.toString() || ''}
-            onValueChange={(value) => onQueueSelect(value ? parseInt(value) : undefined)}
-          >
-            <SelectTrigger className='w-[200px]'>
-              <SelectValue placeholder='Select a queue' />
-            </SelectTrigger>
-            <SelectContent>
-              {queues?.map((q: TaskQueue) => (
-                <SelectItem key={q.id} value={q.id.toString()}>
-                  {q.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className='flex items-center gap-2'>
+            <Select
+              value={selectedQueueId?.toString() || ''}
+              onValueChange={(value) => onQueueSelect(value ? parseInt(value) : undefined)}
+            >
+              <SelectTrigger className='w-[200px]'>
+                <SelectValue placeholder='Select a queue' />
+              </SelectTrigger>
+              <SelectContent>
+                {queues?.map((q: TaskQueue) => (
+                  <SelectItem key={q.id} value={q.id.toString()}>
+                    {q.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size='sm'
+              onClick={() => setIsQuickTaskDialogOpen(true)}
+              disabled={!selectedQueueId}
+              className='gap-2'
+            >
+              <Plus className='h-4 w-4' /> Add Task
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -441,6 +453,18 @@ export function QueueItemsView({ projectId, selectedQueueId, onQueueSelect }: Qu
           onOpenChange={(open) => !open && setSelectedItem(null)}
         />
       )}
+
+      <TaskQuickCreateDialog
+        open={isQuickTaskDialogOpen}
+        onClose={() => setIsQuickTaskDialogOpen(false)}
+        projectId={projectId}
+        queueId={selectedQueueId}
+        queueName={selectedQueue?.name}
+        onCreated={() => {
+          setIsQuickTaskDialogOpen(false)
+          refetchFlow()
+        }}
+      />
     </div>
   )
 }

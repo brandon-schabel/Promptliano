@@ -27,7 +27,7 @@ import {
   createBaseRepository
 } from '@promptliano/database'
 import { createQueueService } from '../queue-service'
-import { createFlowService } from '../flow-service'
+import { createFlowService } from '../flow/core'
 
 /**
  * Shared test database context - one per test suite for relationship consistency

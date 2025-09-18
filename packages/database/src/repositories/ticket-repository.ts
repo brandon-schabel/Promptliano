@@ -20,11 +20,54 @@ import {
   selectTicketSchema,
   selectTicketTaskSchema
 } from '../schema'
+import { z } from 'zod'
+
+const ticketPriorityValues = ['low', 'normal', 'high'] as const
+const ticketStatusValues = ['open', 'in_progress', 'closed'] as const
+const queueStatusValues = ['queued', 'in_progress', 'completed', 'failed', 'cancelled'] as const
+
+const ticketPrioritySet = new Set<string>(ticketPriorityValues)
+const ticketStatusSet = new Set<string>(ticketStatusValues)
+const queueStatusSet = new Set<string>(queueStatusValues)
+
+function normalizeTicketPriority(value: unknown): (typeof ticketPriorityValues)[number] {
+  if (typeof value !== 'string') return 'normal'
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'medium') return 'normal'
+  return (ticketPrioritySet.has(normalized) ? normalized : 'normal') as (typeof ticketPriorityValues)[number]
+}
+
+function normalizeTicketStatus(value: unknown): (typeof ticketStatusValues)[number] {
+  if (typeof value !== 'string') return 'open'
+  const normalized = value.trim().toLowerCase()
+  return (ticketStatusSet.has(normalized) ? normalized : 'open') as (typeof ticketStatusValues)[number]
+}
+
+function normalizeQueueStatus(value: unknown): (typeof queueStatusValues)[number] | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  return (queueStatusSet.has(normalized) ? normalized : null) as (typeof queueStatusValues)[number] | null
+}
+
+const safeSelectTicketSchema = selectTicketSchema.extend({
+  priority: z.preprocess((value) => normalizeTicketPriority(value), z.enum(ticketPriorityValues)),
+  status: z.preprocess((value) => normalizeTicketStatus(value), z.enum(ticketStatusValues)),
+  queueStatus: z.preprocess(
+    (value) => normalizeQueueStatus(value),
+    z.union([z.enum(queueStatusValues), z.null()])
+  )
+})
 
 // Helper functions to convert JSON fields from database to proper types
 function convertTicketFromDb(ticket: any): Ticket {
+  const priority = normalizeTicketPriority(ticket.priority)
+  const status = normalizeTicketStatus(ticket.status)
+  const queueStatus = normalizeQueueStatus(ticket.queueStatus)
   return {
     ...ticket,
+    status,
+    priority,
+    queueStatus,
     suggestedFileIds: ticket.suggestedFileIds || [],
     suggestedAgentIds: ticket.suggestedAgentIds || [],
     suggestedPromptIds: ticket.suggestedPromptIds || []
@@ -95,7 +138,7 @@ type TaskUpdateData = Partial<{
 const baseTicketRepository = createBaseRepository(
   tickets,
   undefined, // db instance
-  selectTicketSchema, // Use proper Zod schema for validation
+  safeSelectTicketSchema, // Use normalized schema for validation
   'Ticket'
 )
 
@@ -146,30 +189,41 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
   },
 
   /**
-   * Get tickets by project ID (optimized with BaseRepository)
+   * Get tickets by project ID (optimized with normalized fallback)
    */
   async getByProject(projectId: number): Promise<Ticket[]> {
-    const results = await baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
+    const results = await db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.projectId, projectId))
+      .orderBy(desc(tickets.createdAt))
+
     return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
   /**
-   * Get tickets by status (optimized with BaseRepository)
+   * Get tickets by status (optimized with normalized fallback)
    */
   async getByStatus(projectId: number, status: TicketStatus): Promise<Ticket[]> {
-    const results = await baseTicketRepository.findWhere(
-      and(eq(tickets.projectId, projectId), eq(tickets.status, status))
-    )
+    const results = await db
+      .select()
+      .from(tickets)
+      .where(and(eq(tickets.projectId, projectId), eq(tickets.status, status)))
+      .orderBy(desc(tickets.createdAt))
+
     return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
   /**
-   * Get tickets by priority (optimized with BaseRepository)
+   * Get tickets by priority (optimized with normalized fallback)
    */
   async getByPriority(projectId: number, priority: TicketPriority): Promise<Ticket[]> {
-    const results = await baseTicketRepository.findWhere(
-      and(eq(tickets.projectId, projectId), eq(tickets.priority, priority))
-    )
+    const results = await db
+      .select()
+      .from(tickets)
+      .where(and(eq(tickets.projectId, projectId), eq(tickets.priority, priority)))
+      .orderBy(desc(tickets.createdAt))
+
     return results.map((ticket) => convertTicketFromDb(ticket))
   },
 
@@ -179,9 +233,12 @@ export const ticketRepository = extendRepository(baseTicketRepository, {
    * Delete all tickets for a project (optimized batch operation)
    */
   async deleteByProject(projectId: number): Promise<number> {
-    const ticketsToDelete = await baseTicketRepository.findWhere(eq(tickets.projectId, projectId))
-    const ticketIds = ticketsToDelete.map((t) => t.id)
-    return baseTicketRepository.deleteMany(ticketIds)
+    const ticketIds = await db
+      .select({ id: tickets.id })
+      .from(tickets)
+      .where(eq(tickets.projectId, projectId))
+    if (ticketIds.length === 0) return 0
+    return baseTicketRepository.deleteMany(ticketIds.map((t) => t.id))
   },
 
   /**

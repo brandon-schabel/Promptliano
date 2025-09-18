@@ -248,14 +248,16 @@ export function ProjectsPage() {
     })
   }
 
+  const isProjectsInitializing =
+    (projectsLoading && projects.length === 0) ||
+    (!projectsQuerySuccess && (projectsLoading || projectsFetching))
+
   const preparing =
     isConnecting ||
     (!isConnected && !hasError) ||
-    projectsLoading ||
-    projectsFetching ||
     !hasInitializedFromUrl ||
     !initDelayDone ||
-    (isConnected && !projectsQuerySuccess)
+    isProjectsInitializing
 
   let content
   if (preparing) {

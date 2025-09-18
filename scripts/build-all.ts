@@ -1,5 +1,6 @@
 // Use Bun.spawn via the global Bun object for portability
 import { join } from 'node:path'
+import { runBun } from './utils/run-bun'
 
 async function buildAll() {
   const startTime = performance.now()
@@ -62,9 +63,3 @@ if (import.meta.main) {
 }
 
 export { buildAll }
-
-async function runBun(cwd: string, args: string[]) {
-  const proc = Bun.spawn(['bun', ...args], { cwd, stdio: ['inherit', 'inherit', 'inherit'] })
-  const code = await proc.exited
-  if (code !== 0) throw new Error(`bun ${args.join(' ')} failed with code ${code}`)
-}

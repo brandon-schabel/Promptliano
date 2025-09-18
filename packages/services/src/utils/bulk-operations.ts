@@ -1,4 +1,4 @@
-import { ApiError } from '@promptliano/shared'
+import { retryOperation } from './retry-operation'
 
 export interface BulkOperationResult<T> {
   succeeded: T[]
@@ -25,7 +25,6 @@ export async function bulkOperation<TInput, TResult>(
   const succeeded: TResult[] = []
   const failed: Array<{ item: TInput; error: Error }> = []
 
-  // Process items with concurrency control
   const processItem = async (item: TInput): Promise<void> => {
     try {
       const result = await operation(item)
@@ -47,12 +46,10 @@ export async function bulkOperation<TInput, TResult>(
   }
 
   if (concurrency === 1) {
-    // Sequential processing
     for (const item of items) {
       await processItem(item)
     }
   } else {
-    // Concurrent processing with limit
     const chunks: TInput[][] = []
     for (let i = 0; i < items.length; i += concurrency) {
       chunks.push(items.slice(i, i + concurrency))
@@ -80,7 +77,6 @@ export async function bulkCreate<TInput, TResult>(
 ): Promise<BulkOperationResult<TResult>> {
   const itemsToCreate: TInput[] = []
 
-  // Check for duplicates if validator provided
   if (options?.validateDuplicates) {
     for (const item of items) {
       const isDuplicate = await options.validateDuplicates(item)
@@ -147,7 +143,6 @@ export async function bulkDelete<TId>(
       if (options?.validateExists) {
         const exists = await options.validateExists(id)
         if (!exists) {
-          // Don't warn for expected "not found" cases during cleanup
           failed.push(id)
           continue
         }
@@ -191,40 +186,4 @@ export async function processBatch<T, R>(
   return results
 }
 
-/**
- * Retry an operation with exponential backoff
- */
-export async function retryOperation<T>(
-  operation: () => Promise<T>,
-  options: {
-    maxRetries?: number
-    initialDelay?: number
-    maxDelay?: number
-    backoffFactor?: number
-    shouldRetry?: (error: unknown) => boolean
-  } = {}
-): Promise<T> {
-  const { maxRetries = 3, initialDelay = 1000, maxDelay = 10000, backoffFactor = 2, shouldRetry = () => true } = options
-
-  let lastError: unknown
-  let delay = initialDelay
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation()
-    } catch (error) {
-      lastError = error
-
-      if (attempt === maxRetries || !shouldRetry(error)) {
-        throw error
-      }
-
-      console.warn(`Operation failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`)
-      await new Promise((resolve) => setTimeout(resolve, delay))
-
-      delay = Math.min(delay * backoffFactor, maxDelay)
-    }
-  }
-
-  throw lastError
-}
+export { retryOperation }

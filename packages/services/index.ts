@@ -143,13 +143,8 @@ export {
   type TaskStatus
 } from './src/task-service'
 
-export {
-  // Flow Service
-  createFlowService,
-  flowService,
-  enqueueTicket,
-  type FlowService
-} from './src/flow-service'
+export * from './src/flow/core'
+
 
 // Legacy services have been removed as part of architecture revamp
 // All functionality now available through modern functional factory patterns above
@@ -185,7 +180,6 @@ export {
   type QueueTimeoutDeps,
   type QueueTimeoutConfig
 } from './src/queue-timeout-service'
-export * from './src/flow-service'
 export * from './src/queue-state-machine'
 export {
   mcpService,
