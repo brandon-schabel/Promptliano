@@ -88,20 +88,40 @@ const collectTextFromEvent = (event: ChatStreamEvent, textSegments: string[]) =>
   if (!TEXT_EVENT_TYPES.has(normalized)) return
 
   const payload = event.payload
+
+  if (normalized === 'text_delta' && payload && typeof payload === 'object') {
+    const delta = (payload as Record<string, unknown>).delta
+    const extractedDelta = extractString(delta)
+    if (extractedDelta && extractedDelta.trim().length > 0) {
+      textSegments.push(extractedDelta)
+    }
+    return
+  }
+
   const extracted = extractString(payload)
   if (extracted && extracted.trim().length > 0) {
     textSegments.push(extracted)
   }
 }
 
-const collectMaterializedParts = (event: ChatStreamEvent) => {
+const collectMaterializedPartPayload = (event: ChatStreamEvent): Record<string, unknown> | null => {
   if (!shouldMaterializePart(event.type)) return null
-  return {
-    type: event.type,
-    seq: event.seq,
-    ts: event.ts,
-    payload: event.payload
+  const payload: Record<string, unknown> =
+    event.payload && typeof event.payload === 'object'
+      ? { ...(event.payload as Record<string, unknown>) }
+      : event.payload !== undefined && event.payload !== null
+        ? { value: event.payload }
+        : {}
+  if (typeof payload.type !== 'string') {
+    payload.type = event.type
   }
+  if (payload.type === 'tool-output-available' && payload.output !== undefined) {
+    const summary = extractString(payload.output)
+    if (summary && summary.trim().length > 0) {
+      payload.outputText = summary.trim()
+    }
+  }
+  return payload
 }
 
 const toUserString = (value: unknown): string => {
@@ -135,20 +155,77 @@ export function createChatStreamService(deps: ChatStreamServiceDeps = {}) {
 
   const reduceEventsToMessage = (events: ChatStreamEvent[]) => {
     const textSegments: string[] = []
-    const parts: Array<{ type: string; seq: number; ts: number; payload: unknown }> = []
+    const rawParts: Array<Record<string, unknown>> = []
 
     for (const event of events) {
       collectTextFromEvent(event, textSegments)
-      const part = collectMaterializedParts(event)
+      const part = collectMaterializedPartPayload(event)
       if (part) {
-        parts.push(part)
+        rawParts.push(part)
       }
+    }
+
+    const reasoningBuffers = new Map<string, string[]>()
+    const materializedParts: Array<Record<string, unknown>> = []
+
+    const flushReasoning = (id: string) => {
+      const buffer = reasoningBuffers.get(id)
+      if (!buffer) return
+      const text = buffer.join('').trim()
+      if (text.length > 0) {
+        materializedParts.push({ type: 'reasoning', id, text })
+      }
+      reasoningBuffers.delete(id)
+    }
+
+    for (const part of rawParts) {
+      const partType = typeof part.type === 'string' ? part.type : ''
+      switch (partType) {
+        case 'reasoning-start': {
+          const reasoningId = typeof part.id === 'string' ? part.id : `reasoning-${materializedParts.length}`
+          reasoningBuffers.set(reasoningId, [])
+          break
+        }
+        case 'reasoning-delta': {
+          const reasoningId = typeof part.id === 'string' ? part.id : `reasoning-${materializedParts.length}`
+          const delta = typeof part.delta === 'string' ? part.delta : extractString(part.delta)
+          if (!reasoningBuffers.has(reasoningId)) {
+            reasoningBuffers.set(reasoningId, [])
+          }
+          if (delta && delta.length > 0) {
+            reasoningBuffers.get(reasoningId)!.push(delta)
+          }
+          break
+        }
+        case 'reasoning-end': {
+          const reasoningId = typeof part.id === 'string' ? part.id : `reasoning-${materializedParts.length}`
+          flushReasoning(reasoningId)
+          break
+        }
+        case 'reasoning': {
+          const text = typeof part.text === 'string' ? part.text : extractString(part.text)
+          if (text && text.trim().length > 0) {
+            materializedParts.push({ type: 'reasoning', text: text.trim() })
+          }
+          break
+        }
+        case 'reasoning-part-finish':
+          // ignore
+          break
+        default:
+          materializedParts.push(part)
+          break
+      }
+    }
+
+    for (const [reasoningId] of reasoningBuffers) {
+      flushReasoning(reasoningId)
     }
 
     const finalText = textSegments.join('')
     return {
       finalText: finalText.trim(),
-      parts
+      parts: materializedParts
     }
   }
 
@@ -159,7 +236,8 @@ export function createChatStreamService(deps: ChatStreamServiceDeps = {}) {
         direction: 'assistant',
         provider: options.provider,
         model: options.model,
-        messageMetadata: options.messageMetadata ?? null
+        messageMetadata: options.messageMetadata ?? null,
+        format: 'ui'
       })
       return result
     },
@@ -170,7 +248,8 @@ export function createChatStreamService(deps: ChatStreamServiceDeps = {}) {
         direction: 'user',
         provider: 'client',
         model: 'user',
-        messageMetadata: null
+        messageMetadata: null,
+        format: 'data'
       })
 
       const now = Date.now()

@@ -15,6 +15,8 @@ import {
   Copy,
   GitFork,
   Trash,
+  PlayCircle,
+  ListTree,
   SendIcon,
   MessageSquareText,
   Brain,
@@ -684,6 +686,8 @@ const MessageHeader: React.FC<{
   onDelete: () => void
   onToggleExclude: () => void
   onToggleRaw: () => void
+  onReplayStream?: () => void
+  onOpenEventsLog?: () => void
 }> = ({
   isUser,
   msgId,
@@ -695,7 +699,9 @@ const MessageHeader: React.FC<{
   onFork,
   onDelete,
   onToggleExclude,
-  onToggleRaw
+  onToggleRaw,
+  onReplayStream,
+  onOpenEventsLog
 }) => (
   <div className='flex items-center justify-between mb-2'>
     <div className='font-semibold text-sm'>{isUser ? 'You' : 'Assistant'}</div>
@@ -717,6 +723,28 @@ const MessageHeader: React.FC<{
             <Button variant='ghost' size='icon' className='h-6 w-6' onClick={onDelete} title='Delete message'>
               <Trash className='h-3 w-3' />
             </Button>
+            {onReplayStream && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-6 w-6'
+                onClick={onReplayStream}
+                title='Replay stream'
+              >
+                <PlayCircle className='h-3 w-3' />
+              </Button>
+            )}
+            {onOpenEventsLog && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-6 w-6'
+                onClick={onOpenEventsLog}
+                title='View stream events'
+              >
+                <ListTree className='h-3 w-3' />
+              </Button>
+            )}
           </div>
           <div className='flex items-center justify-between gap-2 border-t pt-2 text-xs text-muted-foreground'>
             <Label htmlFor={`exclude-${msgId}`} className='flex items-center gap-1 cursor-pointer'>
@@ -764,7 +792,15 @@ const ChatMessageItem = React.memo(
     const isUser = msg.role === 'user'
     const { hasThinkBlock, isThinking, thinkContent, mainContent } = parseThinkBlock(msg.content ?? '')
 
-    const parts = Array.isArray((msg as any).parts) ? ((msg as any).parts as Array<Record<string, any>>) : []
+    const metadataParts =
+      msg && typeof (msg as any).metadata === 'object' && Array.isArray((msg as any).metadata?.parts)
+        ? ((msg as any).metadata.parts as Array<Record<string, any>>)
+        : null
+    const parts = metadataParts
+      ? metadataParts
+      : Array.isArray((msg as any).parts)
+        ? ((msg as any).parts as Array<Record<string, any>>)
+        : []
     const reasoningParts = parts.filter((part) => part?.type === 'reasoning' && typeof part?.text === 'string')
     const reasoningTextFromParts = reasoningParts.map((part) => String(part.text)).join('\n').trim()
     const reasoningStreamingFromParts = reasoningParts.some((part) => part?.state === 'streaming')
@@ -867,7 +903,7 @@ const ChatMessageItem = React.memo(
         }
       }
 
-      const recordOutput = (entry: ToolCallAccumulator, value: unknown) => {
+      const recordOutput = (entry: ToolCallAccumulator, value: unknown, summaryHint?: string) => {
         if (value === undefined) return
         if (entry.rawOutput === undefined) {
           entry.rawOutput = value
@@ -875,6 +911,9 @@ const ChatMessageItem = React.memo(
         const text = toToolText(value)
         if (!entry.outputSummary && text) {
           entry.outputSummary = text
+        }
+        if (!entry.outputSummary && summaryHint && summaryHint.trim().length > 0) {
+          entry.outputSummary = summaryHint.trim()
         }
       }
 
@@ -890,8 +929,9 @@ const ChatMessageItem = React.memo(
         if (!part || typeof part !== 'object') return
         const partAny = part as Record<string, unknown>
         const rawType = typeof partAny.type === 'string' ? partAny.type.toLowerCase() : ''
+        const normalizedType = rawType.replace(/[-.]/g, '_')
 
-        if (rawType === 'step-start') {
+        if (normalizedType === 'step_start') {
           registerStep(extractStepLabel(partAny), index)
           return
         }
@@ -939,11 +979,9 @@ const ChatMessageItem = React.memo(
           entry.providerExecuted = entry.providerExecuted || (partAny.providerExecuted as boolean)
         }
 
-        if (rawType === 'dynamic-tool' || rawType.startsWith('tool-')) {
+        if (rawType === 'dynamic-tool') {
           const inferredName = cleanToolName(
-            rawType === 'dynamic-tool'
-              ? (typeof partAny.toolName === 'string' ? partAny.toolName : undefined)
-              : rawType.slice(5)
+            typeof partAny.toolName === 'string' ? partAny.toolName : undefined
           )
           if (inferredName && !entry.toolName) {
             entry.toolName = inferredName
@@ -995,7 +1033,7 @@ const ChatMessageItem = React.memo(
           return
         }
 
-        if (rawType.includes('tool-input')) {
+        if (normalizedType.startsWith('tool_input')) {
           appendChunk(entry, 'args', partAny.inputTextDelta ?? partAny.delta ?? partAny.text ?? partAny.value)
           if (partAny.input !== undefined) {
             recordArgs(entry, partAny.input)
@@ -1004,7 +1042,7 @@ const ChatMessageItem = React.memo(
             recordArgs(entry, partAny.args ?? partAny.arguments)
           }
           entry.status = entry.status ?? 'pending'
-          entry.isStreaming = entry.isStreaming || rawType.includes('delta') || rawType.includes('start')
+          entry.isStreaming = entry.isStreaming || normalizedType.includes('delta') || normalizedType.includes('start')
           return
         }
 
@@ -1017,7 +1055,7 @@ const ChatMessageItem = React.memo(
           return
         }
 
-        if (rawType === 'tool' || rawType === 'tool-invocation' || rawType === 'tool_invocation') {
+        if (normalizedType === 'tool' || normalizedType === 'tool_invocation') {
           if (invocation?.args !== undefined || invocation?.arguments !== undefined || invocation?.input !== undefined) {
             recordArgs(entry, invocation?.args ?? invocation?.arguments ?? invocation?.input)
           }
@@ -1033,18 +1071,19 @@ const ChatMessageItem = React.memo(
           return
         }
 
-        if (rawType.includes('tool-output') || rawType === 'tool-result' || rawType === 'tool_result') {
-          if (partAny.output !== undefined) recordOutput(entry, partAny.output)
+        if (normalizedType.includes('tool_output') || normalizedType === 'tool_result') {
+          const summaryHint = typeof partAny.outputText === 'string' ? partAny.outputText : undefined
+          if (partAny.output !== undefined) recordOutput(entry, partAny.output, summaryHint)
           if (partAny.result !== undefined) recordOutput(entry, partAny.result)
           if (partAny.response !== undefined) recordOutput(entry, partAny.response)
           if (partAny.content !== undefined) recordOutput(entry, partAny.content)
           appendChunk(entry, 'output', partAny.outputText ?? partAny.delta ?? partAny.text)
           entry.status = entry.errorText ? 'error' : 'result'
-          entry.isStreaming = entry.isStreaming || rawType.includes('delta')
+          entry.isStreaming = entry.isStreaming || normalizedType.includes('delta')
           return
         }
 
-        if (rawType.includes('error')) {
+        if (normalizedType.includes('error')) {
           const errorSource =
             partAny.error ??
             partAny.errorText ??
@@ -1111,6 +1150,13 @@ const ChatMessageItem = React.memo(
       return isNaN(id) ? null : id
     }, [msg.id])
 
+    const metadata =
+      (msg as any)?.metadata && typeof (msg as any).metadata === 'object'
+        ? ((msg as any).metadata as Record<string, any>)
+        : undefined
+    const replayUrl = typeof metadata?.replayUrl === 'string' ? metadata.replayUrl : undefined
+    const eventsUrl = typeof metadata?.eventsUrl === 'string' ? metadata.eventsUrl : undefined
+
     const handleCopy = useCallback(
       () => onCopyMessage(mainContent || msg.content || ''),
       [mainContent, msg.content, onCopyMessage]
@@ -1150,6 +1196,20 @@ const ChatMessageItem = React.memo(
       copyToClipboard(reasoningText, { successMessage: 'Reasoning copied!' })
     }, [copyToClipboard, reasoningText])
 
+    const handleReplayStream = useCallback(() => {
+      if (!replayUrl) return
+      if (typeof window !== 'undefined') {
+        window.open(replayUrl, '_blank', 'noopener,noreferrer')
+      }
+    }, [replayUrl])
+
+    const handleOpenEventsLog = useCallback(() => {
+      if (!eventsUrl) return
+      if (typeof window !== 'undefined') {
+        window.open(eventsUrl, '_blank', 'noopener,noreferrer')
+      }
+    }, [eventsUrl])
+
     const handleCopyToolValue = useCallback(
       ({ value, label, toolName }: ToolCopyPayload) => {
         if (!value) return
@@ -1175,6 +1235,8 @@ const ChatMessageItem = React.memo(
             onDelete={handleDelete}
             onToggleExclude={handleToggleExclude}
             onToggleRaw={handleToggleRaw}
+            onReplayStream={replayUrl ? handleReplayStream : undefined}
+            onOpenEventsLog={eventsUrl ? handleOpenEventsLog : undefined}
           />
           <pre className='whitespace-pre-wrap font-mono p-2 bg-background/50 rounded text-xs sm:text-sm overflow-x-auto'>
             {msg.content}
@@ -1247,6 +1309,8 @@ const ChatMessageItem = React.memo(
           onDelete={handleDelete}
           onToggleExclude={handleToggleExclude}
           onToggleRaw={handleToggleRaw}
+          onReplayStream={replayUrl ? handleReplayStream : undefined}
+          onOpenEventsLog={eventsUrl ? handleOpenEventsLog : undefined}
         />
         <div className='space-y-3 text-sm'>
           {messageBlocks.map((block) => {

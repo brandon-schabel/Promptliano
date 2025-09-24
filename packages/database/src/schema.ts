@@ -258,6 +258,9 @@ export const chatStreamEvents = sqliteTable('chat_stream_events', {
   payload: text('payload', { mode: 'json' }).$type<unknown>()
 })
 
+export const chatStreamEventsStreamSeqIdx = index('cse_stream_seq').on(chatStreamEvents.streamId, chatStreamEvents.seq)
+export const chatStreamEventsTypeIdx = index('cse_type').on(chatStreamEvents.type)
+
 export const prompts = sqliteTable('prompts', {
   id: integer('id').primaryKey(),
   projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),

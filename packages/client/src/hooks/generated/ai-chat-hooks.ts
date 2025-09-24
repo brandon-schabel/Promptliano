@@ -505,12 +505,26 @@ const messages = useMemo<ChatUiMessage[]>(() => {
       ? new Date(createdValue)
       : new Date()
 
+    const metadata = (msg?.metadata && typeof msg.metadata === 'object') ? msg.metadata : undefined
+    const metadataParts = Array.isArray(metadata?.parts) ? (metadata.parts as any[]) : undefined
+
+    const sanitizedParts: any[] = []
+    const textFromMessage = typeof msg?.content === 'string' ? msg.content : ''
+    if (textFromMessage && textFromMessage.trim().length > 0) {
+      sanitizedParts.push({ type: 'text', text: textFromMessage })
+    } else if (metadataParts) {
+      const textPart = metadataParts.find((part) => part && typeof part === 'object' && part.type === 'text' && typeof part.text === 'string')
+      if (textPart?.text && textPart.text.trim().length > 0) {
+        sanitizedParts.push({ type: 'text', text: textPart.text })
+      }
+    }
+
     return {
       id,
       role: msg?.role ?? 'assistant',
       content: typeof msg?.content === 'string' ? msg.content : '',
-      parts: Array.isArray(msg?.parts) ? msg.parts : [],
-      metadata: msg?.metadata,
+      parts: sanitizedParts,
+      metadata,
       createdAt
     } as ChatUiMessage
   }, [])
@@ -526,17 +540,62 @@ const messages = useMemo<ChatUiMessage[]>(() => {
     setIsErrorFetchingInitial(false)
 
     try {
-      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/history?chatId=${chatId}`)
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/history?chatId=${chatId}&includeRaw=1`)
       if (!response.ok) {
         throw new Error(`Failed to load chat history (status ${response.status})`)
       }
 
       const payload = await response.json()
+
+      const toAbsoluteUrl = (value: string | undefined | null) => {
+        if (!value) return undefined
+        return /^https?:/i.test(value) ? value : `${SERVER_HTTP_ENDPOINT}${value}`
+      }
+
+      const rawStreams: Array<{
+        id: number
+        replayUrl: string
+        eventsUrl: string
+        provider: string
+        model: string
+        finishReason?: string | null
+        usage?: Record<string, unknown> | null
+        format?: 'ui' | 'data'
+      }> = Array.isArray(payload?.streams) ? (payload.streams as any[]) : []
+      const streamMap = new Map<number, (typeof rawStreams)[number]>()
+      for (const stream of rawStreams) {
+        if (stream && typeof stream.id === 'number') {
+          streamMap.set(stream.id, stream)
+        }
+      }
+
       const historyMessages: ChatUiMessage[] = Array.isArray(payload?.messages)
-        ? (payload.messages as any[]).map(normalizeHistoryMessage)
+        ? (payload.messages as any[]).map((message) => {
+            const normalized = normalizeHistoryMessage(message)
+            const metadata = normalized.metadata && typeof normalized.metadata === 'object' ? normalized.metadata : undefined
+            const streamId = metadata?.streamId
+            if (streamId && typeof streamId === 'number' && streamMap.has(streamId)) {
+              const stream = streamMap.get(streamId)!
+              const replayUrl = stream.replayUrl
+              const eventsUrl = stream.eventsUrl
+              const existingMetadata = metadata ?? {}
+              normalized.metadata = {
+                ...existingMetadata,
+                streamId,
+                replayUrl: toAbsoluteUrl(replayUrl) ?? existingMetadata.replayUrl,
+                eventsUrl: toAbsoluteUrl(eventsUrl) ?? existingMetadata.eventsUrl,
+                streamFormat: stream.format ?? 'ui',
+                provider: stream.provider ?? existingMetadata.provider,
+                model: stream.model ?? existingMetadata.model,
+                finishReason: existingMetadata.finishReason ?? stream.finishReason ?? undefined,
+                usage: existingMetadata.usage ?? stream.usage ?? undefined
+              }
+            }
+            return normalized
+          })
         : []
 
-      setMessages(historyMessages)
+      setMessages(historyMessages as ChatUiMessage[])
       initialMessagesLoadedRef.current = true
       return historyMessages
     } catch (err) {

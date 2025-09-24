@@ -1,9 +1,4 @@
-import { formatDataStreamPart } from '@ai-sdk/ui-utils'
-import {
-  extractString,
-  formatToolFallback,
-  extractTextFromAssistantMessage
-} from '@promptliano/services'
+import { extractString, formatToolFallback, extractTextFromAssistantMessage } from '@promptliano/services'
 import type { ChatStreamService } from '@promptliano/services'
 
 interface PersistedStreamOptions {
@@ -33,11 +28,6 @@ export interface PersistedStreamResult {
 
 const normalizeType = (type: unknown): string => (typeof type === 'string' ? type : 'unknown')
 
-const isMessageMetadataEvent = (type: string): boolean => {
-  const normalized = type.replace(/[\-.]/g, '_')
-  return normalized === 'message_metadata'
-}
-
 type UiEventType =
   | 'start'
   | 'start-step'
@@ -51,6 +41,7 @@ type UiEventType =
   | 'reasoning-start'
   | 'reasoning-delta'
   | 'reasoning-end'
+  | 'reasoning-part-finish'
   | 'tool-input-start'
   | 'tool-input-delta'
   | 'tool-input-available'
@@ -62,6 +53,12 @@ type UiEventType =
   | 'source-document'
   | 'file'
   | 'error'
+
+interface PersistedUiEvent {
+  type: UiEventType
+  payload: Record<string, unknown>
+  ts: number
+}
 
 const ensureId = (prefix: string, id?: unknown): string =>
   typeof id === 'string' && id.length > 0
@@ -81,7 +78,9 @@ const SENDABLE_EVENT_TYPES = new Set<UiEventType>([
   'reasoning-start',
   'reasoning-delta',
   'reasoning-end',
+  'reasoning-part-finish',
   'tool-input-start',
+  'tool-input-delta',
   'tool-input-available',
   'tool-input-error',
   'tool-output-available',
@@ -118,15 +117,13 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
   const encoder = new TextEncoder()
   const uiStream = stream.toUIMessageStream()
 
-  const buffer: Array<{ type: string; payload: unknown | null; ts: number }> = []
+  const buffer: PersistedUiEvent[] = []
   let lastSeq = 0
   let flushTimer: ReturnType<typeof setTimeout> | null = null
   let pendingPersist: Promise<void> = Promise.resolve()
   let recordedError: unknown
   let messageMetadata: Record<string, unknown> | null = null
-  const loggedFormatErrors = new Set<string>()
-
-  const persistBatch = (batch: Array<{ type: string; payload: unknown | null; ts: number }>) => {
+  const persistBatch = (batch: PersistedUiEvent[]) => {
     if (batch.length === 0) return
     pendingPersist = pendingPersist
       .then(async () => {
@@ -170,50 +167,87 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
     async start(controller) {
       const toolInputs = new Map<string, unknown>()
       const toolInputBuffers = new Map<string, string>()
+      const toolNames = new Map<string, string>()
+      const toolDynamics = new Map<string, boolean>()
+      const toolInputsAcknowledged = new Set<string>()
       let hasTextOutput = false
       let lastTextId: string | undefined
       let lastReasoningId: string | undefined
       let closed = false
 
-      const emit = (type: UiEventType, payload: Record<string, unknown>) => {
-        if (closed || !SENDABLE_EVENT_TYPES.has(type)) return
-        try {
-          if (type === 'start' || type === 'start-step' || type === 'finish-step') {
-            controller.enqueue(encoder.encode(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`))
-            return
-          }
-          const data = formatDataStreamPart(type as any, payload as any)
-          controller.enqueue(encoder.encode(data))
-        } catch (error) {
-          if (!loggedFormatErrors.has(type)) {
-            loggedFormatErrors.add(type)
-            console.warn('[ChatStream] Failed to format UI stream part; falling back to raw SSE', {
-              type,
-              error: error instanceof Error ? error.message : error
-            })
-          }
+      const recordEvent = (type: UiEventType, payload: Record<string, unknown> = {}) => {
+        const eventPayload = payload ? { ...payload } : {}
+        if (typeof eventPayload.type !== 'string') {
+          eventPayload.type = type
+        }
+        buffer.push({ type, payload: eventPayload, ts: Date.now() })
 
-          try {
-            controller.enqueue(encoder.encode(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`))
-          } catch (serializationError) {
-            console.warn('[ChatStream] Failed to serialize UI stream fallback payload', {
-              type,
-              error:
-                serializationError instanceof Error
-                  ? serializationError.message
-                  : serializationError
-            })
+        if (type === 'message-metadata') {
+          const rawMetadata = eventPayload.messageMetadata
+          if (Array.isArray(rawMetadata)) {
+            const metadataRecord: Record<string, unknown> = {}
+            for (const entry of rawMetadata as Array<Record<string, unknown>>) {
+              const key = typeof entry.key === 'string' ? entry.key : undefined
+              if (key && key.length > 0) {
+                metadataRecord[key] = entry.value
+              }
+            }
+            messageMetadata = {
+              ...(messageMetadata ?? {}),
+              ...metadataRecord
+            }
+          } else if (rawMetadata && typeof rawMetadata === 'object') {
+            messageMetadata = {
+              ...(messageMetadata ?? {}),
+              ...(rawMetadata as Record<string, unknown>)
+            }
           }
         }
       }
 
-      const emitTextBlock = (text: string) => {
+      const emit = (type: UiEventType, payload: Record<string, unknown> = {}) => {
+        if (closed || !SENDABLE_EVENT_TYPES.has(type)) return
+        const message = payload ? { ...payload } : {}
+        if (typeof message.type !== 'string') {
+          message.type = type
+        }
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`))
+        } catch (error) {
+          console.warn('[ChatStream] Failed to enqueue UI stream payload', {
+            type,
+            error: error instanceof Error ? error.message : error
+          })
+        }
+      }
+
+      const emitAndRecord = async (
+        type: UiEventType,
+        payload: Record<string, unknown> = {},
+        options?: {
+          emitPayload?: Record<string, unknown>
+          persistPayload?: Record<string, unknown>
+        }
+      ) => {
+        const persistPayload = options?.persistPayload ?? payload
+        recordEvent(type, persistPayload)
+        const emitPayload = options?.emitPayload ?? payload
+        emit(type, emitPayload)
+        if (buffer.length >= flushBatchMax) {
+          flushBuffer()
+          await pendingPersist
+        } else {
+          scheduleFlush()
+        }
+      }
+
+      const emitTextBlock = async (text: string) => {
         if (!text) return
         const id = ensureId('txt', lastTextId)
         lastTextId = id
-        emit('text-start', { type: 'text-start', id })
-        emit('text-delta', { type: 'text-delta', id, delta: text })
-        emit('text-end', { type: 'text-end', id })
+        await emitAndRecord('text-start', { type: 'text-start', id })
+        await emitAndRecord('text-delta', { type: 'text-delta', id, delta: text })
+        await emitAndRecord('text-end', { type: 'text-end', id })
         hasTextOutput = true
       }
 
@@ -235,18 +269,18 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
 
           switch (normalizedType) {
             case 'start':
-              emit('start', { type: 'start' })
+              await emitAndRecord('start', { type: 'start' })
               break
             case 'start_step':
-              emit('start-step', { type: 'start-step' })
+              await emitAndRecord('start-step', { type: 'start-step' })
               break
             case 'finish_step':
-              emit('finish-step', { type: 'finish-step' })
+              await emitAndRecord('finish-step', { type: 'finish-step' })
               break
             case 'text_start': {
               const id = ensureId('txt', chunkAny.id ?? lastTextId)
               lastTextId = id
-              emit('text-start', { type: 'text-start', id })
+              await emitAndRecord('text-start', { type: 'text-start', id })
               break
             }
             case 'text_delta':
@@ -261,14 +295,14 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                     ? chunkAny.text
                     : extractString(chunkAny.delta ?? chunkAny.text)
               if (delta && delta.length > 0) {
-                emit('text-delta', { type: 'text-delta', id, delta })
+                await emitAndRecord('text-delta', { type: 'text-delta', id, delta })
                 hasTextOutput = true
               }
               break
             }
             case 'text_end': {
               const id = ensureId('txt', chunkAny.id ?? lastTextId)
-              emit('text-end', { type: 'text-end', id })
+              await emitAndRecord('text-end', { type: 'text-end', id })
               break
             }
             case 'text':
@@ -278,7 +312,7 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                 typeof chunkAny.text === 'string'
                   ? chunkAny.text
                   : extractString(chunkAny.text ?? chunkAny.value ?? chunkAny.message)
-              if (text && text.length > 0) emitTextBlock(text)
+              if (text && text.length > 0) await emitTextBlock(text)
               break
             }
             case 'assistant_message':
@@ -293,14 +327,14 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                   : undefined)
               if (message && typeof message === 'object') {
                 const text = extractTextFromAssistantMessage(message as any)
-                if (text.length > 0) emitTextBlock(text)
+                if (text.length > 0) await emitTextBlock(text)
               }
               break
             }
             case 'reasoning_start': {
               const id = ensureId('reasoning', chunkAny.id ?? lastReasoningId)
               lastReasoningId = id
-              emit('reasoning-start', { type: 'reasoning-start', id })
+              await emitAndRecord('reasoning-start', { type: 'reasoning-start', id })
               break
             }
             case 'reasoning_delta': {
@@ -310,17 +344,23 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                 typeof chunkAny.delta === 'string'
                   ? chunkAny.delta
                   : extractString(chunkAny.delta)
-              if (delta && delta.length > 0) emit('reasoning-delta', { type: 'reasoning-delta', id, delta })
+              if (delta && delta.length > 0)
+                await emitAndRecord('reasoning-delta', { type: 'reasoning-delta', id, delta })
               break
             }
             case 'reasoning_end': {
               const id = ensureId('reasoning', chunkAny.id ?? lastReasoningId)
-              emit('reasoning-end', { type: 'reasoning-end', id })
+              await emitAndRecord('reasoning-end', { type: 'reasoning-end', id })
+              break
+            }
+            case 'reasoning_part_finish': {
+              await emitAndRecord('reasoning-part-finish', { type: 'reasoning-part-finish' })
               break
             }
             case 'reasoning': {
               const text = typeof chunkAny.text === 'string' ? chunkAny.text : extractString(chunkAny.text)
-              if (text && text.length > 0) emit('reasoning', { type: 'reasoning', text })
+              if (text && text.length > 0)
+                await emitAndRecord('reasoning', { type: 'reasoning', text })
               break
             }
             case 'tool_input_start': {
@@ -329,10 +369,14 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                 typeof chunkAny.toolName === 'string' && chunkAny.toolName.length > 0
                   ? chunkAny.toolName
                   : toolCallId || 'unknown-tool'
-              emit('tool-input-start', {
+              const isDynamic = chunkAny.dynamic === true
+              toolNames.set(toolCallId, toolName)
+              toolDynamics.set(toolCallId, isDynamic)
+              await emitAndRecord('tool-input-start', {
                 type: 'tool-input-start',
                 toolCallId,
-                toolName
+                toolName,
+                ...(isDynamic ? { dynamic: true } : {})
               })
               break
             }
@@ -345,7 +389,7 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
               if (delta && delta.length > 0) {
                 toolInputBuffers.set(toolCallId, (toolInputBuffers.get(toolCallId) ?? '') + delta)
                 if (STREAM_TOOL_INPUT_DELTAS) {
-                  emit('tool-input-delta', {
+                  await emitAndRecord('tool-input-delta', {
                     type: 'tool-input-delta',
                     toolCallId,
                     inputTextDelta: delta
@@ -370,47 +414,137 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
                 typeof chunkAny.toolName === 'string' && chunkAny.toolName.length > 0
                   ? chunkAny.toolName
                   : toolCallId || 'unknown-tool'
-              emit('tool-input-available', {
+              toolNames.set(toolCallId, toolName)
+              const isDynamic = chunkAny.dynamic === true
+              if (chunkAny.dynamic !== undefined) {
+                toolDynamics.set(toolCallId, isDynamic)
+              }
+              toolInputsAcknowledged.add(toolCallId)
+              await emitAndRecord('tool-input-available', {
                 type: 'tool-input-available',
                 toolCallId,
                 toolName,
-                input
+                input,
+                ...(isDynamic ? { dynamic: true } : {})
               })
               break
             }
             case 'tool_input_error': {
               const input = chunkAny.input ?? {}
-              toolInputs.set(chunkAny.toolCallId, input)
+              const toolCallId = String(chunkAny.toolCallId ?? '')
+              toolInputs.set(toolCallId, input)
               const errorText = typeof chunkAny.errorText === 'string' ? chunkAny.errorText : 'Tool input failed'
               if (errorText) finishState.lastToolResultText = errorText
-              emit('tool-input-error', {
+              await emitAndRecord('tool-input-error', {
                 type: 'tool-input-error',
-                toolCallId: chunkAny.toolCallId,
+                toolCallId,
                 input,
                 errorText
               })
               break
             }
-            case 'tool_output_available':
-              emit('tool-output-available', {
+            case 'tool_output_available': {
+              const toolCallId = String(chunkAny.toolCallId ?? '')
+              const toolName = toolNames.get(toolCallId)
+              const output = chunkAny.output
+              const outputText = extractString(output)
+              const providerExecuted = chunkAny.providerExecuted !== undefined ? !!chunkAny.providerExecuted : undefined
+              const dynamic = chunkAny.dynamic !== undefined ? !!chunkAny.dynamic : undefined
+              const preliminary = chunkAny.preliminary !== undefined ? !!chunkAny.preliminary : undefined
+              if (chunkAny.dynamic !== undefined) {
+                toolDynamics.set(toolCallId, dynamic ?? false)
+              }
+              if (!toolInputsAcknowledged.has(toolCallId)) {
+                const syntheticInput = toolInputs.get(toolCallId)
+                toolInputsAcknowledged.add(toolCallId)
+                const syntheticDynamic = toolDynamics.get(toolCallId) === true
+                await emitAndRecord(
+                  'tool-input-available',
+                  {
+                    type: 'tool-input-available',
+                    toolCallId,
+                    toolName: toolName ?? (toolCallId || 'unknown-tool'),
+                    input: syntheticInput ?? {},
+                    ...(syntheticDynamic ? { dynamic: true } : {})
+                  },
+                  {
+                    persistPayload: {
+                      type: 'tool-input-available',
+                      toolCallId,
+                      toolName: toolName ?? (toolCallId || 'unknown-tool'),
+                      input: syntheticInput ?? {},
+                      ...(syntheticDynamic ? { dynamic: true } : {})
+                    }
+                  }
+                )
+              }
+              const emitPayload: Record<string, unknown> = {
                 type: 'tool-output-available',
-                toolCallId: chunkAny.toolCallId,
-                output: chunkAny.output
-              })
+                toolCallId,
+                output,
+                ...(providerExecuted !== undefined ? { providerExecuted } : {}),
+                ...(dynamic !== undefined ? { dynamic } : {}),
+                ...(preliminary !== undefined ? { preliminary } : {})
+              }
+              const persistPayload: Record<string, unknown> = {
+                ...emitPayload,
+                ...(toolName ? { toolName } : {}),
+                ...(outputText && outputText.trim().length > 0 ? { outputText: outputText.trim() } : {})
+              }
+              await emitAndRecord('tool-output-available', emitPayload, { persistPayload })
               break
+            }
             case 'tool_output_error': {
               const errorText = typeof chunkAny.errorText === 'string' ? chunkAny.errorText : 'Tool execution failed'
               if (errorText) finishState.lastToolResultText = errorText
-              emit('tool-output-error', {
+              const toolCallId = String(chunkAny.toolCallId ?? '')
+              const toolName = toolNames.get(toolCallId)
+              const providerExecuted = chunkAny.providerExecuted !== undefined ? !!chunkAny.providerExecuted : undefined
+              const dynamic = chunkAny.dynamic !== undefined ? !!chunkAny.dynamic : undefined
+              if (chunkAny.dynamic !== undefined) {
+                toolDynamics.set(toolCallId, dynamic ?? false)
+              }
+              if (!toolInputsAcknowledged.has(toolCallId)) {
+                const syntheticInput = toolInputs.get(toolCallId)
+                toolInputsAcknowledged.add(toolCallId)
+                const syntheticDynamic = toolDynamics.get(toolCallId) === true
+                await emitAndRecord(
+                  'tool-input-available',
+                  {
+                    type: 'tool-input-available',
+                    toolCallId,
+                    toolName: toolName ?? (toolCallId || 'unknown-tool'),
+                    input: syntheticInput ?? {},
+                    ...(syntheticDynamic ? { dynamic: true } : {})
+                  },
+                  {
+                    persistPayload: {
+                      type: 'tool-input-available',
+                      toolCallId,
+                      toolName: toolName ?? (toolCallId || 'unknown-tool'),
+                      input: syntheticInput ?? {},
+                      ...(syntheticDynamic ? { dynamic: true } : {})
+                    }
+                  }
+                )
+              }
+              const emitPayload: Record<string, unknown> = {
                 type: 'tool-output-error',
-                toolCallId: chunkAny.toolCallId,
-                errorText
-              })
+                toolCallId,
+                errorText,
+                ...(providerExecuted !== undefined ? { providerExecuted } : {}),
+                ...(dynamic !== undefined ? { dynamic } : {})
+              }
+              const persistPayload: Record<string, unknown> = {
+                ...emitPayload,
+                ...(toolName ? { toolName } : {})
+              }
+              await emitAndRecord('tool-output-error', emitPayload, { persistPayload })
               break
             }
             case 'message_metadata': {
               if (Array.isArray(chunkAny.messageMetadata)) {
-                emit('message-metadata', {
+                await emitAndRecord('message-metadata', {
                   type: 'message-metadata',
                   messageMetadata: chunkAny.messageMetadata
                 })
@@ -419,36 +553,20 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
             }
             case 'error': {
               const errorText = typeof chunkAny.errorText === 'string' ? chunkAny.errorText : 'Stream error'
-              emit('error', { type: 'error', errorText })
+              await emitAndRecord('error', { type: 'error', errorText })
               break
             }
             default: {
               const text = extractString(chunkAny.delta ?? chunkAny.text ?? chunkAny.value ?? chunkAny.message)
-              if (text && text.length > 0) emitTextBlock(text)
+              if (text && text.length > 0) await emitTextBlock(text)
               break
             }
-          }
-
-          buffer.push({ type: rawType, payload: chunk, ts: Date.now() })
-          if (isMessageMetadataEvent(rawType) && chunk) {
-            const metadata = (chunk as any).messageMetadata
-            if (metadata && typeof metadata === 'object') {
-              messageMetadata = metadata as Record<string, unknown>
-            }
-          }
-
-          if (buffer.length >= flushBatchMax) {
-            flushBuffer()
-            await pendingPersist
-          } else {
-            scheduleFlush()
           }
         }
       } catch (error) {
         recordedError = error
         const message = error instanceof Error ? error.message : String(error)
-        buffer.push({ type: 'error', payload: { error: message }, ts: Date.now() })
-        emit('error', { type: 'error', errorText: message })
+        await emitAndRecord('error', { type: 'error', errorText: message })
       } finally {
         if (flushTimer) {
           clearTimeout(flushTimer)
@@ -475,7 +593,7 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
           }
 
           if (fallbackText && fallbackText.trim().length > 0) {
-            emitTextBlock(fallbackText)
+            await emitTextBlock(fallbackText)
           }
         }
 
@@ -490,7 +608,7 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
         }
 
         if (finishMetadataEntries.length > 0) {
-          emit('message-metadata', {
+          await emitAndRecord('message-metadata', {
             type: 'message-metadata',
             messageMetadata: finishMetadataEntries
           })
@@ -501,9 +619,17 @@ export async function createPersistedUIStreamResponse(options: PersistedStreamOp
           }
         }
 
-        emit('finish', { type: 'finish' })
+        await emitAndRecord('finish', { type: 'finish' })
+
+        flushBuffer()
+        await pendingPersist
 
         if (!closed) {
+          try {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          } catch (doneError) {
+            console.warn('[ChatStream] Failed to enqueue DONE sentinel', doneError)
+          }
           closed = true
           controller.close()
         }

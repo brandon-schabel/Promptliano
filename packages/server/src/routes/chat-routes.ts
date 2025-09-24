@@ -713,15 +713,33 @@ chatRoutes.get('/api/streams/:streamId/replay', async (c) => {
 
   const events = await chatStreamService.getEvents(streamId)
   const encoder = new TextEncoder()
+  const isUiStream = (streamRecord.format ?? 'data') === 'ui'
 
   const readable = new ReadableStream<Uint8Array>({
     start(controller) {
       try {
-        for (const event of events) {
-          const payload = JSON.stringify(event.payload ?? null)
-          const chunk = `event: ${event.type}\ndata: ${payload}\n\n`
-          controller.enqueue(encoder.encode(chunk))
+        const enqueueJson = (value: unknown) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(value ?? null)}\n\n`))
         }
+
+        if (isUiStream) {
+          for (const event of events) {
+            const payload = event.payload && typeof event.payload === 'object'
+              ? { ...(event.payload as Record<string, unknown>) }
+              : event.payload ?? null
+            if (payload && typeof payload === 'object' && typeof (payload as Record<string, unknown>).type !== 'string') {
+              ;(payload as Record<string, unknown>).type = event.type
+            }
+            enqueueJson(payload)
+          }
+        } else {
+          for (const event of events) {
+            const payload = JSON.stringify(event.payload ?? null)
+            const chunk = `event: ${event.type}\ndata: ${payload}\n\n`
+            controller.enqueue(encoder.encode(chunk))
+          }
+        }
+
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         controller.close()
       } catch (error) {
@@ -730,14 +748,21 @@ chatRoutes.get('/api/streams/:streamId/replay', async (c) => {
     }
   })
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'x-stream-id': String(streamId),
+    'x-chat-id': String(streamRecord.chatId),
+    'x-stream-format': isUiStream ? 'ui' : (streamRecord.format ?? 'data')
+  }
+
+  if (isUiStream) {
+    headers['x-vercel-ai-ui-message-stream'] = 'v1'
+  }
+
   return new Response(readable, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'x-stream-id': String(streamId),
-      'x-chat-id': String(streamRecord.chatId)
-    }
+    headers
   })
 })
 
@@ -894,7 +919,7 @@ chatRoutes.post('/api/chat', async (c) => {
   const response = persistedStream.response
   response.headers.set('x-chat-id', String(chatId))
   response.headers.set('x-stream-id', String(persistedStream.streamId))
-  response.headers.set('x-stream-format', 'data')
+  response.headers.set('x-stream-format', 'ui')
   return response
 })
 
@@ -912,6 +937,10 @@ chatRoutes.get('/api/history', async (c) => {
 
   const messages = await chatRepository.getMessages(parsedId)
   const uiMessages = messages.map(deserializeChatMessage)
+  const normalizedUiMessages = uiMessages.map((message) => ({
+    ...message,
+    metadata: message.metadata ?? undefined
+  }))
 
   const includeRawParam = (c.req.query('includeRaw') ?? '').toLowerCase()
   const includeRaw = includeRawParam === 'true' || includeRawParam === '1'
@@ -929,7 +958,7 @@ chatRoutes.get('/api/history', async (c) => {
 
   const responseBody: z.infer<typeof HistoryResponseSchema> = {
     chatId: String(parsedId),
-    messages: uiMessages,
+    messages: normalizedUiMessages,
     ...(streamSummaries ? { streams: streamSummaries.map(toStreamReferenceResponse) } : {})
   }
 

@@ -672,7 +672,20 @@ export function extractString(value: unknown): string {
   }
   if (typeof value === 'object') {
     const record = value as Record<string, unknown>
-    const preferredKeys = ['value', 'text', 'output_text', 'outputText', 'content', 'message', 'output', 'response', 'reasoning']
+    const preferredKeys = [
+      'value',
+      'text',
+      'delta',
+      'delta_text',
+      'deltaText',
+      'output_text',
+      'outputText',
+      'content',
+      'message',
+      'output',
+      'response',
+      'reasoning'
+    ]
     for (const key of preferredKeys) {
       const nested = record[key]
       const extracted = extractString(nested)

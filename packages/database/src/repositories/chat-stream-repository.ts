@@ -8,6 +8,7 @@ export interface CreateChatStreamParams {
   provider: string
   model: string
   messageMetadata?: Record<string, unknown> | null
+  format?: 'ui' | 'data'
 }
 
 export interface FinalizeChatStreamParams {
@@ -63,7 +64,8 @@ export const chatStreamRepository = {
         startedAt: now,
         createdAt: now,
         updatedAt: now,
-        messageMetadataJson: params.messageMetadata ?? null
+        messageMetadataJson: params.messageMetadata ?? null,
+        format: params.format ?? 'ui'
       })
       .returning({ id: chatStreams.id })
 
