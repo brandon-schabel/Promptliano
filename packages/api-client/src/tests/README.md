@@ -98,7 +98,7 @@ const testEnv = await createTestEnvironment({
   ai: {
     lmstudio: {
       enabled: true,
-      baseUrl: 'http://192.168.1.38:1234',
+      baseUrl: 'http://localhost:1234',
       model: 'openai/gpt-oss-20b'
     }
   }
@@ -165,14 +165,14 @@ await patterns.testCrudOperations(
 
 3. **Configure Network Access**:
    - If LMStudio is on a different machine, ensure network access
-   - Default configuration expects LMStudio at `http://192.168.1.38:1234`
+   - Default configuration expects LMStudio at `http://localhost:1234`
    - Update via environment variable: `LMSTUDIO_BASE_URL=http://your-ip:1234`
 
 ### Environment Variables
 
 ```bash
 # LMStudio configuration
-export LMSTUDIO_BASE_URL=\"http://192.168.1.38:1234\"
+export LMSTUDIO_BASE_URL=\"http://localhost:1234\"
 export LMSTUDIO_MODEL=\"openai/gpt-oss-20b\"
 export AI_TEST_TIMEOUT=\"30000\"
 
@@ -238,7 +238,7 @@ const response = await fetch(`${baseUrl}/api/gen-ai/structured`, {
 | `TEST_KEEP_DB`              | Preserve database between suites        | `false`                       |
 | **AI Configuration**        |
 | `SKIP_AI_TESTS`             | Skip all AI endpoint tests              | `false` (true in CI)          |
-| `LMSTUDIO_BASE_URL`         | LMStudio server URL                     | `http://192.168.1.38:1234`    |
+| `LMSTUDIO_BASE_URL`         | LMStudio server URL                     | `http://localhost:1234`       |
 | `LMSTUDIO_MODEL`            | Target model name                       | `openai/gpt-oss-20b`          |
 | `AI_TEST_TIMEOUT`           | AI operation timeout (ms)               | `30000`                       |
 | `AI_FAIL_WHEN_UNAVAILABLE`  | Fail when AI unavailable                | `false`                       |

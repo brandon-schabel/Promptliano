@@ -173,7 +173,7 @@ export function getEnhancedTestConfig(): EnhancedTestConfig {
     ai: {
       lmstudio: {
         enabled: enableLMStudio,
-        baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://192.168.1.38:1234',
+        baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://localhost:1234',
         model: process.env.LMSTUDIO_MODEL || 'openai/gpt-oss-20b',
         timeout: parseInt(process.env.AI_TEST_TIMEOUT || (isCI ? '15000' : '30000'), 10),
         skipWhenUnavailable: process.env.AI_FAIL_WHEN_UNAVAILABLE !== 'true'
@@ -227,7 +227,7 @@ export const TEST_ENV_VARS = {
 
   // AI configuration
   SKIP_AI_TESTS: 'Set to "true" to skip all AI endpoint tests',
-  LMSTUDIO_BASE_URL: 'LMStudio server URL (default: http://192.168.1.38:1234)',
+  LMSTUDIO_BASE_URL: 'LMStudio server URL (default: http://localhost:1234)',
   LMSTUDIO_MODEL: 'Target model name (default: openai/gpt-oss-20b)',
   AI_TEST_TIMEOUT: 'Timeout for AI operations in ms (default: 30000)',
   AI_FAIL_WHEN_UNAVAILABLE: 'Set to "true" to fail tests when AI services unavailable',

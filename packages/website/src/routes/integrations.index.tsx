@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { SeoMetadata } from '@/schemas/seo.schemas'
-import { GlassCard, AnimateOnScroll, fadeInUp, staggerContainer, staggerItem } from '@/components/ui'
+import { GlassCard, AnimateOnScroll, staggerContainer, staggerItem } from '@/components/ui'
 import { HeroButton } from '@/components/ui/hero-button'
-import { DownloadButton } from '@/components/ui/download-button'
-import { McpOverview, SetupWizard, CompatibilityMatrix, Troubleshooting } from '@/components/mcp'
+import { McpOverview, CompatibilityMatrix, Troubleshooting } from '@/components/mcp'
+import { CodeBlock } from '@/components/docs'
 import { motion } from 'framer-motion'
 import {
   ChevronRight,
@@ -13,10 +13,7 @@ import {
   Terminal,
   CheckCircle,
   ArrowRight,
-  Sparkles,
-  Settings,
-  AlertCircle,
-  Download
+  Sparkles
 } from 'lucide-react'
 
 export const Route = createFileRoute('/integrations/')({
@@ -25,7 +22,7 @@ export const Route = createFileRoute('/integrations/')({
       meta: {
         title: 'MCP Integrations - Promptliano | AI-Powered Development',
         description:
-          'Integrate Promptliano with VS Code, Cursor, Claude Desktop, and more through Model Context Protocol. Easy installer, 60-70% token efficiency.',
+          'Integrate Promptliano with VS Code, Cursor, Claude Desktop, and more through Model Context Protocol. Manual JSON setup, 60-70% token efficiency.',
         keywords: [
           'MCP',
           'Model Context Protocol',
@@ -56,7 +53,7 @@ const supportedEditors = [
     description: 'Native MCP support with enhanced AI features',
     icon: <Zap className='w-6 h-6' />,
     status: 'stable',
-    features: ['Built-in MCP client', 'AI-powered code completion', 'Seamless setup']
+    features: ['MCP settings UI', 'AI-powered code completion', 'Manual JSON guidance']
   },
   {
     name: 'Claude Desktop',
@@ -98,11 +95,33 @@ const keyFeatures = [
     icon: <Shield className='w-5 h-5' />
   },
   {
-    title: 'Easy One-Click Install',
-    description: 'Simple setup process with automated configuration for all editors',
+    title: 'Step-by-Step Setup',
+    description: 'Copy ready-made JSON into your editor configuration files',
     icon: <CheckCircle className='w-5 h-5' />
   }
 ]
+
+const claudeMacSnippet = `{
+  "mcpServers": {
+    "promptliano": {
+      "command": "/absolute/path/to/promptliano/packages/server/mcp-start.sh"
+    }
+  }
+}`
+
+const claudeWindowsSnippet = `{
+  "mcpServers": {
+    "promptliano": {
+      "command": "C:\\absolute\\path\\to\\promptliano\\packages\\server\\mcp-start.bat"
+    }
+  }
+}`
+
+const cursorSnippet = `{
+  "promptliano": {
+    "command": "/absolute/path/to/promptliano/packages/server/mcp-start.sh"
+  }
+}`
 
 function IntegrationsPage() {
   return (
@@ -212,35 +231,64 @@ function IntegrationsPage() {
           </section>
         </AnimateOnScroll>
 
-        {/* Easy Installer Section */}
+        {/* Manual MCP Setup Section */}
         <AnimateOnScroll>
-          <section className='mb-20'>
-            <GlassCard className='p-8 md:p-12 bg-gradient-to-br from-primary/5 to-primary/10'>
-              <div className='grid md:grid-cols-2 gap-8 items-center'>
-                <div>
-                  <h2 className='text-3xl md:text-4xl font-bold mb-4'>Easy One-Click Installer</h2>
-                  <p className='text-lg text-muted-foreground mb-6'>
-                    Get started with Promptliano in minutes. Our automated installer handles all the configuration for
-                    your editor, so you can focus on building amazing software with AI assistance.
-                  </p>
-                  <ul className='space-y-3 mb-6'>
-                    <li className='flex items-center gap-3'>
-                      <CheckCircle className='w-5 h-5 text-primary' />
-                      <span>Automatic editor detection</span>
-                    </li>
-                    <li className='flex items-center gap-3'>
-                      <CheckCircle className='w-5 h-5 text-primary' />
-                      <span>Zero configuration required</span>
-                    </li>
-                    <li className='flex items-center gap-3'>
-                      <CheckCircle className='w-5 h-5 text-primary' />
-                      <span>Cross-platform support</span>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <DownloadButton showPlatforms={true} />
-                </div>
+          <section id='setup' className='py-20'>
+            <div className='text-center mb-12'>
+              <h2 className='text-3xl md:text-4xl font-bold mb-4'>Manual MCP Setup</h2>
+              <p className='text-lg text-muted-foreground max-w-2xl mx-auto'>
+                Copy the relevant JSON snippet into your editor&apos;s configuration file to connect Promptliano as an MCP
+                server.
+              </p>
+            </div>
+
+            <GlassCard className='max-w-4xl mx-auto p-8 space-y-8'>
+              <div>
+                <h3 className='text-2xl font-semibold mb-2'>Claude Desktop (macOS)</h3>
+                <p className='text-sm text-muted-foreground mb-3'>
+                  Edit{' '}
+                  <code className='px-1.5 py-0.5 bg-muted rounded text-xs font-mono'>
+                    ~/Library/Application Support/Claude/claude_desktop_config.json
+                  </code>{' '}
+                  and merge this under{' '}
+                  <code className='px-1.5 py-0.5 bg-muted rounded text-xs font-mono'>&quot;mcpServers&quot;</code>.
+                </p>
+                <CodeBlock code={claudeMacSnippet} language='json' />
+              </div>
+
+              <div>
+                <h3 className='text-2xl font-semibold mb-2'>Claude Desktop (Windows)</h3>
+                <p className='text-sm text-muted-foreground mb-3'>
+                  Edit{' '}
+                  <code className='px-1.5 py-0.5 bg-muted rounded text-xs font-mono'>
+                    %APPDATA%\\Claude\\claude_desktop_config.json
+                  </code>{' '}
+                  and paste the snippet below.
+                </p>
+                <CodeBlock code={claudeWindowsSnippet} language='json' />
+                <p className='text-xs text-muted-foreground mt-2'>
+                  Use double backslashes in Windows paths and adjust the Promptliano path for your installation.
+                </p>
+              </div>
+
+              <div>
+                <h3 className='text-2xl font-semibold mb-2'>Cursor, Windsurf, and Other Editors</h3>
+                <p className='text-sm text-muted-foreground mb-3'>
+                  These editors provide an MCP configuration screen. Add a server named{' '}
+                  <code className='px-1.5 py-0.5 bg-muted rounded text-xs font-mono'>promptliano</code> with the following
+                  command path.
+                </p>
+                <CodeBlock code={cursorSnippet} language='json' />
+                <p className='text-xs text-muted-foreground mt-2'>
+                  Replace the command path with your actual Promptliano location; keep the shell script on macOS/Linux or
+                  use the <code className='px-1.5 py-0.5 bg-muted rounded text-xs font-mono'>.bat</code> script on Windows.
+                </p>
+              </div>
+
+              <div className='p-4 bg-blue-500/10 rounded-lg border border-blue-500/20'>
+                <p className='text-sm text-muted-foreground'>
+                  Restart your editor after updating its configuration so it picks up the new MCP server.
+                </p>
               </div>
             </GlassCard>
           </section>
@@ -248,145 +296,6 @@ function IntegrationsPage() {
 
         {/* MCP Overview Section */}
         <McpOverview />
-
-        {/* Built-in MCP Installer Section */}
-        <AnimateOnScroll>
-          <section id='setup' className='py-20'>
-            <div className='text-center mb-12'>
-              <h2 className='text-3xl md:text-4xl font-bold mb-4'>Built-in MCP Installer</h2>
-              <p className='text-lg text-muted-foreground max-w-2xl mx-auto'>
-                Promptliano includes a built-in MCP installer that makes setup effortless. No manual configuration
-                needed!
-              </p>
-            </div>
-
-            <GlassCard className='max-w-4xl mx-auto p-8'>
-              <div className='mb-8'>
-                <div className='flex items-center gap-3 mb-4'>
-                  <div className='p-2 rounded-lg bg-primary/10'>
-                    <Settings className='h-6 w-6 text-primary' />
-                  </div>
-                  <h3 className='text-2xl font-semibold'>Install MCP from Within Promptliano</h3>
-                </div>
-                <p className='text-muted-foreground mb-6'>
-                  Forget about manual JSON configuration files. Promptliano handles everything for you with its built-in
-                  installer.
-                </p>
-              </div>
-
-              <div className='space-y-6'>
-                <div className='flex items-start gap-4'>
-                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold'>
-                    1
-                  </div>
-                  <div>
-                    <h4 className='font-semibold mb-2'>Open Your Project</h4>
-                    <p className='text-muted-foreground'>
-                      Launch Promptliano and open any project from the project selector.
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-start gap-4'>
-                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold'>
-                    2
-                  </div>
-                  <div>
-                    <h4 className='font-semibold mb-2'>Navigate to Project Settings</h4>
-                    <p className='text-muted-foreground'>
-                      Click on the <span className='font-mono text-sm bg-muted px-1.5 py-0.5 rounded'>Settings</span>{' '}
-                      tab in your project view.
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-start gap-4'>
-                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold'>
-                    3
-                  </div>
-                  <div>
-                    <h4 className='font-semibold mb-2'>Find the MCP Installation Section</h4>
-                    <p className='text-muted-foreground'>
-                      Scroll down to find the "MCP Server Installation" section. This intelligent installer detects your
-                      installed editors automatically.
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-start gap-4'>
-                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold'>
-                    4
-                  </div>
-                  <div>
-                    <h4 className='font-semibold mb-2'>Click Install</h4>
-                    <p className='text-muted-foreground'>
-                      Select your editor and click the install button. Promptliano will:
-                    </p>
-                    <ul className='mt-2 space-y-1'>
-                      <li className='flex items-center gap-2 text-sm text-muted-foreground'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        Create the correct configuration file
-                      </li>
-                      <li className='flex items-center gap-2 text-sm text-muted-foreground'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        Set up proper paths and permissions
-                      </li>
-                      <li className='flex items-center gap-2 text-sm text-muted-foreground'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        Configure the MCP server connection
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className='flex items-start gap-4'>
-                  <div className='flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold'>
-                    5
-                  </div>
-                  <div>
-                    <h4 className='font-semibold mb-2'>Restart Your Editor</h4>
-                    <p className='text-muted-foreground'>
-                      Restart your AI editor to activate the MCP connection. You're now ready to use Promptliano!
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className='mt-8 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20'>
-                <div className='flex items-start gap-3'>
-                  <AlertCircle className='w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5' />
-                  <div>
-                    <p className='text-sm'>
-                      <strong>Note:</strong> The built-in installer currently supports Claude Desktop, Cursor, VS Code,
-                      and other popular editors. More editors are being added regularly.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className='mt-6 text-center'>
-                <HeroButton href='/downloads' size='lg'>
-                  Download Promptliano
-                  <Download className='ml-2 w-4 h-4' />
-                </HeroButton>
-              </div>
-            </GlassCard>
-          </section>
-        </AnimateOnScroll>
-
-        {/* Commented out manual setup - keeping for reference
-        <AnimateOnScroll>
-          <section id='setup' className='py-20'>
-            <div className='text-center mb-12'>
-              <h2 className='text-3xl md:text-4xl font-bold mb-4'>Quick Setup Guide</h2>
-              <p className='text-lg text-muted-foreground max-w-2xl mx-auto'>
-                Follow our interactive step-by-step guide to get Promptliano running with your development environment
-              </p>
-            </div>
-            <SetupWizard />
-          </section>
-        </AnimateOnScroll>
-        */}
 
         {/* Compatibility Matrix */}
         <AnimateOnScroll>
@@ -438,3 +347,4 @@ function IntegrationsPage() {
     </div>
   )
 }
+

@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/ui-utils": "1.2.11",
     "@promptliano/config": "workspace:*",
     "@promptliano/database": "workspace:*",
     "@promptliano/schemas": "workspace:*",

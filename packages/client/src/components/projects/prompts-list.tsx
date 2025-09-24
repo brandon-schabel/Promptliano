@@ -181,7 +181,7 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
       name: prompt.title,
       content: prompt.content,
       path: prompt.title,
-      extension: '.txt',
+      extension: '.md',
       projectId: prompt.projectId || selectedProjectId,
       created: prompt.createdAt,
       updated: prompt.updatedAt,
@@ -409,7 +409,10 @@ export const PromptsList = forwardRef<PromptsListRef, PromptsListProps>(({ proje
                             }}
                           />
                           <div className='flex items-center space-x-2 min-w-0'>
-                            <span className='font-medium'>
+                            <span
+                              className='font-medium cursor-pointer'
+                              onDoubleClick={() => handleOpenPromptViewer(prompt)}
+                            >
                               {prompt.title.length > 35 ? `${prompt.title.substring(0, 32)}...` : prompt.title}
                             </span>
                             <FormatTokenCount tokenContent={prompt.content ?? ''} />

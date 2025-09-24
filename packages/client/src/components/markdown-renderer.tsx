@@ -7,6 +7,7 @@ import * as languages from 'react-syntax-highlighter/dist/esm/languages/hljs'
 import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 import { useMemo } from 'react'
 import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { MermaidDiagram } from '@/components/mermaid-diagram'
 
 Object.entries(languages).forEach(([name, lang]) => {
   SyntaxHighlighter.registerLanguage(name, lang)
@@ -18,7 +19,7 @@ SyntaxHighlighter.registerLanguage('tsx', ts)
 
 type MarkdownRendererProps = {
   content: string
-  copyToClipboard?: (text: string) => void
+  copyToClipboard?: (text: string) => void | Promise<void>
 }
 
 export function MarkdownRenderer({ content, copyToClipboard }: MarkdownRendererProps) {
@@ -37,6 +38,11 @@ export function MarkdownRenderer({ content, copyToClipboard }: MarkdownRendererP
     code: ({ inline, className, children, ...rest }) => {
       const match = /language-(\w+)/.exec(className || '')
       const codeString = String(children).replace(/\n$/, '')
+      const language = match?.[1]?.toLowerCase()
+
+      if (!inline && language === 'mermaid') {
+        return <MermaidDiagram code={codeString} />
+      }
 
       if (!inline && match) {
         return (

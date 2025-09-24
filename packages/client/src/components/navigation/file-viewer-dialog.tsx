@@ -31,6 +31,8 @@ type FileViewerDialogProps = {
 
 import { getFileLanguage } from '@/lib/file-utils'
 
+const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdown', '.mkd', '.mkdn', '.mdx'] as const
+
 function getLanguageByExtension(extension?: string | null): string {
   if (!extension) return 'plaintext'
   const ext = extension.toLowerCase()
@@ -90,7 +92,7 @@ export function FileViewerDialog({
 }: FileViewerDialogProps) {
   const [isEditingFile, setIsEditingFile] = useState(false)
   const [editedContent, setEditedContent] = useState<string>('')
-  const [showRawMarkdown, setShowRawMarkdown] = useState(false)
+  const [renderMarkdown, setRenderMarkdown] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [activeTab, setActiveTab] = useState<'content' | 'diff'>('content')
   const [diffViewMode, setDiffViewMode] = useState<'unstaged' | 'staged'>('unstaged')
@@ -100,6 +102,20 @@ export function FileViewerDialog({
   const isDarkMode = useSelectSetting('theme') === 'dark'
   const codeThemeDark = useSelectSetting('codeThemeDark')
   const codeThemeLight = useSelectSetting('codeThemeLight')
+
+  const extensionFromFile = viewedFile?.extension?.toLowerCase()
+  const extensionFromPath = viewedFile?.path?.includes('.')
+    ? `.${viewedFile.path.split('.').pop()?.toLowerCase() || ''}`
+    : ''
+  const normalizedExtension = extensionFromFile || extensionFromPath
+  const hasMarkdownText = !!markdownText && markdownText.trim().length > 0
+  const isMarkdownFile = Boolean(viewedFile) && MARKDOWN_EXTENSIONS.some((ext) => ext === normalizedExtension)
+  const isContentTabActive = activeTab === 'content'
+  const canRenderMarkdown = !isEditingFile && isContentTabActive && (hasMarkdownText || isMarkdownFile)
+  const shouldRenderMarkdown = canRenderMarkdown && renderMarkdown
+  const copyPlainText = (text: string) => {
+    copyToClipboard(text)
+  }
 
   const updateFileContent = useUpdateFileContent()
 
@@ -137,6 +153,7 @@ export function FileViewerDialog({
       setIsEditingFile(startInEditMode && !!viewedFile && !!projectId)
       setEditedContent(viewedFile?.content || markdownText || '')
       setIsFullscreen(false)
+      setRenderMarkdown(true)
       // Set initial tab based on startInDiffMode and whether file has changes
       if (startInDiffMode && hasGitChanges) {
         setActiveTab('diff')
@@ -262,10 +279,10 @@ export function FileViewerDialog({
           </div>
           <DialogDescription className='flex items-center justify-between'>
             <span>{isEditingFile ? 'Editing mode' : 'View mode'}</span>
-            {markdownText && !isEditingFile && (
+            {canRenderMarkdown && (
               <div className='flex items-center gap-2'>
-                <span className='text-sm'>Show Raw</span>
-                <Switch checked={showRawMarkdown} onCheckedChange={setShowRawMarkdown} />
+                <span className='text-sm'>Render Markdown</span>
+                <Switch checked={renderMarkdown} onCheckedChange={setRenderMarkdown} />
               </div>
             )}
           </DialogDescription>
@@ -289,15 +306,22 @@ export function FileViewerDialog({
               <TabsContent value='content' className='flex-1 min-h-0 mt-4'>
                 <div className={`h-full overflow-auto border rounded-md ${isFullscreen ? 'p-2 mx-4' : 'p-2'}`}>
                   {!isEditingFile ? (
-                    // @ts-ignore
-                    <SyntaxHighlighter
-                      language={getLanguageByExtension(viewedFile?.extension)}
-                      style={selectedSyntaxTheme}
-                      showLineNumbers
-                      wrapLongLines
-                    >
-                      {viewedFile?.content || ''}
-                    </SyntaxHighlighter>
+                    shouldRenderMarkdown ? (
+                      <MarkdownRenderer
+                        content={viewedFile?.content || ''}
+                        copyToClipboard={copyPlainText}
+                      />
+                    ) : (
+                      // @ts-ignore
+                      <SyntaxHighlighter
+                        language={getLanguageByExtension(viewedFile?.extension)}
+                        style={selectedSyntaxTheme}
+                        showLineNumbers
+                        wrapLongLines
+                      >
+                        {viewedFile?.content || ''}
+                      </SyntaxHighlighter>
+                    )
                   ) : (
                     <div className='h-full relative'>
                       <LazyMonacoEditor
@@ -445,9 +469,12 @@ export function FileViewerDialog({
                 </div>
               </TabsContent>
             </Tabs>
-          ) : (
-            <div className={`flex-1 min-h-0 overflow-auto border rounded-md ${isFullscreen ? 'p-2 mx-4' : 'p-2'}`}>
-              {!isEditingFile ? (
+        ) : (
+          <div className={`flex-1 min-h-0 overflow-auto border rounded-md ${isFullscreen ? 'p-2 mx-4' : 'p-2'}`}>
+            {!isEditingFile ? (
+              shouldRenderMarkdown ? (
+                <MarkdownRenderer content={viewedFile?.content || ''} copyToClipboard={copyPlainText} />
+              ) : (
                 // @ts-ignore
                 <SyntaxHighlighter
                   language={getLanguageByExtension(viewedFile?.extension)}
@@ -457,10 +484,11 @@ export function FileViewerDialog({
                 >
                   {viewedFile?.content || ''}
                 </SyntaxHighlighter>
-              ) : (
-                <div className='flex-1 min-h-0 relative'>
-                  <LazyMonacoEditor
-                    value={editedContent}
+              )
+            ) : (
+              <div className='flex-1 min-h-0 relative'>
+                <LazyMonacoEditor
+                  value={editedContent}
                     onChange={(value) => setEditedContent(value || '')}
                     language={getLanguageByExtension(viewedFile?.extension)}
                     height={isFullscreen ? 'calc(100vh - 300px)' : '300px'}
@@ -474,7 +502,9 @@ export function FileViewerDialog({
           /* Fallback for markdown content or files without versioning */
           <div className={`flex-1 min-h-0 overflow-auto border rounded-md ${isFullscreen ? 'p-2 mx-4' : 'p-2'}`}>
             {markdownText ? (
-              showRawMarkdown ? (
+              shouldRenderMarkdown ? (
+                <MarkdownRenderer content={markdownText} copyToClipboard={copyPlainText} />
+              ) : (
                 <div className='relative my-2 overflow-x-auto break-words'>
                   <button
                     onClick={() => copyToClipboard(markdownText)}
@@ -495,19 +525,21 @@ export function FileViewerDialog({
                     {markdownText}
                   </SyntaxHighlighter>
                 </div>
-              ) : (
-                <MarkdownRenderer content={markdownText} copyToClipboard={copyToClipboard} />
               )
             ) : viewedFile ? (
-              // @ts-ignore
-              <SyntaxHighlighter
-                language={getLanguageByExtension(viewedFile?.extension)}
-                style={selectedSyntaxTheme}
-                showLineNumbers
-                wrapLongLines
-              >
-                {viewedFile?.content || ''}
-              </SyntaxHighlighter>
+              shouldRenderMarkdown ? (
+                <MarkdownRenderer content={viewedFile?.content || ''} copyToClipboard={copyPlainText} />
+              ) : (
+                // @ts-ignore
+                <SyntaxHighlighter
+                  language={getLanguageByExtension(viewedFile?.extension)}
+                  style={selectedSyntaxTheme}
+                  showLineNumbers
+                  wrapLongLines
+                >
+                  {viewedFile?.content || ''}
+                </SyntaxHighlighter>
+              )
             ) : null}
           </div>
         )}

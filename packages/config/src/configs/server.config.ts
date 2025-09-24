@@ -19,6 +19,7 @@ const isProdEnv = !isDevEnv && !isTestEnv
 const DEV_PORT = 3147
 const PROD_PORT = 3579
 const CLIENT_PORT = 1420
+const PREVIEW_PORT = getEnvVar('VITE_PREVIEW_PORT', '4173')
 
 // Determine if running in Docker/container environment
 const isDocker = getEnvVar('DOCKER', 'false') === 'true' || getEnvVar('DATABASE_PATH')?.startsWith('/data')
@@ -42,6 +43,7 @@ export const serverConfig: ServerConfig = {
   corsConfig: {
     origin: getEnvVar('CORS_ORIGIN') || [
       `http://localhost:${CLIENT_PORT}`,
+      `http://localhost:${PREVIEW_PORT}`,
       `http://localhost:${serverPort}`,
       `https://${getEnvVar('DOMAIN', 'localhost')}`
     ],

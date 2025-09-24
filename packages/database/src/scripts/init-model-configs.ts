@@ -55,7 +55,7 @@ const INTELLIGENCE_CONFIGS = {
 const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: number })[] = [
   // Intelligence-based configurations
   {
-    name: 'low-intelligence',
+    name: 'low',
     displayName: 'Low - Fast Local',
     provider: INTELLIGENCE_CONFIGS.low.provider as any,
     model: INTELLIGENCE_CONFIGS.low.model,
@@ -77,7 +77,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'medium-intelligence',
+    name: 'medium',
     displayName: 'Medium - Balanced',
     provider: INTELLIGENCE_CONFIGS.medium.provider as any,
     model: INTELLIGENCE_CONFIGS.medium.model,
@@ -99,7 +99,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'high-intelligence',
+    name: 'high',
     displayName: 'High - Maximum Quality',
     provider: INTELLIGENCE_CONFIGS.high.provider as any,
     model: INTELLIGENCE_CONFIGS.high.model,
@@ -121,7 +121,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'planning-intelligence',
+    name: 'planning',
     displayName: 'Planning - Task Breakdown',
     provider: INTELLIGENCE_CONFIGS.planning.provider as any,
     model: INTELLIGENCE_CONFIGS.planning.model,
@@ -507,13 +507,20 @@ const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
   }
 ]
 
+type InitModelConfigsOptions = {
+  forceReset?: boolean
+}
+
 export type InitModelConfigsResult =
   | { status: 'seeded'; configsInserted: number; presetsInserted: number }
   | { status: 'skipped_existing' }
   | { status: 'skipped_missing_tables'; reason: string }
   | { status: 'skipped_error'; reason: string }
 
-export async function initializeModelConfigs(): Promise<InitModelConfigsResult> {
+export async function initializeModelConfigs(
+  options: InitModelConfigsOptions = {}
+): Promise<InitModelConfigsResult> {
+  const { forceReset = false } = options
   console.log('🚀 Initializing model configurations...')
 
   try {
@@ -545,7 +552,19 @@ export async function initializeModelConfigs(): Promise<InitModelConfigsResult> 
     }
 
     // Check if configs already exist
-    const existingConfigs = await db.select().from(modelConfigs).limit(1)
+    let existingConfigs = await db.select().from(modelConfigs).limit(1)
+    if (existingConfigs.length > 0 && forceReset) {
+      console.log('♻️  Force resetting existing model configurations (dev mode)...')
+      await db.transaction(async (tx) => {
+        if (tableExists('model_presets')) {
+          await tx.delete(modelPresets)
+        }
+        await tx.delete(modelConfigs)
+      })
+      console.log('✅ Cleared existing model configurations')
+      existingConfigs = []
+    }
+
     if (existingConfigs.length > 0) {
       console.log('⚠️  Model configurations already exist. Skipping initialization.')
       console.log('   To reinitialize, delete existing configs first.')

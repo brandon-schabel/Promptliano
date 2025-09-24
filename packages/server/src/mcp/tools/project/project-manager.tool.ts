@@ -22,6 +22,7 @@ import {
   getProjectFiles,
   updateFileContent,
   suggestFilesForProject,
+  suggestFiles,
   syncProject,
   getProjectFileTree,
   getProjectOverview
@@ -287,17 +288,33 @@ export const projectManagerTool: MCPToolDefinition = {
             const prompt = validateDataField<string>(data, 'prompt', 'string', '"authentication flow"')
             const limit = (data?.limit as number) || 10
 
-            const result = await suggestFilesForProject(validProjectId, prompt, {
-              maxResults: limit
-            })
-            const files = (await getProjectFiles(validProjectId)) ?? []
-            const fileById = new Map(files.map((file) => [String(file.id), file]))
-            const suggestionText = (result.suggestions || [])
-              .map((fileId) => {
-                const file = fileById.get(String(fileId))
-                return file?.path ?? String(fileId)
+            let suggestionText = ''
+
+            try {
+              const result = await suggestFilesForProject(validProjectId, prompt, {
+                maxResults: limit,
+                strategy: 'fast'
               })
-              .join('\n')
+
+              const files = (await getProjectFiles(validProjectId)) ?? []
+              const fileById = new Map(files.map((file) => [String(file.id), file]))
+              suggestionText = (result.suggestions || [])
+                .map((fileId) => {
+                  const file = fileById.get(String(fileId))
+                  return file?.path ?? String(fileId)
+                })
+                .filter(Boolean)
+                .join('\n')
+            } catch (error) {
+              console.warn(
+                '[ProjectManagerTool] AI-powered suggest_files failed; falling back to semantic search results',
+                error
+              )
+
+              const fallbackFiles = await suggestFiles(validProjectId, prompt, limit)
+              suggestionText = fallbackFiles.map((file) => file.path).join('\n')
+            }
+
             return {
               content: [{ type: 'text', text: suggestionText || 'No file suggestions found' }]
             }

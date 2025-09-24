@@ -19,6 +19,55 @@ const logger = createLogger('Server')
 
 const serverConfig = getServerConfig()
 
+if (process.env.PROMPTLIANO_DEBUG_STREAM === 'true') {
+  const baseFetch = globalThis.fetch.bind(globalThis)
+  const debugFetch = (async function fetchWithDebug(
+    input: Request | URL | string,
+    init?: RequestInit
+  ): Promise<Response> {
+    const method = input instanceof Request ? input.method : init?.method ?? 'GET'
+    const url = input instanceof Request ? input.url : input.toString()
+    try {
+      console.debug('[AI fetch] →', method, url)
+      const response = await baseFetch(input as any, init)
+      const contentType = response.headers.get('content-type') ?? 'unknown'
+      console.debug('[AI fetch] ←', response.status, url, contentType)
+
+      if (
+        url.includes('openrouter.ai/api') &&
+        response.status === 200 &&
+        contentType.includes('text/html')
+      ) {
+        const bodyText = await response.text()
+        console.warn(
+          '[AI fetch] OpenRouter returned HTML response; ensure OPENROUTER_SITE_URL points to a publicly accessible URL. '
+        )
+        return new Response(
+          JSON.stringify({
+            error: {
+              message:
+                'OpenRouter returned HTML instead of JSON. Update OPENROUTER_SITE_URL and OPENROUTER_APP_TITLE to public values.',
+              detail: bodyText.slice(0, 200)
+            }
+          }),
+          {
+            status: 502,
+            headers: { 'content-type': 'application/json' }
+          }
+        )
+      }
+
+      return response
+    } catch (error) {
+      console.error('[AI fetch] ✖', url, error)
+      throw error
+    }
+  }) as typeof fetch
+
+  Object.assign(debugFetch, baseFetch)
+  globalThis.fetch = debugFetch
+}
+
 // Use the imported watchersManager, remove the local creation
 // export const watchersManager = createWatchersManager();
 const cleanupService = createCleanupService({
@@ -52,7 +101,7 @@ export async function instantiateServer({
     logger.info('Database migrations completed')
 
     // Initialize model presets and log specifics
-    const initResult = await initializeModelConfigs()
+    const initResult = await initializeModelConfigs({ forceReset: serverConfig.isDevEnv })
     switch (initResult.status) {
       case 'seeded':
         logger.info(

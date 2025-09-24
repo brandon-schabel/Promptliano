@@ -17,10 +17,14 @@ import {
   Trash,
   SendIcon,
   MessageSquareText,
+  Brain,
+  ChevronDown,
+  Loader2,
+  TriangleAlert,
   Search
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Message } from '@ai-sdk/react'
+import type { ChatUiMessage as AIChatMessage } from '@/hooks/generated/ai-chat-hooks'
 
 import { useAIChat } from '@/hooks/generated'
 import { useChatModelParams } from '@/hooks/chat/use-chat-model-params'
@@ -293,6 +297,367 @@ function parseThinkBlock(content: string) {
   }
 }
 
+const buildReasoningPreview = (content: string): string => {
+  if (!content) return ''
+  const firstLine = content.split(/\r?\n/).find((line) => line.trim().length > 0) ?? ''
+  const trimmed = firstLine.trim()
+  return trimmed.length > 160 ? `${trimmed.slice(0, 160).trim()}...` : trimmed
+}
+
+const extractFirstText = (input: unknown): string => {
+  if (input == null) return ''
+  if (typeof input === 'string') return input
+  if (Array.isArray(input)) {
+    for (const entry of input) {
+      const candidate = extractFirstText(entry)
+      if (candidate.trim().length > 0) return candidate
+    }
+    return ''
+  }
+  if (typeof input === 'object') {
+    const record = input as Record<string, unknown>
+    const prioritizedKeys = ['message', 'error', 'text', 'value', 'content', 'output']
+    for (const key of prioritizedKeys) {
+      if (record[key] === undefined) continue
+      const candidate = extractFirstText(record[key])
+      if (candidate.trim().length > 0) return candidate
+    }
+    try {
+      return JSON.stringify(input)
+    } catch {
+      return ''
+    }
+  }
+  return ''
+}
+
+const formatDataForDisplay = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+const tryPrettyPrintJson = (value: string): string | null => {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const isLikelyJson =
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  if (!isLikelyJson) return null
+  try {
+    return JSON.stringify(JSON.parse(trimmed), null, 2)
+  } catch {
+    return null
+  }
+}
+
+const flattenWhitespace = (text: string): string => text.replace(/\s+/g, ' ').trim()
+
+const truncateForPreview = (text: string, max = 160): string => {
+  const normalized = flattenWhitespace(text)
+  if (normalized.length <= max) return normalized
+  return `${normalized.slice(0, max).trim()}...`
+}
+
+const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234'
+
+const cleanToolName = (value?: string | null): string | undefined => {
+  if (!value) return undefined
+  const cleaned = value.replace(/[_-]+/g, ' ').trim()
+  return cleaned.length > 0 ? cleaned : undefined
+}
+
+const toToolText = (value: unknown): string => {
+  const primary = extractFirstText(value)
+  if (primary && primary.trim().length > 0) return primary.trim()
+  if (typeof value === 'string') return value
+  if (value == null) return ''
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+const buildToolPreview = (call: Pick<ToolCallDisplay, 'argsSummary' | 'outputSummary' | 'errorText'>): string => {
+  const segments: string[] = []
+  if (call.argsSummary) {
+    segments.push(`Args: ${truncateForPreview(call.argsSummary, 120)}`)
+  }
+  if (call.errorText) {
+    segments.push(`Error: ${truncateForPreview(call.errorText, 160)}`)
+  } else if (call.outputSummary) {
+    segments.push(`Result: ${truncateForPreview(call.outputSummary, 160)}`)
+  }
+  return segments.join(' | ')
+}
+
+type ToolCallDisplay = {
+  id: string
+  toolName?: string
+  argsSummary?: string | null
+  outputSummary?: string | null
+  rawArgs?: unknown
+  rawOutput?: unknown
+  errorText?: string | null
+  providerExecuted?: boolean
+  status?: 'pending' | 'result' | 'error'
+  previewText?: string | null
+  isStreaming?: boolean
+  stepIndex?: number | null
+  stepLabel?: string | null
+  order: number
+}
+
+type StepMarker = {
+  id: string
+  step: number
+  label?: string | null
+}
+
+type ToolCopyPayload = {
+  value: string
+  label: 'args' | 'result' | 'error'
+  toolName?: string
+}
+
+type Message = AIChatMessage
+
+type MessageBlock =
+  | { type: 'reasoning'; id: string; data: { text: string; preview: string; streaming: boolean } }
+  | { type: 'tool'; id: string; call: ToolCallDisplay }
+  | { type: 'step'; id: string; step: number; label?: string | null }
+  | { type: 'content'; id: string; content: string }
+
+const ReasoningSection: React.FC<{
+  text: string
+  preview: string
+  isStreaming: boolean
+  onCopy: () => void
+}> = ({ text, preview, isStreaming, onCopy }) => {
+  const [expanded, setExpanded] = useState(isStreaming)
+  const wasStreamingRef = useRef(isStreaming)
+  const hasReasoning = text.trim().length > 0
+
+  useEffect(() => {
+    if (isStreaming) {
+      setExpanded(true)
+    }
+  }, [isStreaming])
+
+  useEffect(() => {
+    if (!isStreaming && wasStreamingRef.current) {
+      setExpanded(false)
+    }
+    wasStreamingRef.current = isStreaming
+  }, [isStreaming])
+
+  const headerLabel = isStreaming ? 'Reasoning (streaming...)' : 'Reasoning'
+  const previewLabel = preview || (isStreaming ? 'Waiting for model...' : 'No reasoning provided')
+
+  return (
+    <div className='mb-3 rounded-md border border-amber-200/70 bg-amber-50/70 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/40'>
+      <button
+        type='button'
+        onClick={() => setExpanded((prev) => !prev)}
+        className='flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100/60 dark:text-amber-100 dark:hover:bg-amber-900/60'
+        aria-expanded={expanded}
+      >
+        <span className='flex items-center gap-2'>
+          <Brain className='h-4 w-4' />
+          {headerLabel}
+        </span>
+        <span className='flex items-center gap-2 text-[11px] font-normal text-amber-900/80 dark:text-amber-100/80'>
+          <span className='max-w-[220px] truncate'>{previewLabel}</span>
+          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded ? 'rotate-180' : '')} />
+        </span>
+      </button>
+      {expanded && (
+        <div className='border-t border-amber-200/60 px-3 py-2 dark:border-amber-500/30'>
+          {isStreaming && (
+            <div className='mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wide text-amber-700/80 dark:text-amber-200/80'>
+              <Loader2 className='h-3 w-3 animate-spin' />
+              Streaming reasoning
+            </div>
+          )}
+          <div className='font-mono text-[11px] text-amber-900 whitespace-pre-wrap break-words dark:text-amber-100 sm:text-xs'>
+            {hasReasoning ? text : 'No reasoning provided.'}
+          </div>
+          <div className='mt-2 flex justify-end'>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={onCopy}
+              disabled={!hasReasoning}
+              className='h-6 px-2 text-[11px] text-amber-900 hover:text-amber-700 disabled:opacity-50 disabled:hover:text-amber-900 dark:text-amber-100 dark:hover:text-amber-50'
+            >
+              <Copy className='mr-1 h-3 w-3' />
+              Copy reasoning
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ToolCallSection: React.FC<{
+  call: ToolCallDisplay
+  onCopy: (payload: ToolCopyPayload) => void
+}> = ({ call, onCopy }) => {
+  const hasError = !!call.errorText
+  const statusLabel = hasError ? 'Error' : call.outputSummary ? 'Completed' : 'In progress'
+  const [expanded, setExpanded] = useState(call.isStreaming || statusLabel !== 'Completed')
+  const wasStreamingRef = useRef(call.isStreaming)
+
+  useEffect(() => {
+    if (call.isStreaming) {
+      setExpanded(true)
+    }
+  }, [call.isStreaming])
+
+  useEffect(() => {
+    if (!call.isStreaming && wasStreamingRef.current && !hasError && call.outputSummary) {
+      setExpanded(false)
+    }
+    wasStreamingRef.current = call.isStreaming
+  }, [call.isStreaming, call.outputSummary, hasError])
+
+  const previewText = call.previewText || buildToolPreview(call)
+  const headerDescription =
+    previewText || (call.isStreaming ? 'Awaiting tool result...' : hasError ? 'Tool returned an error' : 'Tool call ready')
+
+  const handleCopyArgs = () => {
+    if (!call.argsSummary) return
+    onCopy({ value: call.argsSummary, label: 'args', toolName: call.toolName })
+  }
+
+  const handleCopyResult = () => {
+    if (!call.outputSummary) return
+    onCopy({ value: call.outputSummary, label: 'result', toolName: call.toolName })
+  }
+
+  const handleCopyError = () => {
+    if (!call.errorText) return
+    onCopy({ value: call.errorText, label: 'error', toolName: call.toolName })
+  }
+
+  const containerClass = cn(
+    'mb-3 rounded-md border shadow-sm transition-colors',
+    hasError
+      ? 'border-destructive/40 bg-destructive/10 text-destructive-foreground dark:border-destructive/50 dark:bg-destructive/20 dark:text-destructive-foreground'
+      : 'border-sky-200/70 bg-sky-50/70 text-sky-900 dark:border-sky-500/40 dark:bg-sky-950/40 dark:text-sky-100'
+  )
+
+  const badgeClass = hasError
+    ? 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90'
+    : call.outputSummary
+      ? 'border-transparent bg-sky-600 text-white hover:bg-sky-700'
+      : 'border-sky-500/70 text-sky-900 dark:text-sky-100'
+
+  return (
+    <div className={containerClass}>
+      <button
+        type='button'
+        onClick={() => setExpanded((prev) => !prev)}
+        className={cn(
+          'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold transition-colors',
+          hasError ? 'hover:bg-destructive/10 dark:hover:bg-destructive/20' : 'hover:bg-sky-100/60 dark:hover:bg-sky-900/60'
+        )}
+        aria-expanded={expanded}
+      >
+        <span className='flex items-center gap-2'>
+          <GitFork className='h-4 w-4' />
+          {call.toolName || 'Tool Call'}
+        </span>
+        <span className='flex items-center gap-2 text-[11px] font-normal'>
+          {!hasError && call.providerExecuted && (
+            <Badge variant='outline' className='text-[10px] uppercase tracking-wide'>
+              Provider
+            </Badge>
+          )}
+          <Badge variant='outline' className={cn('text-[10px]', badgeClass)}>
+            {statusLabel}
+          </Badge>
+          <span className='max-w-[260px] truncate text-right'>{headerDescription}</span>
+          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded ? 'rotate-180' : '')} />
+        </span>
+      </button>
+      {expanded && (
+        <div
+          className={cn(
+            'border-t px-3 py-2 text-[11px]',
+            hasError ? 'border-destructive/40 dark:border-destructive/50' : 'border-sky-200/60 dark:border-sky-500/30'
+          )}
+        >
+          {call.isStreaming && !hasError && (
+            <div className='mb-2 flex items-center gap-2 uppercase tracking-wide text-sky-800/80 dark:text-sky-200/80'>
+              <Loader2 className='h-3 w-3 animate-spin' />
+              Tool call in progress
+            </div>
+          )}
+          {call.argsSummary && (
+            <div className='mb-3'>
+              <div className='text-[10px] font-medium uppercase text-muted-foreground'>Arguments</div>
+              <pre className='mt-1 max-h-64 overflow-auto rounded bg-background/60 px-2 py-1 font-mono text-[11px] whitespace-pre-wrap break-words dark:bg-background/40'>
+                {call.argsSummary}
+              </pre>
+            </div>
+          )}
+          {call.outputSummary && !hasError && (
+            <div className='mb-3'>
+              <div className='text-[10px] font-medium uppercase text-muted-foreground'>Result</div>
+              <pre className='mt-1 max-h-64 overflow-auto rounded bg-background/60 px-2 py-1 font-mono text-[11px] whitespace-pre-wrap break-words dark:bg-background/40'>
+                {call.outputSummary}
+              </pre>
+            </div>
+          )}
+          {hasError && call.errorText && (
+            <div className='mb-3 flex items-start gap-2 text-destructive-foreground'>
+              <TriangleAlert className='mt-0.5 h-3.5 w-3.5 flex-shrink-0' />
+              <span className='whitespace-pre-wrap break-words text-[11px]'>{call.errorText}</span>
+            </div>
+          )}
+          <div className='mt-2 flex flex-wrap justify-end gap-2'>
+            {call.argsSummary && (
+              <Button variant='ghost' size='sm' onClick={handleCopyArgs} className='h-6 px-2 text-[11px]'>
+                <Copy className='mr-1 h-3 w-3' />
+                Copy args
+              </Button>
+            )}
+            {call.outputSummary && !hasError && (
+              <Button variant='ghost' size='sm' onClick={handleCopyResult} className='h-6 px-2 text-[11px]'>
+                <Copy className='mr-1 h-3 w-3' />
+                Copy result
+              </Button>
+            )}
+            {hasError && call.errorText && (
+              <Button variant='ghost' size='sm' onClick={handleCopyError} className='h-6 px-2 text-[11px]'>
+                <Copy className='mr-1 h-3 w-3' />
+                Copy error
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const StepDivider: React.FC<{ step: number; label?: string | null }> = ({ step, label }) => (
+  <div className='flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground/80 dark:text-muted-foreground/70'>
+    <div className='h-px flex-1 bg-muted-foreground/30 dark:bg-muted-foreground/20' />
+    <span className='shrink-0'>
+      Step {step}
+      {label ? ` • ${label}` : ''}
+    </span>
+    <div className='h-px flex-1 bg-muted-foreground/30 dark:bg-muted-foreground/20' />
+  </div>
+)
+
 // Extract MessageWrapper outside to prevent recreation on every render
 const MessageWrapper: React.FC<{
   children: React.ReactNode
@@ -397,7 +762,349 @@ const ChatMessageItem = React.memo(
     }
 
     const isUser = msg.role === 'user'
-    const { hasThinkBlock, isThinking, thinkContent, mainContent } = parseThinkBlock(msg.content)
+    const { hasThinkBlock, isThinking, thinkContent, mainContent } = parseThinkBlock(msg.content ?? '')
+
+    const parts = Array.isArray((msg as any).parts) ? ((msg as any).parts as Array<Record<string, any>>) : []
+    const reasoningParts = parts.filter((part) => part?.type === 'reasoning' && typeof part?.text === 'string')
+    const reasoningTextFromParts = reasoningParts.map((part) => String(part.text)).join('\n').trim()
+    const reasoningStreamingFromParts = reasoningParts.some((part) => part?.state === 'streaming')
+
+    const reasoningSource = reasoningParts.length > 0 ? 'parts' : hasThinkBlock ? 'think' : null
+    const reasoningText = reasoningSource === 'parts' ? reasoningTextFromParts : reasoningSource === 'think' ? thinkContent : ''
+    const reasoningStreaming = reasoningSource === 'parts' ? reasoningStreamingFromParts : reasoningSource === 'think' ? isThinking : false
+    let reasoningPreview = reasoningSource === 'parts' ? buildReasoningPreview(reasoningTextFromParts) : reasoningSource === 'think' ? buildReasoningPreview(thinkContent) : ''
+    if (!reasoningPreview && reasoningStreaming) {
+      reasoningPreview = 'Model is reasoning...'
+    }
+    const showReasoning = !isUser && reasoningSource !== null
+
+    const { toolCalls, stepMarkers } = useMemo(() => {
+      if (isUser || parts.length === 0) {
+        return { toolCalls: [] as ToolCallDisplay[], stepMarkers: [] as StepMarker[] }
+      }
+
+      type ToolCallAccumulator = ToolCallDisplay & {
+        argsChunks: string[]
+        outputChunks: string[]
+      }
+
+      const map = new Map<string, ToolCallAccumulator>()
+      const stepMarkers: StepMarker[] = []
+      let currentStep = 0
+      let currentStepLabel: string | null = null
+
+      const extractStepLabel = (value: Record<string, unknown>): string | null => {
+        const candidates = ['label', 'name', 'title', 'summary', 'description']
+        for (const key of candidates) {
+          const raw = value[key]
+          if (typeof raw === 'string' && raw.trim().length > 0) {
+            return raw.trim()
+          }
+        }
+        return null
+      }
+
+      const registerStep = (label: string | null, index: number) => {
+        currentStep += 1
+        currentStepLabel = label ?? null
+        const markerId = `${msg.id ?? 'tool'}-step-${currentStep}-${index}`
+        stepMarkers.push({ id: markerId, step: currentStep, label: currentStepLabel })
+      }
+
+      const ensureEntry = (id: string, index: number, defaults: Partial<ToolCallAccumulator> = {}) => {
+        const existing = map.get(id)
+        if (existing) {
+          if (defaults.stepIndex !== undefined && (existing.stepIndex == null)) {
+            existing.stepIndex = defaults.stepIndex
+          }
+          if (defaults.stepLabel && !existing.stepLabel) {
+            existing.stepLabel = defaults.stepLabel
+          }
+          if (defaults.order !== undefined) {
+            existing.order = Math.min(existing.order, defaults.order)
+          }
+          Object.assign(existing, defaults)
+          return existing
+        }
+
+        const created: ToolCallAccumulator = {
+          id,
+          toolName: defaults.toolName,
+          argsSummary: defaults.argsSummary ?? null,
+          outputSummary: defaults.outputSummary ?? null,
+          rawArgs: defaults.rawArgs,
+          rawOutput: defaults.rawOutput,
+          errorText: defaults.errorText ?? null,
+          providerExecuted: defaults.providerExecuted,
+          status: defaults.status,
+          previewText: defaults.previewText ?? null,
+          isStreaming: defaults.isStreaming ?? false,
+          stepIndex: defaults.stepIndex ?? (currentStep > 0 ? currentStep : null),
+          stepLabel: defaults.stepLabel ?? currentStepLabel,
+          order: defaults.order ?? index,
+          argsChunks: [],
+          outputChunks: []
+        }
+        map.set(id, created)
+        return created
+      }
+
+      const recordArgs = (entry: ToolCallAccumulator, value: unknown) => {
+        if (value === undefined) return
+        if (entry.rawArgs === undefined) {
+          entry.rawArgs = value
+        }
+        if (typeof value === 'string') {
+          const pretty = tryPrettyPrintJson(value) ?? value
+          if (!entry.argsSummary && pretty) {
+            entry.argsSummary = pretty
+          }
+        } else {
+          const formatted = formatDataForDisplay(value)
+          if (!entry.argsSummary && formatted) {
+            entry.argsSummary = formatted
+          }
+        }
+      }
+
+      const recordOutput = (entry: ToolCallAccumulator, value: unknown) => {
+        if (value === undefined) return
+        if (entry.rawOutput === undefined) {
+          entry.rawOutput = value
+        }
+        const text = toToolText(value)
+        if (!entry.outputSummary && text) {
+          entry.outputSummary = text
+        }
+      }
+
+      const appendChunk = (entry: ToolCallAccumulator, field: 'args' | 'output', chunk: unknown) => {
+        if (chunk === undefined || chunk === null) return
+        const text = typeof chunk === 'string' ? chunk : toToolText(chunk)
+        if (!text) return
+        if (field === 'args') entry.argsChunks.push(text)
+        else entry.outputChunks.push(text)
+      }
+
+      parts.forEach((part, index) => {
+        if (!part || typeof part !== 'object') return
+        const partAny = part as Record<string, unknown>
+        const rawType = typeof partAny.type === 'string' ? partAny.type.toLowerCase() : ''
+
+        if (rawType === 'step-start') {
+          registerStep(extractStepLabel(partAny), index)
+          return
+        }
+
+        const invocationRaw = partAny.toolInvocation
+        const invocation =
+          invocationRaw && typeof invocationRaw === 'object'
+            ? (invocationRaw as Record<string, unknown>)
+            : undefined
+
+        const toolNameCandidate = cleanToolName(
+          (typeof partAny.toolName === 'string' && partAny.toolName) ||
+            (typeof partAny.name === 'string' && partAny.name) ||
+            (typeof partAny.toolId === 'string' && partAny.toolId) ||
+            (typeof invocation?.toolName === 'string' && (invocation.toolName as string)) ||
+            undefined
+        )
+
+        const idCandidate =
+          partAny.toolCallId ??
+          partAny.callId ??
+          partAny.invocationId ??
+          (invocation?.toolCallId as string | undefined) ??
+          (invocation?.id as string | undefined) ??
+          `${msg.id ?? 'tool'}-${index}`
+
+        const toolCallId = String(idCandidate)
+
+        const entry = ensureEntry(toolCallId, index, {
+          toolName: toolNameCandidate,
+          providerExecuted:
+            (partAny.providerExecuted as boolean | undefined) ||
+            (invocation?.providerExecuted as boolean | undefined) ||
+            undefined,
+          stepIndex: currentStep > 0 ? currentStep : null,
+          stepLabel: currentStepLabel,
+          order: index
+        })
+
+        if (toolNameCandidate && !entry.toolName) {
+          entry.toolName = toolNameCandidate
+        }
+
+        if (typeof partAny.providerExecuted === 'boolean') {
+          entry.providerExecuted = entry.providerExecuted || (partAny.providerExecuted as boolean)
+        }
+
+        if (rawType === 'dynamic-tool' || rawType.startsWith('tool-')) {
+          const inferredName = cleanToolName(
+            rawType === 'dynamic-tool'
+              ? (typeof partAny.toolName === 'string' ? partAny.toolName : undefined)
+              : rawType.slice(5)
+          )
+          if (inferredName && !entry.toolName) {
+            entry.toolName = inferredName
+          }
+
+          const state = typeof partAny.state === 'string' ? partAny.state.toLowerCase() : ''
+          const streamedArgs = partAny.input
+          if (streamedArgs !== undefined) {
+            recordArgs(entry, streamedArgs)
+            if (state.includes('stream')) {
+              appendChunk(entry, 'args', streamedArgs)
+            }
+          }
+
+          if (partAny.callProviderMetadata != null) {
+            entry.providerExecuted = true
+          }
+
+          if (state === 'input-streaming' || state === 'input-available') {
+            entry.status = entry.status ?? 'pending'
+            entry.isStreaming = entry.isStreaming || state === 'input-streaming'
+            return
+          }
+
+          if (state === 'output-available') {
+            if (partAny.output !== undefined) {
+              recordOutput(entry, partAny.output)
+            }
+            if (partAny.errorText) {
+              entry.errorText = toToolText(partAny.errorText)
+              entry.status = 'error'
+              entry.isStreaming = false
+              return
+            }
+            entry.status = 'result'
+            entry.isStreaming = entry.isStreaming || (partAny.preliminary as boolean | undefined) === true
+            return
+          }
+
+          if (state === 'output-error') {
+            const errorSource =
+              partAny.errorText ?? partAny.error ?? partAny.message ?? partAny.output ?? partAny.result
+            entry.errorText = toToolText(errorSource)
+            entry.status = 'error'
+            entry.isStreaming = false
+            return
+          }
+
+          return
+        }
+
+        if (rawType.includes('tool-input')) {
+          appendChunk(entry, 'args', partAny.inputTextDelta ?? partAny.delta ?? partAny.text ?? partAny.value)
+          if (partAny.input !== undefined) {
+            recordArgs(entry, partAny.input)
+          }
+          if (partAny.args !== undefined || partAny.arguments !== undefined) {
+            recordArgs(entry, partAny.args ?? partAny.arguments)
+          }
+          entry.status = entry.status ?? 'pending'
+          entry.isStreaming = entry.isStreaming || rawType.includes('delta') || rawType.includes('start')
+          return
+        }
+
+        if (rawType === 'tool-call' || rawType === 'toolcall') {
+          if (partAny.input !== undefined) recordArgs(entry, partAny.input)
+          if (partAny.args !== undefined || partAny.arguments !== undefined) {
+            recordArgs(entry, partAny.args ?? partAny.arguments)
+          }
+          entry.status = entry.status ?? 'pending'
+          return
+        }
+
+        if (rawType === 'tool' || rawType === 'tool-invocation' || rawType === 'tool_invocation') {
+          if (invocation?.args !== undefined || invocation?.arguments !== undefined || invocation?.input !== undefined) {
+            recordArgs(entry, invocation?.args ?? invocation?.arguments ?? invocation?.input)
+          }
+          if (invocation?.result !== undefined || invocation?.output !== undefined) {
+            recordOutput(entry, invocation?.result ?? invocation?.output)
+          }
+          const state = typeof invocation?.state === 'string' ? invocation.state.toLowerCase() : ''
+          if (state === 'result') {
+            entry.status = 'result'
+          } else {
+            entry.status = entry.status ?? 'pending'
+          }
+          return
+        }
+
+        if (rawType.includes('tool-output') || rawType === 'tool-result' || rawType === 'tool_result') {
+          if (partAny.output !== undefined) recordOutput(entry, partAny.output)
+          if (partAny.result !== undefined) recordOutput(entry, partAny.result)
+          if (partAny.response !== undefined) recordOutput(entry, partAny.response)
+          if (partAny.content !== undefined) recordOutput(entry, partAny.content)
+          appendChunk(entry, 'output', partAny.outputText ?? partAny.delta ?? partAny.text)
+          entry.status = entry.errorText ? 'error' : 'result'
+          entry.isStreaming = entry.isStreaming || rawType.includes('delta')
+          return
+        }
+
+        if (rawType.includes('error')) {
+          const errorSource =
+            partAny.error ??
+            partAny.errorText ??
+            partAny.message ??
+            partAny.output ??
+            partAny.result ??
+            (invocation?.error as unknown)
+          const errorText = toToolText(errorSource)
+          if (errorText) {
+            entry.errorText = errorText
+          }
+          entry.status = 'error'
+          entry.isStreaming = false
+        }
+      })
+
+      const finalized = Array.from(map.values())
+        .filter((entry) => entry.argsSummary || entry.outputSummary || entry.errorText)
+        .map((entry) => {
+          if (!entry.argsSummary && entry.argsChunks.length > 0) {
+            const combined = entry.argsChunks.join('')
+            const pretty = tryPrettyPrintJson(combined) ?? combined.trim()
+            if (pretty) {
+              entry.argsSummary = pretty
+              if (entry.rawArgs === undefined) {
+                entry.rawArgs = combined
+              }
+            }
+          }
+
+          if (!entry.outputSummary && entry.outputChunks.length > 0) {
+            const combinedOutput = entry.outputChunks.join('')
+            const trimmed = combinedOutput.trim()
+            if (trimmed) {
+              entry.outputSummary = trimmed
+              if (entry.rawOutput === undefined) {
+                entry.rawOutput = combinedOutput
+              }
+            }
+          }
+
+          entry.previewText = entry.previewText ?? buildToolPreview(entry)
+          if (!entry.status) {
+            entry.status = entry.errorText ? 'error' : entry.outputSummary ? 'result' : 'pending'
+          }
+          entry.isStreaming = entry.isStreaming ?? false
+
+          const { argsChunks, outputChunks, ...rest } = entry
+          return {
+            ...rest,
+            stepIndex: rest.stepIndex ?? null,
+            stepLabel: rest.stepLabel ?? null,
+            order: rest.order
+          }
+        })
+
+      finalized.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+
+      return { toolCalls: finalized, stepMarkers }
+    }, [isUser, parts, msg.id])
 
     const messageId = useMemo(() => {
       const id = Number(msg.id)
@@ -405,7 +1112,7 @@ const ChatMessageItem = React.memo(
     }, [msg.id])
 
     const handleCopy = useCallback(
-      () => onCopyMessage(mainContent || msg.content),
+      () => onCopyMessage(mainContent || msg.content || ''),
       [mainContent, msg.content, onCopyMessage]
     )
     const handleFork = useCallback(() => {
@@ -438,7 +1145,20 @@ const ChatMessageItem = React.memo(
       }
       onToggleRawView(messageId)
     }, [messageId, onToggleRawView, msg.id])
-    const handleCopyThinkText = useCallback(() => copyToClipboard(thinkContent), [copyToClipboard, thinkContent])
+    const handleCopyReasoning = useCallback(() => {
+      if (!reasoningText) return
+      copyToClipboard(reasoningText, { successMessage: 'Reasoning copied!' })
+    }, [copyToClipboard, reasoningText])
+
+    const handleCopyToolValue = useCallback(
+      ({ value, label, toolName }: ToolCopyPayload) => {
+        if (!value) return
+        const base = label === 'args' ? 'Tool arguments' : label === 'result' ? 'Tool result' : 'Tool error'
+        const suffix = toolName ? ` (${toolName})` : ''
+        copyToClipboard(value, { successMessage: `${base} copied${suffix}` })
+      },
+      [copyToClipboard]
+    )
 
     if (rawView) {
       return (
@@ -463,6 +1183,56 @@ const ChatMessageItem = React.memo(
       )
     }
 
+    const effectiveContent = (hasThinkBlock ? mainContent : msg.content) ?? ''
+
+    const messageBlocks = useMemo<MessageBlock[]>(() => {
+      const blocks: MessageBlock[] = []
+
+      if (showReasoning) {
+        blocks.push({
+          type: 'reasoning',
+          id: `${msg.id}-reasoning`,
+          data: { text: reasoningText, preview: reasoningPreview, streaming: reasoningStreaming }
+        })
+      }
+
+      if (!isUser) {
+        const stepLabelMap = new Map(stepMarkers.map((marker) => [marker.step, marker.label]))
+        let lastStep: number | null = null
+
+        toolCalls.forEach((call) => {
+          const stepIndex = call.stepIndex ?? null
+          if (stepIndex && stepIndex > 0 && stepIndex !== lastStep) {
+            const label = stepLabelMap.get(stepIndex) ?? call.stepLabel ?? null
+            blocks.push({ type: 'step', id: `${msg.id}-step-${stepIndex}-${call.id}`, step: stepIndex, label })
+            lastStep = stepIndex
+          }
+
+          blocks.push({ type: 'tool', id: `${msg.id}-tool-${call.id}`, call })
+        })
+
+        if (toolCalls.length === 0 && stepMarkers.length > 0) {
+          stepMarkers.forEach((marker) => {
+            blocks.push({ type: 'step', id: `${msg.id}-step-${marker.step}`, step: marker.step, label: marker.label })
+          })
+        }
+      }
+
+      blocks.push({ type: 'content', id: `${msg.id}-content`, content: effectiveContent })
+
+      return blocks
+    }, [
+      effectiveContent,
+      isUser,
+      msg.id,
+      reasoningPreview,
+      reasoningStreaming,
+      reasoningText,
+      showReasoning,
+      toolCalls,
+      stepMarkers
+    ])
+
     return (
       <MessageWrapper isUser={isUser} excluded={excluded}>
         <MessageHeader
@@ -478,35 +1248,35 @@ const ChatMessageItem = React.memo(
           onToggleExclude={handleToggleExclude}
           onToggleRaw={handleToggleRaw}
         />
-        {hasThinkBlock ? (
-          <div className='text-sm space-y-2'>
-            {isThinking ? (
-              <div className='p-2 bg-secondary/80 text-secondary-foreground rounded text-xs'>
-                <div className='font-semibold mb-1'>Thinking...</div>
-                <div className='animate-pulse opacity-80'>{thinkContent || '...'}</div>
+        <div className='space-y-3 text-sm'>
+          {messageBlocks.map((block) => {
+            if (block.type === 'reasoning') {
+              return (
+                <ReasoningSection
+                  key={block.id}
+                  text={block.data.text}
+                  preview={block.data.preview}
+                  isStreaming={block.data.streaming}
+                  onCopy={handleCopyReasoning}
+                />
+              )
+            }
+
+            if (block.type === 'step') {
+              return <StepDivider key={block.id} step={block.step} label={block.label} />
+            }
+
+            if (block.type === 'tool') {
+              return <ToolCallSection key={block.id} call={block.call} onCopy={handleCopyToolValue} />
+            }
+
+            return (
+              <div key={block.id} className='overflow-x-auto'>
+                <MarkdownRenderer content={block.content} copyToClipboard={onCopyMessage} />
               </div>
-            ) : (
-              <details className='bg-secondary/50 text-secondary-foreground rounded p-2 group'>
-                <summary className='cursor-pointer text-xs font-semibold list-none group-open:mb-1'>
-                  View Hidden Reasoning
-                </summary>
-                <div className='mt-1 text-xs whitespace-pre-wrap break-words font-mono bg-background/30 p-1.5 rounded'>
-                  {thinkContent}
-                </div>
-                <Button variant='ghost' size='sm' onClick={handleCopyThinkText} className='mt-1.5 h-5 px-1 text-xs'>
-                  <Copy className='h-3 w-3 mr-1' /> Copy Reasoning
-                </Button>
-              </details>
-            )}
-            <div className='overflow-x-auto'>
-              <MarkdownRenderer content={mainContent} copyToClipboard={onCopyMessage} />
-            </div>
-          </div>
-        ) : (
-          <div className='overflow-x-auto'>
-            <MarkdownRenderer content={msg.content} copyToClipboard={onCopyMessage} />
-          </div>
-        )}
+            )
+          })}
+        </div>
       </MessageWrapper>
     )
   }
@@ -641,9 +1411,9 @@ export function ChatMessages({
             Select a chat from the sidebar or create a new one to start messaging.
           </p>
         </Card>
-      </div>
-    )
-  }
+  </div>
+)
+}
 
   if (isLoading && messages.length === 0) {
     return (
@@ -1005,10 +1775,28 @@ function ChatPage() {
   const { settings: modelSettings, setModel } = useChatModelParams()
   const provider = modelSettings.provider ?? 'openrouter'
   const model = modelSettings.model
-  const { data: modelsData } = useGetModels(provider as APIProviders)
-  const { presets } = useModelConfigPresets()
   const [appSettings] = useAppSettings()
+  const providerOverrides = useMemo(() => {
+    if (provider === 'ollama' && appSettings.ollamaGlobalUrl) {
+      return { ollamaUrl: appSettings.ollamaGlobalUrl }
+    }
+
+    if (provider === 'lmstudio' && appSettings.lmStudioGlobalUrl) {
+      return { lmstudioUrl: appSettings.lmStudioGlobalUrl }
+    }
+
+    return undefined
+  }, [appSettings.lmStudioGlobalUrl, appSettings.ollamaGlobalUrl, provider])
+
+  const { data: modelsData } = useGetModels(provider as APIProviders, providerOverrides)
+  const { presets } = useModelConfigPresets()
   const enableChatAutoNaming = appSettings?.enableChatAutoNaming ?? true
+  const normalizedLmStudioUrl = appSettings?.lmStudioGlobalUrl?.replace(/\/$/, '')
+  const hasCustomLmStudioUrl =
+    provider === 'lmstudio' && normalizedLmStudioUrl && normalizedLmStudioUrl !== DEFAULT_LMSTUDIO_URL
+  const lmStudioBadgeLabel = hasCustomLmStudioUrl
+    ? (appSettings?.lmStudioGlobalUrl ?? '').replace(/^https?:\/\//, '') || appSettings?.lmStudioGlobalUrl
+    : null
   const { copyToClipboard } = useCopyClipboard()
   const [excludedMessageIds, setExcludedMessageIds] = useState<number[]>([])
 
@@ -1202,8 +1990,8 @@ function ChatPage() {
             >
               <div className='mx-auto w-full max-w-[72rem] px-4 pt-2 pb-1 text-xs text-muted-foreground text-center flex items-center justify-center gap-2'>
                 Using: {provider} /
-                <span className='inline-flex items-center gap-2'>
-                  {selectedModelName}
+                <span className='inline-flex items-center gap-2 group'>
+                  <span>{selectedModelName}</span>
                   {matchedPreset && (
                     <Badge variant='outline' className='ml-1'>
                       Preset: {matchedPreset.key}
@@ -1214,7 +2002,11 @@ function ChatPage() {
                       type='button'
                       variant='ghost'
                       size='icon'
-                      className='h-4 w-4 text-muted-foreground hover:text-foreground'
+                      className={cn(
+                        'h-4 w-4 text-muted-foreground hover:text-foreground transition-opacity',
+                        'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
+                        'focus-visible:opacity-100 focus-visible:pointer-events-auto'
+                      )}
                       title={`Copy model ID: ${model}`}
                       onClick={(e) => {
                         e.preventDefault()
@@ -1224,6 +2016,15 @@ function ChatPage() {
                     >
                       <Copy className='h-3 w-3' />
                     </Button>
+                  )}
+                  {hasCustomLmStudioUrl && lmStudioBadgeLabel && (
+                    <Badge
+                      variant='outline'
+                      className='ml-1'
+                      title={`LM Studio override URL: ${appSettings.lmStudioGlobalUrl}`}
+                    >
+                      LM Studio: {lmStudioBadgeLabel}
+                    </Badge>
                   )}
                 </span>
               </div>

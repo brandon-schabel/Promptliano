@@ -84,6 +84,11 @@ export {
 } from './src/chat-service'
 
 export {
+  createChatStreamService,
+  type ChatStreamService
+} from './src/chat-stream-service'
+
+export {
   // Prompt Service
   createPromptService,
   promptService,
@@ -155,6 +160,8 @@ export * from './src/model-config-service'
 export * from './src/intelligence-model-service'
 export * from './src/provider-settings-service'
 export * from './src/custom-provider-validator'
+export * from './src/error-mappers'
+export { createAdHocModelConfig } from './src/gen-ai-services'
 
 // Service container and composition
 export * from './src/service-container'

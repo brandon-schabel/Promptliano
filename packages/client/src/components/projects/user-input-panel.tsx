@@ -74,7 +74,6 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
   const [, setActiveChatId] = useActiveChatId()
   const navigate = useNavigate()
 
-  const { copyToClipboard } = useCopyClipboard()
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const findSuggestedFilesMutation = useSuggestFiles()
   const findSuggestedPromptsMutation = useSuggestPrompts()
@@ -470,28 +469,28 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                 className='flex-1 min-h-0 bg-background'
               />
 
-              <div className='flex gap-2 mt-3 shrink-0 flex-wrap'>
+              <div className='mt-3 flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible'>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       onClick={handleCopyAll}
                       size='sm'
                       disabled={copyAllStatus === 'copying'}
-                      className='transition-colors duration-200 w-[100px]'
+                      className='transition-colors duration-200 h-8 w-8 min-w-[32px] md:h-8 md:w-auto md:px-3'
                     >
-                      <div className='flex items-center justify-center w-full'>
-                        {copyAllStatus === 'success' ? (
-                          <>
-                            <Check className='h-3.5 w-3.5 mr-1 text-green-500 animate-in zoom-in-50 duration-200' />
-                            <span className='text-green-600 dark:text-green-400'>Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className='h-3.5 w-3.5 mr-1 transition-all duration-200' />
-                            <span>Copy All</span>
-                          </>
-                        )}
-                      </div>
+                      {copyAllStatus === 'success' ? (
+                        <>
+                          <Check className='h-3.5 w-3.5 text-green-500 animate-in zoom-in-50 duration-200 md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline text-green-600 dark:text-green-400'>
+                            Copied!
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className='h-3.5 w-3.5 transition-all duration-200 md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline'>Copy All</span>
+                        </>
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -504,16 +503,21 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button onClick={handleFindSuggestions} disabled={findSuggestedFilesMutation.isPending} size='sm'>
+                    <Button
+                      onClick={handleFindSuggestions}
+                      disabled={findSuggestedFilesMutation.isPending}
+                      size='sm'
+                      className='h-8 w-8 min-w-[32px] md:h-8 md:w-auto md:px-3'
+                    >
                       {findSuggestedFilesMutation.isPending ? (
                         <>
-                          <Binoculars className='h-3.5 w-3.5 mr-1 animate-spin' />
-                          Finding...
+                          <Binoculars className='h-3.5 w-3.5 animate-spin md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline'>Finding...</span>
                         </>
                       ) : (
                         <>
-                          <Search className='h-3.5 w-3.5 mr-1' />
-                          Files
+                          <Search className='h-3.5 w-3.5 md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline'>Files</span>
                         </>
                       )}
                     </Button>
@@ -529,16 +533,17 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
                       onClick={handleFindPromptSuggestions}
                       disabled={findSuggestedPromptsMutation.isPending}
                       size='sm'
+                      className='h-8 w-8 min-w-[32px] md:h-8 md:w-auto md:px-3'
                     >
                       {findSuggestedPromptsMutation.isPending ? (
                         <>
-                          <Lightbulb className='h-3.5 w-3.5 mr-1 animate-pulse' />
-                          Finding...
+                          <Lightbulb className='h-3.5 w-3.5 animate-pulse md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline'>Finding...</span>
                         </>
                       ) : (
                         <>
-                          <Lightbulb className='h-3.5 w-3.5 mr-1' />
-                          Prompts
+                          <Lightbulb className='h-3.5 w-3.5 md:mr-1' />
+                          <span className='sr-only md:not-sr-only md:inline'>Prompts</span>
                         </>
                       )}
                     </Button>
@@ -550,8 +555,13 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button onClick={handleChatWithContext} size='sm'>
-                      <MessageCircleCode className='h-3.5 w-3.5 mr-1' /> Chat
+                    <Button
+                      onClick={handleChatWithContext}
+                      size='sm'
+                      className='h-8 w-8 min-w-[32px] md:h-8 md:w-auto md:px-3'
+                    >
+                      <MessageCircleCode className='h-3.5 w-3.5 md:mr-1' />
+                      <span className='sr-only md:not-sr-only md:inline'>Chat</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

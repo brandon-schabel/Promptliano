@@ -97,6 +97,8 @@ export const AiChatStreamRequestSchema = z
     systemMessage: z.string().optional(),
     tempId: z.string().optional(),
     enableChatAutoNaming: z.boolean().optional().default(false),
+    toolsEnabled: z.boolean().optional().default(false),
+    toolChoice: z.enum(['auto', 'none']).optional(),
     options: z
       .object({
         provider: z.string(),
@@ -104,6 +106,9 @@ export const AiChatStreamRequestSchema = z
         temperature: z.number().min(0).max(2).optional(),
         maxTokens: z.number().int().positive().optional(),
         topP: z.number().min(0).max(1).optional(),
+        frequencyPenalty: z.number().min(-2).max(2).optional(),
+        presencePenalty: z.number().min(-2).max(2).optional(),
+        responseFormat: z.any().optional(),
         stream: z.boolean().optional().default(true)
       })
       .optional()

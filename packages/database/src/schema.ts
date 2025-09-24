@@ -221,6 +221,43 @@ export const chatMessages = sqliteTable('chat_messages', {
   createdAt: integer('created_at').notNull()
 })
 
+// =============================================================================
+// CHAT STREAM TABLES
+// =============================================================================
+
+export const chatStreams = sqliteTable('chat_streams', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  chatId: integer('chat_id')
+    .notNull()
+    .references(() => chats.id, { onDelete: 'cascade' }),
+  direction: text('direction').$type<'assistant' | 'user'>().notNull(),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  startedAt: integer('started_at', { mode: 'number' }).notNull(),
+  finishedAt: integer('finished_at', { mode: 'number' }),
+  finishReason: text('finish_reason'),
+  usageJson: text('usage_json', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+  messageMetadataJson: text('message_metadata_json', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+  format: text('format').$type<'ui' | 'data'>().notNull().default('ui'),
+  version: integer('version').notNull().default(1),
+  assistantMessageId: integer('assistant_message_id').references(() => chatMessages.id, {
+    onDelete: 'set null'
+  }),
+  createdAt: integer('created_at', { mode: 'number' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'number' }).notNull()
+})
+
+export const chatStreamEvents = sqliteTable('chat_stream_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  streamId: integer('stream_id')
+    .notNull()
+    .references(() => chatStreams.id, { onDelete: 'cascade' }),
+  seq: integer('seq').notNull(),
+  ts: integer('ts', { mode: 'number' }).notNull(),
+  type: text('type').notNull(),
+  payload: text('payload', { mode: 'json' }).$type<unknown>()
+})
+
 export const prompts = sqliteTable('prompts', {
   id: integer('id').primaryKey(),
   projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
@@ -746,6 +783,25 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   })
 }))
 
+export const chatStreamsRelations = relations(chatStreams, ({ one, many }) => ({
+  chat: one(chats, {
+    fields: [chatStreams.chatId],
+    references: [chats.id]
+  }),
+  assistantMessage: one(chatMessages, {
+    fields: [chatStreams.assistantMessageId],
+    references: [chatMessages.id]
+  }),
+  events: many(chatStreamEvents)
+}))
+
+export const chatStreamEventsRelations = relations(chatStreamEvents, ({ one }) => ({
+  stream: one(chatStreams, {
+    fields: [chatStreamEvents.streamId],
+    references: [chatStreams.id]
+  })
+}))
+
 export const promptsRelations = relations(prompts, ({ one }) => ({
   project: one(projects, {
     fields: [prompts.projectId],
@@ -922,6 +978,8 @@ export const insertTicketSchema = createInsertSchema(tickets).openapi('InsertTic
 export const insertTicketTaskSchema = createInsertSchema(ticketTasks).openapi('InsertTicketTask')
 export const insertChatSchema = createInsertSchema(chats).openapi('InsertChat')
 export const insertChatMessageSchema = createInsertSchema(chatMessages).openapi('InsertChatMessage')
+export const insertChatStreamSchema = createInsertSchema(chatStreams).openapi('InsertChatStream')
+export const insertChatStreamEventSchema = createInsertSchema(chatStreamEvents).openapi('InsertChatStreamEvent')
 export const insertPromptSchema = createInsertSchema(prompts).openapi('InsertPrompt')
 export const insertQueueSchema = createInsertSchema(queues).openapi('InsertQueue')
 export const insertQueueItemSchema = createInsertSchema(queueItems).openapi('InsertQueueItem')
@@ -959,6 +1017,8 @@ export const selectTicketSchema = createSelectSchema(tickets).openapi('Ticket')
 export const selectTicketTaskSchema = createSelectSchema(ticketTasks).openapi('TicketTask')
 export const selectChatSchema = createSelectSchema(chats).openapi('Chat')
 export const selectChatMessageSchema = createSelectSchema(chatMessages).openapi('ChatMessage')
+export const selectChatStreamSchema = createSelectSchema(chatStreams).openapi('ChatStream')
+export const selectChatStreamEventSchema = createSelectSchema(chatStreamEvents).openapi('ChatStreamEvent')
 export const selectPromptSchema = createSelectSchema(prompts).openapi('Prompt')
 export const selectQueueSchema = createSelectSchema(queues).openapi('Queue')
 export const selectQueueItemSchema = createSelectSchema(queueItems).openapi('QueueItem')
@@ -999,6 +1059,8 @@ export type InsertTicket = typeof tickets.$inferInsert
 export type InsertTicketTask = typeof ticketTasks.$inferInsert
 export type InsertChat = typeof chats.$inferInsert
 export type InsertChatMessage = typeof chatMessages.$inferInsert
+export type InsertChatStream = typeof chatStreams.$inferInsert
+export type InsertChatStreamEvent = typeof chatStreamEvents.$inferInsert
 export type InsertPrompt = typeof prompts.$inferInsert
 export type InsertQueue = typeof queues.$inferInsert
 export type InsertQueueItem = typeof queueItems.$inferInsert
@@ -1066,6 +1128,18 @@ export type Chat = typeof chats.$inferSelect
 type ChatMessageInferred = typeof chatMessages.$inferSelect
 export type ChatMessage = Omit<ChatMessageInferred, 'metadata'> & {
   metadata: Record<string, any> | null
+}
+
+// Override ChatStream type to fix JSON field types
+type ChatStreamInferred = typeof chatStreams.$inferSelect
+export type ChatStream = Omit<ChatStreamInferred, 'usageJson' | 'messageMetadataJson'> & {
+  usageJson: Record<string, unknown> | null
+  messageMetadataJson: Record<string, unknown> | null
+}
+
+type ChatStreamEventInferred = typeof chatStreamEvents.$inferSelect
+export type ChatStreamEvent = Omit<ChatStreamEventInferred, 'payload'> & {
+  payload: unknown | null
 }
 
 // Override Prompt type to fix JSON field types

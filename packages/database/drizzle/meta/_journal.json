@@ -8,6 +8,13 @@
       "when": 1757260000000,
       "tag": "0000_base",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1758900000000,
+      "tag": "0001_chat_streams",
+      "breakpoints": true
     }
   ]
 }

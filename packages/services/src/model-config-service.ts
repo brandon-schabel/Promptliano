@@ -10,7 +10,12 @@ import {
   type UpdateModelPreset
 } from '@promptliano/database'
 import { createServiceLogger } from './utils/service-logger'
-import { LOW_MODEL_CONFIG, MEDIUM_MODEL_CONFIG, HIGH_MODEL_CONFIG, PLANNING_MODEL_CONFIG } from '@promptliano/config'
+import {
+  LOW_MODEL_CONFIG,
+  MEDIUM_MODEL_CONFIG,
+  HIGH_MODEL_CONFIG,
+  PLANNING_MODEL_CONFIG
+} from '@promptliano/config'
 
 export interface ModelConfigServiceDeps {
   repository?: typeof modelConfigRepository
@@ -26,20 +31,44 @@ export interface ModelConfigServiceDeps {
 const presetConfigCache = new Map<string, { config: ModelConfig; timestamp: number }>()
 const CACHE_TTL = 60 * 1000 // 1 minute cache
 
+function createAdHocModelConfig(provider: string, model: string): ModelConfig {
+  const normalizedProvider = provider.trim()
+  const normalizedModel = model.trim()
+  const timestamp = Date.now()
+
+  return {
+    id: -1,
+    name: `${normalizedProvider}/${normalizedModel}`,
+    displayName: normalizedModel,
+    provider: normalizedProvider,
+    model: normalizedModel,
+    temperature: null,
+    maxTokens: null,
+    topP: null,
+    topK: null,
+    frequencyPenalty: null,
+    presencePenalty: null,
+    responseFormat: null,
+    systemPrompt: null,
+    isSystemPreset: false,
+    isDefault: false,
+    isActive: true,
+    description: 'Ad-hoc runtime configuration',
+    presetCategory: 'custom',
+    uiIcon: null,
+    uiColor: null,
+    uiOrder: 0,
+    createdAt: timestamp,
+    updatedAt: timestamp
+  }
+}
+
 export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
   const {
     repository = modelConfigRepository,
     presetRepository = modelPresetRepository,
     logger = createServiceLogger('ModelConfigService')
   } = deps
-
-  // Static config fallbacks for when database is unavailable
-  const STATIC_FALLBACKS: Record<string, ModelConfig> = {
-    low: LOW_MODEL_CONFIG as any,
-    medium: MEDIUM_MODEL_CONFIG as any,
-    high: HIGH_MODEL_CONFIG as any,
-    planning: PLANNING_MODEL_CONFIG as any
-  }
 
   return {
     // ==================== Model Configurations ====================
@@ -80,16 +109,13 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
      */
     async getDefaultConfig(provider: string): Promise<ModelConfig | null> {
       try {
-        // First try to get user-defined default
-        let config = await repository.getDefaultForProvider(provider)
-
-        // If no default found, use system defaults based on provider
+        const config = await repository.getDefaultForProvider(provider)
         if (!config) {
-          const systemDefaults = await this.getSystemDefaults()
-          config = systemDefaults[provider] || null
+          logger.warn('No default configuration found in database', { provider })
+          return null
         }
 
-        logger.info('Retrieved default configuration', { provider, found: !!config })
+        logger.info('Retrieved default configuration', { provider, id: config.id })
         return config
       } catch (error) {
         logger.error('Failed to retrieve default configuration', { provider, error })
@@ -127,32 +153,97 @@ export function createModelConfigService(deps: ModelConfigServiceDeps = {}) {
       }
 
       try {
-        // Try to get from database
         const config = await repository.getByName(presetName)
+        if (!config) {
+          logger.warn('Preset configuration not found in database', { presetName })
+          throw ErrorFactory.notFound('Preset configuration', presetName)
+        }
 
+        presetConfigCache.set(presetName, { config, timestamp: Date.now() })
+        logger.info('Retrieved preset config from database', { presetName, configId: config.id })
+        return config
+      } catch (error) {
+        if (error instanceof ApiError) throw error
+        logger.error('Failed to retrieve preset config from database', { presetName, error })
+        throw ErrorFactory.operationFailed('getPresetConfig', `Failed to retrieve preset configuration ${presetName}`)
+      }
+    },
+
+    /**
+     * Get configuration for a provider/model pair
+     */
+    async getConfigByProviderAndModel(provider: string, model: string): Promise<ModelConfig | null> {
+      try {
+        const config = await repository.getByProviderAndModel(provider, model)
+        logger.info('Retrieved configuration by provider/model', {
+          provider,
+          model,
+          found: !!config
+        })
+        return config
+      } catch (error) {
+        logger.error('Failed to retrieve configuration by provider/model', { provider, model, error })
+        throw ErrorFactory.operationFailed(
+          'getConfigByProviderAndModel',
+          `Failed to retrieve configuration for ${provider}/${model}`
+        )
+      }
+    },
+
+    /**
+     * Resolve the effective configuration for a provider request
+     */
+    async resolveProviderConfig({
+      provider,
+      model
+    }: {
+      provider: string
+      model?: string | null
+    }): Promise<ModelConfig> {
+      const normalizedProvider = provider?.trim()
+      if (!normalizedProvider) {
+        throw ErrorFactory.missingRequired('provider', 'resolveProviderConfig')
+      }
+
+      const normalizedModel = model?.trim()
+      if (normalizedModel) {
+        const config = await repository.getByProviderAndModel(normalizedProvider, normalizedModel)
         if (config) {
-          // Update cache
-          presetConfigCache.set(presetName, { config, timestamp: Date.now() })
-          logger.info('Retrieved preset config from database', { presetName })
+          logger.info('Resolved configuration for provider/model', {
+            provider: normalizedProvider,
+            model: normalizedModel,
+            id: config.id
+          })
           return config
         }
 
-        // Fall back to static config if not in database
-        logger.warn('Preset not found in database, using static fallback', { presetName })
-        const fallback = STATIC_FALLBACKS[presetName]
-        if (!fallback) {
-          throw ErrorFactory.notFound('Preset configuration', presetName)
-        }
-        return fallback
-      } catch (error) {
-        // If database is unavailable, use static fallback
-        logger.error('Failed to retrieve preset config, using static fallback', { presetName, error })
-        const fallback = STATIC_FALLBACKS[presetName]
-        if (!fallback) {
-          throw ErrorFactory.notFound('Preset configuration', presetName)
-        }
-        return fallback
+        logger.warn('No configuration found for provider/model pair', {
+          provider: normalizedProvider,
+          model: normalizedModel
+        })
+
+        const adHoc = createAdHocModelConfig(normalizedProvider, normalizedModel)
+        logger.info('Using ad-hoc configuration for provider/model', {
+          provider: normalizedProvider,
+          model: normalizedModel
+        })
+        return adHoc
       }
+
+      const defaultConfig = await repository.getDefaultForProvider(normalizedProvider)
+      if (defaultConfig) {
+        logger.info('Resolved default configuration for provider', {
+          provider: normalizedProvider,
+          id: defaultConfig.id
+        })
+        return defaultConfig
+      }
+
+      const fallback = createAdHocModelConfig(normalizedProvider, 'default')
+      logger.info('Using ad-hoc configuration for provider with no defaults', {
+        provider: normalizedProvider
+      })
+      return fallback
     },
 
     /**

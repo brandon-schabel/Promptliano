@@ -258,7 +258,9 @@ export class PromptlianoClient {
     deleteChat: (chatId: number) => this.typeSafe.deleteChat(chatId),
     getChatMessages: (chatId: number) => this.typeSafe.listChatsByChatIdMessages(chatId),
     getMessages: (chatId: number) => this.typeSafe.listChatsByChatIdMessages(chatId),
-    streamChat: (data: any) => this.typeSafe.createAiChat(data)
+    streamChat: (_data: any) => {
+      throw new Error('streamChat is deprecated. Use the new /api/chat endpoint with the AI SDK transport instead.')
+    }
   }
 
   public readonly tickets = {
@@ -419,7 +421,9 @@ export class PromptlianoClient {
   }
 
   public readonly ai = {
-    streamChat: (data: any) => this.typeSafe.createAiChat(data)
+    streamChat: (_data: any) => {
+      throw new Error('streamChat is deprecated. Use the new /api/chat endpoint with the AI SDK transport instead.')
+    }
   }
 
   // GenAI methods

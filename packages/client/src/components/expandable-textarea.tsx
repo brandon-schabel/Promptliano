@@ -11,6 +11,7 @@ import { formatShortcut } from '@/lib/shortcuts'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 // import { useOptimizeUserInput } from '@/hooks/api-hooks' // TODO: API method doesn't exist
 import { useActiveProjectTab } from '@/hooks/use-kv-local-storage'
+import { cn } from '@/lib/utils'
 
 type ExpandableTextareaProps = {
   value: string
@@ -108,12 +109,13 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
             }
           }}
           placeholder={placeholderWithShortcut}
-          className={`h-full resize-none pr-[80px] ${className}`}
+          className={cn('h-full w-full resize-none pl-3 text-left font-mono text-sm leading-relaxed', className)}
+          style={{ paddingTop: 44 }}
         />
-        <div className='absolute right-3 top-2 flex items-center space-x-2 bg-background'>
+        <div className='pointer-events-none absolute right-1.5 top-1.5 flex items-center space-x-1 rounded-md bg-gradient-to-l from-background via-background/95 to-transparent px-1 py-1'>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' className='h-6 w-6 opacity-50 hover:opacity-100'>
+              <Button variant='ghost' size='icon' className='pointer-events-auto h-6 w-6 opacity-80 hover:opacity-100'>
                 <DotsHorizontalIcon className='h-4 w-4' />
               </Button>
             </DropdownMenuTrigger>
@@ -132,7 +134,7 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
             variant='ghost'
             size='icon'
             type='button'
-            className='h-6 w-6 opacity-50 hover:opacity-100'
+            className='pointer-events-auto h-6 w-6 opacity-80 hover:opacity-100'
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -162,12 +164,17 @@ export const ExpandableTextarea = forwardRef<HTMLTextAreaElement, ExpandableText
                   }
                 }}
                 placeholder={placeholder}
-                className='h-full resize-none pr-[80px]'
+                className='h-full w-full resize-none pl-3 text-left font-mono text-sm leading-relaxed'
+                style={{ paddingTop: 44 }}
               />
-              <div className='absolute right-3 top-2 flex items-center space-x-2 bg-background'>
+              <div className='pointer-events-none absolute right-1.5 top-1.5 flex items-center space-x-1 rounded-md bg-gradient-to-l from-background via-background/95 to-transparent px-1 py-1'>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant='ghost' size='icon' className='h-6 w-6 opacity-50 hover:opacity-100'>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='pointer-events-auto h-6 w-6 opacity-80 hover:opacity-100'
+                    >
                       <DotsHorizontalIcon className='h-4 w-4' />
                     </Button>
                   </DropdownMenuTrigger>

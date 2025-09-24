@@ -57,13 +57,21 @@ export function createProcessorModule(ctx: FlowRuntimeContext) {
 
             try {
               const updated = QueueStateMachine.transition(ticket, 'completed')
-              await ticketRepo.update(itemId, {
+              const now = Date.now()
+              const updates = {
                 queueStatus: updated.queueStatus,
                 queueCompletedAt: updated.queueCompletedAt,
                 actualProcessingTime: processingTime || updated.actualProcessingTime,
-                updatedAt: Date.now()
+                updatedAt: now,
+                ...(ticket.status !== 'closed' ? { status: 'closed' as const } : {})
+              }
+
+              await ticketRepo.update(itemId, updates)
+              logger.info('Completed processing ticket', {
+                ticketId: itemId,
+                processingTime,
+                statusUpdated: ticket.status !== 'closed'
               })
-              logger.info('Completed processing ticket', { ticketId: itemId, processingTime })
             } catch (error: any) {
               throw ErrorFactory.invalidState('Ticket', error.message, 'complete processing')
             }
