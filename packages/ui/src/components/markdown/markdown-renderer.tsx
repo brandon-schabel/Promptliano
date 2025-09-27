@@ -1,6 +1,6 @@
 import { Streamdown } from 'streamdown'
 import type { MermaidConfig } from 'mermaid'
-import type { ComponentProps } from 'react'
+import { useMemo, type ComponentProps } from 'react'
 
 const DEFAULT_IMAGE_PREFIXES = ['https://', 'data:image/'] as const
 const DEFAULT_LINK_PREFIXES = ['https://', 'mailto:', 'tel:'] as const
@@ -43,14 +43,24 @@ export function MarkdownRenderer({
 
   const resolvedDefaultOrigin = defaultOrigin ?? runtimeOrigin ?? DEFAULT_ORIGIN
 
+  // Prefer provided mermaidConfig, otherwise derive minimal config from theme
+  const derivedMermaidConfig = useMemo<MermaidConfig>(() => {
+    if (mermaidConfig) return mermaidConfig
+    return {
+      // Use "dark" or default based on provided isDarkMode flag
+      theme: _isDarkMode ? 'dark' : 'default'
+    }
+  }, [mermaidConfig, _isDarkMode])
+
   return (
     <Streamdown
+      mermaidConfig={derivedMermaidConfig}
       shikiTheme={shikiTheme}
-      mermaidConfig={mermaidConfig}
       allowedImagePrefixes={allowedImagePrefixes ?? [...DEFAULT_IMAGE_PREFIXES]}
       allowedLinkPrefixes={allowedLinkPrefixes ?? [...DEFAULT_LINK_PREFIXES]}
       defaultOrigin={resolvedDefaultOrigin}
       parseIncompleteMarkdown
+      data-color-mode={_isDarkMode ? 'dark' : 'light'}
     >
       {content}
     </Streamdown>

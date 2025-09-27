@@ -6,6 +6,7 @@ import {
   mcpToolSummarySchema,
   mcpExecutionTimelineSchema,
   mcpExecutionStatusSchema,
+  type MCPExecutionQuery,
   type MCPToolExecution
 } from '@promptliano/schemas'
 import {
@@ -20,6 +21,7 @@ import {
   getMCPExecutionTimeline,
   getTopErrorPatterns
 } from '@promptliano/services'
+import type { MCPToolExecution as DbMCPToolExecution } from '@promptliano/database'
 
 const MCPExecutionListSuccessSchema = createSuccessResponseSchema(
   mcpExecutionListResponseSchema,
@@ -170,13 +172,43 @@ function resolveDateRange(
   }
 }
 
-function serializeExecution(execution: MCPToolExecution) {
+function toUnixTimestamp(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined
+  if (typeof value === 'number') return value
+  if (value instanceof Date) return value.getTime()
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isNaN(parsed)) return parsed
+    const parsedDate = Date.parse(value)
+    return Number.isNaN(parsedDate) ? undefined : parsedDate
+  }
+  if (typeof value === 'object' && typeof (value as Date).valueOf === 'function') {
+    const numericValue = Number((value as Date).valueOf())
+    return Number.isNaN(numericValue) ? undefined : numericValue
+  }
+
+  return undefined
+}
+
+function serializeExecution(execution: DbMCPToolExecution): MCPToolExecution {
+  const startedAt = toUnixTimestamp(execution.startedAt)
+  const completedAt = toUnixTimestamp(execution.completedAt)
+
   return {
-    ...execution,
-    startedAt: execution.startedAt instanceof Date ? execution.startedAt.getTime() : execution.startedAt,
-    completedAt: execution.completedAt instanceof Date ? execution.completedAt.getTime() : execution.completedAt,
-    createdAt: execution.createdAt instanceof Date ? execution.createdAt.getTime() : execution.createdAt,
-    updatedAt: execution.updatedAt instanceof Date ? execution.updatedAt.getTime() : execution.updatedAt
+    id: execution.id ?? 0,
+    toolName: execution.toolName,
+    projectId: execution.projectId ?? undefined,
+    userId: undefined,
+    sessionId: execution.sessionId ?? undefined,
+    startedAt: startedAt ?? Date.now(),
+    completedAt: completedAt ?? null,
+    durationMs: execution.durationMs ?? undefined,
+    status: (execution.status as MCPToolExecution['status']) ?? 'success',
+    errorMessage: execution.errorMessage ?? undefined,
+    errorCode: execution.errorCode ?? undefined,
+    inputParams: execution.inputParams ?? undefined,
+    outputSize: execution.outputSize ?? undefined,
+    metadata: execution.metadata ?? undefined
   }
 }
 
@@ -241,7 +273,7 @@ const getErrorPatternsRoute = createRoute({
 })
 
 export const mcpAnalyticsRoutes = new OpenAPIHono()
-  .openapi(getExecutionsRoute, async (c) => {
+  .openapi(getExecutionsRoute, async (c): Promise<any> => {
     const { id } = c.req.valid('param')
     const query = c.req.valid('query')
 
@@ -251,17 +283,17 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
     const startDate = query.startDate ? Number.parseInt(query.startDate, 10) : undefined
     const endDate = query.endDate ? Number.parseInt(query.endDate, 10) : undefined
 
-    const executionQuery = {
+    const executionQuery: MCPExecutionQuery = {
       projectId: Number(id),
       toolName: query.toolName ?? (toolNames ? toolNames[0] : undefined),
       status: query.status,
       sessionId: query.sessionId,
       startDate,
       endDate,
-      limit,
-      offset,
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder
+      limit: limit ?? 100,
+      offset: offset ?? 0,
+      sortBy: query.sortBy ?? 'startedAt',
+      sortOrder: query.sortOrder ?? 'desc'
     }
 
     const result = await getMCPToolExecutions(executionQuery)
@@ -275,7 +307,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     return c.json(successResponse(data))
   })
-  .openapi(getOverviewRoute, async (c) => {
+  .openapi(getOverviewRoute, async (c): Promise<any> => {
     const { id } = c.req.valid('param')
     const query = c.req.valid('query')
     const toolNames = normalizeToolNames(query.toolNames)
@@ -295,7 +327,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     return c.json(successResponse(filteredOverview))
   })
-  .openapi(getStatisticsRoute, async (c) => {
+  .openapi(getStatisticsRoute, async (c): Promise<any> => {
     const { id } = c.req.valid('param')
     const query = c.req.valid('query')
     const toolNames = normalizeToolNames(query.toolNames)
@@ -312,7 +344,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     return c.json(successResponse(stats))
   })
-  .openapi(getTimelineRoute, async (c) => {
+  .openapi(getTimelineRoute, async (c): Promise<any> => {
     const { id } = c.req.valid('param')
     const query = c.req.valid('query')
     const startDate = query.startDate ? Number.parseInt(query.startDate, 10) : undefined
@@ -323,7 +355,7 @@ export const mcpAnalyticsRoutes = new OpenAPIHono()
 
     return c.json(successResponse(timeline))
   })
-  .openapi(getErrorPatternsRoute, async (c) => {
+  .openapi(getErrorPatternsRoute, async (c): Promise<any> => {
     const { id } = c.req.valid('param')
     const query = c.req.valid('query')
     const toolNames = normalizeToolNames(query.toolNames)

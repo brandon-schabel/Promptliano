@@ -1,4 +1,4 @@
-import { cn } from "@/utils/index";
+import { cn } from "../../utils";
 import type { Experimental_GeneratedImage } from "ai";
 
 export type ImageProps = Experimental_GeneratedImage & {

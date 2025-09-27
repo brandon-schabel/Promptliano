@@ -1,4 +1,4 @@
-import { Button } from "@/components/core/button";
+import { Button } from "../core/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,8 +6,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/core/dropdown-menu";
-import { cn } from "@/utils/index";
+} from "../core/dropdown-menu";
+import { cn } from "../../utils";
 import {
   ChevronDownIcon,
   ExternalLinkIcon,

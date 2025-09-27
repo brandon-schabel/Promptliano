@@ -4,7 +4,7 @@ import { Button, Tabs, TabsContent, TabsList, TabsTrigger, Skeleton } from '@pro
 import { Edit, Save, XCircle, Copy, FileText, FileCode, Expand, Minimize2, GitBranch } from 'lucide-react'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { Textarea } from '@promptliano/ui'
-import { MarkdownRenderer } from '@/components/markdown-renderer'
+import { MarkdownRenderer } from '@promptliano/ui'
 import { LazyMonacoEditor } from '@/components/lazy-monaco-editor'
 import { LazyMonacoDiffViewer } from '@/components/lazy-monaco-diff-viewer'
 import { DiffViewer } from '@/components/file-changes/diff-viewer'

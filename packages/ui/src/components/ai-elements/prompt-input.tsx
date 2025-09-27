@@ -1,21 +1,21 @@
 "use client";
 
-import { Button } from "@/components/core/button";
+import { Button } from "../core/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/core/dropdown-menu";
+} from "../core/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/select";
-import { Textarea } from "@/components/core/textarea";
-import { cn } from "@/utils/index";
+} from "../core/select";
+import { Textarea } from "../core/textarea";
+import { cn } from "../../utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
   ImageIcon,
@@ -174,15 +174,22 @@ export const PromptInputActionAddAttachments = ({
   label = "Add photos or files",
   ...props
 }: PromptInputActionAddAttachmentsProps) => {
-  const attachments = usePromptInputAttachments();
+  const { openFileDialog } = usePromptInputAttachments();
+
+  const handleSelect = useCallback<
+    NonNullable<ComponentProps<typeof DropdownMenuItem>["onSelect"]>
+  >(
+    (event) => {
+      event.preventDefault();
+      openFileDialog();
+    },
+    [openFileDialog]
+  );
 
   return (
     <DropdownMenuItem
       {...props}
-      onSelect={(e) => {
-        e.preventDefault();
-        attachments.openFileDialog();
-      }}
+      onSelect={handleSelect}
     >
       <ImageIcon className="mr-2 size-4" /> {label}
     </DropdownMenuItem>
@@ -464,6 +471,15 @@ export const PromptInputTextarea = ({
 }: PromptInputTextareaProps) => {
   const attachments = usePromptInputAttachments();
 
+  const handleTextareaChange = useCallback<
+    ChangeEventHandler<HTMLTextAreaElement>
+  >(
+    (event) => {
+      onChange?.(event);
+    },
+    [onChange]
+  );
+
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter") {
       // Don't submit if IME composition is in progress
@@ -519,9 +535,7 @@ export const PromptInputTextarea = ({
         className
       )}
       name="message"
-      onChange={(e) => {
-        onChange?.(e);
-      }}
+      onChange={handleTextareaChange}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       placeholder={placeholder}

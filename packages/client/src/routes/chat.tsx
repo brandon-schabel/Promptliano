@@ -388,10 +388,12 @@ const ToolCallSection: React.FC<{
       : call.isStreaming
         ? 'input-streaming'
         : 'input-available'
-  const toolType = call.toolName ? `tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}` : 'tool-call'
+  const toolType = (call.toolName
+    ? `tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}`
+    : 'tool-call') as `tool-${string}`
   const previewText = call.previewText || buildToolPreview(call)
   const inputValue = call.rawArgs ?? call.argsSummary ?? undefined
-  const outputValue = hasError ? undefined : call.rawOutput ?? call.outputSummary ?? call.previewText ?? undefined
+  const outputValue = hasError ? undefined : (call.rawOutput ?? call.outputSummary ?? call.previewText ?? undefined)
 
   const handleCopyArgs = () => {
     if (!call.argsSummary) return
@@ -541,13 +543,7 @@ const MessageHeader: React.FC<{
               <Trash className='h-3 w-3' />
             </Button>
             {onReplayStream && (
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-6 w-6'
-                onClick={onReplayStream}
-                title='Replay stream'
-              >
+              <Button variant='ghost' size='icon' className='h-6 w-6' onClick={onReplayStream} title='Replay stream'>
                 <PlayCircle className='h-3 w-3' />
               </Button>
             )}
@@ -619,13 +615,23 @@ const ChatMessageItem = React.memo(
         ? ((msg as any).parts as Array<Record<string, any>>)
         : []
     const reasoningParts = parts.filter((part) => part?.type === 'reasoning' && typeof part?.text === 'string')
-    const reasoningTextFromParts = reasoningParts.map((part) => String(part.text)).join('\n').trim()
+    const reasoningTextFromParts = reasoningParts
+      .map((part) => String(part.text))
+      .join('\n')
+      .trim()
     const reasoningStreamingFromParts = reasoningParts.some((part) => part?.state === 'streaming')
 
     const reasoningSource = reasoningParts.length > 0 ? 'parts' : hasThinkBlock ? 'think' : null
-    const reasoningText = reasoningSource === 'parts' ? reasoningTextFromParts : reasoningSource === 'think' ? thinkContent : ''
-    const reasoningStreaming = reasoningSource === 'parts' ? reasoningStreamingFromParts : reasoningSource === 'think' ? isThinking : false
-    let reasoningPreview = reasoningSource === 'parts' ? buildReasoningPreview(reasoningTextFromParts) : reasoningSource === 'think' ? buildReasoningPreview(thinkContent) : ''
+    const reasoningText =
+      reasoningSource === 'parts' ? reasoningTextFromParts : reasoningSource === 'think' ? thinkContent : ''
+    const reasoningStreaming =
+      reasoningSource === 'parts' ? reasoningStreamingFromParts : reasoningSource === 'think' ? isThinking : false
+    let reasoningPreview =
+      reasoningSource === 'parts'
+        ? buildReasoningPreview(reasoningTextFromParts)
+        : reasoningSource === 'think'
+          ? buildReasoningPreview(thinkContent)
+          : ''
     if (!reasoningPreview && reasoningStreaming) {
       reasoningPreview = 'Model is reasoning...'
     }
@@ -667,7 +673,7 @@ const ChatMessageItem = React.memo(
       const ensureEntry = (id: string, index: number, defaults: Partial<ToolCallAccumulator> = {}) => {
         const existing = map.get(id)
         if (existing) {
-          if (defaults.stepIndex !== undefined && (existing.stepIndex == null)) {
+          if (defaults.stepIndex !== undefined && existing.stepIndex == null) {
             existing.stepIndex = defaults.stepIndex
           }
           if (defaults.stepLabel && !existing.stepLabel) {
@@ -755,9 +761,7 @@ const ChatMessageItem = React.memo(
 
         const invocationRaw = partAny.toolInvocation
         const invocation =
-          invocationRaw && typeof invocationRaw === 'object'
-            ? (invocationRaw as Record<string, unknown>)
-            : undefined
+          invocationRaw && typeof invocationRaw === 'object' ? (invocationRaw as Record<string, unknown>) : undefined
 
         const toolNameCandidate = cleanToolName(
           (typeof partAny.toolName === 'string' && partAny.toolName) ||
@@ -797,9 +801,7 @@ const ChatMessageItem = React.memo(
         }
 
         if (rawType === 'dynamic-tool') {
-          const inferredName = cleanToolName(
-            typeof partAny.toolName === 'string' ? partAny.toolName : undefined
-          )
+          const inferredName = cleanToolName(typeof partAny.toolName === 'string' ? partAny.toolName : undefined)
           if (inferredName && !entry.toolName) {
             entry.toolName = inferredName
           }
@@ -873,7 +875,11 @@ const ChatMessageItem = React.memo(
         }
 
         if (normalizedType === 'tool' || normalizedType === 'tool_invocation') {
-          if (invocation?.args !== undefined || invocation?.arguments !== undefined || invocation?.input !== undefined) {
+          if (
+            invocation?.args !== undefined ||
+            invocation?.arguments !== undefined ||
+            invocation?.input !== undefined
+          ) {
             recordArgs(entry, invocation?.args ?? invocation?.arguments ?? invocation?.input)
           }
           if (invocation?.result !== undefined || invocation?.output !== undefined) {
@@ -1254,17 +1260,15 @@ export function ChatMessages({
             Select a chat from the sidebar or create a new one to start messaging.
           </p>
         </Card>
-  </div>
-)
-}
+      </div>
+    )
+  }
 
   let conversationBody: React.ReactNode
 
   if (isLoading && messages.length === 0) {
     conversationBody = (
-      <div className='flex items-center justify-center py-6 text-sm text-muted-foreground'>
-        Loading messages...
-      </div>
+      <div className='flex items-center justify-center py-6 text-sm text-muted-foreground'>Loading messages...</div>
     )
   } else if (!isLoading && messages.length === 0) {
     conversationBody = (
@@ -2027,9 +2031,7 @@ function ChatPage() {
                       <span>System Prompt</span>
                       {isSystemPromptCustomized && <Badge variant='outline'>Custom</Badge>}
                     </div>
-                    <span
-                      className='flex-1 truncate text-xs text-muted-foreground/90 max-w-0 opacity-0 transition-all duration-150 ease-out group-hover:max-w-[420px] group-hover:opacity-100 group-focus-within:max-w-[420px] group-focus-within:opacity-100'
-                    >
+                    <span className='flex-1 truncate text-xs text-muted-foreground/90 max-w-0 opacity-0 transition-all duration-150 ease-out group-hover:max-w-[420px] group-hover:opacity-100 group-focus-within:max-w-[420px] group-focus-within:opacity-100'>
                       {systemPromptDraft}
                     </span>
                     <Button

@@ -58,8 +58,11 @@ export function MCPExecutionsTable({ projectId, defaultPageSize = 20 }: MCPExecu
     // Apply filters (only server-side filters)
     const statusFilter = columnFilters.find((f) => f.id === 'status')
     if (statusFilter && Array.isArray(statusFilter.value)) {
-      // Since API expects single status, take first one
-      baseQuery.status = statusFilter.value[0] as MCPExecutionStatus
+      // Since API expects single status, take first one and only include server-accepted values
+      const selected = statusFilter.value[0] as MCPExecutionStatus | undefined
+      if (selected === 'success' || selected === 'error' || selected === 'timeout') {
+        baseQuery.status = selected
+      }
     }
 
     // Note: toolName and action filters are now handled client-side

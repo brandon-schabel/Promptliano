@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/core/button";
-import { cn } from "@/utils/index";
+import { Button } from "../core/button";
+import { cn } from "../../utils";
 import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";

@@ -218,7 +218,7 @@ export async function initializeModelConfigs(
     console.log(`✅ Inserted ${insertedConfigs.length} model configurations`)
 
     console.log('🎉 Model configuration initialization complete!')
-    return { status: 'seeded', configsInserted: insertedConfigs.length }
+    return { status: 'seeded', configsInserted: insertedConfigs.length, presetsInserted: 0 }
   } catch (error: any) {
     const reason = error?.message ? String(error.message) : 'unknown error'
     console.error('❌ Error initializing model configurations:', error)
