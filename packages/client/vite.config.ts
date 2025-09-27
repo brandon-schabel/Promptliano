@@ -120,7 +120,6 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
       // Block ALL backend packages completely - ABSOLUTE NO BACKEND PACKAGES
       '@promptliano/services': false,
       '@promptliano/storage': false,

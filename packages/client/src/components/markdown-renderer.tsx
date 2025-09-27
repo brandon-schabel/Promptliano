@@ -1,83 +1,69 @@
-import ReactMarkdown, { type Components } from 'react-markdown'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import ts from 'react-syntax-highlighter/dist/esm/languages/hljs/typescript'
-import js from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript'
-// @ts-ignore
-import * as languages from 'react-syntax-highlighter/dist/esm/languages/hljs'
-import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 import { useMemo } from 'react'
-import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
-import { MermaidDiagram } from '@/components/mermaid-diagram'
-
-Object.entries(languages).forEach(([name, lang]) => {
-  SyntaxHighlighter.registerLanguage(name, lang)
-})
-
-// Associate the languages with tsx and jsx
-SyntaxHighlighter.registerLanguage('jsx', js)
-SyntaxHighlighter.registerLanguage('tsx', ts)
+import { Streamdown } from 'streamdown'
+import type { MermaidConfig } from 'mermaid'
+import { useSelectSetting } from '@/hooks/use-kv-local-storage'
 
 type MarkdownRendererProps = {
   content: string
   copyToClipboard?: (text: string) => void | Promise<void>
 }
 
-export function MarkdownRenderer({ content, copyToClipboard }: MarkdownRendererProps) {
-  const isDarkMode = useSelectSetting('theme') === 'dark'
-  const codeThemeDark = useSelectSetting('codeThemeDark')
-  const codeThemeLight = useSelectSetting('codeThemeLight')
+const DEFAULT_THEME_PAIR: [string, string] = ['github-light', 'github-dark']
+const DEFAULT_IMAGE_PREFIXES = ['https://', 'data:image/'] as const
+const DEFAULT_LINK_PREFIXES = ['https://', 'mailto:', 'tel:'] as const
+const DEFAULT_ORIGIN = 'http://localhost'
 
-  const selectedSyntaxTheme = useMemo(() => {
-    const themeName = isDarkMode ? codeThemeDark : codeThemeLight
-    // @ts-ignore
-    return themes[themeName] ?? themes.atomOneLight
-  }, [isDarkMode, codeThemeDark, codeThemeLight])
+function mapHljsToShiki(name?: string): string | undefined {
+  if (!name) return undefined
+  const normalized = name.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
-  const components: Components = {
-    // @ts-ignore
-    code: ({ inline, className, children, ...rest }) => {
-      const match = /language-(\w+)/.exec(className || '')
-      const codeString = String(children).replace(/\n$/, '')
-      const language = match?.[1]?.toLowerCase()
+  if (normalized.includes('atomonelight')) return 'github-light'
+  if (normalized.includes('atomonedark')) return 'github-dark'
+  if (normalized.includes('githubdark')) return 'github-dark'
+  if (normalized.includes('githublight')) return 'github-light'
+  if (normalized.includes('dracula')) return 'dracula'
+  if (normalized.includes('nord')) return 'nord'
+  if (normalized.includes('tokyonight')) return 'tokyo-night'
+  if (normalized.includes('monokai')) return 'monokai'
 
-      if (!inline && language === 'mermaid') {
-        return <MermaidDiagram code={codeString} />
-      }
+  return undefined
+}
 
-      if (!inline && match) {
-        return (
-          <div className='relative my-2 overflow-x-auto break-words'>
-            {copyToClipboard && (
-              <button
-                onClick={() => copyToClipboard(codeString)}
-                className={`
-                                    absolute top-2 right-2 text-xs px-2 py-1 border rounded shadow
-                                    ${
-                                      isDarkMode
-                                        ? 'bg-neutral-800 text-neutral-100 hover:bg-neutral-700'
-                                        : 'bg-neutral-50 text-neutral-900 hover:bg-neutral-200'
-                                    }
-                                `}
-                title='Copy code'
-              >
-                Copy
-              </button>
-            )}
-            {/* @ts-ignore */}
-            <SyntaxHighlighter language={match[1]} style={selectedSyntaxTheme} showLineNumbers wrapLongLines>
-              {codeString}
-            </SyntaxHighlighter>
-          </div>
-        )
-      }
+export function MarkdownRenderer({ content, copyToClipboard: _copyToClipboard }: MarkdownRendererProps) {
+  const themeSetting = useSelectSetting('theme')
+  const codeThemeDark = mapHljsToShiki(useSelectSetting('codeThemeDark'))
+  const codeThemeLight = mapHljsToShiki(useSelectSetting('codeThemeLight'))
 
-      return (
-        <code className={className} {...rest}>
-          {children}
-        </code>
-      )
+  const shikiTheme = useMemo<[string, string]>(() => {
+    const light = codeThemeLight ?? DEFAULT_THEME_PAIR[0]
+    const dark = codeThemeDark ?? DEFAULT_THEME_PAIR[1]
+    return [light, dark]
+  }, [codeThemeDark, codeThemeLight])
+
+  const mermaidConfig = useMemo<MermaidConfig>(() => {
+    return {
+      theme: themeSetting === 'dark' ? 'dark' : 'default'
     }
-  }
+  }, [themeSetting])
 
-  return <ReactMarkdown components={components}>{content}</ReactMarkdown>
+  const resolvedDefaultOrigin =
+    typeof window !== 'undefined' && typeof window.location?.origin === 'string'
+      ? window.location.origin
+      : DEFAULT_ORIGIN
+
+  return (
+    <div className='relative my-2'>
+      <Streamdown
+        shikiTheme={shikiTheme}
+        mermaidConfig={mermaidConfig}
+        allowedImagePrefixes={[...DEFAULT_IMAGE_PREFIXES]}
+        allowedLinkPrefixes={[...DEFAULT_LINK_PREFIXES]}
+        defaultOrigin={resolvedDefaultOrigin}
+        parseIncompleteMarkdown
+        data-color-mode={themeSetting === 'dark' ? 'dark' : 'light'}
+      >
+        {content}
+      </Streamdown>
+    </div>
+  )
 }

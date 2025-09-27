@@ -8,8 +8,9 @@ export interface MarkdownInlinePreviewProps {
   size?: 'sm' | 'md' | 'lg'
   showHoverPreview?: boolean
   isDarkMode?: boolean
-  codeTheme?: string
+  codeTheme?: string | [string, string]
   copyToClipboard?: (text: string) => void
+  defaultOrigin?: string
 }
 
 export function MarkdownInlinePreview({
@@ -18,8 +19,9 @@ export function MarkdownInlinePreview({
   size = 'md',
   showHoverPreview = true,
   isDarkMode = false,
-  codeTheme = 'atomOneLight',
-  copyToClipboard
+  codeTheme = ['github-light', 'github-dark'],
+  copyToClipboard,
+  defaultOrigin
 }: MarkdownInlinePreviewProps) {
   const sizeClasses = {
     sm: 'h-24',
@@ -40,6 +42,7 @@ export function MarkdownInlinePreview({
             isDarkMode={isDarkMode}
             codeTheme={codeTheme}
             copyToClipboard={copyToClipboard}
+            defaultOrigin={defaultOrigin}
           />
           {hasMore && <p className='text-muted-foreground italic mt-2'>...</p>}
         </div>
@@ -57,6 +60,7 @@ export function MarkdownInlinePreview({
                   isDarkMode={isDarkMode}
                   codeTheme={codeTheme}
                   copyToClipboard={copyToClipboard}
+                  defaultOrigin={defaultOrigin}
                 />
               </div>
             </ScrollArea>

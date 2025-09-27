@@ -42,6 +42,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@ai-sdk-tools/devtools": "^0.6.1",
     "@ai-sdk/anthropic": "^2.0.0",
     "@ai-sdk/google": "^2.0.0",
     "@ai-sdk/groq": "^2.0.0",

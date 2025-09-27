@@ -380,8 +380,16 @@ export const genAiRoutes = new OpenAPIHono()
       throw new ApiError(500, `MCP tool '${resolvedToolId}' cannot be executed`, 'MCP_TOOL_EXECUTION_ERROR')
     }
 
-    const execution = await tool.execute(inferredArguments, undefined as any)
-    await suite.cleanup()
+    let execution: unknown
+    try {
+      execution = await tool.execute(inferredArguments, undefined as any)
+    } finally {
+      try {
+        await suite.cleanup()
+      } catch (cleanupError) {
+        console.error('[MCP] Failed to clean up tool suite after execution', cleanupError)
+      }
+    }
 
     const content = typeof execution === 'string' ? execution : JSON.stringify(execution)
 

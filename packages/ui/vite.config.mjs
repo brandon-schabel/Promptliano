@@ -59,12 +59,6 @@ export default defineConfig({
         '@hookform/resolvers',
         'zod',
         'framer-motion',
-        'react-markdown',
-        // Externalize react-syntax-highlighter and all subpath imports
-        /^react-syntax-highlighter(\/.*)?$/,
-        // Also externalize highlight.js subpaths referenced by react-syntax-highlighter
-        /^highlight\.js(\/.*)?$/,
-        'remark-gfm',
         '@monaco-editor/react',
         'monaco-editor',
         'react-dropzone'

@@ -371,12 +371,13 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
   async function getTopErrorPatterns(
     projectId?: number,
     limit: number = 10
-  ): Promise<Array<{ pattern: Record<string, unknown>; count: number; lastSeen: number }>> {
+  ): Promise<Array<{ pattern: Record<string, unknown>; toolName: string; count: number; lastSeen: number }>> {
     return withErrorContext(
       async () => {
         const patterns = await errorPatternsRepo.getTopPatterns(projectId, limit)
         return patterns.map((pattern) => ({
-          pattern: { message: pattern.errorPattern, type: pattern.errorType },
+          pattern: { message: pattern.errorPattern, type: pattern.errorType, toolName: pattern.toolName },
+          toolName: pattern.toolName,
           count: pattern.occurrenceCount,
           lastSeen: pattern.lastOccurredAt instanceof Date ? pattern.lastOccurredAt.getTime() : pattern.lastOccurredAt
         }))

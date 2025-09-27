@@ -46,6 +46,92 @@ const createTextPart = (content: string) => ({
   text: content
 })
 
+const normalizeMermaidCodeBlocks = (input: unknown): string => {
+  const value = typeof input === 'string' ? input : ''
+  if (!value) return value
+
+  const ensureFenceBreaks = value.replace(/```mermaid(?![\r\n])/gi, '```mermaid\n')
+
+  return ensureFenceBreaks.replace(/```mermaid([\s\S]*?)```/gi, (match, rawBlock) => {
+    if (typeof rawBlock !== 'string') return match
+
+    const normalizedBlock = (() => {
+      let block = rawBlock.replace(/\r\n/g, '\n')
+
+      const directivePattern = /(^|\n)(\s*(?:(?:flowchart|graph)\s+[a-z0-9_-]+|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|mindmap|quadrantChart|timeline|gitGraph))([ \t]+)(?!;)([^\n]+)/i
+      const directiveMatch = block.match(directivePattern)
+      if (directiveMatch) {
+        const [fullMatch, prefix, directive, separator, remainder] = directiveMatch
+        const remainderIndentMatch = remainder.match(/^[\t ]*/)
+        const remainderIndent = remainderIndentMatch ? remainderIndentMatch[0] : ''
+        const remainderContent = remainder.slice(remainderIndent.length)
+        if (remainderContent.trim().length > 0) {
+          const prefixString = typeof prefix === 'string' ? prefix : ''
+          const effectiveIndent = remainderIndent.length > 0 ? remainderIndent : separator
+          const replacement = `${prefixString}${directive}\n${effectiveIndent}${remainderContent}`
+          block = block.replace(fullMatch, replacement)
+        }
+      }
+
+      if (!block.startsWith('\n')) {
+        block = `\n${block}`
+      }
+
+      block = block.replace(/\s*$/, '')
+      return `${block}\n`
+    })()
+
+    const leadingFence = '```mermaid'
+    const closingFence = '```'
+    return `${leadingFence}${normalizedBlock}${closingFence}`
+  })
+}
+
+const normalizeTextParts = (parts: any[]): any[] =>
+  parts.map((part) => {
+    if (part?.type === 'text' && typeof part.text === 'string') {
+      const normalized = normalizeMermaidCodeBlocks(part.text)
+      if (normalized !== part.text) {
+        return {
+          ...part,
+          text: normalized
+        }
+      }
+    }
+    return part
+  })
+
+const normalizeMermaidMetadata = (
+  metadata: Record<string, unknown> | null | undefined,
+  normalizedParts: any[]
+): Record<string, unknown> | undefined => {
+  if (!metadata) return undefined
+
+  const raw = metadata as Record<string, unknown>
+  const updated: Record<string, unknown> = { ...raw }
+
+  const rawParts = raw['parts']
+  if (Array.isArray(rawParts)) {
+    updated['parts'] = normalizedParts
+  }
+
+  const uiMessageRaw = raw['uiMessage']
+  if (uiMessageRaw && typeof uiMessageRaw === 'object') {
+    const uiMessage = { ...(uiMessageRaw as Record<string, unknown>) }
+    const uiMessageParts = uiMessage['parts']
+    if (Array.isArray(uiMessageParts)) {
+      uiMessage['parts'] = normalizeTextParts(uiMessageParts as any[])
+    }
+    const uiMessageContent = uiMessage['content']
+    if (typeof uiMessageContent === 'string') {
+      uiMessage['content'] = normalizeMermaidCodeBlocks(uiMessageContent)
+    }
+    updated['uiMessage'] = uiMessage
+  }
+
+  return updated
+}
+
 const normalizeParts = (message: ChatUiMessage): any[] => {
   if (Array.isArray(message.parts) && message.parts.length > 0) {
     return message.parts.map(ensureSerializablePart)
@@ -133,7 +219,8 @@ export const deserializeChatMessage = (message: ChatMessage): ChatUiMessage => {
       : Array.isArray((metadata.uiMessage as any)?.parts)
         ? (metadata.uiMessage as any).parts
         : null
-    const parts = metadataParts ?? fallbackParts(message.content)
+    const baseParts = metadataParts ?? fallbackParts(message.content)
+    const parts = normalizeTextParts(baseParts)
 
     let textContent = typeof message.content === 'string' ? message.content : ''
     if ((!textContent || textContent.trim().length === 0) && metadata.uiMessage) {
@@ -144,7 +231,10 @@ export const deserializeChatMessage = (message: ChatMessage): ChatUiMessage => {
       }
     }
 
-    const content = textContent && textContent.trim().length > 0 ? textContent : extractTextFromParts(parts, '')
+    const baseContent =
+      textContent && textContent.trim().length > 0 ? textContent : extractTextFromParts(parts, '')
+    const content = normalizeMermaidCodeBlocks(baseContent)
+    const normalizedMetadata = normalizeMermaidMetadata(metadata, parts)
 
     return {
       id: metadata.sourceId ? String(metadata.sourceId) : `msg_${message.id}`,
@@ -152,13 +242,16 @@ export const deserializeChatMessage = (message: ChatMessage): ChatUiMessage => {
       content,
       parts,
       createdAt: message.createdAt ? new Date(message.createdAt).getTime() : undefined,
-      metadata
+      metadata: normalizedMetadata ?? metadata
     }
   }
 
   const parsed = parseContent(message.content)
-  const parts = parsed ? parsed.parts : fallbackParts(message.content)
-  const text = parsed?.text ?? extractTextFromParts(parts, message.content)
+  const baseParts = parsed ? parsed.parts : fallbackParts(message.content)
+  const parts = normalizeTextParts(baseParts)
+  const baseText = parsed?.text ?? extractTextFromParts(parts, message.content)
+  const text = normalizeMermaidCodeBlocks(baseText)
+  const normalizedMetadata = normalizeMermaidMetadata(message.metadata ?? undefined, parts)
 
   return {
     id: message.metadata?.sourceId ? String(message.metadata.sourceId) : `msg_${message.id}`,
@@ -166,6 +259,6 @@ export const deserializeChatMessage = (message: ChatMessage): ChatUiMessage => {
     content: text,
     parts,
     createdAt: message.createdAt ? new Date(message.createdAt).getTime() : undefined,
-    metadata: message.metadata ?? undefined
+    metadata: normalizedMetadata ?? message.metadata ?? undefined
   }
 }

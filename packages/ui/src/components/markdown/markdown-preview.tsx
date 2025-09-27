@@ -13,8 +13,9 @@ export interface MarkdownPreviewProps {
   showControls?: boolean
   size?: 'sm' | 'md' | 'lg'
   isDarkMode?: boolean
-  codeTheme?: string
+  codeTheme?: string | [string, string]
   copyToClipboard?: (text: string) => void
+  defaultOrigin?: string
 }
 
 export function MarkdownPreview({
@@ -23,8 +24,9 @@ export function MarkdownPreview({
   showControls = false,
   size = 'md',
   isDarkMode = false,
-  codeTheme = 'atomOneLight',
-  copyToClipboard
+  codeTheme = ['github-light', 'github-dark'],
+  copyToClipboard,
+  defaultOrigin
 }: MarkdownPreviewProps) {
   const [zoom, setZoom] = useState(100)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -49,6 +51,7 @@ export function MarkdownPreview({
         isDarkMode={isDarkMode}
         codeTheme={codeTheme}
         copyToClipboard={copyToClipboard}
+        defaultOrigin={defaultOrigin}
       />
     </div>
   )

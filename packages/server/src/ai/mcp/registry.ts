@@ -43,6 +43,7 @@ export interface McpToolSuite {
 
 export interface McpSuiteOptions {
   enablePromptliano?: boolean
+  enableChromeDevtools?: boolean
 }
 
 const moduleDir = dirname(fileURLToPath(import.meta.url))
@@ -67,6 +68,7 @@ function loadStdioServersFromEnv(): StdioServerConfig[] {
 
 export async function createMcpToolSuite(options: McpSuiteOptions = {}): Promise<McpToolSuite> {
   const enablePromptliano = options.enablePromptliano !== false
+  const enableChromeDevtools = options.enableChromeDevtools !== false
   const clients: Array<{ close: () => Promise<void> }> = []
   const tools: ToolSet = {}
   const metadata: Array<{ name: string; description?: string }> = []
@@ -82,6 +84,24 @@ export async function createMcpToolSuite(options: McpSuiteOptions = {}): Promise
     clients.push({ close: () => promptlianoClient.close() })
     const promptlianoTools = await wrapMcpTools(promptlianoClient, metadata, 'promptliano')
     Object.assign(tools, promptlianoTools)
+  }
+
+  if (enableChromeDevtools) {
+    const chromeDevtoolsCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+    try {
+      const chromeDevtoolsClient = await experimental_createMCPClient({
+        transport: new StdioClientTransport({
+          command: chromeDevtoolsCommand,
+          args: ['chrome-devtools-mcp@latest']
+        })
+      })
+
+      clients.push({ close: () => chromeDevtoolsClient.close() })
+      const chromeDevtoolsTools = await wrapMcpTools(chromeDevtoolsClient, metadata, 'chrome-devtools')
+      Object.assign(tools, chromeDevtoolsTools)
+    } catch (error) {
+      console.warn('[MCP] Failed to start chrome-devtools MCP server', error)
+    }
   }
 
   for (const server of loadStdioServersFromEnv()) {

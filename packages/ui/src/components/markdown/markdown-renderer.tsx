@@ -1,78 +1,58 @@
-import ReactMarkdown, { type Components } from 'react-markdown'
-import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
-import ts from 'react-syntax-highlighter/dist/esm/languages/hljs/typescript'
-import js from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript'
-// @ts-ignore
-import * as languages from 'react-syntax-highlighter/dist/esm/languages/hljs'
-import { useMemo } from 'react'
-import * as themes from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { Streamdown } from 'streamdown'
+import type { MermaidConfig } from 'mermaid'
+import type { ComponentProps } from 'react'
 
-Object.entries(languages).forEach(([name, lang]) => {
-  SyntaxHighlighter.registerLanguage(name, lang)
-})
+const DEFAULT_IMAGE_PREFIXES = ['https://', 'data:image/'] as const
+const DEFAULT_LINK_PREFIXES = ['https://', 'mailto:', 'tel:'] as const
+const DEFAULT_THEME_PAIR = ['github-light', 'github-dark'] as const
+const DEFAULT_ORIGIN = 'http://localhost'
 
-// Associate the languages with tsx and jsx
-SyntaxHighlighter.registerLanguage('jsx', js)
-SyntaxHighlighter.registerLanguage('tsx', ts)
+type ShikiThemeProp = ComponentProps<typeof Streamdown>['shikiTheme']
 
 export type MarkdownRendererProps = {
   content: string
-  copyToClipboard?: (text: string) => void
   isDarkMode?: boolean
-  codeTheme?: string
+  codeTheme?: string | [string, string]
+  allowedImagePrefixes?: string[]
+  allowedLinkPrefixes?: string[]
+  mermaidConfig?: MermaidConfig
+  defaultOrigin?: string
+  copyToClipboard?: (text: string) => void
 }
 
 export function MarkdownRenderer({
   content,
-  copyToClipboard,
-  isDarkMode = false,
-  codeTheme = 'atomOneLight'
+  isDarkMode: _isDarkMode = false,
+  codeTheme,
+  allowedImagePrefixes,
+  allowedLinkPrefixes,
+  mermaidConfig,
+  defaultOrigin,
+  copyToClipboard: _copyToClipboard
 }: MarkdownRendererProps) {
-  const selectedSyntaxTheme = useMemo(() => {
-    // @ts-ignore
-    return themes[codeTheme] ?? themes.atomOneLight
-  }, [codeTheme])
+  const shikiThemeCandidate = Array.isArray(codeTheme)
+    ? codeTheme
+    : codeTheme
+      ? [codeTheme, codeTheme]
+      : DEFAULT_THEME_PAIR
 
-  const components: Components = {
-    code: ({ className, children, ...rest }: any) => {
-      const inline = rest.inline
-      const match = /language-(\w+)/.exec(className || '')
-      const codeString = String(children).replace(/\n$/, '')
+  const shikiTheme = shikiThemeCandidate as unknown as ShikiThemeProp
 
-      if (!inline && match) {
-        return (
-          <div className='relative my-2 overflow-x-auto break-words'>
-            {copyToClipboard && (
-              <button
-                onClick={() => copyToClipboard(codeString)}
-                className={`
-                  absolute top-2 right-2 text-xs px-2 py-1 border rounded shadow
-                  ${
-                    isDarkMode
-                      ? 'bg-neutral-800 text-neutral-100 hover:bg-neutral-700'
-                      : 'bg-neutral-50 text-neutral-900 hover:bg-neutral-200'
-                  }
-                `}
-                title='Copy code'
-              >
-                Copy
-              </button>
-            )}
-            {/* @ts-ignore */}
-            <SyntaxHighlighter language={match[1]} style={selectedSyntaxTheme} showLineNumbers wrapLongLines>
-              {codeString}
-            </SyntaxHighlighter>
-          </div>
-        )
-      }
+  const runtimeOrigin =
+    typeof window !== 'undefined' && typeof window.location?.origin === 'string' ? window.location.origin : undefined
 
-      return (
-        <code className={className} {...rest}>
-          {children}
-        </code>
-      )
-    }
-  }
+  const resolvedDefaultOrigin = defaultOrigin ?? runtimeOrigin ?? DEFAULT_ORIGIN
 
-  return <ReactMarkdown components={components}>{content}</ReactMarkdown>
+  return (
+    <Streamdown
+      shikiTheme={shikiTheme}
+      mermaidConfig={mermaidConfig}
+      allowedImagePrefixes={allowedImagePrefixes ?? [...DEFAULT_IMAGE_PREFIXES]}
+      allowedLinkPrefixes={allowedLinkPrefixes ?? [...DEFAULT_LINK_PREFIXES]}
+      defaultOrigin={resolvedDefaultOrigin}
+      parseIncompleteMarkdown
+    >
+      {content}
+    </Streamdown>
+  )
 }

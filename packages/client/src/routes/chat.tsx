@@ -1,4 +1,4 @@
-import { ChangeEvent, KeyboardEvent, ClipboardEvent, useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -17,13 +17,13 @@ import {
   Trash,
   PlayCircle,
   ListTree,
-  SendIcon,
   MessageSquareText,
   Brain,
   ChevronDown,
   Loader2,
-  TriangleAlert,
-  Search
+  Search,
+  ChevronsDown,
+  ChevronsUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ChatUiMessage as AIChatMessage } from '@/hooks/generated/ai-chat-hooks'
@@ -49,7 +49,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea,
   Card,
   Button,
   Popover,
@@ -58,16 +57,41 @@ import {
   Switch,
   Input,
   Label,
-  Slider
+  Textarea,
+  Slider,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+  Message,
+  MessageContent,
+  PromptInput,
+  PromptInputBody,
+  PromptInputTextarea,
+  PromptInputSubmit,
+  Response,
+  Reasoning,
+  ReasoningTrigger,
+  ReasoningContent,
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput
 } from '@promptliano/ui'
+import type { PromptInputMessage } from '@promptliano/ui'
 import { ChatCard } from '@/components/chat/chat-card'
-import { MarkdownRenderer } from '@promptliano/ui'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { useDebounceCallback } from '@/hooks/utility-hooks/use-debounce'
 import { PROVIDER_SELECT_OPTIONS } from '@/constants/providers-constants'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useSelectSetting, useProjectTabField, useAppSettings, useActiveProjectTab } from '@/hooks/use-kv-local-storage'
+import { useProjectTabField, useAppSettings, useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { useGetModels } from '@/hooks/generated'
@@ -142,144 +166,6 @@ export function ModelSettingsPopover() {
 }
 
 // ProviderModelSector is now imported from the reusable components
-
-type AdaptiveChatInputProps = {
-  value: string
-  onChange: (value: string) => void
-  onSubmit?: () => void
-  placeholder?: string
-  className?: string
-  title?: string
-  disabled?: boolean
-  preserveFormatting?: boolean
-}
-
-export function AdaptiveChatInput({
-  value,
-  onChange,
-  onSubmit,
-  placeholder,
-  className = '',
-  disabled = false,
-  preserveFormatting = true
-}: AdaptiveChatInputProps) {
-  const [isMultiline, setIsMultiline] = useState(false)
-  const lastSavedValueRef = useRef(value)
-
-  // Save to localStorage only when value changes significantly (debounced)
-  const saveToLocalStorage = useDebounceCallback((newValue: string) => {
-    if (lastSavedValueRef.current !== newValue) {
-      lastSavedValueRef.current = newValue
-      localStorage.setItem('CHAT_INPUT_VALUE', JSON.stringify(newValue))
-    }
-  }, 500)
-
-  // Load from localStorage only on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('CHAT_INPUT_VALUE')
-      if (stored && value === '') {
-        const parsed = JSON.parse(stored)
-        onChange(parsed)
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
-  }, [])
-
-  useEffect(() => {
-    const shouldBeMultilineInitially = value?.includes('\n') || (value?.length ?? 0) > 100
-    if (shouldBeMultilineInitially !== isMultiline) {
-      setIsMultiline(shouldBeMultilineInitially)
-    }
-  }, [value, isMultiline])
-
-  const handleInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newValue = e.target.value
-      onChange(newValue)
-      saveToLocalStorage(newValue)
-    },
-    [onChange, saveToLocalStorage]
-  )
-
-  const handlePaste = useCallback(
-    (e: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (!preserveFormatting) return
-      e.preventDefault()
-
-      const pasteText = e.clipboardData?.getData('text/plain') ?? ''
-      const target = e.target as HTMLTextAreaElement | HTMLInputElement
-      let newValue = target.value
-      const start = target.selectionStart ?? newValue?.length
-      const end = target.selectionEnd ?? newValue?.length
-
-      newValue = newValue.slice(0, start) + pasteText + newValue.slice(end)
-
-      const html = e.clipboardData?.getData('text/html') ?? ''
-      if (!html.includes('</code>')) {
-        newValue = newValue
-          .split('\n')
-          .map((line) => line.trim())
-          .join('\n')
-          .replace(/\n{3,}/g, '\n\n')
-      }
-
-      onChange(newValue)
-
-      requestAnimationFrame(() => {
-        const cursorPos = start + pasteText.length
-        target.setSelectionRange(cursorPos, cursorPos)
-        target.focus()
-      })
-    },
-    [preserveFormatting, onChange]
-  )
-
-  const triggerSubmit = useCallback(() => {
-    onSubmit?.()
-  }, [onSubmit])
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey && !isMultiline) {
-        e.preventDefault()
-        triggerSubmit()
-      }
-    },
-    [isMultiline, triggerSubmit]
-  )
-
-  const baseProps = {
-    value: value,
-    onChange: handleInputChange,
-    onKeyDown: handleKeyDown,
-    onPaste: handlePaste,
-    placeholder,
-    disabled,
-    spellCheck: false,
-    className: cn('pl-10 font-mono w-full', className)
-  }
-
-  return (
-    <div className='relative w-full' id='adaptive-chat-input'>
-      {isMultiline ? (
-        <Textarea
-          {...baseProps}
-          rows={1}
-          style={{
-            // @ts-ignore
-            fieldSizing: 'content',
-            overflowY: 'auto'
-          }}
-          className={cn(baseProps.className, 'min-h-[60px]', 'max-h-[250px]', 'pr-8', 'resize-none', 'bg-muted')}
-        />
-      ) : (
-        <Input {...baseProps} className={cn(baseProps.className, 'overflow-hidden whitespace-nowrap')} />
-      )}
-    </div>
-  )
-}
 
 function parseThinkBlock(content: string) {
   if (!content?.startsWith('<think>')) {
@@ -365,6 +251,9 @@ const truncateForPreview = (text: string, max = 160): string => {
 }
 
 const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234'
+const CHAT_INPUT_STORAGE_KEY = 'CHAT_INPUT_VALUE'
+const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant that can answer questions and help with tasks.'
+const SYSTEM_PROMPT_STORAGE_KEY = 'chat-system-prompts'
 
 const cleanToolName = (value?: string | null): string | undefined => {
   if (!value) return undefined
@@ -440,69 +329,50 @@ const ReasoningSection: React.FC<{
   isStreaming: boolean
   onCopy: () => void
 }> = ({ text, preview, isStreaming, onCopy }) => {
-  const [expanded, setExpanded] = useState(isStreaming)
-  const wasStreamingRef = useRef(isStreaming)
   const hasReasoning = text.trim().length > 0
-
-  useEffect(() => {
-    if (isStreaming) {
-      setExpanded(true)
-    }
-  }, [isStreaming])
-
-  useEffect(() => {
-    if (!isStreaming && wasStreamingRef.current) {
-      setExpanded(false)
-    }
-    wasStreamingRef.current = isStreaming
-  }, [isStreaming])
-
-  const headerLabel = isStreaming ? 'Reasoning (streaming...)' : 'Reasoning'
   const previewLabel = preview || (isStreaming ? 'Waiting for model...' : 'No reasoning provided')
 
   return (
-    <div className='mb-3 rounded-md border border-amber-200/70 bg-amber-50/70 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/40'>
-      <button
-        type='button'
-        onClick={() => setExpanded((prev) => !prev)}
-        className='flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100/60 dark:text-amber-100 dark:hover:bg-amber-900/60'
-        aria-expanded={expanded}
-      >
-        <span className='flex items-center gap-2'>
-          <Brain className='h-4 w-4' />
-          {headerLabel}
-        </span>
-        <span className='flex items-center gap-2 text-[11px] font-normal text-amber-900/80 dark:text-amber-100/80'>
-          <span className='max-w-[220px] truncate'>{previewLabel}</span>
-          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded ? 'rotate-180' : '')} />
-        </span>
-      </button>
-      {expanded && (
-        <div className='border-t border-amber-200/60 px-3 py-2 dark:border-amber-500/30'>
-          {isStreaming && (
-            <div className='mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wide text-amber-700/80 dark:text-amber-200/80'>
-              <Loader2 className='h-3 w-3 animate-spin' />
-              Streaming reasoning
-            </div>
-          )}
-          <div className='font-mono text-[11px] text-amber-900 whitespace-pre-wrap break-words dark:text-amber-100 sm:text-xs'>
-            {hasReasoning ? text : 'No reasoning provided.'}
-          </div>
-          <div className='mt-2 flex justify-end'>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={onCopy}
-              disabled={!hasReasoning}
-              className='h-6 px-2 text-[11px] text-amber-900 hover:text-amber-700 disabled:opacity-50 disabled:hover:text-amber-900 dark:text-amber-100 dark:hover:text-amber-50'
-            >
-              <Copy className='mr-1 h-3 w-3' />
-              Copy reasoning
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    <Reasoning
+      isStreaming={isStreaming}
+      defaultOpen={isStreaming}
+      className='mb-3 rounded-md border border-amber-200/70 bg-amber-50/70 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/40'
+    >
+      <div className='flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-100'>
+        <ReasoningTrigger className='group flex w-full items-center justify-between gap-2 text-left text-xs font-semibold text-amber-900 transition-colors hover:text-amber-700 dark:text-amber-100 dark:hover:text-amber-50'>
+          <span className='flex items-center gap-2'>
+            <Brain className='h-4 w-4' />
+            {isStreaming ? (
+              <span className='flex items-center gap-1'>
+                <Loader2 className='h-3 w-3 animate-spin' />
+                Reasoning
+              </span>
+            ) : (
+              'Reasoning'
+            )}
+          </span>
+          <span className='flex items-center gap-2 text-[11px] font-normal text-amber-900/80 dark:text-amber-100/80'>
+            <span className='max-w-[220px] truncate'>{previewLabel}</span>
+            <ChevronDown className='h-3 w-3 transition-transform group-data-[state=open]:rotate-180' />
+          </span>
+        </ReasoningTrigger>
+      </div>
+      <ReasoningContent className='border-t border-amber-200/60 px-3 py-2 font-mono text-[11px] text-amber-900 whitespace-pre-wrap break-words dark:border-amber-500/30 dark:text-amber-100 sm:text-xs'>
+        {hasReasoning ? text : 'No reasoning provided.'}
+      </ReasoningContent>
+      <div className='flex justify-end border-t border-amber-200/60 px-3 py-2 dark:border-amber-500/30'>
+        <Button
+          variant='ghost'
+          size='sm'
+          onClick={onCopy}
+          disabled={!hasReasoning}
+          className='h-6 px-2 text-[11px] text-amber-900 hover:text-amber-700 disabled:opacity-50 disabled:hover:text-amber-900 dark:text-amber-100 dark:hover:text-amber-50'
+        >
+          <Copy className='mr-1 h-3 w-3' />
+          Copy reasoning
+        </Button>
+      </div>
+    </Reasoning>
   )
 }
 
@@ -511,26 +381,17 @@ const ToolCallSection: React.FC<{
   onCopy: (payload: ToolCopyPayload) => void
 }> = ({ call, onCopy }) => {
   const hasError = !!call.errorText
-  const statusLabel = hasError ? 'Error' : call.outputSummary ? 'Completed' : 'In progress'
-  const [expanded, setExpanded] = useState(call.isStreaming || statusLabel !== 'Completed')
-  const wasStreamingRef = useRef(call.isStreaming)
-
-  useEffect(() => {
-    if (call.isStreaming) {
-      setExpanded(true)
-    }
-  }, [call.isStreaming])
-
-  useEffect(() => {
-    if (!call.isStreaming && wasStreamingRef.current && !hasError && call.outputSummary) {
-      setExpanded(false)
-    }
-    wasStreamingRef.current = call.isStreaming
-  }, [call.isStreaming, call.outputSummary, hasError])
-
+  const toolState = hasError
+    ? 'output-error'
+    : call.status === 'result'
+      ? 'output-available'
+      : call.isStreaming
+        ? 'input-streaming'
+        : 'input-available'
+  const toolType = call.toolName ? `tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}` : 'tool-call'
   const previewText = call.previewText || buildToolPreview(call)
-  const headerDescription =
-    previewText || (call.isStreaming ? 'Awaiting tool result...' : hasError ? 'Tool returned an error' : 'Tool call ready')
+  const inputValue = call.rawArgs ?? call.argsSummary ?? undefined
+  const outputValue = hasError ? undefined : call.rawOutput ?? call.outputSummary ?? call.previewText ?? undefined
 
   const handleCopyArgs = () => {
     if (!call.argsSummary) return
@@ -547,105 +408,52 @@ const ToolCallSection: React.FC<{
     onCopy({ value: call.errorText, label: 'error', toolName: call.toolName })
   }
 
-  const containerClass = cn(
-    'mb-3 rounded-md border shadow-sm transition-colors',
-    hasError
-      ? 'border-destructive/40 bg-destructive/10 text-destructive-foreground dark:border-destructive/50 dark:bg-destructive/20 dark:text-destructive-foreground'
-      : 'border-sky-200/70 bg-sky-50/70 text-sky-900 dark:border-sky-500/40 dark:bg-sky-950/40 dark:text-sky-100'
-  )
-
-  const badgeClass = hasError
-    ? 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90'
-    : call.outputSummary
-      ? 'border-transparent bg-sky-600 text-white hover:bg-sky-700'
-      : 'border-sky-500/70 text-sky-900 dark:text-sky-100'
-
   return (
-    <div className={containerClass}>
-      <button
-        type='button'
-        onClick={() => setExpanded((prev) => !prev)}
-        className={cn(
-          'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold transition-colors',
-          hasError ? 'hover:bg-destructive/10 dark:hover:bg-destructive/20' : 'hover:bg-sky-100/60 dark:hover:bg-sky-900/60'
-        )}
-        aria-expanded={expanded}
-      >
-        <span className='flex items-center gap-2'>
-          <GitFork className='h-4 w-4' />
-          {call.toolName || 'Tool Call'}
-        </span>
-        <span className='flex items-center gap-2 text-[11px] font-normal'>
-          {!hasError && call.providerExecuted && (
-            <Badge variant='outline' className='text-[10px] uppercase tracking-wide'>
-              Provider
-            </Badge>
-          )}
-          <Badge variant='outline' className={cn('text-[10px]', badgeClass)}>
-            {statusLabel}
-          </Badge>
-          <span className='max-w-[260px] truncate text-right'>{headerDescription}</span>
-          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded ? 'rotate-180' : '')} />
-        </span>
-      </button>
-      {expanded && (
-        <div
-          className={cn(
-            'border-t px-3 py-2 text-[11px]',
-            hasError ? 'border-destructive/40 dark:border-destructive/50' : 'border-sky-200/60 dark:border-sky-500/30'
-          )}
-        >
-          {call.isStreaming && !hasError && (
-            <div className='mb-2 flex items-center gap-2 uppercase tracking-wide text-sky-800/80 dark:text-sky-200/80'>
-              <Loader2 className='h-3 w-3 animate-spin' />
-              Tool call in progress
-            </div>
-          )}
-          {call.argsSummary && (
-            <div className='mb-3'>
-              <div className='text-[10px] font-medium uppercase text-muted-foreground'>Arguments</div>
-              <pre className='mt-1 max-h-64 overflow-auto rounded bg-background/60 px-2 py-1 font-mono text-[11px] whitespace-pre-wrap break-words dark:bg-background/40'>
-                {call.argsSummary}
-              </pre>
-            </div>
-          )}
-          {call.outputSummary && !hasError && (
-            <div className='mb-3'>
-              <div className='text-[10px] font-medium uppercase text-muted-foreground'>Result</div>
-              <pre className='mt-1 max-h-64 overflow-auto rounded bg-background/60 px-2 py-1 font-mono text-[11px] whitespace-pre-wrap break-words dark:bg-background/40'>
-                {call.outputSummary}
-              </pre>
-            </div>
-          )}
-          {hasError && call.errorText && (
-            <div className='mb-3 flex items-start gap-2 text-destructive-foreground'>
-              <TriangleAlert className='mt-0.5 h-3.5 w-3.5 flex-shrink-0' />
-              <span className='whitespace-pre-wrap break-words text-[11px]'>{call.errorText}</span>
-            </div>
-          )}
-          <div className='mt-2 flex flex-wrap justify-end gap-2'>
-            {call.argsSummary && (
-              <Button variant='ghost' size='sm' onClick={handleCopyArgs} className='h-6 px-2 text-[11px]'>
-                <Copy className='mr-1 h-3 w-3' />
-                Copy args
-              </Button>
+    <Tool
+      defaultOpen={call.isStreaming || hasError}
+      className={cn(
+        'mb-3 border shadow-sm',
+        hasError
+          ? 'border-destructive/40 bg-destructive/10 dark:border-destructive/50 dark:bg-destructive/20'
+          : 'border-sky-200/70 bg-sky-50/70 dark:border-sky-500/40 dark:bg-sky-950/40'
+      )}
+    >
+      <ToolHeader state={toolState} type={toolType} title={call.toolName ?? 'Tool Call'} />
+      <ToolContent className='pt-0'>
+        <div className='flex flex-col gap-2 px-4 pt-4 text-[11px] text-muted-foreground'>
+          <div className='flex flex-wrap items-center gap-2'>
+            {call.providerExecuted && (
+              <Badge variant='outline' className='text-[10px] uppercase tracking-wide'>
+                Provider
+              </Badge>
             )}
-            {call.outputSummary && !hasError && (
-              <Button variant='ghost' size='sm' onClick={handleCopyResult} className='h-6 px-2 text-[11px]'>
-                <Copy className='mr-1 h-3 w-3' />
-                Copy result
-              </Button>
-            )}
-            {hasError && call.errorText && (
-              <Button variant='ghost' size='sm' onClick={handleCopyError} className='h-6 px-2 text-[11px]'>
-                <Copy className='mr-1 h-3 w-3' />
-                Copy error
-              </Button>
-            )}
+            {previewText && <span className='text-xs text-foreground'>{previewText}</span>}
           </div>
         </div>
-      )}
-    </div>
+        {inputValue !== undefined && <ToolInput input={inputValue} />}
+        <ToolOutput errorText={call.errorText ?? undefined} output={outputValue ?? null} />
+        <div className='flex flex-wrap justify-end gap-2 border-t border-border/40 px-4 py-2 text-[11px]'>
+          {call.argsSummary && (
+            <Button variant='ghost' size='sm' onClick={handleCopyArgs} className='h-6 px-2 text-[11px]'>
+              <Copy className='mr-1 h-3 w-3' />
+              Copy args
+            </Button>
+          )}
+          {call.outputSummary && !hasError && (
+            <Button variant='ghost' size='sm' onClick={handleCopyResult} className='h-6 px-2 text-[11px]'>
+              <Copy className='mr-1 h-3 w-3' />
+              Copy result
+            </Button>
+          )}
+          {hasError && call.errorText && (
+            <Button variant='ghost' size='sm' onClick={handleCopyError} className='h-6 px-2 text-[11px]'>
+              <Copy className='mr-1 h-3 w-3' />
+              Copy error
+            </Button>
+          )}
+        </div>
+      </ToolContent>
+    </Tool>
   )
 }
 
@@ -665,12 +473,21 @@ const MessageWrapper: React.FC<{
   children: React.ReactNode
   isUser: boolean
   excluded: boolean
-}> = ({ children, isUser, excluded }) => (
-  <div
-    className={cn('relative rounded-lg p-3 break-words', isUser ? 'bg-muted' : 'bg-muted/50', excluded && 'opacity-50')}
-  >
-    {children}
-  </div>
+  contentClassName?: string
+}> = ({ children, isUser, excluded, contentClassName }) => (
+  <Message from={isUser ? 'user' : 'assistant'} className={cn('w-full', excluded && 'opacity-60')}>
+    <div className='flex-1 max-w-full'>
+      <MessageContent
+        variant='flat'
+        className={cn(
+          'w-full space-y-3 rounded-lg border border-border/50 bg-background/80 p-4 text-sm shadow-sm backdrop-blur',
+          contentClassName
+        )}
+      >
+        {children}
+      </MessageContent>
+    </div>
+  </Message>
 )
 
 // Extract MessageHeader outside to prevent recreation on every render
@@ -1336,7 +1153,7 @@ const ChatMessageItem = React.memo(
 
             return (
               <div key={block.id} className='overflow-x-auto'>
-                <MarkdownRenderer content={block.content} copyToClipboard={onCopyMessage} />
+                <Response>{block.content}</Response>
               </div>
             )
           })}
@@ -1367,44 +1184,6 @@ export function ChatMessages({
   const deleteMessageMutation = useDeleteMessage()
   const forkChatMutation = useForkChatFromMessage()
   const [rawMessageIds, setRawMessageIds] = useState<Set<number>>(new Set())
-  const autoScrollEnabled = useSelectSetting('autoScrollEnabled')
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const lastMessageCountRef = useRef(0)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  useEffect(() => {
-    // Only scroll if messages have actually changed (new message added)
-    if (autoScrollEnabled && bottomRef.current && messages.length !== lastMessageCountRef.current) {
-      // Clear any pending scroll
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
-      }
-
-      // Debounce scrolling to prevent excessive calls during streaming
-      scrollTimeoutRef.current = setTimeout(() => {
-        const scrollViewport = scrollAreaRef.current?.querySelector(':scope > div[style*="overflow: scroll"]')
-        if (scrollViewport) {
-          const isScrolledUp =
-            scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight > 150
-          if (!isScrolledUp || messages.length <= 2) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-          }
-        } else {
-          bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-        }
-      }, 100) // 100ms debounce
-
-      lastMessageCountRef.current = messages.length
-    }
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
-      }
-    }
-  }, [messages.length, autoScrollEnabled]) // Only depend on message count, not entire array
 
   const handleCopyMessage = useCallback(
     (content: string) => {
@@ -1479,44 +1258,46 @@ export function ChatMessages({
 )
 }
 
-  if (isLoading && messages.length === 0) {
-    return (
-      <div className='flex-1 flex items-center justify-center p-4'>
-        <p className='text-sm text-muted-foreground'>Loading messages...</p>
-      </div>
-    )
-  }
+  let conversationBody: React.ReactNode
 
-  if (!isLoading && messages.length === 0) {
-    return (
-      <div className='flex-1 flex items-center justify-center p-4'>
-        <Card className='p-6 max-w-md text-center'>
-          <h3 className='text-lg font-semibold mb-2'>No messages yet</h3>
-          <p className='text-muted-foreground text-sm'>Start the conversation by typing your message below.</p>
-        </Card>
+  if (isLoading && messages.length === 0) {
+    conversationBody = (
+      <div className='flex items-center justify-center py-6 text-sm text-muted-foreground'>
+        Loading messages...
       </div>
     )
+  } else if (!isLoading && messages.length === 0) {
+    conversationBody = (
+      <ConversationEmptyState
+        className='border border-dashed border-muted/60 bg-background/60'
+        description='Start the conversation by typing your message below.'
+        icon={<MessageSquareIcon className='h-10 w-10 text-muted-foreground' />}
+        title='No messages yet'
+      />
+    )
+  } else {
+    conversationBody = messages.map((msg) => (
+      <ChatMessageItem
+        key={msg.id || `temp-${Math.random()}`}
+        msg={msg}
+        excluded={excludedSet.has(Number(msg.id))}
+        rawView={rawMessageIds.has(Number(msg.id))}
+        onCopyMessage={handleCopyMessage}
+        onForkMessage={handleForkFromMessage}
+        onDeleteMessage={handleDeleteMessage}
+        onToggleExclude={handleToggleExclude}
+        onToggleRawView={handleToggleRawView}
+      />
+    ))
   }
 
   return (
-    <ScrollArea className='flex-1 h-full' ref={scrollAreaRef}>
-      <div className='space-y-4 p-4'>
-        {messages.map((msg) => (
-          <ChatMessageItem
-            key={msg.id || `temp-${Math.random()}`}
-            msg={msg}
-            excluded={excludedSet.has(Number(msg.id))}
-            rawView={rawMessageIds.has(Number(msg.id))}
-            onCopyMessage={handleCopyMessage}
-            onForkMessage={handleForkFromMessage}
-            onDeleteMessage={handleDeleteMessage}
-            onToggleExclude={handleToggleExclude}
-            onToggleRawView={handleToggleRawView}
-          />
-        ))}
-        <div ref={bottomRef} className='h-px' />
-      </div>
-    </ScrollArea>
+    <Conversation className='flex h-full w-full flex-1 overflow-hidden rounded-lg border border-border/60 bg-background/40 backdrop-blur'>
+      <ConversationContent className='mx-auto flex w-full max-w-[72rem] flex-col gap-4 px-4 py-4'>
+        {conversationBody}
+      </ConversationContent>
+      <ConversationScrollButton />
+    </Conversation>
   )
 }
 
@@ -1865,6 +1646,52 @@ function ChatPage() {
   const [excludedMessageIds, setExcludedMessageIds] = useState<number[]>([])
 
   const [initialChatContent, setInitialChatContent] = useLocalStorage<string | null>('initial-chat-content', null)
+  const [systemPromptOverrides, setSystemPromptOverrides] = useLocalStorage<Record<string, string>>(
+    SYSTEM_PROMPT_STORAGE_KEY,
+    {}
+  )
+  const [systemPromptDraft, setSystemPromptDraft] = useState(DEFAULT_SYSTEM_PROMPT)
+  const [isSystemPromptDialogOpen, setSystemPromptDialogOpen] = useState(false)
+  const [systemPromptEditValue, setSystemPromptEditValue] = useState(DEFAULT_SYSTEM_PROMPT)
+  const [isInputCollapsed, setInputCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (!activeChatId) {
+      setSystemPromptDraft(DEFAULT_SYSTEM_PROMPT)
+      if (!isSystemPromptDialogOpen) {
+        setSystemPromptEditValue(DEFAULT_SYSTEM_PROMPT)
+      }
+      return
+    }
+    const key = String(activeChatId)
+    const stored = systemPromptOverrides?.[key]
+    const nextValue = stored ?? DEFAULT_SYSTEM_PROMPT
+    setSystemPromptDraft((prev) => (prev === nextValue ? prev : nextValue))
+    if (!isSystemPromptDialogOpen) {
+      setSystemPromptEditValue(nextValue)
+    }
+  }, [activeChatId, isSystemPromptDialogOpen, systemPromptOverrides])
+
+  useEffect(() => {
+    if (isInputCollapsed) {
+      setSystemPromptDialogOpen(false)
+    }
+  }, [isInputCollapsed])
+
+  const systemPrompt = activeChatId ? systemPromptDraft : DEFAULT_SYSTEM_PROMPT
+
+  const lastDraftValueRef = useRef<string>('')
+  const saveInputDraft = useDebounceCallback((value: string) => {
+    const draft = value ?? ''
+    if (lastDraftValueRef.current === draft) return
+
+    lastDraftValueRef.current = draft
+    try {
+      localStorage.setItem(CHAT_INPUT_STORAGE_KEY, JSON.stringify(draft))
+    } catch (error) {
+      console.warn('Failed to persist chat draft to localStorage', error)
+    }
+  }, 500)
 
   // Get chats data for the grid view
   const { data: chatsData, isLoading: isLoadingChats } = useGetChats()
@@ -1907,9 +1734,15 @@ function ChatPage() {
     chatId: activeChatId ?? -1,
     provider,
     model: model ?? '',
-    systemMessage: 'You are a helpful assistant that can answer questions and help with tasks.',
+    systemMessage: systemPrompt,
     enableChatAutoNaming: !!enableChatAutoNaming
   })
+
+  const isSystemPromptCustomized = useMemo(() => {
+    if (!activeChatId) return false
+    const key = String(activeChatId)
+    return systemPromptOverrides[key] !== undefined
+  }, [activeChatId, systemPromptOverrides])
 
   const selectedModelName = useMemo(() => {
     return Array.isArray(modelsData)
@@ -1928,6 +1761,59 @@ function ChatPage() {
     return null
   }, [presets, provider, model])
 
+  const handleSystemPromptChange = useCallback(
+    (value: string) => {
+      setSystemPromptDraft(value)
+      if (!activeChatId) return
+      const key = String(activeChatId)
+      setSystemPromptOverrides((prev) => {
+        const trimmedValue = value.trim()
+        const trimmedDefault = DEFAULT_SYSTEM_PROMPT.trim()
+        if (trimmedValue === trimmedDefault) {
+          if (prev[key] === undefined) return prev
+          const next = { ...prev }
+          delete next[key]
+          return next
+        }
+        if (prev[key] === value) return prev
+        return { ...prev, [key]: value }
+      })
+    },
+    [activeChatId, setSystemPromptOverrides]
+  )
+
+  const handleOpenSystemPromptDialog = useCallback(() => {
+    setSystemPromptEditValue(systemPromptDraft)
+    setSystemPromptDialogOpen(true)
+  }, [systemPromptDraft])
+
+  const handleSystemPromptDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setSystemPromptEditValue(systemPromptDraft)
+      }
+      setSystemPromptDialogOpen(open)
+    },
+    [systemPromptDraft]
+  )
+
+  const handleSystemPromptEditValueChange = useCallback((value: string) => {
+    setSystemPromptEditValue(value)
+  }, [])
+
+  const handleSystemPromptResetDraft = useCallback(() => {
+    setSystemPromptEditValue(DEFAULT_SYSTEM_PROMPT)
+  }, [])
+
+  const handleSystemPromptSave = useCallback(() => {
+    handleSystemPromptChange(systemPromptEditValue)
+    setSystemPromptDialogOpen(false)
+  }, [handleSystemPromptChange, systemPromptEditValue])
+
+  const handleToggleComposer = useCallback(() => {
+    setInputCollapsed((prev) => !prev)
+  }, [])
+
   const handleToggleExclude = useCallback((messageId: number) => {
     setExcludedMessageIds((prev) =>
       prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]
@@ -1937,28 +1823,50 @@ function ChatPage() {
   const handleChatInputChange = useCallback(
     (value: string) => {
       setInput(value)
+      saveInputDraft(value)
     },
-    [setInput]
+    [setInput, saveInputDraft]
   )
 
-  const handleFormSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      if (!input?.trim() || isAiLoading || !activeChatId) {
+  const handlePromptSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      const text = message.text ?? ''
+      if (!text.trim() || isAiLoading || !activeChatId) {
         return
       }
-      try {
-        // Clear any previous errors before sending
-        clearError()
-        await sendMessage(input, { ...modelSettings })
-        // Input is cleared by the hook after successful send
-      } catch (err) {
+
+      clearError()
+
+      void sendMessage(text, { ...modelSettings }).catch((err) => {
         console.error('Error sending message:', err)
-        // Error is now handled by the useAIChat hook and displayed via parsedError
-      }
+      })
     },
-    [input, isAiLoading, sendMessage, modelSettings, activeChatId, clearError]
+    [activeChatId, clearError, isAiLoading, modelSettings, sendMessage]
   )
+
+  const didRestoreDraftRef = useRef(false)
+
+  useEffect(() => {
+    if (didRestoreDraftRef.current) return
+    didRestoreDraftRef.current = true
+
+    try {
+      const stored = localStorage.getItem(CHAT_INPUT_STORAGE_KEY)
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      if (typeof parsed !== 'string') return
+      if (!input || input.length === 0) {
+        setInput(parsed)
+        lastDraftValueRef.current = parsed
+      }
+    } catch (error) {
+      console.warn('Failed to restore chat input draft', error)
+    }
+  }, [input, setInput])
+
+  useEffect(() => {
+    saveInputDraft(input ?? '')
+  }, [input, saveInputDraft])
 
   const hasActiveChat = !!activeChatId
 
@@ -2032,97 +1940,211 @@ function ChatPage() {
       <ChatSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className='flex-1 flex flex-col min-w-0 h-full items-center w-full'>
-        <ChatHeader onToggleSidebar={toggleSidebar} />
+        {!isInputCollapsed && <ChatHeader onToggleSidebar={toggleSidebar} />}
 
         {hasActiveChat && model ? (
           <>
-            <ScrollArea className='flex-1 w-full min-h-0 overflow-y-auto'>
-              <div className='mx-auto w-full max-w-[72rem] px-4 pb-4'>
-                <ChatMessages
-                  chatId={activeChatId}
-                  messages={messages ?? []}
-                  isLoading={isAiLoading}
-                  excludedMessageIds={excludedMessageIds}
-                  onToggleExclude={handleToggleExclude}
-                />
-              </div>
-            </ScrollArea>
+            <div className='flex-1 w-full min-h-0 px-4 pb-4 flex'>
+              <ChatMessages
+                chatId={activeChatId}
+                messages={messages ?? []}
+                isLoading={isAiLoading}
+                excludedMessageIds={excludedMessageIds}
+                onToggleExclude={handleToggleExclude}
+              />
+            </div>
 
-            <form
-              onSubmit={handleFormSubmit}
-              className='border-t border-l border-r bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-[env(safe-area-inset-bottom)] max-w-[80rem] rounded-t-lg shadow-md w-full'
-            >
-              <div className='mx-auto w-full max-w-[72rem] px-4 pt-2 pb-1 text-xs text-muted-foreground text-center flex items-center justify-center gap-2'>
-                Using: {provider} /
-                <span className='inline-flex items-center gap-2 group'>
-                  <span>{selectedModelName}</span>
-                  {matchedPreset && (
-                    <Badge variant='outline' className='ml-1'>
-                      Preset: {matchedPreset.key}
-                    </Badge>
-                  )}
-                  {model && (
+            {!isInputCollapsed ? (
+              <div className='border-t border-l border-r bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-[env(safe-area-inset-bottom)] max-w-[80rem] rounded-t-lg shadow-md w-full'>
+                <div className='mx-auto w-full max-w-[72rem] px-4 pt-2 pb-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground'>
+                  <div className='flex items-center gap-2'>
+                    <span>Using: {provider} /</span>
+                    <span className='inline-flex items-center gap-2 group'>
+                      <span>{selectedModelName}</span>
+                      {matchedPreset && (
+                        <Badge variant='outline' className='ml-1'>
+                          Preset: {matchedPreset.key}
+                        </Badge>
+                      )}
+                      {model && (
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          className={cn(
+                            'h-4 w-4 text-muted-foreground hover:text-foreground transition-opacity',
+                            'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
+                            'focus-visible:opacity-100 focus-visible:pointer-events-auto'
+                          )}
+                          title={`Copy model ID: ${model}`}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            copyToClipboard(model, { successMessage: 'Model ID copied!' })
+                          }}
+                        >
+                          <Copy className='h-3 w-3' />
+                        </Button>
+                      )}
+                      {hasCustomLmStudioUrl && lmStudioBadgeLabel && (
+                        <Badge
+                          variant='outline'
+                          className='ml-1'
+                          title={`LM Studio override URL: ${appSettings.lmStudioGlobalUrl}`}
+                        >
+                          LM Studio: {lmStudioBadgeLabel}
+                        </Badge>
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    onClick={handleToggleComposer}
+                    aria-label='Collapse composer'
+                    className='flex items-center gap-1'
+                  >
+                    <ChevronsDown className='h-4 w-4' />
+                    <span className='hidden sm:inline'>Collapse composer</span>
+                  </Button>
+                </div>
+
+                <div className='mx-auto w-full max-w-[72rem] px-4 pb-1.5'>
+                  <div
+                    role='button'
+                    tabIndex={0}
+                    onClick={handleOpenSystemPromptDialog}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleOpenSystemPromptDialog()
+                      }
+                    }}
+                    className='group flex items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-0.5 text-[11px] shadow-sm transition-all duration-150 hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer'
+                  >
+                    <div className='flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
+                      <span>System Prompt</span>
+                      {isSystemPromptCustomized && <Badge variant='outline'>Custom</Badge>}
+                    </div>
+                    <span
+                      className='flex-1 truncate text-xs text-muted-foreground/90 max-w-0 opacity-0 transition-all duration-150 ease-out group-hover:max-w-[420px] group-hover:opacity-100 group-focus-within:max-w-[420px] group-focus-within:opacity-100'
+                    >
+                      {systemPromptDraft}
+                    </span>
                     <Button
                       type='button'
-                      variant='ghost'
                       size='icon'
-                      className={cn(
-                        'h-4 w-4 text-muted-foreground hover:text-foreground transition-opacity',
-                        'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
-                        'focus-visible:opacity-100 focus-visible:pointer-events-auto'
-                      )}
-                      title={`Copy model ID: ${model}`}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        copyToClipboard(model, { successMessage: 'Model ID copied!' })
+                      variant='ghost'
+                      aria-label='Edit system prompt'
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleOpenSystemPromptDialog()
                       }}
+                      className='h-5 w-5 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100'
                     >
-                      <Copy className='h-3 w-3' />
+                      <Edit2 className='h-4 w-4' />
                     </Button>
-                  )}
-                  {hasCustomLmStudioUrl && lmStudioBadgeLabel && (
-                    <Badge
-                      variant='outline'
-                      className='ml-1'
-                      title={`LM Studio override URL: ${appSettings.lmStudioGlobalUrl}`}
-                    >
-                      LM Studio: {lmStudioBadgeLabel}
-                    </Badge>
-                  )}
-                </span>
-              </div>
-              <div className='mx-auto flex w-full max-w-[72rem] items-end gap-2 px-4 py-3'>
-                <AdaptiveChatInput
-                  value={input ?? ''}
-                  onChange={handleChatInputChange}
-                  placeholder='Type your message...'
-                  preserveFormatting
-                  className='flex-grow rounded-lg'
-                />
-                <Button
-                  type='submit'
-                  disabled={input?.trim() === ''}
-                  size='icon'
-                  className='self-end sm:h-10 sm:w-10 flex-shrink-0'
-                  aria-label='Send message'
+                  </div>
+                </div>
+
+                <Dialog open={isSystemPromptDialogOpen} onOpenChange={handleSystemPromptDialogOpenChange}>
+                  <DialogContent className='sm:max-w-lg'>
+                    <DialogHeader>
+                      <DialogTitle>Edit system prompt</DialogTitle>
+                      <DialogDescription>
+                        Update the instructions the assistant will follow for this chat.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className='space-y-3'>
+                      <Textarea
+                        value={systemPromptEditValue}
+                        onChange={(event) => handleSystemPromptEditValueChange(event.target.value)}
+                        className='min-h-[160px] resize-y text-sm'
+                      />
+                      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground'>
+                        <div className='flex items-center gap-2'>
+                          <span>{systemPromptEditValue.length} characters</span>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={handleSystemPromptResetDraft}
+                            disabled={systemPromptEditValue.trim() === DEFAULT_SYSTEM_PROMPT.trim()}
+                          >
+                            Use default
+                          </Button>
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <Button type='button' variant='ghost' onClick={() => setSystemPromptDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type='button' onClick={handleSystemPromptSave}>
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <PromptInput
+                  onSubmit={handlePromptSubmit}
+                  className='mx-auto w-full max-w-[72rem] divide-y-0 border-0 bg-transparent px-4 pb-3 shadow-none'
                 >
-                  {isAiLoading ? '...' : <SendIcon className='h-4 w-4' />}
+                  <PromptInputBody className='rounded-xl border border-border/50 bg-background/70 shadow-sm backdrop-blur'>
+                    <div className='flex items-end gap-3 px-3 py-3'>
+                      <PromptInputTextarea
+                        value={input ?? ''}
+                        onChange={(event) => handleChatInputChange(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                            event.preventDefault()
+                            event.currentTarget.form?.requestSubmit()
+                          }
+                        }}
+                        placeholder='Type your message...'
+                        disabled={!activeChatId}
+                        className='min-h-[60px] flex-1 resize-none rounded-lg bg-background/60 text-sm shadow-inner'
+                      />
+                      <PromptInputSubmit
+                        status={isAiLoading ? 'submitted' : undefined}
+                        disabled={!input?.trim() || !activeChatId}
+                        variant='default'
+                        className='h-11 w-11 rounded-full'
+                      />
+                    </div>
+                  </PromptInputBody>
+                </PromptInput>
+
+                {parsedError && (
+                  <div className='mx-auto mb-3 w-full max-w-[72rem] px-4'>
+                    <AIErrorDisplay
+                      error={parsedError}
+                      onRetry={() => {
+                        clearError()
+                        reload()
+                      }}
+                      onDismiss={clearError}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className='mx-auto w-full max-w-[72rem] px-4 pb-2 pt-2 flex justify-end'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={handleToggleComposer}
+                  aria-label='Expand composer'
+                  className='flex items-center gap-1'
+                >
+                  <ChevronsUp className='h-4 w-4' />
+                  <span className='hidden sm:inline'>Expand composer</span>
                 </Button>
               </div>
-              {parsedError && (
-                <div className='mx-auto mb-3 w-full max-w-[72rem] px-4'>
-                  <AIErrorDisplay
-                    error={parsedError}
-                    onRetry={() => {
-                      clearError()
-                      reload()
-                    }}
-                    onDismiss={clearError}
-                  />
-                </div>
-              )}
-            </form>
+            )}
           </>
         ) : (
           <div className='flex-1 overflow-auto'>

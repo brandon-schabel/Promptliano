@@ -92,14 +92,14 @@ const collectTextFromEvent = (event: ChatStreamEvent, textSegments: string[]) =>
   if (normalized === 'text_delta' && payload && typeof payload === 'object') {
     const delta = (payload as Record<string, unknown>).delta
     const extractedDelta = extractString(delta)
-    if (extractedDelta && extractedDelta.trim().length > 0) {
+    if (extractedDelta && extractedDelta.length > 0) {
       textSegments.push(extractedDelta)
     }
     return
   }
 
   const extracted = extractString(payload)
-  if (extracted && extracted.trim().length > 0) {
+  if (extracted && extracted.length > 0) {
     textSegments.push(extracted)
   }
 }
