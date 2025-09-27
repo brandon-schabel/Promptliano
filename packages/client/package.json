@@ -111,7 +111,7 @@
   "devDependencies": {
     "@playwright/test": "^1.54.2",
     "@tailwindcss/typography": "^0.5.16",
-    "@ai-sdk-tools/devtools": "^0.1.0",
+    "@ai-sdk-tools/devtools": "^0.6.1",
     "@tanstack/react-query-devtools": "^5.65.1",
     "@tanstack/router-devtools": "^1.97.25",
     "@types/node": "^22.12.0",
