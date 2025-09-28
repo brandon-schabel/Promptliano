@@ -171,6 +171,9 @@ Upgrading from older versions: run database migrations (below) to drop legacy se
 - MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)
   - Alternatively, set Inspector's native vars: `CLIENT_PORT` / `SERVER_PORT`.
     The dev script maps `MCP_INSPECTOR_*` to these for the Inspector process.
+- Dev tool autostart flags (default: disabled)
+  - `DEVTOOLS_ENABLE_DRIZZLE_STUDIO` — launch Drizzle Studio when running `bun run dev`
+  - `DEVTOOLS_ENABLE_MCP_INSPECTOR` — launch the MCP Inspector UI + proxy during `bun run dev` or `bun run dev:server`
 
 Example:
 
@@ -235,13 +238,11 @@ Example `mcp.json` (macOS/Linux script):
 }
 ```
 
-Note: `bun run dev` auto-generates `.mcp-inspector.config.json` and starts the Inspector preconfigured to Promptliano (stdio). It runs headless and does not open a browser tab. To disable Inspector autostart:
-
-```bash
-MCP_INSPECTOR_AUTOSTART=false bun run dev
-```
-
-The server-only script (`bun run dev:server`) also starts the Inspector headlessly. You can run it manually anytime with `bun run mcp:inspector`.
+Note: `bun run dev` auto-generates `.mcp-inspector.config.json` and can start the Inspector preconfigured to Promptliano (stdio).
+Set `DEVTOOLS_ENABLE_MCP_INSPECTOR=true` in `.env` to launch it headlessly (no browser tab) alongside the dev server. The same
+flag controls `bun run dev:server`. Leave it `false` to skip starting the Inspector automatically; you can still run
+`bun run mcp:inspector` manually at any time. Similarly, `DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true` launches Drizzle Studio when you
+run `bun run dev`.
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
 

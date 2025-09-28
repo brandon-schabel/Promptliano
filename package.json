@@ -7,7 +7,7 @@
     "dev": "bun run scripts/start-dev.ts",
     "dev:client": "bun run scripts/start-client-dev.ts",
     "dev:server": "bun run scripts/start-server-dev.ts",
-    "mcp:inspector": "bun x @modelcontextprotocol/inspector",
+    "mcp:inspector": "MCP_AUTO_OPEN_ENABLED=false bun x @modelcontextprotocol/inspector",
     "build": "bun run scripts/build-all.ts",
     "build:binaries": "bun run scripts/build-binaries.ts",
     "build:vscode": "bun run --cwd packages/vscode-extension build",

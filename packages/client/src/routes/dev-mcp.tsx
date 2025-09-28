@@ -4,14 +4,45 @@ import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { Card, CardContent, CardHeader, CardTitle } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Link } from '@tanstack/react-router'
-import { Terminal, Settings, ExternalLink } from 'lucide-react'
+import { Terminal, Settings, ExternalLink, Info } from 'lucide-react'
 
 function MCPInspectorPage() {
   const [settings] = useAppSettings()
   const devToolsEnabled = settings?.devToolsEnabled
+  const inspectorEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false') === 'true'
 
   // MCP Inspector runs on port 6274
   const mcpInspectorUrl = 'http://localhost:6274'
+
+  if (!inspectorEnvEnabled) {
+    return (
+      <div className='container mx-auto p-6'>
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Terminal className='h-5 w-5' />
+              MCP Inspector Disabled by Environment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            <div className='flex items-start gap-3 text-muted-foreground'>
+              <Info className='h-5 w-5 mt-0.5 text-foreground' />
+              <p>
+                Set <code>DEVTOOLS_ENABLE_MCP_INSPECTOR=true</code> in your <code>.env</code> file and restart the
+                development server (<code>bun run dev</code>) to launch the MCP Inspector alongside Promptliano.
+              </p>
+            </div>
+            <Button asChild>
+              <Link to='/settings' search={{ tab: 'dev' }}>
+                <Settings className='h-4 w-4 mr-2' />
+                Review Dev Tool Settings
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   // Redirect if dev tool is not enabled
   if (!devToolsEnabled?.mcpInspector) {

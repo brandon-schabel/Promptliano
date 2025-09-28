@@ -8,10 +8,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vitejs.dev/config/
 export default defineConfig({
   clearScreen: false,
+  envPrefix: ['VITE_', 'DEVTOOLS_'],
   server: {
     port: 1420,
     strictPort: true,
-    host: false
+    host: false,
+    open: true
   },
   plugins: [
     // TanStackRouterVite automatically generates routeTree.gen.ts during dev and build

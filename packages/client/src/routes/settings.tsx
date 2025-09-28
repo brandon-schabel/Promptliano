@@ -56,6 +56,8 @@ export function SettingsPage() {
     }
   } = settings
   const isDarkMode = theme === 'dark'
+  const drizzleEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_DRIZZLE_STUDIO ?? 'false') === 'true'
+  const mcpInspectorEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false') === 'true'
 
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useLocalStorage('autoRefreshEnabled', true)
 
@@ -76,6 +78,9 @@ export function SettingsPage() {
   }
 
   const handleDevToolToggle = (tool: keyof typeof devToolsEnabled, enabled: boolean) => {
+    if ((tool === 'drizzleStudio' && !drizzleEnvEnabled) || (tool === 'mcpInspector' && !mcpInspectorEnvEnabled)) {
+      return
+    }
     updateSettings({
       devToolsEnabled: {
         ...devToolsEnabled,
@@ -367,10 +372,17 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={devToolsEnabled.drizzleStudio}
+                      checked={drizzleEnvEnabled && devToolsEnabled.drizzleStudio}
                       onCheckedChange={(checked) => handleDevToolToggle('drizzleStudio', checked)}
+                      disabled={!drizzleEnvEnabled}
                     />
                   </div>
+                  {!drizzleEnvEnabled && (
+                    <p className='text-xs text-muted-foreground pl-11'>
+                      Enable by setting <code>DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true</code> in <code>.env</code> then restart dev
+                      server.
+                    </p>
+                  )}
 
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-3'>
@@ -399,10 +411,17 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={devToolsEnabled.mcpInspector}
+                      checked={mcpInspectorEnvEnabled && devToolsEnabled.mcpInspector}
                       onCheckedChange={(checked) => handleDevToolToggle('mcpInspector', checked)}
+                      disabled={!mcpInspectorEnvEnabled}
                     />
                   </div>
+                  {!mcpInspectorEnvEnabled && (
+                    <p className='text-xs text-muted-foreground pl-11'>
+                      Enable by setting <code>DEVTOOLS_ENABLE_MCP_INSPECTOR=true</code> in <code>.env</code> then restart dev
+                      server.
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>

@@ -213,9 +213,21 @@ export async function instantiateServer({
   const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT) || 6274
   const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT) || 6277
   const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT) || 4983
-  logger.info(`MCP Inspector UI (if running): http://localhost:${inspectorClientPort}`)
-  logger.info(`MCP Inspector Proxy (if running): http://localhost:${inspectorServerPort}`)
-  logger.info(`Drizzle Studio (if running): http://localhost:${drizzlePort}`)
+  const inspectorEnvEnabled = String(process.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false').toLowerCase() === 'true'
+  const drizzleEnvEnabled = String(process.env.DEVTOOLS_ENABLE_DRIZZLE_STUDIO ?? 'false').toLowerCase() === 'true'
+
+  if (inspectorEnvEnabled) {
+    logger.info(`MCP Inspector UI (if running): http://localhost:${inspectorClientPort}`)
+    logger.info(`MCP Inspector Proxy (if running): http://localhost:${inspectorServerPort}`)
+  } else {
+    logger.info('MCP Inspector autostart disabled. Set DEVTOOLS_ENABLE_MCP_INSPECTOR=true to launch during dev.')
+  }
+
+  if (drizzleEnvEnabled) {
+    logger.info(`Drizzle Studio (if running): http://localhost:${drizzlePort}`)
+  } else {
+    logger.info('Drizzle Studio autostart disabled. Set DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true to launch during dev.')
+  }
 
   // Flush stdout to ensure output is visible
   if (process.stdout.isTTY) {

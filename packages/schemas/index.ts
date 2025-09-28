@@ -48,6 +48,9 @@ export * from './src/git.schemas'
 // MCP Protocol Schemas
 export * from './src/mcp.schemas'
 
+// Devtools Schemas
+export * from './src/devtools.schemas'
+
 // Hook Schemas
 export * from './src/hooks.schemas'
 export * from './src/mcp-tracking.schemas'

@@ -43,13 +43,15 @@ async function startServices() {
     const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT || 4983)
     const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT || 6274)
     const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT || 6277)
-    // Default: autostart inspector unless explicitly disabled
-    const autostartInspector = String(process.env.MCP_INSPECTOR_AUTOSTART ?? 'true').toLowerCase() !== 'false'
+    const enableDrizzleStudio = String(process.env.DEVTOOLS_ENABLE_DRIZZLE_STUDIO ?? 'false').toLowerCase() === 'true'
+    const enableMcpInspector = String(process.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false').toLowerCase() === 'true'
 
     await killPort(serverPort) // server
     await killPort(clientPort) // client
-    await killPort(drizzlePort) // drizzle studio
-    if (autostartInspector) {
+    if (enableDrizzleStudio) {
+      await killPort(drizzlePort) // drizzle studio
+    }
+    if (enableMcpInspector) {
       await killPort(inspectorClientPort) // mcp inspector ui
       await killPort(inspectorServerPort) // mcp inspector proxy
     }
@@ -66,20 +68,29 @@ async function startServices() {
     console.log('🚀 Starting client...')
     const clientProcess = Bun.spawn(['bun', 'run', 'dev'], {
       cwd: join(rootDir, 'packages', 'client'),
-      stdio: ['inherit', 'inherit', 'inherit']
+      stdio: ['inherit', 'inherit', 'inherit'],
+      env: {
+        ...process.env,
+        DEVTOOLS_ENABLE_DRIZZLE_STUDIO: enableDrizzleStudio ? 'true' : 'false',
+        DEVTOOLS_ENABLE_MCP_INSPECTOR: enableMcpInspector ? 'true' : 'false'
+      }
     })
     processes.push(clientProcess)
 
-    // Start Drizzle Studio (database UI)
-    console.log('🗄️  Starting Drizzle Studio...')
-    const drizzleProcess = Bun.spawn(['bun', 'run', 'drizzle:studio'], {
-      cwd: rootDir,
-      stdio: ['inherit', 'inherit', 'inherit']
-    })
-    processes.push(drizzleProcess)
+    if (enableDrizzleStudio) {
+      // Start Drizzle Studio (database UI)
+      console.log('🗄️  Starting Drizzle Studio...')
+      const drizzleProcess = Bun.spawn(['bun', 'run', 'drizzle:studio'], {
+        cwd: rootDir,
+        stdio: ['inherit', 'inherit', 'inherit']
+      })
+      processes.push(drizzleProcess)
+    } else {
+      console.log('🗄️  Drizzle Studio autostart disabled. Set DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true to enable.')
+    }
 
-    // Start MCP Inspector (UI + proxy) — enabled by default, but keep headless
-    if (autostartInspector) {
+    // Start MCP Inspector (UI + proxy)
+    if (enableMcpInspector) {
       console.log('🛠️  Starting MCP Inspector...')
       // Prepare a minimal Inspector config that preloads Promptliano MCP (stdio)
       const inspectorConfigPath = join(rootDir, '.mcp-inspector.config.json')
@@ -118,7 +129,7 @@ async function startServices() {
       })
       processes.push(inspectorProcess)
     } else {
-      console.log('🛠️  MCP Inspector autostart is disabled. Set MCP_INSPECTOR_AUTOSTART=true to enable.')
+      console.log('🛠️  MCP Inspector autostart disabled. Set DEVTOOLS_ENABLE_MCP_INSPECTOR=true to enable.')
     }
 
     // Handle process termination
