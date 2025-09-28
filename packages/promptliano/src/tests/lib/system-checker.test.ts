@@ -76,7 +76,7 @@ describe('SystemChecker', () => {
 
       expect(result.installed).toBe(true)
       expect(result.path).toBe(installPath)
-      expect(result.version).toBe('0.11.0')
+      expect(result.version).toBe('0.12.0')
 
       // Restore
       homedirSpy.mockRestore()
