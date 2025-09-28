@@ -36,7 +36,11 @@ export function MarkdownRenderer({
       ? [codeTheme, codeTheme]
       : DEFAULT_THEME_PAIR
 
-  const shikiTheme = shikiThemeCandidate as unknown as ShikiThemeProp
+  // Ensure the theme tuple matches the expected `[BundledTheme, BundledTheme]` type
+  const shikiTheme: ShikiThemeProp = [
+    shikiThemeCandidate[0] as unknown as any,
+    shikiThemeCandidate[1] as unknown as any
+  ] as unknown as ShikiThemeProp
 
   const runtimeOrigin =
     typeof window !== 'undefined' && typeof window.location?.origin === 'string' ? window.location.origin : undefined

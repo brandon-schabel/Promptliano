@@ -103,6 +103,7 @@ import {
 } from '@/components/model-selection'
 import { AIErrorDisplay } from '@/components/errors'
 import { useModelConfigPresets } from '@/hooks/use-model-presets'
+import type { ToolUIPart } from 'ai'
 
 export function ModelSettingsPopover() {
   const {
@@ -389,8 +390,8 @@ const ToolCallSection: React.FC<{
         ? 'input-streaming'
         : 'input-available'
   const toolType = (call.toolName
-    ? `tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}`
-    : 'tool-call') as `tool-${string}`
+    ? (`tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}` as const)
+    : ('tool-call' as const)) as ToolUIPart['type']
   const previewText = call.previewText || buildToolPreview(call)
   const inputValue = call.rawArgs ?? call.argsSummary ?? undefined
   const outputValue = hasError ? undefined : (call.rawOutput ?? call.outputSummary ?? call.previewText ?? undefined)

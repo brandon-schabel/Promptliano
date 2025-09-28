@@ -51,7 +51,11 @@ export default defineConfig({
       },
       workbox: {
         clientsClaim: true,
-        skipWaiting: true
+        skipWaiting: true,
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // allow up to 8 MiB
+        // avoid precaching the very large main chunk explicitly if needed
+        // globIgnores patterns are relative to the sw scope
+        globIgnores: ['**/assets/main-*.js']
       },
       devOptions: {
         enabled: true
